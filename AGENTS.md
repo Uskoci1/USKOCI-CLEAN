@@ -3,6 +3,15 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+AI conversation semantic audit (2026-09-22, read-only):
+`docs/implementation/v5-ai-first/ai-conversation-audit-20260922/REPORT.md` compares intended behavior,
+current intake v44 / worker v15, 13 live SQL bodies and stored DEV dialogues. Repeated summaries and
+questions after finish are observed; wrong relative dates, daily-price units and retained terms after
+task changes are separate material findings. Eight offline diagnostics reproduce limitations; 123 existing
+boundary tests pass. Neither establishes model quality or a fix. No DEV write/provider/device action;
+ledger192. See the report before changing prompts or claiming the conversation is complete. Timeout
+recovery11.1 and publication PKG-037 remain separate. Do not copy raw conversations into the repository.
+
 PKG-037 (2026-09-22, proven and DEV applied): publication-only deep-read 11.2 recovery.
 Separate preparation/provider/settlement deadlines, single settlement after a lost ACK, client 55-second
 accepted-review wait and a bounded expired-review branch in the existing sweep. See

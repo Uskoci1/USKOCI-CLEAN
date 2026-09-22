@@ -36,6 +36,7 @@ of app completion from counts of migrations, files or closed findings.
 | Closure legacy readiness / recovery (7.41, remaining 8.18) | Investigated, unresolved | Continuation handoff explains restricted-account guard and locally saved request-key dependency. Certified changes require fresh owner approval. |
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
 | Interview / worker / Q&A recovery (11.1) | Investigated, unresolved; PKG-027b sweep already applied | `v5-ai-first/AI_DEADLINE_RECOVERY_INVESTIGATION_20260922.md` now compares deployed bundles and current failure bodies. Streaming remains 12s server / 15s client; Q&A has a separate 45s bound. No paid probes. |
+| AI conversation meaning / repetition / finish | Audited, unresolved; separate from timeout recovery | `v5-ai-first/ai-conversation-audit-20260922/REPORT.md`: current deployed code, 13 live SQL bodies and stored dialogues. Observed repeated summaries/finish questions, wrong relative date, stale terms after task switch and daily-price mismatch. 123 boundary tests pass; eight offline diagnostics reproduce limitations, not fixes. No DEV write/provider call. |
 | Full Home aggregate integration | Unresolved | PKG-023j installed; PKG-035 corrects counts. Do not claim all application/Agreement scans removed. |
 
 ## Product and public-release work queue
