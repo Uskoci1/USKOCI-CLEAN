@@ -42,17 +42,19 @@ certificate-neutral operation. B needs fresh explicit owner approval and verifie
   `APK_RECEIPT_20260922.json`, and
   `supabase/operations/dev-alpha/ledger/20260922_pkg045a_application.receipt.json`.
 
-## Owner decisions pending — silence is not approval
+## Owner approval and remaining device condition
 
-Two asynchronous questions were sent and had no answer when this handoff was written:
+On 2026-09-22 the owner explicitly approved pkg045b and the internal certificate update AFTER verification
+of the new app. This satisfies the separate certificate permission. Do not ask for that approval again.
 
-1. Approve only pkg045b on DEV, including closure-certificate rebinding, after compatible phone rollout?
-2. Ready at the USB phone for a non-destructive APK update, and is this the only test phone?
+The asynchronous question about readiness at the USB phone and the number of active test phones is
+still unanswered. No installation or final DEV restriction has been performed in response to the
+approval alone.
 
-If approved and ready, first install the verified APK with data preserved, verify actual task reads
+When the owner is ready, first install the verified APK with data preserved, verify actual task reads
 and account for every active test device. Only then perform fresh canonical preflight and apply the
 exact proven B candidate. Record the actual new ledger and certificate; disposable digest values
-are not predicted canonical values. If either gate is pending, leave B unapplied.
+are not predicted canonical values. While the device verification condition is pending, leave B unapplied.
 
 ## APK state
 

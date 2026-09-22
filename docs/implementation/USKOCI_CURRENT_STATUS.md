@@ -16,7 +16,8 @@ of app completion from counts of migrations, files or closed findings.
   That run passes17 SQL/Auth/REST/actual-client checks,355 offline Edge tests and108 focused client checks.
   Local types and full Jest242/4687 pass, exit0. Compatible APK35707463751 source05fa7232 is downloaded
   and attested (SHA256ed69c7ae…), **not installed**. Existing phone APK35698097121 still works under A.
-  PKG-045b is proven but ON HOLD for fresh certificate-movement approval and compatible APK rollout;
+  PKG-045b is proven and explicitly approved by the owner on 2026-09-22, conditional on new-app verification.
+  It remains ON HOLD for phone readiness and verified compatible APK rollout;
   its column restriction necessarily moves the table-ACL erasure digest. Real disposable closure passes
   on its new certificate. No marketplace rows changed. See v5-ai-first/pkg045/ and the A DEV receipt.
 
@@ -66,7 +67,7 @@ of app completion from counts of migrations, files or closed findings.
 | Closure preparation blocker parity (12.10) | Proven and DEV applied | PKG-034, run35654209245, 25 checks. Does not close legacy readiness or second-device recovery. |
 | Selectable versus historical application counts (7.32) | Proven and DEV applied; client built, device pending | PKG-035, run35658331088, 38 checks. |
 | Business refusals (7.1) | Partial | PKG-036 compares 11 lifecycle RPCs plus selected guards, fixes adapter/controller/screen gaps. Audit other call families individually. |
-| Public task columns (7.17) | PKG-045 proven; A applied, B held; finding still open on DEV | Explicit reads/client and APK35707463751 ready. A preserves the certificate/old APK. B restricts columns, must rebind the certificate, and needs fresh explicit owner approval plus compatible APK rollout. See `v5-ai-first/pkg045/PKG045_TASK_COLUMN_PRIVACY.md`. |
+| Public task columns (7.17) | PKG-045 proven; A applied, B approved but device gate pending; finding still open on DEV | Explicit reads/client and APK35707463751 ready. A preserves the certificate/old APK. Owner explicitly approved B and certificate rebinding after new-app verification. Phone readiness and compatible APK rollout remain pending. See `v5-ai-first/pkg045/PKG045_TASK_COLUMN_PRIVACY.md`. |
 | Closure legacy readiness / recovery (7.41, remaining 8.18) | Investigated, unresolved | Continuation handoff explains restricted-account guard and locally saved request-key dependency. Certified changes require fresh owner approval. |
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
 | Interview / worker / Q&A recovery (11.1) | Handler fixes proven/applied; device pending | PKG-039 proof35675491926,16 checks and PKG-040 proof35677596411,17 checks: bounded independent settlement without paid replay or success overwrite. Provider30s / native55s. Process death, unknown claim ownership and unavailable cleanup still use durable sweep grace; no instant-recovery guarantee or paid/device probe. |

@@ -1,7 +1,8 @@
 # PKG-045 — explicit task reads and public column privacy
 
-Status: **A proven and applied to DEV; B proven and ON HOLD** for fresh explicit certificate approval
-and compatible APK rollout. Finding7.17 is not yet closed on DEV.
+Status: **A proven and applied to DEV; B proven and explicitly owner-approved, conditional on new-app
+verification**. B remains ON HOLD for phone readiness and compatible APK rollout. Finding7.17 is not
+yet closed on DEV.
 
 ## Boundary and measured baseline
 
@@ -102,7 +103,10 @@ No marketplace row was changed. Receipt: `supabase/operations/dev-alpha/ledger/2
 
 B was not applied. Fresh readback confirms broad SELECT remains until the controlled rollout;
 there is no claim that A alone fixed public column privacy. Owner questions sent for B's certificate
-approval and readiness to install/test the verified APK. No answer is implied by elapsed time.
+approval and readiness to install/test the verified APK. On 2026-09-22 the owner explicitly approved
+pkg045b and the internal certificate update AFTER new-app verification. This permission is granted;
+phone readiness and the number of active test devices remain unanswered. Do not repeat the certificate
+approval question, or treat that permission as proof that the device condition has been met.
 - Local migration inventory still refuses the known foreign untracked148th file; left untouched.
   Tracked source147 validation passed in the first CI run.
 

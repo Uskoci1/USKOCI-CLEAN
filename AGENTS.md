@@ -7,14 +7,17 @@ PKG-045 (2026-09-22, proven; A DEV applied, B HOLD): public task column privacy7
 explicit task reads and adapts list/notification dependencies; it preserves the ready closure certificate
 and old clients. Candidate B removes broad SELECT and maintains five dependent owner predicates.
 IMPORTANT: table ACLs are in closure_erasure_program_digest_v5(), so B includes an isolated recertification
-and is ON HOLD until fresh explicit owner approval AND compatible APK rollout. General DEV-fix approval
-does not authorize B. A is applied: ledger197, unchanged ready closure65980fce asserted atomically,
+and requires explicit owner approval AND compatible APK rollout. On 2026-09-22 the owner explicitly
+approved pkg045b and the internal certificate update AFTER verification of the new app. That approval
+is granted; do not ask for it again. B remains ON HOLD for phone readiness and verified rollout.
+A is applied: ledger197, unchanged ready closure65980fce asserted atomically,
 exact ledger text and six function bodies/ACLs/security/config match proof35710468643 source92f75b11.
 17 SQL/Auth/REST/actual-client checks and355 offline Edge tests pass. Real disposable closure under B
 reaches CLOSED and erases the draft/private address. Finding7.17 remains OPEN until B rollout.
 APK35707463751 source05fa7232 is built/downloaded,
 hash ed69c7ae… and both attestations match; not installed. Types, Jest242/4687 and108 focused client checks
-pass. Owner questions for B approval and phone readiness are pending, not implicit approval.
+pass. Phone readiness and the number of active test phones are still pending; approval does not imply
+that the device verification condition has been met.
 See pkg045/PKG045_TASK_COLUMN_PRIVACY.md, PROOF_35710468643.json and the A DEV receipt.
 
 PKG-044 (2026-09-22, Edge deployed): do not overwrite a contextual ASK for a genuinely missing field

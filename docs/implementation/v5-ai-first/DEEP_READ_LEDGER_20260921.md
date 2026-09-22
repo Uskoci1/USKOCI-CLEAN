@@ -260,6 +260,8 @@ is built/downloaded and hash/attestations verified, not installed. Five dependen
 owner policies and notification/paged reads are included. Restricting the table ACL moves the erasure
 certificate, so final candidate B requires fresh explicit approval and APK rollout; candidate A is
 additive and keeps the existing certificate. See `pkg045/PKG045_TASK_COLUMN_PRIVACY.md` for proof status.
+**Owner decision, 2026-09-22:** pkg045b and certificate rebinding explicitly approved after verification
+of the new app. Phone readiness and compatible APK rollout remain pending; B is not applied.
 
 **7.18 — note. The list ignores the server's own "accepts applications".** `rpc_list_open_tasks_v3`
 computes `acceptsApplications` (free slots and a deadline still ahead) and does NOT filter out tasks whose
