@@ -3,6 +3,16 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-042 (2026-09-22, proven and DEV applied): cancelled-Agreement read parity for Home, paged applications
+and task relations; Home now consumes the owned validated attention aggregate with explicit unavailable
+state and no inference fallback. Other preview reads remain full lists. Ledger196 =147 source +49 dev_alpha,
+ready closure65980fce preserved atomically; exact candidate/body/authority readback matches. Proof35698097056
+source dfa54206 passes25 SQL/Auth/REST/exact-client checks plus346 offline Edge tests. Types and full repeat
+242 suites /4687 Jest tests pass, exit0; first run's Firebase subprocess timeout is documented, not hidden.
+PKG-00435698097011 and PKG-00735698097030 pass. No Edge/JWT/certificate/user-row change or phone action.
+Read `docs/implementation/v5-ai-first/pkg042/PKG042_HOME_READ_PARITY.md` and receipts. Do not claim complete
+Home pagination, fewer preview fetches, release readiness or device verification from this package.
+
 PKG-040 / PKG-041 (2026-09-22, proven and DEV applied/deployed): Q&A owned failure settlement,
 independent bounded cleanup and native55s submit; intake guards contradictory literal relative-day
 evidence without guessing dates from negation. Ledger195 =147 source +48 dev_alpha; closure65980fce

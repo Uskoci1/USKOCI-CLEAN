@@ -12,12 +12,17 @@ of app completion from counts of migrations, files or closed findings.
 ## Current anchors
 
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:
-  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
-- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-040 applied on 2026-09-22: ledger195
-  = source147 + dev_alpha48. Exact candidate text and function/authority readback match the disposable proof.
-- Last applied closure proof: PKG-040 preserved readiness and the certified digest `65980fce…` atomically.
+  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_HOME_ATTENTION.md`,
+  with preceding AI details in `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
+- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-042 applied on 2026-09-22: ledger196
+  = source147 + dev_alpha49. Exact candidate text and function/authority readback match the disposable proof.
+- Last applied closure proof: PKG-042 preserved readiness and the certified digest `65980fce…` atomically.
   Direct private digest execution through this connector is denied; do not claim a new independent check.
-- Latest client change: PKG-040 Q&A55s submit and technical-failure copy, preceding interview55s send
+- Latest client change: PKG-042 Home server attention, explicit unavailable state and read parity;
+  source dfa54206. Types and full repeat Jest242 suites /4687 tests pass, exit0. First full run's Firebase
+  subprocess timeout is recorded in the package. Proof35698097056 passes25 SQL/Auth/REST/exact-client checks
+  and346 offline Edge tests; PKG-00435698097011 and PKG-00735698097030 pass. No phone check yet.
+- Preceding client change: PKG-040 Q&A55s submit and technical-failure copy, preceding interview55s send
   bounds and duplicate fact/UNKNOWN cleanup. Types and full Jest241 suites /4652 tests pass, exit0.
   PKG-040 proof35677596411 passes346 offline Edge tests and17 SQL/Auth/REST checks. Intake47 (PKG-041),
   worker17, Q&A13 and publication14 byte-verified; JWTtrue. PKG-01035676936960 and PKG-014B35677260602 pass.
@@ -39,7 +44,7 @@ of app completion from counts of migrations, files or closed findings.
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
 | Interview / worker / Q&A recovery (11.1) | Handler fixes proven/applied; device pending | PKG-039 proof35675491926,16 checks and PKG-040 proof35677596411,17 checks: bounded independent settlement without paid replay or success overwrite. Provider30s / native55s. Process death, unknown claim ownership and unavailable cleanup still use durable sweep grace; no instant-recovery guarantee or paid/device probe. |
 | AI conversation meaning / repetition / finish | PKG-038/041 deployed; quality/device work remains | Strict dialogue plan, one missing question, finish handoff, ambiguity controls, complete context, no-op filtering and post-receipt prose; full23-field review fixed. Native repetition cleanup built. Literal relative-day contradictions require clarification. Complex dates, model interpretation and history beyond30 messages remain limits. See `v5-ai-first/ai-conversation-audit-20260922/REPAIR_COVERAGE_20260922.md`; no paid quality evaluation. |
-| Full Home aggregate integration | Unresolved | PKG-023j installed; PKG-035 corrects counts. Do not claim all application/Agreement scans removed. |
+| Full Home aggregate integration | Attention implemented/proven/DEV applied; bounded previews remain | PKG-042 wires validated account-owned attention and fixes cancelled-Agreement reader disagreement (7.49). Activities/upcoming previews still read full lists. No pagination or fetch-reduction claim; APK/device status separate. |
 
 ## Product and public-release work queue
 

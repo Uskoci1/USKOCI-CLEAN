@@ -1,7 +1,7 @@
 # PKG-042 — cancelled Agreement read parity and Home attention
 
-Status: server proof passed; client integration prepared and its combined disposable proof pending.
-Canonical DEV is unchanged at ledger 195.
+Status: combined server/client proof passed and candidate applied to canonical DEV on 2026-09-22.
+Ledger196 =147 source +49 dev_alpha. Native client is committed; new APK build/device checks are separate.
 
 ## Measured defect
 
@@ -47,8 +47,8 @@ Activities pagination solved by this package.
 First run 35696725854 reproduced both discrepancies with SQL and real Auth/REST. Atomic drift/tamper
 checks passed; the candidate then rolled back because the temporary authority record's `strict` field
 was not accessible in PL/pgSQL. Renamed that temporary field to `is_strict`, retaining the authority
-comparison. No canonical DEV write occurred. The corrected server proof 35697307349 passed; the next
-run will additionally bind the new Home client adapter.
+comparison. No canonical DEV write occurred in that failed attempt. The corrected server proof
+35697307349 passed; combined proof35698097056 additionally binds the new Home client adapter.
 
 ## Client attention integration
 
@@ -74,11 +74,27 @@ Local focused tests: 60 pass across decoder/service, Home route and composition.
 regressions fail on the previous route and pass on the new one; the existing account fence stays green.
 Types pass. The first full regression run passed 241/242 suites and 4,686/4,687 tests: the existing
 Firebase config subprocess exceeded its 15-second deadline (null process status). The unchanged
-Firebase suite then passed alone (8/8; the affected check took 427 ms). A full repeat is running;
-the timeout is not counted as a green full run. The updated disposable proof is pending and also
-loads the exact new client adapter over real local Auth/PostgREST.
+Firebase suite then passed alone (8/8; the affected check took 427 ms). The full repeat passed
+242 suites /4,687 tests and exited0; its existing delayed-exit warning is recorded. The earlier timeout
+is not counted as a green full run. Disposable proof35698097056 passes25 checks and346 offline Edge
+tests, loading the exact new client adapter over real local Auth/PostgREST. Source dfa54206.
 
 The TypeScript config now excludes the already ignored `artifacts/` output directory, retaining every
 Expo base exclusion and every source include. An earlier Edge staging copy under artifacts contained
 an intentionally partial dependency tree and was incorrectly picked up by the broad source glob.
 No tracked application source was excluded; this is not a suppression of a source type error.
+
+## Applied and verified
+
+Migration20260922071319 `dev_alpha_pkg042a_cancelled_agreement_read_parity` contains the exact proven
+candidate without its final newline (SHA256 f0b7356c9f66067e91b2acf63a7f30a6729debc22e1f0e2bc45af6524e145670).
+Fresh postflight reads verified all three new body pins, both unchanged dependency pins and all five
+owners/ACLs/config/volatility/strictness. The certified closure65980fce stayed unchanged and the
+transaction asserted live equality/readiness before and unchanged live/readiness after. No independent
+private digest execution is claimed. No existing user row, Edge function or JWT setting was changed.
+
+Receipts: `DISPOSABLE_PROOF_RECEIPT_20260922.json` and
+`supabase/operations/dev-alpha/ledger/20260922_pkg042_application.receipt.json`.
+PKG-00435698097011 and PKG-00735698097030 also pass on the same source.
+Clean CI source147 integrity passes. Local integrity still refuses the owner-preserved foreign
+untracked migration; no frozen tracked migration or inventory rule was changed.

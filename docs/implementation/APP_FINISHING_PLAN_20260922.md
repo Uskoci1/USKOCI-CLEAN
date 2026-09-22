@@ -47,7 +47,8 @@ simultaneous sessions, requests per second and concurrent AI streams are differe
 6. Before public release, document monitoring, incident ownership, recovery/backup checks and a rollback
    plan for compatible client/server versions. A small invited pilot precedes wider availability.
 
-Specific known growth work: the full Home attention aggregate is not yet integrated. The new PKG-037
+Specific known growth work: PKG-042 integrates Home attention, while activity/upcoming previews still
+read complete lists; a separate bounded contract and reconciliation proof are required. The new PKG-037
 sweep limits writes to 100 review commands per invocation; that does not bound rows scanned. A read-only
 catalog check on 2026-09-22 found only the review primary key and account/request unique index on
 `private.ai_task_review_commands`, no state/lease index. Measure the query with larger isolated history;

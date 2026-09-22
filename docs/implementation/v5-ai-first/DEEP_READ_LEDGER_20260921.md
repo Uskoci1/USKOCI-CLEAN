@@ -69,6 +69,15 @@ Fix shape (not applied — a server change, needs owner approval): in `sync_need
 `remaining_search_closed_at is not null`, compare against the slots actually selected rather than
 `required_slots`. Never exercised: no need has ever completed on canonical DEV.
 **Applied 2026-09-21: PKG-029b** (proof run 35619942561; `docs/implementation/v5-ai-first/pkg029/PKG029_SERVER_ROUND.md`).
+**Follow-up applied 2026-09-22: PKG-042a.** Fresh function-body inspection found three readers still
+using the pre-029b existence predicate: Home attention, paged applications and task relations.
+Disposable proof35698097056 reproduces the disagreement before and passes25 checks after, including
+the exact Home client adapter over actual Auth/REST, 35-row overflow and account isolation. Three
+read predicates now match the canonical list; raw SELECTED/stale precedence and historical agreementId
+are preserved. DEV ledger196; unchanged ready closure asserted atomically. Native Home consumes the
+strictly validated aggregate and shows an unavailable state on failure. Full Jest242 suites /4687 pass.
+Other preview reads remain full lists; device verification is separate. See
+`docs/implementation/v5-ai-first/pkg042/PKG042_HOME_READ_PARITY.md` and its receipts.
 
 **1.2 — defect, minor. Auto-completion is silent.** When the requester confirms,
 `rpc_confirm_completion` emits `EXECUTION_STATE_CHANGED` to the worker. When 48 hours pass and
