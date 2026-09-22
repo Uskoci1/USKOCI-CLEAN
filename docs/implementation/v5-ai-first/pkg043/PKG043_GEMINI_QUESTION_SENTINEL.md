@@ -29,16 +29,27 @@ The provider schema and prompt now use the nonempty sentinel `NONE`. The decoder
 to the existing internal empty marker, then applies every existing dialogue constraint. Previous
 empty output remains readable for compatibility. ASK without a real question, ANSWER with a
 question, unknown keys, extra keys and invalid facts remain rejected. The sentinel is never stored
-as a task fact or shown as assistant prose. The database and native contracts do not change.
+as a task fact or passed to the client as dialogue metadata. The database and native contracts do not change.
 
 ## Validation
 
 - Two added regressions failed on the prior source: actual outgoing empty enum and rejection of
   the nonempty no-question sentinel. Three invalid-dialogue controls already passed.
 - After the correction, all86 focused intake/context/wire tests pass, including these five.
-- CI/disposable verification and hosted readback are pending at this initial commit.
-- No agent-triggered provider generation. A successful owner retry is still required to attribute
-  this incident conclusively and to demonstrate an actual response on the phone.
+- Types pass locally. CI35701314667 on e2d34bdacd395e0be761e572944b428dddb24270 passes all351
+  offline Edge tests and the existing25-check PKG-042 disposable SQL/Auth/REST regression proof.
+  The SQL proof validates unchanged integration boundaries; it is not a provider-schema acceptance test.
+- Deployed intake48 with verify_jwt=true. All four hosted files match that commit byte-for-byte;
+  unauthenticated POST returns401. DEV ledger remains196 (147 source +49 dev_alpha). No SQL executed
+  except read-only checks; no new independent certificate computation is claimed.
+- No agent-triggered provider generation. The owner retried after deployment and confirmed a response.
+  Read-only DEV evidence: subsequent attempts at07:53:51 and07:54:15 UTC both SUCCEEDED with receipts,
+  taking3.056 and5.463 seconds. A fresh phone screenshot shows actual replies. Together with the narrow
+  wire-only change, this supports the empty enum as the cause of the earlier request rejection.
+- The same real-use check exposed a separate semantic defect: ASK prose is always replaced by a generic
+  field question. Geography clarification therefore repeats the same generic location question even
+  after the owner supplies partial route information. This is NOT closed by the transport fix; follow-up
+  PKG-044 preserves contextual questions for genuinely missing fields.
 
 ## Boundaries
 

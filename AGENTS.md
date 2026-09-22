@@ -3,6 +3,14 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-043 (2026-09-22, Edge deployed): owner phone attempt exposed Gemini400 INVALID_ARGUMENT on intake47.
+Outgoing dialogue.questionKey enum contained an empty string; use NONE on wire and normalize at the
+strict decoder boundary. Two regressions fail before/pass after; CI35701314667 sourcee2d34bda passes351
+offline Edge tests plus25 existing disposable SQL/Auth/REST checks. Intake48 byte-verified, JWTtrue,
+anonymous401; no SQL/client/credential change, ledger196. Owner retry yielded two SUCCEEDED receipts
+and visible phone replies. Separate repetitive generic ASK wording is now being corrected; this is
+not a conversation-quality sign-off. See pkg043/PKG043_GEMINI_QUESTION_SENTINEL.md.
+
 PKG-042 (2026-09-22, proven and DEV applied): cancelled-Agreement read parity for Home, paged applications
 and task relations; Home now consumes the owned validated attention aggregate with explicit unavailable
 state and no inference fallback. Other preview reads remain full lists. Ledger196 =147 source +49 dev_alpha,

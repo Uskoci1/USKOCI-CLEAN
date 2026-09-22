@@ -11,6 +11,13 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- Latest incident/correction: PKG-043 intake48 deployed after the owner's phone attempt failed with
+  Gemini400 INVALID_ARGUMENT. Nonempty question sentinel replaces the invalid empty enum member.
+  CI35701314667:351 offline Edge tests and25 disposable integration checks; exact four-file readback,
+  JWTtrue, anonymous401. No new APK required, ledger196 unchanged. Owner retry confirmed with two
+  SUCCEEDED receipts and visible replies; separate generic-question repetition remains under repair.
+  This verifies restored transport, not overall AI response quality. See v5-ai-first/pkg043/.
+
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:
   `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_HOME_ATTENTION.md`,
   with preceding AI details in `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
@@ -21,7 +28,7 @@ of app completion from counts of migrations, files or closed findings.
 - Latest client change: PKG-042 Home server attention, explicit unavailable state and read parity;
   source dfa54206. Types and full repeat Jest242 suites /4687 tests pass, exit0. First full run's Firebase
   subprocess timeout is recorded in the package. Proof35698097056 passes25 SQL/Auth/REST/exact-client checks
-  and346 offline Edge tests; PKG-00435698097011 and PKG-00735698097030 pass. No phone check yet.
+  and346 offline Edge tests; PKG-00435698097011 and PKG-00735698097030 pass. Launch-only phone check below.
 - Preceding client change: PKG-040 Q&A55s submit and technical-failure copy, preceding interview55s send
   bounds and duplicate fact/UNKNOWN cleanup. Types and full Jest241 suites /4652 tests pass, exit0.
   PKG-040 proof35677596411 passes346 offline Edge tests and17 SQL/Auth/REST checks. Intake47 (PKG-041),
