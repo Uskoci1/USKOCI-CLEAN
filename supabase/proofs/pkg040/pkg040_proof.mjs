@@ -33,7 +33,11 @@ if(mode==='apply'){
  process.exit(0);
 }
 assert.ok(['before','after'].includes(mode));
-await rt.login();
+// This reconstructed database exports no historical device credentials.
+// Create explicit disposable actors through local Auth instead of assuming them.
+const taskOwner=await rt.actor('pkg040-owner-'+mode);
+const requesterProfile=sql("select id from public.app_profiles where account_id="+q(taskOwner.id)+" and kind='REQUESTER'");
+assert.ok(requesterProfile);
 if(sql("select count(*) from private.publication_policy_bundles where policy_id='PRESELECTION_QA_V1' and jurisdiction='RS' and version=1")==='0')sql(renderQaPolicyCandidate());
 const bundle=sql("select id from private.publication_policy_bundles where policy_id='PRESELECTION_QA_V1' and jurisdiction='RS' and version=1");
 const expectedPolicy=JSON.parse(readFileSync('docs/implementation/v5-ai-first/PRESELECTION_QA_EXECUTABLE_POLICY.json','utf8')).document;
@@ -50,7 +54,7 @@ function need(){
  const nid=randomUUID();
  sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
  insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,approximate_city,approximate_area,mode,required_slots,schedule_kind,response_deadline,published_at,task_country_code,task_timezone)
- values(${q(nid)},${q(rt.requesterId)},${q(rt.rp)},'PUBLISHED','PKG040 synthetic task','Disposable SQL fixture','PROOF','Novi Sad','Liman','OFFERS',2,'FLEXIBLE',clock_timestamp()+interval '2 days',clock_timestamp(),'RS','Europe/Belgrade');
+ values(${q(nid)},${q(taskOwner.id)},${q(requesterProfile)},'PUBLISHED','PKG040 synthetic task','Disposable SQL fixture','PROOF','Novi Sad','Liman','OFFERS',2,'FLEXIBLE',clock_timestamp()+interval '2 days',clock_timestamp(),'RS','Europe/Belgrade');
  insert into public.need_geography(need_id,public_topology) values(${q(nid)},'{"mode":"STATIONARY","start":{"city":"Novi Sad","area":"Liman"}}');commit;`);
  return nid;
 }
@@ -76,7 +80,7 @@ if(mode==='after'){
  pass('FAILED_ATTEMPT_TERMINAL_NO_REPLAY_LATE_COMPLETION_OR_PUBLICATION');
  const next={...i,p_text:'Da li je prilaz slobodan?',p_client_request_id:randomUUID()};assert.ok((await claim(next)).claim);pass('EXPLICIT_NEW_COMMAND_CAN_PROCEED');
  const wrong=await dispatched();await denied(service.rpc('rpc_fail_qa_classification_service',{...ids(wrong.i,wrong.c),p_attempt_id:randomUUID()}),'QA_CLASSIFICATION_NOT_FOUND');
- await denied(service.rpc('rpc_fail_qa_classification_service',{...ids(wrong.i,wrong.c),p_account_id:rt.requesterId}),'QA_CLASSIFICATION_NOT_FOUND');
+ await denied(service.rpc('rpc_fail_qa_classification_service',{...ids(wrong.i,wrong.c),p_account_id:taskOwner.id}),'QA_CLASSIFICATION_NOT_FOUND');
  await denied(service.rpc('rpc_fail_qa_classification_service',{...ids(wrong.i,wrong.c),p_need_id:randomUUID()}),'QA_CLASSIFICATION_NOT_FOUND');
  await denied(a.client.rpc('rpc_fail_qa_classification_service',ids(wrong.i,wrong.c)));await denied(rt.anon.rpc('rpc_fail_qa_classification_service',ids(wrong.i,wrong.c)));
  assert.equal((await read(wrong.i)).state,'PROCESSING');pass('WRONG_ATTEMPT_OWNER_TASK_AND_PUBLIC_ROLES_DENIED');

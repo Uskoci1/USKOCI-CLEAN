@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 55524,
-      "sha256": "fe3dc80a6f9d5604140d200705d8fabb355d6e8fb78e9c4a0f2dab686bfd0c1a"
+      "bytes": 56948,
+      "sha256": "7e8c3c1838726580fef89fdc919892c1ebc595d01a907cf60aa7f5e8bca3b77e"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
@@ -14,8 +14,8 @@
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 30917,
-      "sha256": "081f768cac16576b8b30a98c68249e1b11e90b5f6f1ccc903e9b9a5a0d3f667e"
+      "bytes": 32745,
+      "sha256": "e8f4c3b5039421afc52e7be2e3e897c30a6a80bfca3a396cb8f30d20a2fd4916"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
@@ -54,32 +54,37 @@
     }
   ],
   "refrozen": {
-    "package": "PKG-039-INTERVIEW-RECOVERY",
+    "package": "PKG-041-RELATIVE-DAY-EVIDENCE",
     "date": "2026-09-22",
-    "reason": "Owner requested complete AI repairs. Exact current intake/stream source adds bounded same-attempt metadata settlement and an explicit30-second provider deadline. No source assertion is removed. Five new failure regressions fail on PKG-038; PKG-039 has its own disposable SQL/race proof. Deployment/quality remain separate.",
+    "reason": "Four new regressions fail on PKG-039: literal relative-day evidence inside full sentences can contradict schedule kind or start date. Guard asks for an exact date, never rewrites based on naive word order. Correct negation evidence preserved. Source checks retained; no SQL/schema change. Provider interpretation remains unproven.",
     "previousFreeze": {
-      "package": "PKG-038-CONVERSATION-SEMANTICS",
+      "package": "PKG-039-INTERVIEW-RECOVERY",
       "date": "2026-09-22",
-      "reason": "Owner requested semantic conversation repairs. New strict dialogue schema, checked responses after owned completion, complete context, finish and ambiguity controls. Runtime tests first demonstrate each boundary; source freeze is refreshed for the authorized implementation, not removed. Include new dialogue fixture and imported shared helpers. PKG-038 CI 35674102419 passes 321 Edge tests and 11 SQL checks. Windows checkout comparison explicitly normalizes CRLF to the same LF content pinned in git; deployed bundle bytes have an independent exact readback receipt.",
+      "reason": "Owner requested complete AI repairs. Exact current intake/stream source adds bounded same-attempt metadata settlement and an explicit30-second provider deadline. No source assertion is removed. Five new failure regressions fail on PKG-038; PKG-039 has its own disposable SQL/race proof. Deployment/quality remain separate.",
       "previousFreeze": {
-        "package": "PKG-025d-PRICE-BASIS",
-        "date": "2026-09-20",
-        "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
-        "changedFiles": [
-          {
-            "path": "supabase/functions/uskoci-ai-interview/index.ts",
-            "bytesBefore": 44769,
-            "bytesAfter": 46023
-          },
-          {
-            "path": "src/contracts/needFactsV2.ts",
-            "bytesBefore": 5897,
-            "bytesAfter": 7029
-          }
-        ],
+        "package": "PKG-038-CONVERSATION-SEMANTICS",
+        "date": "2026-09-22",
+        "reason": "Owner requested semantic conversation repairs. New strict dialogue schema, checked responses after owned completion, complete context, finish and ambiguity controls. Runtime tests first demonstrate each boundary; source freeze is refreshed for the authorized implementation, not removed. Include new dialogue fixture and imported shared helpers. PKG-038 CI 35674102419 passes 321 Edge tests and 11 SQL checks. Windows checkout comparison explicitly normalizes CRLF to the same LF content pinned in git; deployed bundle bytes have an independent exact readback receipt.",
         "previousFreeze": {
-          "package": "V3-EDGE-LOG-FIX",
-          "date": "2026-09-19"
+          "package": "PKG-025d-PRICE-BASIS",
+          "date": "2026-09-20",
+          "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+          "changedFiles": [
+            {
+              "path": "supabase/functions/uskoci-ai-interview/index.ts",
+              "bytesBefore": 44769,
+              "bytesAfter": 46023
+            },
+            {
+              "path": "src/contracts/needFactsV2.ts",
+              "bytesBefore": 5897,
+              "bytesAfter": 7029
+            }
+          ],
+          "previousFreeze": {
+            "package": "V3-EDGE-LOG-FIX",
+            "date": "2026-09-19"
+          }
         }
       }
     }

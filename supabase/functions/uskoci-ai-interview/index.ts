@@ -590,6 +590,25 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     if (wrongKind || wrongStart) return { safety: 'CLARIFY', proposals: [],
       assistantMessage: `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?` };
   }
+  // Validate an explicit source/value contradiction even inside a full sentence.
+  // This is evidence consistency, not interpretation of negation or alternatives:
+  // on conflict ask for a date; never silently substitute one mentioned word.
+  for (const proposal of turn.proposals) {
+    if (!['need.schedule_kind', 'need.starts_at'].includes(proposal.key)) continue;
+    const evidence = String(proposal.evidence ?? '').toLowerCase().trim()
+      .replace(/данас/g, 'danas').replace(/прекосутра/g, 'prekosutra').replace(/сутра/g, 'sutra')
+      .replace(/[.!?]+$/g, '').trim();
+    if (!['danas', 'sutra', 'prekosutra'].includes(evidence)
+      || !new RegExp('(?:^|[^\\p{L}])' + evidence + '(?=$|[^\\p{L}])', 'u').test(normalized)) continue;
+    const offset = { danas: 0, sutra: 1, prekosutra: 2 }[evidence]!;
+    const date = new Date(Date.parse(time.localDate + 'T12:00:00Z') + offset * 86400000).toISOString().slice(0, 10);
+    const kind = offset === 0 ? 'TODAY_FLEXIBLE' : offset === 1 ? 'TOMORROW_FLEXIBLE' : null;
+    const conflict = proposal.key === 'need.schedule_kind'
+      ? proposal.value !== 'FIXED_WINDOW' && proposal.value !== kind
+      : typeof proposal.value === 'string' && Number.isFinite(Date.parse(proposal.value))
+        && serverTimeContext(new Date(proposal.value)).localDate !== date;
+    if (conflict) return clarification('Koji je tačan datum početka posla?');
+  }
   const proposals = turn.proposals.filter(proposal => !activeFacts.some(fact =>
     fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));

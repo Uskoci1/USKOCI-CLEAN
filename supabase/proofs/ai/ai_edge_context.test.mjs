@@ -272,6 +272,29 @@ test('negated and alternative days are not silently rewritten by a keyword rule'
  assert.equal(materialWrites(f)[0].body.p_assistant_message,'Koji od ta dva dana biraš?');
 });
 
+
+for(const [input,evidence,kind] of [
+ ['Za sutra mi treba pomoć oko prenosa ormara.','sutra','TODAY_FLEXIBLE'],
+ ['За сутра ми треба помоћ око преноса ормара.','сутра','TODAY_FLEXIBLE'],
+ ['Ne sutra nego danas.','sutra','TODAY_FLEXIBLE'],
+])test('PKG041 relative-day evidence cannot contradict the proposed day inside a full sentence',async()=>{
+ const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
+  {key:'need.schedule_kind',valueJson:JSON.stringify(kind),displayValue:kind,evidence,confidence:0.99}]}});
+ assert.equal((await f.invoke({text:input})).status,200);
+ const result=materialWrites(f)[0].body;assert.equal(result.p_safety,'CLARIFY');assert.deepEqual(result.p_proposals,[]);
+ assert.equal(result.p_assistant_message,'Koji je tačan datum početka posla?');
+});
+test('PKG041 fixed start must agree with its literal relative-day evidence in Serbian local time',async()=>{
+ const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
+  {key:'need.starts_at',valueJson:'"2026-09-21T08:00:00+02:00"',displayValue:'21.09. u 8h',evidence:'sutra',confidence:1}]}});
+ await f.invoke({text:'Treba mi radnik sutra od 8.'});assert.equal(materialWrites(f)[0].body.p_safety,'CLARIFY');
+});
+test('PKG041 negation with correct evidence is preserved, not converted to the first mentioned day',async()=>{
+ const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
+  {key:'need.schedule_kind',valueJson:'"TODAY_FLEXIBLE"',displayValue:'Danas',evidence:'danas',confidence:1}]}});
+ await f.invoke({text:'Ne sutra nego danas.'});assert.equal(materialWrites(f)[0].body.p_proposals[0].value,'TODAY_FLEXIBLE');
+});
+
 test('finish-only task request cannot invent new terms or claim publication',async()=>{
  const f=fixture();assert.equal((await f.invoke({text:'Objavi zadatak.'})).status,200);
  const written=materialWrites(f)[0].body;assert.deepEqual(written.p_proposals,[]);

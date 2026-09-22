@@ -25,7 +25,8 @@ unlocks only explicit submission. Older clients still understand the existing ca
 ## Evidence required
 
 Seven failure regressions fail on prior Edge source and pass after. Offline handler tests58/58 and
-focused client/UI37/37 and types pass. Full suite must be recorded separately. Local all-Edge run
+focused client/UI37/37 and types pass. Full Jest241 suites /4652 tests passes and exits0
+(delayed-exit warning, no failed test). Local all-Edge run
 passes340/341; the one refusal is the unchanged historical inventory test encountering the owner's
 foreign untracked frozen-folder SQL. That file is untouched/excluded; tracked CI must pass all341.
 The disposable proof
@@ -41,3 +42,7 @@ calls or synthetic rows/accounts on DEV.
 quality, daily/repeated work decisions, price context in Q&A, device testing and release readiness are
 separate. Read CI report, fresh preflight, exact candidate application and readback before deployment.
 JWT remains true; deployment must read back every bundled asset byte-for-byte.
+
+First CI35676937072 passed341 Edge regressions and replay through039, then stopped before the defect
+probe: the new proof wrongly assumed historical device credentials were exported by this fixture.
+It now creates explicit disposable actors through local Auth, as PKG-039 does. No DEV application.
