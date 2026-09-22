@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T17:59:28Z",
+  "osvezeno": "2026-09-22T19:11:14Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "50178e6b",
-  "head_poruka": "Add explicit offer review before submission",
+  "head": "84ec1657",
+  "head_poruka": "Record offer review builds and remaining native acceptance",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -1229,7 +1229,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Završni pregled je dodat u kod: ukupan iznos, broj ljudi, stvarni termin i poruka, pa izričito slanje. Tipovi i 242 grupe/4704 testa prolaze. Još nema prihvatanja ovog toka na telefonu ni nezavisnog Claude pregleda.",
-   "sledece": "Oba APK-a 50178e6b su napravljena i otisci provereni: emulator 35762581551, telefon 35762585376. Emulator instaliran i otvoren do ulaza; telefon nije povezan. Proveriti pregled, povratak, slanje i oporavak sa nalogom; zatim otvoriti baš poslatu prijavu. F10 ostaje delimičan. OFFER_REVIEW_RECEIPT.json. Slika iz pregledača seče donje dugme, iako je po merama unutar ekrana: konačna vizuelna provera ostaje otvorena.",
+   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1271,7 +1271,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Učitava sve odjednom; server ima rpc_list_my_applications_page koje aplikacija ne koristi.",
-   "sledece": "Povezati učitavanje po delovima.",
+   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

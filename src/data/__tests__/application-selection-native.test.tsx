@@ -190,6 +190,20 @@ it('sends one exact application after explicit interval review and duplicate tap
     predlozeniPocetak: '2026-09-20T10:00:00.000Z', predlozeniKraj: '2026-09-20T11:00:00.000Z' });
   expect(text()).toContain('Prijava je poslata.'); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
+it('opens exactly the confirmed application once, without another submission', async () => {
+  await offer(); await sendOffer();
+  const open = press('Otvori moje prijave');
+  await act(async () => { open(); open(); });
+  expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: k().prijavaId } });
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+});
+it.each(['blur', 'account'])('a confirmed application link cannot navigate after %s', async change => {
+  await offer(); await sendOffer(); const open = press('Otvori moje prijave');
+  if (change === 'blur') { mockFocused = false; await update(); }
+  else mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 };
+  await act(async () => open()); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
   await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toMatch(/ukupno\s+·/);
   await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc'); await sendOffer();

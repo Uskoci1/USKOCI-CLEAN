@@ -204,7 +204,7 @@ export default function MojePrijave() {
   return <MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
-    focusId={visible ? focusId : null}
+    focusId={visible ? focusId : null} requestedId={visible ? named : null}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}

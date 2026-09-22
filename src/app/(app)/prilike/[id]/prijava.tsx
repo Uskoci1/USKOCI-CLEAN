@@ -156,5 +156,6 @@ export default function Prijava() {
     error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     submit={submit} back={back} refresh={refresh} reset={reset}
-    openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true; router.replace('/moje-prijave'); }} />;
+    openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
+      router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId } }); }} />;
 }

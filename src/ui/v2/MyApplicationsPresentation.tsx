@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
@@ -42,6 +42,8 @@ type Props = {
   onTask: (p: MojaPrijavaProjekcija) => void;
   /** An application arrived at from a notification, brought into view once. */
   focusId?: string | null;
+  /** Requested destination, including a row that the current owned read cannot return. */
+  requestedId?: string | null;
 };
 function Note({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted' | 'warn' }) {
   return <View style={[s.notice, tone === 'warn' && s.noticeWarn]}><T accessibilityRole="alert" variant="body" style={s.ink}>{children}</T></View>;
@@ -88,19 +90,14 @@ const deviceZone = (): string | undefined => {
 };
 
 export function MyApplicationsPresentation(props: Props) {
-  const visible = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
-  // A notification names one application. Opening its row is not enough if the row is the ninth one
-  // down, so the list also goes to it — once, and never fighting a scroll the person then makes.
+  const filtered = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
+  // Put the explicitly requested row first. Unlike scrollToIndex this also works before variable-height
+  // cards outside the initial virtualized window have been measured. Never change the user's filter.
+  const focused = props.focusId ? filtered.find(p => p.prijavaId === props.focusId) : undefined;
+  const visible = focused ? [focused, ...filtered.filter(p => p.prijavaId !== focused.prijavaId)] : filtered;
+  const missingNamed = !!props.requestedId && !props.rows.some(p => p.prijavaId === props.requestedId);
   const appear = useAppear();
   appear.settle(visible.map(p => p.prijavaId));
-  const list = useRef<FlatList<MojaPrijavaProjekcija> | null>(null);
-  const brought = useRef<string | null>(null);
-  const index = props.focusId ? visible.findIndex(p => p.prijavaId === props.focusId) : -1;
-  useEffect(() => {
-    if (index < 0 || !props.focusId || brought.current === props.focusId) return;
-    brought.current = props.focusId;
-    list.current?.scrollToIndex({ index, viewPosition: 0.15, animated: true });
-  }, [index, props.focusId]);
   const disabled = props.busy || props.pending || props.editingLoading;
   const count = (tab: ApplicationsTab) => tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
   const badge = (tab: ApplicationsTab) => count(tab) || undefined;
@@ -121,10 +118,13 @@ export function MyApplicationsPresentation(props: Props) {
       options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention') },
         { key: 'active', label: 'Aktivne', badge: badge('active') }, { key: 'finished', label: 'Završene', badge: badge('finished') }] as const} /> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
-      <FlatList<MojaPrijavaProjekcija> ref={list} data={props.loading || props.unavailable ? [] : visible} keyExtractor={p => p.prijavaId}
-        onScrollToIndexFailed={() => undefined} initialNumToRender={8} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.list}
+      <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={p => p.prijavaId}
+        initialNumToRender={8} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.list}
         refreshing={props.loading} onRefresh={props.onRefresh} ListEmptyComponent={empty}
-        ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending) ? <View style={s.feedback}>
+        ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed) ? <View style={s.feedback}>
+          {missingNamed ? <View style={s.notice}><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
+            <T variant="note" tone="muted">Osveži spisak da proveriš njeno stanje.</T>
+            <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></View> : null}
           {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
           {props.pending ? <View style={[card, s.pendingCard]}><T variant="body" style={s.ink}>{props.busy ? 'Čekamo potvrdu radnje…' : 'Pre nove odluke proveri sačuvano stanje. Ponavljanje koristi istu ponudu i isti zahtev.'}</T>
             <V2Action label="Proveri sačuvano stanje" onPress={props.onRefresh} disabled={props.busy} />
@@ -135,7 +135,7 @@ export function MyApplicationsPresentation(props: Props) {
           <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} disabled={disabled}
           onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)}
           onTask={() => props.onTask(p)}>
-          {props.expanded === p.prijavaId ? <View style={s.review}>
+          {props.expanded === p.prijavaId && p.stanje === 'STALE_REVIEW_REQUIRED' ? <View style={s.review}>
             <T variant="label" style={s.eyebrow}>Aktuelni uslovi · verzija {p.potrebaRevizija}</T><T variant="body" style={s.ink}>{p.opis || 'Dodatni opis nije naveden.'}</T>
             <T variant="note" tone="muted">Tvoja Prijava se odnosi na verziju {p.prijavaRevizija}. Zadržavanje čuva ponuđenu cenu, obim, termin i napomenu.</T>
             {p.napomena ? <T variant="body" style={s.ink}>Tvoja napomena: {p.napomena}</T> : null}

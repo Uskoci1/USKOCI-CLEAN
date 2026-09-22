@@ -132,6 +132,20 @@ it('opens the one application a notification names, and keeps it closed once clo
   expect(press('Zadrži prijavu')).toBeUndefined();
 });
 
+it('a named submitted application is immediately visible beyond the initial viewport without stale commands', async () => {
+  mockRows = [...Array.from({ length: 15 }, (_, i) => row({ prijavaId: `other-${i}`, naslov: `Druga ponuda ${i}` })), row({ naslov: 'Baš poslata ponuda' })];
+  mockParams = { prijavaId: row().prijavaId }; await render();
+  expect(text()).toContain('Baš poslata ponuda'); expect(text()).toContain('Sa trakama.');
+  expect(press('Zadrži prijavu')).toBeUndefined(); expect(press('Izmeni prijavu')).toBeUndefined();
+  expect(press('Povuci izmenjenu prijavu')).toBeUndefined();
+  expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
+});
+it('a missing named application gives an honest refresh path without opening a different row', async () => {
+  mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' })]; mockParams = { prijavaId: row().prijavaId };
+  await render(); expect(text()).toContain('Ova prijava trenutno nije dostupna');
+  expect(press('Zadrži prijavu')).toBeUndefined(); await tap('Osveži prijave');
+  expect(mockRead).toHaveBeenCalledTimes(2); expect(mockResolve).not.toHaveBeenCalled();
+});
 it('routes only a selected row to its exact existing Agreement', async () => {
   mockRows = [row({ stanje: 'SELECTED', dogovorId: 'agreement-123', mozePovuci: false, traziPaznju: true })]; await render();
   const old = press('Otvori Dogovor: Unos ormara'); await tap('Otvori Dogovor: Unos ormara'); expect(mockRouter.push).toHaveBeenCalledWith('/dogovor/agreement-123');
