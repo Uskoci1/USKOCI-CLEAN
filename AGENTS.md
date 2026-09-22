@@ -1,5 +1,30 @@
 # USKOČI — repository entry map
 
+CURRENT PRODUCT CHECKPOINT (2026-09-22): read
+`docs/implementation/NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` first, then the current status,
+integrated finishing plan, owner design direction/UX blueprint and control README. The paragraphs
+below are dated history where superseded. The owner explicitly permits parallel agents now;
+use bounded scopes and one writer per file. He made the connected USB phone available for retained-data
+updates/read-only checks; no auth bypass, paid provider probe or real business mutation is implied.
+
+Client implementation `9286fdeb` includes explicit offer review, named receipt landing, readable
+offer cards/real note previews, accessible preview facts, truthful missing-rating copy and explicit
+Agreement completion review for both sides. Existing services/guards/recovery/server are unchanged.
+Combined types and 242 suites / 4,719 tests pass, exit0 (known Jest teardown warning). Read
+`functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json` for exact source/build/device status;
+APK35775425984 is its source-bound build. Prior45a APK was installed with login retained and the
+actual My Applications card inspected;50178 review/Android Back was checked without sending an offer.
+Real two-party submission/completion, iOS, push delivery and Claude acceptance are still separate gates.
+
+Four bounded reconciliation reports in functional-audit-20260922 cover UX, client/engine, release
+operations and verification coverage; they explicitly distinguish current source from saved DEV
+snapshots and untested paths. Do not represent them as a fresh exhaustive server audit. The release
+plan is current; control rows remain the sole execution tracker. Its normal browser upload currently
+has an unconfirmed file-chooser outcome; generation alone is not publication.
+
+Keep other authors' control README/template changes and the forbidden untracked migration out of
+your commits unless ownership is explicitly transferred. No server migration was applied in this round.
+
 Owner follow-up (2026-09-22): the offer composer now opens an explicit review before sending.
 See docs/implementation/functional-audit-20260922/OFFER_REVIEW.md and its receipt. The unchanged
 route owns all validation, journaling and recovery. Types and 242 suites / 4,704 tests pass;

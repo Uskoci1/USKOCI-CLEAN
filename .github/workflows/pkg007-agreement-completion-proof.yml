@@ -14,6 +14,8 @@ on:
       - 'src/data/lazniIzvor.ts'
       - 'src/data/serverReceipt.ts'
       - 'src/hooks/useOwnedEditor.ts'
+      - 'src/ui/agreements/AgreementCompletionReview.tsx'
+      - 'src/data/__tests__/pkg011-agreement-workspace.test.tsx'
       - 'src/data/__tests__/agreement-screen-recovery.test.tsx'
       - 'src/data/__tests__/pkg007-completion-receipt.test.ts'
       - 'src/data/__tests__/pkg007-agreement-actions-read.test.ts'

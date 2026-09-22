@@ -23,12 +23,19 @@ Binding scope:
 - Serbia is the initial market. Expansion across the Balkans needs an explicit country list and a
   separate check of payment, language, operating and legal requirements.
 
-Measured starting point:
+Current client continuation: `NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` and
+`functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json`. These supersede dated APK/test and
+implementation statements below. The owner approved the 48-section functional analysis and D1–D10,
+design autonomy, connected-phone checking, and parallel agents with disjoint file ownership.
+
+Recorded server starting point (not a fresh DEV certification):
 - Canonical DEV leqcwgzvjsxugfgzdmth, ledger 197 = 147 frozen source + 50 dev_alpha. No production project.
 - PKG-045a applied. PKG-045b is proven and explicitly owner-approved, including certificate rebinding,
-  AFTER verification of the new app. Phone readiness and active-device inventory remain pending.
-- APK 35707463751 is built and verified, not installed. Full local Jest: 242 suites / 4,687 tests and
-  types passed; PKG-045 disposable proof: 17 SQL/Auth/REST/client checks and real disposable closure.
+  AFTER verification of the new app. The phone is now available and newer compatible clients are
+  installed; full active-device inventory and the package's complete rollout checks remain open.
+- The historical PKG-045 baseline passed 242 suites / 4,687 tests and types; its disposable proof
+  passed 17 SQL/Auth/REST/client checks and real disposable closure. Current client evidence is in
+  the continuation receipt above; do not report this older baseline as the latest build.
 - AI intake 50 is deployed; owner reports that replies work and are warmer. Broad quality evaluation remains.
 - Push transport was last verified disabled. Real device delivery is not verified.
 - Many lifecycle fixes are applied, but no complete latest two-person device journey is signed off.
@@ -42,16 +49,18 @@ The rows below form one plan, not nine isolated projects. Engineering follows R1
 exploration in R5 and owner/operator preparation in R6–R7 begin alongside that work. R8 measurements and
 R9 build preparation can also start early. Public rollout waits for all applicable release gates.
 
-Work remains solo. “Alongside” means independent work while a build/proof runs, not permission to delegate.
+The owner now explicitly permits parallel agents. Use the available concurrency limit, assign bounded
+independent scopes and one writer per file, then integrate and verify centrally. Older solo instructions
+are superseded. Never multiply builds, deployments or edits to the same files across agents.
 When a phone or owner input is unavailable, continue the independent work described below.
 
 | ID | Workstream | Starting status | Required result and completion evidence |
 | --- | --- | --- | --- |
 | R1 | Task privacy and compatible rollout | A applied; B proven/approved with device condition | Install compatible app with data preserved, verify actual task reads on active test devices, apply exact proven B, verify ledger bytes, permissions and new closure binding; record receipt. |
-| R2 | Push and notification experience | Infrastructure exists; disabled; recovery defect observed in code | Reliable settings recovery, device registration, controlled delivery and correct navigation, final copy/icon/sound/grouping and native presentation; verify on Android and iOS. |
+| R2 | Push and notification experience | Infrastructure exists; transport last recorded disabled; settings recovery fixed and tested in F01 | Verify registration, controlled delivery and correct navigation, final copy/icon/sound/grouping and native presentation on Android and iOS. |
 | R3 | Accounts, privacy, deletion and export | Closure preparation partly aligned; second-device recovery open; legal inputs missing | Consistent account states and recovery across devices, complete deletion and export/delivery journeys, public deletion-request page and accurate disclosure/consent. |
 | R4 | Complete marketplace and client/server contracts | Core implemented; several fixes proven/applied; whole journey unverified | Every supported action has a valid entry, server outcome, clear refusal/recovery and correct next screen. Full flow matrix below passes, including interruptions and both participants. |
-| R5 | New native product experience | No final app-wide direction accepted | Three compositions per major surface, selected original visual system, implemented components/states/motion, real-data and accessibility/device verification. |
+| R5 | New native product experience | Direction and analysis approved; foundation/discovery/offer slices implemented; exact native acceptance partial | Continue selected Inter/FactArt/TaskCard system with screen-specific compositions, all states, restrained motion, real-data and accessibility/device verification. |
 | R6 | Safety, moderation and support operation | Report/block/support code exists; operational coverage unverified | Users can report relevant content/AI output, block abuse and reach support; an assigned operator can triage and resolve cases through tested permissions and procedures. |
 | R7 | Operator, legal, charging and developer accounts | Owner/business inputs and commercial model unresolved | Real operator data, reviewed published documents, data/retention decisions, defined compliant charge/refund flow, verified publishing accounts and selected territories. Start now. |
 | R8 | Performance, production and recovery | No measured capacity or production environment | Isolated load/recovery evidence, launch limits, approved production configuration, monitoring, backup/restore verification and incident ownership. |
@@ -59,16 +68,24 @@ When a phone or owner input is unavailable, continue the independent work descri
 
 ### Immediate next actions
 
-1. R2 source/proof work can proceed now: reproduce and fix the disabled settings-recovery button.
-2. When the owner is ready, install/verify the already prepared compatible APK and complete R1 under the
-   existing conditional approval. Do not ask again for pkg045b approval. If a newer app is built first,
-   verify its own source/hash and compatibility rather than silently reusing the older APK receipt.
-3. Complete R2 registration/transport and controlled device-delivery checks. Only then enable general delivery.
-4. Continue R3 closure recovery and R4 remaining client-call comparisons, with before/after proof packages.
-5. Start the R7 decision worksheet now; collect inputs while engineering proceeds. Prepare R5 explorations
-   against real functional requirements instead of waiting for the last technical fix.
-6. Run the first complete two-person journey, fix its observed failures, then repeat the affected paths on
-   the selected design and final distribution builds. Do not postpone all device testing until after redesign.
+1. Close the current offer/selection/completion client slice with combined tests, exact APK and phone
+   evidence. Continue from the current receipt; do not reimplement the already-tested F01 settings fix.
+2. Verify media-upload cancellation F16 and safe public task/profile report/block targets F05 against
+   current server bodies. Prepare the smallest contract/proof proposal; preserve authorization boundaries.
+3. Design discovery F06/F07, own-list F08 and chat F13 paging with complete predicate, count, ownership
+   and pending-command parity. Confirm ordinary waiting-offer/time-edit semantics before exposing it.
+4. Continue task creation/selection and Agreement exceptions, truthful progress, account/safety/support
+   screens. Keep the approved blueprint and implement one accepted composition per screen.
+5. Use the connected phone throughout. Complete the first real two-person journey and controlled push
+   delivery on authorized participants; record each device's exact build and all remaining iOS checks.
+6. Complete R1 under the existing conditional pkg045b approval only after its compatible rollout checks;
+   do not re-ask the same approval or substitute a launch screenshot for the package's whole condition.
+7. Gather R7 operator/legal/charging inputs alongside engineering. Finish R3 recovery and R8/R9 production,
+   distribution and pilot gates before public release. No full-app completion percentage is established.
+
+Supporting bounded reconciliations, not competing trackers: `functional-audit-20260922/UX_EXECUTION_RECONCILIATION.md`,
+`CLIENT_ENGINE_RECONCILIATION.md`, `RELEASE_OPERATIONS_RECONCILIATION.md`, and
+`VERIFICATION_COVERAGE_RECONCILIATION.md` in that directory. The living execution rows remain `docs/control/redovi.json`.
 
 ## 3. Complete flow coverage (R3–R4)
 
@@ -109,12 +126,12 @@ Current source facts:
 - Foreground presentation admits an explicit copy allowlist. A new worker string alone can be rejected by
   the existing client. Direct push-to-task/Dogovor is new work and needs an account-owned resolver.
 - Android uses a PRIVATE, DEFAULT-importance channel. OS settings control actual sound/presentation.
-- PushPreferences has category/quiet-hour controls. Its locked = busy || error also disables “Proveri stanje”
-  after a failed read or uncertain registration. This is a source-observed defect, not a phone reproduction.
+- PushPreferences has category/quiet-hour controls. F01 separates retry availability from editing/write
+  locks: “Proveri stanje” remains available after a failed read. See CLIENT_FOUNDATION_RECEIPT.json.
 - Token registration, successful scheduler invocation and provider acceptance do not prove device delivery.
 
 Complete these checks:
-- [ ] Reproduce and fix settings recovery; permit authoritative reread while fencing duplicate writes.
+- [x] Fix and test settings recovery; authoritative reread remains available while writes stay fenced.
 - [ ] Verify native build/provider configuration, permission and session-bound registration without revealing credentials.
 - [ ] Verify opt-in categories, both account activities, quiet hours and explicit urgent override.
 - [ ] Review the queued work and recipient scope before controlled activation; no broadcast or fabricated DEV events.
@@ -133,8 +150,10 @@ Appearance design and source fixes do not depend on phone availability or a comp
 Detailed R5 supplement: DESIGN_V31_V28_EXECUTION_20260922.md, with the independent card study at
 outputs/design-v31-v28-20260922/PREDLOG.html. Owner correction: preserve V28's colored illustrated icons,
 palette, clarity and bottom-navigation character; improve density without reverting to the old native UI.
-Three card compositions are reviewable. Other families have an exploration/implementation plan, not
-completed visual designs. No app/dependency/backend change is implied by the design artifact.
+The direction and functional analysis are now approved. Native detail, offer, selection, Agreement,
+AI/settings framing, colored navigation, discovery search and sheets are implemented in recorded slices.
+They are not universally device accepted. Continue from current source and package receipts, not from
+the earlier HTML-only state. Only the recorded Gorhom package has new-library approval.
 
 For each major surface: describe its functional responsibility → ignore visual legacy → explore at least
 three materially different compositions → compare tradeoffs → select/combine → implement → verify with
@@ -235,15 +254,15 @@ Current official reference points were checked on 2026-09-22. Recheck when submi
 | Input | State / next step | Independent work meanwhile |
 | --- | --- | --- |
 | pkg045b certificate change | Explicitly approved AFTER new-app verification. Do not re-ask. | Source work and regression proofs. |
-| Phone readiness and number of active devices | Pending. No install or phone operation implied by approval alone. | R2 settings fix, R3/R4 investigation and proofs, R5 exploration. |
+| Phone readiness and number of active devices | Owner explicitly made USB phone available; safe retained-data updates and checks are authorized. All active devices still need inventory for compatibility rollout. | Native checks and source work; speech and real business mutations retain their separate boundaries. |
 | Push activation and controlled recipients | Separate controlled test when the owner is ready; general delivery remains off. | Sender/client contract, copy/icon designs and tests. |
 | Operator/legal/retention | Real inputs missing; use the reconciled worksheet. | Data inventory, draft form structure and technical paths. |
 | Paid connection model and countries | Needs concrete commercial decision and policy assessment. | Compare viable flows and prepare a decision proposal, without enabling a payment mechanism. |
 | Profile phone | Optional unverified field decision unanswered. | Other profile and account work. |
-| Visual choices/assets | Show three compositions and obtain the relevant direction; no fixed old-style constraint. | Functional maps, references and existing-library evaluation. |
+| Visual choices/assets | Direction and functional analysis approved; designer has autonomy within Inter/colors/FactArt/TaskCard and blueprint. | Explore materially different compositions, implement one, show rationale and verify exact APK; new packages still need approval. |
 | Later certificate/JWT/production changes | Follow the owner's separate explicit-approval boundaries. | Complete concrete proof/proposal before requesting approval. |
 
-Standing boundaries remain: work solo; never handle or print secrets; no paid AI/provider probes, fake DEV
+Standing boundaries remain: one writer per file; never handle or print secrets; no paid AI/provider probes, fake DEV
 accounts/data, destructive operations, uninstall/clear, dependency changes without approval, force-push,
 new PR, CodeQL work, repair branch or pkg023c. Frozen migrations stay untouched. The known untracked
 148th migration remains outside commits. This plan authorizes none of those actions.

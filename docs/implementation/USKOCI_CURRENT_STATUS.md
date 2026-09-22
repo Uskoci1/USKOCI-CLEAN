@@ -11,6 +11,33 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+**Current product checkpoint — later on2026-09-22.** Start with
+`NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` and
+`functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json`. Implementation commit9286fdeb adds
+explicit completion review, accessible candidate facts and truthful missing-rating copy, following
+named application landing d56a5726 and offer readability45a779c7. Combined types and242 suites /4719
+tests pass, exit0; known delayed Jest teardown warning remains. No server/Edge/dependency changes.
+
+The exact final phone build is35775425984 (receipt carries outcome). Preceding45a APK35773412874
+was attested and installed with existing data/session retained; actual My Applications amount,
+people, colored facts, shorter Agreement action and active navigation were visually inspected.
+Earlier50178 native review/Android Back retained an unsent draft. No real offer, selection, message,
+rating, completion or deletion was submitted as a test. No complete two-party journey is accepted.
+
+The owner now authorizes parallel agents and connected-phone use. Design direction and functional
+analysis/D1–D10 are approved. Four bounded reconciliation documents supplement the single R1–R9
+plan: UX_EXECUTION_RECONCILIATION, CLIENT_ENGINE_RECONCILIATION, RELEASE_OPERATIONS_RECONCILIATION,
+VERIFICATION_COVERAGE_RECONCILIATION under functional-audit-20260922. Each records its inspection
+limits. Current source fixes must not be overwritten by the older “pending” descriptions below.
+
+Fresh server certification was not attempted in this client round: ledger197/certificate65980fce
+are saved evidence, not a new live assertion. pkg045b remains conditional on its complete compatible
+rollout checks. Important remaining gates include task-media cancel, safe public report/block targets,
+cross-device closure, list/chat contract parity, push-capable build/delivery, operator/legal/charging,
+two-party Android/iOS, production/pilot and store distribution. No app-wide percentage is established.
+
+### Historical checkpoints below (read their dates and source hashes)
+
 - Latest design direction: OWNER_DESIGN_DIRECTION_20260922.md. V28 is a starting point, design autonomy
   and green titles are explicitly approved. Map/list/filter first, then a screen at a time, with images,
   exact APK/device checks and independent Claude review. Owner approved only Gorhom Bottom Sheet5.2.14;

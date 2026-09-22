@@ -21,7 +21,8 @@
     "failed": 0,
     "report": "outputs/native-product-review-20260922/jest-product-integration-full.json",
     "reportSha256": "2139f12b2566e3cab5456635b156fbf64c4cbaeadc76ac63e974ce375ce6165a",
-    "runner": "Teardown warning; process still alive at recording. Do not claim clean exit."
+    "runner": "Known delayed teardown warning; ultimately exited naturally with code 0. No process terminated.",
+    "exitCode": 0
   },
   "independentReview": {
     "completion": "No blocking defect found by a separate helper; provenance wording corrected",
@@ -38,10 +39,13 @@
     "completionBothRoles": "INSPECTED",
     "problemOpen": "INSPECTED_320",
     "back": "PASS_FIXTURE",
-    "nativeOrServerProof": false
+    "nativeOrServerProof": false,
+    "myApplicationsStates": "Loading, error/retry and empty/missing-named-target inspected at320; fixtures only"
   },
   "apk": {
-    "state": "PENDING_EXACT_SOURCE_BUILD"
+    "state": "BUILDING",
+    "run": 35775425984,
+    "sourceCommit": "9286fdebbb4b7afea7a5e67889cdafb89e1d6928"
   },
   "native": {
     "completion": "PENDING_REAL_APPLICABLE_AGREEMENT",
@@ -58,5 +62,18 @@
     "observed": "My Applications actual selected offer, amount/people, colored facts, shortened Agreement action, active Home tab",
     "screenshot": "outputs/native-product-review-20260922/screenshots/phone-applications-readability.png",
     "screenshotSha256": "653cf036798c398c5f627fa2ba5c168bed7b4e82829d8c7e8c0a65015361c7da"
+  },
+  "ci": {
+    "pkg006": {
+      "run": 35775426480,
+      "result": "SUCCESS",
+      "source": "9286fdeb"
+    },
+    "pkg007": {
+      "run": 35775426473,
+      "result": "SUCCESS",
+      "source": "9286fdeb"
+    },
+    "triggerPathFix": "Five MyApplications and two completion component/test paths added; YAML parsed and only paths changed. No job/permission changes."
   }
 }

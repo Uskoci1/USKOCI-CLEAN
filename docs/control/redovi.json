@@ -156,7 +156,7 @@
    ],
    "telefon": null,
    "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
-   "sledece": "Posle odobrenja analize: pregledati postojeći PKG-008 i dokazati otkazivanje, zakašnjelo slanje i oporavak na privremenoj bazi; primena traži zasebno odobrenje. Audit F16.",
+   "sledece": "Analiza je odobrena. F16: sveže proveriti serverske prethodnike PKG-008 i dokazati otkazivanje/zakašnjelo slanje na privremenoj bazi; primena traži zasebno odobrenje. Poslednji katalog je snimak od 22.09. u 13:49 UTC, ne nova potvrda servera.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -343,8 +343,8 @@
     "rpc_mark_response_viewed"
    ],
    "telefon": null,
-   "problem": "Poruka kandidata izostaje sa kartice, a nedostajuća ocena se naziva „Nov na USKOČI“, što ne dokazuje starost naloga. Pregled pre izbora već postoji.",
-   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
+   "problem": "",
+   "sledece": "Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -786,7 +786,7 @@
    ],
    "telefon": null,
    "problem": "Javni profil daje profileId, a prijava/blokiranje traže accountId. Ti identifikatori nisu zamenljivi.",
-   "sledece": "Posle odobrenja funkcionalne analize: bezbedan serverski kontekst cilja, pa ulazi za prijavu/blokiranje. Audit F05.",
+   "sledece": "Analiza je odobrena. F05: prvo predlog i dokaz bezbednog serverskog konteksta cilja, zatim ulazi za prijavu/blokiranje; ne prosleđivati profileId kao accountId.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -813,9 +813,12 @@
    "server": [
     "rpc_submit_response"
    ],
-   "telefon": null,
-   "problem": "Završni pregled je dodat u kod: ukupan iznos, broj ljudi, stvarni termin i poruka, pa izričito slanje. Tipovi i 242 grupe/4704 testa prolaze. Još nema prihvatanja ovog toka na telefonu ni nezavisnog Claude pregleda.",
-   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "50178e6b: na stvarnom zadatku pregled lokalne ponude i Android Nazad sa sačuvanim iznosom; ništa nije poslato. Istorijski dokaz u docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+   },
+   "problem": "Pregled i slanje su povezani u kodu; ceo put sa stvarnim slanjem i prijemom na drugom telefonu još nije prihvaćen.",
+   "sledece": "Tipovi i 242 grupe/4719 testova prolaze. Tačan završni APK: 35775425984 / 9286fdeb. Proveriti stvarno slanje, neizvestan ishod i otvaranje baš potvrđene prijave sa obe strane; ne prenositi staru proveru na novi build.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -842,9 +845,12 @@
    "server": [
     "rpc_list_my_applications"
    ],
-   "telefon": null,
-   "problem": "Učitava sve odjednom; server ima rpc_list_my_applications_page koje aplikacija ne koristi.",
-   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "45a779c7 / APK35773412874: stvarna izabrana prijava, ukupan iznos, ljudi, obojene ikonice, kraće dugme i oznaka Početna viđeni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+   },
+   "problem": "Učitava celu listu; straničenje mora očuvati zasebno čitanje konkretne prijave sa nedovršenom radnjom. Obična izmena ponude/termina dok čeka nije isto što i postojeća izmena posle promene zadatka.",
+   "sledece": "Otvaranje potvrđene prijave po identifikatoru i kontrole samo za promenjen zadatak su ispravljeni. Proveriti na novom APK-u; pre straničenja dokazati projekciju i oporavak, a pravilo obične izmene ponude definisati zasebno.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1212,7 +1218,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "",
+   "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1241,7 +1247,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "Server posle roka sam završava Dogovor (marketplace_tick svakog minuta). Proveriti da ekran jasno kaže rok.",
+   "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1394,7 +1400,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "",
+   "sledece": "F01 je ispravljen i testiran: Proveri stanje ostaje dostupno posle greške, dok izmene ostaju zaključane kada ishod nije poznat. Slede telefon i stvarna registracija/dozvole; proveriti sve prekide.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1418,8 +1424,8 @@
     "uskoci-push-transport"
    ],
    "telefon": null,
-   "problem": "Radnik radi svakog minuta, ali je slanje isključeno (EXPO_PUSH_TRANSPORT_ENABLED) do testa na telefonu, po tvojoj odluci.",
-   "sledece": "Posle testa na telefonu ti uključuješ prekidač.",
+   "problem": "Slanje je u poslednjem snimku isključeno. Sadašnji rs.uskoci.dev APK nema Firebase podešavanje namenjeno rs.uskoci.preview; uspešna UI provera nije dokaz dostave.",
+   "sledece": "Pripremiti i proveriti odgovarajući push build, dozvole, prijavu uređaja i obim primalaca. Zatim kontrolisan stvarni događaj: server → provajder → prikaz → otvaranje na telefonu. Opšte slanje ostaje zasebna odluka. RELEASE_OPERATIONS_RECONCILIATION.md, RO01/RO04.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1767,8 +1773,8 @@
     "uskoci-account-closure-worker"
    ],
    "telefon": null,
-   "problem": "",
-   "sledece": "Radnik radi; ceo put dokazan na probnoj bazi (PKG-032). Na DEV-u se namerno ne pokreće.",
+   "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
+   "sledece": "Posebno dokazati bezbedan serverski oporavak bez lokalnog traga. Sertifikovani čitač/zaštita zahtevaju posebno odobrenje promene otiska. Ne brisati pravi nalog za probu. CLIENT_ENGINE_RECONCILIATION.md §7.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1825,10 +1831,10 @@
    "server": [],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: hladno pokretanje sa postojećom prijavom."
+    "dokaz": "45a779c7: instalacija -r sa sačuvanom sesijom i obojenom navigacijom na unutrašnjem ekranu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
    },
-   "problem": "Početna i postojeća sesija viđene su na APK-u 31598ac8. U kodu skrivenih pod-ekrana aktivna donja ikonica može da se izgubi.",
-   "sledece": "Posle odobrenja funkcionalne analize: sačuvati označen početni deo i povratak; kratki usredsređeni editor bez trake je predlog koji treba odobriti. Audit F04/D8.",
+   "problem": "",
+   "sledece": "F04 oznaka aktivnog dela je ispravljena i testirana; na 45a APK-u Moje prijave pravilno označavaju Početna. Nastaviti proveru svih povrataka, dubokih linkova i promene naloga na završnom APK-u.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
