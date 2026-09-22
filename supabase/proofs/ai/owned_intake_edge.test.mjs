@@ -2,10 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadOwnedIntakeHandler} from './owned_intake_edge_runtime.mjs';
+import {withDialogue} from './dialogue_fixture.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-const gemini=value=>json({candidates:[{content:{parts:[{text:JSON.stringify(value)}]},finishReason:'STOP'}]});
+const gemini=value=>json({candidates:[{content:{parts:[{text:JSON.stringify(withDialogue(value))}]},finishReason:'STOP'}]});
 const receipt={userMessageId:id(6),assistantMessageId:id(7),proposedCount:0,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
 const turn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'?receipt:null});
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};

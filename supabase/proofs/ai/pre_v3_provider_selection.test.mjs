@@ -5,7 +5,8 @@ import {loadOwnedIntakeHandler} from './owned_intake_edge_runtime.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-const content={safety:'ALLOW',assistantMessage:'Razumem. Potrebne su dve osobe u Novom Sadu. Proverite unos.',facts:[{key:'need.people_needed',valueJson:'2',displayValue:'Dve osobe',confidence:0.9,evidence:'dve osobe'}]};
+const content={safety:'ALLOW',assistantMessage:'Razumem. Potrebne su dve osobe u Novom Sadu. Proverite unos.',facts:[{key:'need.people_needed',valueJson:'2',displayValue:'Dve osobe',confidence:0.9,evidence:'dve osobe'}],
+ dialogue:{next:'ANSWER',questionKey:'',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}};
 const stored={conversationId:conversation,clientRequestId:key,state:'SUCCEEDED',turnId,retryAllowed:false,receipt:{userMessageId:id(6),assistantMessageId:id(7),proposedCount:1,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}};
 const providerType=value=>{
  const url=new URL(value);

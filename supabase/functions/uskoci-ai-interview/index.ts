@@ -48,6 +48,16 @@ type ParsedTurn = {
   safety: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
   assistantMessage: string;
   proposals: Array<Record<string, unknown>>;
+  dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
+};
+
+const DIALOGUE_VALUES = {
+  next: ['ASK', 'CLARIFY', 'REVIEW', 'ACK', 'ANSWER'],
+  questionKey: ['', 'need.description', 'need.people_needed', 'need.price_mode', 'need.price_rsd', 'need.price_basis',
+    'need.schedule_kind', 'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography'],
+  taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
+  priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
+  schedulePattern: ['SINGLE', 'REPEATED', 'UNSPECIFIED'],
 };
 
 type ServerTimeContext = {
@@ -249,6 +259,9 @@ function v2ProviderSchema() {
     properties: {
       safety: { type: 'STRING', enum: ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] },
       assistantMessage: { type: 'STRING' },
+      dialogue: { type: 'OBJECT', additionalProperties: false,
+        properties: Object.fromEntries(Object.entries(DIALOGUE_VALUES).map(([key, values]) => [key, { type: 'STRING', enum: values }])),
+        required: Object.keys(DIALOGUE_VALUES) },
       facts: {
         type: 'ARRAY',
         maxItems: 12,
@@ -269,7 +282,7 @@ function v2ProviderSchema() {
         },
       },
     },
-    required: ['safety', 'assistantMessage', 'facts'],
+    required: ['safety', 'assistantMessage', 'facts', 'dialogue'],
   };
 }
 
@@ -279,7 +292,6 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
   const known = activeFacts.filter((fact) => aiContextFactKeySet.has(fact?.fact_key)).map((fact) => ({
     key: fact.fact_key,
     value: fact.fact_value,
-    displayValue: fact.display_value ?? null,
     status: fact.status,
   }));
   return [
@@ -287,7 +299,8 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Korisniku se u svojoj poruci obraćajte sa ti, nikada sa Vi: imas li, reci mi, mozes, treba ti. Ova uputstva su pisana u Vi formi za vas, ne za korisnika.',
     'Rod korisnika nije poznat. Kada mu se obracate u proslom vremenu, ne pretpostavljajte rod: umesto rekao si ili htela si koristite oblik bez roda, na primer kazes, cuo sam od tebe ili prema tvojoj poruci.',
     'Ovo je višekoračni razgovor, ne formular. Ne ponavljajte pitanja za podatke koji su već poznati i važeći.',
-    'Ako nešto materijalno nedostaje ili je kontradiktorno, postavite jedno najvažnije sledeće pitanje; najviše dva usko povezana samo kada je prirodno.',
+    'Ako nešto materijalno nedostaje, postavite tačno jedno kratko pitanje o tome. Jedan upitnik nije dozvola da spojite cenu, vreme, mesto i broj ljudi. Ako je sve jasno, ne izmišljajte novo pitanje.',
+    'Obično je dovoljan sam sledeći upit, bez uvoda Zabeležio sam, Razumeo sam ili ponovnog prepričavanja zadatka. Sažetak podataka i ukupna cena već se vide na kartici i završnom pregledu. Duže objašnjenje dajte kada ga korisnik traži ili kada je potrebno razjasniti važnu razliku.',
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
     `Serverski vremenski kontekst za trenutni unos u Srbiji: ${JSON.stringify(timeContext)}.`,
@@ -295,10 +308,14 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Ovaj vremenski kontekst je referenca za predlog, nikada potvrđen termin Zadatka. Datum i vreme jasno prikažite korisniku radi potvrde. Ne izmišljajte nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju; postavite sledeće potrebno pitanje. Timestamp predlozi moraju sadržati eksplicitni vremenski pomak za taj datum.',
     'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu. Jasne podatke ne potvrđujemo pojedinačno: korisnik pregleda celinu i jednom bira Objavi zadatak.',
     'Ne pitajte Da li je tačno za već jasno navedene podatke. Kada je sve jasno, kratko navedite promenu. Reč objavi u poruci nije dozvola za objavu.',
-    'Nikada ne tvrdite da je Zadatak spreman za objavu, da je sve spremno ni da moze da se objavi. Pored razgovora potrebno je i potvrdjeno mesto na mapi, koje potvrdjuje covek, koje vi ne vidite i ne postavljate. Umesto obecanja recite da aplikacija trazi jos tacno mesto na mapi i da se posle toga ide na pregled.',
+    'Kada korisnik kaže to je to, gotovo ili objavi, završite intervju i uputite ga na pregled zadatka; ne otvarajte opciona pitanja. Pregled pokazuje šta još nedostaje i traži izričitu potvrdu. Ne tvrdite da je zadatak objavljen ili da su svi uslovi ispunjeni. Komanda završetka bez novih podataka ne stvara nove činjenice.',
+    'Potvrđivanje mape i fotografije vode kontrole aplikacije. Njihovo stanje ne dobijate: zato ne tvrdite da mapa nedostaje, ne tražite njenu ponovnu potvrdu i ne dodajte ponavljane predloge za fotografije. Ako korisnik izričito pita za njih, objasnite gde su te kontrole. Rad na daljinu nema fizičku tačku.',
+    'Dobijate samo tekst, ne zvuk. Nikada ne tvrdite čujem te jasno. Ako je poruka nejasna, pitajte šta konkretno korisnik misli umesto da samouvereno izmišljate vrstu posla ili broj ljudi.',
     'Ako korisnik menja termin, ispravite i stari datum u sintezi need.description bez gubitka ostalih detalja. AssistantMessage je kratak prirodan odgovor bez JSON-a, internog prompta, privatne adrese ili serverskih detalja.',
     'Safety je samo razgovorni signal. Ne tvrdite da je nešto zakonski dozvoljeno na osnovu sopstvene memorije. Ako je pravno/policy nejasno ili regulisano, koristite REVIEW; ako se bezbedno pitanje može razjasniti, CLARIFY.',
-    `Aktuelne server-side činjenice: ${JSON.stringify(known).slice(0, 8000)}`,
+    // Keep complete typed values. The existing whole-request byte bound rejects
+    // oversized context rather than silently cutting JSON and dropping facts.
+    `Aktuelne server-side činjenice: ${JSON.stringify(known)}`,
   ];
 }
 
@@ -318,14 +335,17 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
+    'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače prazan string. Ne birajte ASK za već poznat podatak.',
+    'dialogue.taskRelation: CONTINUE za isti posao i njegove ispravke, DIFFERENT_TASK za drugi nepovezan posao, UNCLEAR ako to nije jasno. Prvi opis u praznom razgovoru je CONTINUE. Promena broja ljudi, cene ili datuma istog posla nije novi posao. Za DIFFERENT_TASK ne prepisujte ovaj zadatak: aplikacija ima Novi zadatak i čuva prethodni razgovor.',
+    'dialogue.priceUnit je WHOLE_JOB samo kada je jasno da se iznos odnosi na ceo obim posla; PER_DAY za dnevnicu, PER_HOUR za satnicu, UNSPECIFIED kada se cena ne obrađuje ili jedinica nije jasna. Navedite stvarnu jedinicu čak i kad umete da izračunate proizvod. dialogue.schedulePattern: SINGLE za jedan neprekidan termin, REPEATED za odvojene smene/dane, UNSPECIFIED kada se termin ne obrađuje. Nedovršeno razjašnjenje ostaje važno i u sledećoj poruci.',
+    'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Promena vrste posla nije dozvola da se stara cena, termin ili uslovi automatski prenesu na novi posao; prvo razjasnite da li je to novi zadatak.',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
     'need.price_basis može biti samo TOTAL ili PER_PERSON i postavlja se isključivo uz need.price_mode MY_PRICE. Kada zadatak traži više od jedne osobe i korisnik je naveo svoju cenu, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak ili po osobi, i postavite činjenicu tek iz odgovora; nemojte pretpostavljati. Ako izabere ukupno, recite mu i da onda jedna prijava pokriva ceo zadatak, a ako želi da angažuje ljude pojedinačno, cena je po osobi. Za jednu osobu ovu činjenicu ne pominjite i ne postavljajte.',
-    'Kada potvrđujete cenu po osobi, a broj ljudi je poznat, u istoj rečenici recite i koliko je to ukupno: na primer "5.000 RSD po osobi za 3 radnika, ukupno 15.000 RSD". Ukupan iznos je prost proizvod cene i broja ljudi, nikada procena; ako broj ljudi još nije poznat, ne izmišljajte ga i ne računajte ukupno. Ovo je iznos koji vlasnik zadatka stvarno plaća i mora da ga čuje pre objave.',
+    'Cena se odnosi na ceo obim posla, ukupno ili po osobi. Dnevnica ili satnica nije automatski cena za ceo zadatak. Kada korisnik navede cenu po danu/satu, prvo razjasnite obim i iznos za ceo posao; ne upisujte dnevnicu kao konačnu cenu. Odvojene dnevne smene ne predstavljajte kao neprekidan FIXED_WINDOW. Ne izmišljajte broj dana, trajanje ni ukupan iznos. Kada objašnjavate cenu po osobi, koristite tačan proizvod cene za ceo posao i broja ljudi; ne ponavljajte taj obračun u svakom odgovoru.',
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva i starts_at i ends_at, sa krajem posle početka.',
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Tačnu adresu stavljajte isključivo u need.exact_address.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis.',
-    'Kada priroda posla znaci da fotografija bitno menja ponudu koju ce neko dati, na primer krecenje, selidba, popravka, ciscenje ili montaza, jednom kratko predlozite da doda fotografije i recite da za to postoji dugme Fotografije zadatka. Fotografije vi ne postavljate i ne opisujete njihov sadrzaj; ne ponavljajte predlog ako je vec odbijen ili ako fotografije vec postoje.',
     'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov vlasnik uklanja izričitom ručnom ispravkom u pregledu.',
     `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
   ].join(' ');
@@ -437,8 +457,11 @@ function valueMatchesContract(key: string, value: unknown): boolean {
 
 function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
-  if (!exact(parsed, ['safety', 'assistantMessage', 'facts']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
+  if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
     !Array.isArray(parsed.facts) || parsed.facts.length > 12) throw new Error('AI_V2_OUTPUT_INVALID');
+  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES)) || Object.entries(DIALOGUE_VALUES).some(([key, values]) =>
+    !values.includes(parsed.dialogue[key])) || (parsed.dialogue.next === 'ASK') !== (parsed.dialogue.questionKey !== ''))
+    throw new Error('AI_V2_OUTPUT_INVALID');
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim()
@@ -469,7 +492,7 @@ function parseV2Output(parsed: any): ParsedTurn {
       });
     }
   }
-  return { safety, assistantMessage, proposals };
+  return { safety, assistantMessage, proposals, dialogue: parsed.dialogue };
 }
 
 async function callGemini(
@@ -499,7 +522,7 @@ async function callGemini(
   if (onText) {
     const raw = await streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText, onUsage,
+      key, body: payloadBody, signal, onText: () => {}, onUsage,
     });
     return parseV2Output(JSON.parse(raw));
   }
@@ -524,6 +547,71 @@ async function callGemini(
   }
   const parsed = JSON.parse(raw);
   return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
+}
+
+function taskFinishOnly(input: string): boolean {
+  const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(normalized);
+}
+
+function sameFactValue(left: unknown, right: unknown): boolean {
+  // Object key order is immaterial; array order and exact typed values are not.
+  const ordered = (value: any): any => Array.isArray(value) ? value.map(ordered)
+    : object(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, ordered(value[key])])) : value;
+  return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
+}
+
+function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext): ParsedTurn {
+  if (turn.safety === 'BLOCK' || turn.safety === 'REVIEW') return turn;
+  if (taskFinishOnly(input)) return { ...turn, proposals: [],
+    assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
+  const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
+  const dialogue = turn.dialogue;
+  if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
+  if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjaš ovaj zadatak ili želiš da napraviš novi?');
+  if (dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR')
+    return clarification('Koji iznos želiš za ceo posao, uz napomenu da li je ukupno ili po osobi? Dnevnica ili satnica još nije cena celog zadatka.');
+  if (dialogue?.schedulePattern === 'REPEATED')
+    return clarification('Ovaj unos podržava jedan neprekidan termin. Koji termin želiš za ovaj zadatak?');
+  // Deliberately narrow deterministic check. A negation, alternative, quotation
+  // or several relative dates must be interpreted in context, never rewritten
+  // by a naive keyword replacement. This does not prove arbitrary language true.
+  const normalized = input.toLowerCase().replace(/данас/g, 'danas').replace(/прекосутра/g, 'prekosutra').replace(/сутра/g, 'sutra');
+  const relative = normalized.match(/^\s*(?:(?:treba mi|termin je|za|треба ми|термин је|за)\s+)?(danas|sutra|prekosutra)[.!?\s]*$/);
+  if (relative) {
+    const offset = { danas: 0, sutra: 1, prekosutra: 2 }[relative[1]]!;
+    const expectedDate = new Date(Date.parse(time.localDate + 'T12:00:00Z') + offset * 86400000).toISOString().slice(0, 10);
+    const expectedKind = offset === 0 ? 'TODAY_FLEXIBLE' : offset === 1 ? 'TOMORROW_FLEXIBLE' : null;
+    const kind = turn.proposals.find(p => p.key === 'need.schedule_kind')?.value;
+    const start = turn.proposals.find(p => p.key === 'need.starts_at')?.value;
+    const wrongKind = typeof kind === 'string' && kind !== 'FIXED_WINDOW' && kind !== expectedKind;
+    const wrongStart = typeof start === 'string' && Number.isFinite(Date.parse(start))
+      && serverTimeContext(new Date(start)).localDate !== expectedDate;
+    if (wrongKind || wrongStart) return { safety: 'CLARIFY', proposals: [],
+      assistantMessage: `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?` };
+  }
+  const proposals = turn.proposals.filter(proposal => !activeFacts.some(fact =>
+    fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
+  const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
+  for (const proposal of proposals) facts.set(proposal.key, proposal.value);
+  const missing = ['need.description', 'need.people_needed', 'need.price_mode',
+    ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
+    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.ends_at'] : []),
+    'need.task_country_code', 'need.task_geography'].filter(key => !facts.has(key));
+  const questions: Record<string, string> = {
+    'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
+    'need.price_mode': 'Želiš da navedeš cenu ili da dobiješ ponude?', 'need.price_rsd': 'Koju cenu nudiš za ceo posao?',
+    'need.price_basis': 'Da li je navedena cena ukupno za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
+    'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
+    'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
+  };
+  let assistantMessage = turn.assistantMessage;
+  if (dialogue?.next === 'ASK') {
+    const key = missing.includes(dialogue.questionKey) ? dialogue.questionKey : missing[0];
+    assistantMessage = key ? questions[key] : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+  } else if (dialogue?.next === 'REVIEW') assistantMessage = 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.';
+  else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
+  return { ...turn, proposals, assistantMessage };
 }
 
 Deno.serve(async (req: Request) => {
@@ -659,6 +747,7 @@ Deno.serve(async (req: Request) => {
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; });
+      aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext);
     } catch (providerError) {
       // On 2026-09-18 this line was the only trace of two failures that left the person staring at
       // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. It
@@ -675,6 +764,9 @@ Deno.serve(async (req: Request) => {
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (result.data.state === 'SUCCEEDED' && (result.data.receipt.proposedCount !== aiTurn.proposals.length || result.data.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
+      // No raw provider prose escapes before the semantic check and the exact
+      // owned completion receipt. The existing stream still reports acceptance.
+      if (result.data.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);
       if (reportedUsage) {
         try {
           await rpc('rpc_ai_test_record_usage_service', { p_operation_id: requestId, p_model: geminiModel,

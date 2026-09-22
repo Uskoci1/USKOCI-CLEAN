@@ -7,6 +7,7 @@ import {readFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
+import {withDialogue,syntheticDialogue} from './dialogue_fixture.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const entry=resolve(root,'supabase/functions/uskoci-ai-interview/index.ts');
@@ -64,7 +65,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       if(failure==='http')return new Response('PRIVATE_PROVIDER_OUTPUT',{status:429});
       if(failure==='json')return new Response('PRIVATE_PROVIDER_OUTPUT '+userText+' SYNTHETIC_GEMINI_KEY',{status:200});
       const result=providerOutput??(schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]});
-      const output=failure==='output'?'PRIVATE_PROVIDER_OUTPUT '+userText:JSON.stringify(result);
+      const output=failure==='output'?'PRIVATE_PROVIDER_OUTPUT '+userText:JSON.stringify(withDialogue(result));
       return url.includes('googleapis')?json({candidates:[{content:{parts:[{text:output}]}}]}):json({output_text:output});
     }
     assert.fail('UNEXPECTED_SYNTHETIC_FETCH_ROUTE');
@@ -239,6 +240,77 @@ for(const failure of ['code-shaped','runtime'])test(`a ${failure} provider failu
 const providerCalls=f=>f.calls.filter(call=>[
   'generativelanguage.googleapis.com','api.openai.com',
 ].includes(new URL(call.url).hostname));
+
+const semanticFact=(key,value)=>({fact_key:key,fact_value:value,value_type:typeof value==='number'?'INTEGER':'TEXT',
+ display_value:'D'.repeat(1000),fact_schema_version:'NEED_FACT_V2',status:'NEEDS_CONFIRMATION',source:'AI_INFERENCE',created_at:'2026-09-07T12:00:00Z'});
+test('rich known facts remain complete JSON and preserve later material fields',async()=>{
+ const activeFacts=[semanticFact('need.description','D'.repeat(6000)),semanticFact('need.access_notes','A'.repeat(2000)),semanticFact('need.people_needed',3)];
+ const f=fixture({activeFacts});assert.equal((await f.invoke()).status,200);
+ const held=JSON.parse(prompt(providerCall(f)).split('Aktuelne server-side činjenice: ')[1].split(' Sastavite lep, kratak')[0]);
+ assert.equal(held.find(x=>x.key==='need.people_needed').value,3);
+ assert.equal(held.find(x=>x.key==='need.description').value.length,6000);
+});
+
+test('an unchanged material proposal is not written as a new unconfirmed version',async()=>{
+ const f=fixture({activeFacts:[semanticFact('need.people_needed',2)]});assert.equal((await f.invoke()).status,200);
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+});
+
+for(const [input,now,kind] of [['Treba mi sutra.','2026-09-20T22:59:00Z','TODAY_FLEXIBLE'],
+ ['Треба ми сутра.','2026-09-20T22:59:00Z','TODAY_FLEXIBLE'],['Treba mi danas.','2026-12-31T23:30:00Z','TOMORROW_FLEXIBLE']])
+ test('a contradictory relative day becomes clarification without material writes: '+input,async()=>{
+  const f=fixture({now,providerOutput:{safety:'ALLOW',assistantMessage:'Zabeležio sam termin.',facts:[
+   {key:'need.schedule_kind',valueJson:JSON.stringify(kind),displayValue:kind,evidence:input,confidence:0.99}]}});
+  assert.equal((await f.invoke({text:input})).status,200);
+  const completed=materialWrites(f)[0].body;assert.equal(completed.p_safety,'CLARIFY');assert.deepEqual(completed.p_proposals,[]);
+  assert.match(completed.p_assistant_message,/termin/);assert.equal(providerCalls(f).length,1);
+ });
+
+test('negated and alternative days are not silently rewritten by a keyword rule',async()=>{
+ const f=fixture({providerOutput:{safety:'CLARIFY',assistantMessage:'Koji od ta dva dana biraš?',facts:[]}});
+ assert.equal((await f.invoke({text:'Ne danas, možda sutra ili prekosutra.'})).status,200);
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,'Koji od ta dva dana biraš?');
+});
+
+test('finish-only task request cannot invent new terms or claim publication',async()=>{
+ const f=fixture();assert.equal((await f.invoke({text:'Objavi zadatak.'})).status,200);
+ const written=materialWrites(f)[0].body;assert.deepEqual(written.p_proposals,[]);
+ assert.equal(written.p_assistant_message,'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+});
+
+test('a question about known headcount is replaced by one genuinely missing topic',async()=>{
+ const f=fixture({activeFacts:[semanticFact('need.description','Prenos stvari'),semanticFact('need.people_needed',3)],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Koliko ljudi, kada, gde i koja cena?',facts:[],
+   dialogue:{...syntheticDialogue(),next:'ASK',questionKey:'need.people_needed'}}});
+ assert.equal((await f.invoke()).status,200);
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
+});
+
+for(const interpretation of [{taskRelation:'DIFFERENT_TASK'},{taskRelation:'UNCLEAR'},
+ {priceUnit:'PER_DAY'},{priceUnit:'PER_HOUR'},{schedulePattern:'REPEATED'}])
+ test('material ambiguity cannot mix new work with old terms: '+JSON.stringify(interpretation),async()=>{
+  const f=fixture({activeFacts:[semanticFact('need.price_rsd',5000),semanticFact('need.schedule_kind','TODAY_FLEXIBLE')],
+   providerOutput:{safety:'ALLOW',assistantMessage:'Sve sam razumeo i uneo.',facts:[
+    {key:'need.title',valueJson:'"Druga vrsta posla"',displayValue:'Druga vrsta posla',evidence:'novi posao',confidence:1}],
+    dialogue:{...syntheticDialogue(),...interpretation}}});
+  assert.equal((await f.invoke()).status,200);const written=materialWrites(f)[0].body;
+  assert.equal(written.p_safety,'CLARIFY');assert.deepEqual(written.p_proposals,[]);
+  assert.ok(!written.p_assistant_message.includes('Sve sam razumeo'));assert.equal(providerCalls(f).length,1);
+ });
+
+for(const dialogue of [null,{}, {...syntheticDialogue(),next:'ASK'}, {...syntheticDialogue(),hidden:'extra'},
+ {...syntheticDialogue(),next:'ASK',questionKey:'need.resolved_location'}])
+ test('missing or invalid dialogue plan is refused before materialization',async()=>{
+  const f=fixture({providerOutput:{...providerResult,dialogue}});assert.equal((await f.invoke()).status,502);
+  assert.deepEqual(materialWrites(f),[]);
+ });
+
+test('changed headcount remains accepted while acknowledgment contains no repeated summary',async()=>{
+ const f=fixture({activeFacts:[semanticFact('need.people_needed',3)],
+  providerOutput:{...providerResult,dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke()).status,200);const written=materialWrites(f)[0].body;
+ assert.equal(written.p_proposals[0].value,2);assert.equal(written.p_assistant_message,'Podaci su ažurirani u pregledu.');
+});
 const hostFor={gemini:'generativelanguage.googleapis.com',openai:'api.openai.com'};
 
 for(const selected of ['openai','gemini'])test(`explicit ${selected} cannot bypass approved Gemini admission when both pairs are present`,async()=>{

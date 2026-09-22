@@ -66,7 +66,8 @@ async function actualEditTurn(report,a,cid,label){
  assert.deepEqual(request.generationConfig.thinkingConfig,{thinkingLevel:'low'});
  assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(key)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
  assert.equal((await ok(a.client.rpc('rpc_ai_recover_need_turn_v2',{p_conversation_id:cid,p_client_request_id:key}))).providerDispatched,true);
- return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
+ return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'Synthetic145 ordinary edit remains available',facts:[],
+  dialogue:{next:'ANSWER',questionKey:'',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
 }
   assert.equal(url.origin,origin);assert.ok(url.pathname==='/auth/v1/user'||url.pathname.startsWith('/rest/v1/'));
   if(url.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){

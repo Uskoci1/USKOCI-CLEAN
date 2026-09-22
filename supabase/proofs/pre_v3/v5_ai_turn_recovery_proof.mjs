@@ -100,7 +100,8 @@ await prove('V5_AI_TURN_RESTART_RECOVERY','v5-ai-turn-recovery-report.json',asyn
    providerCalls++;assert.equal((await recover(a,edgeCid,edgeKey)).providerDispatched,true);
    assert.equal(budgetCalls,1);
    assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(a.id)}::uuid and operation_id=${q(edgeKey)}::uuid and kind='LLM' and max_cost_microusd=250000`),'1');
-   return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'SYNTHETIC response',facts:[]})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
+   return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({safety:'ALLOW',assistantMessage:'SYNTHETIC response',facts:[],
+    dialogue:{next:'ANSWER',questionKey:'',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}})}]},finishReason:'STOP'}]}),{headers:{'Content-Type':'application/json'}});
   }
   assert.equal(target.origin,origin);assert.ok(target.pathname==='/auth/v1/user'||target.pathname.startsWith('/rest/v1/'));
   if(target.pathname==='/rest/v1/rpc/rpc_ai_test_budget_reserve_service'){

@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadOwnedIntakeHandler} from './owned_intake_edge_runtime.mjs';
+import {withDialogue} from './dialogue_fixture.mjs';
 
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
@@ -12,7 +13,7 @@ function fixture({schema='NEED_FACT_V2',stream=false,env:patch={},budget,replay}
  const calls=[],envReads=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
   AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_GEMINI',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
   OPENAI_API_KEY:'SYNTHETIC_UNAPPROVED_OPENAI',OPENAI_MODEL:'synthetic-openai',...patch};
- const raw=JSON.stringify({safety:'ALLOW',assistantMessage:'Pregledajte podatke.',facts:[]});
+ const raw=JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:'Pregledajte podatke.',facts:[]}));
  const fetch=async(input,init={})=>{
   const url=String(input),body=init.body?JSON.parse(init.body):null;calls.push({url,body,init});
   if(url.endsWith('/auth/v1/user'))return json({id:account});

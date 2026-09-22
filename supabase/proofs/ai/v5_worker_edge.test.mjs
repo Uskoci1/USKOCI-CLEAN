@@ -48,7 +48,7 @@ function fixture(options={}){
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_turn_service'));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
-async function events(f){const r=await f.invoke();assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
+async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
 test('distinct owned profile streams real Unicode text, reserves approved budget and completes candidate only',async()=>{
  const f=fixture(),es=await events(f);assert.equal(es[0].kind,'accepted');assert.equal(es.at(-1).kind,'final');assert.deepEqual(es.at(-1).turn,turn());
@@ -76,7 +76,30 @@ test('model cannot add task facts, verified fields or invented coordinates',asyn
  for(const patch of [{'need.title':'Wrong schema'},{verifiedIdentity:true},{location:{approximatePosition:{latitude:44.81,longitude:20.46}}}]){
   const f=fixture({output:{assistantMessage:'Test',safety:'ALLOW',patch}}),es=await events(f);
   assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,1);
+  assert.ok(!es.some(e=>e.kind==='text_delta'),'invalid output is never presented to the person');
  }
+});
+
+for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
+ test('finish request hands off to profile review without another availability question: '+input,async()=>{
+  const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{teamCapacity:50}};
+  const f=fixture({output}),es=await events(f,{text:input});
+  assert.equal(es.at(-1).kind,'final');
+  const applied=completions(f)[0].body.p_output;
+  assert.deepEqual(applied.patch,{},'finish is not authorization for invented profile changes');
+  assert.equal(applied.assistantMessage,'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.');
+  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),applied.assistantMessage);
+  assert.ok(!es.some(e=>e.text?.includes('dostupnost')));
+  assert.equal(providers(f).length,1,'no second paid model call to rewrite a reply');
+ });
+
+test('finish handling does not swallow a correction or override a safety refusal',async()=>{
+ for(const input of ['Nemoj još da sačuvaš.','Sačuvaj, ali promeni da nas je troje.']){
+  const f=fixture(),es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
+  assert.deepEqual(completions(f)[0].body.p_output,f.output);
+ }
+ const f=fixture({output:{assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',safety:'BLOCK',patch:{}}});
+ await events(f,{text:'Sačuvaj'});assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
 });
 test('truncated provider response remains unknown without a second call or candidate completion',async()=>{
  const f=fixture({finishReason:'MAX_TOKENS'}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,0);

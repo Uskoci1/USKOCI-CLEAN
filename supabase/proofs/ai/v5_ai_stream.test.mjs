@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadOwnedIntakeHandler} from './owned_intake_edge_runtime.mjs';
+import {withDialogue} from './dialogue_fixture.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
@@ -11,7 +12,7 @@ function fixture(config={}){
  const calls=[];const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
    AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...config.env};
  const message=config.message??'Čujem te. Pregledaj zadatak 🟢.';
- const raw=JSON.stringify({safety:'ALLOW',assistantMessage:message,facts:[]});
+ const raw=JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:message,facts:[]}));
  const providerStream=()=>{
    const fragments=config.fragments??Array.from(raw); // Real provider deltas, split at every character.
    const encoded=fragments.map((text,i)=>'data: '+JSON.stringify({candidates:[{content:{parts:[{text}]},...(i===fragments.length-1?{finishReason:config.finishReason??'STOP'}:{})}]})+'\r\n\r\n').join('');
@@ -53,12 +54,15 @@ for(const budget of [{admitted:false,reservationId:null,replay:false,code:'AI_TE
  const f=fixture({budget}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(providers(f).length,0);assert.equal(writes(f).length,0);
 });
 test('paid processing gate must be explicitly enabled',async()=>{const f=fixture({env:{USKOCI_GEMINI_PAID_TEST_ENABLED:''}});assert.equal((await events(f)).at(-1).kind,'safe_error');assert.equal(providers(f).length,0);});
-test('truncated output may show ephemeral prefix but never a successful card receipt',async()=>{
+test('truncated output shows neither unvalidated prose nor a successful card receipt',async()=>{
  const f=fixture({finishReason:'MAX_TOKENS'}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(writes(f).length,0);assert.ok(!es.some(e=>e.kind==='final'));
+ assert.ok(!es.some(e=>e.kind==='text_delta'));
 });
-test('wrong authoritative receipt produces no stream final',async()=>{const f=fixture({badReceipt:true}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(writes(f).length,1);});
+test('wrong authoritative receipt produces no text or stream final',async()=>{const f=fixture({badReceipt:true}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(writes(f).length,1);assert.ok(!es.some(e=>e.kind==='text_delta'));});
 test('nested/escaped assistantMessage keys cannot leak non-assistant JSON into text',async()=>{
  const f=fixture({fragments:['{"facts":[{"key":"need.description","valueJson":"{\\"assistantMessage\\":\\"PRIVATE\\"}","displayValue":"private","evidence":"x","confidence":1}],',
  '"safety":"ALLOW","assistantMessage":"Javan odgovor."}']});
- const es=await events(f);assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),'Javan odgovor.');assert.ok(!JSON.stringify(es).includes('PRIVATE'));
+ const es=await events(f);assert.ok(!es.some(e=>e.kind==='text_delta'));
+ assert.equal(es.at(-1).kind,'safe_error','nested object is not a valid description fact');
+ assert.ok(!JSON.stringify(es).includes('PRIVATE'));
 });
