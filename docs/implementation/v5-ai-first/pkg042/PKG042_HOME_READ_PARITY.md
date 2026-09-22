@@ -101,5 +101,7 @@ untracked migration; no frozen tracked migration or inventory rule was changed.
 
 APK35698097121 on dfa54206 succeeded. Downloaded68,554,979 bytes; SHA256
 3dfddf496163f860f5b9e526d8bd3d291f031526534a9b6f7070b3cd9efa0fde matches the checksum and both
-source/tree-bound recovery/icon attestations. See APK_RECEIPT_20260922.json. Not installed/tested;
-no claim that the owner's current phone already runs this client or that the complete journey passed.
+source/tree-bound recovery/icon attestations. See APK_RECEIPT_20260922.json for build-time evidence.
+Subsequently installed via adb install -r on the owner's USB phone at their explicit request. Installed
+hash matches; cold launch and signed-in Home rendering observed. See DEVICE_INSTALLATION_RECEIPT_20260922.json.
+The owner can now try the AI. The agent made no provider call; complete journey/AI quality remain unverified.

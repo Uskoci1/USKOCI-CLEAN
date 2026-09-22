@@ -29,7 +29,9 @@ of app completion from counts of migrations, files or closed findings.
 - Latest verified APK: run35698097121, source `dfa54206`, SHA256 `3dfddf49…`, 68,554,979 bytes. Downloaded
   hash/source/tree match checksum and both recovery/icon attestations. Contains PKG-042 Home attention
   and preceding AI/native client changes; PKG-041 is server-only. See `v5-ai-first/pkg042/APK_RECEIPT_20260922.json`.
-  **Not installed/tested on a phone. No real-provider semantic-quality probe.**
+  **Installed on the owner's USB phone on20260922.** Installed APK hash matches; cold launch and signed-in
+  Home rendering observed. See `v5-ai-first/pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json`.
+  This is a launch smoke check, not the complete marketplace journey or a real-provider quality probe.
 
 ## Engineering work queue
 

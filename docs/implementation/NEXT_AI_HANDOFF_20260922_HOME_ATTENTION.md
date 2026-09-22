@@ -25,7 +25,10 @@ no PR/force-push/repair branch. Do not rewrite source147 or include the owner's 
   by this packet; see AI handoff for their deployment evidence. No paid provider call or phone action.
 - APK35698097121 source dfa54206 succeeded; downloaded68,554,979 bytes, SHA256
   3dfddf496163f860f5b9e526d8bd3d291f031526534a9b6f7070b3cd9efa0fde. Checksum/source/tree and both
-  recovery/icon attestations match. File artifacts/apk-35698097121/USKOCI-DEV.apk. NOT installed or tested.
+  recovery/icon attestations match. File artifacts/apk-35698097121/USKOCI-DEV.apk. Subsequently installed
+  on the owner's USB phone at their explicit request, with adb install -r. Installed hash matches;
+  cold launch and signed-in Home rendering observed. No agent AI/provider call, speech or whole-journey
+  test. See pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json for the separate launch smoke evidence.
 
 ## Change and remaining boundary
 
