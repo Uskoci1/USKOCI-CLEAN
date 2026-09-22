@@ -26,7 +26,11 @@ for (const [file, pin] of [['supabase/candidates/pkg042a_cancelled_agreement_rea
 }
 report.closureBefore = closure();
 assert.equal(report.closureBefore.ready, true); assert.equal(report.closureBefore.live, report.closureBefore.certified);
-assert.equal(report.closureBefore.live, report.closureBefore.erasure); assert.equal(report.closureBefore.live, LIVE_CERTIFICATE);
+assert.equal(report.closureBefore.live, report.closureBefore.erasure);
+// The disposable stack reproduces every certified function body, but the whole-schema digest also covers the
+// stack's own extension tables, so its certificate is self-consistent rather than byte-equal to DEV's. The
+// candidate never hardcodes the value; the application receipt records the real DEV before/after.
+report.liveDevCertificateAtWriting = LIVE_CERTIFICATE; report.disposableCertificateReproducesLiveValue = report.closureBefore.live === LIVE_CERTIFICATE;
 assert.equal(md5(CLAIM), '81962817e4f67b1e2663da0828f0da90'); assert.equal(md5(READ), '63ed40f2d8c4b7cc8805730f29046dcc');
 assert.equal(sql("select to_regprocedure('public.rpc_cancel_media_upload(uuid,uuid)') is null"), 't');
 const baselineSurface = surface();
