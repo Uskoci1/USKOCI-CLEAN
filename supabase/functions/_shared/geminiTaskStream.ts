@@ -188,6 +188,7 @@ export function geminiUsage(raw: unknown): GeminiUsage | null {
 export async function streamGeminiTask(input: {
   url: string; key: string; body: string; signal?: AbortSignal; onText: (delta: string) => void;
   onUsage?: (usage: GeminiUsage) => void;
+  timeoutMs?: 30000;
 }): Promise<string> {
   const controller = new AbortController();
   let rejectStopped: (error: Error) => void = () => {};
@@ -195,7 +196,7 @@ export async function streamGeminiTask(input: {
   // Attach a handler even when cancellation precedes the first I/O operation.
   void stoppedIO.catch(() => undefined);
   const stop = () => { controller.abort(); rejectStopped(new Error('AI_STREAM_STOPPED')); };
-  const timeout = setTimeout(stop, 12000);
+  const timeout = setTimeout(stop, input.timeoutMs ?? 12000);
   input.signal?.addEventListener('abort', stop, { once: true });
   if (input.signal?.aborted) stop();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;

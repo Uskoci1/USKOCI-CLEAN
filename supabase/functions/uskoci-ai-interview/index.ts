@@ -522,14 +522,14 @@ async function callGemini(
   if (onText) {
     const raw = await streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText: () => {}, onUsage,
+      key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
     });
     return parseV2Output(JSON.parse(raw));
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     { method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: geminiRequestBody(payloadBody) },
-    131072, 12000, signal, true,
+    131072, 30000, signal, true,
   );
   if (!providerResponse.ok) {
     console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
@@ -646,19 +646,21 @@ Deno.serve(async (req: Request) => {
   const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
-  let dispatchUncertain = false;
+  let retirementStarted = false;
   let serviceRoleKey = '';
-  const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
+  const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal, timeout = 8000) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
     method: 'POST', headers: { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),
-  }, 524288, 8000, signal);
+  }, 524288, timeout, signal);
   const identityArgs = () => ({ p_account_id: accountId, p_conversation_id: conversationId, p_client_request_id: requestId });
   const retireAttempt = async () => {
-    if (!attemptId || dispatchUncertain) return;
+    if (!attemptId || retirementStarted) return;
+    retirementStarted = true;
     try {
-      // Metadata only; never retries the materializer after an uncertain result.
-      await rpc('rpc_ai_fail_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId });
-    } catch { /* Only explicit owner cancellation may fence a pre-dispatch unknown. */ }
+      // Independent bounded metadata settlement. PKG-039 SQL only ends the same
+      // PROCESSING attempt; SUCCEEDED/cancelled are preserved, dispatch never reset.
+      await rpc('rpc_ai_fail_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId }, undefined, 5000);
+    } catch { /* Durable sweep remains the fallback; no inference retry/refund. */ }
   };
   try {
     const conversationQuery = await boundedJson(supabaseUrl + '/rest/v1/ai_conversations?id=eq.' + encodeURIComponent(conversationId) +
@@ -740,10 +742,11 @@ Deno.serve(async (req: Request) => {
       if (schemaVersion === NEED_FACT_SCHEMA_V2) {
         // Persist dispatch intent before any provider I/O. Lost ACK, timeout or
         // response parsing failure cannot authorize another billable attempt.
-        dispatchUncertain = true;
         const dispatched = await rpc('rpc_ai_dispatch_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId }, signal);
-        if (!dispatched.ok || dispatched.data !== true)
+        if (!dispatched.ok || dispatched.data !== true) {
+          await retireAttempt();
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
+        }
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; });

@@ -128,18 +128,26 @@ describe('turn receipt contract and SDK error transport', () => {
     await expect(client.sendMessage(C, 'text', K)).resolves.toMatchObject({ ok: false });
     expect(transport.read).not.toHaveBeenCalled(); expect(transport.cancel).toHaveBeenCalled();
   });
-  it('cancels a never-ending409 stream at the original request deadline', async () => {
+  it('accepts a slow interview result after15 seconds without replay', async () => {
+    jest.useFakeTimers(); const wait = deferred(); mockInvoke.mockReturnValue(wait.promise);
+    const pending = client.sendMessage(C, 'text', K); let settled = false;
+    void pending.then(() => { settled = true; });
+    await jest.advanceTimersByTimeAsync(20000); expect(settled).toBe(false);
+    wait.resolve(ok(turn())); await expect(pending).resolves.toEqual({ ok: true, podatak: turn() });
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+  });
+  it('cancels a never-ending409 stream at the bounded interview deadline', async () => {
     jest.useFakeTimers(); const transport = httpError(409, turn('FAILED'));
     transport.read.mockReset().mockReturnValue(new Promise(() => {}));
     mockInvoke.mockResolvedValue({ data: null, error: transport.error });
-    const pending = client.sendMessage(C, 'text', K); await jest.advanceTimersByTimeAsync(15001);
+    const pending = client.sendMessage(C, 'text', K); await jest.advanceTimersByTimeAsync(55001);
     await expect(pending).resolves.toMatchObject({ ok: false }); expect(transport.cancel).toHaveBeenCalled();
     expect(mockInvoke).toHaveBeenCalledTimes(1); expect(jest.getTimerCount()).toBe(0);
   });
   it('does not begin reading a409 body returned after timeout', async () => {
     jest.useFakeTimers(); const wait = deferred(), transport = httpError(409, turn('FAILED'));
     mockInvoke.mockReturnValue(wait.promise); const pending = client.sendMessage(C, 'text', K);
-    await jest.advanceTimersByTimeAsync(15001); await expect(pending).resolves.toMatchObject({ ok: false });
+    await jest.advanceTimersByTimeAsync(55001); await expect(pending).resolves.toMatchObject({ ok: false });
     wait.resolve({ data: null, error: transport.error }); await jest.advanceTimersByTimeAsync(0);
     expect(transport.clone).not.toHaveBeenCalled();
   });
@@ -250,7 +258,7 @@ describe('every command/read uses shared bounded account receipt ownership', () 
   it.each(operations)('%s times out without replaying the request', async (_name, run) => {
     jest.useFakeTimers(); const wait = new Promise(() => {});
     mockRpc.mockReturnValue(wait); mockInvoke.mockReturnValue(wait); mockProfile.mockReturnValue(wait);
-    const pending = run(); await jest.advanceTimersByTimeAsync(15001); await expect(pending).resolves.toMatchObject({ ok: false });
+    const pending = run(); await jest.advanceTimersByTimeAsync(_name === 'send' ? 55001 : 15001); await expect(pending).resolves.toMatchObject({ ok: false });
     expect(mockRpc.mock.calls.length + mockInvoke.mock.calls.length + mockProfile.mock.calls.length).toBe(1);
   });
 });

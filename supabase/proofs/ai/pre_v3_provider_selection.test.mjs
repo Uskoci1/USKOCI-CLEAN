@@ -95,7 +95,7 @@ for(const provider of ['gemini'])test(`${provider} timeout fences late output an
  let resolve;const late=new Promise(r=>{resolve=r;});const timers=new Map();let sequence=0;
  const f=fixture({env:{AI_PROVIDER:provider},provider:()=>late,setTimeout:(fn,ms)=>{const n=++sequence;timers.set(n,{fn,ms});return n;},clearTimeout:n=>timers.delete(n)});
  const running=f.invoke();for(let n=0;n<100&&!providers(f).length;n++)await new Promise(r=>setImmediate(r));
- assert.equal(providers(f).length,1);const deadline=[...timers.values()].find(x=>x.ms===12000);assert.ok(deadline);deadline.fn();
+ assert.equal(providers(f).length,1);const deadline=[...timers.values()].find(x=>x.ms===30000);assert.ok(deadline);deadline.fn();
  assert.equal((await running).status,502);resolve(json({output_text:JSON.stringify(content)}));await new Promise(r=>setImmediate(r));
  assert.equal(completes(f).length,0);assert.equal(providers(f).length,1);
 });

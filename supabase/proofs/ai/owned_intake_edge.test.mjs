@@ -26,7 +26,7 @@ function fixture(config={}){
   if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return config.budget?.(body)??json({admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
   if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??gemini({safety:'ALLOW',assistantMessage:'Proverite unos.',facts:[]});
   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return config.complete?.(body)??json(turn());
-  if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
+  if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json({...turn('FAILED'),retryAllowed:false});
   assert.fail('Unexpected synthetic route');
  };
  const runtime=loadOwnedIntakeHandler({env:name=>{envReads.push(name);return env[name];},fetch,Date:FixedDate,
@@ -104,7 +104,7 @@ test('provider deadline ignores a transport that finishes after cancellation; no
  const gate=deferred(),timers=new Map();let sequence=0;
  const f=fixture({provider:()=>gate.promise,setTimeout:(fn,ms)=>{const n=++sequence;timers.set(n,{fn,ms});return n;},clearTimeout:n=>timers.delete(n)});
  const running=f.invoke();while(!providers(f).length)await flush();
- const deadline=[...timers.values()].find(x=>x.ms===12000);assert.ok(deadline);deadline.fn();
+ const deadline=[...timers.values()].find(x=>x.ms===30000);assert.ok(deadline);deadline.fn();
  assert.equal((await running).status,502);assert.equal(completes(f).length,0);
  gate.resolve(gemini({safety:'ALLOW',assistantMessage:'late',facts:[]}));await flush();
  assert.equal(completes(f).length,0);assert.equal(providers(f)[0].init.signal.aborted,true);
@@ -121,13 +121,13 @@ test('per-user six/minute burst is bounded; window rollover permits a new call',
 });
 
 for (const dispatch of [() => json(false), () => json({acquired:true}), () => json({},500), () => { throw new Error('UNKNOWN_DISPATCH'); }])
-test('missing, denied or uncertain dispatch acknowledgment cannot call provider or mark retryable failure', async () => {
+test('missing, denied or uncertain dispatch acknowledgment cannot call provider and only settles owned metadata', async () => {
  const f=fixture({dispatch}); await f.invoke(); assert.equal(providers(f).length,0); assert.equal(completes(f).length,0);
- assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
 });
-test('provider timeout/error after dispatch leaves durable unresolved command instead of enabling a second attempt',async()=>{
+test('provider timeout/error after dispatch settles owned metadata without enabling a second attempt',async()=>{
  const f=fixture({provider:()=>{throw new Error('UNKNOWN_UPSTREAM');}});assert.equal((await f.invoke()).status,502);
- assert.equal(providers(f).length,1);assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+ assert.equal(providers(f).length,1);assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
  assert.ok(f.calls.findIndex(c=>c.url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))<f.calls.indexOf(providers(f)[0]));
 });
 
@@ -148,5 +148,5 @@ for(const value of [true,false])test(`provider cannot bypass manual-only histori
   {key:'need.verified_identity_required',valueJson:JSON.stringify(value),displayValue:value?'Da':'Ne',evidence:'synthetic',confidence:1},
  ]})});
  assert.equal((await f.invoke()).status,502);assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);
- assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,0);
+ assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
 });

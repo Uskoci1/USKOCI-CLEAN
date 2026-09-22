@@ -42,7 +42,7 @@ export function readReceipt<T>(options: ReceiptOptions<T> & {
 export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   request: () => PromiseLike<unknown>;
   account?: ReceiptAccount;
-  /** Only accepted-review evaluation needs the longer, still bounded wait. */
+  /** Explicit opt-in for AI evaluation/interviews; ordinary RPCs retain15 seconds. */
   timeoutMs?: 55_000;
 }): Promise<Ishod<T>> {
   const owner = sesijaSada();

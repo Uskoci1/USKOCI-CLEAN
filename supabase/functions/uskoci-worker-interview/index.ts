@@ -26,16 +26,20 @@ async function requestText(req:Request):Promise<string>{
 }
 
 async function boundedJson(url: string, init: RequestInit, maximum: number, timeout: number, signal: AbortSignal) {
-  const abort = new AbortController(), stop = () => abort.abort(), timer = setTimeout(stop, timeout);
+  const abort = new AbortController();
+  let rejectStopped: (error: Error) => void = () => {};
+  const stopped = new Promise<never>((_resolve,reject)=>{rejectStopped=reject;});
+  void stopped.catch(()=>undefined);
+  const stop = () => { abort.abort(); rejectStopped(new Error('WORKER_AI_CANCELLED')); }, timer = setTimeout(stop, timeout);
   signal.addEventListener('abort', stop, { once: true }); if (signal.aborted) stop();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     if (abort.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
-    const response = await fetch(url, { ...init, redirect: 'error', signal: abort.signal });
+    const response = await Promise.race([fetch(url, { ...init, redirect: 'error', signal: abort.signal }),stopped]);
     if (response.redirected || !response.body) throw new Error('WORKER_AI_UNAVAILABLE');
     reader = response.body.getReader(); let size = 0, body = ''; const decoder = new TextDecoder('utf-8', { fatal: true });
     for (;;) {
-      const part = await reader.read(); if (abort.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
+      const part = await Promise.race([reader.read(),stopped]); if (abort.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
       if (part.done) break; size += part.value.byteLength;
       if (size > maximum) throw new Error('WORKER_AI_TOO_LARGE'); body += decoder.decode(part.value, { stream: true });
     }
@@ -107,11 +111,20 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     if (!authenticated.ok || !id(authenticated.data?.id)) return json(401,{code:'AUTH_REQUIRED'});
     account=authenticated.data.id;
   } catch { return json(400,{code:'WORKER_AI_INPUT_INVALID'}); }
-  const rpc=async(name:string,args:Record<string,unknown>,signal=req.signal)=> {
-    const result=await boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify(args)},524288,8000,signal);
+  const rpc=async(name:string,args:Record<string,unknown>,signal=req.signal,timeout=8000)=> {
+    const result=await boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify(args)},524288,timeout,signal);
     if (!result.ok) throw new Error('WORKER_AI_RPC_FAILED'); return result.data;
   };
   const identity={p_account_id:account,p_conversation_id:input.conversationId,p_client_request_id:input.clientRequestId};
+  let ownedAttempt: string | null = null, retirementStarted = false;
+  const fail=async()=>{
+    if(!ownedAttempt||retirementStarted)return;
+    retirementStarted=true;
+    // SQL locks this exact turn and cannot overwrite success or clear dispatch.
+    // Cleanup must not inherit a disconnected client's aborted signal.
+    try { await rpc('rpc_fail_worker_ai_turn_service',{...identity,p_attempt_id:ownedAttempt},new AbortController().signal,5000); }
+    catch { /* The existing durable sweep handles a lost cleanup acknowledgement. */ }
+  };
   let claim: Record<string,any>, context:Record<string,any>;
   try {
     const value=await rpc('rpc_claim_worker_ai_turn_service',{...identity,p_text:input.text});
@@ -119,14 +132,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       || value.turn.conversationId!==input.conversationId || value.turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
     claim=value;
     if (!claim.acquired) return json(200,claim.turn);
+    ownedAttempt=claim.turn.attemptId;
     context=await rpc('rpc_read_worker_ai_context_service',{p_account_id:account,p_conversation_id:input.conversationId});
     if (!object(context) || context.schemaVersion!=='WORKER_PROFILE_V1' || context.accountId!==account || context.conversationId!==input.conversationId
       || context.status!=='OPEN' || context.stale!==false || !['ALLOW','CLARIFY'].includes(context.safety)
       || !object(context.candidate) || !Array.isArray(context.messages)) throw new Error('WORKER_AI_INVALID');
-  } catch { return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
-  const fail=()=>rpc('rpc_fail_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId});
+  } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   // Configuration and reservations precede provider I/O. Failed admission is a
-  // known failure; timeout/cancellation after provider dispatch remains unknown.
+  // known failure; later settlement keeps dispatch and request identity intact.
   if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED')!=='true') {
     try { await fail(); } catch {} return json(503,{code:'WORKER_AI_NOT_CONFIGURED'});
   }
@@ -149,7 +162,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       ||t.clientRequestId!==input.clientRequestId||!['PROCESSING','UNKNOWN_OUTCOME','FAILED','SUCCEEDED'].includes(t.state)
       ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
     if (!dispatched.dispatched) return json(200,t);
-  } catch { return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
+  } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   const abort=new AbortController(),stop=()=>abort.abort(); req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({
@@ -165,7 +178,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         const raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           // Provider prose remains private until shape, patch and completion are
           // accepted. Otherwise even an invalid patch could speak to the person.
-          key,body,signal:abort.signal,onText:()=>{},onUsage:value=>{usage.value=value;}});
+          key,body,signal:abort.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
         try { output=parseWorkerOutput(JSON.parse(raw)); } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
@@ -180,7 +193,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (usage.value) { try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
           p_prompt_tokens:usage.value.promptTokens,p_output_tokens:usage.value.outputTokens,p_total_tokens:usage.value.totalTokens},abort.signal); } catch {} }
         send('final',{turn});
-      } catch { if(!abort.signal.aborted) { try { send('safe_error',{code:'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
+      } catch { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
       finally { req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort(); }
     }, cancel(){stop();req.signal.removeEventListener('abort',stop);}
   });

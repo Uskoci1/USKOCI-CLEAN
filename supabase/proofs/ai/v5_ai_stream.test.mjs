@@ -20,23 +20,45 @@ function fixture(config={}){
    return new Response(new ReadableStream({start(controller){for(let i=0;i<bytes.length;i+=13)controller.enqueue(bytes.slice(i,i+13));controller.close();}}),{headers:{'Content-Type':'text/event-stream'}});
  };
  const fetch=async(url,init={})=>{
-   const body=init.body?JSON.parse(init.body):null;calls.push({url:String(url),body,init});
+   const body=init.body?JSON.parse(init.body):null;calls.push({url:String(url),body,init,abortedAtCall:init.signal?.aborted});
    if(url.endsWith('/auth/v1/user'))return json({id:account});
    if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
   if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
    if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(config.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
-   if(url.startsWith('https://generativelanguage.googleapis.com/'))return providerStream();
-   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(config.badReceipt?{...turn(),turnId:id(99)}:turn());
-   if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
+   if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??providerStream();
+   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json(config.badReceipt?{...turn(),turnId:id(99)}:turn());}
+   if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
    assert.fail('UNEXPECTED_ROUTE');
  };
- const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name]});
+ const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
  return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_TEXT'})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
+const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));
+
+for(const config of [{finishReason:'MAX_TOKENS'}, {provider:async()=>{throw Error('SYNTHETIC_NETWORK');}},
+ {provider:async()=>new Response('{}',{status:429,headers:{'Content-Type':'application/json'}})}])
+test('post-dispatch provider failure settles the same attempt without text or another provider call',async()=>{
+ const f=fixture(config),es=await events(f);
+ assert.equal(es.at(-1).kind,'safe_error');assert.equal(writes(f).length,0);assert.equal(providers(f).length,1);
+ assert.equal(failures(f).length,1);assert.equal(failures(f)[0].body.p_attempt_id,attemptId);
+ assert.equal(failures(f)[0].abortedAtCall,false);assert.ok(!es.some(e=>e.kind==='text_delta'));
+});
+test('lost completion acknowledgement only attempts metadata settlement and does not publish unconfirmed text',async()=>{
+ const f=fixture({completionError:true,failureReceipt:turn()}),es=await events(f);
+ assert.equal(writes(f).length,1);assert.equal(failures(f).length,1);assert.equal(providers(f).length,1);
+ assert.equal(es.at(-1).kind,'safe_error');assert.ok(!es.some(e=>e.kind==='text_delta'));
+});
+test('provider stream has a thirty-second bound and timeout settles independently',async()=>{
+ const timers=[];
+ const f=fixture({setTimeout:(fn,ms)=>{timers.push(ms);return setTimeout(fn,ms===30000||ms===12000?5:ms);},
+  provider:async()=>new Promise(()=>{})});
+ const es=await events(f);assert.ok(timers.includes(30000));assert.ok(!timers.includes(12000));
+ assert.equal(es.at(-1).kind,'safe_error');assert.equal(failures(f).length,1);assert.equal(providers(f).length,1);
+});
 test('actual handler streams real safe Unicode prefixes and finalizes through existing owned writer',async()=>{
  const f=fixture(),es=await events(f);assert.equal(es[0].kind,'accepted');assert.equal(es.at(-1).kind,'final');
  assert.deepEqual(es.at(-1).turn,turn());assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),f.message);

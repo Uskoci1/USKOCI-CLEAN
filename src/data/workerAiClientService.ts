@@ -167,9 +167,9 @@ export const workerAiClientService={
     const account=scope(),session=sesijaSada().session,url=process.env.EXPO_PUBLIC_SUPABASE_URL,anonKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
     if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
-    return readOwnedResult({account,errors:ERRORS,write:true,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
+    return readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
       request:()=>requestAiTurnStream({...stream,endpoint:'uskoci-worker-interview',url,anonKey,accessToken:session.access_token,
-        conversationId,clientRequestId,text:body,deadline:Date.now()+15000,
+        conversationId,clientRequestId,text:body,deadline:Date.now()+55000,
         current:()=>sesijaSada().user?.id===account.accountId&&sesijaSada().accountRevision===account.accountRevision}),
       decode:v=>decodeWorkerAiTurn(v,conversationId,clientRequestId)});
   },

@@ -372,8 +372,8 @@ export const aiNeedV2Production = {
     const text = typeof body === 'string' ? body.trim() : '';
     if (!text) return fail('MESSAGE_REQUIRED', 'Unesi poruku.');
     if (!boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
-    const account = scope(), deadline = Date.now() + REQUEST_TIMEOUT_MS;
-    return readOwnedResult({ account, write: true, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
+    const account = scope(), deadline = Date.now() + 55_000;
+    return readOwnedResult({ account, write: true, timeoutMs: 55_000, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
         if (!account) return scopeChanged();
         if (stream) {

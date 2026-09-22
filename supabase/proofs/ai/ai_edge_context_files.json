@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 55348,
-      "sha256": "265edb67b4b08bf034db47ce6f8c7410158edf9525bf40a5d8a074f8d3bbbf11"
+      "bytes": 55524,
+      "sha256": "fe3dc80a6f9d5604140d200705d8fabb355d6e8fb78e9c4a0f2dab686bfd0c1a"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
@@ -34,8 +34,8 @@
     },
     {
       "path": "supabase/proofs/ai/owned_intake_edge.test.mjs",
-      "bytes": 14057,
-      "sha256": "939617b9cd383ae72502c91c340e12e127bd282d0bd8d12041ab013adfcf5380"
+      "bytes": 14073,
+      "sha256": "61368ce67b3fba409e707e0b7aaf436e167fdf077a0f4f4d2d25ada98cb4eb0e"
     },
     {
       "path": "supabase/proofs/ai/dialogue_fixture.mjs",
@@ -44,8 +44,8 @@
     },
     {
       "path": "supabase/functions/_shared/geminiTaskStream.ts",
-      "bytes": 15137,
-      "sha256": "f7fec0b75b1cad8f2f034b0da6f8a66f64184b40bcb2c496a4eec47e06b6df5c"
+      "bytes": 15177,
+      "sha256": "9d8066dfd05c311c52e79b29c5136671deb12d1f7c99cdef7c3de07bee8dbef3"
     },
     {
       "path": "supabase/functions/_shared/aiTestBudget.ts",
@@ -54,28 +54,33 @@
     }
   ],
   "refrozen": {
-    "package": "PKG-038-CONVERSATION-SEMANTICS",
+    "package": "PKG-039-INTERVIEW-RECOVERY",
     "date": "2026-09-22",
-    "reason": "Owner requested semantic conversation repairs. New strict dialogue schema, checked responses after owned completion, complete context, finish and ambiguity controls. Runtime tests first demonstrate each boundary; source freeze is refreshed for the authorized implementation, not removed. Include new dialogue fixture and imported shared helpers. PKG-038 CI 35674102419 passes 321 Edge tests and 11 SQL checks. Windows checkout comparison explicitly normalizes CRLF to the same LF content pinned in git; deployed bundle bytes have an independent exact readback receipt.",
+    "reason": "Owner requested complete AI repairs. Exact current intake/stream source adds bounded same-attempt metadata settlement and an explicit30-second provider deadline. No source assertion is removed. Five new failure regressions fail on PKG-038; PKG-039 has its own disposable SQL/race proof. Deployment/quality remain separate.",
     "previousFreeze": {
-      "package": "PKG-025d-PRICE-BASIS",
-      "date": "2026-09-20",
-      "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
-      "changedFiles": [
-        {
-          "path": "supabase/functions/uskoci-ai-interview/index.ts",
-          "bytesBefore": 44769,
-          "bytesAfter": 46023
-        },
-        {
-          "path": "src/contracts/needFactsV2.ts",
-          "bytesBefore": 5897,
-          "bytesAfter": 7029
-        }
-      ],
+      "package": "PKG-038-CONVERSATION-SEMANTICS",
+      "date": "2026-09-22",
+      "reason": "Owner requested semantic conversation repairs. New strict dialogue schema, checked responses after owned completion, complete context, finish and ambiguity controls. Runtime tests first demonstrate each boundary; source freeze is refreshed for the authorized implementation, not removed. Include new dialogue fixture and imported shared helpers. PKG-038 CI 35674102419 passes 321 Edge tests and 11 SQL checks. Windows checkout comparison explicitly normalizes CRLF to the same LF content pinned in git; deployed bundle bytes have an independent exact readback receipt.",
       "previousFreeze": {
-        "package": "V3-EDGE-LOG-FIX",
-        "date": "2026-09-19"
+        "package": "PKG-025d-PRICE-BASIS",
+        "date": "2026-09-20",
+        "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+        "changedFiles": [
+          {
+            "path": "supabase/functions/uskoci-ai-interview/index.ts",
+            "bytesBefore": 44769,
+            "bytesAfter": 46023
+          },
+          {
+            "path": "src/contracts/needFactsV2.ts",
+            "bytesBefore": 5897,
+            "bytesAfter": 7029
+          }
+        ],
+        "previousFreeze": {
+          "package": "V3-EDGE-LOG-FIX",
+          "date": "2026-09-19"
+        }
       }
     }
   },

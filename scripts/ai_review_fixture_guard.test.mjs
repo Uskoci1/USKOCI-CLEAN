@@ -89,9 +89,9 @@ test('the native fixture passes the actual strict Edge provider parser and prese
     const response=await runtime.handler(new Request('http://127.0.0.1:54329/functions/v1/uskoci-ai-interview',{
       method:'POST',headers:{Authorization:'Bearer synthetic-user','Content-Type':'application/json'},body:JSON.stringify({conversationId,clientRequestId,text:'Dve osobe i kombi za prenos stvari u Novom Sadu.'})}));
     assert.equal(reserved,1);assert.equal(dispatched,1);assert.equal(providerCalls,1);
-    // A malformed result after dispatch stays unresolved; it cannot license a
-    // second billable attempt through the old retryable-failure writer.
-    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,0);}
+    // A malformed result after dispatch now attempts same-attempt metadata settlement.
+    // The disposable PKG-039 SQL proof establishes non-replay and success preservation.
+    if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,1);}
     else {assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
   }
 });

@@ -10,7 +10,7 @@ function fixture(options={}){
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'PROVIDER_SYNTHETIC',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
  const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari'],teamCapacity:3}};
  const fetch=async(url,init={})=>{
-  calls.push({url:String(url),body:init.body?JSON.parse(init.body):null,init});
+  calls.push({url:String(url),body:init.body?JSON.parse(init.body):null,init,abortedAtCall:init.signal?.aborted});
   if(url.endsWith('/auth/v1/user'))return json(options.auth??{id:account});
   if(url.endsWith('/rpc_claim_worker_ai_turn_service'))return json({acquired:!options.replay,turn:turn(options.replay?'SUCCEEDED':'PROCESSING')});
   if(url.endsWith('/rpc_read_worker_ai_context_service'))return json(options.context??{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]});
@@ -21,8 +21,8 @@ function fixture(options={}){
    if(options.dispatchError)throw new Error('SYNTHETIC_DISPATCH_ACK_LOST');
    return json(options.dispatch??{dispatched:true,turn:turn('PROCESSING')});
   }
-  if(url.endsWith('/rpc_complete_worker_ai_turn_service'))return json(options.receipt??turn());
-  if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return json(turn('FAILED'));
+  if(url.endsWith('/rpc_complete_worker_ai_turn_service')){if(options.completionError)throw Error('SYNTHETIC_ACK_LOST');return json(options.receipt??turn());}
+  if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
    if(options.provider) return options.provider(init);
    const raw=JSON.stringify(output),fragments=Array.from(raw);
@@ -31,7 +31,7 @@ function fixture(options={}){
   }
   assert.fail('UNEXPECTED_NETWORK_OR_CANONICAL_WRITER');
  };
- const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,Intl,setTimeout,clearTimeout,fetch,
+ const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,Intl,setTimeout:options.setTimeout??setTimeout,clearTimeout,fetch,
    Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
  const evaluate=(file,imports={})=>{
   const source=readFileSync(resolve(file),'utf8'),compiled=ts.transpileModule(source,{fileName:file,reportDiagnostics:true,
@@ -42,7 +42,7 @@ function fixture(options={}){
  };
  const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts'),stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts');
  evaluate('supabase/functions/uskoci-worker-interview/index.ts',{'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream});
- return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
+ return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
 }
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
@@ -101,8 +101,31 @@ test('finish handling does not swallow a correction or override a safety refusal
  const f=fixture({output:{assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',safety:'BLOCK',patch:{}}});
  await events(f,{text:'Sačuvaj'});assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
 });
-test('truncated provider response remains unknown without a second call or candidate completion',async()=>{
- const f=fixture({finishReason:'MAX_TOKENS'}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,0);
+test('truncated provider response settles failure without a second call or candidate completion',async()=>{
+ const f=fixture({finishReason:'MAX_TOKENS'}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,1);
+});
+
+for(const options of [{provider:async()=>{throw Error('SYNTHETIC_NETWORK');}},{completionError:true}])
+test('worker transport failure settles exactly once and never exposes an unconfirmed answer',async()=>{
+ const f=fixture(options),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');
+ assert.equal(providers(f).length,1);assert.equal(failures(f).length,1);
+ assert.equal(failures(f)[0].body.p_attempt_id,attemptId);assert.equal(failures(f)[0].abortedAtCall,false);
+ assert.ok(!es.some(e=>e.kind==='text_delta'));
+});
+test('worker provider and metadata cleanup each have a bound even if transport ignores abort',async()=>{
+ const timers=[];const f=fixture({setTimeout:(fn,ms)=>{timers.push(ms);return setTimeout(fn,ms===30000||ms===5000?5:ms);},
+  provider:async()=>new Promise(()=>{}),fail:async()=>new Promise(()=>{})});
+ const es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(failures(f).length,1);
+ assert.ok(timers.includes(30000));assert.ok(timers.includes(5000));
+});
+test('worker disconnect still uses an independent cleanup signal',async()=>{
+ const abort=new AbortController();
+ const f=fixture({signal:abort.signal,provider:async()=>{abort.abort();throw Error('SYNTHETIC_DISCONNECT');}});
+ const response=await f.invoke();
+ // A caller disconnect has no final stream, but awaited cleanup still runs.
+ for(let i=0;i<30&&!failures(f).length;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(failures(f).length,1);assert.equal(failures(f)[0].abortedAtCall,false);
+ await response.body.cancel();
 });
 test('wrong final owner/attempt receipt never becomes accepted UI card',async()=>{
  const f=fixture({receipt:{...turn(),attemptId:id(99)}}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.ok(!es.some(e=>e.kind==='final'));
@@ -117,11 +140,11 @@ test('canonical cancellation receipt before provider I/O prevents charge and com
  assert.equal(r.status,200);assert.deepEqual(await r.json(),turn('FAILED'));assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
  assert.equal(f.calls.filter(c=>c.url.includes('budget')).length,1); // conservative reservation is never refunded
 });
-test('lost dispatch acknowledgement remains unknown and cannot call provider',async()=>{
- const f=fixture({dispatchError:true});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,0);
+test('lost dispatch acknowledgement attempts bounded metadata settlement and cannot call provider',async()=>{
+ const f=fixture({dispatchError:true});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,1);
 });
 for(const dispatch of [{dispatched:true,turn:{...turn('PROCESSING'),attemptId:id(99)}},{dispatched:true,turn:turn('FAILED')},
  {dispatched:true,turn:{...turn('PROCESSING'),retryAllowed:true}},{dispatched:true,turn:turn('PROCESSING'),hidden:true}])
  test('malformed or foreign dispatch proof cannot authorize provider I/O',async()=>{
-  const f=fixture({dispatch});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,0);
+  const f=fixture({dispatch});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.equal(failures(f).length,1);
  });

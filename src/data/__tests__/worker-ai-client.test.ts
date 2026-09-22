@@ -1,7 +1,9 @@
 import {workerAiClientService as service,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CONVERSATION='22222222-2222-4222-8222-222222222222',
  PROFILE='33333333-3333-4333-8333-333333333333',REVIEW='44444444-4444-4444-8444-444444444444',KEY='55555555-5555-4555-8555-555555555555';
-let mockSession={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
+let mockSession: {user:{id:string};accountRevision:number;session?:{access_token:string}}={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
+const mockStream=jest.fn();
+jest.mock('../aiNeedTurnStream',()=>({requestAiTurnStream:(...args:unknown[])=>mockStream(...args)}));
 jest.mock('../../store/sesija',()=>({sesijaSada:()=>mockSession}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({rpc:mockRpc})}));
 const profile=():WorkerAiProfile=>({displayName:'Petar',bio:'Prenos stvari',skills:['Prenos'],tools:['Kolica'],vehicles:['Kombi'],licenses:[],teamCapacity:3,
@@ -15,6 +17,25 @@ beforeEach(()=>{mockSession={user:{id:OWNER},accountRevision:1};mockRpc.mockRese
  name==='rpc_prepare_worker_ai_review'?review():name==='rpc_save_worker_ai_review'?saved():snapshot()}));});
 it('single profile review does not invoke canonical save or per-field confirmation',async()=>{
  await expect(service.prepare(CONVERSATION,2,true)).resolves.toEqual({ok:true,podatak:review()});expect(mockRpc.mock.calls.map(x=>x[0])).toEqual(['rpc_prepare_worker_ai_review']);
+});
+it('allows a slow worker response within55 seconds and retains the same request identity',async()=>{
+ jest.useFakeTimers();
+ const priorUrl=process.env.EXPO_PUBLIC_SUPABASE_URL,priorKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+ try {
+  process.env.EXPO_PUBLIC_SUPABASE_URL='https://synthetic.invalid';process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY='SYNTHETIC';
+  mockSession.session={access_token:'SYNTHETIC'};
+  let resolve!:(value:unknown)=>void;mockStream.mockReturnValue(new Promise(done=>{resolve=done;}));
+  const before=Date.now(),pending=service.send(CONVERSATION,'Synthetic input',KEY,{onText:()=>{}});
+  let settled=false;void pending.then(()=>{settled=true;});
+  await jest.advanceTimersByTimeAsync(20000);expect(settled).toBe(false);
+  const receipt={turnId:REVIEW,conversationId:CONVERSATION,clientRequestId:KEY,attemptId:PROFILE,state:'SUCCEEDED',retryAllowed:false,authoritative:true};
+  resolve({error:null,data:receipt});await expect(pending).resolves.toEqual({ok:true,podatak:receipt});
+  expect(mockStream).toHaveBeenCalledTimes(1);expect(mockStream.mock.calls[0][0]).toMatchObject({clientRequestId:KEY,deadline:before+55000});
+ } finally {
+  if(priorUrl===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_URL;else process.env.EXPO_PUBLIC_SUPABASE_URL=priorUrl;
+  if(priorKey===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY=priorKey;
+  mockStream.mockReset();jest.useRealTimers();
+ }
 });
 it('explicit save sends only immutable server review identity/digest and one command key',async()=>{
  await expect(service.save(review(),KEY)).resolves.toEqual({ok:true,podatak:saved()});expect(mockRpc).toHaveBeenCalledTimes(1);
