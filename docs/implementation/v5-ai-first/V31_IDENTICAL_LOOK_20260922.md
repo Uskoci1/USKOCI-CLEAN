@@ -125,8 +125,12 @@ The measurements were taken on both files rendered at 412×900, with computed st
     weight 400 (no synthetic bold).
   - Six card states render as intended: fixed total, offers, per-person with urgency, own task with
     applications waiting, draft, and remote with an application sent.
-- **Not yet verified:** the phone render of the embedded font. That needs a new APK and the owner's
-  phone.
+- **APK:** run 35722071004 built commit `040c073b`. The APK's SHA256 is
+  `2d27cffa1375a14e761e1da75c4771a61e45bea252256630f447d28ccfc82b32`, and it contains
+  `assets/fonts/Inter-{Regular,Medium,SemiBold,Bold,ExtraBold}.ttf`, where React Native resolves
+  `fontFamily: 'Inter-Bold'`.
+- **Not yet verified:** the phone render. The APK is not installed. Install it only with
+  `adb install -r`, when the owner is ready.
 
 ## Open owner decisions (asked, not assumed)
 
