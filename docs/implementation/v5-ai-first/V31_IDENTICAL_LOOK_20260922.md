@@ -153,3 +153,27 @@ Each slice is measured against the prototype screen, checked in the web smoke, t
 6. AI conversation.
 7. Notifications and support.
 8. The five native motions and card arrival.
+
+## Update, later on 2026-09-22: design freedom
+
+The owner compared Codex's native screens with V28 and changed the rule:
+- **His words:** some things are better solved than in V28, and green titles are "lepa i jasna".
+- **What he wants:** the designer should explore every possibility to the maximum (Wolt/Airbnb
+  quality, adapted to USKOČI users) and then decide design and layout per screen.
+
+This document's layout rule ("identical to V28") is therefore superseded. What stays:
+- the foundation of slice 1: Inter, the V28 palette, `FactArt` and `TaskCard`;
+- the list of prototype defects not to copy;
+- the V28 reference screens in `v28-reference/`, as a starting point and inspiration.
+
+**Roles:** Codex composes the screens. Claude verifies each one (types, Jest, pictures next to V28)
+and reports differences to the owner.
+
+**Non-negotiable:**
+- server, guards and recovery stay;
+- no invented data;
+- text is at least 12 px;
+- a missing price never looks like an amount;
+- the bottom navigation always shows where you are;
+- tests pass;
+- new packages need the owner's approval.
