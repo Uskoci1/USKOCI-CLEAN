@@ -42,3 +42,8 @@ anonymous denial. Preserve the closure certificate throughout. No synthetic acco
 Home client wiring must follow this correction; a bounded attention response does not by itself make
 the separate activity/upcoming-Agreement preview reads bounded. Do not claim all Home scans or
 Activities pagination solved by this package.
+
+First run 35696725854 reproduced both discrepancies with SQL and real Auth/REST. Atomic drift/tamper
+checks passed; the candidate then rolled back because the temporary authority record's `strict` field
+was not accessible in PL/pgSQL. Renamed that temporary field to `is_strict`, retaining the authority
+comparison. No canonical DEV write occurred. The proof must pass after this correction.

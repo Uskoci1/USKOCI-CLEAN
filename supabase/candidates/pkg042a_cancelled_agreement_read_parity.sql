@@ -6,7 +6,7 @@ set local statement_timeout = '60s';
 create temporary table pkg042a_patch(ord integer primary key, signature text, before_md5 text,
   after_md5 text, anchor text, replacement text) on commit drop;
 create temporary table pkg042a_before(signature text, body text, acl aclitem[], owner_id oid,
-  definer boolean, config text[], volatility "char", strict boolean) on commit drop;
+  definer boolean, config text[], volatility "char", is_strict boolean) on commit drop;
 create temporary table pkg042a_closure(digest text) on commit drop;
 insert into pkg042a_patch values
 (1, 'public.rpc_home_attention()', '239f2477ae58ec92254edfdeda0455e7', '8a8feab5eb2ba727c637322b0ef044c1', $a$exists(select 1 from public.agreements a where a.selected_response_id = r.id)$a$, $b$exists(select 1 from public.agreements a where a.selected_response_id = r.id and a.status <> 'CANCELLED')$b$),
@@ -60,7 +60,7 @@ begin
       raise exception 'PKG042A_BODY_MISMATCH: %',item.signature;
     end if;
     if (actual.proacl,actual.proowner,actual.prosecdef,actual.proconfig,actual.provolatile,actual.proisstrict)
-       is distinct from (old.acl,old.owner_id,old.definer,old.config,old.volatility,old.strict) then
+       is distinct from (old.acl,old.owner_id,old.definer,old.config,old.volatility,old.is_strict) then
       raise exception 'PKG042A_AUTHORITY_CHANGED';
     end if;
   end loop;
