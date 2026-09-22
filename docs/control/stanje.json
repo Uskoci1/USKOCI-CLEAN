@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T21:50:21Z",
+  "osvezeno": "2026-09-22T21:51:19Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "a0c12868",
-  "head_poruka": "pkg046: check 'already applied' before the predecessor drift pins",
+  "head": "86b961b7",
+  "head_poruka": "control: wire the R4 forensic snapshot into the living table, and record the passing PKG-046 proof",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
