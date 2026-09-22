@@ -42,6 +42,14 @@ No database, Edge, server policy, dependency, key or provider was changed/called
 
 ## Native/build evidence and phone use
 
+FINAL HANDOFF UPDATE: run35775425984 completed successfully. Its source/ABI/attestations and
+SHA256 `c323c4d90862a7c8edb893bcb174a9f7028b3fd0a51238688376594995bddc26` match.
+The 69,568,882-byte ARM64 APK was installed with `-r` and login retained. On this exact9286fdeb
+build, My Applications, its existing completed Agreement, accepted amount/people, honest missing
+term, review/message entrances and in-app Back were observed. No business mutation was sent.
+Real completion for both roles remains pending. PKG00635775426480 and PKG00735775426473 passed
+on9286fdeb. Later0a88e8bd changes documentation and CI trigger paths, not runtime code.
+
 - Exact final build: GitHub Actions `35775425984`, source `9286fdeb`. Read
   `functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json` for final build/install outcome.
 - Preceding installed phone build: `35773412874` / `45a779c7`, SHA256

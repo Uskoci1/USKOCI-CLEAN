@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T19:46:42Z",
+  "osvezeno": "2026-09-22T19:59:56Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "9286fdeb",
-  "head_poruka": "Review completion terms before sending and clarify candidate facts",
+  "head": "0a88e8bd",
+  "head_poruka": "Reconcile product execution, remaining contracts and release evidence",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -1269,7 +1269,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "45a779c7 / APK35773412874: stvarna izabrana prijava, ukupan iznos, ljudi, obojene ikonice, kraće dugme i oznaka Početna viđeni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+   "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "Učitava celu listu; straničenje mora očuvati zasebno čitanje konkretne prijave sa nedovršenom radnjom. Obična izmena ponude/termina dok čeka nije isto što i postojeća izmena posle promene zadatka.",
    "sledece": "Otvaranje potvrđene prijave po identifikatoru i kontrole samo za promenjen zadatak su ispravljeni. Proveriti na novom APK-u; pre straničenja dokazati projekciju i oporavak, a pravilo obične izmene ponude definisati zasebno.",
    "funkcionalni_audit": {
@@ -2653,7 +2653,7 @@
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
     "test": "99 test fajl(ova)"
    },
-   "telefon_dokaz": "45a779c7: instalacija -r sa sačuvanom sesijom i obojenom navigacijom na unutrašnjem ekranu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+   "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
    "sledece": "F04 oznaka aktivnog dela je ispravljena i testirana; na 45a APK-u Moje prijave pravilno označavaju Početna. Nastaviti proveru svih povrataka, dubokih linkova i promene naloga na završnom APK-u.",
    "funkcionalni_audit": {
@@ -3249,11 +3249,27 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35776482855,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "0a88e8bd",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-22T19:51:33Z"
+  },
+  {
+   "id": 35776482660,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "0a88e8bd",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-22T19:51:33Z"
+  },
+  {
    "id": 35775426480,
    "ime": "PKG-006 application identity and selection proof",
    "sha": "9286fdeb",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-22T19:41:43Z"
   },
   {
@@ -3268,8 +3284,8 @@
    "id": 35775425984,
    "ime": "Build Android development APK",
    "sha": "9286fdeb",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-22T19:41:43Z"
   },
   {
@@ -3327,22 +3343,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-22T17:43:34Z"
-  },
-  {
-   "id": 35762566893,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "50178e6b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T17:43:34Z"
-  },
-  {
-   "id": 35748068544,
-   "ime": "Build Android development APK",
-   "sha": "6d3c7ead",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T15:32:25Z"
   }
  ]
 }

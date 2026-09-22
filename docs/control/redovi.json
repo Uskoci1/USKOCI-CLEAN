@@ -847,7 +847,7 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "45a779c7 / APK35773412874: stvarna izabrana prijava, ukupan iznos, ljudi, obojene ikonice, kraće dugme i oznaka Početna viđeni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+    "dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
    },
    "problem": "Učitava celu listu; straničenje mora očuvati zasebno čitanje konkretne prijave sa nedovršenom radnjom. Obična izmena ponude/termina dok čeka nije isto što i postojeća izmena posle promene zadatka.",
    "sledece": "Otvaranje potvrđene prijave po identifikatoru i kontrole samo za promenjen zadatak su ispravljeni. Proveriti na novom APK-u; pre straničenja dokazati projekciju i oporavak, a pravilo obične izmene ponude definisati zasebno.",
@@ -1831,7 +1831,7 @@
    "server": [],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "45a779c7: instalacija -r sa sačuvanom sesijom i obojenom navigacijom na unutrašnjem ekranu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+    "dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
    },
    "problem": "",
    "sledece": "F04 oznaka aktivnog dela je ispravljena i testirana; na 45a APK-u Moje prijave pravilno označavaju Početna. Nastaviti proveru svih povrataka, dubokih linkova i promene naloga na završnom APK-u.",

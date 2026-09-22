@@ -18,6 +18,10 @@ explicit completion review, accessible candidate facts and truthful missing-rati
 named application landing d56a5726 and offer readability45a779c7. Combined types and242 suites /4719
 tests pass, exit0; known delayed Jest teardown warning remains. No server/Edge/dependency changes.
 
+Final APK35775425984 /9286fdeb is now built, attested and installed with retained login. Its current
+My Applications→existing completed Agreement→Back path was observed; full two-party completion
+is still pending. SHA256c323c4d9…, bytes69,568,882. Read the product receipt for the exact scope.
+
 The exact final phone build is35775425984 (receipt carries outcome). Preceding45a APK35773412874
 was attested and installed with existing data/session retained; actual My Applications amount,
 people, colored facts, shorter Agreement action and active navigation were visually inspected.
