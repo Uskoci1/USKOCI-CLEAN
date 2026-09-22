@@ -45,11 +45,14 @@ expectedPolicy.rules.sort((a,b)=>a.ruleId.localeCompare(b.ruleId));
 assert.deepEqual(JSON.parse(sql('select private.publication_policy_document('+q(bundle)+'::uuid)')),expectedPolicy);
 sql(`update private.publication_policy_bundles set is_reviewed=true,is_active=true,reviewed_at=clock_timestamp(),activated_at=clock_timestamp(),review_provenance=review_provenance||'{"disposable040Fixture":true}'::jsonb where id=${q(bundle)}::uuid`);
 report.policyFixture='DISPOSABLE_ONLY_REVIEWED_POLICY_ACTIVATION';
-const a=await rt.actor('pkg040-'+mode),p=await ok(a.client.rpc('rpc_get_worker_profile_for_edit',{}));
-await ok(a.client.from('app_profiles').update({display_name:'Disposable QA worker',skills:['Proof']}).eq('id',p.id));
-const location=await ok(a.client.rpc('rpc_get_worker_location',{}));
-await ok(a.client.rpc('rpc_save_worker_location',{p_expected_revision:location.revision,p_value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:15,approximatePosition:{latitude:45.25,longitude:19.85}},p_confirmed:true}));
-await ok(a.client.rpc('rpc_complete_worker_profile',{p_profile_id:p.id}));
+async function worker(label){
+ const actor=await rt.actor('pkg040-'+label),p=await ok(actor.client.rpc('rpc_get_worker_profile_for_edit',{}));
+ await ok(actor.client.from('app_profiles').update({display_name:'Disposable QA worker',skills:['Proof']}).eq('id',p.id));
+ const location=await ok(actor.client.rpc('rpc_get_worker_location',{}));
+ await ok(actor.client.rpc('rpc_save_worker_location',{p_expected_revision:location.revision,p_value:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:15,approximatePosition:{latitude:45.25,longitude:19.85}},p_confirmed:true}));
+ await ok(actor.client.rpc('rpc_complete_worker_profile',{p_profile_id:p.id}));return actor;
+}
+let a=await worker(mode);
 function need(){
  const nid=randomUUID();
  sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
@@ -88,17 +91,19 @@ if(mode==='after'){
  const csql=(i,c)=>'select public.rpc_complete_qa_classification_service('+Object.values(ids(i,c)).map(v=>q(v)+'::uuid').join(',')+','+q(JSON.stringify(output))+'::jsonb)';
  const one=await dispatched();assert.equal((await lockedRace(fsql(one.i,one.c),()=>complete(one.i,one.c))).state,'CANCELLED');
  const two=await dispatched();assert.equal((await lockedRace(csql(two.i,two.c),()=>fail(two.i,two.c))).state,'READY');
- const committed=await submit(two.i);assert.equal(committed.state,'COMMITTED');assert.deepEqual(await fail(two.i,two.c),committed);
- pass('OBSERVED_FAILURE_COMPLETION_BOTH_LOCK_ORDERS_READY_AND_COMMITTED_PRESERVED');
  const cancelled=await dispatched(),ci=clientArgs(cancelled.i),{p_text,...rest}=ci;
  await ok(a.client.rpc('rpc_cancel_qa_classification',{...rest,p_text_sha256:sha(p_text)}));const existing=stored(cancelled.i);await fail(cancelled.i,cancelled.c);assert.deepEqual(stored(cancelled.i),existing);
  const pre=input(),pc=await claim(pre);assert.equal((await fail(pre,pc)).state,'CANCELLED');assert.equal(stored(pre).provider_dispatched,false);
  pass('EXPLICIT_CANCELLATION_AND_PRE_DISPATCH_FAILURE_PRESERVED');
+ const committed=await submit(two.i);assert.equal(committed.state,'COMMITTED');assert.deepEqual(await fail(two.i,two.c),committed);
+ pass('OBSERVED_FAILURE_COMPLETION_BOTH_LOCK_ORDERS_READY_AND_COMMITTED_PRESERVED');
 }
 // Exact handler against this real schema. Never sends a network request to an AI provider.
+a=await worker('edge-'+mode);
 sql(`update private.ai_test_budget_v5 set enabled=true,reserved_microusd=0,price_valid_until=least(clock_timestamp()+interval '1 hour','2027-01-01T00:00:00Z') where singleton;
  insert into private.ai_test_accounts_v5(account_id) values(${q(a.id)}) on conflict do nothing`);
-const token=(await ok(a.client.auth.getSession())).session.access_token,origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
+let token=(await ok(a.client.auth.getSession())).session.access_token;
+const origin=new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
 let providerCalls=0,transportMode='PROVIDER_ERROR',settlementCalls=0;
 const config={SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,
  AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_ONLY',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',USKOCI_QA_CLASSIFIER_ENABLED:'true'};
@@ -121,6 +126,9 @@ if(mode==='after'){
  transportMode='COMPLETE_ACK_LOST';const lost=input();assert.equal((await invoke(lost)).status,502);assert.equal((await read(lost)).state,'READY');assert.equal(providerCalls,2);assert.equal(settlementCalls,2);
  transportMode='SUCCESS';assert.equal((await(await invoke(lost)).json()).state,'COMMITTED');assert.equal(providerCalls,2);assert.equal(count(lost),'1');
  pass('EXACT_HANDLER_LOST_COMPLETION_ACK_READBACK_READY_EXPLICIT_SUBMIT_NO_PROVIDER_REPLAY');
+ // Independent scenario: respect the real account cooldown after the prior commit.
+ a=await worker('edge-submit-ack');token=(await ok(a.client.auth.getSession())).session.access_token;
+ sql('insert into private.ai_test_accounts_v5(account_id) values('+q(a.id)+')');
  transportMode='SUBMIT_ACK_LOST';const published=input();assert.equal((await invoke(published)).status,502);assert.equal((await read(published)).state,'COMMITTED');assert.equal(providerCalls,3);assert.equal(settlementCalls,2);
  transportMode='SUCCESS';assert.equal((await(await invoke(published)).json()).state,'COMMITTED');assert.equal(providerCalls,3);assert.equal(count(published),'1');
  pass('EXACT_HANDLER_LOST_PUBLICATION_ACK_PRESERVES_CANONICAL_RECEIPT');

@@ -46,3 +46,7 @@ JWT remains true; deployment must read back every bundled asset byte-for-byte.
 First CI35676937072 passed341 Edge regressions and replay through039, then stopped before the defect
 probe: the new proof wrongly assumed historical device credentials were exported by this fixture.
 It now creates explicit disposable actors through local Auth, as PKG-039 does. No DEV application.
+Second run35677260660 reproduced the defect and passed candidate pins, ACL, both lock races and
+certificate checks, then correctly hit QA_ASK_COOLDOWN because the proof reused an actor immediately
+after publishing. Independent publication scenarios now use separate disposable actors; the real
+cooldown, policy and timestamps are unchanged.
