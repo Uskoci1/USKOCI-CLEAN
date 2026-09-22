@@ -3,6 +3,11 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+Single integrated execution plan: `docs/implementation/APP_FINISHING_PLAN_20260922.md` (R1–R9),
+consolidated at the owner's request on 2026-09-22. It covers engineering, push, complete flows, design,
+account data, moderation/support, operator/legal/charging, production and store release. Keep its order
+and completion evidence aligned with the status index. It grants no new permissions or product decisions.
+
 PKG-045 (2026-09-22, proven; A DEV applied, B HOLD): public task column privacy7.17. Candidate A adds
 explicit task reads and adapts list/notification dependencies; it preserves the ready closure certificate
 and old clients. Candidate B removes broad SELECT and maintains five dependent owner predicates.

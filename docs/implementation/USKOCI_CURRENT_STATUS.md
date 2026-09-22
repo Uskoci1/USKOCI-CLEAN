@@ -76,8 +76,10 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Product and public-release work queue
 
-Ordered finishing, pilot and growth gates: `APP_FINISHING_PLAN_20260922.md`. No measured user-capacity
-claim exists; production load, real-device journeys and public-release readiness remain separate gates.
+Single integrated R1–R9 plan: `APP_FINISHING_PLAN_20260922.md`, consolidated at the owner's request.
+It combines engineering, push, complete journeys, design, data/moderation, operator/legal/charging,
+production, pilot and store submission. No measured user-capacity claim exists; production load,
+real-device journeys and public-release readiness remain separate gates.
 
 | Area | Current boundary / next evidence |
 | --- | --- |
@@ -88,9 +90,10 @@ claim exists; production load, real-device journeys and public-release readiness
 | Profile phone (8.4) | Owner question pending: optional unverified number, explicitly shared in a Dogovor. Do not implement from silence. |
 | Push | Intentionally disabled. Worker credentials/schedule were verified separately; real delivery/navigation remain unverified. Current payload is generic and opens Inbox. Source review found the error-recovery button disabled by `busy || error`; correction/proof pending. Explicit delivery/design checklist is in `APP_FINISHING_PLAN_20260922.md`; controlled test activation precedes general delivery. |
 | Support | Technical case flow exists; assign and verify a real operator before promising operational support. |
+| Store safety / AI disclosures | Verify report/block/moderation coverage, AI-output reporting and appropriate personal-data sharing consent. Existing SafetyScreen has report/block controls; this is not proof that every surface or AI output is covered. See R6 and the policy sources in the integrated plan. |
 | Operator / legal / export | Await operator details, reviewed texts and retention decisions. Existing legal-acceptance/export code does not make these complete. Lawyer worksheet: `v5-ai-first/legal/PRAVNIK_PODACI_I_ROKOVI_20260921.md`. |
 | Monetization | Owner intends paid connection service in Serbia. Credits, collection of job payments and worker payouts are not implicitly approved. Commercial terms, provider and store-policy route are unresolved. |
-| Public release | Requires production plan, monitored operation/recovery, pilot evidence, iOS/Android device checks and store preparation. DEV APK success is not public-release readiness. |
+| Public release | R8–R9: production/recovery, developer-account verification, distribution builds, current platform requirements, accurate privacy/content forms, public deletion-request route, review access, pilot and Android/iOS device evidence. Internal APK success is not public-release readiness. |
 
 ## Historical sources are not current status
 
