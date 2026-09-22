@@ -36,6 +36,7 @@ for(const [label,id] of Object.entries(ids)) fixture+=`
     ${label==='selection'?"'PRIVATE_REASON_DO_NOT_EXPOSE'":'null'},${label==='selection'?q(owner.id):'null'},${label==='selection'?'statement_timestamp()':'null'});
   insert into public.need_geography(need_id,public_topology) values(${q(id)},'{"mode":"STATIONARY","start":{"city":"Novi Sad","area":"Liman"}}');
   insert into public.need_requirement_details(need_id,critical_conditions) values(${q(id)},'{Heavy boxes}');`;
+fixture+=`insert into public.need_sensitive(need_id,exact_address,access_notes) values(${q(ids.public)},'PRIVATE_DISPOSABLE_ADDRESS','Disposable access note');`;
 fixture+=`
   insert into public.marketplace_responses(id,need_id,worker_account_id,worker_profile_id,response_kind,status,submitted_against_need_revision,current_version,price_rsd,covered_slots)
   values(${q(response)},${q(ids.public)},${q(participant.id)},${q(workerProfile)},'APPLICATION','STALE_REVIEW_REQUIRED',1,1,3000,1),
@@ -54,6 +55,13 @@ pass('BEFORE_SAME_WORLD_STRANGER_CAN_READ_INTERNAL_COLUMNS');
 const oldDetail=(c,id)=>c.from('needs').select('id,revision,title,status,description,covered_slots,selectable_application_count,marketplace_responses(id),need_geography(public_topology),need_requirement_details(critical_conditions),price_basis,requester_price_rsd,required_slots').eq('id',id).maybeSingle();
 const cases=[[owner,ids.public],[stranger,ids.public],[owner,ids.draft],[stranger,ids.draft],[participant,ids.historical],[stranger,ids.historical],[otherWorld,ids.public],[stranger,ids.selection]];
 const old=await Promise.all(cases.map(([a,id])=>ok(oldDetail(a.client,id))));
+const relatedReads=()=>Promise.all([owner,stranger,participant].map(async a=>({
+ sensitive:await ok(a.client.from('need_sensitive').select('need_id,exact_address,access_notes').eq('need_id',ids.public)),
+ versions:await ok(a.client.from('marketplace_response_versions').select('response_id,version,price_rsd').eq('response_id',response))
+})));
+const oldRelated=await relatedReads();assert.equal(oldRelated[0].sensitive[0].exact_address,'PRIVATE_DISPOSABLE_ADDRESS');
+assert.deepEqual(oldRelated[1].sensitive,[]);assert.deepEqual(oldRelated[2].sensitive,[]);
+assert.equal(oldRelated[0].versions.length,1);assert.equal(oldRelated[2].versions.length,1);assert.deepEqual(oldRelated[1].versions,[]);
 const ownerPage=await ok(owner.client.rpc('rpc_list_my_needs_page',{p_scope:'ALL',p_limit:100}));
 const events=[
  [owner,'NEED',ids.draft,'REQUESTER'],[stranger,'NEED',ids.public,'WORKER'],
@@ -92,6 +100,7 @@ assert.deepEqual(await ok(stranger.client.rpc('rpc_list_my_tasks')),[]);
 assert.deepEqual((await list(stranger.client)).items,beforeList.items);
 assert.deepEqual((await ok(owner.client.rpc('rpc_list_my_needs_page',{p_scope:'ALL',p_limit:100}))).items,ownerPage.items);
 assert.deepEqual(await readEvents(),oldEvents);
+assert.deepEqual(await relatedReads(),oldRelated);
 assert.deepEqual(await ok(exploit(stranger.client)),exposed); // A is additive, never claim privacy fixed here.
 pass('A_NEW_READERS_EQUIVALENT_OLD_APK_STILL_WORKS_PRIVACY_NOT_YET_CLOSED');
 // Only the declared reader/resolver functions, no row policies, tables or columns changed by A.
@@ -125,6 +134,8 @@ await denied(stranger.client.rpc('rpc_resolve_activity_event',{p_event_id:events
 assert.equal(await ok(stranger.client.rpc('is_my_task',{p_need_id:ids.public})),false);
 assert.equal(await ok(owner.client.rpc('is_my_task',{p_need_id:ids.public})),true);
 pass('B_OWNER_PAGING_AND_NOTIFICATION_TARGETS_RETAIN_IDENTITY_AND_VISIBILITY');
+assert.deepEqual(await relatedReads(),oldRelated);
+pass('B_DEPENDENT_RESPONSE_VERSIONS_AND_EXACT_ADDRESS_OWNER_BOUNDARIES_RETAINED');
 const map=await ok(stranger.client.rpc('rpc_list_open_tasks_v3',{p_bbox:{west:19.7,south:45.1,east:19.9,north:45.4},p_filters:{remote:'EXCLUDE'}}));
 assert.ok(map.items.some(x=>x.id===ids.public));
 assert.ok(!(await list(otherWorld.client)).items.some(x=>x.id===ids.public));
