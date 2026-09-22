@@ -1,5 +1,20 @@
 # V28/V31 review and independent card proposal
 
+## Connected flow (owner correction, 2026-09-22)
+
+`TOK.html` extends the review to task detail, application, candidate selection, Agreement and messages.
+Start `python outputs/design-v31-v28-20260922/serve_flow.py` and open
+http://127.0.0.1:8880/TOK.html. The map is an explicitly labeled composition diagram, not a live map.
+All data/commands are local examples. Native integration work and the verified missing relationship
+are documented in `../../docs/implementation/DESIGN_CONNECTED_TASK_FLOW_20260922.md`.
+
+Edit `flow.template.html`, then run `build_flow.py`. The builder embeds the static vector inventory
+and, when present, the existing Inter font assets with their OFL license; it downloads nothing.
+The older card-only study remains available below. Native visual work is owned by the concurrent
+Claude implementation; this deliverable does not replace or overwrite it.
+
+## Original card study
+
 Open PREDLOG.html locally or run from the canonical repository:
 
     python outputs/design-v31-v28-20260922/serve_preview.py
