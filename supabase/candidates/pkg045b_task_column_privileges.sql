@@ -132,6 +132,8 @@ begin
   if (select relacl::text from pg_class where oid='public.needs'::regclass) is distinct from (select table_acl from pkg045_rebind)
     or private.closure_source_digest_v5() is distinct from old_digest then raise exception 'PKG045B_UNREVIEWED_CERTIFICATE_CHANGE'; end if;
   revoke select on public.needs from anon,authenticated;
+  -- REVOKE on a table also removes column grants: restore the exact safe allowlist.
+  grant select (id, requester_profile_id, status, title, description, category, approximate_city, approximate_area, approximate_lat, approximate_lng, schedule_kind, starts_at, ends_at, required_slots, mode, requester_price_rsd, required_skills, required_tools, required_vehicles, verified_identity_required, urgent, public_photo_paths, revision, published_at, created_at, updated_at, response_deadline, urgent_activated_at, urgent_expires_at, urgent_policy_version, minimum_experience_years, execution_location_mode, approx_geog, required_licenses, remaining_search_closed_at, task_country_code, task_timezone, price_basis) on public.needs to authenticated;
   if private.closure_source_digest_v5() is distinct from new_digest then raise exception 'PKG045B_DIGEST_NOT_STABLE'; end if;
   update pkg045_rebind set moved=new_digest;
 end;
@@ -157,5 +159,20 @@ begin
     or private.closure_erasure_binding_v5()->>'sourceSha256' is distinct from new_digest then raise exception 'PKG045B_REBIND_INCOMPLETE'; end if;
 end;
 $rebind$;
+do $grants$
+begin
+  if has_table_privilege('authenticated','public.needs','SELECT') or has_table_privilege('anon','public.needs','SELECT') or
+     exists(select 1 from unnest(array['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason']) c
+       where has_column_privilege('authenticated','public.needs',c,'SELECT') or has_column_privilege('anon','public.needs',c,'SELECT'))
+  then raise exception 'PKG045B_PRIVATE_COLUMNS_READABLE'; end if;
+end;
+$grants$;
+do $column_post$
+begin
+  if exists(select 1 from pg_attribute a where a.attrelid='public.needs'::regclass and a.attnum>0 and not a.attisdropped
+    and (has_column_privilege('authenticated','public.needs',a.attname,'SELECT') is distinct from (a.attname=any(array['id','requester_profile_id','status','title','description','category','approximate_city','approximate_area','approximate_lat','approximate_lng','schedule_kind','starts_at','ends_at','required_slots','mode','requester_price_rsd','required_skills','required_tools','required_vehicles','verified_identity_required','urgent','public_photo_paths','revision','published_at','created_at','updated_at','response_deadline','urgent_activated_at','urgent_expires_at','urgent_policy_version','minimum_experience_years','execution_location_mode','approx_geog','required_licenses','remaining_search_closed_at','task_country_code','task_timezone','price_basis']))
+      or has_column_privilege('anon','public.needs',a.attname,'SELECT'))) then raise exception 'PKG045B_COLUMN_GRANTS_NOT_EXACT'; end if;
+end;
+$column_post$;
 notify pgrst, 'reload schema';
 commit;
