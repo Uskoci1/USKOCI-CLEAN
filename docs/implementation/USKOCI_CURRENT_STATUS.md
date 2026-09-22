@@ -86,7 +86,7 @@ claim exists; production load, real-device journeys and public-release readiness
 | Motion / external assets | Installed libraries do not establish a finished design. Verify actual need, compatibility and license; no new dependency without approval. |
 | Voice | First release: dictation → editable text → explicit Send. Full spoken dialogue later. Speech testing only with explicit phone readiness. |
 | Profile phone (8.4) | Owner question pending: optional unverified number, explicitly shared in a Dogovor. Do not implement from silence. |
-| Push | Intentionally disabled. Worker credentials/schedule were verified separately; real delivery and navigation need device proof before activation. |
+| Push | Intentionally disabled. Worker credentials/schedule were verified separately; real delivery/navigation remain unverified. Current payload is generic and opens Inbox. Source review found the error-recovery button disabled by `busy || error`; correction/proof pending. Explicit delivery/design checklist is in `APP_FINISHING_PLAN_20260922.md`; controlled test activation precedes general delivery. |
 | Support | Technical case flow exists; assign and verify a real operator before promising operational support. |
 | Operator / legal / export | Await operator details, reviewed texts and retention decisions. Existing legal-acceptance/export code does not make these complete. Lawyer worksheet: `v5-ai-first/legal/PRAVNIK_PODACI_I_ROKOVI_20260921.md`. |
 | Monetization | Owner intends paid connection service in Serbia. Credits, collection of job payments and worker payouts are not implicitly approved. Commercial terms, provider and store-policy route are unresolved. |

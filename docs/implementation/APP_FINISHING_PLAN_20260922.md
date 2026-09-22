@@ -29,6 +29,58 @@ Gates describe dependencies, not a ban on independent work. Design exploration a
 proceed while backend proofs run. Major screens still require functional responsibility → three fresh
 compositions → comparison → selection, before reuse of current visuals.
 
+## Immediate sequence and push acceptance checklist
+
+Owner follow-up, 2026-09-22: explain and track all remaining work, explicitly including push functionality
+and appearance. This section refines the existing plan; it does not authorize transport activation,
+phone interaction, a new dependency or a wider certificate change.
+
+1. Finish PKG-045 rollout: owner approval for B/certificate movement is already granted AFTER verification
+   of the new app. Phone readiness and active-device inventory remain pending. Install with data preserved,
+   verify the actual task readers, then apply the exact proven candidate and record the result.
+2. Complete push as a separate delivery slice. Begin the source/proof work while the phone is unavailable;
+   do not wait for an app-wide visual redesign. Close the checklist below before claiming it operational.
+3. Finish account-closure recovery across devices and the remaining client refusal mappings. The export
+   service still depends on real operator/legal/retention inputs. Do not mark it complete from worker health.
+4. Verify the full two-person marketplace journey and interruption paths; fix observed gaps. Then finish
+   bounded Home previews and measure isolated-load performance without paid-provider or DEV load tests.
+5. Deliver the new visual system by complete flows, with three distinct compositions before each major
+   surface. Finish support/legal/connection-service monetization and controlled public-release preparation.
+
+### Push: current source facts, not a device-delivery claim
+
+- `uskoci-push-transport/index.ts` sends the same public title/body for every event and `data: { kind: 'INBOX' }`.
+  Its channel and sound are `default`; transport receipts distinguish provider acceptance from actual delivery.
+- `PushRuntime.tsx` accepts an explicit public copy allowlist for foreground presentation and opens
+  `/obavestenja` on a tap. The in-app notification then resolves its account-owned subject separately.
+  A direct push-to-Agreement/task route is therefore new work, not current behavior.
+- `nativePushDevice.ts` creates a PRIVATE Android channel with DEFAULT importance, asks permission only
+  from an explicit user action, and uses the configured Expo project identity.
+- `PushPreferences.tsx` contains category/quiet-hour controls and separate transport/device status.
+  Source inspection found a recovery defect: `locked = busy || error` also disables the error panel's
+  `Proveri stanje` button. An initial read error or uncertain registration thus offers an unusable recovery
+  button until the screen is re-entered. This is observed in code, not reproduced on a real device yet.
+  Fix it with a regression that proves read-only recovery without a duplicate registration/settings write.
+
+### Push: completion conditions
+
+- [ ] Fix and prove recovery after read/registration/settings failure; preserve consent and prevent blind writes.
+- [ ] Verify build configuration, OS permission and account/session-bound device registration without exposing tokens or keys.
+- [ ] Check category opt-in, quiet hours, urgent override and existing queue before any controlled activation.
+- [ ] Perform controlled delivery to the owner's ready test devices from an agreed real event; distinguish queued,
+      provider-accepted, device-visible and opened states. No fabricated DEV users/events or broadcasts.
+- [ ] Observe foreground, background and cold-start behavior, including denied permission, logout/account change,
+      duplicate/stale events and a subject that no longer exists or is no longer accessible.
+- [ ] Define per-event copy, notification icon, sound, grouping and in-app read/unread presentation.
+      Generic lock-screen text is current behavior. More specific text is a proposal; preserve private message/address data.
+- [ ] For richer copy/direct opening, update and prove sender contract, client allowlist, account-owned resolution
+      and old/new app compatibility together. Do not change only the worker text or trust a payload URL.
+- [ ] Verify the final Android and iOS presentation on devices, respecting native settings and accessibility.
+- [ ] Record actual delivery/navigation evidence before enabling general delivery or marking push complete.
+
+Controlled activation is needed to test real delivery; it is not the same as enabling general delivery.
+Push appearance work and in-app notification design can proceed before that activation.
+
 ## Capacity is measured separately
 
 No current test result establishes a supported number of users. Registered accounts, daily active users,
