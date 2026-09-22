@@ -47,4 +47,9 @@ The intake prompt now invites one to three short sentences with a relevant react
 and one next question. Occasional single emojis are permitted, with no forced praise, repeated
 summaries or joking in serious failures. This removes the earlier instruction to usually return
 only the next question. Fact validation, intent handling and all deterministic guards are unchanged.
-No new behavior-mirroring tests: use the existing context/wire regressions. Deployment pending.
+No new behavior-mirroring tests: the existing90 context/wire regressions pass locally. CI35704269701
+on d73d8c5ad1b7edbf798fa15e8cf94cae1152af10 passes types,355 offline Edge tests and25 existing
+disposable integration checks. Intake50 is deployed, all four files byte-identical to that source;
+verify_jwt=true and anonymous401. See TONE_EDGE_RECEIPT_20260922.json. No SQL/client/credential change
+or agent-triggered provider generation. This proves delivery and regressions, not subjective tone
+quality on a new real response; the owner can evaluate it with the next message.

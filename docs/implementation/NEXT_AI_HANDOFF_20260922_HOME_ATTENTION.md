@@ -1,10 +1,11 @@
 # Home attention continuation — 2026-09-22
 
 Latest supplement: PKG-043/044 restored owner-observed intake transport after Gemini400 and fixed the
-guard that overwrote contextual ASK prose with generic field questions. Current intake49 is byte-verified,
-JWTtrue, anonymous401; CI35702324170 (source7b6478a8) passes355 offline Edge tests and25 disposable
-integration checks. No SQL/client change; installed APK35698097121 remains current. Owner's PKG-043
-retry produced two SUCCEEDED receipts and phone replies; PKG-044 follow-up is requested/pending.
+guard that overwrote contextual ASK prose with generic field questions. Owner confirmed improvement
+and requested warmer replies. Prompt-only refinement d73d8c5a is deployed as intake50, byte-verified,
+JWTtrue, anonymous401; CI35704269701 passes types,355 offline Edge tests and25 disposable integration
+checks. No SQL/client change; installed APK35698097121 remains current. Owner's PKG-043 retry produced
+two SUCCEEDED receipts and phone replies. New tone quality remains for owner feedback on his next reply.
 Read package043/044 docs and current status before relying on historical AI state below. No agent-paid
 provider call or voice interaction occurred. Runtime generation is still only owner-initiated.
 

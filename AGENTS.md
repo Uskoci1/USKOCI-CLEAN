@@ -6,8 +6,11 @@ the index separates implemented/proved/applied/built/device-verified states and 
 PKG-044 (2026-09-22, Edge deployed): do not overwrite a contextual ASK for a genuinely missing field
 with a canned question. Preserve known-field retargeting and all fact/ambiguity/ownership guards.
 Three old-code failing regressions,90 focused checks and types pass. CI35702324170 source7b6478a8:
-355 offline Edge tests plus25 disposable integration checks. Intake49 byte-verified, JWTtrue, anonymous401.
-No SQL/client/secret change. Owner follow-up pending; no universal dialogue-quality claim. See
+355 offline Edge tests plus25 disposable integration checks. Owner confirmed improved dialogue and asked
+for warmer, slightly longer replies with occasional emojis. Prompt-only refinement d73d8c5a passes90 local
+checks; CI35704269701 passes types,355 Edge/25 integration checks. Current intake50 byte-verified,
+JWTtrue, anonymous401 (TONE_EDGE_RECEIPT_20260922.json). No SQL/client/secret change or agent-paid call.
+Tone on a new real reply is not yet observed; no universal dialogue-quality claim. See
 pkg044/PKG044_CONTEXTUAL_INTAKE_QUESTIONS.md and receipt. Existing installed APK requires no replacement.
 
 PKG-043 (2026-09-22, Edge deployed): owner phone attempt exposed Gemini400 INVALID_ARGUMENT on intake47.

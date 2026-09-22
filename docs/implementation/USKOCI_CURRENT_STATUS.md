@@ -11,10 +11,11 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
-- PKG-044 intake49 now preserves contextual questions for genuinely missing details and prioritizes
-  direct explanations in the prompt. CI35702324170:355 offline Edge tests +25 existing disposable
-  integration checks; types pass, exact hosted readback, JWTtrue, anonymous401. No client/SQL change.
-  Owner follow-up requested; live language quality not yet verified. See v5-ai-first/pkg044/.
+- PKG-044 contextual questions: owner confirmed improvement. At his request, prompt-only warmth
+  refinement allows1–3 short sentences and occasional single emojis without repeated summaries.
+  Current intake50, source d73d8c5a; CI35704269701 passes types,355 offline Edge tests +25 existing
+  disposable checks. All four hosted files match, JWTtrue, anonymous401. No client/SQL change.
+  Tone of a new actual response is not yet observed. See v5-ai-first/pkg044/ and TONE_EDGE_RECEIPT.
 
 - Latest incident/correction: PKG-043 intake48 deployed after the owner's phone attempt failed with
   Gemini400 INVALID_ARGUMENT. Nonempty question sentinel replaces the invalid empty enum member.
