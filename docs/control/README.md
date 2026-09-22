@@ -56,6 +56,15 @@ Two lists are computed automatically as well:
    - commit `redovi.json`, `dev_snapshot.json` and `stanje.json`;
    - republish `out/tabla.html` to the URL above: Artifact publish with `url` set to that link.
 
+**Without the Artifact tool (for example Codex):**
+1. Run `node scripts/control/osvezi.mjs`.
+2. Open the published page in a browser signed in as the owner.
+3. Under "Učitaj novo stanje", choose `docs/control/stanje.json`.
+
+The page stores the file in its shared storage, and every open view updates. The storage accepts writes only
+from people with edit rights. The page shows the newer of the embedded state and the loaded state, compared by
+`meta.osvezeno`. Republishing is needed only when `tabla.template.html` changes.
+
 Code, test and route lights recompute from the checked-out tree on every run. The script needs no secrets and no
 network. The one exception is an optional `gh run list` for the latest CI results.
 

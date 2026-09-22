@@ -133,8 +133,12 @@ tr:last-child td{border-bottom:0}
 <script type="application/json" id="data">__STANJE__</script>
 <script>
 (function () {
-  var D = JSON.parse(document.getElementById('data').textContent);
   var $ = function (id) { return document.getElementById(id); };
+  var shown = null;
+  function render(D) {
+  shown = D;
+  $('tiles').innerHTML = ''; $('groups').innerHTML = '';
+  document.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-f') === 'all')); });
   var el = function (tag, attrs, html) { var e = document.createElement(tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var LIGHT_NAMES = [['nacrt', 'Nacrt'], ['ekran', 'Ekran'], ['kod', 'Kod'], ['server', 'Server'], ['test', 'Test'], ['telefon', 'Telefon']];
@@ -181,14 +185,6 @@ tr:last-child td{border-bottom:0}
     });
     root.appendChild(box);
   });
-  document.querySelectorAll('.chip').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var f = b.getAttribute('data-f');
-      document.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
-      document.querySelectorAll('details.row').forEach(function (r) { r.hidden = f !== 'all' && r.getAttribute('data-status') !== f; });
-      document.querySelectorAll('.group[data-group]').forEach(function (g) { g.hidden = !g.querySelector('details.row:not([hidden])'); });
-    });
-  });
 
   var notUsed = D.server_ume_aplikacija_ne_koristi.filter(function (x) { return !x.preko_edge; });
   var viaEdge = D.server_ume_aplikacija_ne_koristi.filter(function (x) { return x.preko_edge; });
@@ -211,5 +207,48 @@ tr:last-child td{border-bottom:0}
   $('ci').innerHTML = '<h2>Poslednje provere na GitHub-u</h2>' + (ci.length ? '<div class="tablewrap"><table><thead><tr><th>Provera</th><th>Verzija</th><th>Ishod</th></tr></thead><tbody>' +
     ci.map(function (r) { var t = r.ishod === 'success' ? 'ok' : r.ishod === 'failure' ? 'bad' : 'mid'; return '<tr><td>' + esc(r.ime) + '</td><td class="mono">' + esc(r.sha) + '</td><td><span class="tag ' + t + '">' + esc(r.ishod || r.stanje) + '</span></td></tr>'; }).join('') +
     '</tbody></table></div>' : '<p class="sub">Nije dostupno pri osvežavanju.</p>');
+  }
+
+  document.querySelectorAll('.chip').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.getAttribute('data-f');
+      document.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      document.querySelectorAll('details.row').forEach(function (r) { r.hidden = f !== 'all' && r.getAttribute('data-status') !== f; });
+      document.querySelectorAll('.group[data-group]').forEach(function (g) { g.hidden = !g.querySelector('details.row:not([hidden])'); });
+    });
+  });
+
+  var looksValid = function (D) { return D && D.meta && Array.isArray(D.redovi) && D.redovi.length && D.counts && Array.isArray(D.blokade) && Array.isArray(D.prodavnice) && Array.isArray(D.test_dva_telefona) && Array.isArray(D.server_ume_aplikacija_ne_koristi) && Array.isArray(D.aplikacija_zove_a_server_nema); };
+  var newer = function (D) { return String((D.meta || {}).osvezeno || '') > String((shown.meta || {}).osvezeno || ''); };
+  render(JSON.parse($('data').textContent));
+
+  // Shared state: anyone with edit rights (the owner, or Codex in the owner's browser) loads a fresh
+  // stanje.json and every open view updates, without republishing the page.
+  if (!window.claude || !window.claude.use) return;
+  window.claude.use('db').then(function (db) {
+    if (!db) return;
+    var doc = db.doc('control/stanje');
+    doc.onSnapshot(function (snap) {
+      var D = snap && snap.exists ? snap.data() : null;
+      if (D && D.stanje) { try { D = JSON.parse(D.stanje); } catch (e) { D = null; } }
+      if (looksValid(D) && newer(D)) render(D);
+    });
+    window.claude.use('user').then(function (user) {
+      if (!user || !(user.isOwner() || user.canEdit())) return;
+      $('ucitaj').hidden = false;
+      $('fajl').addEventListener('change', function () {
+        var f = $('fajl').files[0]; var msg = $('ucitaj-poruka');
+        if (!f) return;
+        f.text().then(function (txt) {
+          var D; try { D = JSON.parse(txt); } catch (e) { msg.textContent = 'Fajl nije ispravan JSON.'; return; }
+          if (!looksValid(D)) { msg.textContent = 'Ovo nije stanje.json kontrolne table.'; return; }
+          msg.textContent = 'Čuvam…';
+          return doc.set({ stanje: txt }).then(function () {
+            render(D); msg.textContent = 'Učitano: osveženo ' + (D.meta.osvezeno || '') + ', verzija ' + (D.meta.head || '') + '.';
+          }, function (e) { msg.textContent = 'Nije sačuvano (' + ((e && e.code) || 'greška') + '). Treba ti pravo izmene.'; });
+        });
+      });
+    });
+  });
 })();
 </script>
