@@ -1052,8 +1052,14 @@ failure each of those was is not established here; the ceiling, "never fail afte
 together are enough for one slow answer to freeze a conversation. Fix shape (Edge and SQL, needs approval):
 a ceiling that fits the answers actually seen, a dispatched-and-failed state for a definite local failure
 (timeout, provider error) that still forbids a second paid call but stops blocking, and the sweep in 8.17.
-**Only the sweep is done (PKG-027b, applied 2026-09-21).** The 12-second ceiling and a dispatched-and-failed
-state are not changed; they still need their own decision.
+**2026-09-22 — partial fix, PKG-039 proven and applied.** The PKG-027b sweep was followed by independent
+5-second failure settlement in both interview handlers,30-second provider bounds and55-second native
+send bounds. Intake SQL now retires the same dispatched PROCESSING attempt while preserving dispatch,
+success and cancellation; worker uses its existing protected failure function. No same-key paid replay.
+Run35675491926 passes330 Edge tests /16 disposable SQL checks, including both observed lock orders.
+DEV ledger194, intake46 / worker17 exact-byte verified, JWT/certificate unchanged. Full Jest4650 and
+types pass; client APK pending and no device/real-provider probe. Q&A's45-second path is still open;
+process death before settlement still relies on the existing sweep grace. See pkg039 documentation.
 
 **11.2 — risk, latent.** The publication evaluator has one 12-second deadline for everything: auth, context,
 downloading up to six photos, and a Gemini call at `MEDIA_RESOLUTION_HIGH`. Its claim moves an accepted

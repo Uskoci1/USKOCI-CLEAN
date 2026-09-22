@@ -149,11 +149,13 @@ await prove('V5_WORKER_TURN_RESTART_RECOVERY','v5-worker-turn-recovery-report.js
   assert.equal(sql(`select count(*) from public.ai_structured_facts where conversation_id=${q(es.conversationId)}`),'0');assert.equal((await(await invoke(es,ek)).json()).state,'SUCCEEDED');assert.equal(calls,1);
   const unknownKey=randomUUID();mode='UNKNOWN';const unknownResponse=await invoke(es,unknownKey);assert.equal(unknownResponse.status,200);await unknownResponse.text();
   assert.equal(calls,2);assert.ok(providerBodies.every(body=>!body.includes('SYNTHETIC_CANCELLED_DO_NOT_SEND')));const unknownRecovery=await recover(e,es,unknownKey);assert.equal(unknownRecovery.providerDispatched,true);assert.equal(unknownRecovery.retryAllowed,false);
-  assert.equal((await(await invoke(es,unknownKey)).json()).state,'PROCESSING');assert.equal(calls,2);
+  // PKG-039 settles definite handler failure; dispatch/budget remain consumed, with no same-key replay.
+  assert.equal(unknownRecovery.state,'FAILED');
+  assert.equal((await(await invoke(es,unknownKey)).json()).state,'FAILED');assert.equal(calls,2);
   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(e.id)}`),'2');
   assert.equal(sql(`select reserved_microusd from private.ai_test_budget_v5 where singleton`),'500000');
   report.actualEdgeSourceHashes=runtime.sourceHashes;report.edgeSourceBinding=runtime.sourceBinding;report.syntheticProviderDispatches=calls;report.providerResponseStubbed=true;report.actualEdgeGateway=false;
-  pass(report,'CURRENT141_ACTUAL_EDGE_AUTH_BUDGET_DISPATCH_CANONICAL_PROFILE_LOST_REPLY_UNKNOWN_REPLAY_NO_SECOND_PROVIDER_RESERVATION');
+  pass(report,'CURRENT141_ACTUAL_EDGE_AUTH_BUDGET_DISPATCH_CANONICAL_PROFILE_LOST_REPLY_SETTLED_FAILURE_NO_SECOND_PROVIDER_RESERVATION');
  }finally{
   sql(`delete from private.ai_test_reservations_v5 where account_id=${q(e.id)};delete from private.ai_test_accounts_v5 where account_id=${q(e.id)};
    update private.ai_test_budget_v5 set enabled=${budget.enabled},reserved_microusd=${budget.reserved_microusd},price_valid_until=${q(budget.price_valid_until)} where singleton`);
