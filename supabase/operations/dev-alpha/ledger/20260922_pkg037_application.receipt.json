@@ -106,7 +106,9 @@
   "apk": {
     "run": 35669226055,
     "source": "2d6f0bc5e3751ceb12748db8d8fffdad11794f61",
-    "status": "BUILDING",
+    "status": "BUILT_DOWNLOADED_HASH_AND_ATTESTATIONS_VERIFIED",
+    "sha256": "e47955fdb6ed8f7fea6029f4deb3e7c391a03d2c6c988ee2650aef51b90b9749",
+    "receipt": "docs/implementation/v5-ai-first/pkg037/APK_RECEIPT_20260922.json",
     "deviceInstalled": false
   },
   "cronReadback": {

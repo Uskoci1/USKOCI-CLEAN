@@ -10,8 +10,9 @@ accepted-review wait and a bounded expired-review branch in the existing sweep. 
 client/native 80/80 and full Jest 241 suites / 4646 tests pass; types clean. Disposable proof35669180188
 passes 18 checks on source2d6f0bc5. DEV ledger192; candidate text/body/ACL readback verified, certificate
 65980fce… unchanged. Publication Edge v14 byte-equals proven source, verify_jwt=true; deployed with the
-already cached CLI after a transient HTTP520. No credential read or paid call. APK35669226055 is building;
-no phone installed/tested. Interview/worker/QA finding 11.1 remains separate and open. Finishing/growth
+already cached CLI after a transient HTTP520. No credential read or paid call. APK35669226055 succeeded;
+downloaded hash e47955fd… matches checksum and both source-bound attestations. No phone installed/tested.
+Interview/worker/QA finding 11.1 remains separate and open. Finishing/growth
 gates: `docs/implementation/APP_FINISHING_PLAN_20260922.md`.
 
 PKG-036 (2026-09-22, client-only): first bounded slice of deep-read 7.1. Eleven live lifecycle RPCs and

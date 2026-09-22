@@ -1067,7 +1067,7 @@ bounds; one settlement preserves a lost successful ACK; the existing minute swee
 review claims without provider replay or publication. Disposable proof 35669180188 passes 18 checks,
 including actual local Auth/REST and the exact Edge handler. DEV ledger192 and publication Edge v14
 byte-verified, JWT unchanged; certificate unchanged. Client 55-second accepted-review wait passes local
-tests and is building in APK35669226055; no phone/provider verification. See
+tests and is built in APK35669226055, downloaded hash/source/attestations verified; no phone/provider verification. See
 `pkg037/PKG037_PUBLICATION_RECOVERY.md`. This does not close interview/worker/QA finding 11.1.
 
 **11.3 — risk, copy.** `uskoci-media` holds a single module-level `busy` flag, shared by every person whose

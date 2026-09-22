@@ -2,7 +2,7 @@
 
 Date: 2026-09-22. Baseline `5f54a788`. Deep-read **11.2**; interview/worker/QA finding 11.1 remains separate.
 Status: disposable proof passed, SQL applied on canonical DEV, Edge v14 deployed and byte-verified.
-Client APK completion and device verification pending.
+Client APK built and hash/source/attestations verified; device verification pending.
 
 ## Problem and behavior
 
@@ -83,7 +83,9 @@ The first exact-byte deployment using the already cached Supabase CLI 2.117.0 re
 readback confirmed unchanged v13. The retry succeeded. **v14 is ACTIVE, verify_jwt=true**, and both files
 read back byte-identical to the proven source: entry `3321cd13…`, budget helper `2ef0c3a1…` (full hashes in
 the receipt). The CLI used exact committed files staged under ignored artifacts; no dependency installed
-or credentials read. APK run35669226055 is building the new client; device verification remains pending.
+or credentials read. APK run35669226055 succeeded on source2d6f0bc5; its downloaded 68,550,407 bytes have
+SHA256 `e47955fdb6ed8f7fea6029f4deb3e7c391a03d2c6c988ee2650aef51b90b9749`, matching the checksum and
+both source-bound recovery/icon attestations. See `APK_RECEIPT_20260922.json`. Device verification remains pending.
 
 Unauthenticated POST to the deployed gateway returns HTTP401 without invoking a provider. The existing
 marketplace cron readback shows five successful runs and zero failures in five minutes. There was no real
