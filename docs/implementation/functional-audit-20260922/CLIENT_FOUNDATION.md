@@ -40,6 +40,20 @@ two lines and a font-scale-aware bar provide room. No new animation is necessary
   requested the existing Android emulator. USKOCI_V5_TEST was started without wiping its data.
 - Claude independent review: pending; no second writer was used in these source files.
 
+Source commit8f0be1f46bb48ce485e983e4eb968aaa034db6f5 was pushed. Exact-source Android build:
+https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35741807845 (in progress at this note).
+Emulator advertises x86_64 and arm64-v8a; compatibility will be measured by installing/launching the
+actual APK, not inferred from that list. No emulator reset, account change or device-data copy.
+
+Emulator preflight: the last proven phone APK31598ac8 (SHA256c7e907ae...) installed successfully,
+but launch exited with SoLoaderDSONotFoundError for libreactnative.so: the loader searched x86_64
+inside the ARM-only APK. No USKOCI login or user flow occurred. The emulator's advertised ARM
+compatibility is insufficient for this package. The APK workflow now has an explicit phone/emulator
+choice, defaulting to the unchanged ARM64 phone build. Emulator uses x86_64; arbitrary target values
+are rejected. No new package, native-source feature or server change. Emulator screenshots remain
+separate from physical-phone acceptance. The initial emulator was gracefully stopped and reopened
+with a window for the owner's eventual sign-in; its data was preserved.
+
 ## Boundaries
 
 No server/validation/recovery algorithm, package, key, verify_jwt or certificate change. No paid AI

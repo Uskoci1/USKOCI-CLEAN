@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "8f0be1f46bb48ce485e983e4eb968aaa034db6f5",
+  "typecheck": {
+    "exitCode": 0
+  },
+  "jest": {
+    "exitCode": 0,
+    "suites": 242,
+    "tests": 4698,
+    "failed": 0,
+    "teardownWarning": true
+  },
+  "sourceSha256": {
+    "src/app/(app)/_layout.tsx": "112ded0a3448bdb73479280c9a60a689a9a98d4b31868b4874b8d0f4767c680c",
+    "src/app/obavestenja.tsx": "07602af706d0c08018abd2fcc6a4633b125fd3abdb0dfc06ef3c058fca190b66",
+    "src/ui/v2/MarketplacePresentation.tsx": "5366790a7d45043be7f2366307daa1ecf67b197b1dd202d35c5f81cb06768f49",
+    "src/ui/notifications/PushPreferences.tsx": "66ff8c93e2c07f489957387bed02562c7f1e1d863f36bf815ae276fb535ba830"
+  },
+  "apkRun": "35741807845",
+  "apkStatus": "BUILDING",
+  "emulator": {
+    "name": "USKOCI_V5_TEST",
+    "serial": "emulator-5554",
+    "bootCompleted": true,
+    "existingUskociPackage": false,
+    "advertisedAbi": [
+      "x86_64",
+      "arm64-v8a"
+    ],
+    "phoneApkPreflight": {
+      "source": "31598ac8",
+      "install": "SUCCESS",
+      "launch": "FAILED_BEFORE_REACT",
+      "reason": "SoLoaderDSONotFoundError libreactnative.so; x86_64 loader on ARM-only APK"
+    },
+    "windowOpen": true
+  },
+  "deviceVerification": "PENDING",
+  "serverChanged": false,
+  "providerCalled": false,
+  "claudeReview": "PENDING",
+  "emulatorLogin": "PENDING",
+  "emulatorBuild": "Needs explicit x86_64 target; workflow choice added and validated without changing phone default"
+}

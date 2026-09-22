@@ -3,6 +3,15 @@ name: Build Android development APK
 # Intentional sideload checkpoint trigger: safe canonical SVG renderer for native Home/Auth entry.
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'APK target (phone: ARM64, emulator: x86_64)'
+        type: choice
+        required: true
+        default: phone
+        options:
+          - phone
+          - emulator
   push:
     branches:
       - clean-alpha-backend
@@ -83,6 +92,8 @@ jobs:
         run: npx expo prebuild --platform android --clean
 
       - name: Tune Gradle for CI APK
+        env:
+          USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -94,7 +105,10 @@ jobs:
             text = re.test(text) ? text.replace(re, line) : `${text.trimEnd()}\n${line}\n`;
           };
           setProp('org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8');
-          setProp('reactNativeArchitectures', 'arm64-v8a');
+          const architectures = { phone: 'arm64-v8a', emulator: 'x86_64' };
+          const target = process.env.USKOCI_ANDROID_BUILD_TARGET;
+          if (!Object.hasOwn(architectures, target)) throw new Error('Unknown Android build target');
+          setProp('reactNativeArchitectures', architectures[target]);
           fs.writeFileSync(path, text);
           NODE
 

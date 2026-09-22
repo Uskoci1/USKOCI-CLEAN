@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T14:35:41Z",
+  "osvezeno": "2026-09-22T14:40:33Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "b4c25ad7",
-  "head_poruka": "fix(control): retain snapshot timestamp for shared-state uploads",
+  "head": "8f0be1f4",
+  "head_poruka": "fix(ui): restore settings retry and retain navigation context",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -2983,8 +2983,8 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "OTVORENO: nečitljiva legenda na telefonu, font 11 i fokus donje navigacije. Novi izgled čeka odobrenje analize.",
-   "dokaz": "docs/implementation/functional-audit-20260922/REPORT.md F01–F04"
+   "sada": "DELIMIČNO: analiza odobrena; F01–F04 ispravljeni u kodu8f0be1f4. Tipovi i242 grupe/4698 testova prolaze. APK35741807845 se pravi; emulator i telefon još nisu prihvaćeni.",
+   "dokaz": "docs/implementation/functional-audit-20260922/CLIENT_FOUNDATION.md"
   },
   {
    "id": "B21",
@@ -3249,6 +3249,22 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35741808918,
+   "ime": "PKG-003 manual task proof",
+   "sha": "8f0be1f4",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-22T14:39:15Z"
+  },
+  {
+   "id": 35741807845,
+   "ime": "Build Android development APK",
+   "sha": "8f0be1f4",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-22T14:39:15Z"
+  },
+  {
    "id": 35731932400,
    "ime": "Build Android development APK",
    "sha": "31598ac8",
@@ -3327,22 +3343,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-09-22T09:20:21Z"
-  },
-  {
-   "id": 35708788704,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "8f4f6826",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-22T09:09:35Z"
-  },
-  {
-   "id": 35708711540,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "8d21badb",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-22T09:08:43Z"
   }
  ]
 }

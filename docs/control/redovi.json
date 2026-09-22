@@ -2054,8 +2054,8 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "OTVORENO: nečitljiva legenda na telefonu, font 11 i fokus donje navigacije. Novi izgled čeka odobrenje analize.",
-   "dokaz": "docs/implementation/functional-audit-20260922/REPORT.md F01–F04"
+   "sada": "DELIMIČNO: analiza odobrena; F01–F04 ispravljeni u kodu8f0be1f4. Tipovi i242 grupe/4698 testova prolaze. APK35741807845 se pravi; emulator i telefon još nisu prihvaćeni.",
+   "dokaz": "docs/implementation/functional-audit-20260922/CLIENT_FOUNDATION.md"
   },
   {
    "id": "B21",
