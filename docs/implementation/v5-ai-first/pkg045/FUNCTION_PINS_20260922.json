@@ -38,7 +38,7 @@
     },
     {
       "signature": "public.covered_slots(needs)",
-      "md5": "ac09f84c85ff8ae237c8db463a43d547"
+      "md5": "cbeb8f2a3da7d08965ef0386cfc437ba"
     },
     {
       "signature": "public.rpc_storage_account_open()",
@@ -84,5 +84,42 @@
     "task_country_code",
     "task_timezone",
     "price_basis"
+  ],
+  "policyPredecessors": [
+    {
+      "relname": "need_sensitive",
+      "polname": "need_sensitive_owner",
+      "qual": "(EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = need_sensitive.need_id) AND (n.requester_account_id = auth.uid()))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = need_sensitive.need_id) AND (n.requester_account_id = auth.uid()))))",
+      "digest": "973eb03ede831c85e08335ba1350f556"
+    },
+    {
+      "relname": "marketplace_responses",
+      "polname": "responses_requester_read",
+      "qual": "((status <> 'DRAFT'::text) AND (EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = marketplace_responses.need_id) AND (n.requester_account_id = auth.uid())))))",
+      "with_check": null,
+      "digest": "bd713a683bef6c822d63dbf4a95b25f7"
+    },
+    {
+      "relname": "marketplace_response_versions",
+      "polname": "response_versions_read",
+      "qual": "(EXISTS ( SELECT 1\n   FROM marketplace_responses r\n  WHERE ((r.id = marketplace_response_versions.response_id) AND ((r.worker_account_id = auth.uid()) OR ((r.status <> 'DRAFT'::text) AND (EXISTS ( SELECT 1\n           FROM needs n\n          WHERE ((n.id = r.need_id) AND (n.requester_account_id = auth.uid())))))))))",
+      "with_check": null,
+      "digest": "4ae9744f3dd3afde8c0a7f0812e21024"
+    },
+    {
+      "relname": "need_geography",
+      "polname": "need_geography_owner_read",
+      "qual": "(EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = need_geography.need_id) AND (n.requester_account_id = auth.uid()))))",
+      "with_check": null,
+      "digest": "307ad5849a171a98ababcce2d07a74af"
+    },
+    {
+      "relname": "need_requirement_details",
+      "polname": "need_requirement_details_owner_read",
+      "qual": "(EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = need_requirement_details.need_id) AND (n.requester_account_id = auth.uid()))))",
+      "with_check": null,
+      "digest": "fdc2e0cba21e37a36fcd878e005abd52"
+    }
   ]
 }

@@ -18,9 +18,9 @@ begin
   if to_regprocedure('public.is_my_task(uuid)') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
   if to_regprocedure('public.rpc_read_task(uuid)') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
   if to_regprocedure('public.rpc_list_my_tasks()') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
-  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.selectable_application_count(needs)')) is distinct from 'fe53442f8b661d6f33d22a54e2a468a8' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
-  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.covered_slots(needs)')) is distinct from 'ac09f84c85ff8ae237c8db463a43d547' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
-  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_storage_account_open()')) is distinct from '7350621ef256678e209aa6a28c79b58b' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
+  if (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=to_regprocedure('public.selectable_application_count(needs)')) is distinct from 'fe53442f8b661d6f33d22a54e2a468a8' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
+  if (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=to_regprocedure('public.covered_slots(needs)')) is distinct from 'cbeb8f2a3da7d08965ef0386cfc437ba' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
+  if (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=to_regprocedure('public.rpc_storage_account_open()')) is distinct from '7350621ef256678e209aa6a28c79b58b' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
 end;
 $pre$;
 CREATE OR REPLACE FUNCTION public.rpc_list_open_tasks_v3(p_bbox jsonb DEFAULT NULL::jsonb, p_filters jsonb DEFAULT '{}'::jsonb, p_limit integer DEFAULT 50, p_before_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_before_id uuid DEFAULT NULL::uuid)

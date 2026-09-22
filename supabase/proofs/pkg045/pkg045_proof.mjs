@@ -18,6 +18,7 @@ const surface=()=>[...sql(readFileSync('supabase/proofs/pkg023/pkg023_surface.sq
  ...rows("select attname,attacl::text from pg_attribute where attrelid='public.needs'::regclass and attnum>0 and not attisdropped order by attnum").map(x=>'column-acl:'+JSON.stringify(x))];
 sql(readFileSync('supabase/candidates/pkg042a_cancelled_agreement_read_parity.sql','utf8'));
 report.closureBefore=closure();assert.equal(report.closureBefore.ready,true);assert.equal(report.closureBefore.live,report.closureBefore.certified);
+report.dependencyBefore=rows(`select oid::regprocedure::text signature,md5(prosrc) raw_md5,md5(replace(prosrc,E'\\r\\n',E'\\n')) lf_md5 from pg_proc where oid in (${pins.dependencies.map(p=>q(p.signature)+'::regprocedure').join(',')})`);
 const baselineSurface=surface();pass('EXACT_PREDECESSOR_REPLAY_AND_READY_CLOSURE');
 const owner=await rt.actor('pkg045-owner'), stranger=await rt.actor('pkg045-stranger'), participant=await rt.actor('pkg045-participant'), otherWorld=await rt.actor('pkg045-other-world');
 const profile=(a,kind)=>sql(`select id from public.app_profiles where account_id=${q(a.id)} and kind=${q(kind)}`);
@@ -152,9 +153,11 @@ await denied(stranger.client.rpc('rpc_read_task',{p_need_id:ids.public}));await 
 await denied(owner.client.rpc('rpc_list_my_needs_page'));await denied(owner.client.rpc('is_my_task',{p_need_id:ids.draft}));
 pass('B_RESTRICTED_ACCOUNTS_CANNOT_USE_DIRECT_OR_ELEVATED_READERS');
 const afterB=surface(),removedB=afterASurface.filter(x=>!afterB.includes(x)),addedB=afterB.filter(x=>!afterASurface.includes(x));
-assert.ok([...removedB,...addedB].every(x=>x.startsWith('table:public.needs:')||x.startsWith('column-acl:')));
+const policyNames=pins.policyPredecessors.map(p=>'policy:public.'+p.relname+'.'+p.polname+':');
+assert.ok([...removedB,...addedB].every(x=>x.startsWith('table:public.needs:')||x.startsWith('column-acl:')||policyNames.some(name=>x.startsWith(name))));
+assert.equal(addedB.filter(x=>x.startsWith('policy:')).length,5);
 report.surfaceB={removed:removedB,added:addedB};
 report.functionPins=rows(`select oid::regprocedure::text signature,md5(prosrc) md5,prosecdef,proacl::text,proconfig from pg_proc where oid in (${pins.functions.map(p=>q(p.signature)+'::regprocedure').join(',')})`);
 report.closureAfter=closure();assert.deepEqual(report.closureAfter,report.closureBefore);
-pass('B_ONLY_NEEDS_SELECT_PRIVILEGES_CHANGED_CERTIFICATE_UNCHANGED_READY');
+pass('B_ONLY_NEEDS_SELECT_AND_FIVE_EQUIVALENT_OWNER_PREDICATES_CHANGED_CERTIFICATE_UNCHANGED_READY');
 report.result='PASS';save();
