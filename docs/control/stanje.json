@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T21:15:10Z",
+  "osvezeno": "2026-09-22T21:50:21Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "853315ac",
-  "head_poruka": "control: let editors load a fresh stanje.json into the published table",
+  "head": "a0c12868",
+  "head_poruka": "pkg046: check 'already applied' before the predecessor drift pins",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -131,7 +131,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Početna",
+    "nivo": 2,
+    "rute": [
+     "/"
+    ],
+    "fajlovi": [
+     "src/data/homeAttentionClientService.ts"
+    ],
+    "cita": [
+     "rpc_home_attention"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "04",
+     "05",
+     "48"
+    ]
+   }
   },
   {
    "id": "A02",
@@ -179,7 +203,45 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/nova"
+    ],
+    "fajlovi": [
+     "src/data/aiNeedV2Production.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_ai_abandon_need_conversation_v2",
+     "rpc_ai_cancel_need_turn_v2",
+     "rpc_ai_confirm_fact",
+     "rpc_ai_correct_fact_v2",
+     "rpc_ai_need_review_v2",
+     "rpc_ai_open_need_conversation_owned_v2",
+     "rpc_ai_open_need_edit_conversation_v2",
+     "rpc_ai_read_need_turn_v2",
+     "rpc_ai_recover_need_turn_v2",
+     "rpc_confirm_need_edit_from_review_v2",
+     "rpc_save_need_draft_from_review"
+    ],
+    "edge": [
+     "uskoci-ai-interview"
+    ],
+    "tabele": [
+     "ai_conversations",
+     "ai_messages",
+     "app_profiles"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "29"
+    ]
+   }
   },
   {
    "id": "A03",
@@ -221,7 +283,27 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/nova"
+    ],
+    "fajlovi": [
+     "src/features/voice/useHoldToTalk.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "29"
+    ]
+   }
   },
   {
    "id": "A04",
@@ -265,7 +347,33 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/mesto-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/locationClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_need_location_review",
+     "rpc_get_worker_location"
+    ],
+    "upisuje": [
+     "rpc_save_need_location_review",
+     "rpc_save_worker_location"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "31"
+    ]
+   }
   },
   {
    "id": "A05",
@@ -302,7 +410,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
-   "sledece": "PKG-046 napisan 22.09. uveče: stari pkg008 kandidat ne može da se primeni jer nova tabela pomera sertifikat brisanja naloga (closure_schema_digest_v5_139 hešira kolone/ograničenja svake tabele). Novi kandidat pkg046a drži zabelešku otkazivanja u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora), dodaje ogradu u service claim, rpc_cancel_media_upload i ponovno vezivanje sertifikata na tri mesta. Dokaz: .github/workflows/pkg046-media-cancel-proof.yml — čeka prvi CI prolaz. Primena traži vlasnikovo „primeni pkg046a“ jer pomera sertifikat. Živo stanje provereno 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
+   "sledece": "PKG-046 je napisan i DOKAZAN 22.09: CI 35787119578 (izvor a0c12868) prolazi svih 10 provera na jednokratnoj bazi — slomljen poziv pre, otkazivanje, kasno slanje odbijeno, sertifikat pomeren i vezan na tri mesta, pravi radnik zatvaranja naloga obriše nalog sa zabeleškom. Stari pkg008 ne sme da se primeni: nova tabela pomera sertifikat brisanja naloga. Novi kandidat drži zabelešku u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora). Ostaje tvoja reč „primeni pkg046a“, jer primena pomera sertifikat; posle toga dugme radi bez novog APK-a, a Edge uskoci-media se postavlja tvojom komandom. Živo stanje 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -311,7 +419,41 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/fotografije-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/mediaClientService.ts"
+    ],
+    "cita": [
+     "rpc_read_media_upload",
+     "rpc_read_profile_avatar",
+     "rpc_read_task_photos"
+    ],
+    "upisuje": [
+     "rpc_apply_profile_avatar",
+     "rpc_cancel_media_upload",
+     "rpc_clear_profile_avatar",
+     "rpc_discard_profile_avatar",
+     "rpc_remove_task_photo"
+    ],
+    "edge": [
+     "uskoci-media"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [
+     "rpc_cancel_media_upload"
+    ],
+    "predlog": [],
+    "celine": [
+     "32"
+    ]
+   }
   },
   {
    "id": "A06",
@@ -357,7 +499,37 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/pregled-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/aiTaskReviewClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_need_publication_context",
+     "rpc_read_ai_task_review",
+     "rpc_read_latest_ai_task_review"
+    ],
+    "upisuje": [
+     "rpc_accept_ai_task_review",
+     "rpc_prepare_ai_task_review",
+     "rpc_publish_accepted_ai_task_review"
+    ],
+    "edge": [
+     "uskoci-publication-evaluate"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "30"
+    ]
+   }
   },
   {
    "id": "A07",
@@ -403,7 +575,41 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/pregled-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/aiTaskReviewClientService.ts",
+     "src/data/publicationClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_need_publication_context",
+     "rpc_read_ai_task_review",
+     "rpc_read_latest_ai_task_review"
+    ],
+    "upisuje": [
+     "rpc_accept_ai_task_review",
+     "rpc_prepare_ai_task_review",
+     "rpc_publish_accepted_ai_task_review",
+     "rpc_publish_need_canonical"
+    ],
+    "edge": [
+     "uskoci-publication-evaluate"
+    ],
+    "tabele": [],
+    "dogadjaji": [
+     "OPPORTUNITY_AVAILABLE"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "30"
+    ]
+   }
   },
   {
    "id": "A08",
@@ -447,7 +653,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/pregled"
+    ],
+    "fajlovi": [
+     "src/data/needClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_my_tasks",
+     "rpc_read_task"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "16",
+     "19"
+    ]
+   }
   },
   {
    "id": "A09",
@@ -489,7 +719,30 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe"
+    ],
+    "fajlovi": [
+     "src/data/needClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_my_tasks",
+     "rpc_read_task"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "06"
+    ]
+   }
   },
   {
    "id": "A10",
@@ -533,7 +786,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/pitanja-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/preselectionQaClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_ru4b_answer_preselection_question",
+     "rpc_ru4b_ask_preselection_question",
+     "rpc_ru4b_disposition_preselection_question",
+     "rpc_ru4b_owner_preselection_questions",
+     "rpc_ru4b_public_preselection_qa"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "CLARIFICATION_ANSWERED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "13"
+    ]
+   }
   },
   {
    "id": "A11",
@@ -578,7 +859,30 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/kandidati"
+    ],
+    "fajlovi": [
+     "src/data/candidateClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_need_candidates"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "12",
+     "17"
+    ]
+   }
   },
   {
    "id": "A12",
@@ -621,7 +925,34 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/kandidati"
+    ],
+    "fajlovi": [
+     "src/data/applicationSelectionClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_select_response",
+     "rpc_submit_response"
+    ],
+    "edge": [],
+    "tabele": [
+     "need_selections"
+    ],
+    "dogadjaji": [
+     "RESPONSE_SELECTED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "17"
+    ]
+   }
   },
   {
    "id": "A13",
@@ -665,7 +996,36 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/pregled",
+     "/pregled-zadatka"
+    ],
+    "fajlovi": [
+     "src/data/ru4Production.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_close_remaining_search",
+     "rpc_resolve_stale_response_after_need_edit"
+    ],
+    "edge": [],
+    "tabele": [
+     "needs"
+    ],
+    "dogadjaji": [
+     "NEED_REVISED",
+     "RESPONSE_STALE"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "30"
+    ]
+   }
   },
   {
    "id": "A14",
@@ -710,7 +1070,34 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/pregled"
+    ],
+    "fajlovi": [
+     "src/data/needLifecycleClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_need_lifecycle_receipt"
+    ],
+    "upisuje": [
+     "rpc_cancel_need",
+     "rpc_delete_draft_need"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "NEED_CANCELLED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "16"
+    ]
+   }
   },
   {
    "id": "A15",
@@ -752,7 +1139,32 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/pregled"
+    ],
+    "fajlovi": [
+     "src/data/ru4Production.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_close_remaining_search",
+     "rpc_resolve_stale_response_after_need_edit"
+    ],
+    "edge": [],
+    "tabele": [
+     "needs"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "16"
+    ]
+   }
   },
   {
    "id": "A16",
@@ -791,7 +1203,25 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Moj zadatak / Objavi",
+    "nivo": 2,
+    "rute": [
+     "/potrebe/[id]/pregled"
+    ],
+    "fajlovi": [],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "18"
+    ]
+   }
   },
   {
    "id": "B00",
@@ -838,7 +1268,39 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/profil/razgovor"
+    ],
+    "fajlovi": [
+     "src/data/workerAiClientService.ts"
+    ],
+    "cita": [
+     "rpc_read_worker_ai",
+     "rpc_read_worker_ai_turn_recovery"
+    ],
+    "upisuje": [
+     "rpc_abandon_worker_ai",
+     "rpc_cancel_worker_ai_turn",
+     "rpc_open_worker_ai",
+     "rpc_patch_worker_ai",
+     "rpc_prepare_worker_ai_review",
+     "rpc_save_worker_ai_review"
+    ],
+    "edge": [
+     "uskoci-worker-interview"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "37"
+    ]
+   }
   },
   {
    "id": "B01",
@@ -885,7 +1347,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/profil/radnik"
+    ],
+    "fajlovi": [
+     "src/data/workerCapacityClientService.ts",
+     "src/data/workerProfileClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_worker_capacity"
+    ],
+    "upisuje": [
+     "rpc_complete_worker_profile",
+     "rpc_save_worker_capacity"
+    ],
+    "edge": [],
+    "tabele": [
+     "app_profiles"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "36"
+    ]
+   }
   },
   {
    "id": "B02",
@@ -930,7 +1420,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/profil/lokacija"
+    ],
+    "fajlovi": [
+     "src/data/locationClientService.ts",
+     "src/data/marketClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_need_location_review",
+     "rpc_get_worker_location",
+     "rpc_list_location_markets"
+    ],
+    "upisuje": [
+     "rpc_save_need_location_review",
+     "rpc_save_worker_location"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "38"
+    ]
+   }
   },
   {
    "id": "B03",
@@ -973,7 +1491,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/profil/dostupnost"
+    ],
+    "fajlovi": [
+     "src/data/workerAvailabilityClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_worker_availability"
+    ],
+    "upisuje": [
+     "rpc_save_worker_availability"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "39"
+    ]
+   }
   },
   {
    "id": "B04",
@@ -1020,7 +1562,40 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/mapa",
+     "/prilike"
+    ],
+    "fajlovi": [
+     "src/data/marketplaceView.ts",
+     "src/data/supabaseIzvor.ts"
+    ],
+    "cita": [
+     "rpc_get_my_task_relations",
+     "rpc_get_worker_profile_for_edit",
+     "rpc_list_open_tasks_v3",
+     "rpc_read_task"
+    ],
+    "upisuje": [
+     "rpc_ai_confirm_fact",
+     "rpc_cancel_agreement"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_messages"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "07",
+     "08"
+    ]
+   }
   },
   {
    "id": "B05",
@@ -1064,7 +1639,30 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/prilike"
+    ],
+    "fajlovi": [
+     "src/data/marketplaceView.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [
+     "NOVO: udaljenost i sortiranje"
+    ],
+    "celine": [
+     "09",
+     "10"
+    ]
+   }
   },
   {
    "id": "B06",
@@ -1107,7 +1705,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/prilike/[id]"
+    ],
+    "fajlovi": [
+     "src/data/needClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_my_tasks",
+     "rpc_read_task"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "11",
+     "19"
+    ]
+   }
   },
   {
    "id": "B07",
@@ -1153,7 +1775,41 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/prilike/[id]"
+    ],
+    "fajlovi": [
+     "src/data/preselectionQaClientService.ts",
+     "src/data/qaSubmissionClientService.ts"
+    ],
+    "cita": [
+     "rpc_read_qa_classification"
+    ],
+    "upisuje": [
+     "rpc_cancel_qa_classification",
+     "rpc_ru4b_answer_preselection_question",
+     "rpc_ru4b_ask_preselection_question",
+     "rpc_ru4b_disposition_preselection_question",
+     "rpc_ru4b_owner_preselection_questions",
+     "rpc_ru4b_public_preselection_qa"
+    ],
+    "edge": [
+     "uskoci-qa-classify"
+    ],
+    "tabele": [],
+    "dogadjaji": [
+     "CLARIFICATION_CREATED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "13"
+    ]
+   }
   },
   {
    "id": "B08",
@@ -1196,7 +1852,29 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/prilike/[id]"
+    ],
+    "fajlovi": [
+     "src/data/publicProfileClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_public_profile"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "12"
+    ]
+   }
   },
   {
    "id": "B09",
@@ -1238,7 +1916,33 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Mapa/Lista",
+    "nivo": 2,
+    "rute": [
+     "/prilike/[id]/prijava"
+    ],
+    "fajlovi": [
+     "src/data/applicationClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_my_applications"
+    ],
+    "upisuje": [
+     "rpc_withdraw_response"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "RESPONSE_RECEIVED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "14"
+    ]
+   }
   },
   {
    "id": "B10",
@@ -1280,7 +1984,29 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/moje-prijave"
+    ],
+    "fajlovi": [
+     "src/data/myApplicationsClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [
+     "marketplace_responses"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "15"
+    ]
+   }
   },
   {
    "id": "B11",
@@ -1327,7 +2053,40 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/moje-prijave",
+     "/prilike/[id]/prijava"
+    ],
+    "fajlovi": [
+     "src/data/applicationClientService.ts",
+     "src/data/ru4Production.ts"
+    ],
+    "cita": [
+     "rpc_list_my_applications"
+    ],
+    "upisuje": [
+     "rpc_close_remaining_search",
+     "rpc_resolve_stale_response_after_need_edit",
+     "rpc_withdraw_response"
+    ],
+    "edge": [],
+    "tabele": [
+     "needs"
+    ],
+    "dogadjaji": [
+     "RESPONSE_UPDATED",
+     "RESPONSE_WITHDRAWN"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "15"
+    ]
+   }
   },
   {
    "id": "B12",
@@ -1369,7 +2128,29 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil / Moje prijave",
+    "nivo": 2,
+    "rute": [
+     "/raspored"
+    ],
+    "fajlovi": [
+     "src/data/workerCalendarClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_worker_calendar"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "28"
+    ]
+   }
   },
   {
    "id": "D01",
@@ -1411,7 +2192,41 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovori"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "20"
+    ]
+   }
   },
   {
    "id": "D02",
@@ -1455,7 +2270,43 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [
+     "NOVO: veza Dogovora sa zadatkom i prijavom"
+    ],
+    "celine": [
+     "21"
+    ]
+   }
   },
   {
    "id": "D03",
@@ -1497,7 +2348,32 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementMessageClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_send_agreement_message_v2",
+     "rpc_send_agreement_photo_message_v5"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "MESSAGE_RECEIVED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "22"
+    ]
+   }
   },
   {
    "id": "D04",
@@ -1541,7 +2417,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementPhotoClientService.ts"
+    ],
+    "cita": [
+     "rpc_read_agreement_photo_messages_v5"
+    ],
+    "upisuje": [],
+    "edge": [
+     "uskoci-media"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "22"
+    ]
+   }
   },
   {
    "id": "D05",
@@ -1587,7 +2487,34 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]/grupa"
+    ],
+    "fajlovi": [
+     "src/data/groupConversationService.ts"
+    ],
+    "cita": [
+     "rpc_read_group_command_v5",
+     "rpc_read_group_context_v5",
+     "rpc_read_group_messages_v5"
+    ],
+    "upisuje": [
+     "rpc_mark_group_messages_read_v5",
+     "rpc_send_group_message_v5"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "26"
+    ]
+   }
   },
   {
    "id": "D06",
@@ -1634,7 +2561,45 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]/izmene"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [
+     "AGREEMENT_CHANGE_PROPOSED",
+     "AGREEMENT_CHANGE_REJECTED",
+     "AGREEMENT_VERSION_CHANGED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "23"
+    ]
+   }
   },
   {
    "id": "D07",
@@ -1676,7 +2641,43 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]/izmene"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [
+     "AGREEMENT_CANCELLED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "23"
+    ]
+   }
   },
   {
    "id": "D08",
@@ -1723,7 +2724,40 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]/lokacija"
+    ],
+    "fajlovi": [
+     "src/data/agreementCurrentLocationService.ts",
+     "src/data/contactClientService.ts"
+    ],
+    "cita": [
+     "rpc_read_agreement_current_location",
+     "rpc_read_agreement_location_command",
+     "rpc_reveal_contact"
+    ],
+    "upisuje": [
+     "rpc_set_contact_grant",
+     "rpc_write_agreement_current_location"
+    ],
+    "edge": [],
+    "tabele": [
+     "access_grants"
+    ],
+    "dogadjaji": [
+     "PRIVATE_ACCESS_GRANTED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "25",
+     "34"
+    ]
+   }
   },
   {
    "id": "D09",
@@ -1763,7 +2797,41 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "24"
+    ]
+   }
   },
   {
    "id": "D10",
@@ -1805,7 +2873,44 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [
+     "EXECUTION_STATE_CHANGED",
+     "COMPLETION_REQUIRED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "21"
+    ]
+   }
   },
   {
    "id": "D11",
@@ -1847,7 +2952,43 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [
+     "src/data/agreementClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_agreement_workspace",
+     "rpc_list_my_agreements_page"
+    ],
+    "upisuje": [
+     "rpc_cancel_agreement",
+     "rpc_confirm_completion",
+     "rpc_mark_work_done",
+     "rpc_propose_agreement_change_v2",
+     "rpc_report_problem",
+     "rpc_respond_agreement_change",
+     "rpc_withdraw_agreement_change"
+    ],
+    "edge": [],
+    "tabele": [
+     "agreement_change_proposals",
+     "agreement_execution"
+    ],
+    "dogadjaji": [
+     "EXECUTION_STATE_CHANGED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "21"
+    ]
+   }
   },
   {
    "id": "D12",
@@ -1890,7 +3031,34 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/oceni-dogovor"
+    ],
+    "fajlovi": [
+     "src/data/reviewsClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_account_reputation",
+     "rpc_get_my_agreement_review"
+    ],
+    "upisuje": [
+     "rpc_submit_agreement_review"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "REVIEW_RECEIVED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "27"
+    ]
+   }
   },
   {
    "id": "D13",
@@ -1925,7 +3093,25 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Dogovori",
+    "nivo": 2,
+    "rute": [
+     "/dogovor/[id]"
+    ],
+    "fajlovi": [],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "21"
+    ]
+   }
   },
   {
    "id": "P01",
@@ -1970,7 +3156,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Obaveštenja",
+    "nivo": 1,
+    "rute": [
+     "/obavestenja"
+    ],
+    "fajlovi": [
+     "src/data/inboxClientService.ts"
+    ],
+    "cita": [
+     "rpc_list_inbox"
+    ],
+    "upisuje": [
+     "rpc_mark_activity_event_read",
+     "rpc_mark_inbox_read",
+     "rpc_resolve_activity_event"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [
+     "EVENT_FEED"
+    ],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "40"
+    ]
+   }
   },
   {
    "id": "P02",
@@ -2013,7 +3227,31 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/obavestenja"
+    ],
+    "fajlovi": [
+     "src/data/notificationPreferencesClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_notification_preferences"
+    ],
+    "upisuje": [
+     "rpc_set_notification_preferences"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "41"
+    ]
+   }
   },
   {
    "id": "P03",
@@ -2060,7 +3298,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/obavestenja"
+    ],
+    "fajlovi": [
+     "src/data/nativePushDevice.ts",
+     "src/data/pushDeviceClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_push_device_owned",
+     "rpc_get_push_session_device"
+    ],
+    "upisuje": [
+     "rpc_revoke_push_session",
+     "rpc_rotate_push_device_owned",
+     "rpc_set_push_device_owned"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "41"
+    ]
+   }
   },
   {
    "id": "P04",
@@ -2096,7 +3362,24 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [],
+    "fajlovi": [],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "40",
+     "41"
+    ]
+   }
   },
   {
    "id": "P05",
@@ -2132,7 +3415,25 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [],
+    "fajlovi": [],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [
+     "NOVO: podsetnik pred dogovoreni termin"
+    ],
+    "celine": [
+     "28"
+    ]
+   }
   },
   {
    "id": "N01",
@@ -2173,7 +3474,28 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Auth",
+    "nivo": 2,
+    "rute": [
+     "/auth"
+    ],
+    "fajlovi": [
+     "src/data/authClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "01",
+     "02"
+    ]
+   }
   },
   {
    "id": "N02",
@@ -2213,7 +3535,27 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Auth",
+    "nivo": 2,
+    "rute": [
+     "/auth"
+    ],
+    "fajlovi": [
+     "src/data/authClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "02"
+    ]
+   }
   },
   {
    "id": "N03",
@@ -2254,7 +3596,28 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Auth",
+    "nivo": 2,
+    "rute": [
+     "/auth",
+     "/oporavak"
+    ],
+    "fajlovi": [
+     "src/data/passwordRecoveryClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "03"
+    ]
+   }
   },
   {
    "id": "N04",
@@ -2296,7 +3659,33 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/pravna"
+    ],
+    "fajlovi": [
+     "src/data/legalClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_legal_bundle",
+     "rpc_read_my_legal_acceptance"
+    ],
+    "upisuje": [
+     "rpc_accept_legal_bundle",
+     "rpc_accept_reviewed_legal_bundle"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "43"
+    ]
+   }
   },
   {
    "id": "N05",
@@ -2346,7 +3735,48 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/podaci",
+     "/profil/fotografija"
+    ],
+    "fajlovi": [
+     "src/data/mediaClientService.ts",
+     "src/data/requesterProfileClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_requester_profile_for_edit",
+     "rpc_read_media_upload",
+     "rpc_read_profile_avatar",
+     "rpc_read_task_photos"
+    ],
+    "upisuje": [
+     "rpc_apply_profile_avatar",
+     "rpc_cancel_media_upload",
+     "rpc_clear_profile_avatar",
+     "rpc_discard_profile_avatar",
+     "rpc_remove_task_photo",
+     "rpc_save_requester_profile"
+    ],
+    "edge": [
+     "uskoci-media"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [
+     "rpc_cancel_media_upload"
+    ],
+    "predlog": [],
+    "celine": [
+     "33",
+     "34",
+     "35",
+     "47"
+    ]
+   }
   },
   {
    "id": "N06",
@@ -2392,7 +3822,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/bezbednost",
+     "/profil/blokirani"
+    ],
+    "fajlovi": [
+     "src/data/safetyClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_account_block",
+     "rpc_list_my_account_blocks",
+     "rpc_read_my_safety_report_command"
+    ],
+    "upisuje": [
+     "rpc_set_account_block",
+     "rpc_submit_safety_report"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "44"
+    ]
+   }
   },
   {
    "id": "N07",
@@ -2436,7 +3894,35 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/bezbednost"
+    ],
+    "fajlovi": [
+     "src/data/safetyClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_account_block",
+     "rpc_list_my_account_blocks",
+     "rpc_read_my_safety_report_command"
+    ],
+    "upisuje": [
+     "rpc_set_account_block",
+     "rpc_submit_safety_report"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "24",
+     "44"
+    ]
+   }
   },
   {
    "id": "N08",
@@ -2487,7 +3973,40 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/podrska",
+     "/podrska/novi",
+     "/podrska/[id]",
+     "/podrska/operator"
+    ],
+    "fajlovi": [
+     "src/data/supportCaseClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [
+     "rpc_support_cancel_command_v5",
+     "rpc_support_capabilities_v5",
+     "rpc_support_detail_v5",
+     "rpc_support_find_context_v5",
+     "rpc_support_inbox_v5",
+     "rpc_support_mark_read_v5",
+     "rpc_support_read_command_v5",
+     "rpc_support_submit_v5"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "45",
+     "46"
+    ]
+   }
   },
   {
    "id": "N09",
@@ -2534,7 +4053,33 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/izvoz"
+    ],
+    "fajlovi": [
+     "src/data/dataExportClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_data_export_status"
+    ],
+    "upisuje": [
+     "rpc_cancel_data_export",
+     "rpc_request_data_export",
+     "rpc_revoke_data_export_download"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "42"
+    ]
+   }
   },
   {
    "id": "N10",
@@ -2581,7 +4126,36 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/privatnost"
+    ],
+    "fajlovi": [
+     "src/data/accountClosureClientService.ts",
+     "src/data/closureExecutionClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_account_closure",
+     "rpc_get_account_closure_receipt",
+     "rpc_read_account_closure_execution"
+    ],
+    "upisuje": [
+     "rpc_prepare_account_closure",
+     "rpc_review_account_closure_execution",
+     "rpc_start_account_closure_execution"
+    ],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "43"
+    ]
+   }
   },
   {
    "id": "N11",
@@ -2623,7 +4197,32 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Profil/Podešavanja",
+    "nivo": 2,
+    "rute": [
+     "/profil/privatnost"
+    ],
+    "fajlovi": [
+     "src/data/processorMapClientService.ts",
+     "src/data/retentionPolicyClientService.ts"
+    ],
+    "cita": [
+     "rpc_get_processor_map_status",
+     "rpc_get_retention_execution_status",
+     "rpc_get_retention_policy_status"
+    ],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "42"
+    ]
+   }
   },
   {
    "id": "S01",
@@ -2664,7 +4263,29 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Sistem",
+    "nivo": 3,
+    "rute": [
+     "/"
+    ],
+    "fajlovi": [
+     "src/data/supabaseClient.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [
+     "uskoci-password-recovery"
+    ],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "48"
+    ]
+   }
   },
   {
    "id": "S02",
@@ -2704,7 +4325,27 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Sistem",
+    "nivo": 3,
+    "rute": [
+     "/auth"
+    ],
+    "fajlovi": [
+     "src/data/authClientService.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "48"
+    ]
+   }
   },
   {
    "id": "S03",
@@ -2744,7 +4385,25 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO"
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "veza": {
+    "povrsina": "Sistem",
+    "nivo": 3,
+    "rute": [],
+    "fajlovi": [
+     "src/data/serverReceipt.ts"
+    ],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "48"
+    ]
+   }
   },
   {
    "id": "S04",
@@ -2777,7 +4436,23 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM"
+   "ukupno": "PROBLEM",
+   "veza": {
+    "povrsina": "Sistem",
+    "nivo": 3,
+    "rute": [],
+    "fajlovi": [],
+    "cita": [],
+    "upisuje": [],
+    "edge": [],
+    "tabele": [],
+    "dogadjaji": [],
+    "nedostaje": [],
+    "predlog": [],
+    "celine": [
+     "48"
+    ]
+   }
   }
  ],
  "server_ume_aplikacija_ne_koristi": [
@@ -2845,6 +4520,712 @@
  "aplikacija_zove_a_server_nema": [
   "rpc_cancel_media_upload"
  ],
+ "tokovi": {
+  "stavke": [
+   {
+    "dogadjaj": "OPPORTUNITY_AVAILABLE",
+    "kome": "Uskoči",
+    "zeljeno": "Detalj prilike",
+    "vrsta": "OPPORTUNITY",
+    "nastaje": [
+     "A07"
+    ],
+    "otvara": "/prilike/[id]",
+    "red": "B06",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_RECEIVED",
+    "kome": "Objavi",
+    "zeljeno": "Prijave",
+    "vrsta": "CANDIDATES",
+    "nastaje": [
+     "B09"
+    ],
+    "otvara": "/potrebe/[id]/kandidati",
+    "red": "A11",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_UPDATED",
+    "kome": "Objavi",
+    "zeljeno": "Jedna prijava",
+    "vrsta": "CANDIDATES",
+    "nastaje": [
+     "B11"
+    ],
+    "otvara": "/potrebe/[id]/kandidati",
+    "red": "A11",
+    "ocena": "priblizno",
+    "napomena": "Otvori pravi ekran, ali ne i tačno mesto na njemu."
+   },
+   {
+    "dogadjaj": "RESPONSE_VIEWED",
+    "kome": "Uskoči",
+    "zeljeno": "Moje prijave",
+    "vrsta": "APPLICATIONS",
+    "nastaje": [],
+    "otvara": "/moje-prijave",
+    "red": "B10",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_SHORTLISTED",
+    "kome": "Uskoči",
+    "zeljeno": "Moje prijave",
+    "vrsta": "APPLICATIONS",
+    "nastaje": [],
+    "otvara": "/moje-prijave",
+    "red": "B10",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_SELECTED",
+    "kome": "Uskoči",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "A12"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_NOT_SELECTED",
+    "kome": "Uskoči",
+    "zeljeno": "Moje prijave",
+    "vrsta": "APPLICATIONS",
+    "nastaje": [],
+    "otvara": "/moje-prijave",
+    "red": "B10",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_STALE",
+    "kome": "Uskoči",
+    "zeljeno": "Izmena ponude",
+    "vrsta": "APPLICATIONS",
+    "nastaje": [
+     "A13"
+    ],
+    "otvara": "/moje-prijave",
+    "red": "B10",
+    "ocena": "priblizno",
+    "napomena": "Otvori pravi ekran, ali ne i tačno mesto na njemu."
+   },
+   {
+    "dogadjaj": "RESPONSE_WITHDRAWN",
+    "kome": "Objavi",
+    "zeljeno": "Prijave",
+    "vrsta": "CANDIDATES",
+    "nastaje": [
+     "B11"
+    ],
+    "otvara": "/potrebe/[id]/kandidati",
+    "red": "A11",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "RESPONSE_EXPIRED",
+    "kome": "Uskoči",
+    "zeljeno": "Moje prijave",
+    "vrsta": "APPLICATIONS",
+    "nastaje": [],
+    "otvara": "/moje-prijave",
+    "red": "B10",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "NEED_REVISED",
+    "kome": "Uskoči",
+    "zeljeno": "Detalj prilike",
+    "vrsta": "OPPORTUNITY",
+    "nastaje": [
+     "A13"
+    ],
+    "otvara": "/prilike/[id]",
+    "red": "B06",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "NEED_CANCELLED",
+    "kome": "Uskoči",
+    "zeljeno": "Moje prijave",
+    "vrsta": "OPPORTUNITY",
+    "nastaje": [
+     "A14"
+    ],
+    "otvara": "/prilike/[id]",
+    "red": "B06",
+    "ocena": "pogresno",
+    "napomena": "Vodi na drugi ekran nego što nacrt traži."
+   },
+   {
+    "dogadjaj": "AGREEMENT_CHANGE_PROPOSED",
+    "kome": "druga strana",
+    "zeljeno": "Dogovor → Izmene",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D06"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "priblizno",
+    "napomena": "Otvori pravi ekran, ali ne i tačno mesto na njemu."
+   },
+   {
+    "dogadjaj": "AGREEMENT_CHANGE_REJECTED",
+    "kome": "predlagač",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D06"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "AGREEMENT_VERSION_CHANGED",
+    "kome": "obe strane",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D06"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "EXECUTION_STATE_CHANGED",
+    "kome": "obe strane",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D10",
+     "D11"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "COMPLETION_REQUIRED",
+    "kome": "Objavi",
+    "zeljeno": "Dogovor + potvrda",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D10"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "priblizno",
+    "napomena": "Otvori pravi ekran, ali ne i tačno mesto na njemu."
+   },
+   {
+    "dogadjaj": "MESSAGE_RECEIVED",
+    "kome": "druga strana",
+    "zeljeno": "Dogovor → Poruke",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D03"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "priblizno",
+    "napomena": "Otvori pravi ekran, ali ne i tačno mesto na njemu."
+   },
+   {
+    "dogadjaj": "PRIVATE_ACCESS_GRANTED",
+    "kome": "druga strana",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D08"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "AGREEMENT_CANCELLED",
+    "kome": "druga strana",
+    "zeljeno": "Dogovor",
+    "vrsta": "AGREEMENT",
+    "nastaje": [
+     "D07"
+    ],
+    "otvara": "/dogovor/[id]",
+    "red": "D02",
+    "ocena": "tacno",
+    "napomena": ""
+   },
+   {
+    "dogadjaj": "REVIEW_RECEIVED",
+    "kome": "ocenjena osoba",
+    "zeljeno": "Profil → ocene",
+    "vrsta": "UNKNOWN",
+    "nastaje": [
+     "D12"
+    ],
+    "otvara": null,
+    "red": null,
+    "ocena": "nepoznato",
+    "napomena": "Nijedan pregledani put ne dokazuje gde ovo sleti."
+   },
+   {
+    "dogadjaj": "CLARIFICATION_CREATED",
+    "kome": "Objavi",
+    "zeljeno": "Pitanja o zadatku",
+    "vrsta": "OWN_NEED",
+    "nastaje": [
+     "B07"
+    ],
+    "otvara": "/pitanja-zadatka",
+    "red": "A10",
+    "ocena": "priblizno",
+    "napomena": "Server vrati samo zadatak; aplikacija sama otvara Pitanja, ali ne označi konkretno pitanje."
+   },
+   {
+    "dogadjaj": "CLARIFICATION_ANSWERED",
+    "kome": "pitač",
+    "zeljeno": "Detalj prilike → Pitanja",
+    "vrsta": "OPPORTUNITY",
+    "nastaje": [
+     "A10"
+    ],
+    "otvara": "/pitanja-zadatka",
+    "red": "A10",
+    "ocena": "priblizno",
+    "napomena": "Server vrati samo zadatak; aplikacija sama otvara Pitanja, ali ne označi konkretno pitanje."
+   },
+   {
+    "dogadjaj": "RECOVERY_OPENED",
+    "kome": "vlasnik",
+    "zeljeno": "recovery target",
+    "vrsta": "UNKNOWN",
+    "nastaje": [],
+    "otvara": null,
+    "red": null,
+    "ocena": "nepoznato",
+    "napomena": "Nijedan pregledani put ne dokazuje gde ovo sleti."
+   }
+  ],
+  "sazetak": {
+   "tacno": 14,
+   "priblizno": 7,
+   "pogresno": 1,
+   "nepoznato": 2
+  },
+  "vrste": {
+   "AGREEMENT": "/dogovor/[id]",
+   "APPLICATIONS": "/moje-prijave",
+   "CANDIDATES": "/potrebe/[id]/kandidati",
+   "OWN_NEED": "/potrebe/[id]/pregled",
+   "OPPORTUNITY": "/prilike/[id]",
+   "PITANJA": "/pitanja-zadatka"
+  },
+  "provereno_u": "src/app/obavestenja.tsx",
+  "putevi_nadjeni": true,
+  "putevi_koji_fale": []
+ },
+ "praznine": [
+  {
+   "id": "PG01",
+   "oblast": "Bezbedan cilj za prijavu i blokiranje",
+   "sada": "Javni profil je vezan za profil, a komanda blokiranja i prijave traži nalog i kontekst; profileId nije accountId.",
+   "nedostaje": "Serversko čitanje bezbednog cilja i ulazna tačka u ekranu.",
+   "redovi": [
+    "B08",
+    "N06",
+    "N07"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG02",
+   "oblast": "Pretraga i filteri na serveru",
+   "sada": "Server vraća po pravougaoniku na mapi i deo filtera; ostatak se filtrira u telefonu.",
+   "nedostaje": "Tekst, udaljenost, redosled, ukupan broj i preostala mesta, plus isti odgovor za fleksibilne termine i rad na daljinu.",
+   "redovi": [
+    "B04",
+    "B05"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG03",
+   "oblast": "Moji zadaci, lista po stranama",
+   "sada": "Straničeno čitanje postoji, ali mu fale polja koja kartica prikazuje.",
+   "nedostaje": "Osnova cene i broj stvarno izabirljivih prijava, pre nego što se lista prebaci na njega.",
+   "redovi": [
+    "A09"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG04",
+   "oblast": "Veza Dogovora sa zadatkom i prijavom",
+   "sada": "Radni prostor Dogovora ne vraća iz kog zadatka i koje prijave je nastao.",
+   "nedostaje": "Ovlašćeno čitanje te veze.",
+   "redovi": [
+    "D02"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG05",
+   "oblast": "Svežina i istorija prepiske",
+   "sada": "Zaštićeno slanje postoji; istorija se učitava cela i bez strana, a dolazne poruke traže ručno osvežavanje.",
+   "nedostaje": "Istorija po stranama i sveže dolazne poruke, uz isto ovlašćenje i isti red čekanja za slanje.",
+   "redovi": [
+    "D03"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG06",
+   "oblast": "Odredišta iz obaveštenja",
+   "sada": "Server vraća grubo odredište: Dogovor, Moje prijave, Prijave, Moj zadatak ili Prilika.",
+   "nedostaje": "Tačno mesto unutar ekrana (prepiska, izmena, završetak, pitanje, ocena).",
+   "redovi": [
+    "P01"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG07",
+   "oblast": "Poruke kao zaseban spisak",
+   "sada": "Prepiska živi unutar Dogovora; ne postoji dokazano čitanje svih razgovora sa nepročitanim.",
+   "nedostaje": "Spisak: Dogovor, druga strana, slika, zadatak, poslednja poruka i vreme, nepročitano, stanje Dogovora.",
+   "redovi": [],
+   "stanje": "PROPOSED"
+  },
+  {
+   "id": "PG08",
+   "oblast": "Otkazivanje slanja fotografije",
+   "sada": "Aplikacija zove rpc_cancel_media_upload.",
+   "nedostaje": "Ta funkcija ne postoji na serveru. PKG-046 je napisan i dokazan; primena čeka tvoje odobrenje.",
+   "redovi": [
+    "A05"
+   ],
+   "stanje": "CONFIRMED_BROKEN_CALL"
+  },
+  {
+   "id": "PG09",
+   "oblast": "HITNO",
+   "sada": "Serverske funkcije za pregled i uključivanje postoje, ali je politika isključena i nema dozvoljenih kategorija.",
+   "nedostaje": "Tvoja odluka o pravilima i kategorijama, pa tek onda ekran: pregled, istek i oporavak.",
+   "redovi": [
+    "A16"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG10",
+   "oblast": "Pregled ponude pre slanja",
+   "sada": "Pregled, imenovano sletanje, čitljivost i prikaz poruke kandidata postoje u kodu i testovima.",
+   "nedostaje": "Provera na telefonu sa tačno ovom verzijom i jedno stvarno slanje ponude.",
+   "redovi": [
+    "B09",
+    "B10",
+    "A11"
+   ],
+   "stanje": "SOURCE_TEST_IMPLEMENTED_DEVICE_PENDING"
+  },
+  {
+   "id": "PG11",
+   "oblast": "Moje prijave po stranama",
+   "sada": "Serverska funkcija za strane postoji; aplikacija i dalje čita ceo spisak.",
+   "nedostaje": "Vezivanje u aplikaciji koje čuva mesto u listi, stanje i oporavak.",
+   "redovi": [
+    "B10"
+   ],
+   "stanje": "OPEN"
+  },
+  {
+   "id": "PG12",
+   "oblast": "Stare serverske verzije",
+   "sada": "Stari otvarač AI razgovora i stara v1 poruka u Dogovoru i dalje mogu da se pozovu.",
+   "nedostaje": "Dokaz da ih niko ne koristi, pa onda oduzimanje prava.",
+   "redovi": [
+    "S04",
+    "D03"
+   ],
+   "stanje": "OPEN"
+  }
+ ],
+ "nivoi": [
+  {
+   "povrsina": "Početna",
+   "nivo": 1,
+   "stanje": "CURRENT_APPROVED",
+   "ulaz": "Donja navigacija",
+   "sadrzi": "Objavi zadatak; Uskoči i zaradi; šta čeka mene; sledeći Dogovori; aktivnosti",
+   "napomena": "Odobrena osnova ostaje Početna · Mapa · Dogovori. Preimenovanje u „Zadaci“ samo uz tvoju izričitu odluku.",
+   "redovi": [
+    "A01",
+    "S01"
+   ]
+  },
+  {
+   "povrsina": "Mapa / Lista",
+   "nivo": 1,
+   "stanje": "CURRENT",
+   "ulaz": "Donja navigacija · Mapa",
+   "sadrzi": "Stalna pretraga; prebacivanje Lista/Mapa; filteri; tačke na mapi; izabrana kartica; Objavi zadatak",
+   "napomena": "Server još ne ume sve što pretraga traži (vidi praznine PG02).",
+   "redovi": [
+    "B04",
+    "B05"
+   ]
+  },
+  {
+   "povrsina": "Detalj prilike / Ponuda",
+   "nivo": 2,
+   "stanje": "CURRENT_WITH_RECENT_F10_IMPROVEMENTS",
+   "ulaz": "Kartica sa mape ili liste",
+   "sadrzi": "Činjenice o zadatku; profil; pitanja; pregled ponude; slanje; imenovano sletanje",
+   "napomena": "Pregled pre slanja, sletanje i čitljivost su urađeni u kodu i testovima; ostaje provera na telefonu sa tačno ovom verzijom.",
+   "redovi": [
+    "B06",
+    "B07",
+    "B08",
+    "B09"
+   ]
+  },
+  {
+   "povrsina": "Dogovori",
+   "nivo": 1,
+   "stanje": "CURRENT",
+   "ulaz": "Donja navigacija · Dogovori",
+   "sadrzi": "Aktivni i završeni; ulaz u radni prostor Dogovora",
+   "napomena": "Dogovor još ne vraća vezu ka zadatku i prijavi iz kojih je nastao (PG04).",
+   "redovi": [
+    "D01"
+   ]
+  },
+  {
+   "povrsina": "Dogovor · Pregled / Poruke",
+   "nivo": 2,
+   "stanje": "CURRENT",
+   "ulaz": "Dogovori ili obaveštenje",
+   "sadrzi": "Uslovi; poruke i slike; izmene; lokacija i kontakt; grupa; završetak; ocena",
+   "napomena": "Straničenje prepiske, sveže dolazne poruke i direktan ulaz u karticu Poruke ostaju otvoreni.",
+   "redovi": [
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D07",
+    "D08",
+    "D09",
+    "D10",
+    "D11",
+    "D12",
+    "D13"
+   ]
+  },
+  {
+   "povrsina": "Obaveštenja",
+   "nivo": 1,
+   "stanje": "CURRENT",
+   "ulaz": "Zvonce u zaglavlju",
+   "sadrzi": "Spisak događaja; pročitano/nepročitano; otvaranje odredišta",
+   "napomena": "Ostaje odvojeno od prepiske.",
+   "redovi": [
+    "P01"
+   ]
+  },
+  {
+   "povrsina": "Poruke",
+   "nivo": 1,
+   "stanje": "PROPOSED",
+   "ulaz": "Ikonica poruke u zaglavlju, pored zvonca",
+   "sadrzi": "Spisak razgovora → Dogovor · Poruke",
+   "napomena": "PREDLOG, ne postoji. Koristio bi postojeću prepisku iz Dogovora; traži novo serversko čitanje spiska razgovora (PG07). Ne praviti drugi chat.",
+   "redovi": []
+  },
+  {
+   "povrsina": "Moj zadatak",
+   "nivo": 2,
+   "stanje": "CURRENT",
+   "ulaz": "Početna ili obaveštenje",
+   "sadrzi": "Detalj; prijave; pitanja; izmena; otkazivanje; zatvaranje potrage; HITNO kad se uključi",
+   "napomena": "HITNO je na serveru, ali je politika isključena i nema dozvoljenih kategorija (PG09).",
+   "redovi": [
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "A14",
+    "A15",
+    "A16"
+   ]
+  },
+  {
+   "povrsina": "Moje prijave i raspored",
+   "nivo": 2,
+   "stanje": "CURRENT",
+   "ulaz": "",
+   "sadrzi": "",
+   "napomena": "Grupisano po ekranu iz kog se otvara.",
+   "redovi": [
+    "B10",
+    "B11",
+    "B12"
+   ]
+  },
+  {
+   "povrsina": "Profil",
+   "nivo": 1,
+   "stanje": "CURRENT",
+   "ulaz": "Slika u zaglavlju",
+   "sadrzi": "Profil i putevi ka podešavanjima",
+   "napomena": "Retka podešavanja ostaju na nivou 2 i 3.",
+   "redovi": [
+    "B00",
+    "B01",
+    "B02",
+    "B03"
+   ]
+  },
+  {
+   "povrsina": "Podešavanja",
+   "nivo": 2,
+   "stanje": "CURRENT",
+   "ulaz": "Profil",
+   "sadrzi": "Obaveštenja; privatnost; pravna dokumenta; blokirani; podrška; izvoz podataka; brisanje naloga",
+   "napomena": "Operatorske i administrativne stavke ne idu u glavnu navigaciju.",
+   "redovi": [
+    "P02",
+    "P03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "N11"
+   ]
+  },
+  {
+   "povrsina": "Ulaz u aplikaciju",
+   "nivo": 2,
+   "stanje": "CURRENT",
+   "ulaz": "",
+   "sadrzi": "",
+   "napomena": "Grupisano po ekranu iz kog se otvara.",
+   "redovi": [
+    "N01",
+    "N02",
+    "N03",
+    "S02"
+   ]
+  },
+  {
+   "povrsina": "bez svog ekrana",
+   "nivo": 3,
+   "stanje": "CURRENT",
+   "ulaz": "",
+   "sadrzi": "",
+   "napomena": "Grupisano po ekranu iz kog se otvara.",
+   "redovi": [
+    "P04",
+    "P05",
+    "S03",
+    "S04"
+   ]
+  }
+ ],
+ "rute": {
+  "ukupno": 48,
+  "u_redovima": 40,
+  "bez_reda": [
+   {
+    "ruta": "__APP_LAYOUT__",
+    "vrsta": "LAYOUT",
+    "razlog": "Navigation/framework shell"
+   },
+   {
+    "ruta": "/moje-aktivnosti",
+    "vrsta": "INDIRECT_USER_ROUTE",
+    "razlog": "Covered through Home/activities, not a dedicated control row"
+   },
+   {
+    "ruta": "/pregled-nacrta",
+    "vrsta": "SECONDARY_COMPAT_ROUTE",
+    "razlog": "Physical route; not a primary 62-row route"
+   },
+   {
+    "ruta": "/profil",
+    "vrsta": "SETTINGS_HUB",
+    "razlog": "Profile/settings hub; children tracked separately"
+   },
+   {
+    "ruta": "/profil/o-aplikaciji",
+    "vrsta": "INFORMATIONAL_ROUTE",
+    "razlog": "Informational route"
+   },
+   {
+    "ruta": "__NATIVE_INTENT__",
+    "vrsta": "SYSTEM_ROUTE",
+    "razlog": "Native intent / deep-link handler"
+   },
+   {
+    "ruta": "__ROOT_LAYOUT__",
+    "vrsta": "LAYOUT",
+    "razlog": "Navigation/framework shell"
+   },
+   {
+    "ruta": "/prijave",
+    "vrsta": "COMPATIBILITY_ROUTE",
+    "razlog": "Legacy compatibility entry"
+   }
+  ]
+ },
+ "snimak": {
+  "paket": "USKOCI_FORENSIC_MASTER_MAP_20260922_R4",
+  "zamrznuti_head": "9286fdebbb4b7afea7a5e67889cdafb89e1d6928",
+  "dev_posmatran": "2026-09-22T19:44:12.914462Z",
+  "fajlova": 10,
+  "hes_proveren": true,
+  "isti_redovi": true,
+  "r4_tvrdi_da_fali": [
+   "rpc_cancel_media_upload"
+  ],
+  "i_dalje_fali": [
+   "rpc_cancel_media_upload"
+  ],
+  "vise_ne_fali": [],
+  "novo_slomljeno": [],
+  "putevi_obavestenja": "svi nađeni u kodu"
+ },
  "blokade": [
   {
    "id": "B01",
@@ -3249,6 +5630,38 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35787119578,
+   "ime": "PKG-046 media upload cancellation proof",
+   "sha": "a0c12868",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-22T21:31:02Z"
+  },
+  {
+   "id": 35786515616,
+   "ime": "PKG-046 media upload cancellation proof",
+   "sha": "6b086af8",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-22T21:25:04Z"
+  },
+  {
+   "id": 35785488912,
+   "ime": "PKG-008 task photo recovery proof",
+   "sha": "0bb28f8b",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-22T21:15:16Z"
+  },
+  {
+   "id": 35785488747,
+   "ime": "PKG-046 media upload cancellation proof",
+   "sha": "0bb28f8b",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-22T21:15:16Z"
+  },
+  {
    "id": 35776482855,
    "ime": "PKG-006 application identity and selection proof",
    "sha": "0a88e8bd",
@@ -3311,38 +5724,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-22T19:11:38Z"
-  },
-  {
-   "id": 35772175762,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "d56a5726",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T19:11:32Z"
-  },
-  {
-   "id": 35762585376,
-   "ime": "Build Android development APK",
-   "sha": "50178e6b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T17:43:44Z"
-  },
-  {
-   "id": 35762581551,
-   "ime": "Build Android development APK",
-   "sha": "50178e6b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T17:43:42Z"
-  },
-  {
-   "id": 35762566899,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "50178e6b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T17:43:34Z"
   }
  ]
 }

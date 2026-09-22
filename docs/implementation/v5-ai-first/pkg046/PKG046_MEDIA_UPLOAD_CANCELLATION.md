@@ -1,7 +1,29 @@
 # PKG-046 — task-photo upload cancellation (F16 / A05 / GAP-0036)
 
-Status 2026-09-22: **candidate written, proof workflow added, not yet run on CI, not applied.** Application moves
-the closure certificate and needs the owner's explicit approval after the proof passes.
+Status 2026-09-22: **candidate written and proven on a disposable database; not applied.** Application moves
+the closure certificate and needs the owner's explicit approval.
+
+## Proof
+
+Run `35787119578`, source `a0c12868`, all **10 checks PASS**, receipt `PROOF_35787119578.json`:
+
+| check | what it establishes |
+| --- | --- |
+| `EXACT_PREDECESSOR_REPLAY_REPRODUCES_LIVE_CERTIFICATE` | the replayed stack is self-consistent and ready before anything is applied |
+| `BEFORE_APP_CANCEL_CALL_HAS_NO_SERVER_FUNCTION` | the shipped client's exact call answers PGRST202 first — the defect, reproduced |
+| `PREDECESSOR_DRIFT_BODY_MISMATCH_AND_INCOMPLETE_REBIND_ROLL_BACK_ATOMICALLY` | three tampered variants each abort and leave nothing behind |
+| `ONLY_REVIEWED_MEDIA_OBJECTS_CHANGED_CERTIFICATE_MOVED_AND_REBOUND_IN_THREE_PLACES` | surface diff limited to 7 removed / 9 added; the new digest is certified in all three places |
+| `ABSENT_COMMAND_TOMBSTONE_IDEMPOTENT_HIDDEN_FROM_EVERY_READ` | cancelling an unknown key is idempotent and never reads back as an asset |
+| `LATE_CLAIM_OF_CANCELLED_KEY_REFUSED_FRESH_KEY_ADMITTED` | a delayed first send meets `MEDIA_COMMAND_CANCELLED`; a new key still works |
+| `ADMITTED_PROCESSING_COMMAND_DESELECTED_SETTLES_UNSELECTED` | an in-flight upload finishes its own chain and lands unselected |
+| `READY_PHOTO_LEAVES_DRAFT_THROUGH_EXISTING_REMOVAL_WRITER` | a finished photo is removed by the existing writer, not by a second path |
+| `OWNER_ONLY_ACL_AND_ZERO_UNEXPECTED_RESIDUE` | attacker, anonymous and service are refused; no evidence rows for a tombstone |
+| `REAL_CLOSURE_WORKER_ERASES_TOMBSTONE_ACCOUNT_ON_NEW_CERTIFICATE` | a real account holding a tombstone closes and erases on the moved certificate |
+
+Two earlier runs failed and are part of the record: `35785488747` asserted the disposable certificate equals the
+DEV value (it cannot — the disposable stack carries extension tables), and `35786515616` raised
+`PKG046_PREDECESSOR_DRIFT` on a second apply because the md5 pins were checked before the already-applied test.
+Both are fixed in the candidate that this run proved.
 
 ## The defect
 

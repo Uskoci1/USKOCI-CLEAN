@@ -21,6 +21,7 @@ owner's archive, unchanged. Their useful parts are carried here:
 | `stanje.json` | `scripts/control/osvezi.mjs` | The computed state. Commit it; its diff shows what changed. |
 | `tabla.template.html` | people | The page layout. |
 | `out/tabla.html` | `scripts/control/osvezi.mjs` | The page to publish (git-ignored). |
+| `izvori/r4-20260922/` | copied once, never edited | The owner's read-only forensic snapshot R4, frozen at `9286fdeb`. Ten machine tables, each verified against the package's own `MANIFEST_SHA256.json` before copying, plus `prevod.json`: the Serbian text the table shows for the snapshot's English prose. |
 
 ## The six lights per row
 
@@ -42,6 +43,22 @@ A row is **GOTOVO** only when every applicable light is green, including Telefon
 Two lists are computed automatically as well:
 - **server can, app never calls:** candidates for new features, or old versions to clean up;
 - **app calls, server lacks:** a broken call. On 2026-09-22 this found `rpc_cancel_media_upload`.
+
+## What the R4 overlay adds (2026-09-22)
+
+The snapshot under `izvori/r4-20260922/` carries analysis a code scan cannot produce. The generator reads it and
+adds four sections, each of which is **checked against the live tree**, never trusted blindly:
+
+| section | what it answers | how it is checked |
+| --- | --- | --- |
+| `tokovi` | Where does every one of the 24 notifications land? Who makes it, where the blueprint wants it, which screen the app really opens. | The kind → route table is authored in `osvezi.mjs` and every path is looked for in `src/app/obavestenja.tsx`; `putevi_nadjeni` goes false if one disappears. |
+| `nivoi` | The screen map: which surface each row lives on and how deep. Every one of the 62 rows is placed; a route matching nothing falls into "ostalo" instead of vanishing. | Built from the rows' own routes, not from the snapshot. |
+| `praznine` | The 12 read-model gaps: where the next step is a server contract, not a drawing. | Row references are kept only when the row exists. |
+| `snimak` | Does the snapshot still hold? | Its claimed missing dependencies are re-tested against the live RPC catalog, and this run's own broken calls are listed as `novo_slomljeno`. |
+
+Each row also gets `veza`: surface and level, the RPCs its own code reads and writes, its Edge functions, the
+events it makes, and anything it needs that DEV does not have. Percentages and verdicts inside the snapshot are
+not copied — the lights stay computed here.
 
 ## Refreshing (after every piece of work)
 

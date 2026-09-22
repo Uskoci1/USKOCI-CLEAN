@@ -156,7 +156,7 @@
    ],
    "telefon": null,
    "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
-   "sledece": "PKG-046 napisan 22.09. uveče: stari pkg008 kandidat ne može da se primeni jer nova tabela pomera sertifikat brisanja naloga (closure_schema_digest_v5_139 hešira kolone/ograničenja svake tabele). Novi kandidat pkg046a drži zabelešku otkazivanja u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora), dodaje ogradu u service claim, rpc_cancel_media_upload i ponovno vezivanje sertifikata na tri mesta. Dokaz: .github/workflows/pkg046-media-cancel-proof.yml — čeka prvi CI prolaz. Primena traži vlasnikovo „primeni pkg046a“ jer pomera sertifikat. Živo stanje provereno 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
+   "sledece": "PKG-046 je napisan i DOKAZAN 22.09: CI 35787119578 (izvor a0c12868) prolazi svih 10 provera na jednokratnoj bazi — slomljen poziv pre, otkazivanje, kasno slanje odbijeno, sertifikat pomeren i vezan na tri mesta, pravi radnik zatvaranja naloga obriše nalog sa zabeleškom. Stari pkg008 ne sme da se primeni: nova tabela pomera sertifikat brisanja naloga. Novi kandidat drži zabelešku u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora). Ostaje tvoja reč „primeni pkg046a“, jer primena pomera sertifikat; posle toga dugme radi bez novog APK-a, a Edge uskoci-media se postavlja tvojom komandom. Živo stanje 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

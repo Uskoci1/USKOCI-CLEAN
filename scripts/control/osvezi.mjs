@@ -147,6 +147,118 @@ const called = new Set();
 for (const text of Object.values(appFiles)) for (const m of text.matchAll(/['"`](rpc_[a-z0-9_]+)['"`]/g)) called.add(m[1]);
 const appCallsMissing = [...called].filter(r => !rpcAll.has(r)).sort();
 
+// ---------------------------------------------------------------------------
+// R4 forensic overlay: the owner's read-only snapshot of 2026-09-22, frozen at 9286fdeb.
+// Every file under docs/control/izvori/r4-20260922 was verified against the package's own
+// MANIFEST_SHA256.json before it was copied in. The snapshot carries the analysis (intended
+// notification targets, projection gaps, information architecture, per-screen call map); the
+// lights above stay computed from live source and dev_snapshot.json. Where the two disagree,
+// `provera_snimka` says so instead of quietly trusting either.
+// ---------------------------------------------------------------------------
+const R4DIR = join(CONTROL, 'izvori', 'r4-20260922');
+const rowById = Object.fromEntries(rows.redovi.map(r => [r.id, r]));
+// The first control row that owns a route is the row a landing on that route belongs to.
+const routeRow = {};
+for (const r of rows.redovi) for (const e of r.ekrani) if (!routeRow[e]) routeRow[e] = r.id;
+// What the notification screen really opens per resolved kind (src/app/obavestenja.tsx).
+// Authored here, checked against the file below: if a path disappears, the check says so.
+const INBOX_ROUTES = { AGREEMENT: '/dogovor/[id]', APPLICATIONS: '/moje-prijave', CANDIDATES: '/potrebe/[id]/kandidati',
+  OWN_NEED: '/potrebe/[id]/pregled', OPPORTUNITY: '/prilike/[id]', PITANJA: '/pitanja-zadatka' };
+const inboxSrc = appFiles['src/app/obavestenja.tsx'] ?? '';
+const inboxRoutesMissing = Object.values(INBOX_ROUTES).filter(p => !inboxSrc.includes("'" + p + "'"));
+
+let r4 = null, tokovi = null, praznine = null, nivoi = null, rute = null;
+if (existsSync(join(R4DIR, 'MANIFEST.json'))) {
+  const rj = f => JSON.parse(read(join(R4DIR, f)).replace(/^﻿/, ''));
+  const manifest = rj('MANIFEST.json'), master = rj('MASTER_SCREEN_ACTION_RPC_62.json');
+  // The snapshot is English; the table is the owner's, so its prose is shown in Serbian from prevod.json.
+  const prevod = existsSync(join(R4DIR, 'prevod.json')) ? rj('prevod.json') : { povrsine: {}, praznine: {} };
+  const masterById = Object.fromEntries(master.map(r => [r.id, r]));
+
+  // 1. Per row: surface, depth, what its own code really calls, which events it makes, what is missing.
+  for (const c of computed) {
+    const m = masterById[c.id];
+    if (!m) continue;
+    c.veza = { povrsina: m.surface, nivo: m.level, rute: m.routes, fajlovi: m.service_paths,
+      cita: m.direct_read_rpcs, upisuje: m.direct_write_rpcs, edge: m.direct_edges, tabele: m.direct_tables,
+      dogadjaji: m.events, nedostaje: m.missing_live_dependencies.filter(d => !rpcAll.has(d)),
+      predlog: m.proposed_contracts, celine: m.analytical_sections };
+  }
+
+  // 2. Every notification: who makes it, where the draft wants it, where the app really lands.
+  const KIND = { AGREEMENT_IF_EXISTS: 'AGREEMENT' };
+  const emits = {};
+  for (const m of master) for (const e of m.events) (emits[e] ??= []).push(m.id);
+  const OCENA = { SUPPORTED_COARSE: 'tacno', SUPPORTED_CONDITIONAL: 'tacno' };
+  const stavke = rj('NOTIFICATION_TARGETS_24.json').map(t => {
+    const kind = KIND[t.resolver_kind] ?? t.resolver_kind;
+    const qa = t.event.startsWith('CLARIFICATION_');
+    const ruta = qa ? INBOX_ROUTES.PITANJA : INBOX_ROUTES[kind] ?? null;
+    const ocena = OCENA[t.status] ?? (t.status === 'TARGET_MISMATCH_WITH_UX' ? 'pogresno'
+      : t.status.startsWith('COARSE_') ? 'priblizno' : 'nepoznato');
+    const napomena = t.status === 'TARGET_MISMATCH_WITH_UX' ? 'Vodi na drugi ekran nego što nacrt traži.'
+      : qa ? 'Server vrati samo zadatak; aplikacija sama otvara Pitanja, ali ne označi konkretno pitanje.'
+      : t.status.startsWith('COARSE_') ? 'Otvori pravi ekran, ali ne i tačno mesto na njemu.'
+      : ocena === 'nepoznato' ? 'Nijedan pregledani put ne dokazuje gde ovo sleti.' : '';
+    return { dogadjaj: t.event, kome: t.recipient, zeljeno: t.ux_target, vrsta: kind,
+      nastaje: emits[t.event] ?? [], otvara: ruta, red: ruta ? routeRow[ruta] ?? null : null, ocena, napomena };
+  });
+  const sazetak = stavke.reduce((a, s) => (a[s.ocena] = (a[s.ocena] ?? 0) + 1, a), {});
+  tokovi = { stavke, sazetak, vrste: INBOX_ROUTES, provereno_u: 'src/app/obavestenja.tsx',
+    putevi_nadjeni: inboxRoutesMissing.length === 0, putevi_koji_fale: inboxRoutesMissing };
+
+  // 3. Read-model gaps: what a screen would need before its next step can be built.
+  praznine = rj('PROJECTION_GAPS.json').map(g => ({ id: g.id, ...{ oblast: g.area, sada: g.current, nedostaje: g.missing }, ...(prevod.praznine[g.id] ?? {}),
+    redovi: String(g.affected).split(/[;,]/).map(s => s.trim()).filter(s => rowById[s]), stanje: g.status }));
+
+  // 4. The screen map: the draft's navigation, with every row placed on the surface a person reaches it from.
+  // The route → surface table is authored here (the draft names surfaces, the rows name routes); a row whose
+  // route matches nothing lands in "ostalo" instead of disappearing.
+  const RUTA_POVRSINA = [
+    [/^\/$/, 'Početna'],
+    [/^\/(mapa|prilike)$/, 'Mapa / Lista'],
+    [/^\/prilike\//, 'Detalj prilike / Ponuda'],
+    [/^\/dogovori$/, 'Dogovori'],
+    [/^\/(dogovor\/|oceni-dogovor)/, 'Dogovor · Pregled / Poruke'],
+    [/^\/obavestenja$/, 'Obaveštenja'],
+    [/^\/(nova|potrebe|pregled-zadatka|mesto-zadatka|fotografije-zadatka|pitanja-zadatka)/, 'Moj zadatak'],
+    [/^\/(moje-prijave|raspored)/, 'Moje prijave i raspored'],
+    [/^\/profil\/(radnik|lokacija|dostupnost|razgovor)$/, 'Profil'],
+    [/^\/(auth|oporavak)$/, 'Ulaz u aplikaciju'],
+    [/^\/(profil|bezbednost|podrska)/, 'Podešavanja'],
+  ];
+  const povrsinaZaRed = r => {
+    for (const e of r.ekrani) for (const [re, ime] of RUTA_POVRSINA) if (re.test(e)) return ime;
+    return r.ekrani.length ? 'ostalo' : 'bez svog ekrana';
+  };
+  const poPovrsini = {};
+  for (const r of rows.redovi) (poPovrsini[povrsinaZaRed(r)] ??= []).push(r.id);
+  const iaBy = Object.fromEntries(rj('INFORMATION_ARCHITECTURE.json').map(s => [s.surface, s]));
+  const REDOSLED = ['Početna', 'Mapa / Lista', 'Detalj prilike / Ponuda', 'Dogovori', 'Dogovor · Pregled / Poruke',
+    'Obaveštenja', 'Poruke', 'Moj zadatak', 'Moje prijave i raspored', 'Profil', 'Podešavanja', 'Ulaz u aplikaciju',
+    'ostalo', 'bez svog ekrana'];
+  const NIVO = { 'Moje prijave i raspored': 2, 'Ulaz u aplikaciju': 2, ostalo: 2, 'bez svog ekrana': 3 };
+  nivoi = REDOSLED.filter(p => iaBy[p] || poPovrsini[p]).map(p => ({ povrsina: p,
+    nivo: iaBy[p]?.level ?? NIVO[p] ?? 2, stanje: iaBy[p]?.status ?? 'CURRENT',
+    ...{ ulaz: iaBy[p]?.entry ?? '', sadrzi: iaBy[p]?.contains ?? '', napomena: iaBy[p]?.note ?? 'Grupisano po ekranu iz kog se otvara.' }, ...(prevod.povrsine[p] ?? {}),
+    redovi: poPovrsini[p] ?? [] }));
+
+  // 5. Physical screens: 48 route files, and which of them no control row owns.
+  const ra = rj('ROUTE_AUDIT_48.json');
+  rute = { ukupno: ra.length, u_redovima: ra.filter(r => r.control_step_ids.length).length,
+    bez_reda: ra.filter(r => !r.control_step_ids.length).map(r => ({ ruta: r.route_key, vrsta: r.class, razlog: r.note.split('.')[0] })) };
+
+  // 6. Does the snapshot still hold? Checked against live source and the DEV catalog, never assumed.
+  const r4Missing = [...new Set(master.flatMap(m => m.missing_live_dependencies))];
+  r4 = { paket: manifest.paket, zamrznuti_head: manifest.zamrznuti_head, dev_posmatran: manifest.dev_posmatran,
+    fajlova: manifest.fajlovi.length, hes_proveren: true,
+    isti_redovi: master.length === rows.redovi.length && master.every(m => rowById[m.id]),
+    r4_tvrdi_da_fali: r4Missing, i_dalje_fali: r4Missing.filter(d => !rpcAll.has(d)),
+    vise_ne_fali: r4Missing.filter(d => rpcAll.has(d)),
+    novo_slomljeno: appCallsMissing.filter(d => !r4Missing.includes(d)),
+    putevi_obavestenja: inboxRoutesMissing.length === 0 ? 'svi nađeni u kodu' : 'FALE: ' + inboxRoutesMissing.join(', ') };
+}
+
 const sh = (file, args) => { try { return execFileSync(file, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return null; } };
 let ci = null;
 const ciRaw = sh('gh', ['run', 'list', '--limit', '12', '--json', 'databaseId,workflowName,headSha,status,conclusion,createdAt']);
@@ -162,6 +274,7 @@ const meta = {
 };
 const counts = computed.reduce((a, r) => (a[r.ukupno] = (a[r.ukupno] ?? 0) + 1, a), {});
 const stanje = { meta, counts, redovi: computed, server_ume_aplikacija_ne_koristi: serverOnly, aplikacija_zove_a_server_nema: appCallsMissing,
+  tokovi, praznine, nivoi, rute, snimak: r4,
   blokade: rows.blokade, prodavnice: rows.prodavnice, test_dva_telefona: rows.test_dva_telefona, test_dva_telefona_izvrseno: rows.test_dva_telefona_izvrseno, ci };
 
 // The published table compares this timestamp when receiving an uploaded/shared snapshot.
