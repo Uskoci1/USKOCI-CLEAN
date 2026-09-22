@@ -27,6 +27,12 @@ it('unknown upload recovery reads the durable same key without an implicit uploa
  mockRpc.mockResolvedValue({data:asset('STAGED'),error:null});await expect(service.readUploadCommand(KEY)).resolves.toMatchObject({ok:true,podatak:{state:'STAGED',clientRequestId:KEY}});
  expect(mockInvoke).toHaveBeenCalledTimes(1);expect(mockRpc).toHaveBeenCalledWith('rpc_read_media_upload',{p_client_request_id:KEY});
 });
+it('PKG-046: a delayed send of a command the owner already cancelled maps the server refusal to its own copy',async()=>{
+ mockInvoke.mockResolvedValue({data:null,error:{name:'FunctionsHttpError',context:new Response(JSON.stringify({code:'MEDIA_COMMAND_CANCELLED'}),{status:409})}});
+ const result=await service.uploadTaskPhoto({conversationId:CID,clientRequestId:KEY,bytes:new ArrayBuffer(16),contentType:'image/jpeg'});
+ expect(result).toEqual({ok:false,kod:'MEDIA_COMMAND_CANCELLED',poruka:'Ovo slanje je otkazano. Fotografija nije prihvaćena.'});
+ expect(mockInvoke).toHaveBeenCalledTimes(1);expect(mockRpc).not.toHaveBeenCalled();
+});
 it('absent receipt stays an error and does not authorize generating a new upload',async()=>{
  mockRpc.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});await expect(service.readUploadCommand(KEY)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();
 });

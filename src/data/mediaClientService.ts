@@ -32,6 +32,8 @@ const errors={ AUTH_REQUIRED:'Prijavi se da nastaviš.',MEDIA_NOT_FOUND:'Fotogra
   MEDIA_NOT_EDITABLE:'Fotografije sada ne mogu da se menjaju.',MEDIA_VERSION_CONFLICT:'Avatar je promenjen. Osveži profil.',
   IDEMPOTENCY_KEY_REUSED:'Zahtev pripada drugoj fotografiji. Osveži prikaz.',PUBLIC_MEDIA_NOT_READY:'Sačekaj da se fotografije obrade.',
   MEDIA_COMMAND_CONFLICT:'Ovaj zahtev pripada drugoj fotografiji ili zadatku. Osveži prikaz.',
+  // PKG-046: a delayed first send of a command the owner already cancelled is refused by the server.
+  MEDIA_COMMAND_CANCELLED:'Ovo slanje je otkazano. Fotografija nije prihvaćena.',
   MEDIA_SANITIZATION_FAILED:'Fotografija nije mogla bezbedno da se obradi.' };
 export function decodeMediaAsset(raw:unknown,accountId?:string):MediaAsset|null{
   const a=record(raw);if(!a||Object.keys(a).length!==15||!uuid(a.assetId)||!uuid(a.accountId)||(accountId&&!sameId(a.accountId,accountId))

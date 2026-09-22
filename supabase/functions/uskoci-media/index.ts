@@ -12,7 +12,7 @@ const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'au
 const json=(status:number,data:unknown)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
 const safeCodes=['MEDIA_INPUT_INVALID','MEDIA_FORMAT_UNSUPPORTED','MEDIA_DIMENSIONS_TOO_LARGE','MEDIA_SANITIZATION_FAILED','MEDIA_LIMIT_REACHED',
  'MEDIA_NOT_FOUND','MEDIA_NOT_EDITABLE','MEDIA_TURN_PENDING','MEDIA_UPLOAD_PENDING','IDEMPOTENCY_KEY_REUSED',
- 'MEDIA_VERSION_CONFLICT','MEDIA_COMMAND_CONFLICT','MEDIA_RATE_LIMITED','INTERACTION_BLOCKED','ACCOUNT_CLOSING'];
+ 'MEDIA_VERSION_CONFLICT','MEDIA_COMMAND_CONFLICT','MEDIA_COMMAND_CANCELLED','MEDIA_RATE_LIMITED','INTERACTION_BLOCKED','ACCOUNT_CLOSING'];
 class Safe extends Error{constructor(readonly code:string,readonly status=400){super(code);}}
 let initialized:Promise<void>|undefined,busy=false;
 export async function loadMediaRuntime(){
