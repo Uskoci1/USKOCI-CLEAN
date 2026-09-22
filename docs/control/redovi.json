@@ -152,11 +152,12 @@
     "uskoci-media",
     "rpc_read_task_photos",
     "rpc_remove_task_photo",
-    "rpc_read_media_upload"
+    "rpc_read_media_upload",
+    "rpc_cancel_media_upload"
    ],
    "telefon": null,
-   "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
-   "sledece": "PKG-046 je napisan i DOKAZAN 22.09: CI 35787119578 (izvor a0c12868) prolazi svih 10 provera na jednokratnoj bazi — slomljen poziv pre, otkazivanje, kasno slanje odbijeno, sertifikat pomeren i vezan na tri mesta, pravi radnik zatvaranja naloga obriše nalog sa zabeleškom. Stari pkg008 ne sme da se primeni: nova tabela pomera sertifikat brisanja naloga. Novi kandidat drži zabelešku u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora). Ostaje tvoja reč „primeni pkg046a“, jer primena pomera sertifikat; posle toga dugme radi bez novog APK-a, a Edge uskoci-media se postavlja tvojom komandom. Živo stanje 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
+   "problem": "",
+   "sledece": "PRIMENJENO 22.09. u 22:03 UTC, uz tvoje „primeni pkg046a“. Server sada ima rpc_cancel_media_upload; ledger 198, sertifikat brisanja naloga pomeren sa 65980fce na cc248ff1 i vezan na sva tri mesta, spremnost i dalje važi. Zabeleška otkazivanja stoji u owned_media_assets (stanje CANCELLED), kasno slanje istog zahteva dobije MEDIA_COMMAND_CANCELLED, a već primljena fotografija izlazi iz nacrta postojećim putem. Četiri postojeća reda su netaknuta. Dokaz: CI 35787119578, 10 od 10. OSTAJE: pritisnuti dugme na telefonu (nije potreban nov APK, instalirana verzija već zove tačno ovu funkciju) i tvoja CLI komanda za Edge uskoci-media, koja menja samo kako se prijavljuje odbijanje zakasnelog slanja.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

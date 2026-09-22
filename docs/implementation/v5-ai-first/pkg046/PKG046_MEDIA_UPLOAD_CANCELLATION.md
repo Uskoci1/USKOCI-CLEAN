@@ -1,7 +1,10 @@
 # PKG-046 — task-photo upload cancellation (F16 / A05 / GAP-0036)
 
-Status 2026-09-22: **candidate written and proven on a disposable database; not applied.** Application moves
-the closure certificate and needs the owner's explicit approval.
+Status 2026-09-22: **proven and APPLIED to canonical DEV** after the owner's explicit "primeni pkg046a".
+Ledger **198 = 147 source + 51 dev_alpha**, `dev_alpha_pkg046a_media_upload_cancellation`, version `20260922220350`.
+The certificate moved, by approval, from `65980fce…b137a591` to **`cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7`**,
+re-bound in all three places, `retention_ai_source_ready()` true. Receipt:
+`supabase/operations/dev-alpha/ledger/20260922_pkg046a_application.receipt.json`.
 
 ## Proof
 
@@ -98,10 +101,34 @@ change is exercised only through the SQL fence; the Edge unit surface for this f
 existing PKG-008 client tests (`media-client`, `v5-task-photos-screen`) already cover the receipt decoder and the
 screen; they run in the workflow unchanged.
 
-## Application
+## Application (done 2026-09-22 22:03:50 UTC)
 
-Only after the proof passes and the owner answers "primeni pkg046a": apply the exact file bytes as
-`dev_alpha_pkg046a_media_upload_cancellation`, read back the two body md5s, the cancel ACL, the three certificate
-places (all equal to the new live digest), `retention_ai_source_ready()` true, and record the receipt with the
-new certificate value in `supabase/operations/dev-alpha/ledger/`. Then the Edge deploy, then a new APK is not
-required: the shipped client already makes the exact call.
+The owner approved the certificate movement in writing ("primeni pkg046a"). Applied through the Supabase
+connector as one transaction; the ledger text is `d49bf0c8…`, byte-identical to the text the proof applied
+(`candidateSha256` in `PROOF_35787119578.json`); the candidate file itself hashes `abaf253a…` and differs only
+by its trailing newline.
+
+Read back on DEV immediately afterwards:
+
+| what | value |
+| --- | --- |
+| ledger | 198, latest `dev_alpha_pkg046a_media_upload_cancellation` (`20260922220350`) |
+| `rpc_cancel_media_upload(uuid,uuid)` | md5 `f293793039bd012ba5cba20a7dba3fb2`, security definer, `search_path=pg_catalog`, ACL `{postgres,authenticated}` — no anon, no service_role |
+| `rpc_claim_media_upload_service` | md5 `4f522b3df65e00f6985e50e66d388bbc` (from `81962817…`), ACL unchanged `{postgres,service_role}` |
+| `rpc_read_media_upload` | md5 `36d5647d8e4423c3f75bd13459ff524c` (from `63ed40f2…`), ACL unchanged `{postgres,authenticated}` |
+| state check | now admits `CANCELLED`; the tombstone check is present as written |
+| input columns | `input_sha256`, `input_bytes`, `input_type` nullable (0 of 3 NOT NULL) |
+| certificate | `cc248ff1…` live = `closure_source_v5` = `closure_erasure_source_v5` = the constant in `retention_ai_source_ready()` = `closure_erasure_binding_v5()->>'sourceSha256'`; the old `65980fce…` appears nowhere |
+| readiness | `retention_ai_source_ready()` true |
+| data | the 4 existing media rows are untouched and all READY; 0 CANCELLED rows; no Storage object touched |
+| catalog | public RPCs 227 → 228, authenticated-executable 157 → 158; no Edge function changed |
+
+**Any package written against `65980fce…` is now stale** and must pin `cc248ff1…` instead.
+
+Still open after this application:
+
+- **The button has not been pressed on a phone.** The installed APK already makes the exact call, so no new
+  build is needed; the acceptance is a real cancellation from the app.
+- **The Edge change is not deployed.** `supabase/functions/uskoci-media/index.ts` adds `MEDIA_COMMAND_CANCELLED`
+  to its safe codes (409 instead of a generic 503). It only affects how a *delayed* send's refusal is reported;
+  cancellation itself does not pass through it. Deployment is the owner's byte-exact CLI route.

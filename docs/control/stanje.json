@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T21:51:19Z",
+  "osvezeno": "2026-09-22T22:07:30Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "86b961b7",
-  "head_poruka": "control: wire the R4 forensic snapshot into the living table, and record the passing PKG-046 proof",
+  "head": "dc65e632",
+  "head_poruka": "control: recompute the state at the commit the published page carries",
   "server": {
-   "snimljeno": "2026-09-22T13:49:06Z",
-   "migracije": 197,
-   "dev_alpha": 50,
-   "poslednja": "dev_alpha_pkg045a_task_read_contract",
+   "snimljeno": "2026-09-22T22:05:13Z",
+   "migracije": 198,
+   "dev_alpha": 51,
+   "poslednja": "dev_alpha_pkg046a_media_upload_cancellation",
    "sertifikat_ok": true,
    "cron": [
     {
@@ -22,7 +22,7 @@
      "active": true
     }
    ],
-   "cron_24h": 2823,
+   "cron_24h": 2880,
    "cron_greske_24h": 0,
    "edge": [
     {
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "NA TELEFONU NIJE PROVERENO": 38,
-  "PROBLEM": 24
+  "NA TELEFONU NIJE PROVERENO": 39,
+  "PROBLEM": 23
  },
  "redovi": [
   {
@@ -393,24 +393,24 @@
     "uskoci-media",
     "rpc_read_task_photos",
     "rpc_remove_task_photo",
-    "rpc_read_media_upload"
+    "rpc_read_media_upload",
+    "rpc_cancel_media_upload"
    ],
    "lights": {
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "crveno",
+    "server": "zeleno",
     "test": "zeleno",
     "telefon": "sivo"
    },
    "note": {
-    "server": "Aplikacija poziva, a na serveru nema: rpc_cancel_media_upload",
-    "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
+    "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
-   "sledece": "PKG-046 je napisan i DOKAZAN 22.09: CI 35787119578 (izvor a0c12868) prolazi svih 10 provera na jednokratnoj bazi — slomljen poziv pre, otkazivanje, kasno slanje odbijeno, sertifikat pomeren i vezan na tri mesta, pravi radnik zatvaranja naloga obriše nalog sa zabeleškom. Stari pkg008 ne sme da se primeni: nova tabela pomera sertifikat brisanja naloga. Novi kandidat drži zabelešku u owned_media_assets (stanje CANCELLED, kao kod fotografija dogovora). Ostaje tvoja reč „primeni pkg046a“, jer primena pomera sertifikat; posle toga dugme radi bez novog APK-a, a Edge uskoci-media se postavlja tvojom komandom. Živo stanje 22.09. 20:56 UTC: funkcija i dalje ne postoji, ledger 197.",
+   "problem": "",
+   "sledece": "PRIMENJENO 22.09. u 22:03 UTC, uz tvoje „primeni pkg046a“. Server sada ima rpc_cancel_media_upload; ledger 198, sertifikat brisanja naloga pomeren sa 65980fce na cc248ff1 i vezan na sva tri mesta, spremnost i dalje važi. Zabeleška otkazivanja stoji u owned_media_assets (stanje CANCELLED), kasno slanje istog zahteva dobije MEDIA_COMMAND_CANCELLED, a već primljena fotografija izlazi iz nacrta postojećim putem. Četiri postojeća reda su netaknuta. Dokaz: CI 35787119578, 10 od 10. OSTAJE: pritisnuti dugme na telefonu (nije potreban nov APK, instalirana verzija već zove tačno ovu funkciju) i tvoja CLI komanda za Edge uskoci-media, koja menja samo kako se prijavljuje odbijanje zakasnelog slanja.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -419,7 +419,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM",
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
     "povrsina": "Moj zadatak / Objavi",
     "nivo": 2,
@@ -446,9 +446,7 @@
     ],
     "tabele": [],
     "dogadjaji": [],
-    "nedostaje": [
-     "rpc_cancel_media_upload"
-    ],
+    "nedostaje": [],
     "predlog": [],
     "celine": [
      "32"
@@ -3712,12 +3710,11 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "crveno",
+    "server": "zeleno",
     "test": "zeleno",
     "telefon": "sivo"
    },
    "note": {
-    "server": "Aplikacija poziva, a na serveru nema: rpc_cancel_media_upload",
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
@@ -3766,9 +3763,7 @@
     ],
     "tabele": [],
     "dogadjaji": [],
-    "nedostaje": [
-     "rpc_cancel_media_upload"
-    ],
+    "nedostaje": [],
     "predlog": [],
     "celine": [
      "33",
@@ -4517,9 +4512,7 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [
-  "rpc_cancel_media_upload"
- ],
+ "aplikacija_zove_a_server_nema": [],
  "tokovi": {
   "stavke": [
    {
@@ -5219,10 +5212,10 @@
   "r4_tvrdi_da_fali": [
    "rpc_cancel_media_upload"
   ],
-  "i_dalje_fali": [
+  "i_dalje_fali": [],
+  "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "vise_ne_fali": [],
   "novo_slomljeno": [],
   "putevi_obavestenja": "svi nađeni u kodu"
  },

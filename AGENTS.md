@@ -113,6 +113,33 @@ consolidated at the owner's request on 2026-09-22. It covers engineering, push, 
 account data, moderation/support, operator/legal/charging, production and store release. Keep its order
 and completion evidence aligned with the status index. It grants no new permissions or product decisions.
 
+PKG-046 (2026-09-22, proven and **applied**; the owner approved the certificate movement with "primeni pkg046a"):
+task-photo upload cancellation, finding F16 / control row A05. The app's "Odustani od nepotvrđenog slanja" called
+`rpc_cancel_media_upload(uuid,uuid)`, which did not exist on DEV. The 2026-09-16 pkg008 candidate could not be used:
+it creates a new table, which moves the closure certificate AND would sit outside the 73 redaction relations.
+Instead the cancellation lives inside `private.owned_media_assets` as a `CANCELLED` tombstone (null inputs, TASK,
+never selected/dispatched/stored), the service claim gains one fence after its advisory lock
+(`MEDIA_COMMAND_CANCELLED`), `rpc_read_media_upload` skips tombstones, and the new owner-only writer retires an
+absent, admitted or READY command through existing writers. Disposable proof `35787119578` (source `a0c12868`)
+passes all 10 checks, including a real closure worker erasing an account that holds a tombstone.
+**Canonical DEV ledger is now 198 = 147 + 51 dev_alpha, and the certified closure digest is
+`cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7`** in all three places, `retention_ai_source_ready()`
+true; the earlier `65980fce…` is historical, so any candidate pinned to it is stale. The four existing media rows are
+untouched, no Storage object and no Edge function changed. Receipt:
+`supabase/operations/dev-alpha/ledger/20260922_pkg046a_application.receipt.json`; contract:
+`docs/implementation/v5-ai-first/pkg046/PKG046_MEDIA_UPLOAD_CANCELLATION.md`. **Not done:** the button has not been
+pressed on a phone (the installed APK already makes the exact call, so no new build is needed), and the Edge
+`uskoci-media` safe-code change is written but NOT deployed — that is the owner's byte-exact CLI route and affects
+only how a delayed send's refusal is reported.
+
+Control table (2026-09-22, strengthened): the owner's read-only forensic package R4 (frozen at `9286fdeb`) is
+verified by its own manifest hashes and kept at `docs/control/izvori/r4-20260922/`. `scripts/control/osvezi.mjs`
+turns it into four sections that are re-checked against the live tree: `tokovi` (all 24 notifications — where the
+blueprint wants each one and which screen the app really opens, checked against `src/app/obavestenja.tsx`: 14 exact,
+7 right screen but not the right place, 1 wrong target, 2 unproven), `nivoi` (all 62 rows placed across 13 surfaces),
+`praznine` (12 read-model gaps) and `snimak` (re-tests the snapshot's claims). The snapshot supplies analysis; the
+lights stay computed. See `docs/control/README.md`.
+
 PKG-045 (2026-09-22, proven; A DEV applied, B HOLD): public task column privacy7.17. Candidate A adds
 explicit task reads and adapts list/notification dependencies; it preserves the ready closure certificate
 and old clients. Candidate B removes broad SELECT and maintains five dependent owner predicates.

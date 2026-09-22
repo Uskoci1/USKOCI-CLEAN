@@ -1,12 +1,12 @@
 {
  "project": "leqcwgzvjsxugfgzdmth",
- "generated_at": "2026-09-22T13:49:06Z",
+ "generated_at": "2026-09-22T22:05:13Z",
  "how": "docs/control/dev_snapshot.sql (read-only) + list_edge_functions; run by an agent through the Supabase connector, never with a secret in the repo",
- "ledger_total": 197,
- "ledger_dev_alpha": 50,
- "ledger_last": "dev_alpha_pkg045a_task_read_contract",
- "certificate_live": "65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591",
- "certificate_certified": "65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591",
+ "ledger_total": 198,
+ "ledger_dev_alpha": 51,
+ "ledger_last": "dev_alpha_pkg046a_media_upload_cancellation",
+ "certificate_live": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
+ "certificate_certified": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
  "retention_ai_ready": true,
  "cron": [
   {
@@ -20,7 +20,7 @@
    "active": true
   }
  ],
- "cron_runs_24h": 2823,
+ "cron_runs_24h": 2880,
  "cron_failures_24h": 0,
  "edge": [
   {
@@ -119,6 +119,7 @@
   "rpc_begin_push_send",
   "rpc_cancel_agreement",
   "rpc_cancel_data_export",
+  "rpc_cancel_media_upload",
   "rpc_cancel_need",
   "rpc_cancel_qa_classification",
   "rpc_cancel_worker_ai_turn",
@@ -331,6 +332,7 @@
   "rpc_authorize_data_export_download",
   "rpc_cancel_agreement",
   "rpc_cancel_data_export",
+  "rpc_cancel_media_upload",
   "rpc_cancel_need",
   "rpc_cancel_qa_classification",
   "rpc_cancel_worker_ai_turn",
