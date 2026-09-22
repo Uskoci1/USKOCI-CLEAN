@@ -75,8 +75,57 @@ beforeEach(() => {
   mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
+async function reviewOffer() {
+  if (!press('Pošalji ovu Prijavu')) await tap('Pregledaj ponudu');
+  expect(press('Pošalji ovu Prijavu')).toBeDefined();
+}
+async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
 async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
+
+it('reviews an offer without writing or sending and returns to the unchanged draft on Back', async () => {
+  await offer(); await edit('Kratka napomena', '  Donosimo trake.  ');
+  expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  await tap('Pregledaj ponudu');
+  expect(text()).toContain('Ovo šalješ'); expect(text()).toContain('4.500 RSD');
+  expect(text()).toContain('Donosimo trake.'); expect(text()).toContain('2 osobe');
+  expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
+  const retainedSend = press('Pošalji ovu Prijavu');
+  const modal = tree!.root.findAll(node => String(node.type) === 'Modal')[0];
+  await act(async () => modal.props.onRequestClose());
+  await act(async () => retainedSend());
+  expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
+  expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  const note = tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Kratka napomena')[0];
+  expect(note.props.value).toBe('  Donosimo trake.  ');
+});
+it('a retained review cannot send a later edited offer; a new review sends that exact offer once', async () => {
+  await offer(); await tap('Pregledaj ponudu'); const oldSend = press('Pošalji ovu Prijavu');
+  await tap('Izmeni ponudu'); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '6500');
+  await edit('Kratka napomena', '  Donosimo trake.  ');
+  await act(async () => oldSend()); expect(mockSubmit).not.toHaveBeenCalled();
+  await tap('Pregledaj ponudu'); expect(text()).toContain('6.500 RSD');
+  const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6500, pokrivenaMesta: 2, napomena: 'Donosimo trake.', potrebaRevizija: 3 });
+});
+it('invalidates a review when the task revision changes and asks for a fresh review', async () => {
+  await offer(); await tap('Pregledaj ponudu'); const oldSend = press('Pošalji ovu Prijavu');
+  mockNeed.mockResolvedValue({ ...need(), revizija: 4, naslov: 'Promenjen zadatak' });
+  mockFocused = false; await update(); mockFocused = true; await update();
+  await act(async () => oldSend()); expect(mockSubmit).not.toHaveBeenCalled();
+  expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  await tap('Pregledaj ponudu'); expect(text()).toContain('Promenjen zadatak');
+  await tap('Pošalji ovu Prijavu'); expect(mockSubmit.mock.calls[0][0].potrebaRevizija).toBe(4);
+});
+it('reviews flexible time without making up an exact interval and keeps missing price as text', async () => {
+  const flexible = { ...need(), vremeTekst: 'Fleksibilno', schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } };
+  mockNeed.mockResolvedValue(flexible); mockTask.mockResolvedValue({ ...flexible, primaNovePrijave: true });
+  await render(); await tap('Pregledaj ponudu');
+  expect(text()).toContain('Proveri unetu cenu');
+  expect(text()).toContain('Tačan početak i kraj još nisu dogovoreni.');
+  expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
+});
 
 it('marks only an intentionally opened offer, never the list, comparison or focus refresh', async () => {
   mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: agreement, ime: 'Ana' }]);
@@ -135,22 +184,22 @@ it('sends one exact application after explicit interval review and duplicate tap
   await edit('Datum početka', '2026-09-20'); await edit('Početak', '12:00');
   await edit('Datum kraja', '2026-09-20'); await edit('Kraj', '13:00'); await tap('Potvrdi termin');
   expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('12:00–13:00');
-  const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
+  await reviewOffer(); const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, pokrivenaMesta: 2, cenaRsd: 4500,
     predlozeniPocetak: '2026-09-20T10:00:00.000Z', predlozeniKraj: '2026-09-20T11:00:00.000Z' });
   expect(text()).toContain('Prijava je poslata.'); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
-  await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toContain('ukupno ·');
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc'); await tap('Pošalji ovu Prijavu');
+  await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toMatch(/ukupno\s+·/);
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc'); await sendOffer();
   expect(mockSubmit).not.toHaveBeenCalled();
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '4'); await tap('Pošalji ovu Prijavu');
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '4'); await sendOffer();
   expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('unknown submit requires readback; absence never unlocks changed fields and exact original request retries', async () => {
   mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
-  await offer(); const oldSend = press('Pošalji ovu Prijavu'); await tap('Pošalji ovu Prijavu');
+  await offer(); await reviewOffer(); const oldSend = press('Pošalji ovu Prijavu'); await sendOffer();
   await act(async () => { oldSend(); }); expect(mockSubmit).toHaveBeenCalledTimes(1);
   await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999');
   mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proveri ishod');
@@ -159,7 +208,7 @@ it('unknown submit requires readback; absence never unlocks changed fields and e
   expect(mockSubmit.mock.calls[1][0].cenaRsd).toBe(4500); expect(mockSubmit.mock.calls[1][0].potrebaRevizija).toBe(3);
 });
 it('late application response after blur cannot navigate and in-flight request remains fenced on refocus', async () => {
-  const d = deferred(); mockSubmit.mockReturnValueOnce(d.promise); await offer(); await tap('Pošalji ovu Prijavu');
+  const d = deferred(); mockSubmit.mockReturnValueOnce(d.promise); await offer(); await sendOffer();
   mockFocused = false; await update(); mockFocused = true; await update();
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(press('Ponovi istu Prijavu')).toBeUndefined();
   await act(async () => d.resolve({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } }));
@@ -167,7 +216,7 @@ it('late application response after blur cannot navigate and in-flight request r
   expect(text()).toContain('Prijava je poslata.');
 });
 it('old-account completion and retained callbacks cannot send or navigate after A→B→A', async () => {
-  const d = deferred(); mockSubmit.mockReturnValueOnce(d.promise); await offer(); const old = press('Pošalji ovu Prijavu'); await tap('Pošalji ovu Prijavu');
+  const d = deferred(); mockSubmit.mockReturnValueOnce(d.promise); await offer(); await reviewOffer(); const old = press('Pošalji ovu Prijavu'); await sendOffer();
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; await update();
   await act(async () => { old(); d.resolve({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } }); });
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -219,7 +268,7 @@ it('same-row callback retained before an explicit refresh cannot select its old 
 it('binds displayed fixed price to the same Need revision and prevents editing that price', async () => {
   mockNeed.mockResolvedValue({ ...need(), rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } });
-  await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); await tap('Pošalji ovu Prijavu');
+  await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, potrebaRevizija: 3, predlozeniPocetak: null, predlozeniKraj: null });
 });
 // Deep read 8.10: rpc_submit_response prices a PER_PERSON application as amount × people and a TOTAL one
@@ -233,7 +282,7 @@ it('prices a per-person task by the people this application brings', async () =>
   expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').editable).toBe(false);
   await edit('Ljudi', '2'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
   await edit('Ukupna cena za ljude koje dovodiš (RSD)', '5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
-  await tap('Pošalji ovu Prijavu');
+  await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 10000, pokrivenaMesta: 2, potrebaRevizija: 3 });
 });
 it('covers every place on a task whose price is for the whole task', async () => {
@@ -243,12 +292,12 @@ it('covers every place on a task whose price is for the whole task', async () =>
   const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
   expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('pokriva sva mesta: 3 osobe');
   expect(field('Ljudi').value).toBe('3'); expect(field('Ljudi').editable).toBe(false);
-  await tap('Pošalji ovu Prijavu');
+  await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 18000, pokrivenaMesta: 3 });
 });
 it('rejects newly elapsed deadline on tap and exposes a fresh read, without dispatch', async () => {
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: '2020-01-01T00:00:00Z' });
-  await offer(); await tap('Pošalji ovu Prijavu'); expect(mockSubmit).not.toHaveBeenCalled();
+  await offer(); await sendOffer(); expect(mockSubmit).not.toHaveBeenCalled();
   expect(text()).toContain('Rok za prijave je istekao'); expect(press('Osveži Zadatak')).toBeDefined();
 });
 it('public profile panel uses the real public port and drops a late prior-account response', async () => {
@@ -274,7 +323,7 @@ it('passes all received candidates to native virtualization with a bounded initi
 });
 it('owned readback can replay only the frozen request when Need visibility closes after unknown submit', async () => {
   mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri ishod.' });
-  await offer(); await tap('Pošalji ovu Prijavu'); mockTask.mockResolvedValue(null); mockNeed.mockResolvedValue(null);
+  await offer(); await sendOffer(); mockTask.mockResolvedValue(null); mockNeed.mockResolvedValue(null);
   await tap('Proveri ishod'); expect(mockApplications).toHaveBeenCalledTimes(2);
   await tap('Ponovi istu Prijavu'); expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
   expect(text()).toContain('Prijava je poslata.');

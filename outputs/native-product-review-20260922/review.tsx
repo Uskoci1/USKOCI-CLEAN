@@ -18,6 +18,7 @@ const noop = () => {};
 const need = { id: 'preview-task', revizija: 1, stanje: 'OBJAVLJENA',
   naslov: 'Prenos ormara do kombija', opis: 'Ormar je već rasklopljen. Treba ga pažljivo preneti sa trećeg sprata do kombija ispred zgrade.',
   podrucjeTekst: 'Liman, Novi Sad', vremeTekst: '25. septembar · 17:00–18:00', uslovi: ['Zgrada bez lifta', 'Trake za nošenje', 'Ormar je već rasklopljen'],
+  taskTimezone: 'Europe/Belgrade', schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-25T15:00:00Z', endsAt: '2026-09-25T16:00:00Z' },
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, brojPrijava: 2, brojPrijavaZaIzbor: 2,
   rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' },
   narucilacIme: 'Marko', narucilacProfilId: 'preview-profile', narucilacOcena: '4,8', statusTekst: 'Otvoren',
@@ -57,7 +58,7 @@ function Review() {
   if (screen === 'candidates') return <CandidateListPresentation need={need} candidates={candidates} open={c => { setCandidate(c); setScreen('offer'); }} back={() => setScreen('task')} refresh={noop} />;
   if (screen === 'compose') return <ApplicationSelectionPresentation need={need} opportunity={need} draft={draft} change={setDraft}
     submit={noop} back={() => setScreen('task')} busy={false} pending={false} uncertain={false} refresh={noop}
-    error={null} confirmed={false} openApplications={noop} canSubmit={false} />;
+    error={null} confirmed={false} openApplications={noop} canSubmit />;
   if (screen === 'offer') return <CandidateSelectionPresentation need={need} candidate={candidate} back={() => setScreen('candidates')} publicProfile={async () => null} choose={noop} busy={false} pending={false} uncertain={false}
     refresh={noop} error={null} confirmed={false} openAgreement={noop} readAgreement={async () => ({ ok: true, podatak: { dogovorId: null } })} openLinkedAgreement={noop} />;
   if (screen === 'agreement') return <View style={{ flex: 1 }}><ProductHeader title="Dogovor" subtitle="Dogovoreno" back={() => setScreen('task')} />

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { fixedApplicationPeople, needPriceText, readableTitle } from '../../data/needDetailPresentation';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, PaperPlaneTilt, Star } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
+import { novac } from '../../lib/novac';
 import type { Ishod } from '../../data/ports';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
@@ -38,12 +39,12 @@ const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys
   : k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? sys.color.warn : sys.color.muted;
 
 /** Shared identity, keyboard-safe body and one next action. */
-function SelectionFrame({ title, back, children, footer, scroll = true }: {
-  title: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean;
+function SelectionFrame({ title, back, children, footer, scroll = true, backLabel = 'Nazad na zadatak' }: {
+  title: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean; backLabel?: string;
 }) {
   const reduced = useReducedMotion();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader backLabel="Nazad na zadatak" title={title} back={back} />
+    <ProductHeader backLabel={backLabel} title={title} back={back} />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       {scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} style={s.stack}>{children}</Animated.View>
@@ -114,9 +115,25 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
 }) {
   const [editingTime, setEditingTime] = useState(false);
+  const [review, setReview] = useState<{ key: string } | null>(null);
+  const reduced = useReducedMotion();
+  // The review only stages presentation. The route still validates, journals and sends the command.
+  // A changed draft/task cannot be sent through a retained confirmation from the previous review.
+  const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, draft]);
+  const reviewing = !!review && review.key === reviewKey && !busy && !pending && !confirmed && canSubmit;
+  const liveReview = useRef<typeof review>(null);
+  liveReview.current = reviewing ? review : null;
+  const closeReview = () => { liveReview.current = null; setReview(null); };
+  const confirmReview = () => {
+    if (!review || liveReview.current !== review) return;
+    closeReview(); submit();
+  };
   const disabled = busy || pending || confirmed;
   const exact = applicationInterval(draft.start, draft.end, need.taskTimezone);
   const fixed = need.schedule?.kind === 'FIXED_WINDOW' ? applicationInterval(need.schedule.startsAt, need.schedule.endsAt, need.taskTimezone) : null;
+  const reviewPrice = /^\d+$/.test(draft.price) && Number.isSafeInteger(Number(draft.price)) && Number(draft.price) > 0 ? novac(Number(draft.price)) : null;
+  const reviewTime = exact ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, need.taskTimezone)
+    : fixed && need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
   const priceLocked = opportunity.rezimCene === 'MY_PRICE';
   // The rule behind the locked price is said in words, from the same Need read the price came from (8.10).
   const peopleLocked = fixedApplicationPeople(need) !== null;
@@ -125,11 +142,13 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     : peopleLocked ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
     : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
   return <SelectionFrame title="Tvoja prijava" back={back} footer={<>
-    <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{draft.price || '—'} RSD ukupno · {/^[1-9]\d*$/.test(draft.people) ? dolaziOsoba(Number(draft.people)) : 'broj ljudi nije unet'}</T></View>
+    <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{reviewPrice ?? 'Proveri unetu cenu'}{reviewPrice ? ' ukupno' : ''} · {/^[1-9]\d*$/.test(draft.people) ? dolaziOsoba(Number(draft.people)) : 'broj ljudi nije unet'}</T></View>
     {confirmed ? <BrandAction label="Otvori moje prijave" onPress={openApplications} />
       : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-      : <BrandAction label={busy ? 'Slanje…' : pending ? 'Ponovi istu Prijavu' : 'Pošalji ovu Prijavu'} onPress={submit}
-        disabled={busy || (!pending && !canSubmit)} send />}
+      : pending || busy ? <BrandAction label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} send />
+      : <BrandAction label="Pregledaj ponudu" onPress={() => {
+        if (!disabled && canSubmit && !reviewing) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
+      }} disabled={!canSubmit || reviewing} />}
   </>}>
     <TaskContext need={opportunity} />
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja ponuda</T>
@@ -169,6 +188,28 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     {reset ? <V2Action label="Pregledaj uslove i uredi novu ponudu" onPress={reset} disabled={busy} /> : null}
     {editingTime && !disabled ? <IntervalEditor draft={draft} timezone={need.taskTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
       close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
+    {reviewing ? <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={closeReview}>
+      <SelectionFrame title="Pregled ponude" backLabel="Nazad na izmenu ponude" back={closeReview}
+        footer={<BrandAction label="Pošalji ovu Prijavu" onPress={confirmReview} send />}>
+        <View style={s.reviewContext}><T variant="meta" style={s.eyebrow}>Zadatak</T>
+          <T style={s.contextTitle}>{readableTitle(opportunity.naslov)}</T>
+          <T variant="meta" tone="muted">{opportunity.podrucjeTekst}</T></View>
+        <View style={s.card}>
+          <T variant="meta" style={s.eyebrow}>Ovo šalješ</T>
+          <ProductFacts>
+            <ProductFact art="money" label="Ukupna ponuda" prominent={reviewPrice !== null}
+              value={reviewPrice ?? 'Proveri unetu cenu'} note={reviewPrice ? 'Ukupno za sve ljude koje dovodiš' : undefined} />
+            <ProductFact art="users" label="Ljudi" value={/^[1-9]\d*$/.test(draft.people) ? osoba(Number(draft.people)) : 'Proveri broj ljudi'} />
+            <ProductFact art="calendar" label="Termin" value={reviewTime}
+              note={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : undefined} />
+          </ProductFacts>
+        </View>
+        <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja poruka</T>
+          <T variant="body" style={s.ink}>{draft.note.trim() || 'Bez dodatne poruke.'}</T></View>
+        <T variant="meta" tone="muted">Ponuda ide uz ovaj zadatak. Ako bude izabrana, nastaje Dogovor.</T>
+        <V2Action label="Izmeni ponudu" kind="quiet" onPress={closeReview} />
+      </SelectionFrame>
+    </Modal> : null}
   </SelectionFrame>;
 }
 /** The same public-profile photo follows the person from list to full offer. */
@@ -332,6 +373,7 @@ const s = StyleSheet.create({
   warnCard: { backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.card, padding: 18, gap: 8 },
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
   context: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, gap: 4 },
+  reviewContext: { gap: 4, paddingBottom: 4 },
   contextTitle: { ...sys.type.cardTitle, color: sys.color.green, marginBottom: 4 },
   contextPrice: { ...sys.type.priceSmall, color: sys.color.money, flex: 1 }, offers: { ...sys.type.bodyStrong, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
@@ -344,7 +386,7 @@ const s = StyleSheet.create({
   term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
-  summaryRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   listHeader: { gap: 14, marginBottom: 14 },
   candidate: { ...card, gap: 12, padding: 18 },
   candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },

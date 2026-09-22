@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+Owner follow-up (2026-09-22): the offer composer now opens an explicit review before sending.
+See docs/implementation/functional-audit-20260922/OFFER_REVIEW.md and its receipt. The unchanged
+route owns all validation, journaling and recovery. Types and 242 suites / 4,704 tests pass;
+four new regressions fail on the predecessor. F10 remains partial: authenticated native acceptance,
+named post-submit navigation and independent Claude review are pending. Do not bypass sign-in.
+
 Owner follow-up (2026-09-22): continue client work while the owner cannot sign in on the emulator.
 Use the isolated actual-component review without credentials, auth bypass or DEV fixtures; keep
 authenticated native/device acceptance pending. Discovery now has persistent search, clear applied

@@ -61,7 +61,11 @@ states. The fixed scenario error only checks rendering, not real network recover
 were inspected inline in the browser tool; no browser screenshot file is claimed.
 This is not a native-map,
 keyboard, TalkBack, account, server, push or whole-journey proof. The unmodified real application
-stays on sign-in in the emulator; no session or credential is copied or entered.
+stays at the welcome/auth entry in the emulator; no session or credential is copied or entered.
 
 Device/independent Claude acceptance is pending. No server, guards, mutation recovery, runtime
 dependencies or auth entry changed. Generated preview bundles do not enter src/app or the APK.
+
+Both source-pinned discovery APKs succeeded and their hashes, attestations and ABI were verified.
+The x86_64 build was installed with adb install -r and opened to the welcome/auth entry.
+This proves installation/startup only; no account was entered. See the updated discovery receipt.

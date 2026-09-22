@@ -42,7 +42,7 @@
   },
   "nativeAuthenticatedAcceptance": "PENDING_OWNER_UNAVAILABLE",
   "claudeReview": "PENDING",
-  "apkStatus": "BUILDING",
+  "apkStatus": "SUCCESS_ARTIFACTS_VERIFIED_EMULATOR_STARTUP_ONLY",
   "serverChanged": false,
   "dependenciesChanged": false,
   "credentialsHandled": false,
@@ -52,5 +52,40 @@
   "apkRuns": {
     "emulator": "35748064511",
     "phone": "35748068544"
+  },
+  "artifacts": {
+    "emulator": {
+      "run": "35748064511",
+      "sourceCommit": "6d3c7ead02815f2b0c75ed3bde01b685a2878df9",
+      "sourceTree": "cbac1732b816f40b7837012fbe28e0feafc38ffe",
+      "sha256": "e52a753d3b14eb91c7aa709e948d42e6389ca15066ebbed59e1e0b2fafe8d144",
+      "bytes": 71416481,
+      "abis": [
+        "x86_64"
+      ],
+      "reactNativeLibraryPresent": true,
+      "attestations": "PASS",
+      "result": "PASS"
+    },
+    "phone": {
+      "run": "35748068544",
+      "sourceCommit": "6d3c7ead02815f2b0c75ed3bde01b685a2878df9",
+      "sourceTree": "cbac1732b816f40b7837012fbe28e0feafc38ffe",
+      "sha256": "9ceea60a59b40742e03ad11d4e540ae05e8e1eda92f4784a745c1d168ddd3faa",
+      "bytes": 69562394,
+      "abis": [
+        "arm64-v8a"
+      ],
+      "reactNativeLibraryPresent": true,
+      "attestations": "PASS",
+      "result": "PASS"
+    }
+  },
+  "emulator": {
+    "serial": "emulator-5554",
+    "install": "adb install -r: Success",
+    "launch": "am start Status ok; welcome screen visually observed",
+    "screenshot": "outputs/native-product-review-20260922/screenshots/discovery-installed.png",
+    "authenticated": false
   }
 }

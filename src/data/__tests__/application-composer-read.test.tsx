@@ -71,6 +71,11 @@ beforeEach(() => {
   mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
+async function reviewOffer() {
+  if (!press('Pošalji ovu Prijavu')) await tap('Pregledaj ponudu');
+  expect(press('Pošalji ovu Prijavu')).toBeDefined();
+}
+async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
 async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
@@ -83,14 +88,14 @@ it('rearms read and Retry after returning to the same retained tab', async () =>
   mockFocused = true; await update(); expect(mockTask).toHaveBeenCalledTimes(2);
   expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati');
   const retry = press('Pokušaj ponovo'); await act(async () => { retry(); retry(); });
-  expect(mockTask).toHaveBeenCalledTimes(3); expect(press('Pošalji ovu Prijavu')).toBeDefined();
+  expect(mockTask).toHaveBeenCalledTimes(3); expect(press('Pregledaj ponudu')).toBeDefined();
   expect(text()).toContain('Restored task'); expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('ignores a late blurred read and revalidates next focus', async () => {
   const d = deferred(); mockTask.mockReturnValueOnce(d.promise).mockRejectedValueOnce(new Error('current outage'));
   await render(); mockFocused = false; await update();
   await act(async () => d.resolve({ ...need(), naslov: 'Late private context' }));
-  expect(text()).not.toContain('Late private context'); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  expect(text()).not.toContain('Late private context'); expect(press('Pregledaj ponudu')).toBeUndefined();
   mockFocused = true; await update(); expect(mockTask).toHaveBeenCalledTimes(2);
   expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati'); expect(mockSubmit).not.toHaveBeenCalled();
 });
@@ -98,26 +103,29 @@ it('recovers the actual composer from a rejected detail read without leaking err
   mockTask.mockRejectedValueOnce(new Error('private transport detail')).mockResolvedValueOnce({ ...need(), primaNovePrijave: true });
   await render(); expect(text()).toContain('Podatke za prijavu trenutno nije moguće učitati'); expect(text()).not.toContain('private');
   const retry = press('Pokušaj ponovo'); await act(async () => { retry(); retry(); });
-  expect(mockTask).toHaveBeenCalledTimes(2); expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(mockSubmit).not.toHaveBeenCalled();
+  expect(mockTask).toHaveBeenCalledTimes(2); expect(press('Pregledaj ponudu')).toBeDefined(); expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('refuses a submission when the authoritative task gate says remaining search is closed', async () => {
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
   await offer();
-  const send = press('Pošalji ovu Prijavu'); expect(send).toBeDefined();
-  await act(async () => { send(); });
+  const review = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
+  expect(review.props.disabled).toBe(true);
+  // Exercise the unchanged route guard directly, even though the presentation prevents entry.
+  const presentation = tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation);
+  await act(async () => { await presentation.props.submit(); });
   expect(mockSubmit).not.toHaveBeenCalled();
   expect(text()).toContain('Proveri aktuelni Zadatak i aktivan radni profil.');
 });
 it('treats the closed remaining search server rejection as a known refusal that can be reset after refresh', async () => {
   mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osveži Zadatak.' });
-  await offer(); await tap('Pošalji ovu Prijavu');
+  await offer(); await sendOffer();
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Zadatak više ne prima nove prijave');
   await tap('Proveri ishod');
   expect(press('Pregledaj uslove i uredi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
-  expect(text()).toContain('Podaci za prijavu nisu dostupni'); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  expect(text()).toContain('Podaci za prijavu nisu dostupni'); expect(press('Pregledaj ponudu')).toBeUndefined();
   const back = press('Nazad na zadatak'); await act(async () => { back(); back(); });
   expect(mockRouter.replace.mock.calls).toEqual([[{ pathname: '/prilike/[id]', params: { id: mockId } }]]);
 });
@@ -137,14 +145,14 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
   const remount = async () => { await act(async () => tree?.unmount()); tree = undefined; await render(); };
   it('a lost ACK survives a route remount: the original command is restored, never resent automatically, retried with the same key and payload, and cleared on the receipt', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     const original = mockSubmit.mock.calls[0][0];
     expect([...mockStorage.keys()]).toEqual([JOURNAL()]);
     expect(mockStorage.get(JOURNAL())).not.toMatch(/Milan|4\.500|Unos ormara/);
     expect(AsyncStorage.setItem.mock.invocationCallOrder[0]).toBeLessThan(mockSubmit.mock.invocationCallOrder[0]);
     await remount();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
-    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
     expect(text()).toContain('Sačuvana je ista ponuda za proveru ishoda');
     expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('4500'); expect(field('Ljudi').value).toBe('2'); expect(field('Ljudi').editable).toBe(false);
     await tap('Ponovi istu Prijavu');
@@ -152,23 +160,23 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(mockSubmit.mock.calls[1][0].clientRequestId).toBe(original.clientRequestId);
     expect(text()).toContain('Prijava je poslata.'); expect(mockStorage.size).toBe(0);
     await remount();
-    expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(press('Ponovi istu Prijavu')).toBeUndefined();
+    expect(press('Pregledaj ponudu')).toBeDefined(); expect(press('Ponovi istu Prijavu')).toBeUndefined();
   });
   it('the identity is journaled before the send; a storage failure prevents the send and keeps the composer editable', async () => {
     AsyncStorage.setItem.mockRejectedValueOnce(new Error('disk full details'));
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('nije sačuvan na uređaju'); expect(text()).not.toContain('disk full details');
-    expect(press('Pošalji ovu Prijavu')).toBeDefined(); expect(field('Ljudi').editable).toBe(true);
-    await tap('Pošalji ovu Prijavu');
+    expect(press('Pregledaj ponudu')).toBeDefined(); expect(field('Ljudi').editable).toBe(true);
+    await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
   });
   it('another account cannot see or erase the pending command; the same account restores it after a later incarnation', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     const key = JOURNAL();
     mockAccount = { user: { id: 'owner-b' }, accountRevision: 1 };
     await remount();
-    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(press('Pošalji ovu Prijavu')).toBeDefined();
+    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(press('Pregledaj ponudu')).toBeDefined();
     expect(mockStorage.has(key)).toBe(true); expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
     mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 };
     await remount();
@@ -176,7 +184,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
   });
   it('a journal read that lands after an account change is not applied', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     const held = deferred();
     const AsyncStorageMock = jest.requireMock('@react-native-async-storage/async-storage').default as { getItem: jest.Mock };
     AsyncStorageMock.getItem.mockReturnValueOnce(held.promise);
@@ -191,12 +199,12 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await render();
     expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
     expect(text()).toContain('nije čitljiv');
-    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); await tap('Pošalji ovu Prijavu');
+    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
   });
   it('a known refusal of the retried command permits a reset that clears the journal; an unknown outcome keeps it', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     await remount();
     mockSubmit.mockResolvedValueOnce(unconfirmed);
     await tap('Ponovi istu Prijavu');
@@ -209,11 +217,11 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
     await tap('Proveri ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
     await tap('Pregledaj uslove i uredi novu ponudu');
-    expect(mockStorage.size).toBe(0); expect(press('Pošalji ovu Prijavu')).toBeDefined();
+    expect(mockStorage.size).toBe(0); expect(press('Pregledaj ponudu')).toBeDefined();
   });
   it('a malformed receipt from the retried command stays unconfirmed and keeps the journal', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await offer(); await tap('Pošalji ovu Prijavu');
+    await offer(); await sendOffer();
     await remount();
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Server nije vratio potpunu potvrdu radnje.' });
     await tap('Ponovi istu Prijavu');

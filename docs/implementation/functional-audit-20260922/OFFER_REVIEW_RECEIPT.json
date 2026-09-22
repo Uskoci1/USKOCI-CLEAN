@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-22",
+  "sourceBase": "847709e6",
+  "scope": "F10 / B09 review before submission only",
+  "sourceSha256": {
+    "src/ui/v2/ApplicationSelectionPresentation.tsx": "b2c704a068140fb90fbceb0202fa3fb34a1266cb5e6f376376a5f9fbae99be92",
+    "src/data/__tests__/application-selection-native.test.tsx": "9a095b04dffacb780ec0d9842556003b2ffb2b41bc942d01fd3c5c983567fa9b",
+    "src/data/__tests__/application-composer-read.test.tsx": "fea26e8394ddc568f15c5c489098127a11d15cc39d17d37b1ec6720bab2f4adc",
+    "outputs/native-product-review-20260922/review.tsx": "12dd5692186c53a555b7d3433859743bc0b93a5f286b6f3fc399498dbbfc1f15"
+  },
+  "typecheck": {
+    "exitCode": 0,
+    "afterFinalLayout": true
+  },
+  "jest": {
+    "exitCode": 0,
+    "suites": 242,
+    "tests": 4704,
+    "failed": 0,
+    "teardownWarning": true,
+    "report": "outputs/native-product-review-20260922/jest-offer-review-final.json"
+  },
+  "negativeProof": {
+    "predecessor": "6d3c7ead",
+    "newTestsFailedBefore": 4,
+    "currentSourceRestored": true,
+    "report": "outputs/native-product-review-20260922/jest-offer-review-before.json"
+  },
+  "browser": {
+    "actualProductionComponent": true,
+    "fixtureOnly": true,
+    "widthSelections": [
+      320,
+      390
+    ],
+    "reviewValues": "INSPECTED",
+    "returnPreservesDraft": "PASS",
+    "sendNotInvoked": true,
+    "screenshots": "INSPECTED_INLINE_NOT_SAVED",
+    "footer": "DOM_BOUNDS_INSIDE_VIEWPORT; captured image clips bottom; visual acceptance pending",
+    "nativeKeyboardAndBack": "NOT_TESTED"
+  },
+  "nativeAuthenticatedAcceptance": "PENDING_OWNER_UNAVAILABLE",
+  "claudeReview": "PENDING",
+  "apkStatus": "NOT_YET_DISPATCHED",
+  "serverChanged": false,
+  "dependenciesChanged": false,
+  "credentialsHandled": false,
+  "authBypassed": false,
+  "providerCalled": false
+}
