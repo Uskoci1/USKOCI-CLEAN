@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+Native connected design slice20260922: ProductDetails now frames task details, applications,
+Agreement overview, AI intake and settings; compact underlined views, larger real-profile identities,
+existing colored FactArt navigation and reduced-motion handling are implemented. Filter attention/price
+now apply atomically, and cancelling the sheet discards both drafts. Full Jest242/4689 and types pass;
+new APK/device verification is pending at this entry's first commit. See
+docs/implementation/DESIGN_NATIVE_CONNECTED_SLICES_20260922.md for scope, research, reuse candidates,
+evidence and the missing server-owned Agreement subject links. No dependencies or DEV state changed.
+
 Design direction, owner clarification 2026-09-22: preserve the supplied V28 HTML's colored illustrated
 icons, palette, clean legibility and inset bottom-navigation character. Improve density using V31 as a
 comparison; do not revert to the old native visuals or generic icons. See

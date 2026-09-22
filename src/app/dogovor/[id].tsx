@@ -9,8 +9,8 @@ import { sys } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, stateTone } from '../../ui/agreements/AgreementWorkspace';
-import { DetailTopBar } from '../../ui/system/DetailTopBar';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows } from '../../ui/agreements/AgreementWorkspace';
+import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -43,7 +43,7 @@ async function bounded<T>(operation: () => Promise<T>): Promise<T> {
 function backToAgreements() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 function AgreementStatus({ loading = false, error = false, retry }: { loading?: boolean; error?: boolean; retry?: () => void }) {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar eyebrow={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" onBack={backToAgreements} />
+    <ProductHeader subtitle={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" back={backToAgreements} />
     <View style={s.status} accessibilityLiveRegion="polite">
       {loading ? <><SkeletonCard rows={2} /><T accessibilityLabel="Učitavanje Dogovora" variant="meta" tone="muted" style={s.center}>Učitavamo Dogovor…</T></> : <>
         <T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
@@ -206,7 +206,6 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
 
   // ---- presentation (state above is untouched by PKG-011) ----
-  const tone = stateTone(dogovor.stanje);
   const openMessages = () => setTab('poruke');
   const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak';
   const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
@@ -267,8 +266,8 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DetailTopBar onBack={backToAgreements} tone={tab === 'poruke' ? 'muted' : tone}
-        eyebrow={tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : agreementStateText(dogovor.stanje)} title={tab === 'poruke' ? 'Poruke' : 'Dogovor'} />
+      <ProductHeader back={backToAgreements}
+        subtitle={tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : agreementStateText(dogovor.stanje)} title={tab === 'poruke' ? 'Poruke' : 'Dogovor'} />
       <View style={s.tabs}>
         {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
         <AgreementTabs tab={tab} onChange={setTab} />
@@ -277,7 +276,7 @@ function DogovorContent({ id, accountId, accountRevision }: { id: string; accoun
         writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
         support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-          <WorkspaceCard><AgreementHero agreement={dogovor} /></WorkspaceCard>
+          <AgreementHero agreement={dogovor} />
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
               <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.</T>

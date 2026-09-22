@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
-import { DetailTopBar } from '../system/DetailTopBar';
+import { ProductHeader } from '../product/ProductDetails';
 import { brandAction, card, iconButton, sys } from '../system/tokens';
 import { nested } from '../../theme/tokens';
 import { T } from '../Text';
@@ -28,7 +28,7 @@ export function SettingsScreen({ title, eyebrow, onBack, disabled = false, child
   title: string; eyebrow?: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-    <DetailTopBar eyebrow={eyebrow} title={title} onBack={onBack} disabled={disabled} />
+    <ProductHeader subtitle={eyebrow} title={title} back={onBack} disabled={disabled} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>
     {footer ? <View testID="settings-primary-footer" style={styles.footer}>{footer}</View> : null}
   </SafeAreaView>;
@@ -85,7 +85,7 @@ export const settingsStyles = StyleSheet.create({
   avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10, ...sys.elevation.soft },
   avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
   name: { ...sys.type.pageTitle, textAlign: 'center' },
-  /** The role switch: one segmented control, the other role is one explicit tap away. */
+  /** A status badge within the shared account, never a global role switch. */
   intent: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   logout: { paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line, marginTop: 6, marginBottom: 12, alignItems: 'flex-start' },
   notice: { padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft, flexDirection: 'row', gap: 10 },
@@ -96,7 +96,7 @@ export const settingsStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   header: { minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', gap: 10, alignItems: 'center' },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, flexGrow: 1 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, gap: 8 },
   body: { ...sys.type.body },
   strong: { ...sys.type.bodyStrong },

@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
+import { CaretRight, PaperPlaneTilt } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
-import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
+import { DetailPairs, DisclosureGroup, DisclosureRow, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
+import { ProductFact, ProductFacts, ProductHeader, ProductRequirements, ProductTitle } from '../product/ProductDetails';
+import { FactArt } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -49,14 +51,13 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
 }
 
 /**
- * The owner's Task (V5 "Jedna objava"): what comes next, the title, four facts in a
- * grid, the description, photos, the applications row, place and conditions behind
- * two rows, lifecycle. One brand action in the footer: review for a draft,
+ * The owner's Task: next step, title, readable facts and requirements, description,
+ * photos, approximate map, applications and lifecycle. One footer action: review for a draft,
  * applications for a published Task. Only existing controller callbacks act.
  */
 export function NeedPresentation(props: NeedPresentationProps) {
   const { need, loading, error, busy, remainingClosed } = props;
-  const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
+  const [expanded, setExpanded] = useState(false);
   // This is the owner's view of their own Zadatak: the route reads it through the owner-only read,
   // so there is no "other side of the app" from which it could be seen without the right to act.
   const draft = need?.stanje === 'NACRT';
@@ -70,7 +71,6 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const primaryLabel = busy && !loading ? 'Radnja je u toku…'
     : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
   const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
-  const toggle = (key: 'location' | 'requirements') => setExpanded(current => current === key ? null : key);
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   // The owner's own task shows the same sentence a stranger sees, totals included.
   const price = need ? needPriceText(need, { withTotal: true }) : '';
@@ -78,7 +78,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const forSelection = need?.brojPrijavaZaIzbor;
   const hasSelection = (forSelection ?? 0) > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar title="Zadatak" onBack={props.onBack} />
+    <ProductHeader title="Zadatak" back={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
         {props.lifecycleActions}
       </View>
@@ -93,20 +93,21 @@ export function NeedPresentation(props: NeedPresentationProps) {
         <View style={s.hero}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <T accessibilityRole="header" style={s.heroTitle}>{readableTitle(need.naslov)}</T>
+          <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>
         </View>
-        <FactGrid>
-          <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <Fact icon={Clock} label="Termin" value={need.vremeTekst} />
-          <Fact icon={Wallet} label="Budžet" value={price} money={need.rezimCene !== 'OFFERS' && !!need.ponudjenaCena} />
-          <Fact icon={Users} label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
-        </FactGrid>
+        <ProductFacts>
+          <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
+          <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
+          <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
+          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent />
+        </ProductFacts>
+        <ProductRequirements rows={requirements} />
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
+        {props.photos}
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the
             point and the owner's own read never asked for it. Same coarse pair, same map. */}
         {!remote && props.map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{props.map}
           <T variant="note" tone="muted">Ovako drugi vide mesto. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
-        {props.photos}
         {/* The strip at the top already carries the blocking reason; this card repeated it word for
             word further down, so a blocked draft stated its one problem twice in two boxes. It is
             now only what it was for: what to do with a draft that is not blocked. */}
@@ -117,7 +118,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View> : null}
         {!draft ? <DisclosureGroup>
           <Press accessibilityRole="button" accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`} onPress={props.onCandidates} haptic="select" scaleTo={0.99} style={s.row}>
-            <View style={s.rowIcon}><PaperPlaneTilt size={20} color={sys.color.green} /></View>
+            <FactArt kind="offers" size={32} />
             <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>Prijave za ovaj zadatak</T>
               <T variant="note" tone={hasSelection ? 'ink' : 'muted'} style={hasSelection ? s.attention : null}>{hasSelection ? `${prijave(forSelection!)} za izbor` : forSelection == null ? 'Broj prijava za izbor trenutno nije dostupan.' : need.brojPrijava ? 'Trenutno nema prijava za izbor.' : 'Još nema pristiglih ponuda.'}</T>
               {need.brojPrijava > 0 ? <T variant="note" tone="muted">{`Ukupno ${prijave(need.brojPrijava)}`}</T> : null}</View>
@@ -127,12 +128,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {need.pokrivenost.popunjeno === 0 && !remainingClosed && need.stanje !== 'ZATVORENA' ? <View style={s.rowDivider}><V2Action label="Izmeni Zadatak" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.rowAction} /></View> : null}
         </DisclosureGroup> : null}
         <DisclosureGroup>
-          <DisclosureRow first label="Mesto izvršenja" detail={need.detalji?.geografija ? rows[0]?.value : 'Približno područje'} expanded={expanded === 'location'} onPress={() => toggle('location')}>
+          <DisclosureRow first label="Mesto izvršenja" detail={need.detalji?.geografija ? rows[0]?.value : 'Približno područje'} expanded={expanded} onPress={() => setExpanded(current => !current)}>
             {!need.detalji?.geografija ? <T variant="note" tone="muted">Javna struktura lokacije nije dostupna. Prikazano je približno područje.</T> : null}
             <DetailPairs rows={[...rows, ...(need.taskCountryCode ? [{ label: 'Država', value: need.taskCountryCode }] : [])]} />
-          </DisclosureRow>
-          <DisclosureRow label="Svi uslovi" detail={requirements.length ? 'Veštine, oprema i uslovi rada' : 'Nema dodatih uslova'} expanded={expanded === 'requirements'} onPress={() => toggle('requirements')}>
-            {requirements.length ? <DetailPairs rows={requirements} /> : <T variant="note" tone="muted">Nema dodatih uslova.</T>}
           </DisclosureRow>
         </DisclosureGroup>
         {remainingClosed ? <View style={[card, s.mutedCard]}><T variant="heading" style={s.ink}>Preostala potraga je zatvorena</T><T variant="note" tone="muted">Originalni Zadatak i postojeći Dogovori ostaju nepromenjeni.</T></View>
@@ -152,10 +150,9 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 },
   state: { padding: 20, gap: 16 },
-  content: { padding: 20, paddingTop: 6, paddingBottom: 28, gap: 16 },
+  content: { padding: 20, paddingTop: 16, paddingBottom: 28, gap: 20 },
   hero: { gap: 8, marginTop: 4 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  heroTitle: { ...sys.type.hero, color: sys.color.ink },
   section: { gap: 8 },
   description: { color: sys.color.ink, lineHeight: 26 },
   // Orange is the one action and the one mark of attention. This box is neither: the strip at the
@@ -163,7 +160,6 @@ const s = StyleSheet.create({
   // a static instruction as well left three orange things on one screen, none of them the step.
   draftCard: { gap: 8 }, mutedCard: { backgroundColor: sys.color.wash, gap: 6 },
   row: { minHeight: 64, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 }, rowDivider: { borderTopWidth: 1, borderColor: sys.color.line },
   rowAction: { alignSelf: 'flex-start', marginHorizontal: 12 },
   attention: { color: sys.color.warn, fontWeight: '600' },

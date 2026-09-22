@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
-import { DetailTopBar } from '../system/DetailTopBar';
+import { ProductHeader } from '../product/ProductDetails';
 import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { aiFirst as a } from './tokens';
 
@@ -66,7 +66,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, []);
   return <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DetailTopBar eyebrow={p.subtitle} title={p.title} onBack={p.onBack}
+      <ProductHeader subtitle={p.subtitle} title={p.title} back={p.onBack}
         right={<Press accessibilityRole="button" accessibilityLabel="Opcije" accessibilityHint="Opcije razgovora." onPress={p.onOptions} haptic="select" style={iconButton}>
           <DotsThree size={26} weight="bold" color={sys.color.ink} /></Press>} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one
@@ -149,10 +149,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
 function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
   const life = useSharedValue(0);
   useEffect(() => {
-    if (reduced) { life.value = 0.5; return; }
-    life.value = withDelay(index * 140, withRepeat(withTiming(1, { duration: 520 }), -1, true));
+    if (reduced) { cancelAnimation(life); life.set(0.5); return; }
+    life.set(withDelay(index * 140, withRepeat(withTiming(1, { duration: 520 }), -1, true)));
+    return () => cancelAnimation(life);
   }, [index, life, reduced]);
-  const style = useAnimatedStyle(() => ({ opacity: 0.25 + life.value * 0.6, transform: [{ translateY: -life.value * 3 }] }));
+  const style = useAnimatedStyle(() => ({ opacity: 0.25 + life.get() * 0.6, transform: [{ translateY: reduced ? 0 : -life.get() * 3 }] }));
   return <Animated.View style={[s.dot, style]} />;
 }
 
@@ -187,10 +188,10 @@ const s = StyleSheet.create({
   thread: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 28, gap: 22 },
   threadEmpty: { justifyContent: 'center', paddingBottom: 60 },
   welcome: { gap: 12, paddingTop: 14, paddingBottom: 8, maxWidth: 330 },
-  welcomeTitle: { color: sys.color.ink },
+  welcomeTitle: { ...sys.type.hero, color: sys.color.green },
   welcomeCopy: { lineHeight: 24 },
   openings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
-  opening: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: sys.radius.pill,
+  opening: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.wash },
   openingText: { color: a.color.green, fontWeight: '600' },
   message: { gap: 8, alignSelf: 'flex-start', maxWidth: '94%' },

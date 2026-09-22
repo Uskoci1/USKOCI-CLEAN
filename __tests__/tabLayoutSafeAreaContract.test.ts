@@ -4,6 +4,8 @@ import { join, relative, resolve } from 'path';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
 import TabLayout from '../src/app/(app)/_layout';
+let mockReducedMotion = false;
+jest.mock('../src/hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReducedMotion }));
 
 // Component configuration tests, not rendered Android/Router or device proof.
 jest.mock('expo-router', () => {
@@ -52,6 +54,15 @@ function routeFiles(directory: string): string[] {
 }
 
 describe('V3 one-shell navigation and system navigation clearance', () => {
+  afterEach(() => { mockReducedMotion = false; });
+  it('disables detail shifts with reduced motion while retaining instant peer tabs', () => {
+    mockReducedMotion = true;
+    const { screens, options } = configuration();
+    expect(options.animation).toBe('none');
+    for (const name of detailRoutes) {
+      expect(screens.find(screen => screen.name === name)?.options).toMatchObject({ animation: 'none' });
+    }
+  });
   // Owner decision 1 (2026-09-19) supersedes the two intent-shaped shells of 2026-09-16: the same
   // account owns tasks, applies to others and holds Dogovori on both sides, under one set of tabs.
   it('exposes Početna, the shared map and Dogovori, in that order, for every account', () => {

@@ -53,7 +53,9 @@ test('a published Task leads with its state, price and people, shows the applica
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
   expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
   expect(brand()).toEqual(['Pogledaj prijave']);
-  expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false }); expect(byLabel('Svi uslovi')).toBeTruthy();
+  expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
+  // Required equipment is now readable immediately, before any disclosure is opened.
+  expect(copy).toContain('Trake');
 });
 test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });

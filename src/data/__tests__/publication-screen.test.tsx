@@ -191,7 +191,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
 });
 
 describe('V2 saved Need presentation', () => {
-  it('shows authoritative detail values and every location/requirement on explicit disclosure', async () => {
+  it('shows every authoritative requirement immediately and preserves all location stops on disclosure', async () => {
     mockNeed.mockResolvedValue({ ...need(), opis: 'Čćšžđ '.repeat(800), rezimCene: 'OFFERS', taskCountryCode: 'RS',
       vremeTekst: '10. sep 2026 · 18:00 – 10. sep 2026 · 19:00 (Europe/Belgrade)',
       schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-10T16:00:00Z', endsAt: '2026-09-10T17:00:00Z' },
@@ -203,11 +203,12 @@ describe('V2 saved Need presentation', () => {
     // The category is not shown to people (owner decision 2026-09-21); the server reads it only to match.
     expect(texts()).not.toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
     expect(texts()).toContain('19:00'); expect(texts()).toContain('Čćšžđ '.repeat(800));
+    for (const value of ['• Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
     expect(texts()).not.toContain('Petrovaradin');
     await act(async () => press('Mesto izvršenja').props.onPress());
     for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'RS']) expect(texts()).toContain(value);
-    await act(async () => press('Svi uslovi').props.onPress());
-    expect(texts()).not.toContain('Petrovaradin');
+    // Reading location no longer collapses the independently visible requirements.
+    expect(texts()).toContain('Petrovaradin');
     for (const value of ['• Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
     expect(texts()).not.toContain('Revizija 7');

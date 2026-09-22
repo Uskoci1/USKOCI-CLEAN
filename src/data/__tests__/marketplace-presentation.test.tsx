@@ -64,8 +64,24 @@ test.each(['loading', 'error'])('%s removes stale cards/map; retry is bound', as
 });
 test('owned active/draft/attention filters use actual rows and full long title remains readable', async () => {
  owned = true; const long = 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu '.repeat(3); rows = [row('one', { naslov: long, stanje: 'OBJAVLJENA', brojPrijava: 1 }), row('two', { stanje: 'NACRT', brojPrijava: 0 })];
- await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja'); expect(snapshot.attention).toBe(true); await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await tap('Treba moja radnja'); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
+ await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja');
+ expect(snapshot.attention).toBe(false); await click('Prikaži zadatke'); expect(snapshot.attention).toBe(true);
+ await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
+ await tap('Filteri, aktivni'); await tap('Treba moja radnja'); await click('Prikaži zadatke'); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
+});
+
+test('attention and price are one filter draft: cancel, system back and reset have consistent effects', async () => {
+ owned = true; rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 1 })];
+ await render(); await tap('Filteri'); await tap('Treba moja radnja'); await tap('Tražim ponude');
+ await click('Odustani od filtera'); expect(snapshot).toMatchObject({ attention: false, price: 'all' });
+ await tap('Filteri'); await tap('Treba moja radnja');
+ await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose());
+ expect(snapshot.attention).toBe(false);
+ await tap('Filteri'); await tap('Treba moja radnja'); await tap('Navedena cena'); await click('Prikaži zadatke');
+ expect(snapshot).toMatchObject({ attention: true, price: 'MY_PRICE' });
+ await tap('Filteri, aktivni'); await click('Poništi izbor');
+ expect(snapshot).toMatchObject({ attention: true, price: 'MY_PRICE' });
+ await click('Prikaži zadatke'); expect(snapshot).toMatchObject({ attention: false, price: 'all' });
 });
 test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {
  await render(); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(1);

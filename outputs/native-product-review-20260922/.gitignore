@@ -1,0 +1,7 @@
+review.bundle.js
+metro-log.txt
+screenshots/
+.metro-cache/
+*.log
+jest-*.json
+apk/

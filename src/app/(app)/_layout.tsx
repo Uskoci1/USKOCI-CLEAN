@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { House, Handshake, MapPin } from 'phosphor-react-native';
+import { FactArt } from '../../ui/system/FactArt';
+import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
@@ -21,7 +22,7 @@ import { T } from '../../ui/Text';
  * why walking through the app felt like redrawing rather than going somewhere. Switching between
  * the three real tabs stays instant, which is what the tab contract records and what a tab bar is for.
  */
-const PUSHED = { animation: 'shift' as const,
+const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.enter } } };
 
 /**
@@ -37,11 +38,12 @@ const PUSHED = { animation: 'shift' as const,
 // the bottom edge abandoned an unfinished Zadatak. The four spine details added on 2026-09-20 are
 // the same shape: each ends in one sticky action, and none of them is a tab, so no tab was ever
 // current while they were open.
-const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
-
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
+  const reducedMotion = useSystemReducedMotion();
+  const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
+  const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
   return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
@@ -64,16 +66,16 @@ export default function TabLayout() {
         height: 66 + Math.ceil(Math.max(0, fontScale - 1) * 32), padding: 4,
         marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna',
-      tabBarIcon: ({ color, focused }) => <House size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ focused }) => <FactArt kind="tasks" size={30} muted={!focused} /> }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa',
-      tabBarIcon: ({ color, focused }) => <MapPin size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ focused }) => <FactArt kind="map" size={30} muted={!focused} /> }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
-      tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ focused }) => <FactArt kind="agreements" size={30} muted={!focused} /> }} />
     <Tabs.Screen name="profil" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...PUSHED }} />

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { fixedApplicationPeople, needPriceText, readableTitle } from '../../data/needDetailPresentation';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CalendarBlank, CaretRight, Clock, PaperPlaneTilt, Star, Users } from 'phosphor-react-native';
+import { CaretRight, PaperPlaneTilt, Star } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -13,8 +13,9 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { ProfilePhoto } from '../media/ContextPhotos';
-import { DetailTopBar } from '../system/DetailTopBar';
-import { dolaziOsoba, osoba } from '../system/plural';
+import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { FactArt } from '../system/FactArt';
+import { dolaziOsoba, osoba, prijava, plural } from '../system/plural';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -36,13 +37,13 @@ function candidateState(k: KandidatProjekcija): string {
 const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys.color.green : k.stanje === 'SELECTED' ? sys.color.green
   : k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? sys.color.warn : sys.color.muted;
 
-/** Full-screen frame of the application/selection flow: back, eyebrow, title, keyboard-safe body, sticky footer. */
-function SelectionFrame({ title, subtitle, back, children, footer, scroll = true }: {
-  title: string; subtitle?: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean;
+/** Shared identity, keyboard-safe body and one next action. */
+function SelectionFrame({ title, back, children, footer, scroll = true }: {
+  title: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean;
 }) {
   const reduced = useReducedMotion();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar backLabel="Nazad na zadatak" eyebrow={subtitle} title={title} onBack={back} />
+    <ProductHeader backLabel="Nazad na zadatak" title={title} back={back} />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       {scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} style={s.stack}>{children}</Animated.View>
@@ -62,7 +63,7 @@ function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) 
   return <View style={s.context}><T variant="meta" style={s.eyebrow}>Zadatak</T><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
     <T variant="meta" tone="muted">{need.podrucjeTekst}</T><T variant="meta" tone="muted">{need.vremeTekst}</T>
     <View style={s.row}><T style={[s.contextPrice, need.rezimCene !== 'MY_PRICE' && s.offers]}>{needPriceText(need)}</T>
-      <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} ljudi</T></View></View>
+      <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} mesta</T></View></View>
   </View>;
 }
 function BrandAction({ label, onPress, disabled, send }: { label: string; onPress: () => void; disabled?: boolean; send?: boolean }) {
@@ -150,7 +151,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Termin</T>
       <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
         onPress={() => setEditingTime(true)} style={s.term}>
-        <CalendarBlank size={22} color={sys.color.green} />
+        <FactArt kind="calendar" size={32} />
         <T variant="bodyStrong" style={[s.ink, s.grow]}>{exact ?? fixed ?? need.vremeTekst}</T>
         <CaretRight size={20} color={sys.color.muted} />
       </Press>
@@ -170,10 +171,9 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
       close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
   </SelectionFrame>;
 }
-/** The screen where one offer is accepted showed a monogram, while the list that leads to it shows
- *  a face. Same person, two screens, two different people as far as the eye is concerned. */
+/** The same public-profile photo follows the person from list to full offer. */
 function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatProjekcija; publicProfile: () => void }) {
-  return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={64} initial={candidate.inicijali} />
+  return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={80} initial={candidate.inicijali} />
     <View style={[s.grow, { gap: 3 }]}>
       <T style={s.candidateName}>{candidate.ime}</T>
       {candidate.ocenaTekst !== '—' ? <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
@@ -182,27 +182,14 @@ function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatPr
       <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
     </View></View>;
 }
-/**
- * One candidate as the eye meets it while scanning: the face, the name, how they are rated, how
- * much, how many people. Nothing else.
- *
- * The row used to carry nine lines and its own orange button. Five offers meant five orange
- * buttons, so the screen where a person makes one decision was a wall of the colour that is
- * supposed to mean "this is the step". The whole card is the button now, the orange waits for the
- * offer screen, and the term, the declared skills and the message wait with it — none of them
- * decides who you open first.
- *
- * The state band is the same idea. "Poslata prijava" printed on every row is not information; it
- * is the ordinary case. So the band appears only when the answer is something else, and then it
- * is a full line instead of a chip squeezed into 45% of the width.
- */
-function CandidateRow({ candidate: k, open }: { candidate: KandidatProjekcija; open: () => void }) {
+/** Price, offered capacity and proposed time are visible before opening an offer. */
+function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} haptic="select" scaleTo={0.985}
     onPress={open} style={s.candidate}>
     <View style={s.candidateHead}>
-      <ProfilePhoto profileId={k.radnikProfilId} size={56} initial={k.inicijali} />
+      <ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
       <View style={s.grow}>
-        <T style={s.candidateName} numberOfLines={1}>{k.ime}</T>
+        <T style={s.candidateName}>{k.ime}</T>
         {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">Nov na USKOČI</T>
           : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
             <T variant="meta" tone="muted">{k.ocenaTekst} · {k.recenzijeTekst}</T></View>}
@@ -210,9 +197,11 @@ function CandidateRow({ candidate: k, open }: { candidate: KandidatProjekcija; o
       <CaretRight size={20} color={sys.color.muted} />
     </View>
     <View style={s.candidateFoot}>
-      <T style={s.price}>{k.cena.prikaz}</T>
-      <View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="meta" tone="muted">{osoba(k.pokrivaMesta)}</T></View>
+      <View style={s.grow}><T style={s.price}>{k.cena.prikaz}</T><T variant="meta" tone="muted">Ukupno</T></View>
+      <View style={s.inline}><FactArt kind="users" size={26} /><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     </View>
+    <View style={s.inline}><FactArt kind="calendar" size={24} /><T variant="meta" tone="muted" style={s.grow}>
+      {applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
     {k.stanje === 'SELECTABLE' ? null
       : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
   </Press>;
@@ -224,8 +213,9 @@ function CandidateRow({ candidate: k, open }: { candidate: KandidatProjekcija; o
 function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} haptic="select" scaleTo={0.985}
     onPress={open} style={s.comparison}>
-    <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{k.ime}</T>
-    <T variant="meta" tone="muted" numberOfLines={1}>{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T>
+    <View style={s.compareIdentity}><ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
+      <T variant="bodyStrong" style={s.ink}>{k.ime}</T>
+      <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Nov na USKOČI' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>
@@ -239,24 +229,24 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
 }) {
   const [compare, setCompare] = useState(false);
+  const { width, fontScale } = useWindowDimensions();
+  const columns = compare && width >= 360 && fontScale < 1.3 ? 2 : 1;
   // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
   // The list that was already there settles silently, and switching to the comparison and back is
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
   const appear = useAppear();
   appear.settle(candidates.map(k => k.prijavaId));
-  return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} subtitle="Ponude ljudi koji mogu da uskoče" back={compare ? () => setCompare(false) : back} scroll={false}>
-    <FlatList key={compare ? 'comparison' : 'offers'} numColumns={compare ? 2 : 1} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
+  return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}>
+    <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
-        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{candidates.length} konkretnih ponuda · još {need.pokrivenost.preostalo} ljudi</T>
+        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{prijava(candidates.length)} · još {plural(need.pokrivenost.preostalo, 'mesto', 'mesta', 'mesta')}</T>
           {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
-        {compare ? <View style={s.compareIntro}><T variant="meta" style={s.eyebrow}>Konkretne ponude</T><T accessibilityRole="header" variant="title" style={s.ink}>Uporedi isti obim, ne samo cenu.</T>
-          <T variant="meta" tone="muted">Cena, broj ljudi i termin pripadaju svakoj pojedinačnoj ponudi.</T></View> : null}
       </View>}
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
-      renderItem={({ item: k, index }) => <Appear index={index} animate={appear.isNew(k.prijavaId)}>
+      renderItem={({ item: k, index }) => <Appear index={index} animate={appear.isNew(k.prijavaId)} style={columns === 2 ? s.comparisonColumn : undefined}>
         {compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
-          : <CandidateRow candidate={k} open={() => open(k)} />}
+          : <CandidateRow candidate={k} need={need} open={() => open(k)} />}
       </Appear>}
       ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
   </SelectionFrame>;
@@ -300,7 +290,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     } catch { if (request === profileRequest.current) setProfile({ loading: false, data: null }); }
   };
   const evidence = candidate.dokazPrijave;
-  return <SelectionFrame title={review || pending ? 'Pregled izbora' : 'Ponuda'} subtitle="Izbor konkretne Prijave" back={back}
+  return <SelectionFrame title={review || pending ? 'Pregled izbora' : 'Ponuda'} back={back}
     footer={confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
       : candidate.stanje === 'SELECTED' && !pending ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
       : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
@@ -309,15 +299,11 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       : candidate.mozeIzabrati ? <BrandAction label="Pregledaj povezivanje" onPress={() => setReview(true)} /> : undefined}>
     <TaskContext need={need} />
     <View style={s.card}><CandidateIdentity candidate={candidate} publicProfile={() => { void openProfile(); }} />
-      <View style={s.divider} />
-      <T variant="label" tone="muted" style={s.compareLabel}>Ukupno za {dolaziOsoba(candidate.pokrivaMesta)}</T>
-      <T style={s.priceLarge}>{candidate.cena.prikaz}</T>
-      <View style={s.factRow}>
-        <View style={s.fact}><View style={s.inline}><Users size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T></View>
-          <T variant="bodyStrong" style={s.ink}>{osoba(candidate.pokrivaMesta)}</T></View>
-        <View style={s.fact}><View style={s.inline}><Clock size={16} color={sys.color.muted} /><T variant="label" tone="muted" style={s.compareLabel}>Termin</T></View>
-          <T variant="bodyStrong" style={s.ink}>{applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
-      </View>
+      <ProductFacts>
+        <ProductFact art="money" label={`Ukupno za ${dolaziOsoba(candidate.pokrivaMesta)}`} value={candidate.cena.prikaz} prominent />
+        <ProductFact art="users" label="Ljudi" value={osoba(candidate.pokrivaMesta)} />
+        <ProductFact art="calendar" label="Termin" value={applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst} />
+      </ProductFacts>
       {candidate.stanje === 'SELECTABLE' ? null
         : <View style={s.stateBand}><T variant="bodyStrong" style={{ color: candidateTone(candidate) }}>{candidateState(candidate)}</T></View>}</View>
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Poruka uz prijavu</T><T variant="body" style={s.ink}>{candidate.napomena || 'Nema dodatne poruke.'}</T></View>
@@ -337,15 +323,16 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   </SelectionFrame>;
 }
 const s = StyleSheet.create({
+  compareIdentity: { minHeight: 156, gap: 8 },
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
   eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink }, muted: { color: sys.color.muted },
-  content: { padding: 20, paddingTop: 4, paddingBottom: 28 },
+  content: { padding: 20, paddingTop: 16, paddingBottom: 28 },
   card: { ...card, gap: 10 },
   cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   warnCard: { backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.card, padding: 18, gap: 8 },
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
-  context: { ...card, gap: 4 },
-  contextTitle: { ...sys.type.cardTitle, color: sys.color.ink, marginBottom: 4 },
+  context: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, gap: 4 },
+  contextTitle: { ...sys.type.cardTitle, color: sys.color.green, marginBottom: 4 },
   contextPrice: { ...sys.type.priceSmall, color: sys.color.money, flex: 1 }, offers: { ...sys.type.bodyStrong, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   pill: { paddingVertical: 4 }, pillText: { color: sys.color.ink, fontWeight: '600' },
@@ -356,12 +343,9 @@ const s = StyleSheet.create({
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  priceLarge: { ...sys.type.priceLarge, color: sys.color.money },
-  factRow: { flexDirection: 'row', gap: 12, paddingTop: 12, borderTopWidth: 1, borderColor: sys.color.line },
-  fact: { flex: 1, minWidth: 0, gap: 4 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'] },
-  listHeader: { gap: 14, marginBottom: 14 }, compareIntro: { gap: 4 },
+  listHeader: { gap: 14, marginBottom: 14 },
   candidate: { ...card, gap: 12, padding: 18 },
   candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   candidateName: { ...sys.type.cardTitle, color: sys.color.ink },
@@ -370,9 +354,8 @@ const s = StyleSheet.create({
   stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
   price: { ...sys.type.price, color: sys.color.money },
   comparison: { ...card, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
+  comparisonColumn: { flex: 1, minWidth: 0 },
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
   comparePrice: { ...sys.type.priceSmall, color: sys.color.money },
-  divider: { height: 1, backgroundColor: sys.color.line, marginVertical: 2 },
-  avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }, initial: { color: sys.color.green },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 }, footerAction: { alignSelf: 'center', marginTop: 8 },
 });

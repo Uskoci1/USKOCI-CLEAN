@@ -54,7 +54,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' },
   FadeIn: { duration: (duration: number) => ({ duration }) },
   FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
-  useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value }),
+  useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', G: 'SvgGroup',

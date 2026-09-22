@@ -7,7 +7,7 @@ import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceVie
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
-import { DetailTopBar } from '../system/DetailTopBar';
+import { ProductHeader } from '../product/ProductDetails';
 import { zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
@@ -46,6 +46,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const relationOf = useCallback((item: MarketplaceItem) => owned || !relations ? undefined
     : relations.owned.has(item.id) ? 'OWNED' as const : relations.applied.has(item.id) ? 'APPLIED' as const : undefined, [owned, relations]);
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
+  const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
   const visible = useMemo(() => marketplaceItems(items, view, owned), [items, view, owned]);
   const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
@@ -57,7 +58,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
   const toggleMode = (mode: 'list' | 'map') => { Keyboard.dismiss(); change({ mode }); };
   const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
-  const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setFilterOpen(true); };
+  const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setAttentionDraft(view.attention); setFilterOpen(true); };
   // What the list is, in the two words the product uses for its two sides. It used to name the
   // global mode the app was in; there is no such mode any more.
   const eyebrow = owned ? 'Moje aktivnosti' : 'Uskoči i zaradi', title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
@@ -105,15 +106,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     <View accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}
-      {/* Search and filters sit in the top bar, and the segment has the row under it to itself.
-          Sharing one row left the segment 217dp on a 361dp phone, and three sections need more than
-          that as soon as the reader has enlarged their text — "Istorija" was cut through the middle.
-          The count is not a control either: it belongs with what it counts, at the top of the list. */}
-      {props.onBack ? <DetailTopBar eyebrow={eyebrow} title={title} onBack={props.onBack} right={headerControls} />
-        : <ScreenHeader eyebrow={eyebrow} title={title} onProfile={props.onProfile} right={headerControls} />}
+      {/* Underlined views scroll at large text sizes; search and filters keep full touch targets. */}
+      {props.onBack ? <ProductHeader subtitle={eyebrow} title={title} back={props.onBack} />
+        : <ScreenHeader eyebrow={eyebrow} title={title} onProfile={props.onProfile} />}
       <View style={s.controls}>
-        {owned ? <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
-          : <Segmented options={MODES} value={view.mode} onChange={toggleMode} />}
+        <View style={s.grow}>{owned ? <Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
+          : <Segmented appearance="underline" options={MODES} value={view.mode} onChange={toggleMode} />}</View>
+        {headerControls}
       </View>
       {searchOpen ? <View style={s.search}>
         <MagnifyingGlass size={19} color={sys.color.muted} />
@@ -165,14 +164,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             <T variant={priceDraft === value ? 'bodyStrong' : 'body'} style={s.optionText}>{label}</T>
           </Press>)}
         </View>
-        {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: view.attention }} haptic="select"
-          onPress={() => change({ attention: !view.attention })} style={[s.option, view.attention && s.optionChecked]}>
-          <View style={[s.check, view.attention && s.checked]}>{view.attention ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
-          <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Samo zadaci sa novim prijavama ili potvrdom.</T></View>
+        {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: attentionDraft }} haptic="select"
+          onPress={() => setAttentionDraft(value => !value)} style={[s.option, attentionDraft && s.optionChecked]}>
+          <View style={[s.check, attentionDraft && s.checked]}>{attentionDraft ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
+          <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Zadaci sa prijavama koje možeš da izabereš.</T></View>
         </Press> : null}
-        <V2Action label="Prikaži zadatke" onPress={() => { change({ price: priceDraft, selectedId: null }); setFilterOpen(false); }} style={brandAction} />
+        <V2Action label="Prikaži zadatke" onPress={() => { change({ price: priceDraft, attention: attentionDraft, selectedId: null }); setFilterOpen(false); }} style={brandAction} />
         <View style={s.sheetRow}>
-          <V2Action label="Poništi izbor" kind="quiet" onPress={() => setPriceDraft('all')} />
+          <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setPriceDraft('all'); setAttentionDraft(false); }} />
           <V2Action label="Odustani od filtera" kind="quiet" onPress={() => setFilterOpen(false)} />
         </View>
       </ScrollView></SafeAreaView></View>
@@ -182,7 +181,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  controls: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
   countRow: { paddingBottom: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },

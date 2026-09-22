@@ -2,12 +2,12 @@ import type { TaskRelation } from '../../data/taskRelation';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Clock, MapPin, PaperPlaneTilt, Users, Wallet } from 'phosphor-react-native';
+import { PaperPlaneTilt } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { osoba } from '../system/plural';
-import { Press } from '../Press';
-import { DetailPairs, DetailTopBar, DisclosureGroup, DisclosureRow, Fact, FactGrid, NextStrip, SectionTitle } from '../system/Detail';
+import { DetailPairs, DisclosureGroup, DisclosureRow, NextStrip, SectionTitle } from '../system/Detail';
+import { ProductFact, ProductFacts, ProductHeader, ProductPerson, ProductRequirements, ProductTitle } from '../product/ProductDetails';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
@@ -16,9 +16,8 @@ import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /**
- * Public Task detail (the worker's view), V5 "Jedna objava": status and what it
- * means, the title, four facts in a grid, the description, photos, Q&A, place and
- * conditions behind two rows, the requester with their public profile, and one
+ * Public Task: status, green title, full-width facts and visible requirements,
+ * description, photos, approximate map, Q&A and the publisher's public profile. One
  * brand action, "Sastavi prijavu", only while the server accepts applications.
  * Presentation only; the route owns reads, deadline and guards.
  */
@@ -36,14 +35,14 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   /** The sheet wants a large portrait and the row a small one, so the caller is told which. */
   publicPhoto?: (profileId: string, size?: number) => ReactNode;
 }) {
-  const [expanded, setExpanded] = useState<'location' | 'requirements' | null>(null);
-  const rows = expanded === 'location' && need ? needGeographyRows(need) : expanded === 'requirements' && need ? needRequirementRows(need) : [];
+  const [expanded, setExpanded] = useState(false);
+  const rows = need ? needGeographyRows(need) : [];
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
   // The detail has the room, so a per-person price also says what the whole task comes to.
   const price = need ? needPriceText(need, { withTotal: true }) : '';
-  return <SafeAreaView edges={['top']} style={s.screen}>
-    <DetailTopBar title="Zadatak" onBack={back} backLabel="Nazad na Zadatke" disabled={busy} />
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <ProductHeader title="Zadatak" back={back} backLabel="Nazad na Zadatke" disabled={busy} />
     <ScrollView contentContainerStyle={s.content}>
       {loading || error || missing ? <View style={s.state} accessibilityLiveRegion="polite">
         {loading ? <><View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T></>
@@ -56,44 +55,38 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <NextStrip icon={PaperPlaneTilt} title={need.statusTekst} detail={canApply ? 'Prijave su otvorene. Ponudu sastavljaš ispod.' : undefined} tone={canApply ? 'green' : 'muted'} />
         <View style={s.hero}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <T accessibilityRole="header" style={s.heroTitle}>{readableTitle(need.naslov)}</T>
+          <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>
         </View>
-        <FactGrid>
-          <Fact icon={MapPin} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <Fact icon={Clock} label="Termin" value={need.vremeTekst} />
-          <Fact icon={Wallet} label="Budžet" value={price} money={need.rezimCene !== 'OFFERS' && !!need.ponudjenaCena} />
-          <Fact icon={Users} label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-        </FactGrid>
+        <ProductFacts>
+          <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
+          <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
+          <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
+          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent />
+        </ProductFacts>
+        <ProductRequirements rows={needRequirementRows(need)} />
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
+        {ready && !stale ? photos : null}
         {/* The place was four words of text — "Centar, Beograd" — on the screen where a person
             decides whether the job is near enough to take. The point is approximate by design and
             the exact address is only ever shared inside a Dogovor. */}
         {!remote && map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{map}
           <T variant="note" tone="muted">Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
-        {ready && !stale ? photos : null}
-        {ready && !stale ? qa : null}
         <DisclosureGroup>
-          <DisclosureRow first label="Mesto izvršenja" detail={remote ? 'Bez fizičke lokacije' : 'Približno područje'} expanded={expanded === 'location'} onPress={() => setExpanded(value => value === 'location' ? null : 'location')}>
+          <DisclosureRow first label="Mesto izvršenja" detail={remote ? 'Bez fizičke lokacije' : 'Približno područje'} expanded={expanded} onPress={() => setExpanded(value => !value)}>
             {rows.length ? <DetailPairs rows={rows} /> : <T variant="note" tone="muted">Nema dodatnih podataka o mestu.</T>}
             {!remote ? <T variant="note" tone="muted">Precizni podaci o pristupu dele se u Dogovoru uz dozvolu.</T> : null}
           </DisclosureRow>
-          <DisclosureRow label="Uslovi Zadatka" detail={needRequirementRows(need).length ? 'Pogledaj navedene uslove' : 'Bez dodatnih navedenih uslova'} expanded={expanded === 'requirements'} onPress={() => setExpanded(value => value === 'requirements' ? null : 'requirements')}>
-            {rows.length ? <DetailPairs rows={rows} /> : <T variant="note" tone="muted">Nema dodatnih navedenih uslova.</T>}
-          </DisclosureRow>
         </DisclosureGroup>
+        {ready && !stale ? qa : null}
         <View style={s.section}>
           <SectionTitle>Ko objavljuje</SectionTitle>
           {/* The person who posted the task was a letter in a circle, while the people who answer
               it are shown by their photograph two screens away. The whole block is the press that
               opens their public profile, instead of a green line of text beneath it. */}
-          <Press accessibilityRole="button" accessibilityLabel="Pogledaj javni profil" accessibilityState={{ disabled: busy || !onRequesterProfile }}
-            disabled={busy || !onRequesterProfile} onPress={() => onRequesterProfile?.()} haptic="select" scaleTo={0.99} style={[card, s.requester]}>
-            {publicPhoto ? publicPhoto(need.narucilacProfilId, 48)
-              : <View style={s.avatar}><T variant="heading" style={s.initial}>{(need.narucilacIme || 'N').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}</T></View>}
-            <View style={s.rowCopy}><T variant="bodyStrong" style={s.ink}>{need.narucilacIme || 'Ime trenutno nije dostupno'}</T>
-              {need.narucilacOcena !== null ? <T variant="note" tone="muted">{`Ocena ${need.narucilacOcena}`}</T> : null}</View>
-            {onRequesterProfile ? <CaretRight size={20} color={sys.color.muted} /> : null}
-          </Press>
+          <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'}
+            initial={(need.narucilacIme || '?').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}
+            caption={need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : undefined}
+            photo={publicPhoto?.(need.narucilacProfilId, 72)} onPress={onRequesterProfile} disabled={busy} />
         </View>
       </> : null}
     </ScrollView>
@@ -120,16 +113,11 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 },
-  content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 32 },
+  content: { padding: 20, paddingTop: 16, gap: 20, paddingBottom: 32 },
   state: { gap: 12 },
   hero: { gap: 8, marginTop: 4 },
   badgeRow: { flexDirection: 'row' },
-  heroTitle: { ...sys.type.hero, color: sys.color.ink },
   section: { gap: 8 },
   description: { color: sys.color.ink, lineHeight: 26 },
-  rowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  requester: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  initial: { color: sys.color.green },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
 });

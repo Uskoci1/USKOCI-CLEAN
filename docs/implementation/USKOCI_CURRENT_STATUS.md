@@ -11,6 +11,12 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- Native connected design20260922 is implemented: task/offer/Agreement/AI/settings frames, colored
+  navigation, full task requirements, larger profile identities and compact views. Filter cancellation
+  now correctly discards price and attention drafts. Full Jest242/4689 and types pass; new APK/device
+  checks are pending at this entry's first commit. Phone USB access is confirmed; its old Home was
+  captured before update. See DESIGN_NATIVE_CONNECTED_SLICES_20260922.md. No DEV/dependency changes.
+
 - Design study20260922: V28/V31 source comparison and three interactive card compositions are prepared.
   Latest owner correction preserves V28 colored illustrations, palette, clarity and bottom navigation.
   See DESIGN_V31_V28_EXECUTION_20260922.md as the R5 supplement; this is not a shipped redesign.
