@@ -344,7 +344,7 @@
    ],
    "telefon": null,
    "problem": "Poruka kandidata izostaje sa kartice, a nedostajuća ocena se naziva „Nov na USKOČI“, što ne dokazuje starost naloga. Pregled pre izbora već postoji.",
-   "sledece": "Posle odobrenja funkcionalne analize: dodati poruku i pošten prikaz ugleda; sačuvati postojeću potvrdu izbora. Audit F10–F11.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -815,7 +815,7 @@
    ],
    "telefon": null,
    "problem": "Završni pregled je dodat u kod: ukupan iznos, broj ljudi, stvarni termin i poruka, pa izričito slanje. Tipovi i 242 grupe/4704 testa prolaze. Još nema prihvatanja ovog toka na telefonu ni nezavisnog Claude pregleda.",
-   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -844,7 +844,7 @@
    ],
    "telefon": null,
    "problem": "Učitava sve odjednom; server ima rpc_list_my_applications_page koje aplikacija ne koristi.",
-   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

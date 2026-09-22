@@ -83,6 +83,15 @@ async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijav
 async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
+it('previews the actual offer message without marking it viewed; opening keeps the full message', async () => {
+  const message = 'Dolazimo nas dvojica. Donosimo trake. Kombi je veliki i može da stane ispred ulaza.';
+  mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);
+  await render(Candidates);
+  expect(text()).toContain(message); expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
+  await tap('Pogledaj ponudu: Milan');
+  expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
+});
+
 it('reviews an offer without writing or sending and returns to the unchanged draft on Back', async () => {
   await offer(); await edit('Kratka napomena', '  Donosimo trake.  ');
   expect(press('Pošalji ovu Prijavu')).toBeUndefined();

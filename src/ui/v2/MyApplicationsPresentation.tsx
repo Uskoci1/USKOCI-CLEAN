@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Clock, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
 import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
@@ -11,6 +11,7 @@ import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
+import { FactArt } from '../system/FactArt';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -49,12 +50,13 @@ function Note({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted
   return <View style={[s.notice, tone === 'warn' && s.noticeWarn]}><T accessibilityRole="alert" variant="body" style={s.ink}>{children}</T></View>;
 }
 /** One application with the shared card anatomy: status → Task → where/when → your offer in the foot → the actions this state allows. */
-const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, children, onReview, onAgreement, onWithdraw, onTask, disabled }: {
-  row: MojaPrijavaProjekcija; expanded: boolean; children?: ReactNode; onReview: () => void;
+const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, focused, children, onReview, onAgreement, onWithdraw, onTask, disabled }: {
+  row: MojaPrijavaProjekcija; expanded: boolean; focused: boolean; children?: ReactNode; onReview: () => void;
   onAgreement: () => void; onWithdraw: () => void; onTask: () => void; disabled: boolean;
 }) {
   const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
-  return <View style={[card, s.card, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
+  return <View style={[card, s.card, focused && s.focusedCard, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
+    {focused ? <T variant="meta" style={s.focusLabel}>Otvorena prijava</T> : null}
     {/* Everything a person reads to recognise the application is one press that opens the Task it
         belongs to. It used to be a small green line of text under the card, easy to miss and the
         only way back to the Task a worker had applied to; the actions below stay separate so no
@@ -66,21 +68,22 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, childr
         <View style={s.grow} /><CaretRight size={18} color={sys.color.muted} /></View>
       <T accessibilityRole="header" style={s.title}>{readableTitle(p.naslov)}</T>
       <View style={s.facts}>
-        <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.podrucjeTekst}</T></View>
-        <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
+        <View style={s.fact}><FactArt kind="pin" size={26} /><T variant="note" tone="muted" style={s.factText}>{p.podrucjeTekst}</T></View>
+        <View style={s.fact}><FactArt kind="calendar" size={26} /><T variant="note" tone="muted" style={s.factText}>{p.vremeTekst}</T></View>
       </View>
       <View style={s.foot}>
-        <View style={s.grow}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
-        <T variant="meta" style={s.people}>{osoba(p.pokrivaMesta)}</T>
+        <View style={s.offerTotal}><T variant="meta" tone="muted">Tvoja ponuda · ukupno</T><T style={s.amount}>{p.cena.prikaz}</T></View>
+        <View style={s.people}><FactArt kind="users" size={26} /><T variant="bodyStrong" style={s.ink}>{osoba(p.pokrivaMesta)}</T></View>
       </View>
     </Press>
     {/* The orange border already says this card wants you. An orange button inside it as well, on
         every card of the "Čeka te" tab, spends the one colour that is supposed to mean "the step". */}
     {stale ? <><T variant="copy" style={s.ink}>Zadatak je izmenjen. Pregledaj aktuelne uslove pre nego što odlučiš o svojoj Prijavi.</T>
-      {!expanded ? <V2Action label={`Pregledaj izmene: ${readableTitle(p.naslov)}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
-    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label={`Otvori Dogovor: ${readableTitle(p.naslov)}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
-    {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena ? <T variant="note" tone="muted">{p.napomena}</T> : null}
-    {!stale && p.mozePovuci ? <V2Action label={`Povuci prijavu: ${readableTitle(p.naslov)}`} onPress={onWithdraw} kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
+      {!expanded ? <V2Action label="Pregledaj izmene" accessibilityLabel={`Pregledaj izmene: ${readableTitle(p.naslov)}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
+    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label="Otvori Dogovor" accessibilityLabel={`Otvori Dogovor: ${readableTitle(p.naslov)}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
+    {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena?.trim() ? <View style={s.offerNote}>
+      <T variant="meta" tone="muted">Tvoja poruka</T><T variant="note" style={s.ink}>{p.napomena}</T></View> : null}
+    {!stale && p.mozePovuci ? <V2Action label="Povuci prijavu" accessibilityLabel={`Povuci prijavu: ${readableTitle(p.naslov)}`} onPress={onWithdraw} compact kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
     {children}
   </View>;
 });
@@ -107,7 +110,7 @@ export function MyApplicationsPresentation(props: Props) {
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} disabled={props.busy} style={brandAction} /><V2Action label="Nazad" onPress={props.onBack} kind="quiet" /></View>
         : props.rows.length ? <View style={s.state}><T style={s.stateTitle}>Nema prijava u ovom prikazu</T><T variant="copy" tone="muted">Ostale Prijave su sačuvane u svojim statusima.</T>
           <V2Action label="Prikaži sve prijave" onPress={() => props.onTab('all')} /></View>
-          : <View style={s.state}><View style={s.emptyArt}><PaperPlaneTilt size={44} color={sys.color.green}  weight="fill" /></View>
+          : <View style={s.state}><View style={s.emptyArt}><FactArt kind="offers" size={56} /></View>
             <T variant="label" style={s.eyebrow}>Tvoje ponude</T>
             <T style={s.stateTitle}>Tvoja sledeća prilika.</T><T variant="copy" tone="muted">Kada se prijaviš na Zadatak, ovde pratiš svoju ponudu i svaki sledeći korak.</T>
             <V2Action label="Istraži zadatke" onPress={props.onExplore} style={brandAction} /></View>}
@@ -132,7 +135,7 @@ export function MyApplicationsPresentation(props: Props) {
             {props.canReset ? <V2Action label="Pregledaj aktuelnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</View> : null}
         </View> : null}
         renderItem={({ item: p, index }) => <Appear index={index} animate={appear.isNew(p.prijavaId)}>
-          <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} disabled={disabled}
+          <ApplicationCard row={p} expanded={props.expanded === p.prijavaId} focused={p.prijavaId === props.focusId} disabled={disabled}
           onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)}
           onTask={() => props.onTask(p)}>
           {props.expanded === p.prijavaId && p.stanje === 'STALE_REVIEW_REQUIRED' ? <View style={s.review}>
@@ -169,15 +172,18 @@ const s = StyleSheet.create({
   state: { paddingVertical: 24, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
   stateTitle: { ...sys.type.title, color: sys.color.ink },
   emptyArt: { width: 84, height: 84, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  card: { gap: 8, marginBottom: 12 },
-  head: { gap: 8 },
+  card: { gap: 12, marginBottom: 16 },
+  head: { gap: 10 },
+  focusedCard: { borderColor: sys.color.green }, focusLabel: { color: sys.color.green, fontWeight: '600' },
+  offerNote: { gap: 4, paddingLeft: 12, borderLeftWidth: 2, borderColor: sys.color.lineStrong },
   attentionCard: { borderColor: sys.color.orange }, selectedCard: { borderColor: sys.color.green },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0.3 },
-  title: { ...sys.type.cardTitle, color: sys.color.ink },
+  title: { ...sys.type.cardTitle, color: sys.color.green },
   facts: { gap: 6, marginTop: 1 }, fact: { flexDirection: 'row', alignItems: 'center', gap: 8 }, factText: { flex: 1 },
-  foot: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 6, paddingTop: 13, borderTopWidth: 1, borderTopColor: sys.color.line },
+  foot: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginTop: 6, paddingTop: 13, borderTopWidth: 1, borderTopColor: sys.color.line },
   amount: { ...sys.type.price, color: sys.color.money },
-  people: { color: sys.color.ink, fontWeight: '600', paddingBottom: 4 },
+  offerTotal: { flexGrow: 1, flexBasis: 160, maxWidth: '100%' },
+  people: { flexDirection: 'row', flexShrink: 1, alignItems: 'center', gap: 6, paddingBottom: 4 },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   review: { gap: 12, paddingTop: 14, marginTop: 6, borderTopWidth: 1, borderColor: sys.color.line }, fields: { gap: 8 },
   input: { ...sys.type.body, minHeight: 48, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.lineStrong, color: sys.color.ink, backgroundColor: sys.color.surface, paddingHorizontal: 12, paddingVertical: 9 },

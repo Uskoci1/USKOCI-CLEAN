@@ -9,10 +9,11 @@ import { AgreementHero, AgreementPeople, AgreementTabs } from '../../src/ui/v2/A
 import { AiConversationShell } from '../../src/ui/aiFirst/AiConversationShell';
 import { ProductHeader } from '../../src/ui/product/ProductDetails';
 import { MarketplacePresentation } from '../../src/ui/v2/MarketplacePresentation';
+import { MyApplicationsPresentation, type ApplicationsTab } from '../../src/ui/v2/MyApplicationsPresentation';
 import { initialMarketplaceView } from '../../src/data/marketplaceView';
 import { T } from '../../src/ui/Text';
 import { V2Action } from '../../src/ui/v2/V2Action';
-import type { PotrebaProjekcija, PrilikaProjekcija, KandidatProjekcija, DogovorProjekcija } from '../../src/contracts/projections';
+import type { PotrebaProjekcija, PrilikaProjekcija, KandidatProjekcija, DogovorProjekcija, MojaPrijavaProjekcija } from '../../src/contracts/projections';
 
 const noop = () => {};
 const need = { id: 'preview-task', revizija: 1, stanje: 'OBJAVLJENA',
@@ -46,16 +47,30 @@ const agreement: DogovorProjekcija = { id: 'preview-agreement', verzija: 1, stan
   kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null,
 };
+const myApplications: MojaPrijavaProjekcija[] = [{ prijavaId: 'preview-own-offer', potrebaId: need.id, potrebaRevizija: 1, prijavaRevizija: 1,
+  prijavaVerzija: 1, stanje: 'SUBMITTED', naslov: need.naslov, opis: need.opis, cena: candidates[0].cena, pokrivaMesta: 2,
+  napomena: candidates[0].napomena, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
+  dogovorId: null, promenjenaPotreba: false, mozePovuci: true, traziPaznju: false },
+  { prijavaId: 'preview-own-offer-2', potrebaId: 'preview-task-2', potrebaRevizija: 1, prijavaRevizija: 1, prijavaVerzija: 1,
+    stanje: 'VIEWED', naslov: 'Montaža dve police', opis: '', cena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' }, pokrivaMesta: 1,
+    napomena: '', podrucjeTekst: 'Grbavica, Novi Sad', vremeTekst: 'Fleksibilan termin', dogovorId: null,
+    promenjenaPotreba: false, mozePovuci: true, traziPaznju: false }];
 function Review() {
   const [screen, setScreen] = useState(new URLSearchParams(location.search).get('screen') ?? 'task');
   const scenario = new URLSearchParams(location.search).get('state') ?? 'ready';
   const [candidate, setCandidate] = useState(candidates[0]);
+  const [applicationTab, setApplicationTab] = useState<ApplicationsTab>('all');
   const [value, setValue] = useState('');
   const [draft, setDraft] = useState<ApplicationDraft>({ price: '5000', people: '2', note: '', start: null, end: null });
   const [view, setView] = useState(() => ({ ...initialMarketplaceView(), query: scenario === 'no-results' ? 'nepostojeći posao' : '' }));
   if (screen === 'list') return <MarketplacePresentation owned={false} items={scenario === 'empty' ? [] : [opportunity, { ...opportunity, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
     scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onSwitch={noop} onProfile={noop} onNew={noop} />;
-  if (screen === 'candidates') return <CandidateListPresentation need={need} candidates={candidates} open={c => { setCandidate(c); setScreen('offer'); }} back={() => setScreen('task')} refresh={noop} />;
+  if (screen === 'my-applications') return <MyApplicationsPresentation rows={scenario === 'empty' ? [] : myApplications} loading={scenario === 'loading'} unavailable={scenario === 'error'}
+    message={scenario === 'error' ? 'Proveri vezu i pokušaj ponovo.' : null} notice={null} tab={applicationTab} onTab={setApplicationTab} expanded={null} draft={null}
+    focusId="preview-own-offer" requestedId="preview-own-offer" busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}
+    onRefresh={noop} onExplore={() => setScreen('list')} onProfile={noop} onBack={() => setScreen('task')} onReview={noop} onClose={noop} onEdit={noop}
+    onChange={noop} onCancelEdit={noop} onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={() => setScreen('agreement')} onRetry={noop} onReset={noop} onTask={() => setScreen('task')} />;
+  if (screen === 'candidates') return <CandidateListPresentation need={need} candidates={scenario === 'empty' ? [] : candidates} open={c => { setCandidate(c); setScreen('offer'); }} back={() => setScreen('task')} refresh={noop} />;
   if (screen === 'compose') return <ApplicationSelectionPresentation need={need} opportunity={need} draft={draft} change={setDraft}
     submit={noop} back={() => setScreen('task')} busy={false} pending={false} uncertain={false} refresh={noop}
     error={null} confirmed={false} openApplications={noop} canSubmit />;

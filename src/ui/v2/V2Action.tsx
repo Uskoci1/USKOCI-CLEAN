@@ -10,15 +10,17 @@ import { sys } from '../system/tokens';
  * (a link-like action); destructive = danger text. The one brand action on a screen is a
  * secondary with `brandAction` style (orange surface, ink text — white on orange fails AA).
  */
-export function V2Action({ label, onPress, disabled = false, kind = 'secondary', icon, style, compact = false }: {
+export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', icon, style, compact = false }: {
   label: string; onPress: () => void; disabled?: boolean;
+  /** Row context for assistive technology without repeating the task title on the visible action. */
+  accessibilityLabel?: string;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
   /** Smaller type for a secondary control that must not compete with the content. The
    *  touch target keeps its full minimum height, so it is no harder to hit. */
   compact?: boolean;
 }) {
   const color = kind === 'primary' ? sys.color.surface : kind === 'destructive' ? sys.color.danger : kind === 'quiet' ? sys.color.green : sys.color.ink;
-  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
+  return <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }}
     onPress={onPress} disabled={disabled} haptic={disabled ? 'none' : kind === 'primary' ? 'light' : 'select'}
     style={[{ minHeight: kind === 'primary' ? 50 : sys.touch.min, borderRadius: sys.radius.control,
       paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,

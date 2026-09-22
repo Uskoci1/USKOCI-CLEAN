@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T19:11:14Z",
+  "osvezeno": "2026-09-22T19:22:25Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "84ec1657",
-  "head_poruka": "Record offer review builds and remaining native acceptance",
+  "head": "d56a5726",
+  "head_poruka": "Open the confirmed application and scope stale review controls",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -568,7 +568,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Poruka kandidata izostaje sa kartice, a nedostajuća ocena se naziva „Nov na USKOČI“, što ne dokazuje starost naloga. Pregled pre izbora već postoji.",
-   "sledece": "Posle odobrenja funkcionalne analize: dodati poruku i pošten prikaz ugleda; sačuvati postojeću potvrdu izbora. Audit F10–F11.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1229,7 +1229,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Završni pregled je dodat u kod: ukupan iznos, broj ljudi, stvarni termin i poruka, pa izričito slanje. Tipovi i 242 grupe/4704 testa prolaze. Još nema prihvatanja ovog toka na telefonu ni nezavisnog Claude pregleda.",
-   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1271,7 +1271,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Učitava sve odjednom; server ima rpc_list_my_applications_page koje aplikacija ne koristi.",
-   "sledece": "Pregled pre slanja i otvaranje baš potvrđene prijave su povezani. Ispravljeno prikazivanje komandi za izmenjen zadatak na običnoj prijavi. Tipovi i 242 grupe / 4709 testova prolaze; sledi APK i provera tačne verzije na telefonu. Dokaz: OFFER_LANDING_RECEIPT.json.",
+   "sledece": "F10: pregled pre slanja, otvaranje baš potvrđene prijave, čitljivije kartice i poruka na listi pristiglih prijava su u kodu. 242 grupe / 4710 testova; završna provera tipova i 96 ciljanih testova prolaze. Sledi tačan APK i provera na telefonu. Dokaz: OFFER_READABILITY_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3249,6 +3249,22 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35772187587,
+   "ime": "Build Android development APK",
+   "sha": "d56a5726",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-22T19:11:38Z"
+  },
+  {
+   "id": 35772175762,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "d56a5726",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-22T19:11:32Z"
+  },
+  {
    "id": 35762585376,
    "ime": "Build Android development APK",
    "sha": "50178e6b",
@@ -3327,22 +3343,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-22T13:12:10Z"
-  },
-  {
-   "id": 35729153590,
-   "ime": "Build Android development APK",
-   "sha": "fbe8ea4f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T12:45:45Z"
-  },
-  {
-   "id": 35729144989,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "fbe8ea4f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T12:45:40Z"
   }
  ]
 }

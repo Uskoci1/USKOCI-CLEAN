@@ -153,7 +153,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     <TaskContext need={opportunity} />
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja ponuda</T>
       <View style={s.offerRow}>
-        <Field label="Ukupna cena za ljude koje dovodiš (RSD)">
+        <Field label="Ukupno (RSD)">
           <TextInput accessibilityLabel="Ukupna cena za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
             editable={!disabled && !priceLocked} style={[s.amountInput, priceLocked && s.inputLocked]}
             onChangeText={price => { if (!disabled && !priceLocked) change({ ...draft, price }); }} />
@@ -238,11 +238,12 @@ function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekc
       <CaretRight size={20} color={sys.color.muted} />
     </View>
     <View style={s.candidateFoot}>
-      <View style={s.grow}><T style={s.price}>{k.cena.prikaz}</T><T variant="meta" tone="muted">Ukupno</T></View>
+      <View style={s.offerTotal}><T style={s.price}>{k.cena.prikaz}</T><T variant="meta" tone="muted">Ukupno</T></View>
       <View style={s.inline}><FactArt kind="users" size={26} /><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     </View>
     <View style={s.inline}><FactArt kind="calendar" size={24} /><T variant="meta" tone="muted" style={s.grow}>
       {applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
+    {k.napomena?.trim() ? <View style={s.messagePreview}><T variant="note" style={s.ink} numberOfLines={2} ellipsizeMode="tail">{k.napomena.trim()}</T></View> : null}
     {k.stanje === 'SELECTABLE' ? null
       : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
   </Press>;
@@ -378,7 +379,7 @@ const s = StyleSheet.create({
   contextPrice: { ...sys.type.priceSmall, color: sys.color.money, flex: 1 }, offers: { ...sys.type.bodyStrong, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   pill: { paddingVertical: 4 }, pillText: { color: sys.color.ink, fontWeight: '600' },
-  offerRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }, field: { flex: 1, gap: 6 },
+  offerRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-end' }, field: { flex: 1, gap: 6 },
   input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, padding: 12 },
   amountInput: { ...sys.type.price, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, minHeight: 54, paddingHorizontal: 12, paddingVertical: 10 },
   inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
@@ -391,7 +392,9 @@ const s = StyleSheet.create({
   candidate: { ...card, gap: 12, padding: 18 },
   candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   candidateName: { ...sys.type.cardTitle, color: sys.color.ink },
-  candidateFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  candidateFoot: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  offerTotal: { flexGrow: 1, flexBasis: 160, maxWidth: '100%' },
+  messagePreview: { borderLeftWidth: 2, borderColor: sys.color.lineStrong, paddingLeft: 12, paddingVertical: 2 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
   price: { ...sys.type.price, color: sys.color.money },
