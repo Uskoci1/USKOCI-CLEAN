@@ -339,6 +339,8 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
+    'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. Nemojte umesto odgovora ponoviti pitanje za nedostajuće polje. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
+    'Delimičan podatak nije isto što i nikakav podatak. Kod prenosa razlikujte mesto preuzimanja i odredište: ako je odredište poznato, a grad preuzimanja nije, pitajte samo za grad preuzimanja. Ne izmišljajte ga iz naziva ulice. Ako ponovo tražite istu vrstu podatka, recite koji tačno deo nedostaje; ne ponavljajte isto opšte pitanje. Već navedene detalje sačuvajte u kontekstu i predložite tipizovanu geografiju tek kada imate njene obavezne delove.',
     'dialogue.taskRelation: CONTINUE za isti posao i njegove ispravke, DIFFERENT_TASK za drugi nepovezan posao, UNCLEAR ako to nije jasno. Prvi opis u praznom razgovoru je CONTINUE. Promena broja ljudi, cene ili datuma istog posla nije novi posao. Za DIFFERENT_TASK ne prepisujte ovaj zadatak: aplikacija ima Novi zadatak i čuva prethodni razgovor.',
     'dialogue.priceUnit je WHOLE_JOB samo kada je jasno da se iznos odnosi na ceo obim posla; PER_DAY za dnevnicu, PER_HOUR za satnicu, UNSPECIFIED kada se cena ne obrađuje ili jedinica nije jasna. Navedite stvarnu jedinicu čak i kad umete da izračunate proizvod. dialogue.schedulePattern: SINGLE za jedan neprekidan termin, REPEATED za odvojene smene/dane, UNSPECIFIED kada se termin ne obrađuje. Nedovršeno razjašnjenje ostaje važno i u sledećoj poruci.',
     'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Promena vrste posla nije dozvola da se stara cena, termin ili uslovi automatski prenesu na novi posao; prvo razjasnite da li je to novi zadatak.',
@@ -631,8 +633,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   };
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
-    const key = missing.includes(dialogue.questionKey) ? dialogue.questionKey : missing[0];
-    assistantMessage = key ? questions[key] : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+    // A missing field may be partly explained in the conversation. Preserve the
+    // specific clarification (e.g. pickup city) instead of erasing it with a generic
+    // location question. Retarget only when the requested field is already known.
+    if (!missing.includes(dialogue.questionKey)) {
+      const key = missing[0];
+      assistantMessage = key ? questions[key] : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+    }
   } else if (dialogue?.next === 'REVIEW') assistantMessage = 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.';
   else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
   return { ...turn, proposals, assistantMessage };

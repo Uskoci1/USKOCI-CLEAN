@@ -340,6 +340,27 @@ test('a question about known headcount is replaced by one genuinely missing topi
  assert.equal(materialWrites(f)[0].body.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
 });
 
+for(const [questionKey,message] of [
+ ['need.task_geography','U kom gradu je mesto preuzimanja?'],
+ ['need.task_geography','Do kog dela grada treba prevesti stvari?'],
+ ['need.schedule_kind','Koji dan ti odgovara za prenos?'],
+])test('a genuinely missing topic retains its contextual question: '+message,async()=>{
+ const f=fixture({activeFacts:[semanticFact('need.description','Prenos stvari'),semanticFact('need.people_needed',2)],
+  providerOutput:{safety:'ALLOW',assistantMessage:message,facts:[],
+   dialogue:{...syntheticDialogue(),next:'ASK',questionKey}}});
+ assert.equal((await f.invoke({text:'SYNTHETIC_PARTIAL_ROUTE_OR_TIME'})).status,200);
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,message);
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+});
+
+test('a direct explanation is preserved while location remains missing',async()=>{
+ const message='Treba mi još grad preuzimanja; odredište već imamo.';
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:message,facts:[],
+  dialogue:{...syntheticDialogue(),next:'ANSWER',questionKey:'NONE'}}});
+ assert.equal((await f.invoke({text:'Zašto opet pitaš za mesto?'})).status,200);
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,message);
+});
+
 for(const interpretation of [{taskRelation:'DIFFERENT_TASK'},{taskRelation:'UNCLEAR'},
  {priceUnit:'PER_DAY'},{priceUnit:'PER_HOUR'},{schedulePattern:'REPEATED'}])
  test('material ambiguity cannot mix new work with old terms: '+JSON.stringify(interpretation),async()=>{
