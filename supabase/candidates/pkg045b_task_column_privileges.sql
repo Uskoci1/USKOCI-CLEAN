@@ -1,3 +1,4 @@
+-- HOLD: fresh explicit owner approval of certificate movement and compatible APK rollout required.
 -- PKG-045: public task column boundary. Forward-only candidate, source147 remains frozen.
 begin;
 set local lock_timeout='5s';
@@ -26,6 +27,23 @@ begin
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_tasks()')) is distinct from '2a8ff0fa8a1211414e5e1fc69c6fb4f7' then raise exception 'PKG045_BODY_MISMATCH'; end if;
 end;
 $bodies$;
+-- The table ACL is part of the erasure-program digest. Separate owner approval required on DEV.
+create temporary table pkg045_rebind(certified text, ready_masked text, table_acl text, moved text) on commit drop;
+do $rebind_pre$
+declare c text; definition text;
+begin
+  select sha256 into strict c from private.closure_source_v5 where singleton;
+  if c is distinct from (select sha256 from private.closure_erasure_source_v5 where singleton) then raise exception 'PKG045B_CERTIFICATES_DISAGREE'; end if;
+  definition:=pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
+  if (length(definition)-length(replace(definition,c,'')))<>length(c)
+    or (select count(*) from regexp_matches(definition,'[0-9a-f]{64}','g'))<>1 then raise exception 'PKG045B_READY_BINDING_INVALID'; end if;
+  if exists(select 1 from private.closure_executions_v5 where state='EXECUTING') then raise exception 'PKG045B_CLOSURE_IN_FLIGHT'; end if;
+  if not has_table_privilege('anon','public.needs','SELECT') then raise exception 'PKG045B_TABLE_ACL_PREDECESSOR_DRIFT'; end if;
+  insert into pkg045_rebind select c,
+    (select md5(regexp_replace(prosrc,'[0-9a-f]{64}','<CERTIFIED>','g')) from pg_proc where oid='private.retention_ai_source_ready()'::regprocedure),
+    (select relacl::text from pg_class where oid='public.needs'::regclass),null;
+end;
+$rebind_pre$;
 do $policies$
 declare actual text; previous text; previous_check text; expected text;
 begin
@@ -102,11 +120,42 @@ begin
   then raise exception 'PKG045B_PRIVATE_COLUMNS_READABLE'; end if;
 end;
 $grants$;
-do $post$
+do $isolate$
+declare old_digest text; new_digest text;
 begin
-  if private.closure_source_digest_v5() is distinct from (select digest from pkg045_closure)
-    or not private.retention_ai_source_ready() then raise exception 'PKG045_CERTIFICATE_CHANGED'; end if;
+  select certified into strict old_digest from pkg045_rebind;
+  new_digest:=private.closure_source_digest_v5();
+  if new_digest is null or new_digest=old_digest then raise exception 'PKG045B_ACL_DID_NOT_MOVE_DIGEST'; end if;
+  -- Transaction-local inverse: restoring ONLY the two table SELECT grants must reconstruct
+  -- the exact certified digest. No committed window of broader access is created.
+  grant select on public.needs to anon,authenticated;
+  if (select relacl::text from pg_class where oid='public.needs'::regclass) is distinct from (select table_acl from pkg045_rebind)
+    or private.closure_source_digest_v5() is distinct from old_digest then raise exception 'PKG045B_UNREVIEWED_CERTIFICATE_CHANGE'; end if;
+  revoke select on public.needs from anon,authenticated;
+  if private.closure_source_digest_v5() is distinct from new_digest then raise exception 'PKG045B_DIGEST_NOT_STABLE'; end if;
+  update pkg045_rebind set moved=new_digest;
 end;
-$post$;
+$isolate$;
+do $rebind$
+declare old_digest text; new_digest text; definition text; ready text;
+begin
+  select certified,moved into strict old_digest,new_digest from pkg045_rebind;
+  if new_digest is null or new_digest=old_digest or new_digest is distinct from private.closure_source_digest_v5() then raise exception 'PKG045B_DIGEST_NOT_STABLE'; end if;
+  definition:=pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
+  update private.closure_source_v5 set sha256=new_digest where singleton and sha256=old_digest;
+  if not found then raise exception 'PKG045B_CERTIFICATES_DISAGREE'; end if;
+  update private.closure_erasure_source_v5 set sha256=new_digest where singleton and sha256=old_digest;
+  if not found then raise exception 'PKG045B_CERTIFICATES_DISAGREE'; end if;
+  execute replace(definition,old_digest,new_digest);
+  select prosrc into strict ready from pg_proc where oid='private.retention_ai_source_ready()'::regprocedure;
+  if md5(regexp_replace(ready,'[0-9a-f]{64}','<CERTIFIED>','g')) is distinct from (select ready_masked from pkg045_rebind)
+    then raise exception 'PKG045B_READY_BODY_CHANGED_BEYOND_CONSTANT'; end if;
+  if private.closure_source_digest_v5() is distinct from new_digest
+    or (select sha256 from private.closure_source_v5 where singleton) is distinct from new_digest
+    or (select sha256 from private.closure_erasure_source_v5 where singleton) is distinct from new_digest
+    or private.retention_ai_source_ready() is distinct from true
+    or private.closure_erasure_binding_v5()->>'sourceSha256' is distinct from new_digest then raise exception 'PKG045B_REBIND_INCOMPLETE'; end if;
+end;
+$rebind$;
 notify pgrst, 'reload schema';
 commit;

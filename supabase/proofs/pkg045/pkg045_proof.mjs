@@ -108,6 +108,11 @@ const removedA=baselineSurface.filter(x=>!afterASurface.includes(x)),addedA=afte
 assert.equal(removedA.length,3);assert.ok(removedA.every(x=>/^function:public\.(rpc_list_my_needs_page|rpc_resolve_activity_event|rpc_list_open_tasks_v3)\(/.test(x)));
 assert.equal(addedA.length,6);assert.ok(addedA.every(x=>/^function:public\.(is_my_task|rpc_read_task|rpc_list_my_tasks|rpc_list_my_needs_page|rpc_resolve_activity_event|rpc_list_open_tasks_v3)\(/.test(x)));
 report.surfaceA={removed:removedA,added:addedA};assert.deepEqual(closure(),report.closureBefore);pass('A_ONLY_READER_FUNCTIONS_CHANGED_CERTIFICATE_UNCHANGED');
+assert.throws(()=>sql(btext.replace(pins.policyPredecessors[0].digest,'0'.repeat(32))),/PKG045B_POLICY_DRIFT/);
+assert.deepEqual(surface(),afterASurface);assert.deepEqual(closure(),report.closureBefore);
+assert.throws(()=>sql(btext.replace('execute replace(definition,old_digest,new_digest);','perform 1;')),/PKG045B_REBIND_INCOMPLETE/);
+assert.deepEqual(surface(),afterASurface);assert.deepEqual(closure(),report.closureBefore);
+pass('B_POLICY_DRIFT_AND_INCOMPLETE_REBIND_ROLL_BACK_GRANTS_AND_CERTIFICATE');
 sql(btext);assert.throws(()=>sql(btext),/PKG045B_ALREADY_RESTRICTED/);await new Promise(r=>setTimeout(r,1500));
 for(const role of [owner,stranger,participant,otherWorld]) await denied(exploit(role.client));
 for(const column of ['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason']) {
@@ -156,7 +161,7 @@ assert.equal((await publicAdapters.needService.potreba(ids.public)).brojPrijavaZ
 report.clientSourceHashes=ownerAdapters.sources;pass('B_EXACT_CLIENT_READERS_OVER_REAL_AUTH_REST');
 await denied(oldDetail(owner.client,ids.public));
 await denied(owner.client.from('needs').select('id').eq('requester_account_id',owner.id));
-report.rollout='A preserves installed APK; B requires the compatible APK first. No automatic fallback to broad reads.';
+report.rollout='A preserves installed APK; B requires compatible APK rollout AND fresh explicit certificate-movement approval. No fallback to broad reads.';
 pass('B_OLD_APK_BREAK_CONFIRMED_AND_ROLLOUT_GATE_RECORDED');
 sql(`insert into private.account_closure_requests(account_id,state,revision) values(${q(owner.id)},'READY',1),(${q(stranger.id)},'READY',1);`);
 await denied(owner.client.rpc('rpc_list_my_tasks'));await denied(owner.client.rpc('rpc_read_task',{p_need_id:ids.draft}));
@@ -165,10 +170,41 @@ await denied(owner.client.rpc('rpc_list_my_needs_page'));await denied(owner.clie
 pass('B_RESTRICTED_ACCOUNTS_CANNOT_USE_DIRECT_OR_ELEVATED_READERS');
 const afterB=surface(),removedB=afterASurface.filter(x=>!afterB.includes(x)),addedB=afterB.filter(x=>!afterASurface.includes(x));
 const policyNames=pins.policyPredecessors.map(p=>'policy:public.'+p.relname+'.'+p.polname+':');
-assert.ok([...removedB,...addedB].every(x=>x.startsWith('table:public.needs:')||x.startsWith('column-acl:')||policyNames.some(name=>x.startsWith(name))));
+assert.ok([...removedB,...addedB].every(x=>x.startsWith('table:public.needs:')||x.startsWith('column-acl:')||x.startsWith('function:private.retention_ai_source_ready(')||policyNames.some(name=>x.startsWith(name))));
 assert.equal(addedB.filter(x=>x.startsWith('policy:')).length,5);
 report.surfaceB={removed:removedB,added:addedB};
 report.functionPins=rows(`select oid::regprocedure::text signature,md5(prosrc) md5,prosecdef,proacl::text,proconfig from pg_proc where oid in (${pins.functions.map(p=>q(p.signature)+'::regprocedure').join(',')})`);
-report.closureAfter=closure();assert.deepEqual(report.closureAfter,report.closureBefore);
-pass('B_ONLY_NEEDS_SELECT_AND_FIVE_EQUIVALENT_OWNER_PREDICATES_CHANGED_CERTIFICATE_UNCHANGED_READY');
+report.closureAfter=closure();assert.notEqual(report.closureAfter.live,report.closureBefore.live);
+assert.equal(report.closureAfter.live,report.closureAfter.certified);assert.equal(report.closureAfter.ready,true);
+assert.equal(sql("select private.closure_erasure_binding_v5()->>'sourceSha256'"),report.closureAfter.live);
+pass('B_ONLY_REVIEWED_ACL_POLICY_AND_READINESS_CONSTANT_CHANGE_NEW_CERTIFICATE_READY');
+// Actual erasure worker on a newly created disposable account with a draft and a private address.
+// No DEV data, no provider calls, no time-travel/retention bypass.
+const closing=await rt.actor('pkg045-closure'), closingProfile=profile(closing,'REQUESTER'), closingNeed=randomUUID(), marker='PKG045_ERASE_'+randomUUID();
+sql(`begin;set local session_replication_role=replica;
+ insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,mode)
+ values(${q(closingNeed)},${q(closing.id)},${q(closingProfile)},'DRAFT',${q(marker)},${q(marker)},'PROOF','OFFERS');
+ insert into public.need_sensitive(need_id,exact_address,access_notes) values(${q(closingNeed)},${q(marker)},${q(marker)});commit;`);
+await ok(closing.client.rpc('rpc_prepare_account_closure',{p_expected_user_id:closing.id,p_expected_revision:0,p_client_request_id:randomUUID()}));
+const ready=await ok(closing.client.rpc('rpc_review_account_closure_execution',{p_expected_user_id:closing.id}));
+assert.equal(ready.ready,true);
+const started=await ok(closing.client.rpc('rpc_start_account_closure_execution',{p_expected_user_id:closing.id,p_request_id:ready.requestId,
+ p_expected_revision:ready.revision,p_client_request_id:randomUUID(),p_policy_sha256:ready.policySha256}));
+assert.equal(started.state,'EXECUTING');
+const {loadClosureWorker}=await import('../pre_v3/v5_closure_edge_runtime.mjs');
+const runtime=loadClosureWorker({env:name=>({USKOCI_ACCOUNT_CLOSURE_WORKER_ENABLED:'true',SUPABASE_URL:env.RU5_DEVICE_SUPABASE_URL,
+ SUPABASE_ANON_KEY:env.RU5_DEVICE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY})[name],
+ fetch:async(url,init)=>{assert.equal(new URL(url).origin,'http://127.0.0.1:54321');return fetch(url,init);}});
+let closed=null,calls=0;
+for(;calls<400&&!closed;calls++) {
+ const result=await runtime.handler(new Request('http://127.0.0.1/closure',{method:'POST',headers:{apikey:env.RU5_DEVICE_SERVICE_ROLE_KEY,'content-type':'application/json'},
+ body:JSON.stringify({accountId:closing.id,generation:started.generation})}));
+ assert.equal(result.status,200);const value=await result.json();if(value.state==='CLOSED')closed=value;
+}
+assert.ok(closed,'CLOSURE_NOT_COMPLETE');assert.equal(closed.relationalOutcome,'ORDINARY_PERSONAL_CONTENT_ERASED');assert.deepEqual(closed.exceptions,[]);
+assert.equal(sql(`select deleted_at is not null from auth.users where id=${q(closing.id)}`),'t');
+assert.equal(sql(`select count(*) from public.needs where title=${q(marker)} or description=${q(marker)}`),'0');
+assert.equal(sql(`select count(*) from public.need_sensitive where exact_address=${q(marker)} or access_notes=${q(marker)}`),'0');
+report.closureWorker={calls,state:closed.state,relationalOutcome:closed.relationalOutcome,syntheticLocalAccountOnly:true};
+assert.deepEqual(closure(),report.closureAfter);pass('B_REAL_CLOSURE_WORKER_ERASES_DRAFT_AND_PRIVATE_ADDRESS_ON_NEW_CERTIFICATE');
 report.result='PASS';save();
