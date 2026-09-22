@@ -20,6 +20,14 @@ const context=(patch={})=>({accountId:A,needId:N,needRevision:2,title:'Montaža 
 const status=(patch={})=>({accountId:A,needId:N,clientRequestId:mockKey,classificationId:N,type:'ASK',needRevision:2,questionId:null,textSha256:qaTextHash('Da li ima lift?'),state:'PROCESSING',outcome:null,materiality:null,safeReasonCodes:[],canCancel:true,receipt:null,authoritative:true,...patch});
 const absent=()=>status({classificationId:null,type:null,needRevision:null,textSha256:null,state:'ABSENT'});
 const pending=()=>({type:'ASK',accountId:A,needId:N,needRevision:2,clientRequestId:mockKey,textSha256:qaTextHash('Da li ima lift?')});
+
+it('technical classification cancellation explains failure and unlocks only explicit new input',async()=>{
+ mockLoad.mockResolvedValue(pending());mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));
+ mockAiRecover.mockResolvedValue(ok(status({state:'CANCELLED',canCancel:false,safeReasonCodes:['QA_PROCESSING_FAILED']})));
+ await render();expect(allText()).toContain('Provera teksta nije uspela');
+ expect(allText()).not.toContain('pravila su promenjeni');expect(mockClear).toHaveBeenCalledWith(A,N,mockKey);
+ expect(mockAiSubmit).not.toHaveBeenCalled();expect(button('Pošalji pitanje')).toBeDefined();
+});
 let tree:ReactTestRenderer;
 const button=(label:string)=>tree.root.findAll(n=>n.type==='SettingsAction' as React.ElementType).find(n=>n.props.label===label);
 const allText=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');

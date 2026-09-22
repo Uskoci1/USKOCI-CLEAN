@@ -6,6 +6,17 @@ import {qaTextHash} from '../../lib/qaTextHash';
 const A='11111111-1111-4111-8111-111111111111',N='22222222-2222-4222-8222-222222222222',K='33333333-3333-4333-8333-333333333333',C='44444444-4444-4444-8444-444444444444';
 let mockOwner={user:{id:A},accountRevision:1};const mockRpc=jest.fn(),mockInvoke=jest.fn();
 const input={type:'ASK' as const,needId:N,needRevision:1,clientRequestId:K,text:'Da li postoji lift?'};
+
+it('waits for a slow classification without replaying the paid submit',async()=>{
+ jest.useFakeTimers();
+ try {
+  mockInvoke.mockImplementation(()=>new Promise(resolve=>setTimeout(()=>resolve({data:status('CANCELLED',{safeReasonCodes:['QA_PROCESSING_FAILED']}),error:null}),20_000)));
+  const pending=service.submit(input);
+  await jest.advanceTimersByTimeAsync(20_000);
+  expect(await pending).toMatchObject({ok:true,podatak:{state:'CANCELLED',safeReasonCodes:['QA_PROCESSING_FAILED']}});
+  expect(mockInvoke).toHaveBeenCalledTimes(1);expect(mockRpc).not.toHaveBeenCalled();
+ } finally {jest.useRealTimers();}
+});
 const status=(state='PROCESSING',patch={})=>({accountId:A,needId:N,clientRequestId:K,classificationId:C,type:'ASK',needRevision:1,questionId:null,textSha256:qaTextHash(input.text),state,outcome:null,materiality:null,safeReasonCodes:[],canCancel:state==='PROCESSING',receipt:null,authoritative:true,...patch});
 beforeEach(()=>{mockRpc.mockReset();mockInvoke.mockReset();mockOwner={user:{id:A},accountRevision:1};});
 it('sends one exact public input through classifier Edge without account or policy injection',async()=>{mockInvoke.mockResolvedValue({data:status(),error:null});expect(await service.submit(input)).toMatchObject({ok:true,podatak:{state:'PROCESSING'}});expect(mockInvoke).toHaveBeenCalledWith('uskoci-qa-classify',{body:{...input,questionId:null}});expect(mockRpc).not.toHaveBeenCalled();});

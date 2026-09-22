@@ -8,7 +8,8 @@ no paid replay and no overwrite of committed success. Interview provider30s / na
 ordinary RPC15s and SQL leases unchanged. Proof35675491926:330 Edge tests /16 SQL checks including
 both observed completion/failure lock orders. DEV ledger194; unchanged ready closure65980fce asserted
 atomically; exact candidate/authority readback. Intake46 / worker17 byte-verified, JWTtrue. Types and
-241 suites /4650 tests pass. APK35675580983 pending; no device/provider-quality claim. See
+241 suites /4650 tests pass. APK35675580983 built, downloaded hash/source/attestations match;
+not installed/tested. No device/provider-quality claim. See
 `docs/implementation/v5-ai-first/pkg039/PKG039_INTERVIEW_RECOVERY.md` and receipts.
 Q&A and the delayed process-crash sweep remain separate limits;11.1 is not wholly closed.
 

@@ -56,5 +56,6 @@ because its old assertion expected PROCESSING after a definite synthetic provide
 now requires FAILED and retains dispatch, retry, provider-count and unchanged reservation checks;
 the disposable chain must pass before that proof repair is called verified.
 
-Client build is in progress at run35675580983; not installed or tested on a phone. This package
+Client build35675580983 succeeded; downloaded SHA256062ad8fc… matches checksum and both source-bound
+recovery/icon attestations. See APK_RECEIPT_20260922.json; not installed or tested on a phone. This package
 does not establish real-provider language quality, Q&A recovery or release readiness.

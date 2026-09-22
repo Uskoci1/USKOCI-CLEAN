@@ -27,7 +27,7 @@ export const qaSubmissionClientService = {
     const text = input.text.trim();
     if (!text || Array.from(text).length > (input.type === 'ASK' ? 500 : 1000)) return invalid();
     const expected = { ...input, textSha256: qaTextHash(text) };
-    return readOwnedResult({ account, write: true, errors, fallback: 'QA_CLASSIFICATION_UNCONFIRMED', invalid: 'QA_CLASSIFICATION_INVALID',
+    return readOwnedResult({ account, write: true, timeoutMs: 55_000, errors, fallback: 'QA_CLASSIFICATION_UNCONFIRMED', invalid: 'QA_CLASSIFICATION_INVALID',
       request: () => supabaseKlijent().functions.invoke('uskoci-qa-classify', { body: { type: input.type, needId: input.needId,
         needRevision: input.needRevision, questionId: input.questionId ?? null, text, clientRequestId: input.clientRequestId } }),
       decode: raw => matches(decodeQaSubmissionStatus(raw, account.accountId, input.needId, input.clientRequestId), expected) });

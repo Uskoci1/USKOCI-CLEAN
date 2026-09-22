@@ -20,9 +20,9 @@ of app completion from counts of migrations, files or closed findings.
 - Latest client change: PKG-039 interview55s send bounds, plus PKG-038 duplicate fact/UNKNOWN cleanup.
   Types and full Jest241 suites /4650 tests pass, exit0. PKG-039 proof35675491926 passes330 Edge tests
   and16 SQL checks. Intake46 / worker17 byte-equal proven sourceddb91a8e; JWTtrue. Publication remains v14.
-- Latest verified APK: run35669226055, source `2d6f0bc5`, SHA256 `e47955fd…`, 68,550,407 bytes. Downloaded
-  hash/source match both recovery and icon attestations. Contains PKG-037 and preceding client changes.
-  See `v5-ai-first/pkg037/APK_RECEIPT_20260922.json`. **Not installed/tested on a phone.**
+- Latest verified APK: run35675580983, source `ddb91a8e`, SHA256 `062ad8fc…`, 68,546,855 bytes. Downloaded
+  hash/source match both recovery and icon attestations. Contains PKG-038/039 and preceding client changes.
+  See `v5-ai-first/pkg039/APK_RECEIPT_20260922.json`. **Not installed/tested on a phone.**
 
 ## Engineering work queue
 

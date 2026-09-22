@@ -14,14 +14,14 @@ const hash = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
 const text = (v: unknown, max: number): v is string => typeof v === 'string' && !!v.trim() && Array.from(v).length <= max;
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info', 'Access-Control-Allow-Methods': 'POST,OPTIONS' };
 const response = (status: number, data: unknown) => new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-const failure = (status: number, code = 'QA_CLASSIFICATION_UNCONFIRMED') => response(status, { code, message: 'Proverite ishod pitanja pre ponovnog slanja.' });
+const failure = (status: number, code = 'QA_CLASSIFICATION_UNCONFIRMED') => response(status, { code, message: 'Proveri ishod pitanja pre ponovnog slanja.' });
 async function json(input: Request | Response, max: number, signal: AbortSignal): Promise<unknown> {
   const size = input.headers.get('content-length');
   if (size !== null && (!/^\d+$/.test(size) || Number(size) > max)) throw new Error('QA_BODY_INVALID');
   const reader = input.body?.getReader(); if (!reader) throw new Error('QA_BODY_INVALID');
   const chunks: Uint8Array[] = []; let total = 0;
   let stop = () => {};
-  const stopped = new Promise<never>((_, reject) => { stop = () => { void reader.cancel(); reject(new Error('QA_STOPPED')); };
+  const stopped = new Promise<never>((_, reject) => { stop = () => { void reader.cancel().catch(() => undefined); reject(new Error('QA_STOPPED')); };
     if (signal.aborted) stop(); else signal.addEventListener('abort', stop, { once: true }); });
   try {
     for (;;) { const part = await Promise.race([reader.read(), stopped]); if (part.done) break;
@@ -38,8 +38,15 @@ async function fetchJson(url: string, init: RequestInit, signal: AbortSignal, ma
   let r: Response;
   try { r = await Promise.race([fetch(url, { ...init, signal, redirect: 'error' }), stopped]); }
   finally { signal.removeEventListener('abort', stop); }
-  if (!r.ok) { void r.body?.cancel(); throw new Error('QA_TRANSPORT_UNCONFIRMED'); }
+  if (!r.ok) { void r.body?.cancel().catch(() => undefined); throw new Error('QA_TRANSPORT_UNCONFIRMED'); }
   return json(r, max, signal);
+}
+async function fetchWithin(url: string, init: RequestInit, timeoutMs: number, parent?: AbortSignal) {
+  const controller = new AbortController(), stop = () => controller.abort();
+  parent?.addEventListener('abort', stop, { once: true }); if (parent?.aborted) stop();
+  const timer = setTimeout(stop, timeoutMs);
+  try { return await fetchJson(url, init, controller.signal, 262144); }
+  finally { clearTimeout(timer); parent?.removeEventListener('abort', stop); controller.abort(); }
 }
 type Rule = { ruleId: string; instructions: string; outcomes: string[]; safeReasonCodes: string[] };
 type Policy = { schemaVersion: 'USKOCI_PUBLICATION_POLICY_V1'; instructions: string; rules: Rule[] };
@@ -143,6 +150,7 @@ export async function handleQaClassification(req: Request): Promise<Response> {
   const controller = new AbortController(), stop = () => controller.abort();
   req.signal.addEventListener('abort', stop, { once: true }); if (req.signal.aborted) stop();
   const timeout = setTimeout(stop, 45000), signal = controller.signal;
+  let settleFailure: () => Promise<void> = async () => {};
   try {
     const body = exact(await json(req, 10000, signal), ['type', 'needId', 'needRevision', 'questionId', 'text', 'clientRequestId']);
     if (!body || !['ASK', 'ANSWER'].includes(String(body.type)) || !uuid(body.needId) || !uuid(body.clientRequestId)
@@ -165,9 +173,20 @@ export async function handleQaClassification(req: Request): Promise<Response> {
     let status = decode(value?.status);
     if (!value || !status || status.type !== type || status.needRevision !== body.needRevision || status.questionId !== body.questionId) return failure(502);
     if (value.claim !== null) {
-      const claim = exact(value.claim, ['attemptId', 'leaseExpiresAt', 'context']), context = providerContext(claim?.context, type);
+      const claim = exact(value.claim, ['attemptId', 'leaseExpiresAt', 'context']);
       if (!claim || !uuid(claim.attemptId) || !text(claim.leaseExpiresAt, 80) || Date.parse(claim.leaseExpiresAt) <= Date.now()
-        || !Number.isFinite(Date.parse(claim.leaseExpiresAt)) || !context || status.state !== 'PROCESSING' || !status.classificationId) return failure(502);
+        || !Number.isFinite(Date.parse(claim.leaseExpiresAt)) || status.state !== 'PROCESSING' || !status.classificationId) return failure(502);
+      const dispatchArgs = { p_account_id: accountId, p_need_id: needId, p_client_request_id: key, p_attempt_id: claim.attemptId };
+      let settled = false;
+      settleFailure = async () => {
+        if (settled) return; settled = true;
+        // Metadata only, independent of caller/deadline. SQL preserves a completed
+        // classification/publication and never permits another dispatch for this key.
+        try { await fetchWithin(url + '/rest/v1/rpc/rpc_fail_qa_classification_service', { method: 'POST',
+          headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json' },
+          body: JSON.stringify(dispatchArgs) }, 5000); } catch { /* Durable sweep/readback remains authoritative. */ }
+      };
+      const context = providerContext(claim.context, type); if (!context) return failure(502);
       const providerKey = Deno.env.get('GEMINI_API_KEY');
       if (Deno.env.get('AI_PROVIDER') !== 'gemini' || Deno.env.get('GEMINI_MODEL') !== 'gemini-3.8-flash' || !providerKey
         || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true' || Deno.env.get('USKOCI_QA_CLASSIFIER_ENABLED') !== 'true') return failure(503, 'QA_CLASSIFIER_NOT_ENABLED');
@@ -181,10 +200,9 @@ export async function handleQaClassification(req: Request): Promise<Response> {
       if (new TextEncoder().encode(payload).length > AI_TEST_LIMITS.llmRequestBytes) return failure(503);
       const budget = await reserveAiTestBudget({ supabaseUrl: url, serviceRoleKey: service, accountId, operationId: status.classificationId, kind: 'LLM', signal });
       if (!budget.admitted || budget.replay) return failure(503, 'QA_TEST_BUDGET_NOT_ADMITTED');
-      const dispatchArgs = { p_account_id: accountId, p_need_id: needId, p_client_request_id: key, p_attempt_id: claim.attemptId };
       if (await serviceRpc('rpc_dispatch_qa_classification_service', dispatchArgs) !== true) return failure(409);
-      const provider = row(await fetchJson('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': providerKey }, body: payload }, signal));
+      const provider = row(await fetchWithin('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': providerKey }, body: payload }, 30000, signal));
       const candidates = provider?.candidates, candidate = Array.isArray(candidates) && candidates.length === 1 ? row(candidates[0]) : null;
       const content = row(candidate?.content), parts = content?.parts;
       if (!candidate || candidate.finishReason !== 'STOP' || !Array.isArray(parts)) return failure(502);
@@ -192,6 +210,9 @@ export async function handleQaClassification(req: Request): Promise<Response> {
       const output = evaluated(JSON.parse(raw), context.policy, type); if (!output) return failure(502);
       status = decode(await serviceRpc('rpc_complete_qa_classification_service', { ...dispatchArgs, p_output: output }));
       if (!status) return failure(502);
+      // A valid terminal classification owns recovery from now on, including
+      // READY if canonical submission loses its ACK. Do not cancel it.
+      if (status.state !== 'PROCESSING') settleFailure = async () => {};
     }
     if (status.state === 'READY') {
       const { p_account_id: _, ...rest } = args;
@@ -202,6 +223,6 @@ export async function handleQaClassification(req: Request): Promise<Response> {
     }
     return response(status.state === 'PROCESSING' ? 202 : 200, status);
   } catch { return failure(502); }
-  finally { clearTimeout(timeout); req.signal.removeEventListener('abort', stop); controller.abort(); }
+  finally { clearTimeout(timeout); req.signal.removeEventListener('abort', stop); controller.abort(); await settleFailure(); }
 }
 Deno.serve(handleQaClassification);

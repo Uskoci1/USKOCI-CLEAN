@@ -150,7 +150,7 @@ await prove('V5_WORKER_TURN_RESTART_RECOVERY','v5-worker-turn-recovery-report.js
   const unknownKey=randomUUID();mode='UNKNOWN';const unknownResponse=await invoke(es,unknownKey);assert.equal(unknownResponse.status,200);await unknownResponse.text();
   assert.equal(calls,2);assert.ok(providerBodies.every(body=>!body.includes('SYNTHETIC_CANCELLED_DO_NOT_SEND')));const unknownRecovery=await recover(e,es,unknownKey);assert.equal(unknownRecovery.providerDispatched,true);assert.equal(unknownRecovery.retryAllowed,false);
   // PKG-039 settles definite handler failure; dispatch/budget remain consumed, with no same-key replay.
-  assert.equal(unknownRecovery.state,'FAILED');
+  assert.equal(unknownRecovery.turn.state,'FAILED');
   assert.equal((await(await invoke(es,unknownKey)).json()).state,'FAILED');assert.equal(calls,2);
   assert.equal(sql(`select count(*) from private.ai_test_reservations_v5 where account_id=${q(e.id)}`),'2');
   assert.equal(sql(`select reserved_microusd from private.ai_test_budget_v5 where singleton`),'500000');
