@@ -11,11 +11,16 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- PKG-044 intake49 now preserves contextual questions for genuinely missing details and prioritizes
+  direct explanations in the prompt. CI35702324170:355 offline Edge tests +25 existing disposable
+  integration checks; types pass, exact hosted readback, JWTtrue, anonymous401. No client/SQL change.
+  Owner follow-up requested; live language quality not yet verified. See v5-ai-first/pkg044/.
+
 - Latest incident/correction: PKG-043 intake48 deployed after the owner's phone attempt failed with
   Gemini400 INVALID_ARGUMENT. Nonempty question sentinel replaces the invalid empty enum member.
   CI35701314667:351 offline Edge tests and25 disposable integration checks; exact four-file readback,
   JWTtrue, anonymous401. No new APK required, ledger196 unchanged. Owner retry confirmed with two
-  SUCCEEDED receipts and visible replies; separate generic-question repetition remains under repair.
+  SUCCEEDED receipts and visible replies; generic-question repetition is addressed separately in PKG-044.
   This verifies restored transport, not overall AI response quality. See v5-ai-first/pkg043/.
 
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:

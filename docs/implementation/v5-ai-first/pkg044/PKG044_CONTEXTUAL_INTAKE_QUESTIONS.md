@@ -30,4 +30,12 @@ Three behavior regressions fail on intake48: contextual pickup, destination and 
 are replaced by generic questions. One direct-answer preservation control already passes.
 After the change all90 focused context/wire tests pass. They exercise actual code with synthetic
 provider outputs; they do not establish the provider's real interpretation or overall dialogue quality.
-CI, exact hosted readback and owner follow-up are pending at this initial commit.
+
+Local typecheck passes. CI35702324170 on7b6478a868a10edeec2af55d6a4b19f772ee9536 passes355 offline
+Edge tests and the existing25-check disposable PKG-042 SQL/Auth/REST proof. This additional database
+proof validates the unchanged integration, not real provider language quality.
+
+Intake49 deployed with verify_jwt=true. All four hosted files compare byte-for-byte to the proven
+commit (EDGE_RECEIPT_20260922.json); unauthenticated POST returns401. No database mutation performed.
+No new APK is needed; installed client35698097121 calls the updated server. Owner follow-up requested
+after deployment; actual response quality remains pending at this receipt.

@@ -1,5 +1,13 @@
 # Home attention continuation — 2026-09-22
 
+Latest supplement: PKG-043/044 restored owner-observed intake transport after Gemini400 and fixed the
+guard that overwrote contextual ASK prose with generic field questions. Current intake49 is byte-verified,
+JWTtrue, anonymous401; CI35702324170 (source7b6478a8) passes355 offline Edge tests and25 disposable
+integration checks. No SQL/client change; installed APK35698097121 remains current. Owner's PKG-043
+retry produced two SUCCEEDED receipts and phone replies; PKG-044 follow-up is requested/pending.
+Read package043/044 docs and current status before relying on historical AI state below. No agent-paid
+provider call or voice interaction occurred. Runtime generation is still only owner-initiated.
+
 Read the latest owner messages, mandatory 20260921_2145 handoff and AGENTS.md first. This supplements
 `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`; it does not grant permissions or reopen completed packages.
 Work solo in the canonical checkout, branch work/pre-v3-engine-integration-20260911. Commit/push allowed;

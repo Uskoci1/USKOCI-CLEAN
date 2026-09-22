@@ -3,12 +3,19 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-044 (2026-09-22, Edge deployed): do not overwrite a contextual ASK for a genuinely missing field
+with a canned question. Preserve known-field retargeting and all fact/ambiguity/ownership guards.
+Three old-code failing regressions,90 focused checks and types pass. CI35702324170 source7b6478a8:
+355 offline Edge tests plus25 disposable integration checks. Intake49 byte-verified, JWTtrue, anonymous401.
+No SQL/client/secret change. Owner follow-up pending; no universal dialogue-quality claim. See
+pkg044/PKG044_CONTEXTUAL_INTAKE_QUESTIONS.md and receipt. Existing installed APK requires no replacement.
+
 PKG-043 (2026-09-22, Edge deployed): owner phone attempt exposed Gemini400 INVALID_ARGUMENT on intake47.
 Outgoing dialogue.questionKey enum contained an empty string; use NONE on wire and normalize at the
 strict decoder boundary. Two regressions fail before/pass after; CI35701314667 sourcee2d34bda passes351
 offline Edge tests plus25 existing disposable SQL/Auth/REST checks. Intake48 byte-verified, JWTtrue,
 anonymous401; no SQL/client/credential change, ledger196. Owner retry yielded two SUCCEEDED receipts
-and visible phone replies. Separate repetitive generic ASK wording is now being corrected; this is
+and visible phone replies. Separate repetitive generic ASK wording is corrected in PKG-044; this is
 not a conversation-quality sign-off. See pkg043/PKG043_GEMINI_QUESTION_SENTINEL.md.
 
 PKG-042 (2026-09-22, proven and DEV applied): cancelled-Agreement read parity for Home, paged applications
