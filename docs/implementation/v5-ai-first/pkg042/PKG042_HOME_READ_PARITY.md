@@ -1,7 +1,7 @@
 # PKG-042 — cancelled Agreement read parity and Home attention
 
 Status: combined server/client proof passed and candidate applied to canonical DEV on 2026-09-22.
-Ledger196 =147 source +49 dev_alpha. Native client is committed; new APK build/device checks are separate.
+Ledger196 =147 source +49 dev_alpha. Native client is built and artifact-verified; device checks remain.
 
 ## Measured defect
 
@@ -98,3 +98,8 @@ Receipts: `DISPOSABLE_PROOF_RECEIPT_20260922.json` and
 PKG-00435698097011 and PKG-00735698097030 also pass on the same source.
 Clean CI source147 integrity passes. Local integrity still refuses the owner-preserved foreign
 untracked migration; no frozen tracked migration or inventory rule was changed.
+
+APK35698097121 on dfa54206 succeeded. Downloaded68,554,979 bytes; SHA256
+3dfddf496163f860f5b9e526d8bd3d291f031526534a9b6f7070b3cd9efa0fde matches the checksum and both
+source/tree-bound recovery/icon attestations. See APK_RECEIPT_20260922.json. Not installed/tested;
+no claim that the owner's current phone already runs this client or that the complete journey passed.

@@ -10,6 +10,8 @@ ready closure65980fce preserved atomically; exact candidate/body/authority readb
 source dfa54206 passes25 SQL/Auth/REST/exact-client checks plus346 offline Edge tests. Types and full repeat
 242 suites /4687 Jest tests pass, exit0; first run's Firebase subprocess timeout is documented, not hidden.
 PKG-00435698097011 and PKG-00735698097030 pass. No Edge/JWT/certificate/user-row change or phone action.
+APK35698097121 source dfa54206 built/downloaded; SHA2563dfddf49… and source/tree/attestations match.
+Not installed or tested. Latest continuation: `docs/implementation/NEXT_AI_HANDOFF_20260922_HOME_ATTENTION.md`.
 Read `docs/implementation/v5-ai-first/pkg042/PKG042_HOME_READ_PARITY.md` and receipts. Do not claim complete
 Home pagination, fewer preview fetches, release readiness or device verification from this package.
 

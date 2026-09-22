@@ -118,5 +118,14 @@
   },
   "providerCalls": false,
   "deviceTest": false,
+  "apk": {
+    "run": "35698097121",
+    "result": "success",
+    "source": "dfa54206a0bc34027d1e545bb2b31ba60909c804",
+    "sha256": "3dfddf496163f860f5b9e526d8bd3d291f031526534a9b6f7070b3cd9efa0fde",
+    "receipt": "docs/implementation/v5-ai-first/pkg042/APK_RECEIPT_20260922.json",
+    "installed": false,
+    "deviceTested": false
+  },
   "remaining": "Separate Home activity/upcoming previews still read full lists. No paging/reconciliation change, whole-Home payload-reduction claim, phone or model-quality verification."
 }

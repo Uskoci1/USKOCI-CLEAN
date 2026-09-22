@@ -23,6 +23,9 @@ no PR/force-push/repair branch. Do not rewrite source147 or include the owner's 
   deadline failure (4686 pass); isolated8/8 then full repeat pass. Existing delayed-exit warning recorded.
 - No Edge deployment in042. Prior intake47 / worker17 / Q&A13 / publication14 and JWTtrue are unchanged
   by this packet; see AI handoff for their deployment evidence. No paid provider call or phone action.
+- APK35698097121 source dfa54206 succeeded; downloaded68,554,979 bytes, SHA256
+  3dfddf496163f860f5b9e526d8bd3d291f031526534a9b6f7070b3cd9efa0fde. Checksum/source/tree and both
+  recovery/icon attestations match. File artifacts/apk-35698097121/USKOCI-DEV.apk. NOT installed or tested.
 
 ## Change and remaining boundary
 
@@ -37,8 +40,11 @@ Attention survives other preview failures and late results cannot cross accounts
 composition stays for SQL reference proofs and explicit test source only.
 
 The other three reads still load full activity/upcoming lists. Do not page them blindly, claim payload
-reduction or mark complete Home scalability solved. Moje prijave reconciliation still assumes its whole
-list until moved to the command's named row. New layout/design was not part of042.
+reduction or mark complete Home scalability solved. Freshly reading `moje-prijave.tsx` confirmed its
+pending command already calls `readApplicationCommandState(pending.row)` and never settles from the
+displayed list. Existing native tests cover an omitted named row and failed/late read; they pass in the
+full run. Preserve that completed prerequisite when introducing pagination; do not repeat the obsolete
+September19 claim that named-row reconciliation is missing. New layout/design was not part of042.
 
 ## Continue in this order
 
