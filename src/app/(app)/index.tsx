@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { composeHome, readHomeSection, type HomeReads, type HomeTarget } from '../../data/homeSnapshot';
+import { composeHome, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
@@ -10,7 +10,7 @@ import { HomePresentation } from '../../ui/home/HomePresentation';
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
  * redirect that read a global mode and sent the person to Zadaci or to Prijave. It now answers
- * "what waits for me" for the whole account at once, from the three reads that already exist, and
+ * "what waits for me" from the account-owned server aggregate, with separate activity previews, and
  * offers the two things a person can start. It reads no mode and sets none.
  */
 export default function Pocetna() {
@@ -29,15 +29,16 @@ function Home() {
     setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, []));
-  const load = useCallback(async (): Promise<HomeReads> => {
-    const [needs, applications, agreements] = await Promise.all([
-      readHomeSection(() => source.mojePotrebe()), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori())]);
-    // Three failures out of three is a failed read, not an account with nothing in it.
-    if ([needs, applications, agreements].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-    return { needs, applications, agreements };
+  const load = useCallback(async (): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
+    const [needs, applications, agreements, attention] = await Promise.all([
+      readHomeSection(() => source.mojePotrebe()), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
+      readHomeSection(() => source.paznjaZaPocetnu())]);
+    // Every failed read is unavailable, never an account with nothing in it.
+    if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
+    return { needs, applications, agreements, attention };
   }, [source]);
   const resource = useFocusedResource(load);
-  const home = useMemo(() => resource.data ? composeHome(resource.data) : null, [resource.data]);
+  const home = useMemo(() => resource.data ? composeHome(resource.data, resource.data.attention) : null, [resource.data]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';

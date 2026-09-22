@@ -148,6 +148,7 @@ type SupabaseIzvor = Omit<
   | 'razgovor'
   | 'objaviPotrebu'
   | 'mojePrijave'
+  | 'paznjaZaPocetnu'
   | 'povuciPrijavu'
   | 'podnesiPrijavu'
   | 'izaberiPrijavu'

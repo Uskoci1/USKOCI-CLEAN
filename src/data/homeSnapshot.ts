@@ -8,12 +8,10 @@ import { hasNeedAttention } from './marketplaceView';
  * the same account's own tasks, its applications to other people's, and its Dogovori on either
  * side stand next to each other, and each row says what the person is to that thing.
  *
- * There is no server aggregate behind this. `rpc_list_my_applications` takes no limit or cursor, so
- * every bound here is a bound on what is shown, not on what is fetched. Since PKG-023a the Dogovori do
- * carry the start of the work, so "next" is ordered by time; a pending change proposal is raised on the
- * Dogovori list itself, where the person acts on it. What is still missing is a server aggregate for
- * "what needs me": this scans every application and Dogovor, which is why the reads behind it cannot be
- * a first page. That one remains a READ_CONTRACT item, recorded in the V3 decision record.
+ * PKG-042 supplies server attention separately. The legacy attention composition stays as the
+ * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
+ * Activity and upcoming Agreement previews still need complete lists: limiting their reads would lose
+ * ordering and totals. Attention integration alone does not make these remaining reads bounded.
  */
 export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable' };
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]>;
@@ -21,6 +19,7 @@ export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications:
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string };
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget };
+export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string };
 export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget };
 export type HomeActivityRow = HomeRow & { relation: 'OWNED' | 'APPLIED' };
 type Preview<Row> = { rows: Row[]; more: number };
@@ -28,7 +27,7 @@ type Preview<Row> = { rows: Row[]; more: number };
 export type HomeActivities = HomeSection<Preview<HomeActivityRow>>
   | { kind: 'partial'; missing: ('needs' | 'applications')[]; value: Preview<HomeActivityRow> };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<Preview<HomeRow>>;
-  activities: HomeActivities; partial: boolean };
+  activities: HomeActivities; partial: boolean; attentionState?: 'known' | 'unavailable' };
 
 const READ_TIMEOUT_MS = 15_000;
 /** One read that fails or hangs costs its own section, never the screen, and never reads as empty. */
@@ -77,14 +76,15 @@ function interleave<T>(first: readonly T[], second: readonly T[]): T[] {
   return result;
 }
 
-export function composeHome(reads: HomeReads): HomeSnapshot {
+export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>): HomeSnapshot {
   const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
   const applications = reads.applications.kind === 'known' ? reads.applications.value : null;
   const agreements = reads.agreements.kind === 'known' ? reads.agreements.value : null;
 
   // A blocked completion first, then an open problem, then a changed task under my application,
   // then my own tasks with applications to choose from. One identity per subject and reason.
-  const attention: HomeAttention[] = [
+  const attention: HomeAttention[] = serverAttention
+    ? serverAttention.kind === 'known' ? serverAttention.value.rows : [] : [
     ...(agreements ?? []).filter(row => row.stanje === 'AWAITING_REQUESTER' && mySide(row) === 'narucilac').map(row => ({
       id: `agreement:${row.id}:confirm`, title: 'Potvrdi završetak', detail: `${row.naslov} · završetak je označen i čeka tvoju potvrdu`,
       target: { kind: 'AGREEMENT' as const, agreementId: row.id } })),
@@ -119,11 +119,13 @@ export function composeHome(reads: HomeReads): HomeSnapshot {
   const missing = [...(needs ? [] : ['needs' as const]), ...(applications ? [] : ['applications' as const])];
 
   return {
-    attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
+    attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
+      ? serverAttention.kind === 'known' ? serverAttention.value.more : 0 : Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
+    ...(serverAttention ? { attentionState: serverAttention.kind } : {}),
     agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT) } } : { kind: 'unavailable' },
     activities: missing.length === 2 ? { kind: 'unavailable' } : missing.length ? { kind: 'partial', missing, value: preview } : { kind: 'known', value: preview },
-    partial: [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable'),
+    partial: serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable'),
   };
 }
 

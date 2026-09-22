@@ -15,6 +15,7 @@ import { supabaseIzvor } from './supabaseIzvor';
 import { supabaseKonfigurisan } from './supabaseClient';
 import { workerProfileClientService } from './workerProfileClientService';
 import { Izvor } from './ports';
+import { homeAttentionClientService } from './homeAttentionClientService';
 
 // Eksplicitna kompoziciona granica.
 //
@@ -65,6 +66,7 @@ const produkcijskiIzvor: Izvor = {
   ...aiProductionOverrides,
   ...aiCommandOverrides,
   ...agreementClientService,
+  ...homeAttentionClientService,
   poreklo: 'supabase',
 };
 

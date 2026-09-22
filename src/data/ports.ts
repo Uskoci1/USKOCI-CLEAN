@@ -21,6 +21,7 @@ import type {
   RadnikProfilProjekcija,
 } from '../contracts/projections';
 import type { TaskRelationIndex } from './taskRelation';
+import type { HomeAttentionPreview } from './homeSnapshot';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -39,6 +40,8 @@ export type Idempotentno = { clientRequestId: string };
 /* --------------------------------------------------------------- čitanje */
 
 export interface PotrebeCitanje {
+  /** Account-owned server attention; failure is unavailable, never an empty list. */
+  paznjaZaPocetnu(): Promise<HomeAttentionPreview>;
   /** R03 — moje Potrebe. */
   mojePotrebe(): Promise<PotrebaProjekcija[]>;
   /** R04 — radni prostor jedne Potrebe. */

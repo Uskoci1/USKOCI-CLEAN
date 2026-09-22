@@ -26,6 +26,7 @@ import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciP
 import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
+import { composeHome } from './homeSnapshot';
 
 const rsd = (iznos: number): Novac => ({
   iznos,
@@ -351,6 +352,14 @@ function fakePublicProfile(profileId: string): JavniProfilProjekcija | null {
 /* --------------------------------------------------------------- izvor */
 
 export const lazniIzvor: Izvor = {
+  async paznjaZaPocetnu() {
+    // Explicit test source only; production never derives attention from these local lists.
+    const [needs, applications, agreements] = await Promise.all([
+      lazniIzvor.mojePotrebe(), lazniIzvor.mojePrijave(), lazniIzvor.mojiDogovori()]);
+    const home = composeHome({ needs: { kind: 'known', value: needs }, applications: { kind: 'known', value: applications },
+      agreements: { kind: 'known', value: agreements } });
+    return { rows: home.attention, more: home.attentionMore, asOf: new Date().toISOString() };
+  },
   poreklo: 'lazni',
 
   // R02 — AI intake. Isti port, pa zamena Supabaseom ne dira ekran.

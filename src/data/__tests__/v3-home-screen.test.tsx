@@ -4,7 +4,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let mockSession = { user: { id: A }, accountRevision: 1 };
 let mockFocused = true;
-const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn() };
+const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource }));
@@ -40,6 +40,7 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 beforeEach(() => {
   jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 }; mockFocused = true;
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
+  mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
@@ -64,6 +65,8 @@ it('shows one account on both sides at once, each row saying what I am to it, wi
 
 it('a row only navigates, and to the exact object: my task opens its candidates, my application opens that application', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
+  mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'need:orman:applications', title: '2 prijave', detail: 'Moj orman · čeka tvoj izbor',
+    target: { kind: 'CANDIDATES', needId: 'orman' } }], more: 0, asOf: '2026-09-22T10:00:00Z' });
   await render();
   expect(text()).toContain('Čeka te');
   await act(async () => row('2 prijave').onPress());
@@ -81,11 +84,51 @@ it('a section that failed says so and offers the read again; it is never drawn a
   await act(async () => action('Pokušaj ponovo').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
 });
 
-it('three failed reads are a failed screen, not an empty account', async () => {
+it('four failed reads are a failed screen, not an empty account', async () => {
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   await render();
   expect(text()).toContain('trenutno nisu učitani'); expect(text()).not.toContain('Ovde će stajati');
   expect(action('Objavi zadatak')).toBeDefined();
+});
+
+it('PKG-042: server attention remains visible with its full total when all three preview reads fail', async () => {
+  for (const read of [mockSource.mojePotrebe, mockSource.mojePrijave, mockSource.mojiDogovori]) read.mockRejectedValue(new Error('READ_FAILED'));
+  mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:server:stale', title: 'Zadatak je izmenjen',
+    detail: 'Pregledaj uslove', target: { kind: 'APPLICATION', applicationId: 'server' } }], more: 12, asOf: '2026-09-22T10:00:00Z' });
+  await render();
+  expect(text()).toContain('Zadatak je izmenjen'); expect(text()).toMatch(/I još\s+12/);
+  expect(tree.root.findAll(node => String(node.type) === 'T').some(node => node.props.children === 13)).toBe(true);
+  expect(text()).not.toContain('Tvoj prvi korak.');
+  await act(async () => row('Zadatak je izmenjen').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });
+});
+
+it('PKG-042: attention failure is explicit and never replaced with conclusions from old lists', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]);
+  mockSource.paznjaZaPocetnu.mockRejectedValue(new Error('PRIVATE_BACKEND_ERROR'));
+  await render();
+  expect(text()).toContain('Podaci o obavezama trenutno nisu učitani.');
+  expect(text()).not.toContain('čeka tvoj izbor'); expect(text()).not.toContain('PRIVATE_BACKEND_ERROR');
+  expect(text()).toContain('Moj old');
+  await act(async () => action('Pokušaj ponovo').onPress());
+  expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
+});
+
+it('PKG-042: a known empty aggregate suppresses obsolete locally inferred attention', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 7, brojPrijavaZaIzbor: 2 })]);
+  await render();
+  expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(1);
+  expect(text()).not.toContain('Čeka te'); expect(text()).toContain('Moj old');
+});
+
+it('PKG-042: a late private attention result from the previous account cannot appear after switching accounts', async () => {
+  const late = deferred<unknown>(); mockSource.paznjaZaPocetnu.mockReturnValueOnce(late.promise);
+  await render();
+  mockSession = { user: { id: B }, accountRevision: 2 };
+  await act(async () => tree.update(<Pocetna />));
+  await act(async () => late.resolve({ rows: [{ id: 'private-a', title: 'PRIVATE_A_TASK', detail: '',
+    target: { kind: 'NEED', needId: A } }], more: 0, asOf: '2026-09-22T10:00:00Z' }));
+  expect(text()).not.toContain('PRIVATE_A_TASK'); expect(text()).toContain('Tvoj prvi korak.');
 });
 
 it('an empty account is told what will stand here, without zero statistics', async () => {

@@ -5,12 +5,20 @@ on:
     paths:
       - 'supabase/candidates/pkg042*.sql'
       - 'supabase/proofs/pkg042/**'
+      - 'src/data/homeAttentionClientService.ts'
+      - 'src/data/homeSnapshot.ts'
+      - 'src/data/serverReceipt.ts'
+      - 'src/data/index.ts'
+      - 'src/app/(app)/index.tsx'
+      - 'src/ui/home/HomePresentation.tsx'
+      - 'src/data/__tests__/home-attention-client.test.ts'
+      - 'src/data/__tests__/v3-home-screen.test.tsx'
       - '.github/workflows/pkg042-home-read-parity-proof.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: pkg042-conversation-${{ github.ref }}
+  group: pkg042-home-read-parity-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   disposable-proof:
@@ -44,6 +52,7 @@ jobs:
           sha256sum supabase/candidates/pkg042*.sql supabase/functions/uskoci-ai-interview/index.ts supabase/functions/uskoci-worker-interview/index.ts supabase/functions/uskoci-qa-classify/index.ts >> "$PRE_V3_ARTIFACT_DIR/source-binding.txt"
           python3 supabase/migrations/check_migration_integrity.py
           npx tsc --noEmit -p tsconfig.json
+          npx jest --runInBand --runTestsByPath src/data/__tests__/home-attention-client.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/v3-home-snapshot.test.ts
           node --test supabase/proofs/ai/*.test.mjs | tee "$PRE_V3_ARTIFACT_DIR/edge-tests.log"
       - name: Reconstruct disposable historical live79
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
@@ -91,6 +100,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pkg042-conversation-semantics-${{ github.sha }}
+          name: pkg042-home-read-parity-${{ github.sha }}
           path: /tmp/pkg042-artifacts
           if-no-files-found: error

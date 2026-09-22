@@ -1,6 +1,7 @@
 # PKG-042 — cancelled Agreement read parity and Home attention
 
-Status: candidate prepared; disposable CI proof pending. Canonical DEV is unchanged at ledger 195.
+Status: server proof passed; client integration prepared and its combined disposable proof pending.
+Canonical DEV is unchanged at ledger 195.
 
 ## Measured defect
 
@@ -46,4 +47,38 @@ Activities pagination solved by this package.
 First run 35696725854 reproduced both discrepancies with SQL and real Auth/REST. Atomic drift/tamper
 checks passed; the candidate then rolled back because the temporary authority record's `strict` field
 was not accessible in PL/pgSQL. Renamed that temporary field to `is_strict`, retaining the authority
-comparison. No canonical DEV write occurred. The proof must pass after this correction.
+comparison. No canonical DEV write occurred. The corrected server proof 35697307349 passed; the next
+run will additionally bind the new Home client adapter.
+
+## Client attention integration
+
+`homeAttentionClientService` calls the existing no-argument aggregate through the owned receipt
+boundary (15-second bound and account-revision fence). Its decoder validates schema version, timestamps,
+IDs and cross-field bindings, reason-specific nullability/counts, unique reason identities, priority,
+three-item limit and complete count arithmetic. It maps only validated facts into the existing Serbian
+wording and exact destination. No backend text is rendered as an error and no failed aggregate is
+reconstructed from old lists.
+
+Home calls this reader independently alongside its three preview reads. A failed attention read shows
+an unavailable section with retry; successful attention survives failed previews and retains its own
+known total. The two start actions, whole-account composition, navigation fences and layouts remain.
+Activity and upcoming-Agreement preview reads still load complete lists. No network/payload reduction,
+Activities pagination or complete Home read-contract closure is claimed in this slice.
+
+The legacy pure attention composition remains only for the historical SQL oracle and explicit test
+source. Production always supplies the aggregate result, including its unavailable state. Other full
+count fields are validated but do not overwrite independently loaded preview counts from a different
+snapshot. A future bounded preview contract must preserve upcoming-time ordering and row reconciliation.
+
+Local focused tests: 60 pass across decoder/service, Home route and composition. Three new route
+regressions fail on the previous route and pass on the new one; the existing account fence stays green.
+Types pass. The first full regression run passed 241/242 suites and 4,686/4,687 tests: the existing
+Firebase config subprocess exceeded its 15-second deadline (null process status). The unchanged
+Firebase suite then passed alone (8/8; the affected check took 427 ms). A full repeat is running;
+the timeout is not counted as a green full run. The updated disposable proof is pending and also
+loads the exact new client adapter over real local Auth/PostgREST.
+
+The TypeScript config now excludes the already ignored `artifacts/` output directory, retaining every
+Expo base exclusion and every source include. An earlier Edge staging copy under artifacts contained
+an intentionally partial dependency tree and was incorrectly picked up by the broad source glob.
+No tracked application source was excluded; this is not a suppression of a source type error.

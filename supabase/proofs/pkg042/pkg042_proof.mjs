@@ -2,6 +2,7 @@
 import {readFileSync, writeFileSync, existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as rt from '../pre_v3/closure_runtime.mjs';
+import {homeClient} from './home_client_runtime.mjs';
 const {assert, sql, rows, q, randomUUID, ok, denied, env} = rt;
 assert.equal(env.RU5_DEVICE_SUPABASE_URL, 'http://127.0.0.1:54321');
 assert.equal(env.DB_URL, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
@@ -123,6 +124,10 @@ const rel=await ok(a.client.rpc('rpc_get_my_task_relations',{p_need_ids:f.needs}
 assert.equal(legacy[0].state,'STALE_REVIEW_REQUIRED');
 assert.equal(page.items.length,mode==='before'?0:1);assert.equal(rel.items[0].applicationState,mode==='before'?'SELECTED':'STALE_REVIEW_REQUIRED');
 assert.equal(home.items.length,mode==='before'?0:1);
+const native = homeClient(a.client, a.id), nativeResult = await native.service.paznjaZaPocetnu();
+assert.equal(nativeResult.rows.length, mode==='before'?0:1);
+if (mode==='after') assert.deepEqual(JSON.parse(JSON.stringify(nativeResult.rows[0].target)), {kind:'APPLICATION',applicationId:f.apps[0]});
+report.clientSourceHashes = native.sources; pass('EXACT_HOME_ADAPTER_OVER_AUTHENTICATED_REST');
 assert.equal((await ok(stranger.client.rpc('rpc_home_attention',{}))).counts.attention,0);
 assert.deepEqual((await ok(stranger.client.rpc('rpc_get_my_task_relations',{p_need_ids:f.needs}))).items,[]);
 assert.deepEqual((await ok(stranger.client.rpc('rpc_list_my_applications_page',{p_scope:'ALL',p_limit:30}))).items,[]);

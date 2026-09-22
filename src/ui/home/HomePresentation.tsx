@@ -125,7 +125,10 @@ export function HomePresentation(p: HomePresentationProps) {
       {p.loading && !home ? <Skeleton /> : null}
       {p.error && !home ? <Unavailable what="Tvoji zadaci, prijave i Dogovori" onRefresh={p.onRefresh} /> : null}
 
-      {home && home.attention.length > 0 ? <Section title="Čeka te" count={home.partial ? undefined : home.attention.length + home.attentionMore}>
+      {home?.attentionState === 'unavailable' ? <Section title="Čeka te">
+        <Unavailable what="Podaci o obavezama" onRefresh={p.onRefresh} />
+      </Section> : null}
+      {home && home.attention.length > 0 ? <Section title="Čeka te" count={home.attentionState === 'known' || !home.partial ? home.attention.length + home.attentionMore : undefined}>
         <View style={s.attention}>
         {home.attention.map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
           <Row row={item} onOpen={p.onOpen} kind="attention" last={index === home.attention.length - 1} /></Appear>)}
