@@ -17,7 +17,15 @@
     "src/ui/notifications/PushPreferences.tsx": "66ff8c93e2c07f489957387bed02562c7f1e1d863f36bf815ae276fb535ba830"
   },
   "apkRun": "35741807845",
-  "apkStatus": "BUILDING",
+  "apkStatus": "SUCCESS_ARTIFACT_VERIFIED",
+  "phoneArtifact": {
+    "sha256": "5a8b732ea4f117c82d77f36050dc2119053c5d6e3a880b3b2c8774c8871eaa1d",
+    "bytes": 69559250,
+    "abi": "arm64-v8a",
+    "recoveryAttestation": "PASS_SOURCE_TREE_RUN_HASH_MATCH",
+    "iconAttestation": "PASS_SOURCE_TREE_RUN_HASH_MATCH",
+    "installedOnPhysicalPhone": false
+  },
   "emulator": {
     "name": "USKOCI_V5_TEST",
     "serial": "emulator-5554",
@@ -33,12 +41,33 @@
       "launch": "FAILED_BEFORE_REACT",
       "reason": "SoLoaderDSONotFoundError libreactnative.so; x86_64 loader on ARM-only APK"
     },
-    "windowOpen": true
+    "windowOpen": true,
+    "windowTitle": "Android Emulator - USKOCI_V5_TEST:5554"
   },
-  "deviceVerification": "PENDING",
+  "deviceVerification": "EMULATOR_START_AND_SIGNIN_VIEW_PASS_AUTHENTICATED_FLOWS_PENDING",
   "serverChanged": false,
   "providerCalled": false,
   "claudeReview": "PENDING",
-  "emulatorLogin": "PENDING",
-  "emulatorBuild": "Needs explicit x86_64 target; workflow choice added and validated without changing phone default"
+  "emulatorLogin": "OWNER_SIGNIN_REQUESTED_NO_CREDENTIALS_HANDLED",
+  "emulatorBuild": {
+    "run": "35742822042",
+    "sourceCommit": "213fcf9a28796ae672d84fe18c531b0c793e7d8a",
+    "target": "emulator",
+    "abi": "x86_64",
+    "status": "SUCCESS_INSTALLED_LAUNCHED",
+    "appSourceUnchangedFrom": "8f0be1f46bb48ce485e983e4eb968aaa034db6f5",
+    "sha256": "32a5cc30f5856dffb9a53cc94e94fae0811698b22b17e3a62837ad0dcd485b47",
+    "bytes": 71413337,
+    "attestations": "PASS_SOURCE_TREE_RUN_HASH_MATCH",
+    "reactNativeLibraryPresent": true,
+    "install": "adb install -r: Success",
+    "launch": "Status ok; live process 4965; welcome and sign-in form visually observed",
+    "physicalResolution": "1080x2424",
+    "densityDpi": 420,
+    "fontScale": 1.0,
+    "screenshots": [
+      "outputs/native-product-review-20260922/screenshots/foundation-emulator-welcome.png",
+      "outputs/native-product-review-20260922/screenshots/foundation-emulator-signin-ready.png"
+    ]
+  }
 }

@@ -24,7 +24,7 @@
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen."
    },
    "problem": "",
-   "sledece": "F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
+   "sledece": "F04: oznaka dela kroz unutrašnje ekrane je ispravljena i testovi prolaze. Novi APK je napravljen; emulator otvara prijavu. Provera posle prijave i na telefonu sledi.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -659,7 +659,7 @@
     "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom."
    },
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
-   "sledece": "Prvi paket F01–F04: APK i telefon, zatim serversko filtriranje uz očuvanje svih podataka i pravila. CLIENT_FOUNDATION.md.",
+   "sledece": "F01–F04: oba APK-a napravljena, emulator otvara prijavu. Slede mapa, filteri i navigacija posle prijave, pa telefon. Serversko filtriranje je poseban naredni korak. CLIENT_FOUNDATION.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1329,8 +1329,8 @@
     "rpc_mark_activity_event_read"
    ],
    "telefon": null,
-   "problem": "Vreme obaveštenja ima font 11. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
-   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9. F03: vreme obaveštenja podignuto na najmanje12; čeka novi APK/telefon.",
+   "problem": "Vreme obaveštenja je podignuto na font 12 u novom APK-u; prikaz čeka proveru posle prijave. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
+   "sledece": "Proveriti F03 na novoj verziji. Zatim za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F14/D9.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1360,7 +1360,7 @@
    ],
    "telefon": null,
    "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
-   "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. APK i provera na telefonu.",
+   "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. Novi APK je napravljen; proveriti ekran posle prijave u emulatoru i na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1595,7 +1595,7 @@
    ],
    "telefon": null,
    "problem": "Crvena oznaka servera je posredan signal iz zajedničkog mediaClientService modula. Sam ekran avatara ne poziva nedostajući rpc_cancel_media_upload; koristi upload/read/apply/discard/clear. Ne tvrditi da je avatar pokvaren zbog greške A05; ceo tok još treba proveriti na telefonu.",
-   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16. F04: donja traka čuva oznaku dela kroz unutrašnje ekrane; testovi prolaze, čeka novi APK/telefon.",
+   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16. F04: oznaka dela je ispravljena, testovi prolaze i novi APK je napravljen; proveriti navigaciju posle prijave.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2054,7 +2054,7 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "DELIMIČNO: analiza odobrena; F01–F04 ispravljeni u kodu8f0be1f4. Tipovi i242 grupe/4698 testova prolaze. APK35741807845 se pravi; emulator i telefon još nisu prihvaćeni.",
+   "sada": "DELIMIČNO: F01–F04 u kodu8f0be1f4; tipovi i242 grupe/4698 testova prolaze. APK35741807845 za telefon i35742822042 za emulator su napravljeni i provereni. Emulator otvara uvod i prijavu; tokovi posle prijave, telefon i Claude provera još čekaju.",
    "dokaz": "docs/implementation/functional-audit-20260922/CLIENT_FOUNDATION.md"
   },
   {

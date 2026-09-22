@@ -15,10 +15,15 @@
   "lastObservedOnline": "5faff9c6 / 2026-09-22T14:10:45Z, 25 attention / 37 not accepted / 0 complete; corrected fee requirement and structural-evidence explanation visible",
   "uploaderAddedInParallel": true,
   "latestUploadFile": "docs/control/stanje.json",
-  "latestUploadTimestamp": "2026-09-22T14:13:13Z",
-  "latestUploadSha256": "6be0764cab2f59a550d265ce6fd54f50099567ce6ee51a5fc94d0b8102ad6ad6",
-  "latestUpload": "CONFIRMED_OWNER_FILE_SELECTION",
-  "reason": "Owner completed file selection; browser showed Učitano with timestamp2026-09-22T14:13:13Z and version5faff9c6. Previous automated filechooser attempts timed out.",
-  "next": "After this client package recompute and upload the next snapshot to the same artifact URL.",
-  "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified."
+  "latestUploadTimestamp": "2026-09-22T15:07:05Z",
+  "latestUploadSha256": "32819f563a2dbd96e947f228c3bea1567dad427fa18748dd1ab5c21216d6d2f3",
+  "latestUpload": "PENDING_FILECHOOSER_TIMEOUT",
+  "reason": "A new actual input#fajl chooser attempt timed out. The browser still shows the prior confirmed snapshot; generation is not publication.",
+  "next": "Owner selects the regenerated docs/control/stanje.json on the same existing artifact page; verify the upload acknowledgement.",
+  "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified.",
+  "confirmedPriorUpload": {
+    "timestamp": "2026-09-22T14:13:13Z",
+    "sha256": "6be0764cab2f59a550d265ce6fd54f50099567ce6ee51a5fc94d0b8102ad6ad6",
+    "result": "Owner file selection confirmed in browser"
+  }
 }

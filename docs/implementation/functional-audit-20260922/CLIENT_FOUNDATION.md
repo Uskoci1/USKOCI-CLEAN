@@ -36,12 +36,14 @@ two lines and a font-scale-aware bar provide room. No new animation is necessary
 - Browser: actual MarketplacePresentation rendered at320/360px with isolated local fixtures;
   full-width legend is legible. At360px the trailing action bounds end at771.6 within777px viewport.
   Web map fallback is explicitly not a real map/gesture/phone proof. No backend or provider involved.
-- Exact-source APK and device verification: pending. Physical phone is disconnected; owner explicitly
-  requested the existing Android emulator. USKOCI_V5_TEST was started without wiping its data.
+- Exact-source phone APK built successfully and both source/tree/run/hash-bound attestations passed.
+  Physical phone is disconnected; owner explicitly requested the existing Android emulator.
+  USKOCI_V5_TEST was started without wiping its data.
 - Claude independent review: pending; no second writer was used in these source files.
 
 Source commit8f0be1f46bb48ce485e983e4eb968aaa034db6f5 was pushed. Exact-source Android build:
-https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35741807845 (in progress at this note).
+https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35741807845 (success; downloaded SHA256
+5a8b732ea4f117c82d77f36050dc2119053c5d6e3a880b3b2c8774c8871eaa1d). Not installed on the physical phone.
 Emulator advertises x86_64 and arm64-v8a; compatibility will be measured by installing/launching the
 actual APK, not inferred from that list. No emulator reset, account change or device-data copy.
 
@@ -53,6 +55,16 @@ choice, defaulting to the unchanged ARM64 phone build. Emulator uses x86_64; arb
 are rejected. No new package, native-source feature or server change. Emulator screenshots remain
 separate from physical-phone acceptance. The initial emulator was gracefully stopped and reopened
 with a window for the owner's eventual sign-in; its data was preserved.
+
+The explicit x86_64 build213fcf9a /run35742822042 then passed. Its app source is unchanged from
+8f0be1f4. Downloaded SHA25632a5cc30f5856dffb9a53cc94e94fae0811698b22b17e3a62837ad0dcd485b47,
+source/tree/run and both attestations matched; lib/x86_64/libreactnative.so exists in the APK.
+`adb install -r` succeeded and the actual app opened: welcome and sign-in form observed, live
+process4965. Screenshots and exact dimensions are in CLIENT_FOUNDATION_RECEIPT.json.
+The owner was asked to sign in personally. No credentials were read or entered. Map, filters,
+nested navigation and signed-in settings remain unverified on this build until that sign-in.
+Emulator startup is not physical-phone acceptance or push-delivery proof. The failed ARM-only
+preflight is retained above as evidence; it is not a failure of the corrected x86_64 package.
 
 ## Boundaries
 
