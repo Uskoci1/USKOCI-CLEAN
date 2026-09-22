@@ -94,6 +94,37 @@ const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_
 const prompt=call=>call.body.systemInstruction?.parts[0].text??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{[^}]+\})\./)[1]);
 
+test('Gemini intake wire schema has no empty enum member, including no-question dialogue',async()=>{
+  const f=fixture();assert.equal((await f.invoke()).status,200);
+  const call=providerCall(f),schema=call.body.generationConfig.responseSchema;
+  function check(node,path='responseSchema'){
+    if(!node||typeof node!=='object')return;
+    if(Array.isArray(node.enum))for(const value of node.enum)
+      assert.ok(typeof value==='string'&&value.length>0,`${path}.enum must contain nonempty strings`);
+    for(const [key,value]of Object.entries(node))check(value,`${path}.${key}`);
+  }
+  check(schema);
+  assert.ok(schema.properties.dialogue.properties.questionKey.enum.includes('NONE'));
+  assert.match(prompt(call),/questionKey.*NONE/);
+});
+
+test('Gemini NONE question sentinel completes without becoming a fact or a follow-up question',async()=>{
+  const f=fixture({providerOutput:{...providerResult,dialogue:{...syntheticDialogue(),questionKey:'NONE'}}});
+  assert.equal((await f.invoke()).status,200);
+  const writes=materialWrites(f);assert.equal(writes.length,1);
+  assert.equal(writes[0].body.p_proposals.length,1);
+  assert.ok(!JSON.stringify(writes[0].body).includes('NONE'));
+});
+
+for(const dialogue of [
+ {...syntheticDialogue(),next:'ASK',questionKey:'NONE'},
+ {...syntheticDialogue(),next:'ANSWER',questionKey:'need.people_needed'},
+ {...syntheticDialogue(),questionKey:'UNKNOWN_QUESTION'},
+])test(`invalid dialogue remains rejected: ${dialogue.next}/${dialogue.questionKey}`,async()=>{
+  const f=fixture({providerOutput:{...providerResult,dialogue}});
+  assert.equal((await f.invoke()).status,502);assert.equal(materialWrites(f).length,0);
+});
+
 const resolvedWitness={version:1,binding:{taskCountryCode:'RS',geography:{mode:'STATIONARY',start:{city:'SYNTHETIC_CITY'}},
   exactAddress:'PRIVATE_RESOLVED_BINDING_ADDRESS'},points:[{slot:'start',latitudeE6:44123456,longitudeE6:20123456,
   origin:{kind:'PROVIDER_CANDIDATE',providerHint:'PRIVATE_RESOLVED_PROVIDER',candidateHint:'PRIVATE_RESOLVED_CANDIDATE'},

@@ -260,7 +260,10 @@ function v2ProviderSchema() {
       safety: { type: 'STRING', enum: ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] },
       assistantMessage: { type: 'STRING' },
       dialogue: { type: 'OBJECT', additionalProperties: false,
-        properties: Object.fromEntries(Object.entries(DIALOGUE_VALUES).map(([key, values]) => [key, { type: 'STRING', enum: values }])),
+        // Gemini rejects an empty string enum member. Keep the internal no-question
+        // marker at the decoder boundary; only the nonempty sentinel travels on wire.
+        properties: Object.fromEntries(Object.entries(DIALOGUE_VALUES).map(([key, values]) =>
+          [key, { type: 'STRING', enum: values.map(value => value === '' ? 'NONE' : value) }])),
         required: Object.keys(DIALOGUE_VALUES) },
       facts: {
         type: 'ARRAY',
@@ -335,7 +338,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
-    'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače prazan string. Ne birajte ASK za već poznat podatak.',
+    'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
     'dialogue.taskRelation: CONTINUE za isti posao i njegove ispravke, DIFFERENT_TASK za drugi nepovezan posao, UNCLEAR ako to nije jasno. Prvi opis u praznom razgovoru je CONTINUE. Promena broja ljudi, cene ili datuma istog posla nije novi posao. Za DIFFERENT_TASK ne prepisujte ovaj zadatak: aplikacija ima Novi zadatak i čuva prethodni razgovor.',
     'dialogue.priceUnit je WHOLE_JOB samo kada je jasno da se iznos odnosi na ceo obim posla; PER_DAY za dnevnicu, PER_HOUR za satnicu, UNSPECIFIED kada se cena ne obrađuje ili jedinica nije jasna. Navedite stvarnu jedinicu čak i kad umete da izračunate proizvod. dialogue.schedulePattern: SINGLE za jedan neprekidan termin, REPEATED za odvojene smene/dane, UNSPECIFIED kada se termin ne obrađuje. Nedovršeno razjašnjenje ostaje važno i u sledećoj poruci.',
     'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Promena vrste posla nije dozvola da se stara cena, termin ili uslovi automatski prenesu na novi posao; prvo razjasnite da li je to novi zadatak.',
@@ -459,8 +462,10 @@ function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
   if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
     !Array.isArray(parsed.facts) || parsed.facts.length > 12) throw new Error('AI_V2_OUTPUT_INVALID');
-  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES)) || Object.entries(DIALOGUE_VALUES).some(([key, values]) =>
-    !values.includes(parsed.dialogue[key])) || (parsed.dialogue.next === 'ASK') !== (parsed.dialogue.questionKey !== ''))
+  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) throw new Error('AI_V2_OUTPUT_INVALID');
+  const dialogue = { ...parsed.dialogue, questionKey: parsed.dialogue.questionKey === 'NONE' ? '' : parsed.dialogue.questionKey };
+  if (Object.entries(DIALOGUE_VALUES).some(([key, values]) =>
+    !values.includes(dialogue[key])) || (dialogue.next === 'ASK') !== (dialogue.questionKey !== ''))
     throw new Error('AI_V2_OUTPUT_INVALID');
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
@@ -492,7 +497,7 @@ function parseV2Output(parsed: any): ParsedTurn {
       });
     }
   }
-  return { safety, assistantMessage, proposals, dialogue: parsed.dialogue };
+  return { safety, assistantMessage, proposals, dialogue };
 }
 
 async function callGemini(
