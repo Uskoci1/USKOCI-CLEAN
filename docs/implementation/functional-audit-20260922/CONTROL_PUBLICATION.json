@@ -2,7 +2,7 @@
   "date": "2026-09-22",
   "targetUrl": "https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t",
   "file": "docs/control/out/tabla.html",
-  "sha256": "1306968f76093ebde63f07717b0f72b30f90f90c8ae94d54ef654b1d54ede48a",
+  "previousHtmlSha256": "1306968f76093ebde63f07717b0f72b30f90f90c8ae94d54ef654b1d54ede48a",
   "generation": "PASS: node scripts/control/osvezi.mjs",
   "dataParityAndScriptSyntax": "PASS",
   "rows": 62,
@@ -11,8 +11,14 @@
   "fullyAccepted": 0,
   "ownerPublicationAuthorization": "Explicit latest request; same existing URL",
   "ownerAuthentication": "Completed; artifact visible",
-  "publication": "PENDING_CAPABILITY",
-  "reason": "No Artifact publish connector or page WebMCP available; visible artifact menus do not provide content editing.",
-  "lastObservedOnline": "8adb5be0, 21 attention / 41 not accepted / 0 complete; older than this generated file",
-  "next": "Claude with Artifact publish must publish this exact HTML to targetUrl, then read back its updated content. No duplicate site or sharing-permission change."
+  "publication": "AUDIT_CONTENT_OBSERVED_AFTER_PARALLEL_PUBLICATION",
+  "lastObservedOnline": "5faff9c6 / 2026-09-22T14:10:45Z, 25 attention / 37 not accepted / 0 complete; corrected fee requirement and structural-evidence explanation visible",
+  "uploaderAddedInParallel": true,
+  "latestUploadFile": "docs/control/stanje.json",
+  "latestUploadTimestamp": "2026-09-22T14:13:13Z",
+  "latestUploadSha256": "6be0764cab2f59a550d265ce6fd54f50099567ce6ee51a5fc94d0b8102ad6ad6",
+  "latestUpload": "NOT_CONFIRMED_FILECHOOSER_TIMEOUT",
+  "reason": "Supported browser waitForEvent(filechooser) timed out after click and Enter on actual input#fajl; no direct Artifact publish or page WebMCP capability.",
+  "next": "Complete the file selection via the owner UI, then verify the saved timestamp and persistence after reload. No duplicate site or sharing-permission change.",
+  "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified."
 }

@@ -164,7 +164,8 @@ const counts = computed.reduce((a, r) => (a[r.ukupno] = (a[r.ukupno] ?? 0) + 1, 
 const stanje = { meta, counts, redovi: computed, server_ume_aplikacija_ne_koristi: serverOnly, aplikacija_zove_a_server_nema: appCallsMissing,
   blokade: rows.blokade, prodavnice: rows.prodavnice, test_dva_telefona: rows.test_dva_telefona, test_dva_telefona_izvrseno: rows.test_dva_telefona_izvrseno, ci };
 
-writeFileSync(join(CONTROL, 'stanje.json'), JSON.stringify({ ...stanje, meta: { ...meta, osvezeno: undefined } }, null, 1) + '\n');
+// The published table compares this timestamp when receiving an uploaded/shared snapshot.
+writeFileSync(join(CONTROL, 'stanje.json'), JSON.stringify(stanje, null, 1) + '\n');
 mkdirSync(join(CONTROL, 'out'), { recursive: true });
 const tpl = read(join(CONTROL, 'tabla.template.html'));
 writeFileSync(join(CONTROL, 'out', 'tabla.html'), tpl.replace('__STANJE__', JSON.stringify(stanje).replace(/</g, '\\u003c')));
