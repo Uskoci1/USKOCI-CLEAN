@@ -4,15 +4,21 @@ import { elevation, motion, radius, space, touch, type } from '../../theme/token
 /**
  * One light system for every inner screen (PKG-011, redesigned 2026-09-16 against
  * the V5 AI-FIRST reference: white background, deep green as trust and
- * orientation, orange as the single action signal, ink #183A30, quiet copy
- * #586B62, cards with a soft V4.9 shadow instead of a wireframe outline).
- * The entry/HOME/mascot keep their own locked assets; this file never restyles them.
+ * orientation, orange as the single action signal, cards with a soft V4.9 shadow
+ * instead of a wireframe outline). The entry/HOME/mascot keep their own locked
+ * assets; this file never restyles them.
+ *
+ * Colours are the owner's V28 prototype as it renders (decision 2026-09-22, "identičan izgled";
+ * V28's colours, icons and navigation are the ones to keep). Measured from computed styles at
+ * 412 px: ink #202723 (screen titles), muted #5E6D64, action green #076E4E (primary button with
+ * white text, large price), card price #087B57, pale green #EFF6F0 (selected tab), orange #FA8229
+ * with dark ink #30200F ("+"), orange-soft #FFF5E9, hairline #EBEEEA, card edge #D8DED7.
  *
  * Every text/background pair below was checked for WCAG AA (≥ 4.5:1):
- * ink on surface 12.5 · muted on surface 5.7 · green on surface 6.4 · green on
- * greenSoft 5.6 · ink on orange 5.1 (white on orange is 2.4 — a defect, so action
- * text on orange is always ink) · danger on dangerSoft 6.0 · warn on warnSoft 5.9 ·
- * money on surface 7.8.
+ * ink on surface 15.3 · muted on surface 5.5 · muted on greenSoft 5.0 · muted on wash 5.0 ·
+ * green on surface 6.3 · white on green 6.3 · green on greenSoft 5.7 · money on surface 5.3 ·
+ * onOrange on orange 6.2 (white on orange is 2.5 — a defect, so text on orange is always dark) ·
+ * ink on orangeSoft 14.2 · danger on dangerSoft 6.0 · warn on warnSoft 5.9.
  */
 export const sys = {
   color: {
@@ -23,21 +29,21 @@ export const sys = {
     /** Segmented track and icon wells. */
     control: '#E6EDE8',
     iconWell: '#F4F7F5',
-    ink: '#183A30',
-    muted: '#586B62',
-    green: '#176B55',
-    greenSoft: '#E6F2ED',
-    orange: '#FF850F',
-    orangeSoft: '#FFF6EC',
-    onOrange: '#183A30',
-    line: '#E3EBE6',
+    ink: '#202723',
+    muted: '#5E6D64',
+    green: '#076E4E',
+    greenSoft: '#EFF6F0',
+    orange: '#FA8229',
+    orangeSoft: '#FFF5E9',
+    onOrange: '#30200F',
+    line: '#EBEEEA',
     lineStrong: '#C9D6CF',
-    cardLine: '#DCE8DF',
+    cardLine: '#D8DED7',
     danger: '#963F34',
     dangerSoft: '#FBECE9',
     warn: '#8A5100',
     warnSoft: '#FFF4DF',
-    money: '#205C45',
+    money: '#087B57',
     skeleton: '#E9F0EC',
     scrim: '#183A3066',
     /** Hairlines on a filled control, and the ring that appears only while listening. */

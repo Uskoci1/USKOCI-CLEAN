@@ -6,6 +6,19 @@ comparison; do not revert to the old native visuals or generic icons. See
 docs/implementation/DESIGN_V31_V28_EXECUTION_20260922.md (R5 supplement) and the independent three-card
 study outputs/design-v31-v28-20260922/PREDLOG.html. No production UI or dependency was changed in that pass.
 
+Identical look, owner decision 2026-09-22 ("identičan izgled … slova … da preneseš u app" → "može"):
+transfer the V28 look into the app, at V31's density, without the prototypes' defects: text under 12 px,
+the Lottie layer-order bug, zero-noise chips, demo-only concepts. Claude implements it in this worktree,
+so do not edit the same UI files concurrently. Slice 1 is in production code:
+- bundled Inter (`assets/fonts/inter`, OFL; the `expo-font` plugin; `src/ui/interFont.ts`);
+- V28's measured palette in `sys.color`;
+- the prototype's two-tone icons (`src/ui/system/FactArt.tsx`);
+- the V28-anatomy `TaskCard`.
+
+Web smoke and Jest pass; the phone render awaits a new APK. The three open owner choices are tabs
+(Početna vs the prototype's Zadaci), primary button colour, and card corner. Record:
+`docs/implementation/v5-ai-first/V31_IDENTICAL_LOOK_20260922.md`.
+
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 

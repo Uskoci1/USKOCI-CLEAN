@@ -45,7 +45,19 @@
           }
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/inter/Inter-Regular.ttf",
+            "./assets/fonts/inter/Inter-Medium.ttf",
+            "./assets/fonts/inter/Inter-SemiBold.ttf",
+            "./assets/fonts/inter/Inter-Bold.ttf",
+            "./assets/fonts/inter/Inter-ExtraBold.ttf"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

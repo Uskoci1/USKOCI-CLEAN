@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { sys } from '../../ui/system/tokens';
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return ['View', 'ScrollView'].includes(String(key)) ? key : Reflect.get(target, key); } });
@@ -13,7 +14,7 @@ let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const presses = () => tree.root.findAllByType('Press' as React.ElementType);
 const byLabel = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
-const brand = () => presses().filter(node => JSON.stringify(node.props.style).includes('#FF850F')).map(node => node.props.accessibilityLabel);
+const brand = () => presses().filter(node => JSON.stringify(node.props.style).includes(sys.color.orange)).map(node => node.props.accessibilityLabel);
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 test('a settings screen has a spoken header, rows with label, hint and chevron, panels and exactly one brand action', async () => {

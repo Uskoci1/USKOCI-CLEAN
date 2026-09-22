@@ -1,6 +1,10 @@
 import { Text as RNText, type TextProps } from 'react-native';
 import { palette, type as typeScale } from '../theme/tokens';
+import { withInter } from './interFont';
+import { loadInterWeb } from './loadInterWeb';
 import { sys } from './system/tokens';
+
+loadInterWeb();
 
 type Variant = keyof typeof typeScale;
 type Tone = 'ink' | 'muted' | 'onDark' | 'onDarkMuted' | 'orange' | 'onOrange' | 'danger' | 'success';
@@ -43,12 +47,12 @@ export function T({ variant = 'body', tone = 'ink', balance, style, ...rest }: P
   return (
     <RNText
       {...rest}
-      style={[
+      style={withInter([
         typeScale[variant],
         { color: tones[tone] },
         balance ? { textAlign: 'left' } : null,
         style,
-      ]}
+      ])}
     />
   );
 }

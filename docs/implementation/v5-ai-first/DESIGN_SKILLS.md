@@ -35,9 +35,10 @@ pause is introduced into the current integration.
 
 ## Current UI direction and motion gate
 
-Keep original brand assets; use white surfaces, USKOČI green #176B55,
-orange #FF850F, ink #183A30, quiet secondary copy #586B62 and readable existing
-font family. Live card remains outside the independent conversation scroll;
+Keep original brand assets; use white surfaces. The colours and letters are the owner's V28
+prototype as of 2026-09-22 (superseding the earlier green #176B55 / orange #FF850F / ink #183A30
+/ secondary #586B62 and "existing font family"). Use `sys.color` in `src/ui/system/tokens.ts` and
+bundled Inter; see `V31_IDENTICAL_LOOK_20260922.md`. Live card remains outside the independent conversation scroll;
 keyboard and large text compact the card without covering the composer.
 One primary final action publishes from the complete review. All inputs remain
 editable through explicit manual controls or conversation.
