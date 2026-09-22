@@ -3,13 +3,14 @@ jest.mock('../supabaseClient', () => {
   const eq = jest.fn(() => ({ maybeSingle }));
   const select = jest.fn(() => ({ eq }));
   const from = jest.fn(() => ({ select }));
-  return { supabaseKlijent: () => ({ from }), __testMocks: { maybeSingle, eq, select, from } };
+  const rpc = jest.fn(() => maybeSingle());
+  return { supabaseKlijent: () => ({ from, rpc }), __testMocks: { maybeSingle, eq, select, from, rpc } };
 });
 jest.mock('../publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: jest.fn() } }));
 
 import { supabaseIzvor } from '../supabaseIzvor';
 import { publicProfileClientService } from '../publicProfileClientService';
-const { maybeSingle, eq, select, from } = jest.requireMock('../supabaseClient').__testMocks as Record<string, jest.Mock>;
+const { maybeSingle, eq, select, from, rpc } = jest.requireMock('../supabaseClient').__testMocks as Record<string, jest.Mock>;
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
 const row = () => ({
   id: 'task-a', title: 'Pomoć pri selidbi', status: 'PUBLISHED', starts_at: null,
@@ -71,16 +72,8 @@ describe('W04 public-safe detail read', () => {
   it('recovers with the existing narrow projection and no private task columns', async () => {
     maybeSingle.mockResolvedValue({ data: { ...row(), exact_address: 'PRIVATE', requester_account_id: 'PRIVATE', private_terms: 'PRIVATE' }, error: null });
     const result = await supabaseIzvor.prilika('task-a');
-    expect(from).toHaveBeenCalledWith('needs'); expect(eq).toHaveBeenCalledWith('id', 'task-a');
-    expect(select.mock.calls[0][0].split(',').map((field: string) => field.trim())).toEqual([
-      'id', 'title', 'status', 'urgent', 'starts_at', 'approximate_area', 'approximate_city', 'approximate_lat', 'approximate_lng',
-      // price_basis, from pkg025a: what the amount beside it is FOR. It is a rule of the task, the
-      // same class as `mode`, and it names no person and no place.
-      'required_slots', 'required_skills', 'required_tools', 'required_vehicles', 'covered_slots', 'mode', 'requester_price_rsd', 'price_basis', 'requester_profile_id', 'response_deadline', 'remaining_search_closed_at',
-      'description', 'category', 'schedule_kind', 'ends_at', 'task_country_code', 'task_timezone', 'execution_location_mode',
-      'required_licenses', 'minimum_experience_years', 'verified_identity_required',
-      'need_geography(public_topology)', 'need_requirement_details(critical_conditions)',
-    ]);
+    expect(rpc).toHaveBeenCalledWith('rpc_read_task', { p_need_id: 'task-a' });
+    expect(from).not.toHaveBeenCalled();
     expect(result).toMatchObject({ id: 'task-a', naslov: 'Pomoć pri selidbi', primaNovePrijave: true,
       podrucjeTekst: 'Centar, Novi Sad', narucilacIme: '', narucilacOcena: null, ponudjenaCena: { iznos: 5000, valuta: 'RSD' } });
     expect(JSON.stringify(result)).not.toContain('PRIVATE');

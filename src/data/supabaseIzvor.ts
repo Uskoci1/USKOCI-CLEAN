@@ -224,16 +224,7 @@ export const supabaseIzvor: SupabaseIzvor = {
   },
 
   async prilika(id: string) {
-    const { data, error } = await supabase.from('needs')
-      .select(`
-        id, title, status, urgent, starts_at, approximate_area, approximate_city, approximate_lat, approximate_lng,
-        required_slots, required_skills, required_tools, required_vehicles,
-        covered_slots, mode, requester_price_rsd, price_basis, requester_profile_id, response_deadline, remaining_search_closed_at,
-        description, category, schedule_kind, ends_at, task_country_code, task_timezone, execution_location_mode,
-        required_licenses, minimum_experience_years, verified_identity_required,
-        need_geography(public_topology), need_requirement_details(critical_conditions)
-      `)
-      .eq('id', id).maybeSingle();
+    const { data, error } = await supabase.rpc('rpc_read_task', { p_need_id: id });
 
     if (error) throw error;
     if (!data) return null;

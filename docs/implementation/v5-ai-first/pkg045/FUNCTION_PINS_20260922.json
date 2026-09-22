@@ -1,0 +1,73 @@
+{
+  "functions": [
+    {
+      "signature": "public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)",
+      "before": "20b5d1193357c43de14d68d6fdcfb911",
+      "after": "18b5518140c519b96728d1e25fa3c29d"
+    },
+    {
+      "signature": "public.rpc_read_task(uuid)",
+      "before": null,
+      "after": "1e01db5140248f27ab374187f01fded3"
+    },
+    {
+      "signature": "public.rpc_list_my_tasks()",
+      "before": null,
+      "after": "2a8ff0fa8a1211414e5e1fc69c6fb4f7"
+    }
+  ],
+  "dependencies": [
+    {
+      "signature": "public.selectable_application_count(needs)",
+      "md5": "fe53442f8b661d6f33d22a54e2a468a8"
+    },
+    {
+      "signature": "public.covered_slots(needs)",
+      "md5": "ac09f84c85ff8ae237c8db463a43d547"
+    },
+    {
+      "signature": "public.rpc_storage_account_open()",
+      "md5": "7350621ef256678e209aa6a28c79b58b"
+    }
+  ],
+  "readableColumns": [
+    "id",
+    "requester_profile_id",
+    "status",
+    "title",
+    "description",
+    "category",
+    "approximate_city",
+    "approximate_area",
+    "approximate_lat",
+    "approximate_lng",
+    "schedule_kind",
+    "starts_at",
+    "ends_at",
+    "required_slots",
+    "mode",
+    "requester_price_rsd",
+    "required_skills",
+    "required_tools",
+    "required_vehicles",
+    "verified_identity_required",
+    "urgent",
+    "public_photo_paths",
+    "revision",
+    "published_at",
+    "created_at",
+    "updated_at",
+    "response_deadline",
+    "urgent_activated_at",
+    "urgent_expires_at",
+    "urgent_policy_version",
+    "minimum_experience_years",
+    "execution_location_mode",
+    "approx_geog",
+    "required_licenses",
+    "remaining_search_closed_at",
+    "task_country_code",
+    "task_timezone",
+    "price_basis"
+  ]
+}

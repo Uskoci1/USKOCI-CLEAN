@@ -10,6 +10,9 @@ test('read probe admits only the actual local read routes and fixture login', ()
   assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/auth/v1/token?grant_type=password', { method: 'POST' }).method, 'POST');
   assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/rest/v1/rpc/rpc_get_public_profile', { method: 'POST' }).method, 'POST');
   assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/rest/v1/rpc/fn_need_urgency', { method: 'POST' }).method, 'POST');
+  for (const name of ['rpc_read_task', 'rpc_list_my_tasks']) {
+    assert.equal(assertReadProbeRequest('http://127.0.0.1:54321/rest/v1/rpc/' + name, { method: 'POST' }).method, 'POST');
+  }
 });
 test('read probe rejects writes, arbitrary RPCs and nonlocal/redirected hosts before fetch', () => {
   for (const [url, method] of [

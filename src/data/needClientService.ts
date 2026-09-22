@@ -132,20 +132,11 @@ function mapNeed(raw: any): PotrebaProjekcija {
   };
 }
 
-const NEED_SELECT = `
-  id, revision, title, description, category, status, urgent, schedule_kind, starts_at, ends_at,
-  task_country_code, task_timezone, execution_location_mode,
-  approximate_area, approximate_city, approximate_lat, approximate_lng,
-  required_slots, required_skills, required_tools, required_vehicles, required_licenses,
-  minimum_experience_years, verified_identity_required,
-  covered_slots, selectable_application_count, mode, requester_price_rsd, price_basis,
-  marketplace_responses(id), need_geography(public_topology), need_requirement_details(critical_conditions)
-`;
-
 /**
  * Canonical production client boundary for Need read operations.
- * Existing RLS owns access. Public topology/requirements are embedded in the same
- * Need query, so detail review never joins a second revision or private location.
+ * Detail keeps existing RLS; the owner list scopes auth.uid() on the server.
+ * Explicit documents include topology/requirements in the same statement, without
+ * requiring access to internal account IDs or a whole-row computed-field argument.
  * Publication still uses its separate context/decision/command authority.
  */
 export const needClientService: NeedReadService = {
@@ -154,11 +145,7 @@ export const needClientService: NeedReadService = {
     if (authError) throw new Error(authError.message || 'AUTH_READ_FAILED');
     if (!authData.user) throw new Error('AUTH_REQUIRED');
 
-    const { data, error } = await supabase
-      .from('needs')
-      .select(NEED_SELECT)
-      .eq('requester_account_id', authData.user.id)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('rpc_list_my_tasks');
 
     if (error) throw new Error(error.message || 'NEED_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('NEED_LIST_INVALID_PROJECTION');
@@ -170,11 +157,7 @@ export const needClientService: NeedReadService = {
     const needId = id.trim();
     if (!needId) return null;
 
-    const { data, error } = await supabase
-      .from('needs')
-      .select(NEED_SELECT)
-      .eq('id', needId)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('rpc_read_task', { p_need_id: needId });
 
     if (error) throw new Error(error.message || 'NEED_READ_FAILED');
     if (!data) return null;

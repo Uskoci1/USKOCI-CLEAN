@@ -16,6 +16,7 @@ jest.mock('../supabaseClient', () => {
   const mockEq = jest.fn();
   const mockOrder = jest.fn();
   const mockMaybeSingle = jest.fn();
+  const mockRpc = jest.fn((name: string) => name === 'rpc_list_my_tasks' ? mockOrder() : mockMaybeSingle());
 
   const builder = {
     select: mockSelect,
@@ -33,8 +34,10 @@ jest.mock('../supabaseClient', () => {
     supabaseKlijent: () => ({
       auth: { getUser: mockGetUser },
       from: mockFrom,
+      rpc: mockRpc,
     }),
     __testMocks: {
+      mockRpc,
       mockGetUser,
       mockFrom,
       mockSelect,
@@ -51,6 +54,7 @@ import { needGeographyRows, needRequirementRows, needScheduleText, needPriceBasi
 
 const mocks = (jest.requireMock('../supabaseClient') as {
   __testMocks: {
+    mockRpc: jest.Mock;
     mockGetUser: jest.Mock;
     mockFrom: jest.Mock;
     mockSelect: jest.Mock;
@@ -95,12 +99,12 @@ const rawNeed = {
 describe('CDL-A03 — canonical Need read contract', () => {
   beforeEach(reset);
 
-  it('PKG-035: reads selectable count in the existing query and preserves the historical total', async () => {
+  it('PKG-045: reads selectable count in the explicit document and preserves the historical total', async () => {
     mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, selectable_application_count: 0 }] });
     const [row] = await needClientService.mojePotrebe();
     expect(row).toMatchObject({ brojPrijava: 1, brojPrijavaZaIzbor: 0, stanje: 'OBJAVLJENA' });
-    expect(mocks.mockSelect).toHaveBeenCalledTimes(1);
-    expect(mocks.mockSelect.mock.calls[0][0]).toContain('selectable_application_count');
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_list_my_tasks');
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
   });
   it.each([undefined, -1, 1.5, '2', Number.NaN])('rejects an invalid count instead of substituting history: %p', async count => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: count } });
@@ -126,17 +130,14 @@ describe('CDL-A03 — canonical Need read contract', () => {
     expect(composition).not.toContain('needProductionOverrides');
   });
 
-  it('mojePotrebe preserves auth, exact query chain and mapped projection', async () => {
+  it('mojePotrebe preserves auth, owner-scoped RPC and mapped projection', async () => {
     mocks.mockOrder.mockResolvedValue({ data: [rawNeed], error: null });
 
     const result = await needClientService.mojePotrebe();
 
     expect(mocks.mockGetUser).toHaveBeenCalledTimes(1);
-    expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
-    expect(mocks.mockEq.mock.calls).toEqual([['requester_account_id', 'requester-1']]);
-    expect(mocks.mockOrder.mock.calls).toEqual([['created_at', { ascending: false }]]);
-    expect(mocks.mockSelect).toHaveBeenCalledTimes(1);
-    expect(String(mocks.mockSelect.mock.calls[0][0])).toContain('marketplace_responses(id)');
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_list_my_tasks');
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
     expect(result).toEqual([
       expect.objectContaining({
         id: 'need-1',
@@ -183,7 +184,7 @@ describe('CDL-A03 — canonical Need read contract', () => {
     );
   });
 
-  it('potreba preserves trim, exact query and mapped projection', async () => {
+  it('potreba preserves trim, detail RPC and mapped projection', async () => {
     mocks.mockMaybeSingle.mockResolvedValue({
       data: { ...rawNeed, status: 'SELECTION' },
       error: null,
@@ -191,9 +192,8 @@ describe('CDL-A03 — canonical Need read contract', () => {
 
     const result = await needClientService.potreba('  need-1  ');
 
-    expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
-    expect(mocks.mockEq.mock.calls).toEqual([['id', 'need-1']]);
-    expect(mocks.mockMaybeSingle.mock.calls).toEqual([[]]);
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_read_task', { p_need_id: 'need-1' });
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
     expect(result).toEqual(expect.objectContaining({
       id: 'need-1',
       stanje: 'DELIMICNO_POPUNJENA',
@@ -234,10 +234,8 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     expect(result.vremeTekst).toContain('12:00'); expect(result.vremeTekst).toContain('13:00');
     expect(result.vremeTekst).toContain('po vremenu u Srbiji');
     expect(JSON.stringify(result)).not.toMatch(/SECRET|exact_address|resolved_location|exact_lat/);
-    expect(mocks.mockFrom.mock.calls).toEqual([['needs']]);
-    const selection = String(mocks.mockSelect.mock.calls[0][0]);
-    for (const key of ['category', 'ends_at', 'schedule_kind', 'task_country_code', 'task_timezone', 'need_geography(public_topology)', 'need_requirement_details(critical_conditions)']) expect(selection).toContain(key);
-    expect(selection).not.toMatch(/need_sensitive|exact_address|resolved_location|exact_lat|requester_account_id/);
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_read_task', { p_need_id: rawNeed.id });
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
   });
   it('says what a price is for, and says nothing new about a task that never declared one', () => {
     const money = (iznos: number) => ({ iznos, valuta: 'RSD' as const, prikaz: `${iznos.toLocaleString('sr-Latn-RS')} RSD` });
@@ -324,9 +322,8 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     // to round here, and nothing precise is reachable from this query at all.
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: 45.25, approximate_lng: 19.83 } });
     expect((await needClientService.potreba(rawNeed.id))!.priblizno).toEqual({ lat: 45.25, lng: 19.83 });
-    const selection = String(mocks.mockSelect.mock.calls[0][0]);
-    expect(selection).toContain('approximate_lat'); expect(selection).toContain('approximate_lng');
-    expect(selection).not.toMatch(/exact_lat|exact_lng|resolved_location/);
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_read_task', { p_need_id: rawNeed.id });
+    expect(mocks.mockFrom).not.toHaveBeenCalled();
 
     // PostgREST may hand a numeric back as a string; a task without a point stays without one.
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, approximate_lat: '45.25', approximate_lng: '19.83' } });
