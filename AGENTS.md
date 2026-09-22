@@ -3,6 +3,17 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-040 / PKG-041 (2026-09-22, proven and DEV applied/deployed): Q&A owned failure settlement,
+independent bounded cleanup and native55s submit; intake guards contradictory literal relative-day
+evidence without guessing dates from negation. Ledger195 =147 source +48 dev_alpha; closure65980fce
+and readiness preserved atomically. Proof35677596411 passes17 SQL/Auth/REST checks and346 offline Edge
+tests. Intake47 / worker17 / Q&A13 / publication14, JWTtrue; new deployments byte-verified. Types and
+241 suites /4652 Jest tests pass. PKG-01035676936960 and PKG-014B35677260602 pass.
+APK35677195929 sourceec3b3d43 built/downloaded: SHA2565568feb7… matches checksum, source and both
+attestations. Not installed/tested. See pkg040/PKG040_QA_RECOVERY.md, pkg041/PKG041_RELATIVE_DAY_EVIDENCE.md
+and docs/implementation/NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md. Process-death/unknown-claim sweep grace,
+real-provider semantic quality, daily/repeated-work decision and phone verification remain open.
+
 PKG-039 (2026-09-22, proven and DEV applied): independent bounded failure settlement for intake/worker,
 no paid replay and no overwrite of committed success. Interview provider30s / native send55s;
 ordinary RPC15s and SQL leases unchanged. Proof35675491926:330 Edge tests /16 SQL checks including

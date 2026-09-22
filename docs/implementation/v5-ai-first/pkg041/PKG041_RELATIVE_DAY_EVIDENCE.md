@@ -1,7 +1,8 @@
 # PKG-041 — relative-day evidence consistency
 
-Status: implemented and tested locally; not deployed. Baseline intake46 / sourceec3b3d43;
-no SQL candidate, database write or client change.
+Status: proven and deployed on2026-09-22. Intake47 is ACTIVE, JWTtrue; all four returned assets
+byte-equal source7b5f794b. Anonymous gateway request returns401. See EDGE_RECEIPT_20260922.json.
+No SQL candidate, database write or client change.
 
 PKG-038's short-utterance check did not cover the observed mechanism when a full sentence mentions
 tomorrow but a schedule proposal says TODAY_FLEXIBLE and cites the exact word "sutra". Four new tests
@@ -21,5 +22,7 @@ general model correctness remain unproven. This closes the explicit single-word-
 inside a full sentence, not the entire relative-date interpretation problem. No paid provider test.
 
 The source freeze records the previous pin and reason, retains every assertion and normalizes the
-Windows checkout to committed LF. Deployment must stage exact committed files and verify every
-returned byte, JWTtrue and anonymous401. Current Q&A PKG-040 CI is independent and must finish first.
+Windows checkout to committed LF. Run35677260496 binds source7b5f794b and passes all346 Edge tests,
+including the five new cases. Run35677260602 (PKG-014B) also succeeds. Deployment stages exact
+committed files; every returned byte, JWTtrue and anonymous401 were verified. Q&A PKG-040 has its own
+proof, application and deployment receipts; those are recorded separately in its package directory.

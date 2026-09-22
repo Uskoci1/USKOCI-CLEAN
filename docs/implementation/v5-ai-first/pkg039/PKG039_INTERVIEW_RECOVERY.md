@@ -54,7 +54,9 @@ Deployed bundles: `EDGE_RECEIPT_20260922.json`. Anonymous requests return401.
 PKG-014B run35675491728 passes. PKG-010 run35675491771 reached the real Worker proof and failed
 because its old assertion expected PROCESSING after a definite synthetic provider error. The assertion
 now requires FAILED and retains dispatch, retry, provider-count and unchanged reservation checks;
-the disposable chain must pass before that proof repair is called verified.
+run35676936960 now passes the complete disposable chain, types, Node/source checks, focused tests
+and full regression. The intermediate retry caught a proof-envelope access error (turn.state,
+not the outer state); no application invariant was relaxed.
 
 Client build35675580983 succeeded; downloaded SHA256062ad8fc… matches checksum and both source-bound
 recovery/icon attestations. See APK_RECEIPT_20260922.json; not installed or tested on a phone. This package

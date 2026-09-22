@@ -12,17 +12,19 @@ of app completion from counts of migrations, files or closed findings.
 ## Current anchors
 
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:
-  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_PKG037.md`.
-- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-039 applied on 2026-09-22: ledger194
-  = source147 + dev_alpha47. Exact candidate text and function/authority readback match the disposable proof.
-- Last applied closure proof: PKG-039 preserved readiness and the certified digest `65980fce…` atomically.
+  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
+- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-040 applied on 2026-09-22: ledger195
+  = source147 + dev_alpha48. Exact candidate text and function/authority readback match the disposable proof.
+- Last applied closure proof: PKG-040 preserved readiness and the certified digest `65980fce…` atomically.
   Direct private digest execution through this connector is denied; do not claim a new independent check.
-- Latest client change: PKG-039 interview55s send bounds, plus PKG-038 duplicate fact/UNKNOWN cleanup.
-  Types and full Jest241 suites /4650 tests pass, exit0. PKG-039 proof35675491926 passes330 Edge tests
-  and16 SQL checks. Intake46 / worker17 byte-equal proven sourceddb91a8e; JWTtrue. Publication remains v14.
-- Latest verified APK: run35675580983, source `ddb91a8e`, SHA256 `062ad8fc…`, 68,546,855 bytes. Downloaded
-  hash/source match both recovery and icon attestations. Contains PKG-038/039 and preceding client changes.
-  See `v5-ai-first/pkg039/APK_RECEIPT_20260922.json`. **Not installed/tested on a phone.**
+- Latest client change: PKG-040 Q&A55s submit and technical-failure copy, preceding interview55s send
+  bounds and duplicate fact/UNKNOWN cleanup. Types and full Jest241 suites /4652 tests pass, exit0.
+  PKG-040 proof35677596411 passes346 offline Edge tests and17 SQL/Auth/REST checks. Intake47 (PKG-041),
+  worker17, Q&A13 and publication14 byte-verified; JWTtrue. PKG-01035676936960 and PKG-014B35677260602 pass.
+- Latest verified APK: run35677195929, source `ec3b3d43`, SHA256 `5568feb7…`, 68,549,871 bytes. Downloaded
+  hash/source match both recovery and icon attestations. Contains PKG-038/039/040 and preceding client
+  changes; PKG-041 is server-only. See `v5-ai-first/pkg040/APK_RECEIPT_20260922.json`.
+  **Not installed/tested on a phone. No real-provider semantic-quality probe.**
 
 ## Engineering work queue
 
@@ -35,8 +37,8 @@ of app completion from counts of migrations, files or closed findings.
 | Public task columns (7.17) | Investigated, unresolved | `v5-ai-first/PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md`. Need explicit detail/owner boundaries and actual REST compatibility proof. |
 | Closure legacy readiness / recovery (7.41, remaining 8.18) | Investigated, unresolved | Continuation handoff explains restricted-account guard and locally saved request-key dependency. Certified changes require fresh owner approval. |
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
-| Interview / worker / Q&A recovery (11.1) | Interviews proven/applied; Q&A open | PKG-039 proof35675491926,16 SQL checks: bounded independent settlement, terminal failure without paid replay, both success/failure lock orders. Intake46 / worker17 exact deployed, provider30s / native55s. Q&A45s and process-crash sweep grace remain separate; no paid probes/device test. |
-| AI conversation meaning / repetition / finish | PKG-038 deployed; quality/device work remains | Strict dialogue plan, one missing question, finish handoff, ambiguity controls, complete context, no-op filtering and post-receipt prose; full23-field review fixed. Native repetition cleanup tested, build pending. See PKG-038 receipts. Complex dates, model interpretation and history beyond30 messages remain limits; no paid quality evaluation. |
+| Interview / worker / Q&A recovery (11.1) | Handler fixes proven/applied; device pending | PKG-039 proof35675491926,16 checks and PKG-040 proof35677596411,17 checks: bounded independent settlement without paid replay or success overwrite. Provider30s / native55s. Process death, unknown claim ownership and unavailable cleanup still use durable sweep grace; no instant-recovery guarantee or paid/device probe. |
+| AI conversation meaning / repetition / finish | PKG-038/041 deployed; quality/device work remains | Strict dialogue plan, one missing question, finish handoff, ambiguity controls, complete context, no-op filtering and post-receipt prose; full23-field review fixed. Native repetition cleanup built. Literal relative-day contradictions require clarification. Complex dates, model interpretation and history beyond30 messages remain limits. See `v5-ai-first/ai-conversation-audit-20260922/REPAIR_COVERAGE_20260922.md`; no paid quality evaluation. |
 | Full Home aggregate integration | Unresolved | PKG-023j installed; PKG-035 corrects counts. Do not claim all application/Agreement scans removed. |
 
 ## Product and public-release work queue

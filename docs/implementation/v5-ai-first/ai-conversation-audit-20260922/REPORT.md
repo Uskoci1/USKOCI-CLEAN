@@ -2,6 +2,10 @@
 
 Date: 2026-09-22. Source baseline: `e447f124`. Canonical DEV: `leqcwgzvjsxugfgzdmth`.
 
+Current coverage: REPAIR_COVERAGE_20260922.md separates each semantic protection from real-provider
+quality, device and owner-decision limits. PKG-039 now deploys bounded interview recovery; PKG-041
+adds relative-day evidence checks in full descriptions. Their own receipts supersede historical versions.
+
 Follow-up: PKG-038 repairs part of this baseline on 2026-09-22. See
 `../pkg038/PKG038_CONVERSATION_SEMANTICS.md` for exact scope,321 offline Edge tests,11 disposable SQL
 checks, DEV ledger193 and byte-verified intake v45 / worker v16. Native repetition cleanup passes full

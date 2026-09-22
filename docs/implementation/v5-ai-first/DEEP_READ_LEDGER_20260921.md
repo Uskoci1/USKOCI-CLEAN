@@ -1061,6 +1061,16 @@ DEV ledger194, intake46 / worker17 exact-byte verified, JWT/certificate unchange
 types pass; client APK pending and no device/real-provider probe. Q&A's45-second path is still open;
 process death before settlement still relies on the existing sweep grace. See pkg039 documentation.
 
+**2026-09-22 — follow-up, PKG-040 proven and applied.** Q&A now settles the exact owned failed attempt
+using the existing CANCELLED state with a distinct technical reason, without changing dispatch metadata
+or overwriting READY/COMMITTED receipts. Independent5-second cleanup, provider30s and native submit55s
+are covered by346 offline Edge tests and17 disposable SQL/Auth/REST checks (run35677596411). DEV
+ledger195; Q&A13 byte-verified, JWTtrue, unchanged ready certificate asserted atomically. Full Jest
+241 suites /4652 tests and types pass. APK35677195929 built/downloaded, hash/source/attestations match;
+not installed/tested. PKG-01035676936960 passes the full historical proof chain. Process death,
+unknown claim ownership or unreachable cleanup still rely on durable sweep grace; 11.1 is not a claim
+of immediate recovery in every crash. Real-provider quality and device journeys remain unverified.
+
 **11.2 — risk, latent.** The publication evaluator has one 12-second deadline for everything: auth, context,
 downloading up to six photos, and a Gemini call at `MEDIA_RESOLUTION_HIGH`. Its claim moves an accepted
 review to `EVALUATING` with a 60-second lease, and `rpc_claim_ai_task_review_evaluation_service` re-acquires
