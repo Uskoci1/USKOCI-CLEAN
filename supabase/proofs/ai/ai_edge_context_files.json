@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 46023,
-      "sha256": "a0a8ff1fc5a5e327e9a3979a7fad540902f367d2476ba80c583611dda9a633a1"
+      "bytes": 55348,
+      "sha256": "265edb67b4b08bf034db47ce6f8c7410158edf9525bf40a5d8a074f8d3bbbf11"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
@@ -14,13 +14,13 @@
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 25643,
-      "sha256": "69c7da8805dc23f21b1a422928f38e9ab792bcb3c77d05d712ce6a47aa39a95c"
+      "bytes": 30917,
+      "sha256": "081f768cac16576b8b30a98c68249e1b11e90b5f6f1ccc903e9b9a5a0d3f667e"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
-      "bytes": 2870,
-      "sha256": "bfcda52c3e9f25437b9917eeb814e35bad1c9e40a70551e05076129c484cecfe"
+      "bytes": 3089,
+      "sha256": "c24844c58f19f7270d4257b4b28e3d3790054ee31d4d9485573d02dffd708cdb"
     },
     {
       "path": ".github/workflows/ai-edge-context-proof.yml",
@@ -34,29 +34,50 @@
     },
     {
       "path": "supabase/proofs/ai/owned_intake_edge.test.mjs",
-      "bytes": 13990,
-      "sha256": "724afe1412c9b82fd1a8c7bcc80c524dce4394999f7f3fbdbbd0c134b82491af"
+      "bytes": 14057,
+      "sha256": "939617b9cd383ae72502c91c340e12e127bd282d0bd8d12041ab013adfcf5380"
+    },
+    {
+      "path": "supabase/proofs/ai/dialogue_fixture.mjs",
+      "bytes": 398,
+      "sha256": "d8f95170e5dab7c1dc097eaf2fa8390b62083e4297b136be103174c7167fc6f8"
+    },
+    {
+      "path": "supabase/functions/_shared/geminiTaskStream.ts",
+      "bytes": 15137,
+      "sha256": "f7fec0b75b1cad8f2f034b0da6f8a66f64184b40bcb2c496a4eec47e06b6df5c"
+    },
+    {
+      "path": "supabase/functions/_shared/aiTestBudget.ts",
+      "bytes": 5351,
+      "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
     }
   ],
   "refrozen": {
-    "package": "PKG-025d-PRICE-BASIS",
-    "date": "2026-09-20",
-    "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
-    "changedFiles": [
-      {
-        "path": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytesBefore": 44769,
-        "bytesAfter": 46023
-      },
-      {
-        "path": "src/contracts/needFactsV2.ts",
-        "bytesBefore": 5897,
-        "bytesAfter": 7029
-      }
-    ],
+    "package": "PKG-038-CONVERSATION-SEMANTICS",
+    "date": "2026-09-22",
+    "reason": "Owner requested semantic conversation repairs. New strict dialogue schema, checked responses after owned completion, complete context, finish and ambiguity controls. Runtime tests first demonstrate each boundary; source freeze is refreshed for the authorized implementation, not removed. Include new dialogue fixture and imported shared helpers. PKG-038 CI 35674102419 passes 321 Edge tests and 11 SQL checks. Windows checkout comparison explicitly normalizes CRLF to the same LF content pinned in git; deployed bundle bytes have an independent exact readback receipt.",
     "previousFreeze": {
-      "package": "V3-EDGE-LOG-FIX",
-      "date": "2026-09-19"
+      "package": "PKG-025d-PRICE-BASIS",
+      "date": "2026-09-20",
+      "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+      "changedFiles": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "bytesBefore": 44769,
+          "bytesAfter": 46023
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "bytesBefore": 5897,
+          "bytesAfter": 7029
+        }
+      ],
+      "previousFreeze": {
+        "package": "V3-EDGE-LOG-FIX",
+        "date": "2026-09-19"
+      }
     }
-  }
+  },
+  "contentEncoding": "UTF-8 with LF line endings; deployed bytes verified separately"
 }

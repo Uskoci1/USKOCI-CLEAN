@@ -13,13 +13,13 @@ of app completion from counts of migrations, files or closed findings.
 
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:
   `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_PKG037.md`.
-- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-037 applied on 2026-09-22: ledger192
-  = source147 + dev_alpha45. Exact candidate text and function/authority readback match the disposable proof.
-- Last applied closure proof: PKG-037 preserved readiness and the certified digest `65980fce…` atomically.
+- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-038 applied on 2026-09-22: ledger193
+  = source147 + dev_alpha46. Exact candidate text and function/authority readback match the disposable proof.
+- Last applied closure proof: PKG-038 preserved readiness and the certified digest `65980fce…` atomically.
   Direct private digest execution through this connector is denied; do not claim a new independent check.
-- Latest client change: PKG-037, source `2d6f0bc5`, types pass, full local Jest 241 suites / 4646 tests
-  pass, exit 0; Edge 47/47, focused client/native 80/80. Disposable proof35669180188 passes 18 checks.
-  Publication Edge v14 byte-equals proven source; JWT unchanged. PKG-007 run35668792540 also passed.
+- Latest client change: PKG-038 duplicate AI fact display/UNKNOWN cleanup, types pass, full local Jest
+  241 suites /4648 tests pass, exit0. PKG-038 proof35674102419 passes321 Edge tests and11 SQL checks.
+  Intake v45 / worker v16 byte-equal proven source87e3651c; JWTtrue. Publication remains v14 (PKG-037).
 - Latest verified APK: run35669226055, source `2d6f0bc5`, SHA256 `e47955fd…`, 68,550,407 bytes. Downloaded
   hash/source match both recovery and icon attestations. Contains PKG-037 and preceding client changes.
   See `v5-ai-first/pkg037/APK_RECEIPT_20260922.json`. **Not installed/tested on a phone.**
@@ -36,7 +36,7 @@ of app completion from counts of migrations, files or closed findings.
 | Closure legacy readiness / recovery (7.41, remaining 8.18) | Investigated, unresolved | Continuation handoff explains restricted-account guard and locally saved request-key dependency. Certified changes require fresh owner approval. |
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
 | Interview / worker / Q&A recovery (11.1) | Investigated, unresolved; PKG-027b sweep already applied | `v5-ai-first/AI_DEADLINE_RECOVERY_INVESTIGATION_20260922.md` now compares deployed bundles and current failure bodies. Streaming remains 12s server / 15s client; Q&A has a separate 45s bound. No paid probes. |
-| AI conversation meaning / repetition / finish | Audited, unresolved; separate from timeout recovery | `v5-ai-first/ai-conversation-audit-20260922/REPORT.md`: current deployed code, 13 live SQL bodies and stored dialogues. Observed repeated summaries/finish questions, wrong relative date, stale terms after task switch and daily-price mismatch. 123 boundary tests pass; eight offline diagnostics reproduce limitations, not fixes. No DEV write/provider call. |
+| AI conversation meaning / repetition / finish | PKG-038 deployed; quality/device work remains | Strict dialogue plan, one missing question, finish handoff, ambiguity controls, complete context, no-op filtering and post-receipt prose; full23-field review fixed. Native repetition cleanup tested, build pending. See PKG-038 receipts. Complex dates, model interpretation and history beyond30 messages remain limits; no paid quality evaluation. |
 | Full Home aggregate integration | Unresolved | PKG-023j installed; PKG-035 corrects counts. Do not claim all application/Agreement scans removed. |
 
 ## Product and public-release work queue

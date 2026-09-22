@@ -53,7 +53,7 @@ function fixedRange(startsAt: unknown, endsAt: unknown): string | undefined {
 function publicSummary(facts: AiNeedV2Fact[]) {
   // A compact public projection has an explicit field allowlist. Never use the
   // private exact address, access notes, resolved points or arbitrary displayValue.
-  const value = (key: AiNeedV2Fact['key']) => facts.find(fact => fact.key === key && fact.privacyClass === 'PUBLIC')?.value;
+  const value = (key: AiNeedV2Fact['key']) => facts.find(fact => fact.key === key && fact.privacyClass === 'PUBLIC' && fact.status !== 'UNKNOWN')?.value;
   const title = value('need.title'), geography = value('need.task_geography') as NeedTaskGeography | undefined;
   const mode = value('need.price_mode'), amount = value('need.price_rsd'), people = value('need.people_needed');
   const basis = value('need.price_basis');
@@ -132,7 +132,7 @@ export function IntakePresentation(props: Props) {
   // proposed — and which this very card is showing as its heading — was listed underneath as still
   // needed. What the conversation still has to ask for is what has no value at all; confirming what
   // it proposed is the review screen's job, and the card's heading already shows it.
-  const proposed = new Set(conversation.facts.map(fact => fact.key));
+  const proposed = new Set(conversation.facts.filter(fact => fact.status !== 'UNKNOWN').map(fact => fact.key));
   const stillNeeded = [...conversation.review.missingRequired.filter(key => !proposed.has(key)).map(factDisplayLabel),
     ...(needsPoint ? ['tačka na mapi'] : [])];
   // At the start nothing is filled, so the full list is eight items long — a wall exactly when it
@@ -140,18 +140,9 @@ export function IntakePresentation(props: Props) {
   // anyway, so the card names the first few and counts the rest.
   const stillNeededText = stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
-  // Each turn carries the ids of the facts it proposed, so the sentence it wrote can be shown
-  // beside what it actually took. A private value is named but never printed here: the thread is
-  // the conversation surface, not the place to restate an exact address.
-  const messages = conversation.messages.map(message => {
-    if (!message.fromAi || !message.proposedFactIds.length) return message;
-    const understood = message.proposedFactIds
-      .map(id => conversation.facts.find(fact => fact.id === id))
-      .filter((fact): fact is AiNeedV2Fact => !!fact)
-      .map(fact => ({ key: fact.id, label: factDisplayLabel(fact.key),
-        value: fact.privacyClass === 'PRIVATE' ? 'privatno, vidi samo onaj s kim se dogovoriš' : fact.displayValue }));
-    return understood.length ? { ...message, understood } : message;
-  });
+  // Current facts belong in the live card and the explicit full review. Decorating
+  // old replies with today's fact values repeated the summary and rewrote history.
+  const messages = conversation.messages;
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}

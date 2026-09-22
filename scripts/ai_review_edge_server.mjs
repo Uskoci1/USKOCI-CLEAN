@@ -10,6 +10,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {validateAiFixture} from './ai_review_fixture.mjs';
 import {loadOwnedIntakeHandler} from '../supabase/proofs/ai/owned_intake_edge_runtime.mjs';
+import {syntheticDialogue} from '../supabase/proofs/ai/dialogue_fixture.mjs';
 
 export function admittedPath(raw,marketplace=false) {
   if(typeof raw!=='string'||!raw.startsWith('/')||raw.startsWith('//')||raw.includes('\\')||raw.includes('#')||/(?:^|\/)\.{1,2}(?:\/|\?|$)/.test(raw))return null;
@@ -43,7 +44,7 @@ export async function boundedBody(stream,maximum=524288) {
 }
 export function syntheticProviderEnvelope(proposals) {
   return {candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({safety:'ALLOW',
-    assistantMessage:'Pregledajte podatke i potvrdite šta vam odgovara.',
+    assistantMessage:'Pregledaj podatke i potvrdi šta ti odgovara.',dialogue:syntheticDialogue(),
     facts:proposals.map(({value,...fact})=>({...fact,valueJson:JSON.stringify(value)}))})}]}}]};
 }
 export function syntheticPublicationEnvelope() {

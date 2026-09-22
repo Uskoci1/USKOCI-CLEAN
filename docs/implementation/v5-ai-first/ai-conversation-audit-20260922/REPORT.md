@@ -2,6 +2,13 @@
 
 Date: 2026-09-22. Source baseline: `e447f124`. Canonical DEV: `leqcwgzvjsxugfgzdmth`.
 
+Follow-up: PKG-038 repairs part of this baseline on 2026-09-22. See
+`../pkg038/PKG038_CONVERSATION_SEMANTICS.md` for exact scope,321 offline Edge tests,11 disposable SQL
+checks, DEV ledger193 and byte-verified intake v45 / worker v16. Native repetition cleanup passes full
+Jest but still needs a build/device pass. The original eight diagnostic cases below intentionally
+document the pre-fix behavior; their old-source assertions are not current regression tests. Model
+interpretation, complex relative dates, long history and interview recovery remain separate limits.
+
 This is a read-only product/semantic investigation, not an implementation or deployment receipt.
 The owner asked why the AI repeats understood information, writes long replies and sometimes fails
 to behave like the intended short interview. No database/Edge/client behavior was changed. No provider

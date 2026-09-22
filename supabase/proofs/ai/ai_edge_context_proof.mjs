@@ -29,7 +29,9 @@ try {
   assert.equal(state.status, 0);
   report.sourceWorktreeDirty = Boolean(state.stdout.trim());
   for (const file of manifest.files) {
-    const bytes = readFileSync(resolve(root, file.path));
+    // Git source is LF; Windows checkout CRLF is not a semantic source change.
+    // The manifest explicitly pins the UTF-8/LF content, never deployed bundle bytes.
+    const bytes = Buffer.from(readFileSync(resolve(root, file.path), 'utf8').replace(/\r\n/g, '\n'), 'utf8');
     const actual = {
       path: file.path, bytes: bytes.length,
       sha256: createHash('sha256').update(bytes).digest('hex'),

@@ -3,7 +3,16 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
-AI conversation semantic audit (2026-09-22, read-only):
+PKG-038 (2026-09-22, proven and DEV applied): AI dialogue action validation, finish handoff,
+complete fact context, no-op filtering and delayed prose until owned completion. Full23-field review
+cap is fixed. Ledger193; unchanged ready closure65980fce asserted atomically. Proof35674102419 passes
+321 Edge tests /11 SQL checks. Intake v45 / worker v16 are byte-verified, JWTtrue. Native removes duplicate
+historical fact decorations and treats UNKNOWN honestly:241 suites /4648 tests, types clean; build/device
+pending. See `docs/implementation/v5-ai-first/pkg038/PKG038_CONVERSATION_SEMANTICS.md` and receipts.
+No provider-quality claim: daily/repeated work decision, complex date semantics, long history and
+interview timeout recovery remain open. Do not mark the whole semantic audit closed.
+
+AI conversation semantic audit (2026-09-22, historical baseline):
 `docs/implementation/v5-ai-first/ai-conversation-audit-20260922/REPORT.md` compares intended behavior,
 current intake v44 / worker v15, 13 live SQL bodies and stored DEV dialogues. Repeated summaries and
 questions after finish are observed; wrong relative dates, daily-price units and retained terms after

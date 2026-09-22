@@ -416,6 +416,30 @@ it('keeps the complete conversation in its own scroll area beneath the pinned ca
   expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
+it('keeps current facts in the card and review instead of attaching changed values to historical replies', async () => {
+  const fact = publicFact('need.people_needed', 3);
+  fact.displayValue = 'Tri osobe — nova vrednost';
+  mockLoad.mockResolvedValue(conversation({ facts: [fact], messages: [{ id: 'older-ai', fromAi: true,
+    body: 'Kada ti treba pomoć?', safety: 'ALLOW', proposedFactIds: [fact.id] }] }));
+  await resume();
+  const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
+  expect(text()).toContain('Kada ti treba pomoć?');
+  expect(text()).not.toContain(fact.displayValue);
+  expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
+  const card = tree.root.findByProps({ testID: 'intake-task-summary' });
+  await act(async () => card.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
+});
+
+it('does not present UNKNOWN facts as completed answers', async () => {
+  const title = publicFact('need.title', 'Nepotvrđen naslov'); title.status = 'UNKNOWN';
+  const draft = conversation({ facts: [title] }); draft.review.missingRequired = ['need.title'];
+  mockLoad.mockResolvedValue(draft); await resume();
+  expect(text()).toContain('Još treba: Naslov');
+  expect(text()).toContain('Zadatak u nastajanju');
+  expect(text()).not.toContain('Nepotvrđen naslov');
+});
+
 it('keeps private address and resolved coordinates out of the compact live card and preserves the review destination', async () => {
   const facts: AiNeedV2Conversation['facts'] = [
     { id: 'title', key: 'need.title', value: 'Unos ormara', displayValue: 'Unos ormara', valueType: 'TEXT', privacyClass: 'PUBLIC',
@@ -695,23 +719,23 @@ it('late dispatched cancellation after blur cannot retire the journal or load an
   expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(mockLoad).toHaveBeenCalledTimes(reads);expect(mockSend).not.toHaveBeenCalled();
 });
 
-describe('what a turn took', () => {
-  // "Zabelezio sam cenu od 500 evra" is a claim about bookkeeping. Each message already carries
-  // the ids of the facts it proposed, so the claim can be shown beside what was actually taken.
+describe('conversation and current facts have separate presentation', () => {
   const said = (body: string, proposedFactIds: string[]) => ({ id: `m-${proposedFactIds.join('-') || 'none'}`,
     fromAi: true, body, safety: null, proposedFactIds });
 
-  it('shows the label and the value under the message that produced them', async () => {
+  it('shows the typed title in the card without repeating its display label under the reply', async () => {
     mockLoad.mockResolvedValue(conversation({
       facts: [publicFact('need.title', 'Krečenje stana')],
       messages: [said('Zabeležio sam krečenje stana.', ['need.title'])],
     }));
     await resume();
-    expect(text()).toContain('Naslov');
-    expect(text()).toContain('public display');
+    expect(text()).toContain('Krečenje stana');
+    expect(text()).toContain('Zabeležio sam krečenje stana.');
+    expect(text()).not.toContain('Naslov');
+    expect(text()).not.toContain('public display');
   });
 
-  it('names a private fact without printing it into the thread', async () => {
+  it('keeps private facts out of the thread decorations', async () => {
     mockLoad.mockResolvedValue(conversation({
       facts: [{ id: 'address', key: 'need.exact_address', value: 'Lenke Dunđerski 11', displayValue: 'Lenke Dunđerski 11',
         valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, status: 'CONFIRMED',
@@ -719,7 +743,8 @@ describe('what a turn took', () => {
       messages: [said('Zapamtio sam adresu.', ['address'])],
     }));
     await resume();
-    expect(text()).toContain('Tačna adresa');
+    expect(text()).toContain('Zapamtio sam adresu.');
+    expect(text()).not.toContain('Tačna adresa');
     expect(text()).not.toContain('Lenke Dunđerski 11');
   });
 
