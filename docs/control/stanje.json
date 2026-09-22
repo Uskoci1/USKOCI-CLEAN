@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-22T15:07:05Z",
+  "osvezeno": "2026-09-22T15:31:24Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "213fcf9a",
-  "head_poruka": "build(android): support an explicit x86 emulator APK target",
+  "head": "3d2d8edb",
+  "head_poruka": "docs(ui): record verified APKs and emulator startup",
   "server": {
    "snimljeno": "2026-09-22T13:49:06Z",
    "migracije": 197,
@@ -1010,7 +1010,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
-   "sledece": "F01–F04: oba APK-a napravljena, emulator otvara prijavu. Slede mapa, filteri i navigacija posle prijave, pa telefon. Serversko filtriranje je poseban naredni korak. CLIENT_FOUNDATION.md.",
+   "sledece": "Pretraga je stalno vidljiva, Lista/Mapa jasnije odvojene, stanja proverena lokalno na 320/390 px. Čeka nova APK provera sa nalogom i Claude pregled. Serversko filtriranje ostaje poseban korak (F06/F07). DISCOVERY_SEARCH.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1053,8 +1053,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
-   "problem": "Panel i tačan lokalni broj postoje. Provereno otvaranje i privremeni izbor cene (6 → 0); primena/zatvaranje nisu kompletno provereni. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
-   "sledece": "Posle odobrenja funkcionalne analize: odrediti datum za fleksibilne zadatke, oblast/na daljinu, broj preostalih mesta i sortiranje; završiti provere panela. Audit F07/D7. Sačuvani alarmi su poseban predlog.",
+   "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
+   "sledece": "Proveriti novi APK sa prijavljenim nalogom kada vlasnik bude dostupan. Zatim F07/D7: datum fleksibilnih zadataka, oblast/na daljinu, preostala mesta i sortiranje; sačuvani alarmi posebno. Tipovi i 242 grupe/4700 testova prolaze. DISCOVERY_SEARCH_RECEIPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2983,8 +2983,8 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "DELIMIČNO: F01–F04 u kodu8f0be1f4; tipovi i242 grupe/4698 testova prolaze. APK35741807845 za telefon i35742822042 za emulator su napravljeni i provereni. Emulator otvara uvod i prijavu; tokovi posle prijave, telefon i Claude provera još čekaju.",
-   "dokaz": "docs/implementation/functional-audit-20260922/CLIENT_FOUNDATION.md"
+   "sada": "DELIMIČNO: F01–F04 imaju proverene APK-ove i pokretanje emulatora. Nova stalna pretraga i kontrole prilika prolaze tipove i 242 grupe/4700 testova; prikaz proveravan lokalno na 320/390 px. Nova APK izrada, tokovi sa nalogom, telefon i Claude pregled još čekaju.",
+   "dokaz": "docs/implementation/functional-audit-20260922/DISCOVERY_SEARCH_RECEIPT.json"
   },
   {
    "id": "B21",

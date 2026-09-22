@@ -7,6 +7,7 @@ import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceVie
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import { FactArt } from '../system/FactArt';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { zadataka } from '../system/plural';
@@ -37,8 +38,8 @@ const keyOf = (item: MarketplaceItem) => item.id;
 /**
  * Zadaci. Owned: the requester's own Tasks in three sets (Aktivni · Nacrti ·
  * Istorija). Discovery: open Tasks as a List or a Map. One segmented control,
- * then a section row that names the set and holds search and filters as quiet
- * icon controls, then the cards. Creation is the one orange action, floating
+ * then the cards. Discovery keeps search visible and separates the map/list
+ * view from the filter draft. Creation is the one orange action, floating
  * above the list. Presentation only: every callback is the route's existing command.
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
@@ -88,6 +89,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
     <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
   </>;
+  const searchField = <View style={[s.search, !owned && s.discoverySearch]}>
+    <MagnifyingGlass size={21} color={sys.color.green} />
+    <TextInput accessibilityLabel="Pretraži zadatke" autoFocus={owned} placeholder="Naslov, mesto ili uslov…" placeholderTextColor={sys.color.muted}
+      value={view.query} onChangeText={query => change({ query: query.slice(0, 1000), selectedId: null })} maxLength={1000} style={s.input}
+      returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} />
+    {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
+      <X size={18} weight="bold" color={sys.color.ink} /></Press> : null}
+  </View>;
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
@@ -97,9 +106,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
-      : error ? <View style={s.state}><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
+      : error ? <View style={s.state}><View style={s.stateArt}><FactArt kind="tasks" size={56} muted /></View><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : hasFilter ? <View style={s.state}><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništi filtere.</T>
+        : hasFilter ? <View style={s.state}><View style={s.stateArt}><FactArt kind="map" size={56} /></View><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništi filtere.</T>
           <V2Action label="Poništi filtere" onPress={() => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport })} /></View>
           : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}</T>
             <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}</T>
@@ -108,7 +117,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             // The brand action is what the screen wants you to do. On the screen a worker meets
             // before anything exists, that is not "refresh" — it is the profile that decides
             // whether a task can ever be offered to them.
-            : <View style={s.state}><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T>
+            : <View style={s.state}><View style={s.stateArt}><FactArt kind="tasks" size={56} /></View><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T>
               <T style={s.stateBody}>Zadaci se nude prema tvom radnom profilu — veštinama, području i dostupnosti.</T>
               <V2Action label="Dopuni radni profil" onPress={props.onProfile} style={brandAction} />
               <V2Action label="Osveži zadatke" kind="quiet" onPress={props.onRefresh} /></View>}
@@ -121,25 +130,43 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       {/* Underlined views scroll at large text sizes; search and filters keep full touch targets. */}
       {props.onBack ? <ProductHeader subtitle={eyebrow} title={title} back={props.onBack} />
         : <ScreenHeader eyebrow={eyebrow} title={title} onProfile={props.onProfile} />}
-      <View style={s.controls}>
-        <View style={s.grow}>{owned ? <Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
-          : <Segmented appearance="underline" options={MODES} value={view.mode} onChange={toggleMode} />}</View>
+      {owned ? <View style={s.controls}>
+        <View style={s.grow}><Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} /></View>
         {headerControls}
-      </View>
-      {searchOpen ? <View style={s.search}>
-        <MagnifyingGlass size={19} color={sys.color.muted} />
-        <TextInput accessibilityLabel="Pretraži zadatke" autoFocus placeholder="Naslov, mesto ili uslov…" placeholderTextColor={sys.color.muted}
-          value={view.query} onChangeText={query => change({ query: query.slice(0, 1000), selectedId: null })} maxLength={1000} style={s.input}
-          returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} />
-        {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
-          <X size={16} weight="bold" color={sys.color.ink} /></Press> : null}
-      </View> : null}
+      </View> : <>
+        {searchField}
+        <View style={s.discoveryTools}>
+          <View accessibilityRole="tablist" accessibilityLabel="Prikaz zadataka" style={s.viewModes}>
+            {MODES.map(mode => <Press key={mode.key} accessibilityRole="tab" accessibilityLabel={mode.label}
+              accessibilityState={{ selected: view.mode === mode.key }} aria-selected={view.mode === mode.key} haptic="select"
+              onPress={() => { if (view.mode !== mode.key) toggleMode(mode.key); }} style={[s.mode, view.mode === mode.key && s.modeActive]}>
+              <FactArt kind={mode.key === 'map' ? 'map' : 'tasks'} size={24} muted={view.mode !== mode.key} />
+              <T variant="meta" style={{ color: view.mode === mode.key ? sys.color.green : sys.color.muted }}>{mode.label}</T>
+            </Press>)}
+          </View>
+          <Press accessibilityRole="button" accessibilityLabel={filterLabel} accessibilityState={{ selected: filterActive }} haptic="select"
+            onPress={openFilters} style={[s.filterButton, filterActive && s.modeActive]}>
+            <SlidersHorizontal size={21} color={sys.color.green} />
+            <T variant="meta" style={{ color: sys.color.green }}>Filteri</T>
+            {filterActive ? <View style={s.filterDot} /> : null}
+          </Press>
+        </View>
+        {view.price !== 'all' ? <View style={s.appliedFilters}>
+          <Press accessibilityRole="button" accessibilityLabel="Ukloni filter cene" haptic="select"
+            onPress={() => change({ price: 'all', selectedId: null })} style={s.appliedFilter}>
+            <FactArt kind={view.price === 'OFFERS' ? 'offers' : 'money'} size={22} />
+            <T variant="meta" style={s.appliedFilterText}>{view.price === 'OFFERS' ? 'Tražim ponude' : 'Navedena cena'}</T>
+            <X size={16} color={sys.color.green} />
+          </Press>
+        </View> : null}
+      </>}
+      {owned && searchOpen ? searchField : null}
       {view.area ? <View style={s.areaNotice}><T variant="note" tone="muted" style={s.grow}>Izabrana oblast sa mape · isti zadaci u Listi i Mapi</T>
         <V2Action label="Ukloni oblast" kind="quiet" onPress={() => change({ area: null, selectedId: null })} /></View> : null}
       {/* With nothing to show, a map is not a data state: the Mapa tab used to open on the whole
           world centred in the Atlantic with "0 zadataka", while the composed empty state sat
           unreachable in the other branch. Emptiness is answered the same way in both modes. */}
-      {!owned && view.mode === 'map' && !loading && !error && !visible.length ? empty
+      {!owned && view.mode === 'map' && !loading && !error && !visible.length ? <View style={s.mapEmpty}>{empty}</View>
         : !owned && view.mode === 'map' && !loading && !error ? <View style={s.mapArea}>
         <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
@@ -169,13 +196,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     {filterOpen ? <ProductSheet title="Filteri" closeLabel="Zatvori filtere" reduced={reduced} onClose={() => setFilterOpen(false)}>{dismiss => <>
         <T variant="label" style={s.groupLabel}>Način cene</T>
         <View accessibilityRole="radiogroup" style={s.options}>
-          {PRICES.map(([value, label]) => <Press key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: priceDraft === value }}
+          {PRICES.map(([value, label]) => <Press key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: priceDraft === value }} aria-checked={priceDraft === value}
             haptic="select" onPress={() => setPriceDraft(value)} style={[s.option, priceDraft === value && s.optionChecked]}>
             <View style={[s.radio, priceDraft === value && s.radioChecked]}>{priceDraft === value ? <View style={s.radioDot} /> : null}</View>
             <T variant={priceDraft === value ? 'bodyStrong' : 'body'} style={s.optionText}>{label}</T>
           </Press>)}
         </View>
-        {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: attentionDraft }} haptic="select"
+        {owned ? <Press accessibilityRole="checkbox" accessibilityLabel="Treba moja radnja" accessibilityState={{ checked: attentionDraft }} aria-checked={attentionDraft} haptic="select"
           onPress={() => setAttentionDraft(value => !value)} style={[s.option, attentionDraft && s.optionChecked]}>
           <View style={[s.check, attentionDraft && s.checked]}>{attentionDraft ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
           <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Zadaci sa prijavama koje možeš da izabereš.</T></View>
@@ -193,11 +220,21 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  discoveryTools: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 20, paddingBottom: 12 },
+  viewModes: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  mode: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 48, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.control },
+  modeActive: { backgroundColor: sys.color.greenSoft },
+  filterButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine },
+  filterDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: sys.color.green },
+  appliedFilters: { paddingHorizontal: 20, paddingBottom: 10, alignItems: 'flex-start' },
+  appliedFilter: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control },
+  appliedFilterText: { color: sys.color.green, flexShrink: 1 },
   countRow: { paddingBottom: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
+  discoverySearch: { marginTop: 4, marginBottom: 12, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
-  clear: { width: 36, height: 36, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
+  clear: { width: 44, height: 44, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
   listWithAction: { paddingBottom: 96 },
@@ -205,6 +242,8 @@ const s = StyleSheet.create({
   add: { position: 'absolute', right: 20, bottom: 72, width: 56, height: 56, borderRadius: sys.radius.cardCompact, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.orange, ...sys.elevation.raised },
   empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
+  mapEmpty: { flex: 1, paddingHorizontal: 20 },
+  stateArt: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
   stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   mapArea: { flex: 1, minHeight: 180 },

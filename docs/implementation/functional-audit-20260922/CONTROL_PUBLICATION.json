@@ -15,10 +15,10 @@
   "lastObservedOnline": "5faff9c6 / 2026-09-22T14:10:45Z, 25 attention / 37 not accepted / 0 complete; corrected fee requirement and structural-evidence explanation visible",
   "uploaderAddedInParallel": true,
   "latestUploadFile": "docs/control/stanje.json",
-  "latestUploadTimestamp": "2026-09-22T15:07:05Z",
-  "latestUploadSha256": "32819f563a2dbd96e947f228c3bea1567dad427fa18748dd1ab5c21216d6d2f3",
+  "latestUploadTimestamp": "2026-09-22T15:31:24Z",
+  "latestUploadSha256": "b183498161c5ad6f1a0f7a31e432e0d1ce210a474a2733541b37b9afd68a1fbf",
   "latestUpload": "PENDING_FILECHOOSER_TIMEOUT",
-  "reason": "A new actual input#fajl chooser attempt timed out. The browser still shows the prior confirmed snapshot; generation is not publication.",
+  "reason": "The supported file chooser repeatedly timed out in this turn. Owner is currently unavailable; no upload of this regenerated state is claimed.",
   "next": "Owner selects the regenerated docs/control/stanje.json on the same existing artifact page; verify the upload acknowledgement.",
   "generatorFix": "Preserve meta.osvezeno in stanje.json; required by the published newer-snapshot comparison. Full embedded/upload JSON parity verified.",
   "confirmedPriorUpload": {

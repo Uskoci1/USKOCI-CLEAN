@@ -38,11 +38,33 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('List/Map preserves search and viewport; panning alone keeps same exact result set', async () => {
- await render(); await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
+ await render(); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
  expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one', 'two']);
  const viewport = { center: [0, 0], zoom: 6, bounds: [-1, -1, 1, 1] };
  await act(async () => map().props.onViewport(viewport)); expect(map().props.items).toHaveLength(2); expect(snapshot.area).toBeNull();
  await tap('Lista'); expect(press('Pretraži zadatke').props.value).toBe('Novi Sad'); await tap('Mapa'); expect(map().props.viewport).toEqual(viewport);
+});
+test('discovery search is available immediately without opening the keyboard; clearing it preserves other choices', async () => {
+ initial.price = 'MY_PRICE'; initial.area = [19, 45, 20, 46];
+ await render(); expect(press('Pretraži zadatke').props.autoFocus).toBe(false);
+ await act(async () => press('Pretraži zadatke').props.onChangeText('Nema takvog posla'));
+ expect(texts()).toContain('Nema zadataka u ovom prikazu');
+ await tap('Obriši pretragu');
+ expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: initial.area });
+ expect(press('Otvori priliku Pomoć one')).toBeTruthy();
+});
+
+test('removing the visible price filter preserves search, area and map position', async () => {
+ initial.price = 'OFFERS'; initial.query = 'Pomoć'; initial.mode = 'map';
+ initial.area = [19, 45, 20, 46];
+ initial.viewport = { center: [19.83, 45.25], zoom: 12, bounds: initial.area };
+ await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
+ await tap('Ukloni filter cene');
+ expect(snapshot).toMatchObject({ price: 'all', query: 'Pomoć', area: initial.area, viewport: initial.viewport, mode: 'map' });
+ expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one']);
+ expect(press('Mapa').props.accessibilityState.selected).toBe(true);
+ expect(press('Lista').props.accessibilityState.selected).toBe(false);
+ expect(open).not.toHaveBeenCalled();
 });
 test('explicit area applies identical subset to both modes and removal restores unlocated items', async () => {
  await render(); await tap('Mapa'); await act(async () => map().props.onSearchArea([19, 45, 20, 46])); expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one']);

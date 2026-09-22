@@ -23,6 +23,9 @@ const need = { id: 'preview-task', revizija: 1, stanje: 'OBJAVLJENA',
   narucilacIme: 'Marko', narucilacProfilId: 'preview-profile', narucilacOcena: '4,8', statusTekst: 'Otvoren',
   primaNovePrijave: true, rokZaPrijaveIso: null, priblizno: null,
 } as PotrebaProjekcija & PrilikaProjekcija;
+// Public discovery must not accidentally receive the owned discriminator, which would draw an
+// owner's selection count on a public card. These remain clearly labelled local examples only.
+const { stanje: _ownedState, ...opportunity } = need;
 const candidates = [
   { prijavaId: 'preview-offer-1', radnikProfilId: 'preview-person-1', inicijali: 'N', ime: 'Nikola', cena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' }, pokrivaMesta: 2,
     verzija: 1, hash: 'preview', preostaloMesta: 2, dolazakTekst: 'Po dogovoru', prevozTekst: '', razlogPreporuke: null,
@@ -44,11 +47,12 @@ const agreement: DogovorProjekcija = { id: 'preview-agreement', verzija: 1, stan
 };
 function Review() {
   const [screen, setScreen] = useState(new URLSearchParams(location.search).get('screen') ?? 'task');
+  const scenario = new URLSearchParams(location.search).get('state') ?? 'ready';
   const [candidate, setCandidate] = useState(candidates[0]);
   const [value, setValue] = useState('');
   const [draft, setDraft] = useState<ApplicationDraft>({ price: '5000', people: '2', note: '', start: null, end: null });
-  const [view, setView] = useState(initialMarketplaceView());
-  if (screen === 'list') return <MarketplacePresentation owned={false} items={[need, { ...need, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={false} error={false}
+  const [view, setView] = useState(() => ({ ...initialMarketplaceView(), query: scenario === 'no-results' ? 'nepostojeći posao' : '' }));
+  if (screen === 'list') return <MarketplacePresentation owned={false} items={scenario === 'empty' ? [] : [opportunity, { ...opportunity, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
     scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onSwitch={noop} onProfile={noop} onNew={noop} />;
   if (screen === 'candidates') return <CandidateListPresentation need={need} candidates={candidates} open={c => { setCandidate(c); setScreen('offer'); }} back={() => setScreen('task')} refresh={noop} />;
   if (screen === 'compose') return <ApplicationSelectionPresentation need={need} opportunity={need} draft={draft} change={setDraft}

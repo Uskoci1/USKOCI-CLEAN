@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+Owner follow-up (2026-09-22): continue client work while the owner cannot sign in on the emulator.
+Use the isolated actual-component review without credentials, auth bypass or DEV fixtures; keep
+authenticated native/device acceptance pending. Discovery now has persistent search, clear applied
+price filters and compact illustrated map/list controls. Types and 242 suites / 4,700 tests pass.
+See functional-audit-20260922/DISCOVERY_SEARCH.md and its receipt. Backend filtering and remaining
+F06/F07 contracts remain open; this is not a completed discovery or release gate.
+
 Functional analysis approval (2026-09-22, owner: "odobram sve to"): the 48-section analysis,
 D1-D10 interpretations and proposed order are approved. Begin with client foundation F01-F04:
 settings readback affordance, narrow map legend, notification type and primary section indication.
