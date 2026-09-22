@@ -253,6 +253,13 @@ detail reader like the list's.
 invoker list reads whole rows and owner filters need account_id privileges, so a blind column REVOKE can
 break current clients. See `PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md` for complete-body evidence and
 the required public/owner/participant REST compatibility proof.
+**2026-09-22, PKG-045 proven, A applied; B held (not fixed on DEV):** direct REST disclosure reproduced on a disposable
+database. Proof35710468643 passes17 checks including actual clients and full disposable account erasure
+on the re-bound certificate. A is applied, ledger197, certificate unchanged. Compatible APK35707463751
+is built/downloaded and hash/attestations verified, not installed. Five dependent
+owner policies and notification/paged reads are included. Restricting the table ACL moves the erasure
+certificate, so final candidate B requires fresh explicit approval and APK rollout; candidate A is
+additive and keeps the existing certificate. See `pkg045/PKG045_TASK_COLUMN_PRIVACY.md` for proof status.
 
 **7.18 — note. The list ignores the server's own "accepts applications".** `rpc_list_open_tasks_v3`
 computes `acceptsApplications` (free slots and a deadline still ahead) and does NOT filter out tasks whose

@@ -3,6 +3,20 @@
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 
+PKG-045 (2026-09-22, proven; A DEV applied, B HOLD): public task column privacy7.17. Candidate A adds
+explicit task reads and adapts list/notification dependencies; it preserves the ready closure certificate
+and old clients. Candidate B removes broad SELECT and maintains five dependent owner predicates.
+IMPORTANT: table ACLs are in closure_erasure_program_digest_v5(), so B includes an isolated recertification
+and is ON HOLD until fresh explicit owner approval AND compatible APK rollout. General DEV-fix approval
+does not authorize B. A is applied: ledger197, unchanged ready closure65980fce asserted atomically,
+exact ledger text and six function bodies/ACLs/security/config match proof35710468643 source92f75b11.
+17 SQL/Auth/REST/actual-client checks and355 offline Edge tests pass. Real disposable closure under B
+reaches CLOSED and erases the draft/private address. Finding7.17 remains OPEN until B rollout.
+APK35707463751 source05fa7232 is built/downloaded,
+hash ed69c7ae… and both attestations match; not installed. Types, Jest242/4687 and108 focused client checks
+pass. Owner questions for B approval and phone readiness are pending, not implicit approval.
+See pkg045/PKG045_TASK_COLUMN_PRIVACY.md, PROOF_35710468643.json and the A DEV receipt.
+
 PKG-044 (2026-09-22, Edge deployed): do not overwrite a contextual ASK for a genuinely missing field
 with a canned question. Preserve known-field retargeting and all fact/ambiguity/ownership guards.
 Three old-code failing regressions,90 focused checks and types pass. CI35702324170 source7b6478a8:
@@ -10,7 +24,7 @@ Three old-code failing regressions,90 focused checks and types pass. CI357023241
 for warmer, slightly longer replies with occasional emojis. Prompt-only refinement d73d8c5a passes90 local
 checks; CI35704269701 passes types,355 Edge/25 integration checks. Current intake50 byte-verified,
 JWTtrue, anonymous401 (TONE_EDGE_RECEIPT_20260922.json). No SQL/client/secret change or agent-paid call.
-Tone on a new real reply is not yet observed; no universal dialogue-quality claim. See
+Owner reports warmer/better conversation; no universal dialogue-quality claim. See
 pkg044/PKG044_CONTEXTUAL_INTAKE_QUESTIONS.md and receipt. Existing installed APK requires no replacement.
 
 PKG-043 (2026-09-22, Edge deployed): owner phone attempt exposed Gemini400 INVALID_ARGUMENT on intake47.

@@ -11,11 +11,21 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- PKG-045a applied on20260922: ledger197 =147 source +50 dev_alpha, unchanged ready closure65980fce
+  checked atomically; exact ledger text and six reader bodies/ACLs/modes/configs match proof35710468643.
+  That run passes17 SQL/Auth/REST/actual-client checks,355 offline Edge tests and108 focused client checks.
+  Local types and full Jest242/4687 pass, exit0. Compatible APK35707463751 source05fa7232 is downloaded
+  and attested (SHA256ed69c7ae…), **not installed**. Existing phone APK35698097121 still works under A.
+  PKG-045b is proven but ON HOLD for fresh certificate-movement approval and compatible APK rollout;
+  its column restriction necessarily moves the table-ACL erasure digest. Real disposable closure passes
+  on its new certificate. No marketplace rows changed. See v5-ai-first/pkg045/ and the A DEV receipt.
+
 - PKG-044 contextual questions: owner confirmed improvement. At his request, prompt-only warmth
   refinement allows1–3 short sentences and occasional single emojis without repeated summaries.
   Current intake50, source d73d8c5a; CI35704269701 passes types,355 offline Edge tests +25 existing
   disposable checks. All four hosted files match, JWTtrue, anonymous401. No client/SQL change.
-  Tone of a new actual response is not yet observed. See v5-ai-first/pkg044/ and TONE_EDGE_RECEIPT.
+  Owner reports the conversation is warmer/better and wants to refine it further. This is owner feedback,
+  not a comprehensive provider-quality evaluation. See v5-ai-first/pkg044/ and TONE_EDGE_RECEIPT.
 
 - Latest incident/correction: PKG-043 intake48 deployed after the owner's phone attempt failed with
   Gemini400 INVALID_ARGUMENT. Nonempty question sentinel replaces the invalid empty enum member.
@@ -25,13 +35,15 @@ of app completion from counts of migrations, files or closed findings.
   This verifies restored transport, not overall AI response quality. See v5-ai-first/pkg043/.
 
 - Workspace/branch: `NEXT_AI_HANDOFF_20260921_2145.md`; current continuation:
-  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_HOME_ATTENTION.md`,
-  with preceding AI details in `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
-- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-042 applied on 2026-09-22: ledger196
-  = source147 + dev_alpha49. Exact candidate text and function/authority readback match the disposable proof.
-- Last applied closure proof: PKG-042 preserved readiness and the certified digest `65980fce…` atomically.
+  `NEXT_AI_HANDOFF_20260921_CODEX.md`; latest supplement `NEXT_AI_HANDOFF_20260922_TASK_PRIVACY.md`,
+  preceded by `NEXT_AI_HANDOFF_20260922_HOME_ATTENTION.md` and
+  `NEXT_AI_HANDOFF_20260922_AI_REPAIRS.md`.
+- Canonical DEV `leqcwgzvjsxugfgzdmth`; no production project. PKG-045a applied: ledger197
+  = source147 + dev_alpha50. Exact candidate text and recorded function properties match the disposable proof.
+- Last applied closure proof: PKG-045a preserved readiness and the certified digest `65980fce…` atomically.
   Direct private digest execution through this connector is denied; do not claim a new independent check.
-- Latest client change: PKG-042 Home server attention, explicit unavailable state and read parity;
+- Latest client change: PKG-045 explicit task readers, proven and built; see the first anchor above.
+- Preceding client change: PKG-042 Home server attention, explicit unavailable state and read parity;
   source dfa54206. Types and full repeat Jest242 suites /4687 tests pass, exit0. First full run's Firebase
   subprocess timeout is recorded in the package. Proof35698097056 passes25 SQL/Auth/REST/exact-client checks
   and346 offline Edge tests; PKG-00435698097011 and PKG-00735698097030 pass. Launch-only phone check below.
@@ -39,7 +51,7 @@ of app completion from counts of migrations, files or closed findings.
   bounds and duplicate fact/UNKNOWN cleanup. Types and full Jest241 suites /4652 tests pass, exit0.
   PKG-040 proof35677596411 passes346 offline Edge tests and17 SQL/Auth/REST checks. Intake47 (PKG-041),
   worker17, Q&A13 and publication14 byte-verified; JWTtrue. PKG-01035676936960 and PKG-014B35677260602 pass.
-- Latest verified APK: run35698097121, source `dfa54206`, SHA256 `3dfddf49…`, 68,554,979 bytes. Downloaded
+- Latest installed APK: run35698097121, source `dfa54206`, SHA256 `3dfddf49…`, 68,554,979 bytes. Downloaded
   hash/source/tree match checksum and both recovery/icon attestations. Contains PKG-042 Home attention
   and preceding AI/native client changes; PKG-041 is server-only. See `v5-ai-first/pkg042/APK_RECEIPT_20260922.json`.
   **Installed on the owner's USB phone on20260922.** Installed APK hash matches; cold launch and signed-in
@@ -54,7 +66,7 @@ of app completion from counts of migrations, files or closed findings.
 | Closure preparation blocker parity (12.10) | Proven and DEV applied | PKG-034, run35654209245, 25 checks. Does not close legacy readiness or second-device recovery. |
 | Selectable versus historical application counts (7.32) | Proven and DEV applied; client built, device pending | PKG-035, run35658331088, 38 checks. |
 | Business refusals (7.1) | Partial | PKG-036 compares 11 lifecycle RPCs plus selected guards, fixes adapter/controller/screen gaps. Audit other call families individually. |
-| Public task columns (7.17) | Investigated, unresolved | `v5-ai-first/PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md`. Need explicit detail/owner boundaries and actual REST compatibility proof. |
+| Public task columns (7.17) | PKG-045 proven; A applied, B held; finding still open on DEV | Explicit reads/client and APK35707463751 ready. A preserves the certificate/old APK. B restricts columns, must rebind the certificate, and needs fresh explicit owner approval plus compatible APK rollout. See `v5-ai-first/pkg045/PKG045_TASK_COLUMN_PRIVACY.md`. |
 | Closure legacy readiness / recovery (7.41, remaining 8.18) | Investigated, unresolved | Continuation handoff explains restricted-account guard and locally saved request-key dependency. Certified changes require fresh owner approval. |
 | Publication deadlines / post-dispatch recovery (11.2) | Proven and DEV applied; client built, device pending | PKG-037 proof35669180188, 18 checks; sweep and exact Edge v14 applied, independent settlement and durable recovery, no automatic paid replay. |
 | Interview / worker / Q&A recovery (11.1) | Handler fixes proven/applied; device pending | PKG-039 proof35675491926,16 checks and PKG-040 proof35677596411,17 checks: bounded independent settlement without paid replay or success overwrite. Provider30s / native55s. Process death, unknown claim ownership and unavailable cleanup still use durable sweep grace; no instant-recovery guarantee or paid/device probe. |
