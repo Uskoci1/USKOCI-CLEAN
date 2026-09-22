@@ -5,14 +5,17 @@ set local statement_timeout='20s';
 create temporary table pkg045_closure on commit drop as select private.closure_source_digest_v5() digest;
 do $pre$
 begin
-  if (select digest from pkg045_closure) <> '65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591' or
-     (select sha256 from private.closure_source_v5 where singleton) <> '65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591' or
+  if (select digest from pkg045_closure) is null or
+     (select digest from pkg045_closure) is distinct from (select sha256 from private.closure_source_v5 where singleton) or
      not private.retention_ai_source_ready() then raise exception 'PKG045_CERTIFICATE_NOT_READY'; end if;
 end;
 $pre$;
 do $pre$
 begin
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)')) is distinct from '20b5d1193357c43de14d68d6fdcfb911' then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)')) is distinct from 'efb305257be41a978b6204b7d45e8793' then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_resolve_activity_event(uuid)')) is distinct from '12ab04311b85ee482bc9e647b8f92738' then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
+  if to_regprocedure('public.is_my_task(uuid)') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
   if to_regprocedure('public.rpc_read_task(uuid)') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
   if to_regprocedure('public.rpc_list_my_tasks()') is not null then raise exception 'PKG045A_PREDECESSOR_DRIFT'; end if;
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.selectable_application_count(needs)')) is distinct from 'fe53442f8b661d6f33d22a54e2a468a8' then raise exception 'PKG045A_DEPENDENCY_DRIFT'; end if;
@@ -173,6 +176,117 @@ begin
 end
 $function$
 ;
+CREATE OR REPLACE FUNCTION public.is_my_task(p_need_id uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $function$
+begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  if not public.rpc_storage_account_open() then raise exception 'ACCOUNT_NOT_OPEN' using errcode='42501'; end if;
+  return exists(select 1 from public.needs n where n.id=p_need_id and n.requester_account_id=auth.uid());
+end;
+$function$;
+CREATE OR REPLACE FUNCTION public.rpc_list_my_needs_page(p_scope text DEFAULT 'ALL'::text, p_limit integer DEFAULT 30, p_before_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_before_id uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+declare
+  v_uid uuid := auth.uid();
+  v_items jsonb;
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode = '28000'; end if;
+  if p_limit is null or p_limit < 1 or p_limit > 100 or (p_before_at is null) <> (p_before_id is null) then
+    raise exception 'INVALID_PAGE' using errcode = '22023';
+  end if;
+  if p_scope is null or p_scope not in ('ALL','ACTIVE','HISTORY') then
+    raise exception 'INVALID_SCOPE' using errcode = '22023';
+  end if;
+
+  if not public.rpc_storage_account_open() then raise exception 'ACCOUNT_NOT_OPEN' using errcode='42501'; end if;
+
+  select coalesce(jsonb_agg(q.item order by q.created_at desc, q.id desc), '[]'::jsonb) into v_items
+  from (
+    select n.created_at, n.id, jsonb_build_object(
+      'id', n.id, 'sortAt', n.created_at, 'revision', n.revision,
+      'title', n.title, 'description', n.description, 'category', n.category, 'status', n.status,
+      'urgent', n.urgent, 'scheduleKind', n.schedule_kind, 'startsAt', n.starts_at, 'endsAt', n.ends_at,
+      'taskCountryCode', n.task_country_code, 'taskTimezone', n.task_timezone,
+      'executionLocationMode', n.execution_location_mode,
+      'approximateArea', n.approximate_area, 'approximateCity', n.approximate_city,
+      -- covered_slots is the existing computed field public.covered_slots(needs), not a column.
+      'requiredSlots', n.required_slots, 'coveredSlots', public.covered_slots(n),
+      'requiredSkills', to_jsonb(n.required_skills), 'requiredTools', to_jsonb(n.required_tools),
+      'requiredVehicles', to_jsonb(n.required_vehicles), 'requiredLicenses', to_jsonb(n.required_licenses),
+      'minimumExperienceYears', n.minimum_experience_years,
+      'verifiedIdentityRequired', n.verified_identity_required,
+      'mode', n.mode, 'requesterPriceRsd', n.requester_price_rsd,
+      'applicationCount', (select count(*) from public.marketplace_responses r where r.need_id = n.id),
+      'publicTopology', (select g.public_topology from public.need_geography g where g.need_id = n.id),
+      'criticalConditions', (select to_jsonb(d.critical_conditions) from public.need_requirement_details d where d.need_id = n.id)
+    ) as item
+    from public.needs n
+    where n.requester_account_id = v_uid
+      and (p_scope = 'ALL' or (p_scope = 'ACTIVE') = (n.status in ('DRAFT','PUBLISHED','SELECTION','ACTIVE')))
+      and (p_before_at is null or (n.created_at, n.id) < (p_before_at, p_before_id))
+    order by n.created_at desc, n.id desc
+    limit p_limit + 1
+  ) q;
+
+  return jsonb_build_object(
+    'items', case when jsonb_array_length(v_items) > p_limit then v_items - p_limit else v_items end,
+    'hasMore', jsonb_array_length(v_items) > p_limit,
+    'asOf', statement_timestamp());
+end
+$function$
+;
+CREATE OR REPLACE FUNCTION public.rpc_resolve_activity_event(p_event_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'pg_catalog'
+AS $function$
+declare
+  v_uid uuid := auth.uid();
+  e public.user_activity_events%rowtype;
+  a public.agreements%rowtype;
+  r public.marketplace_responses%rowtype;
+  n public.needs%rowtype;
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  select * into e from public.user_activity_events where id=p_event_id and recipient_user_id=v_uid
+    and exists(select 1 from public.notification_deliveries d where d.event_id=public.user_activity_events.id
+      and d.recipient_user_id=v_uid and d.channel='IN_APP' and d.state<>'SUPPRESSED');
+  if not found then raise exception 'EVENT_NOT_FOUND' using errcode='P0002'; end if;
+  if e.entity_type='AGREEMENT' then
+    select * into a from public.agreements where id=e.entity_id
+      and v_uid in (requester_account_id,worker_account_id);
+    if found then return jsonb_build_object('kind','AGREEMENT','id',a.id,'role',e.recipient_role); end if;
+  elsif e.entity_type='RESPONSE' then
+    select * into r from public.marketplace_responses where id=e.entity_id;
+    if found then
+      select * into a from public.agreements where selected_response_id=r.id
+        and v_uid in (requester_account_id,worker_account_id) order by created_at desc,id desc limit 1;
+      if found then return jsonb_build_object('kind','AGREEMENT','id',a.id,'role',e.recipient_role); end if;
+      if r.worker_account_id=v_uid then return jsonb_build_object('kind','APPLICATIONS','id',r.id,'role','WORKER'); end if;
+      select id into n.id from public.needs where id=r.need_id and public.is_my_task(id);
+      if found then return jsonb_build_object('kind','CANDIDATES','id',n.id,'role','REQUESTER'); end if;
+    end if;
+  elsif e.entity_type='CLARIFICATION' then
+    -- Only the existing safe context ID; current Need RLS is checked again.
+    if coalesce(e.payload->>'needId','') !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' then return jsonb_build_object('kind','UNAVAILABLE'); end if;
+    select id into n.id from public.needs where id=(e.payload->>'needId')::uuid;
+    if found then return jsonb_build_object('kind',case when public.is_my_task(n.id) then 'OWN_NEED' else 'OPPORTUNITY' end,
+      'id',n.id,'role',case when public.is_my_task(n.id) then 'REQUESTER' else 'WORKER' end); end if;
+  elsif e.entity_type='NEED' then
+    select id into n.id from public.needs where id=e.entity_id;
+    if found then return jsonb_build_object('kind',case when public.is_my_task(n.id) then 'OWN_NEED' else 'OPPORTUNITY' end,
+      'id',n.id,'role',case when public.is_my_task(n.id) then 'REQUESTER' else 'WORKER' end); end if;
+  end if;
+  return jsonb_build_object('kind','UNAVAILABLE');
+end
+$function$
+;
 CREATE OR REPLACE FUNCTION public.rpc_read_task(p_need_id uuid)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path TO 'pg_catalog'
 AS $function$
@@ -242,11 +356,14 @@ begin
   return result;
 end;
 $function$;
-revoke all on function public.rpc_read_task(uuid), public.rpc_list_my_tasks() from public, anon, authenticated;
-grant execute on function public.rpc_read_task(uuid), public.rpc_list_my_tasks() to authenticated;
+revoke all on function public.rpc_read_task(uuid), public.rpc_list_my_tasks(), public.is_my_task(uuid) from public, anon, authenticated;
+grant execute on function public.rpc_read_task(uuid), public.rpc_list_my_tasks(), public.is_my_task(uuid) to authenticated;
 do $bodies$
 begin
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)')) is distinct from '18b5518140c519b96728d1e25fa3c29d' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)')) is distinct from 'dad1de3234e72d4e2f44be5e920eda61' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_resolve_activity_event(uuid)')) is distinct from 'e5dc05773da08471db572194caf467e2' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.is_my_task(uuid)')) is distinct from '42b6802d2f3114d1e211025c4c475e55' then raise exception 'PKG045_BODY_MISMATCH'; end if;
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_read_task(uuid)')) is distinct from '1e01db5140248f27ab374187f01fded3' then raise exception 'PKG045_BODY_MISMATCH'; end if;
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_tasks()')) is distinct from '2a8ff0fa8a1211414e5e1fc69c6fb4f7' then raise exception 'PKG045_BODY_MISMATCH'; end if;
 end;

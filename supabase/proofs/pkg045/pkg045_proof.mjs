@@ -53,6 +53,21 @@ pass('BEFORE_SAME_WORLD_STRANGER_CAN_READ_INTERNAL_COLUMNS');
 const oldDetail=(c,id)=>c.from('needs').select('id,revision,title,status,description,covered_slots,selectable_application_count,marketplace_responses(id),need_geography(public_topology),need_requirement_details(critical_conditions),price_basis,requester_price_rsd,required_slots').eq('id',id).maybeSingle();
 const cases=[[owner,ids.public],[stranger,ids.public],[owner,ids.draft],[stranger,ids.draft],[participant,ids.historical],[stranger,ids.historical],[otherWorld,ids.public],[stranger,ids.selection]];
 const old=await Promise.all(cases.map(([a,id])=>ok(oldDetail(a.client,id))));
+const ownerPage=await ok(owner.client.rpc('rpc_list_my_needs_page',{p_scope:'ALL',p_limit:100}));
+const events=[
+ [owner,'NEED',ids.draft,'REQUESTER'],[stranger,'NEED',ids.public,'WORKER'],
+ [owner,'RESPONSE',response,'REQUESTER'],[participant,'RESPONSE',response,'WORKER'],
+ [stranger,'CLARIFICATION',randomUUID(),'WORKER'],[stranger,'NEED',ids.draft,'WORKER'],
+ [otherWorld,'NEED',ids.public,'WORKER'],
+].map(([actor,type,entity,role])=>({actor,type,entity,role,id:randomUUID()}));
+sql('begin;set local session_replication_role=replica;'+events.map(e=>`
+ insert into public.user_activity_events(id,recipient_user_id,recipient_role,event_type,entity_type,entity_id,payload,dedupe_key)
+ values(${q(e.id)},${q(e.actor.id)},${q(e.role)},'OPPORTUNITY_AVAILABLE',${q(e.type)},${q(e.entity)},${q(JSON.stringify({needId:ids.public}))},${q(e.id)});
+ insert into public.notification_deliveries(event_id,recipient_user_id,recipient_role,channel,state,title,body,dedupe_key)
+ values(${q(e.id)},${q(e.actor.id)},${q(e.role)},'IN_APP','CREATED','Proof','Proof',${q(e.id)});`).join('\n')+'commit;');
+const readEvents=()=>Promise.all(events.map(e=>ok(e.actor.client.rpc('rpc_resolve_activity_event',{p_event_id:e.id}))));
+const oldEvents=await readEvents();
+assert.deepEqual(oldEvents.map(x=>x.kind),['OWN_NEED','OPPORTUNITY','CANDIDATES','APPLICATIONS','OPPORTUNITY','UNAVAILABLE','UNAVAILABLE']);
 const list=c=>ok(c.rpc('rpc_list_open_tasks_v3',{p_limit:200}));
 const beforeList=await list(stranger.client);
 assert.ok(beforeList.items.some(x=>x.id===ids.public));
@@ -74,12 +89,14 @@ for(let i=0;i<cases.length;i++) {
 const ownList=await ok(owner.client.rpc('rpc_list_my_tasks'));assert.equal(ownList.length,4);
 assert.deepEqual(await ok(stranger.client.rpc('rpc_list_my_tasks')),[]);
 assert.deepEqual((await list(stranger.client)).items,beforeList.items);
+assert.deepEqual((await ok(owner.client.rpc('rpc_list_my_needs_page',{p_scope:'ALL',p_limit:100}))).items,ownerPage.items);
+assert.deepEqual(await readEvents(),oldEvents);
 assert.deepEqual(await ok(exploit(stranger.client)),exposed); // A is additive, never claim privacy fixed here.
 pass('A_NEW_READERS_EQUIVALENT_OLD_APK_STILL_WORKS_PRIVACY_NOT_YET_CLOSED');
-// Narrowest contract change: only three functions, no row policies, tables or columns changed by A.
+// Only the declared reader/resolver functions, no row policies, tables or columns changed by A.
 const removedA=baselineSurface.filter(x=>!afterASurface.includes(x)),addedA=afterASurface.filter(x=>!baselineSurface.includes(x));
-assert.equal(removedA.length,1);assert.ok(removedA[0].startsWith('function:public.rpc_list_open_tasks_v3('));
-assert.equal(addedA.length,3);assert.ok(addedA.every(x=>/^function:public\.(rpc_read_task|rpc_list_my_tasks|rpc_list_open_tasks_v3)\(/.test(x)));
+assert.equal(removedA.length,3);assert.ok(removedA.every(x=>/^function:public\.(rpc_list_my_needs_page|rpc_resolve_activity_event|rpc_list_open_tasks_v3)\(/.test(x)));
+assert.equal(addedA.length,6);assert.ok(addedA.every(x=>/^function:public\.(is_my_task|rpc_read_task|rpc_list_my_tasks|rpc_list_my_needs_page|rpc_resolve_activity_event|rpc_list_open_tasks_v3)\(/.test(x)));
 report.surfaceA={removed:removedA,added:addedA};assert.deepEqual(closure(),report.closureBefore);pass('A_ONLY_READER_FUNCTIONS_CHANGED_CERTIFICATE_UNCHANGED');
 sql(btext);assert.throws(()=>sql(btext),/PKG045B_ALREADY_RESTRICTED/);await new Promise(r=>setTimeout(r,1500));
 for(const role of [owner,stranger,participant,otherWorld]) await denied(exploit(role.client));
@@ -100,6 +117,13 @@ for(let i=0;i<cases.length;i++) {
 assert.deepEqual(await ok(owner.client.rpc('rpc_list_my_tasks')),ownList);
 assert.deepEqual(await ok(stranger.client.rpc('rpc_list_my_tasks')),[]);
 assert.deepEqual((await list(stranger.client)).items,beforeList.items);
+assert.deepEqual((await ok(owner.client.rpc('rpc_list_my_needs_page',{p_scope:'ALL',p_limit:100}))).items,ownerPage.items);
+assert.deepEqual((await ok(stranger.client.rpc('rpc_list_my_needs_page'))).items,[]);
+assert.deepEqual(await readEvents(),oldEvents);
+await denied(stranger.client.rpc('rpc_resolve_activity_event',{p_event_id:events[0].id}));
+assert.equal(await ok(stranger.client.rpc('is_my_task',{p_need_id:ids.public})),false);
+assert.equal(await ok(owner.client.rpc('is_my_task',{p_need_id:ids.public})),true);
+pass('B_OWNER_PAGING_AND_NOTIFICATION_TARGETS_RETAIN_IDENTITY_AND_VISIBILITY');
 const map=await ok(stranger.client.rpc('rpc_list_open_tasks_v3',{p_bbox:{west:19.7,south:45.1,east:19.9,north:45.4},p_filters:{remote:'EXCLUDE'}}));
 assert.ok(map.items.some(x=>x.id===ids.public));
 assert.ok(!(await list(otherWorld.client)).items.some(x=>x.id===ids.public));
@@ -125,11 +149,12 @@ pass('B_OLD_APK_BREAK_CONFIRMED_AND_ROLLOUT_GATE_RECORDED');
 sql(`insert into private.account_closure_requests(account_id,state,revision) values(${q(owner.id)},'READY',1),(${q(stranger.id)},'READY',1);`);
 await denied(owner.client.rpc('rpc_list_my_tasks'));await denied(owner.client.rpc('rpc_read_task',{p_need_id:ids.draft}));
 await denied(stranger.client.rpc('rpc_read_task',{p_need_id:ids.public}));await denied(stranger.client.rpc('rpc_list_open_tasks_v3'));
+await denied(owner.client.rpc('rpc_list_my_needs_page'));await denied(owner.client.rpc('is_my_task',{p_need_id:ids.draft}));
 pass('B_RESTRICTED_ACCOUNTS_CANNOT_USE_DIRECT_OR_ELEVATED_READERS');
 const afterB=surface(),removedB=afterASurface.filter(x=>!afterB.includes(x)),addedB=afterB.filter(x=>!afterASurface.includes(x));
 assert.ok([...removedB,...addedB].every(x=>x.startsWith('table:public.needs:')||x.startsWith('column-acl:')));
 report.surfaceB={removed:removedB,added:addedB};
-report.functionPins=rows("select oid::regprocedure::text signature,md5(prosrc) md5,prosecdef,proacl::text,proconfig from pg_proc where oid in ('public.rpc_read_task(uuid)'::regprocedure,'public.rpc_list_my_tasks()'::regprocedure,'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)'::regprocedure)");
+report.functionPins=rows(`select oid::regprocedure::text signature,md5(prosrc) md5,prosecdef,proacl::text,proconfig from pg_proc where oid in (${pins.functions.map(p=>q(p.signature)+'::regprocedure').join(',')})`);
 report.closureAfter=closure();assert.deepEqual(report.closureAfter,report.closureBefore);
 pass('B_ONLY_NEEDS_SELECT_PRIVILEGES_CHANGED_CERTIFICATE_UNCHANGED_READY');
 report.result='PASS';save();

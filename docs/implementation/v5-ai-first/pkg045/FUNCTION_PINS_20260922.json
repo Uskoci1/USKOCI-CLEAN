@@ -6,6 +6,21 @@
       "after": "18b5518140c519b96728d1e25fa3c29d"
     },
     {
+      "signature": "public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)",
+      "before": "efb305257be41a978b6204b7d45e8793",
+      "after": "dad1de3234e72d4e2f44be5e920eda61"
+    },
+    {
+      "signature": "public.rpc_resolve_activity_event(uuid)",
+      "before": "12ab04311b85ee482bc9e647b8f92738",
+      "after": "e5dc05773da08471db572194caf467e2"
+    },
+    {
+      "signature": "public.is_my_task(uuid)",
+      "before": null,
+      "after": "42b6802d2f3114d1e211025c4c475e55"
+    },
+    {
       "signature": "public.rpc_read_task(uuid)",
       "before": null,
       "after": "1e01db5140248f27ab374187f01fded3"

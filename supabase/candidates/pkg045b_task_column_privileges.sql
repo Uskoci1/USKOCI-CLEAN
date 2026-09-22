@@ -5,8 +5,8 @@ set local statement_timeout='20s';
 create temporary table pkg045_closure on commit drop as select private.closure_source_digest_v5() digest;
 do $pre$
 begin
-  if (select digest from pkg045_closure) <> '65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591' or
-     (select sha256 from private.closure_source_v5 where singleton) <> '65980fce17030f1d8b34177b8989549c2144bf806478238af39dec04b137a591' or
+  if (select digest from pkg045_closure) is null or
+     (select digest from pkg045_closure) is distinct from (select sha256 from private.closure_source_v5 where singleton) or
      not private.retention_ai_source_ready() then raise exception 'PKG045_CERTIFICATE_NOT_READY'; end if;
 end;
 $pre$;
@@ -19,6 +19,9 @@ $pre$;
 do $bodies$
 begin
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)')) is distinct from '18b5518140c519b96728d1e25fa3c29d' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)')) is distinct from 'dad1de3234e72d4e2f44be5e920eda61' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_resolve_activity_event(uuid)')) is distinct from 'e5dc05773da08471db572194caf467e2' then raise exception 'PKG045_BODY_MISMATCH'; end if;
+  if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.is_my_task(uuid)')) is distinct from '42b6802d2f3114d1e211025c4c475e55' then raise exception 'PKG045_BODY_MISMATCH'; end if;
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_read_task(uuid)')) is distinct from '1e01db5140248f27ab374187f01fded3' then raise exception 'PKG045_BODY_MISMATCH'; end if;
   if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_my_tasks()')) is distinct from '2a8ff0fa8a1211414e5e1fc69c6fb4f7' then raise exception 'PKG045_BODY_MISMATCH'; end if;
 end;
