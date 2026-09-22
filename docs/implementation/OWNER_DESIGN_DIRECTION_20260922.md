@@ -38,6 +38,12 @@ Motion only for meaning: list arrival, bottom sheet, confirmed success checkmark
 
 For this design work, do not alter the server, validations or recovery. Do not invent counts, ratings, status, eligibility, payment or delivery evidence. Text is readable and never below 12dp. The bottom bar must visibly indicate the active destination; never all gray. Keep all existing hard repository boundaries.
 
-## Current execution
+## Current execution — latest owner instruction
+
+First complete a whole-app functional analysis and show it to the owner. For every screen record its job, existing capabilities, missing capabilities, placement (screen/sheet/section/message/notification/confirmation), and verified existing server support versus a new contract. Research official Wolt, Airbnb, Uber, TaskRabbit and Airtasker flows. New screen implementation waits for the owner's approval of that analysis. Finish verification of the already approved bottom-sheet slice only. This ordering supersedes the execution order below; design freedom and engineering boundaries remain.
+
+### Previous execution order (paused for analysis)
+
+Additional owner instruction: read v5-ai-first/UX_NACRT_20260922.md and compare every screen with it (agreement, gap, proposed difference). Present conflicts before implementing. The functional audit contains these comparisons and D1-D10; the draft itself is not silently rewritten.
 
 Finish map/list/filter sheet first. Keep the prior native surfaces as implemented history and evaluate each next screen under this clarified direction. Review evidence belongs in DESIGN_NATIVE_CONNECTED_SLICES_20260922.md and the current status index. Screenshots and device checks must be labelled by actual source/build; a browser fixture is not a real phone flow.

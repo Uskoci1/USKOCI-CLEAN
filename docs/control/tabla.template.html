@@ -95,11 +95,17 @@ tr:last-child td{border-bottom:0}
     <h1>Šta radi, šta fali, šta gori</h1>
     <div class="meta" id="meta"></div>
   </header>
+  <section class="panel" id="ucitaj" hidden>
+    <h2>Učitaj novo stanje</h2>
+    <p class="sub">Izaberi <code>docs/control/stanje.json</code> posle <code>node scripts/control/osvezi.mjs</code>. Tabla se odmah menja za sve koji je gledaju.</p>
+    <input type="file" id="fajl" accept="application/json,.json" aria-label="stanje.json">
+    <p class="sub" id="ucitaj-poruka" role="status"></p>
+  </section>
   <section class="tiles" id="tiles" aria-label="Sažetak"></section>
   <section class="panel" id="server" aria-label="Server"></section>
   <section class="panel">
     <h2>Svetla po redu</h2>
-    <p class="sub">Nacrt · Ekran · Kod · Server · Test · Telefon. Ekran, kod, server i test računa skripta iz koda i servera. Telefon je zelen samo uz dokaz sa telefona.</p>
+    <p class="sub">Nacrt · Ekran · Kod · Server · Test · Telefon. Skripta proverava da postoje ekran, pozivi, serverske funkcije i povezani test fajlovi. To samo po sebi ne dokazuje da ceo tok radi, da su testovi prošli ili da je serverska mogućnost uključena. Telefon je zelen samo uz dokaz za konkretnu verziju. Svaki red je povezan sa detaljnom funkcionalnom analizom.</p>
     <div class="legend">
       <span><i class="dot zeleno"></i>u redu</span><span><i class="dot zuto"></i>delimično</span><span><i class="dot crveno"></i>fali ili ne radi</span>
       <span><i class="dot sivo"></i>nije provereno</span><span><i class="dot nema"></i>ne odnosi se</span>
@@ -137,7 +143,7 @@ tr:last-child td{border-bottom:0}
   $('meta').innerHTML = 'Osveženo ' + esc((m.osvezeno || '').replace('T', ' ').replace('Z', ' UTC')) + ' · grana <code>' + esc(m.grana) + '</code> · verzija <code>' + esc(m.head) + '</code> — ' + esc(m.head_poruka);
   $('rule').textContent = m.pravilo_gotovo || '';
   var c = D.counts || {};
-  var tiles = [['red', c.PROBLEM || 0, 'reda sa problemom'], ['yellow', c['NA TELEFONU NIJE PROVERENO'] || 0, 'radi u kodu, telefon nije proveren'], ['green', c.GOTOVO || 0, 'gotovo i dokazano na telefonu'],
+  var tiles = [['red', c.PROBLEM || 0, 'reda sa problemom ili nedostatkom'], ['yellow', c['NA TELEFONU NIJE PROVERENO'] || 0, 'bez upisanog problema, ceo tok nije potvrđen'], ['green', c.GOTOVO || 0, 'gotovo i dokazano na telefonu'],
     ['', D.redovi.length, 'redova ukupno']];
   tiles.forEach(function (t) { $('tiles').appendChild(el('div', { class: 'tile ' + t[0] }, '<b>' + t[1] + '</b><span>' + t[2] + '</span>')); });
   var s = m.server || {};
@@ -167,6 +173,7 @@ tr:last-child td{border-bottom:0}
         return '<div><i class="dot ' + r.lights[n[0]] + '"></i><span><b>' + n[1] + '</b><small>' + esc(why) + '</small></span></div>'; }).join('') + '</div>';
       if (r.problem) body += '<div class="problem"><b>Problem:</b> ' + esc(r.problem) + '</div>';
       if (r.sledece) body += '<div class="next"><b>Sledeće:</b> ' + esc(r.sledece) + '</div>';
+      if (r.funkcionalni_audit) body += '<p class="sub"><b>Funkcionalna analiza:</b> celine ' + esc(r.funkcionalni_audit.matrica.join(', ')) + ' · ' + esc(r.funkcionalni_audit.status) + '<br>' + esc(r.funkcionalni_audit.izvor) + '</p>';
       body += '<dl class="kv"><dt>Ekrani</dt><dd class="mono">' + esc(r.ekrani.join(', ') || '—') + '</dd><dt>Kod</dt><dd class="mono">' + esc(r.servisi.join(', ') || '—') +
         '</dd><dt>Server</dt><dd class="mono">' + esc(r.server_deps.join(', ') || '—') + '</dd><dt>Stare oznake</dt><dd class="mono">' + esc((r.stari || []).join(', ') || '—') + '</dd></dl>';
       d.appendChild(el('div', { class: 'rbody' }, body));

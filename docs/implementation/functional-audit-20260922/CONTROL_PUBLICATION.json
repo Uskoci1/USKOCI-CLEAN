@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-22",
+  "targetUrl": "https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t",
+  "file": "docs/control/out/tabla.html",
+  "sha256": "1306968f76093ebde63f07717b0f72b30f90f90c8ae94d54ef654b1d54ede48a",
+  "generation": "PASS: node scripts/control/osvezi.mjs",
+  "dataParityAndScriptSyntax": "PASS",
+  "rows": 62,
+  "requiresAttention": 25,
+  "noRecordedProblemButNotAccepted": 37,
+  "fullyAccepted": 0,
+  "ownerPublicationAuthorization": "Explicit latest request; same existing URL",
+  "ownerAuthentication": "Completed; artifact visible",
+  "publication": "PENDING_CAPABILITY",
+  "reason": "No Artifact publish connector or page WebMCP available; visible artifact menus do not provide content editing.",
+  "lastObservedOnline": "8adb5be0, 21 attention / 41 not accepted / 0 complete; older than this generated file",
+  "next": "Claude with Artifact publish must publish this exact HTML to targetUrl, then read back its updated content. No duplicate site or sharing-permission change."
+}

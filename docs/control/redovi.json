@@ -21,10 +21,20 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: APK instaliran na tvom telefonu, hladno pokretanje i Početna posle prijave viđeni. Nije prošao ceo put."
+    "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen."
    },
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "04",
+     "05",
+     "48"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A02",
@@ -54,7 +64,15 @@
     "dokaz": "pkg043/PKG043_GEMINI_QUESTION_SENTINEL.md: tvoj pokušaj na telefonu 22.09 dao dva uspešna AI odgovora. Nije proveren ceo razgovor do objave."
    },
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "29"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A03",
@@ -75,7 +93,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "Govor se testira na telefonu samo kad ti kažeš da si spreman."
+   "sledece": "Govor se testira na telefonu samo kad ti kažeš da si spreman.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "29"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A04",
@@ -98,7 +124,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "31"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A05",
@@ -121,8 +155,16 @@
     "rpc_read_media_upload"
    ],
    "telefon": null,
-   "problem": "Aplikacija poziva rpc_cancel_media_upload (src/data/mediaClientService.ts), a te funkcije nema na serveru: prekid započetog slanja slike ne može da uspe. Isto važi za sliku profila (N05). Predlog postoji u projektu (supabase/candidates/pkg008_media_upload_cancellation.sql), ali nikad nije primenjen.",
-   "sledece": "Dokazati i primeniti pkg008 na DEV (uz tvoje odobrenje), ili ukloniti poziv."
+   "problem": "Potvrđeno u kodu i svežim čitanjem DEV-a: otkazivanje nepotvrđenog slanja fotografije zadatka poziva rpc_cancel_media_upload(uuid,uuid), koji ne postoji. Trag zahteva ostaje, što sprečava lažan uspeh. Normalno slanje fotografije je odvojen put.",
+   "sledece": "Posle odobrenja analize: pregledati postojeći PKG-008 i dokazati otkazivanje, zakašnjelo slanje i oporavak na privremenoj bazi; primena traži zasebno odobrenje. Audit F16.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "32"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A06",
@@ -147,7 +189,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "30"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A07",
@@ -172,7 +222,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "30"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A08",
@@ -194,7 +252,16 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "16",
+     "19"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A09",
@@ -214,8 +281,16 @@
     "rpc_list_my_tasks"
    ],
    "telefon": null,
-   "problem": "Učitava sve odjednom; server ima učitavanje po delovima (rpc_list_my_needs_page) koje aplikacija ne koristi.",
-   "sledece": "Povezati učitavanje po delovima."
+   "problem": "Čitanje po delovima postoji, ali njegov prikaz nema osnovu cene i broj prijava koje stvarno mogu da se izaberu. Prosta zamena sadašnjeg čitanja pokvarila bi karticu.",
+   "sledece": "Posle odobrenja funkcionalne analize: prvo dopuniti i dokazati podatke servera, pa povezati listu. Audit F08/D6.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "06"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A10",
@@ -238,7 +313,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "13"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A11",
@@ -260,8 +343,17 @@
     "rpc_mark_response_viewed"
    ],
    "telefon": null,
-   "problem": "Codex (22.09): poruka kandidata se ne vidi na kartici prijave.",
-   "sledece": "Codex dodaje poruku na karticu."
+   "problem": "Poruka kandidata izostaje sa kartice, a nedostajuća ocena se naziva „Nov na USKOČI“, što ne dokazuje starost naloga. Pregled pre izbora već postoji.",
+   "sledece": "Posle odobrenja funkcionalne analize: dodati poruku i pošten prikaz ugleda; sačuvati postojeću potvrdu izbora. Audit F10–F11.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "12",
+     "17"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A12",
@@ -283,7 +375,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "17"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A13",
@@ -306,7 +406,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "30"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A14",
@@ -330,7 +438,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "16"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A15",
@@ -351,7 +467,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "16"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "A16",
@@ -368,8 +492,16 @@
     "rpc_activate_urgent"
    ],
    "telefon": null,
-   "problem": "Server ume, aplikacija nigde ne poziva. Oznaka HITNO se samo prikazuje.",
-   "sledece": "Dodati dugme sa pregledom pre uključivanja."
+   "problem": "Preview i aktivacija HITNO postoje, ali trenutna politika na DEV-u je isključena i nema dozvoljenih kategorija. Nije dovoljno dodati dugme.",
+   "sledece": "Tvoja zasebna odluka o politici/kategorijama, zatim dokaz i ekran pregleda sa istekom i uslovima. Audit F09/D4.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "18"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B00",
@@ -395,7 +527,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "37"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B01",
@@ -421,7 +561,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "36"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B02",
@@ -445,7 +593,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "38"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B03",
@@ -467,7 +623,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "39"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B04",
@@ -490,9 +654,21 @@
     "rpc_list_open_tasks_v3",
     "rpc_get_my_task_relations"
    ],
-   "telefon": null,
-   "problem": "Povlači sve otvorene zadatke (do 5.000) i filtrira u telefonu; server prima oblast mape i filtere, a aplikacija ih ne šalje (blokada B19).",
-   "sledece": "Slati oblast mape i filtere serveru."
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom."
+   },
+   "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Na instaliranom APK-u tekst legende mape se sabija u usku kolonu.",
+   "sledece": "Posle odobrenja funkcionalne analize: popraviti legendu, pa povezati serversko filtriranje uz očuvanje svih podataka i pravila. Audit F02/F06–F07.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "07",
+     "08"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B05",
@@ -511,9 +687,21 @@
    "server": [
     "NOVO: udaljenost i sortiranje"
    ],
-   "telefon": null,
-   "problem": "Panel sa tačnim brojem postoji (Codex 22.09), ali filtrira samo način cene. Udaljenost i sortiranje server nema.",
-   "sledece": "Povezati filtere koje server ima; za udaljenost i sortiranje odlučiti o novoj serverskoj funkciji."
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni."
+   },
+   "problem": "Panel i tačan lokalni broj postoje. Provereno otvaranje i privremeni izbor cene (6 → 0); primena/zatvaranje nisu kompletno provereni. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
+   "sledece": "Posle odobrenja funkcionalne analize: odrediti datum za fleksibilne zadatke, oblast/na daljinu, broj preostalih mesta i sortiranje; završiti provere panela. Audit F07/D7. Sačuvani alarmi su poseban predlog.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "09",
+     "10"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B06",
@@ -534,7 +722,16 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "11",
+     "19"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B07",
@@ -559,7 +756,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "13"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B08",
@@ -580,8 +785,16 @@
     "rpc_get_account_reputation"
    ],
    "telefon": null,
-   "problem": "",
-   "sledece": ""
+   "problem": "Javni profil daje profileId, a prijava/blokiranje traže accountId. Ti identifikatori nisu zamenljivi.",
+   "sledece": "Posle odobrenja funkcionalne analize: bezbedan serverski kontekst cilja, pa ulazi za prijavu/blokiranje. Audit F05.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "12"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B09",
@@ -601,8 +814,16 @@
     "rpc_submit_response"
    ],
    "telefon": null,
-   "problem": "Codex (22.09): nema završnog pregleda ponude pre slanja.",
-   "sledece": "Dodati korak „Pregledaj → Pošalji“."
+   "problem": "Nema završnog pregleda ponude pre slanja; pregled pre izbora kandidata je drugi tok i već postoji.",
+   "sledece": "Posle odobrenja funkcionalne analize: Pregledaj → Pošalji, pa jasan prikaz poslate ponude, uz iste provere cene i oporavak. Audit F10.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "14"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B10",
@@ -623,7 +844,15 @@
    ],
    "telefon": null,
    "problem": "Učitava sve odjednom; server ima rpc_list_my_applications_page koje aplikacija ne koristi.",
-   "sledece": "Povezati učitavanje po delovima."
+   "sledece": "Povezati učitavanje po delovima.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "15"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B11",
@@ -649,7 +878,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "15"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "B12",
@@ -670,7 +907,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "28"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D01",
@@ -691,7 +936,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "20"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D02",
@@ -712,8 +965,16 @@
     "NOVO: veza Dogovora sa zadatkom i prijavom"
    ],
    "telefon": null,
-   "problem": "Server ne vraća zadatak ni prijavu iz kojih je Dogovor nastao, pa nema veze nazad (Codex 22.09).",
-   "sledece": "Mali serverski dodatak uz dokaz."
+   "problem": "Server ne vraća ID zadatka/prijave iz kojih je Dogovor nastao. Trenutni prikaz istorije ima samo kreiranje, bez stvarnog dolaska/ETA.",
+   "sledece": "Posle odobrenja funkcionalne analize: koraci samo iz dokazanih stanja; mali serverski predlog za izvorne veze. Audit F12.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "21"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D03",
@@ -733,8 +994,16 @@
     "rpc_send_agreement_message_v2"
    ],
    "telefon": null,
-   "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16).",
-   "sledece": "Ukloniti staru verziju posle provere."
+   "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
+   "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "22"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D04",
@@ -757,7 +1026,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "22"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D05",
@@ -782,7 +1059,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "26"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D06",
@@ -808,7 +1093,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "23"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D07",
@@ -829,7 +1122,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "23"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D08",
@@ -854,7 +1155,16 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "25",
+     "34"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D09",
@@ -873,7 +1183,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "24"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D10",
@@ -894,7 +1212,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "21"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D11",
@@ -915,7 +1241,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "Server posle roka sam završava Dogovor (marketplace_tick svakog minuta). Proveriti da ekran jasno kaže rok."
+   "sledece": "Server posle roka sam završava Dogovor (marketplace_tick svakog minuta). Proveriti da ekran jasno kaže rok.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "21"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D12",
@@ -936,8 +1270,16 @@
     "rpc_get_my_agreement_review"
    ],
    "telefon": null,
-   "problem": "",
-   "sledece": ""
+   "problem": "Ocene rade u kodu i postoje na serveru; server pri oceni i dalje šalje „Dobili ste…“. Nije tačno da je sav tekst prebačen na „ti“.",
+   "sledece": "Posle odobrenja funkcionalne analize: zadržati postojeće ocenjivanje; zaseban predlog izmene serverskog teksta. Audit F15.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "27"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "D13",
@@ -951,11 +1293,19 @@
    "servisi": [],
    "server": [],
    "telefon": null,
-   "problem": "Nije napravljeno. Server ima stanja Dogovoreno → Čeka potvrdu → Završeno; „krenuo/stigao“ bi bilo novo.",
-   "sledece": "Codex pravi prikaz koraka od postojećih stanja.",
+   "problem": "Nedostaje prikaz koraka. Server daje stvarna stanja, ali ne daje kretanje/stizanje. Zatvorena potraga nije isto što i završen posao.",
+   "sledece": "Posle odobrenja funkcionalne analize: prikazati važeću sledeću radnju, rok i blokadu problemom; bez izmišljanja koraka. Audit D3/F12.",
    "override": {
     "kod": "crveno",
     "razlog": "Nije napravljeno u aplikaciji"
+   },
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "21"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
    }
   },
   {
@@ -979,8 +1329,16 @@
     "rpc_mark_activity_event_read"
    ],
    "telefon": null,
-   "problem": "",
-   "sledece": "Svih 24 vrste obaveštenja da vode na pravo mesto (UX nacrt §6)."
+   "problem": "Vreme obaveštenja ima font 11. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
+   "sledece": "Posle odobrenja funkcionalne analize: font najmanje 12, pa za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F03/F14/D9.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "40"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "P02",
@@ -1001,8 +1359,16 @@
     "rpc_set_notification_preferences"
    ],
    "telefon": null,
-   "problem": "Plan R2: dugme za oporavak podešavanja je bilo onemogućeno (u radu kod Codex-a).",
-   "sledece": ""
+   "problem": "Potvrđeno u kodu: greška zaključava i dugme „Proveri stanje“, pa ponovni pokušaj nije moguć. Još nije popravljeno; čeka odobrenje analize.",
+   "sledece": "Posle odobrenja funkcionalne analize: otključati samo oporavak čitanjem uz očuvanje zaštite upisa; dokaz greška → uspešno čitanje. Audit F01.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "41"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "P03",
@@ -1028,7 +1394,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "41"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "P04",
@@ -1045,7 +1419,16 @@
    ],
    "telefon": null,
    "problem": "Radnik radi svakog minuta, ali je slanje isključeno (EXPO_PUSH_TRANSPORT_ENABLED) do testa na telefonu, po tvojoj odluci.",
-   "sledece": "Posle testa na telefonu ti uključuješ prekidač."
+   "sledece": "Posle testa na telefonu ti uključuješ prekidač.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "40",
+     "41"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "P05",
@@ -1059,11 +1442,19 @@
     "NOVO: podsetnik pred dogovoreni termin"
    ],
    "telefon": null,
-   "problem": "Ne postoji ni na serveru ni u aplikaciji.",
+   "problem": "Podsetnik je predložen u UX nacrtu; ovaj audit nije potvrdio postojeći put od zakazivanja do prijema. Pre novog servera treba proveriti postojeće događaje i zakazane poslove.",
    "sledece": "Odlučiti; nova serverska funkcija uz dokaz.",
    "override": {
     "kod": "crveno",
     "razlog": "Nije napravljeno u aplikaciji"
+   },
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "28"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
    }
   },
   {
@@ -1086,7 +1477,16 @@
     "dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: postojeća prijava na tvom telefonu radi posle hladnog pokretanja."
    },
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "01",
+     "02"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N02",
@@ -1105,7 +1505,15 @@
    "server": [],
    "telefon": null,
    "problem": "Isporuka emaila za potvrdu na DEV nije dokazana (16.09).",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "02"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N03",
@@ -1125,7 +1533,15 @@
    "server": [],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "03"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N04",
@@ -1146,7 +1562,15 @@
    ],
    "telefon": null,
    "problem": "Dokumenti nisu objavljeni: čekaju podatke operatera i pravnika.",
-   "sledece": "Tvoj deo: podaci operatera i odgovori pravnika."
+   "sledece": "Tvoj deo: podaci operatera i odgovori pravnika.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "43"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N05",
@@ -1170,8 +1594,19 @@
     "rpc_clear_profile_avatar"
    ],
    "telefon": null,
-   "problem": "",
-   "sledece": ""
+   "problem": "Crvena oznaka servera je posredan signal iz zajedničkog mediaClientService modula. Sam ekran avatara ne poziva nedostajući rpc_cancel_media_upload; koristi upload/read/apply/discard/clear. Ne tvrditi da je avatar pokvaren zbog greške A05; ceo tok još treba proveriti na telefonu.",
+   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "33",
+     "34",
+     "35",
+     "47"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N06",
@@ -1195,8 +1630,16 @@
     "rpc_get_account_block"
    ],
    "telefon": null,
-   "problem": "Do blokiranja se stiže samo iz Dogovora i sa liste blokiranih, ne sa detalja zadatka ni sa javnog profila. Prodavnice to traže.",
-   "sledece": "Dodati ulaz sa detalja zadatka i javnog profila."
+   "problem": "Ulazi sa detalja zadatka i javnog profila nedostaju; javna projekcija ne daje accountId koji komanda zahteva. Prodavnice traže funkcionalno prijavljivanje/blokiranje, ne propisuju tačan raspored dugmadi.",
+   "sledece": "Posle odobrenja funkcionalne analize: bezbedan ciljni kontekst i dokaz, zatim ulazi iz relevantnog sadržaja. Audit F05.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "44"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N07",
@@ -1217,8 +1660,17 @@
     "rpc_read_my_safety_report_command"
    ],
    "telefon": null,
-   "problem": "Isti problem ulaza kao kod blokiranja. Server potvrđuje prijem prijave, ali ne vraća kako je rešena.",
-   "sledece": "Dodati ulaze; operaterski deo ide u plan R6."
+   "problem": "Isti problem ciljnog identifikatora kao N06. Čitanje moje prijave potvrđuje prijem, a ne tok istrage ili konačnu odluku.",
+   "sledece": "Posle odobrenja funkcionalne analize: ulazi i oporavak; zasebno dokazati operaterski ishod. Audit F05/D4.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "24",
+     "44"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N08",
@@ -1247,7 +1699,16 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "45",
+     "46"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N09",
@@ -1273,7 +1734,15 @@
    ],
    "telefon": null,
    "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-   "sledece": "Tvoj deo: rokovi čuvanja od pravnika."
+   "sledece": "Tvoj deo: rokovi čuvanja od pravnika.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "42"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N10",
@@ -1299,7 +1768,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "Radnik radi; ceo put dokazan na probnoj bazi (PKG-032). Na DEV-u se namerno ne pokreće."
+   "sledece": "Radnik radi; ceo put dokazan na probnoj bazi (PKG-032). Na DEV-u se namerno ne pokreće.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "43"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "N11",
@@ -1320,7 +1797,15 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": ""
+   "sledece": "",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "42"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "S01",
@@ -1342,8 +1827,16 @@
     "stanje": "DELIMIČNO",
     "dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: hladno pokretanje sa postojećom prijavom."
    },
-   "problem": "",
-   "sledece": ""
+   "problem": "Početna i postojeća sesija viđene su na APK-u 31598ac8. U kodu skrivenih pod-ekrana aktivna donja ikonica može da se izgubi.",
+   "sledece": "Posle odobrenja funkcionalne analize: sačuvati označen početni deo i povratak; kratki usredsređeni editor bez trake je predlog koji treba odobriti. Audit F04/D8.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "48"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "S02",
@@ -1362,7 +1855,15 @@
    "server": [],
    "telefon": null,
    "problem": "",
-   "sledece": "Test na dva telefona, korak I30."
+   "sledece": "Test na dva telefona, korak I30.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "48"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "S03",
@@ -1381,7 +1882,15 @@
    "server": [],
    "telefon": null,
    "problem": "",
-   "sledece": "Test na dva telefona, koraci I29–I31."
+   "sledece": "Test na dva telefona, koraci I29–I31.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "48"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   },
   {
    "id": "S04",
@@ -1396,7 +1905,15 @@
    "server": [],
    "telefon": null,
    "problem": "Automatski spisak „Server ume, aplikacija ne koristi“ na tabli pokazuje zamenjene stare verzije koje ulogovani korisnik i dalje može da pozove.",
-   "sledece": "Posle provere ukloniti pristup starim verzijama."
+   "sledece": "Posle provere ukloniti pristup starim verzijama.",
+   "funkcionalni_audit": {
+    "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
+    "matrica": [
+     "48"
+    ],
+    "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
+    "status": "ANALIZA_ZA_ODOBRENJE"
+   }
   }
  ],
  "blokade": [
@@ -1453,8 +1970,8 @@
    "id": "B08",
    "oblast": "APK",
    "nalaz_16_09": "APK je star (1. sept.)",
-   "sada": "DELIMIČNO: novi APK-ovi se prave; jedan instaliran na tvom telefonu 22.09",
-   "dokaz": "pkg042 prijemnica"
+   "sada": "DELIMIČNO: APK 31598ac8 (35731932400) instaliran preko postojeće aplikacije; ceo tok nije prihvaćen.",
+   "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json"
   },
   {
    "id": "B09",
@@ -1474,8 +1991,8 @@
    "id": "B11",
    "oblast": "Mapa, slike, glas na telefonu",
    "nalaz_16_09": "Nije proveravano na telefonu",
-   "sada": "OTVORENO",
-   "dokaz": ""
+   "sada": "DELIMIČNO: mapa i panel filtera viđeni na telefonu; slike i glas nisu provereni ovim auditom.",
+   "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json"
   },
   {
    "id": "B12",
@@ -1537,8 +2054,8 @@
    "id": "B20",
    "oblast": "Izgled i pristupačnost",
    "nalaz_16_09": "Nije provereno na telefonu",
-   "sada": "U RADU: novi izgled 22.09 (Claude + Codex)",
-   "dokaz": ""
+   "sada": "OTVORENO: nečitljiva legenda na telefonu, font 11 i fokus donje navigacije. Novi izgled čeka odobrenje analize.",
+   "dokaz": "docs/implementation/functional-audit-20260922/REPORT.md F01–F04"
   },
   {
    "id": "B21",
@@ -1662,7 +2179,7 @@
   {
    "uslov": "Plaćanje",
    "stanje_16_09": "NEMA",
-   "treba": "Besplatno u prvoj verziji; naplata posebna odluka (R7)"
+   "treba": "Vlasnik je tražio naplatu usluge povezivanja pre prvog javnog izdanja; model još nije odlučen. Ne pretpostavljati naplatu samog posla, tokene ili izuzeće od pravila prodavnica. Potrebna posebna odluka i plan (R7)."
   },
   {
    "uslov": "Izdanje = server",

@@ -136,7 +136,8 @@ const computed = rows.redovi.map(row => {
   const ukupno = row.problem || auto.includes(R) || auto.includes(Y) ? 'PROBLEM'
     : telefon === G ? 'GOTOVO' : 'NA TELEFONU NIJE PROVERENO';
   return { id: row.id, grupa: row.grupa, naslov: row.naslov, nacrt_ref: row.nacrt, stari: row.stari, ekrani: row.ekrani,
-    servisi: row.servisi, server_deps: row.server, lights, note, telefon_dokaz: row.telefon?.dokaz ?? '', problem: row.problem, sledece: row.sledece, ukupno };
+    servisi: row.servisi, server_deps: row.server, lights, note, telefon_dokaz: row.telefon?.dokaz ?? '', problem: row.problem, sledece: row.sledece,
+    funkcionalni_audit: row.funkcionalni_audit ?? null, ukupno };
 });
 
 // Server functions a signed-in user may call that the app never calls (directly or through an Edge function).

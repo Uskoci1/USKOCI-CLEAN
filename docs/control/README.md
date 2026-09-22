@@ -58,3 +58,16 @@ Two lists are computed automatically as well:
 
 Code, test and route lights recompute from the checked-out tree on every run. The script needs no secrets and no
 network. The one exception is an optional `gh run list` for the latest CI results.
+
+## Functional audit cross-reference (2026-09-22)
+
+Each row's `funkcionalni_audit` points to the dated functional audit and its analytical section IDs.
+All 48 analytical sections are mapped to the existing 62 execution rows. The audit is an approval
+snapshot; this control table remains the sole living execution tracker. A route/import/test-file or
+RPC catalog match is structural evidence, not successful test execution, enabled policy or complete
+behavior. Defect notes and exact-build device receipts take precedence over optimistic reading of lights.
+
+The latest owner instruction also requires refreshing and republishing after each task. Publishing
+requires an authenticated owner session and an Artifact publish capability for the existing URL;
+generation alone must never be reported as publication. If that capability is unavailable, retain
+the exact generated file and record publication as pending, without creating a different public site.
