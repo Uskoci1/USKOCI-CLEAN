@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+Design direction, owner clarification 2026-09-22: preserve the supplied V28 HTML's colored illustrated
+icons, palette, clean legibility and inset bottom-navigation character. Improve density using V31 as a
+comparison; do not revert to the old native visuals or generic icons. See
+docs/implementation/DESIGN_V31_V28_EXECUTION_20260922.md (R5 supplement) and the independent three-card
+study outputs/design-v31-v28-20260922/PREDLOG.html. No production UI or dependency was changed in that pass.
+
 Current status index: `docs/implementation/USKOCI_CURRENT_STATUS.md`. Read the mandatory handoff first;
 the index separates implemented/proved/applied/built/device-verified states and points out older snapshots.
 

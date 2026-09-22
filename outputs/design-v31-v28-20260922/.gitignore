@@ -1,0 +1,10 @@
+__pycache__/
+V28.*.txt
+V31.*.txt
+reference-inventory.json
+evidence-output.txt
+preview-check.js
+prepare_preview.py
+apply_v28_direction.py
+finish_preview.py
+v28_render.js

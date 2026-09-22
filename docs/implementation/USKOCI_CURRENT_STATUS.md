@@ -11,6 +11,12 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+- Design study20260922: V28/V31 source comparison and three interactive card compositions are prepared.
+  Latest owner correction preserves V28 colored illustrations, palette, clarity and bottom navigation.
+  See DESIGN_V31_V28_EXECUTION_20260922.md as the R5 supplement; this is not a shipped redesign.
+  Original HTML runtime opening was policy-blocked; the independent local proposal was browser-checked.
+  No app source, dependencies, DEV or phone changes occurred in this design pass.
+
 - PKG-045a applied on20260922: ledger197 =147 source +50 dev_alpha, unchanged ready closure65980fce
   checked atomically; exact ledger text and six reader bodies/ACLs/modes/configs match proof35710468643.
   That run passes17 SQL/Auth/REST/actual-client checks,355 offline Edge tests and108 focused client checks.

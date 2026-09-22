@@ -130,6 +130,12 @@ Appearance design and source fixes do not depend on phone availability or a comp
 
 ## 5. Design system and implementation (R5)
 
+Detailed R5 supplement: DESIGN_V31_V28_EXECUTION_20260922.md, with the independent card study at
+outputs/design-v31-v28-20260922/PREDLOG.html. Owner correction: preserve V28's colored illustrated icons,
+palette, clarity and bottom-navigation character; improve density without reverting to the old native UI.
+Three card compositions are reviewable. Other families have an exploration/implementation plan, not
+completed visual designs. No app/dependency/backend change is implied by the design artifact.
+
 For each major surface: describe its functional responsibility → ignore visual legacy → explore at least
 three materially different compositions → compare tradeoffs → select/combine → implement → verify with
 real states. Reuse an old pattern only if it earns its place in the selected solution.
