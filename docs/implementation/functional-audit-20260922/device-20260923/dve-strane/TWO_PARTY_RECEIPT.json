@@ -68,11 +68,33 @@
       "what": "opened the Dogovor's Poruke on the phone as the requester and photographed it: his \"Cao\" on the right, the worker's reply on the left under \"Sagovornik\", header \"Poruke · msljivic031\", the task card above",
       "screenshot": "telefon-poruke-obe-strane.jpg (owner's own screenshot, 07:58 local)",
       "server": "the requester's MESSAGE_RECEIVED (05:49:24Z) still has read_at null at 05:58Z, while the worker's earlier one was marked read at 05:38:39Z when the notification was tapped on the emulator — so the owner most likely reached Poruke through Dogovori, not through the notification; whether reading the conversation itself should mark the event read is an open product question, not a proven defect"
+    },
+    {
+      "n": 9,
+      "who": "owner/phone",
+      "what": "pressed completion on the phone as the requester (\"Ja sam stisnuo da je završen posao\"), without the worker having pressed \"Završio sam\" first",
+      "server": "agreements f14625e8… status COMPLETED 06:38:53Z; agreement_execution state COMPLETED, completed_at 06:38:53Z, worker_marked_done_at NULL, requester_deadline_at NULL; EXECUTION_STATE_CHANGED → worker (msljivic031), unread",
+      "observation": "The server lets the requester complete a CONFIRMED Dogovor directly; the worker's \"Završio sam\" was not needed. Recorded as observed behaviour, not judged here."
+    },
+    {
+      "n": 10,
+      "who": "Claude/emulator",
+      "what": "read-only walkthrough after completion: the Dogovor reads \"Završeno\", the next-step card says \"Dogovor je završen — Hvala na saradnji. Ocena pomaže drugima da izaberu.\", the one orange action is \"Oceni saradnju\" with \"Otvori poruke\" under it; Obaveštenja shows \"Dogovor je završen — Završetak Dogovora je potvrđen · 23. sep 08:38 · Novo\" on top, \"Nova poruka 07:36\" already read, and yesterday's Dogovor with \"Rok za potvrdu je istekao, pa je završetak potvrđen automatski\" (22. sep 12:41)",
+      "flow": ".maestro/walkthrough.yaml, 0 warnings",
+      "screenshots": [
+        "zavrseno-07-dogovori-svi.png",
+        "zavrseno-08-dogovor-pregled.png",
+        "zavrseno-12-obavestenja.png"
+      ],
+      "nits": [
+        "The \"Dogovor je završen\" notification carries the speech-bubble icon of the messages family; a completion is not a message."
+      ]
     }
   ],
   "stillOpen": [
+    "\"Završio sam\" (D10) was never pressed in this run — the requester completed first — so the worker-marks-done path is still unproven on a device.",
+    "Both ratings: the worker's \"Oceni saradnju\" from the emulator needs the owner's \"da\"; the requester's rating is his, on the phone.",
     "Reading the conversation from Dogovori does not mark the MESSAGE_RECEIVED event read; only the notification tap does. Decide whether that is wanted.",
-    "\"Završio sam\" not pressed; completion, confirmation and both ratings remain.",
     "The requester-side screens (Prijave, candidate profile, selection) were the owner's and are not photographed here; the phone was not connected.",
     "Push delivery of any of these events is untested; the transport is off."
   ],
@@ -89,6 +111,9 @@
     "poruka-01-poruke-pre.png",
     "poruka-02-nacrt.png",
     "poruka-03-poslato.png",
-    "telefon-poruke-obe-strane.jpg"
+    "telefon-poruke-obe-strane.jpg",
+    "zavrseno-07-dogovori-svi.png",
+    "zavrseno-08-dogovor-pregled.png",
+    "zavrseno-12-obavestenja.png"
   ]
 }

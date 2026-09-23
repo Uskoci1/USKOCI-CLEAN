@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:37:27Z",
+  "osvezeno": "2026-09-23T06:42:36Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "b7812138",
-  "head_poruka": "PKG-050 receipt: all four proof workflows green on 52ce4cc0",
+  "head": "8df7ea3d",
+  "head_poruka": "control: recompute with the green CI on 52ce4cc0",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -2860,7 +2860,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "17 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: „Završio sam“ nije pritisnuto — naručilac je završio Dogovor pre toga; put izvođač-javlja-završetak ostaje neproveren na uređaju.",
    "problem": "",
    "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
@@ -2933,13 +2933,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "17 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac potvrdio završetak na telefonu (server COMPLETED 08:38, bez prethodnog „Završio sam“ izvođača); izvođač na emulatoru vidi „Završeno“, „Dogovor je završen“ i „Oceni saradnju“ (zavrseno-08). Automatsko završavanje viđeno na jučerašnjem stvarnom Dogovoru („Rok za potvrdu je istekao…“, 22.09 12:41) u obaveštenjima (zavrseno-12). Ekran naručioca nije snimljen.",
    "problem": "",
    "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
@@ -3075,12 +3075,12 @@
     "kod": "crveno",
     "server": "nema",
     "test": "nema",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Nije napravljeno u aplikaciji"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: kartica „Sledeći korak“ viđena u tri stanja na emulatoru — „Kada završiš, označi završetak“ (Dogovoreno), „Dogovor je završen“ (Završeno) — i na telefonu za završen Dogovor (22.09).",
    "problem": "Nedostaje prikaz koraka. Server daje stvarna stanja, ali ne daje kretanje/stizanje. Zatvorena potraga nije isto što i završen posao.",
    "sledece": "Posle odobrenja funkcionalne analize: prikazati važeću sledeću radnju, rok i blokadu problemom; bez izmišljanja koraka. Audit D3/F12.",
    "funkcionalni_audit": {
@@ -3143,7 +3143,7 @@
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu.",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka.",
    "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz prošao (CI 35826370830, 7/7, potvrda pkg050/PROOF_35826370830.json); čeka vlasnikovo „primeni pkg050a“, NIJE primenjeno na DEV.",
    "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
