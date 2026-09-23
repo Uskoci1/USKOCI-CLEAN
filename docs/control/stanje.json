@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T04:00:10Z",
+  "osvezeno": "2026-09-23T04:00:30Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "2590f076",
-  "head_poruka": "control: recompute at the commit the published page carries",
+  "head": "aeca551a",
+  "head_poruka": "device: F05 is visible on the phone, and the earlier conclusion was wrong",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
