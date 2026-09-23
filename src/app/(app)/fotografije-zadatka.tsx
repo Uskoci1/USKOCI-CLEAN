@@ -155,13 +155,13 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     {photos?.photos.map((photo, i) => <SettingsPanel key={photo.assetId}><View style={{ gap: 8 }}>
       {photo.state === 'READY' ? <AuthorizedPhoto assetId={photo.assetId} label={`Fotografija zadatka ${i + 1}`} />
         : <T>{photo.state === 'FAILED' ? 'Fotografija nije obrađena.' : 'Fotografija se obrađuje.'}</T>}
-      <SettingsAction label={`Ukloni fotografiju ${i + 1}`} disabled={busy || unconfirmed || !recovered}
+      <SettingsAction label={`Ukloni fotografiju ${i + 1}`} kind="destructive" disabled={busy || unconfirmed || !recovered}
         onPress={() => { void remove(photo.assetId); }} />
     </View></SettingsPanel>)}
     <SettingsAction label="Izaberi iz galerije" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('LIBRARY'); }} />
-    <SettingsAction label="Fotografiši" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('CAMERA'); }} />
-    <SettingsAction label="Osveži i proveri fotografije" disabled={busy} onPress={() => { void refresh(); }} />
-    {unconfirmed && canRetry ? <SettingsAction label="Nastavi slanje iste fotografije" disabled={busy} onPress={() => { void retry(); }} /> : null}
+    <SettingsAction label="Fotografiši" kind="secondary" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('CAMERA'); }} />
+    <SettingsAction label="Osveži i proveri fotografije" kind="quiet" disabled={busy} onPress={() => { void refresh(); }} />
+    {unconfirmed && canRetry ? <SettingsAction label="Nastavi slanje iste fotografije" kind="secondary" disabled={busy} onPress={() => { void retry(); }} /> : null}
     {unconfirmed ? <SettingsAction label="Odustani od nepotvrđenog slanja" kind="quiet" disabled={busy} onPress={() => { void cancel(); }} /> : null}
   </SettingsScreen>;
 }

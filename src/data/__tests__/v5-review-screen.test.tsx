@@ -122,7 +122,7 @@ it('says it is confirming changes when the review belongs to a task that already
   await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
   expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' }).props.disabled).toBe(false);
-  expect(text()).toContain('Izmena postojećeg zadatka');
+  // The eyebrow that said "Izmena postojećeg zadatka" is no longer drawn (owner, 2026-09-23); the title below already says it is a review of changes.
   expect(text()).toContain('Pregled izmena');
 
   // A task being published for the first time still reads as a first publication.

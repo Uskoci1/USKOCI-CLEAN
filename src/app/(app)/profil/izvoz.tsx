@@ -163,7 +163,7 @@ function OwnedExport() {
       : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy} onPress={() => { void requestExport(); }} />
     : null;
   return <SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
-    <SettingsIntro kicker="TVOJA KOPIJA" title="Tvoji podaci, na jednom mestu.">Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
+    <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
     {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje stanja izvoza" color={sys.color.green} />
       : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
         <T accessibilityRole="alert">{editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.')}</T>

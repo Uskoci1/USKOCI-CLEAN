@@ -196,7 +196,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
-      <SettingsIntro kicker="PRE DOGOVORA" title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
+      <SettingsIntro title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
       {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}

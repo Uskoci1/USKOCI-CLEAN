@@ -27,7 +27,7 @@ const channel = (topic: SupportTopic): SupportPayloads['CREATE']['channel'] =>
 export function SupportNewScreen({ reference }: { reference: SupportReference | null | 'INVALID' }) {
   const model = useSupportController({ type: 'NEW' }), { state, navigate } = model;
   return <SupportFrame title="Novi zahtev" onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'))}>
-    <SettingsIntro kicker="Privatna podrška" title="Opiši šta se dogodilo.">Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
+    <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
     <SupportPrivacy />
     <SupportRecoveryPanel model={model} />
     {state.message ? <SupportNotice error={state.phase === 'ERROR'}>{state.message}</SupportNotice> : null}

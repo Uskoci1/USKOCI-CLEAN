@@ -78,7 +78,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const forSelection = need?.brojPrijavaZaIzbor;
   const hasSelection = (forSelection ?? 0) > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader title="Zadatak" back={props.onBack} />
+    <ProductHeader back={props.onBack} />
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
         {props.lifecycleActions}
       </View>
@@ -99,7 +99,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
           <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
           <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
-          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent />
+          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent prominentAs={need.rezimCene === 'OFFERS' || !/\d/.test(price) ? 'label' : 'amount'} />
         </ProductFacts>
         <ProductRequirements rows={requirements} />
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}

@@ -24,20 +24,25 @@ export function SettingsText({ variant = 'body', tone = 'ink', style, ...props }
     { color: tone === 'muted' ? sys.color.muted : tone === 'danger' ? sys.color.danger : tone === 'success' ? sys.color.green : sys.color.ink }, style]} />;
 }
 
-export function SettingsScreen({ title, eyebrow, onBack, disabled = false, children, footer }: {
+export function SettingsScreen({ title, onBack, disabled = false, children, footer }: {
+  /** `eyebrow` is kept for callers and not drawn: the bar names the screen, nothing explains where you are. */
   title: string; eyebrow?: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-    <ProductHeader subtitle={eyebrow} title={title} back={onBack} disabled={disabled} />
+    <ProductHeader title={title} back={onBack} disabled={disabled} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>
     {footer ? <View testID="settings-primary-footer" style={styles.footer}>{footer}</View> : null}
   </SafeAreaView>;
 }
 
-export function SettingsIntro({ kicker, title, children }: { kicker: string; title: string; children: ReactNode }) {
+/**
+ * The sentence under the bar. It used to carry an uppercase kicker and a second, 28 px title; the bar
+ * already names the screen, so here only a title that ADDS information (a state, a case) is drawn,
+ * as a heading, and a tagline is not passed at all.
+ */
+export function SettingsIntro({ title, children }: { kicker?: string; title?: string; children: ReactNode }) {
   return <View style={styles.intro}>
-    <SettingsText variant="label" style={styles.kicker}>{kicker}</SettingsText>
-    <SettingsText variant="display" accessibilityRole="header">{title}</SettingsText>
+    {title ? <SettingsText variant="heading" accessibilityRole="header">{title}</SettingsText> : null}
     <SettingsText variant="copy" tone="muted" style={styles.lead}>{children}</SettingsText>
   </View>;
 }
@@ -96,7 +101,7 @@ export const settingsStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   header: { minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', gap: 10, alignItems: 'center' },
-  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, flexGrow: 1, gap: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, gap: 8 },
   body: { ...sys.type.body },
   strong: { ...sys.type.bodyStrong },
@@ -105,9 +110,8 @@ const styles = StyleSheet.create({
   title: { ...sys.type.title },
   heading: { ...sys.type.heading },
   hero: { ...sys.type.pageTitle },
-  intro: { paddingTop: 4, marginBottom: 18, gap: 8 },
-  kicker: { color: sys.color.muted, letterSpacing: 0.4 },
-  lead: { marginTop: 2 },
+  intro: { paddingTop: 0, gap: 6 },
+  lead: { marginTop: 0 },
   group: { marginBottom: 20, gap: 10 },
   groupTitle: { color: sys.color.muted, letterSpacing: 0.4, paddingHorizontal: 2 },
   list: { ...card, paddingVertical: 0, paddingHorizontal: 18 },

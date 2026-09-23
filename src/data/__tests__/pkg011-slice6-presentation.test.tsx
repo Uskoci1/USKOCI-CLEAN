@@ -29,7 +29,7 @@ test('a settings screen has a spoken header, rows with label, hint and chevron, 
     <SettingsAction label="Osveži" kind="secondary" onPress={open} />
   </SettingsScreen>); });
   const copy = texts();
-  expect(copy).toContain('Privatnost i podaci'); expect(copy).toContain('Tvoji podaci'); expect(copy).toContain('Nalog i podaci'); expect(copy).toContain('Čuvaju se 12 meseci.');
+  expect(copy).toContain('Privatnost i podaci'); expect(copy).not.toContain('Tvoji podaci'); expect(copy).toContain('Nalog i podaci'); expect(copy).toContain('Čuvaju se 12 meseci.');
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Privatnost i podaci'))).toBe(true);
   const row = byLabel('Izvoz podataka'); expect(row.props.accessibilityRole).toBe('button'); expect(row.props.accessibilityHint).toBe('Zahtev i preuzimanje svoje kopije.');
   await act(async () => row.props.onPress()); expect(open).toHaveBeenCalledTimes(1);

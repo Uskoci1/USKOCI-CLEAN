@@ -158,17 +158,17 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     {candidate?.state === 'READY' && snapshot?.intent?.phase === 'UPLOAD' ? <SettingsPanel>
       <T>Izabrana fotografija</T><AuthorizedPhoto assetId={candidate.assetId} label="Izabrana fotografija profila" />
       <SettingsAction label="Sačuvaj fotografiju" disabled={!canAct()} onPress={() => { void apply(); }} />
-      <SettingsAction label="Odustani od izabrane fotografije" disabled={!canAct()} onPress={() => { void discard(); }} />
+      <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" disabled={!canAct()} onPress={() => { void discard(); }} />
     </SettingsPanel> : null}
     {notice ? <T accessibilityLiveRegion="polite">{notice}</T> : null}
     {editor.error ? <T accessibilityRole="alert" tone="danger">{editor.error}</T> : null}
     {editor.busy || editor.loading ? <T>Radnja je u toku…</T> : null}
     {intent.current && candidate?.state !== 'READY' ? <T>Slanje ili promena još nisu potvrđeni. Proveri ishod pre novog izbora.</T> : null}
-    <SettingsAction label="Izaberi iz galerije" disabled={!canAct() || !!intent.current} onPress={() => { void pick('LIBRARY'); }} />
-    <SettingsAction label="Fotografiši" disabled={!canAct() || !!intent.current} onPress={() => { void pick('CAMERA'); }} />
-    {snapshot?.profile.avatarPath ? <SettingsAction label="Ukloni fotografiju profila" disabled={!canAct() || !!intent.current} onPress={() => { void clear(); }} /> : null}
-    <SettingsAction label="Proveri sačuvanu fotografiju" disabled={editor.busy || editor.loading} onPress={() => { if (current()) void editor.refresh(); }} />
+    <SettingsAction label="Izaberi iz galerije" kind={candidate?.state === 'READY' ? 'secondary' : 'primary'} disabled={!canAct() || !!intent.current} onPress={() => { void pick('LIBRARY'); }} />
+    <SettingsAction label="Fotografiši" kind="secondary" disabled={!canAct() || !!intent.current} onPress={() => { void pick('CAMERA'); }} />
+    {snapshot?.profile.avatarPath ? <SettingsAction label="Ukloni fotografiju profila" kind="destructive" disabled={!canAct() || !!intent.current} onPress={() => { void clear(); }} /> : null}
+    <SettingsAction label="Proveri sačuvanu fotografiju" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { if (current()) void editor.refresh(); }} />
     {intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || bytes.current) ?
-      <SettingsAction label="Ponovi istu promenu" disabled={editor.busy || editor.loading} onPress={() => { void retry(); }} /> : null}
+      <SettingsAction label="Ponovi istu promenu" kind="secondary" disabled={editor.busy || editor.loading} onPress={() => { void retry(); }} /> : null}
   </SettingsScreen>;
 }

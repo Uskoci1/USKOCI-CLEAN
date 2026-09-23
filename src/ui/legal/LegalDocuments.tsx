@@ -50,7 +50,7 @@ function PublicLegalContents({ kind, onClose }: { kind: LegalDocumentKind; onClo
     finally { opening.current = false; }
   };
   return <SettingsScreen title={legalTitle(kind)} onBack={onClose}>
-    <SettingsIntro kicker="USKOČI DOKUMENTI" title="Sve na jednom mestu.">Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</SettingsIntro>
+    <SettingsIntro>Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</SettingsIntro>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <LegalDocumentRows bundle={bundle} onOpen={doc => { void open(doc); }} />}
     {error ? <View accessibilityLiveRegion="polite"><T accessibilityRole="alert">{error}</T></View> : null}
     {!loading ? <SettingsAction label="Učitaj dokumente ponovo" kind="quiet" onPress={() => { void read(); }} /> : null}

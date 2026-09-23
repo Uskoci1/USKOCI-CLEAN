@@ -54,7 +54,7 @@ function OwnedPrivacy() {
     void policy.refresh(); void execution.refresh(); };
   return <SettingsScreen title="Privatnost i podaci"
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}>
-    <SettingsIntro kicker="KONTROLA PODATAKA" title="Šta je javno, šta je privatno, šta je tvoje.">
+    <SettingsIntro>
       Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možeš pregledati ispod.
     </SettingsIntro>
     <SettingsPanel>

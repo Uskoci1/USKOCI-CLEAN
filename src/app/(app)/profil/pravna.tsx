@@ -54,7 +54,7 @@ function OwnedLegal() {
     : documents && !confirmed ? <SettingsAction label={state.busy ? 'Beleženje prihvatanja…' : 'Prihvati pregledane dokumente'} disabled={state.busy || state.loading}
       onPress={() => { if (current()) void controller.accept(state.bundle); }} /> : null;
   return <SettingsScreen title="Pravna dokumenta" onBack={back} footer={action}>
-    <SettingsIntro kicker="JASNO I DOSTUPNO" title="Uslovi i privatnost.">Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
+    <SettingsIntro>Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
     {state.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <>
       <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} />
       {confirmed ? <SettingsPanel soft><T accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></SettingsPanel>

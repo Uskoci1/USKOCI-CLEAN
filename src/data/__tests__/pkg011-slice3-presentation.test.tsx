@@ -42,7 +42,7 @@ function Applications({ rows, loading = false }: { rows: MojaPrijavaProjekcija[]
 test('Moje prijave names no app mode, offers tabs with counts as real tabs, and gives each application the actions its state allows', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED'), application('b', 'SELECTED'), application('c', 'STALE_REVIEW_REQUIRED')]} />); });
   const copy = texts();
-  expect(copy).toContain('Moje aktivnosti'); expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
+  expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
   for (const tab of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(byLabel(tab).props.accessibilityRole).toBe('tab');
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');

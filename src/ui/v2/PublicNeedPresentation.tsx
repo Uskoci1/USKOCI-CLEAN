@@ -44,7 +44,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // The detail has the room, so a per-person price also says what the whole task comes to.
   const price = need ? needPriceText(need, { withTotal: true }) : '';
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader title="Zadatak" back={back} backLabel="Nazad na Zadatke" disabled={busy} />
+    <ProductHeader back={back} backLabel="Nazad na Zadatke" disabled={busy} />
     <ScrollView contentContainerStyle={s.content}>
       {loading || error || missing ? <View style={s.state} accessibilityLiveRegion="polite">
         {loading ? <><View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T></>
@@ -63,7 +63,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
           <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
           <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent />
+          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent prominentAs={need.rezimCene === 'OFFERS' || !/\d/.test(price) ? 'label' : 'amount'} />
         </ProductFacts>
         <ProductRequirements rows={needRequirementRows(need)} />
         {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}

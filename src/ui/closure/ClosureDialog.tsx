@@ -80,7 +80,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  const pendingExceptions=state?.exceptions??review?.exceptions??[];
  const support=()=>{if(!live(focus.current)||busy)return;onClose();router.push('/podrska');};
  return <SettingsScreen title="Zatvaranje naloga" onBack={()=>{if(live(focus.current))onClose();}}>
-  <SettingsIntro kicker="KONTROLA NALOGA" title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
+  <SettingsIntro title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
    {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}
   </SettingsIntro>
   {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={sys.color.green}/><T>Proveravamo stanje…</T></View>:null}
