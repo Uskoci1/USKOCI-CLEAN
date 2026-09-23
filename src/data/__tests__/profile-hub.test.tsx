@@ -29,7 +29,6 @@ jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => mockResource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 
 import Profil from '../../app/(app)/profil';
 

@@ -22,7 +22,8 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+// The old Button is gone (2026-09-24); the private-location actions are V2Action, drawn here under the same name.
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 const at = '2026-09-10T12:00:00Z';

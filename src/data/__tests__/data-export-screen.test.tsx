@@ -16,7 +16,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
   if (key === 'Alert') return { alert: mockAlert }; return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('../../ui/Text', () => ({ T: 'T' })); jest.mock('../../ui/Press', () => ({ Press: 'Press' })); jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
+jest.mock('../../ui/Text', () => ({ T: 'T' })); jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import ExportScreen from '../../app/(app)/profil/izvoz';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const descriptor = () => ({ artifactAvailable: true, artifactGeneration: GENERATION, artifactExpiresAt: '2099-01-01T00:00:00Z', byteLength: 3, sha256: 'a'.repeat(64), md5: 'b'.repeat(32) });

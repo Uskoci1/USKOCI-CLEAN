@@ -49,7 +49,6 @@ jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: (
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 
 import Detail from '../../app/(app)/prilike/[id]';
 

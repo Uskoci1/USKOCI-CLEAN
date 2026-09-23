@@ -61,7 +61,6 @@ jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: '
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 import Intake from '../../app/(app)/nova';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';

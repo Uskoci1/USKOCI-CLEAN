@@ -17,7 +17,6 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 import Privacy from '../../app/(app)/profil/privatnost';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });

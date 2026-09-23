@@ -44,7 +44,6 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button', Card: 'Card' }));
 import Review from '../../app/(app)/potrebe/[id]/pregled';
 
 function need(revizija = 7, stanje = 'NACRT') {

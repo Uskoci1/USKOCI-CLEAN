@@ -11,7 +11,8 @@ jest.mock('../locationClientService', () => ({ workerLocationClientService: { re
 jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: jest.fn() }));
 jest.mock('expo-router', () => ({ router: {}, useFocusEffect: (effect: () => unknown) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
-jest.mock('../../ui/Button', () => ({ Button: 'Button' }));
+// The old Button is gone (2026-09-24); the area search actions are V2Action, drawn here under the same name.
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationConfirmation: 'LocationConfirmation',
   LocationScreen: 'LocationScreen', locationStyles: { section: {}, notice: {} } }));

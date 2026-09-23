@@ -4,12 +4,14 @@ import { Linking, View } from 'react-native';
 import type { CoarsePosition } from '../../contracts/location';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
-import { Button } from '../Button';
+import { V2Action } from '../v2/V2Action';
 import { T } from '../Text';
 import { displayedPinPosition } from './ResolvedPinMap.types';
 import { locationStyles as s } from './LocationControls';
 
 type CoarseCandidate = Readonly<{ label: string; position: CoarsePosition }>;
+/** A quiet action keeps to its own width under the search, as the location screens have always drawn it. */
+const quietStart = { alignSelf: 'flex-start' } as const;
 type Lookup = { status: 'IDLE' | 'LOADING' | 'PROVIDER_ACTIVATION_BLOCKED' | 'INVALID_QUERY' | 'UNAVAILABLE' | 'RATE_LIMITED' }
   | { status: 'PROPOSALS'; candidates: readonly CoarseCandidate[] };
 type Props = { city: string; countryCode: string; scopeKey: string; disabled: boolean;
@@ -65,8 +67,8 @@ function ScopedAreaSearch({ city, countryCode, scopeKey, disabled, resolver: inj
     retire(); onChoose(candidate.position);
   };
   return <View style={s.section}>
-    <Button label={lookup.status === 'LOADING' ? 'Tražimo područje…' : lookup.status === 'UNAVAILABLE' ? 'Ponovi pretragu područja' : 'Pronađi područje za uneti grad'}
-      kind="secondary" disabled={disabled || !focused || !city.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
+    <V2Action label={lookup.status === 'LOADING' ? 'Tražimo područje…' : lookup.status === 'UNAVAILABLE' ? 'Ponovi pretragu područja' : 'Pronađi područje za uneti grad'}
+      kind="secondary" loading={lookup.status === 'LOADING'} disabled={disabled || !focused || !city.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za grad ili mesto rada…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga područja još nije aktivirana. Približnu tačku možeš izabrati na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi područja trenutno nisu dostupni. Pokušaj ponovo ili označi područje na mapi.</T> : null}
@@ -75,9 +77,9 @@ function ScopedAreaSearch({ city, countryCode, scopeKey, disabled, resolver: inj
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">Nema predloga za uneti grad. Proveri naziv ili označi područje na mapi.</T> : null}
     {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
       onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
-    {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button key={index}
-      label={`Izaberi područje: ${candidate.label}`} kind="quiet" disabled={disabled || !focused} onPress={() => select(candidate)} />) : null}
-    {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu područja" kind="quiet" disabled={disabled || !focused}
+    {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <V2Action key={index}
+      label={`Izaberi područje: ${candidate.label}`} kind="quiet" style={quietStart} disabled={disabled || !focused} onPress={() => select(candidate)} />) : null}
+    {lookup.status !== 'IDLE' ? <V2Action label="Otkaži pretragu područja" kind="quiet" style={quietStart} disabled={disabled || !focused}
       onPress={() => { if (owns()) retire(); }} /> : null}
   </View>;
 }

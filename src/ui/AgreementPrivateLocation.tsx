@@ -6,8 +6,8 @@ import type { Ishod } from '../data/ports';
 import { useOwnedEditor } from '../hooks/useOwnedEditor';
 import { useSesija } from '../store/sesija';
 import { useIzvor } from '../store/uloga';
-import { space } from '../theme/tokens';
-import { Button } from './Button';
+import { sys } from './system/tokens';
+import { V2Action } from './v2/V2Action';
 import { T } from './Text';
 import { ResolvedPinMap } from './location/ResolvedPinMap';
 
@@ -93,23 +93,25 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
     return { ok: true, podatak: { ...current.podatak, revealed: value } };
   });
   const locked = editor.loading || editor.busy || editor.uncertain || !editor.data;
-  return <View style={{ paddingVertical: space.md, gap: space.md }}>
+  return <View style={{ paddingVertical: sys.space.md, gap: sys.space.md }}>
     <T variant="bodyStrong">Privatna lokacija</T>
     <T variant="meta" tone="muted">{accountId === requesterId
       ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
       : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
     {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
-    {accountId === requesterId ? <Button label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
-      kind={granted ? 'danger' : 'secondary'} disabled={locked} onPress={() => { void setGrant(!granted); }} />
-      : granted && !privateData ? <Button label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} onPress={() => { void show(); }} /> : null}
+    {accountId === requesterId ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
+      kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
+      : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} /> : null}
-    <Button label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} onPress={() => { void editor.refresh(); }} />
+    <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
     <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
   </View>;
 }
 
+/** A quiet action keeps to its own width beside the private details, as it always has. */
+const quietStart = { alignSelf: 'flex-start' } as const;
 const slotLabel = (slot: string) => slot === 'start' ? 'Početno mesto' : slot === 'end' ? 'Završno mesto'
   : slot === 'serviceArea' ? 'Područje rada' : `Usputno mesto ${Number(slot.split('/')[1]) + 1}`;
 function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: string }) {
@@ -117,15 +119,15 @@ function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: st
   const [selected, setSelected] = useState(points[0]?.slot);
   const point = points.find(item => item.slot === selected);
   const position = point ? { latitude: point.latitudeE6 / 1e6, longitude: point.longitudeE6 / 1e6 } : value.exactPosition;
-  return <View style={{ gap: space.md }}>
+  return <View style={{ gap: sys.space.md }}>
     {value.adresa ? <T>{value.adresa}</T> : null}
     {value.accessNotes ? <T variant="meta">{value.accessNotes}</T> : null}
-    {points.map(item => <View key={item.slot} style={{ gap: space.xs }}>
+    {points.map(item => <View key={item.slot} style={{ gap: sys.space.xs }}>
       <T variant="bodyStrong">{slotLabel(item.slot)}</T>
       {item.address ? <T>{item.address}</T> : null}
       {item.accessNotes ? <T variant="meta">{item.accessNotes}</T> : null}
       <T variant="meta" selectable>{(item.latitudeE6 / 1e6).toFixed(6)}, {(item.longitudeE6 / 1e6).toFixed(6)}</T>
-      {points.length > 1 ? <Button label={`Prikaži na mapi: ${slotLabel(item.slot)}`} kind="quiet"
+      {points.length > 1 ? <V2Action label={`Prikaži na mapi: ${slotLabel(item.slot)}`} kind="quiet" style={quietStart}
         disabled={selected === item.slot} onPress={() => setSelected(item.slot)} /> : null}
     </View>)}
     {position ? <ResolvedPinMap position={position} onChoose={() => {}} disabled scopeKey={`${scope}:${selected ?? 'legacy'}`} /> : null}

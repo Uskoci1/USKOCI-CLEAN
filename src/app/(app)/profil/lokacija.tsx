@@ -6,7 +6,8 @@ import { workerLocationClientService } from '../../../data/locationClientService
 import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { LocationConfirmation, LocationField, LocationScreen, locationStyles as s } from '../../../ui/location/LocationControls';
-import { Button } from '../../../ui/Button';
+import { brandAction } from '../../../ui/system/tokens';
+import { V2Action } from '../../../ui/v2/V2Action';
 import { T } from '../../../ui/Text';
 import { CountryField, selectableCountry, useCountryOptions } from '../../../ui/location/CountryField';
 import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
@@ -64,16 +65,19 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver 
           if (!coarse) return;
           setPosition(coarse); setConfirmed(false); setError(false); setSearchEpoch(value => value + 1);
         } }} />
-      {position ? <Button label="Ukloni približnu tačku" kind="quiet" disabled={disabled}
+      {position ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
         onPress={() => { if (!disabled) { setPosition(null); setConfirmed(false); setMapEpoch(value => value + 1); } }} /> : null}
     </View> : null}
     {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada i ceo broj od 1 do 200 km.</T> : null}
     <View style={s.notice}><T variant="meta">Ovo je područje rada. Dostupnost, slobodni termini i obaveštenja podešavaju se zasebno.</T></View>
     <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>Potvrđujem područje u kom mogu da radim.</LocationConfirmation>
-    <Button full label={busy ? 'Čuvamo područje…' : 'Sačuvaj područje rada'} onPress={submit}
+    <V2Action label={busy ? 'Čuvamo područje…' : 'Sačuvaj područje rada'} onPress={submit} loading={busy} style={brandAction}
       disabled={disabled || !confirmed || !selectableCountry(countryOptions.countries, country)} />
   </View>;
 }
+
+/** A quiet action beside content keeps to its own width, as the location screens have always drawn it. */
+const quietStart = { alignSelf: 'flex-start' } as const;
 
 export default function PodrucjeRada() {
   const read = useCallback(() => workerLocationClientService.read(), []);
