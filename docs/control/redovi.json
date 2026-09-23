@@ -788,7 +788,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "PRIMENJENO 23.09. u 01:27 UTC uz tvoju reč. Server sada ima rpc_read_safety_target: sa javnog profila koji smeš da vidiš dobijaš osobu iza njega i svoj sopstveni izbor blokiranja. Sertifikat se nije pomerio (cc248ff1), ledger 199. Dugme „Prijavi ili blokiraj“ stoji na javnom profilu, sa prilike i sa liste prijava. OSTAJE: proveriti na telefonu — za to treba nov APK, jer je ovo izmena u aplikaciji, ne samo na serveru.",
+   "sledece": "PRIMENJENO 23.09. u 01:27 UTC uz tvoju reč. Server sada ima rpc_read_safety_target: sa javnog profila koji smeš da vidiš dobijaš osobu iza njega i svoj sopstveni izbor blokiranja. Sertifikat se nije pomerio (cc248ff1), ledger 199. Dugme „Prijavi ili blokiraj“ stoji na javnom profilu, sa prilike i sa liste prijava. OSTAJE: proveriti na telefonu — za to treba nov APK, jer je ovo izmena u aplikaciji, ne samo na serveru. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -942,7 +942,10 @@
    "server": [
     "rpc_list_my_agreements_page"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/: lista Dogovora (Aktivni/Istorija/Svi) otvorena i snimljena na telefonu 23.09."
+   },
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -971,8 +974,11 @@
    "server": [
     "rpc_get_agreement_workspace"
    ],
-   "telefon": null,
-   "problem": "Aplikacija još ne prikazuje veze: server ih od 23.09. vraća, ali ekran Dogovora još nema dugmad „Otvori zadatak“ i „Otvori moju prijavu“. Prikaz koraka napretka (stvarna stanja) je zaseban posao, D13.",
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/v5-ai-first/pkg048/device-20260923/: APK 35807138233 (izvor 332d285f, otisak 174009cb…) instaliran na VKP-NX9 23.09. u 03:52. Maestro šetnja bez ijednog upozorenja: ekran Dogovora nudi „Zadatak iz kog je nastao Dogovor“ i „Ponuda koju si poslao“. Ista provera je pala na prethodnoj verziji sat ranije. Nijedna veza nije praćena i strana naručioca nije viđena."
+   },
+   "problem": "",
    "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -1000,7 +1006,10 @@
    "server": [
     "rpc_send_agreement_message_v2"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/11-dogovor-poruke.png: kartica Poruke se otvara. Slanje i svežina poruka nisu proveravani."
+   },
    "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
    "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
    "funkcionalni_audit": {
@@ -1335,7 +1344,10 @@
     "rpc_resolve_activity_event",
     "rpc_mark_activity_event_read"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/12-obavestenja.png: stvarna obaveštenja sa porodicom i vremenom; vreme se čita u istoj veličini kao telo, pa F03 nije vidljiv. Nijedno obaveštenje nije otvoreno."
+   },
    "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja: vraća samo Dogovor/Prijave/Moje prijave/Moj zadatak/Prilika. Dve vrste obaveštenja („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja je podignuto na font 12, ali to nije provereno na telefonu.",
    "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
@@ -1639,7 +1651,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Blokiranje i dalje ide na nalog, pa prati čoveka a ne jedno njegovo lice; odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Dokazano: blokiranje sakrije i profil i cilj, druga strana ne sazna ništa, odblokiranje vrati broj verzije koji sledeće blokiranje traži. OSTAJE provera na telefonu sa novim APK-om.",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Blokiranje i dalje ide na nalog, pa prati čoveka a ne jedno njegovo lice; odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Dokazano: blokiranje sakrije i profil i cilj, druga strana ne sazna ništa, odblokiranje vrati broj verzije koji sledeće blokiranje traži. OSTAJE provera na telefonu sa novim APK-om. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1670,7 +1682,7 @@
    ],
    "telefon": null,
    "problem": "",
-   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu.",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
