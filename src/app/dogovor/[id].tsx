@@ -357,7 +357,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
             {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);
                 there is nothing left behind this row for them, so it is not offered. */}
-            {requester && dogovor.stanje === 'AWAITING_REQUESTER' ? null
+            {/* A finished or cancelled Dogovor has nothing left to change or cancel: the row opened a screen with no
+                possible action (emulator sweep, 2026-09-23). */}
+            {!active || (requester && dogovor.stanje === 'AWAITING_REQUESTER') ? null
               : <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
                 onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
             {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}

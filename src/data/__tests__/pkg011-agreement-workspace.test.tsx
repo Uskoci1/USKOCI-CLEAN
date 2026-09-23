@@ -120,11 +120,13 @@ test('after the worker says done the requester confirms or reports a problem; ch
 test('a completed Agreement leads with the review; a cancelled one offers only the conversation', async () => {
   await render(base({ stanje: 'COMPLETED' }));
   expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen'); expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi'); expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
+  // Nothing is left to change or cancel on a finished Dogovor, so no row leads to a screen without an action.
+  expect(labels()).not.toContain('Izmene i otkazivanje Dogovora');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju' }).props.onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: mockAgreementId } });
   await act(async () => tree.unmount());
   await render(base({ stanje: 'CANCELLED' }));
-  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dogovor je otkazan.'); expect(labels()).not.toContain('Prijavi problem');
+  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dogovor je otkazan.'); expect(labels()).not.toContain('Prijavi problem'); expect(labels()).not.toContain('Izmene i otkazivanje Dogovora');
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));

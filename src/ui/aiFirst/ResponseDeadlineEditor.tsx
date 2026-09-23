@@ -18,7 +18,8 @@ export function ResponseDeadlineEditor(p: { value: string | null; timezone: stri
     p.apply(parsed.value);
   };
   return <View style={{ gap: 12 }}>
-    <T style={{ ...a.text.meta, color: a.color.muted }}>Vremenska zona: {p.timezone}</T>
+    {/* Serbian time is named the way the owner's rule says it (deep read 8.27); other zones keep their name. */}
+    <T style={{ ...a.text.meta, color: a.color.muted }}>{p.timezone === 'Europe/Belgrade' ? 'Datum i vreme po vremenu u Srbiji' : `Vremenska zona: ${p.timezone}`}</T>
     <CivilField label="Datum roka za prijave" mode="date" value={date} disabled={p.disabled} onChange={v => { setChanged(true); setError(null); setDate(v); }} />
     <CivilField label="Vreme roka za prijave" mode="time" value={time} disabled={p.disabled} onChange={v => { setChanged(true); setError(null); setTime(v); }} />
     {error ? <T accessibilityRole="alert" style={{ ...a.text.meta, color: a.color.danger }}>{error}</T> : null}
