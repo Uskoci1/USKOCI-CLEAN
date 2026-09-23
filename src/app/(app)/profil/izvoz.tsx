@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { DownloadSimple, ShieldCheck } from 'phosphor-react-native';
+import { DownloadSimple } from 'phosphor-react-native';
 import type { DataExportFile, DataExportPreparation, DataExportStatus } from '../../../contracts/dataExport';
 import { dataExportClientService as exports } from '../../../data/dataExportClientService';
 import type { Ishod } from '../../../data/ports';
@@ -15,6 +15,7 @@ import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { SkeletonList } from '../../../ui/system/Skeleton';
 import { vreme } from '../../../lib/vreme';
+import { FactArt } from '../../../ui/system/FactArt';
 
 const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
@@ -188,7 +189,7 @@ function OwnedExport() {
           <T variant="meta" tone="muted">JSON · {bytesLabel(artifact.byteLength)}</T>
         </SettingsPanel> : null}
         <View style={styles.notice}>
-          <ShieldCheck size={20} color={sys.color.green} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</T>
+          <FactArt kind="shield" size={22} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</T>
         </View>
         <View style={{ gap: 8, marginTop: 16 }}>
           {request?.status === 'REQUESTED' ? <Button label="Otkaži zahtev" kind="quiet" disabled={busy} onPress={cancelRequest} /> : null}

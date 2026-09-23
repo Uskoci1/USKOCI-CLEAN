@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { sys } from '../../ui/system/tokens';
+import { brandAction, sys } from '../../ui/system/tokens';
+// The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
+const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
+  : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 jest.mock('react-native', () => {
@@ -75,7 +78,7 @@ test('the filter sheet offers price modes as radios and the primary action is th
   await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} />); });
   await act(async () => roleOf('Filteri').onPress());
   expect(roleOf('Tražim ponude').accessibilityRole).toBe('radio'); expect(roleOf('Svi načini').accessibilityState).toEqual({ checked: true });
-  const brand = tree.root.findAllByType('Press' as React.ElementType).filter(node => JSON.stringify(node.props.style).includes(sys.color.orange));
+  const brand = tree.root.findAllByType('Press' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.accessibilityLabel)).toEqual(['Prikaži 1 zadatak']);
 });
 

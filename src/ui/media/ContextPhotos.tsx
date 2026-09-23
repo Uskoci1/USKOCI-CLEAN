@@ -6,7 +6,7 @@ import { AuthorizedPhoto } from './AuthorizedPhoto';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { User } from 'phosphor-react-native';
+import { FactArt } from '../system/FactArt';
 
 /**
  * `owned` is the owner looking at their own task: for them an absence is something they can still
@@ -52,6 +52,6 @@ export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId
   return <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
     style={[box, { backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }]}>
     {letter ? <T accessible={false} variant="title" style={{ color: sys.color.green }}>{letter}</T>
-      : <User size={size ? Math.round(size / 2.6) : 34} color={sys.color.green} />}
+      : <FactArt kind="person" size={size ? Math.round(size / 2.2) : 40} />}
   </View>;
 }

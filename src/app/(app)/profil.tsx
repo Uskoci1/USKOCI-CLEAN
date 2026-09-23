@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { User, SignOut, MapPin, CalendarBlank, Bell, Clock, Camera, Lifebuoy, Info, PencilSimple } from 'phosphor-react-native';
+import { SignOut, Camera, PencilSimple } from 'phosphor-react-native';
 import { FactArt } from '../../ui/system/FactArt';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { authClientService } from '../../data/authClientService';
@@ -85,7 +85,7 @@ export default function Profil() {
   const photoReady = !!identity?.profileId && !profile.loading && !profile.error;
   const openPhoto = () => { const id = identity?.profileId; if (!id || profile.loading || profile.error) return;
     navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };
-  const avatar = <View style={styles.avatar}>{initials ? <T variant="display" tone="success" style={sys.type.monogram}>{initials}</T> : <User size={34} color={sys.color.green} />}</View>;
+  const avatar = <View style={styles.avatar}>{initials ? <T variant="display" tone="success" style={sys.type.monogram}>{initials}</T> : <FactArt kind="person" size={40} />}</View>;
 
   return <SettingsScreen title="Profil" disabled={busy}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))}>
@@ -121,18 +121,18 @@ export default function Profil() {
       {/* The hub is where you arrive, and the one fact that decides whether a task is ever offered
           to you is whether this part is set up and active. It says so here, in every state. */}
       <SettingsRow label="Veštine, alat i tim" detail={capabilityDetail}
-        icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
-      <SettingsRow label="Područje rada" detail="Gde možeš da uskočiš." icon={<MapPin size={22} color={sys.color.green} />}
+        icon={<FactArt kind="users" size={26} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/radnik'))} />
+      <SettingsRow label="Područje rada" detail="Gde možeš da uskočiš." icon={<FactArt kind="pin" size={26} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/lokacija'))} />
-      <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<Clock size={22} color={sys.color.green} />}
+      <SettingsRow label="Dostupnost" detail="Nedeljni raspored i izuzeci." icon={<FactArt kind="clock" size={26} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/dostupnost'))} />
-      <SettingsRow label="Kalendar obaveza" detail="Termini potvrđenih saradnji." icon={<CalendarBlank size={22} color={sys.color.green} />}
+      <SettingsRow label="Kalendar obaveza" detail="Termini potvrđenih saradnji." icon={<FactArt kind="calendar" size={26} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/raspored'))} />
     </SettingsGroup>
     <SettingsGroup title="Nalog">
       <SettingsRow label="Ime na profilu" detail="Ime koje prikazuješ uz svoje zadatke."
-        icon={<User size={22} color={sys.color.green} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} />
-      <SettingsRow label="Podešavanja obaveštenja" detail="Šta ti stiže i kada — kanali i tihi sati." icon={<Bell size={22} color={sys.color.green} />}
+        icon={<FactArt kind="person" size={26} />} disabled={busy} onPress={() => navigate(() => router.navigate('/profil/podaci'))} />
+      <SettingsRow label="Podešavanja obaveštenja" detail="Šta ti stiže i kada — kanali i tihi sati." icon={<FactArt kind="bell" size={26} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
     </SettingsGroup>
     {/* Needed once in a long while, so these rows sit lower and without the icon disc: they must not
@@ -148,9 +148,9 @@ export default function Profil() {
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
     <SettingsGroup title="USKOČI">
-      <SettingsRow label="Podrška" detail="Privatni zahtevi, odgovori i ponovni pregled." icon={<Lifebuoy size={22} color={sys.color.green} />}
+      <SettingsRow label="Podrška" detail="Privatni zahtevi, odgovori i ponovni pregled." icon={<FactArt kind="support" size={26} />}
         disabled={busy} onPress={() => navigate(() => router.navigate('/podrska'))} />
-      <SettingsRow label="O aplikaciji" detail="Kako USKOČI povezuje zadatke i ljude." icon={<Info size={22} color={sys.color.green} />}
+      <SettingsRow label="O aplikaciji" detail="Kako USKOČI povezuje zadatke i ljude." icon={<FactArt kind="info" size={26} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/o-aplikaciji'))} />
     </SettingsGroup>
     <View style={styles.logout}>

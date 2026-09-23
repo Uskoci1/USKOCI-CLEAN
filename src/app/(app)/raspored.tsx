@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, ArrowRight, CaretRight, Clock } from 'phosphor-react-native';
+import { ArrowLeft, ArrowRight, CaretRight } from 'phosphor-react-native';
 import { workerCalendarClientService } from '../../data/workerCalendarClientService';
 import { agreementClientService } from '../../data/agreementClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -12,6 +12,7 @@ import { Press } from '../../ui/Press';
 import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from '../../ui/calendar/CalendarControls';
 import { deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, shiftDate, weekDates, weekdays } from '../../ui/calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
+import { FactArt } from '../../ui/system/FactArt';
 
 export default function Raspored() {
   const { fontScale } = useWindowDimensions();
@@ -59,7 +60,7 @@ export default function Raspored() {
       <View style={{ gap: sys.space.base }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
         {error ? <View style={s.note}><T accessibilityRole="alert" tone="danger">{error}</T><Button label="Pokušaj ponovo" onPress={refresh} /></View> : null}
-        {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: sys.space.md }]}><Clock size={28} color={sys.color.green} />
+        {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: sys.space.md }]}><FactArt kind="calendar" size={40} />
           <T variant="heading">Nema potvrđenih tačnih termina</T><T tone="muted">Za ovaj dan nema Dogovora sa potvrđenim početkom i krajem. Fleksibilni termini stoje u Dogovorima.</T></View> : null}
         {!error && visible.map(event => {
           const detail = agreements.data?.find(item => item.id === event.agreementId && item.verzija === event.agreementVersion && item.stanje === 'CONFIRMED');
@@ -86,7 +87,7 @@ export default function Raspored() {
       {/* Set once in a while, read every time: the availability editor and the note about what this
           calendar holds stand under the day, not before it. */}
       <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" haptic="select" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
-        <Clock size={22} color={sys.color.green} /><View style={{ flex: 1, gap: sys.space.xs }}><T variant="bodyStrong">Moja dostupnost za rad</T>
+        <FactArt kind="clock" size={26} /><View style={{ flex: 1, gap: sys.space.xs }}><T variant="bodyStrong">Moja dostupnost za rad</T>
           <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={sys.color.ink} />
       </Press>
       {/* The engine blocks a person only by the work they agreed to do (owner decision 6). What they

@@ -149,7 +149,7 @@ export function ProductDivider() {
 }
 
 /**
- * The screen's one orange action at the foot of a detail: its words, a count when the words are about
+ * The screen's one primary action at the foot of a detail: its words, a count when the words are about
  * something counted ("Pregledaj prijave · 3"), and an arrow when it leads somewhere. What the count
  * means is said to a screen reader through `accessibilityLabel`.
  */
@@ -160,7 +160,7 @@ export function ProductFooterAction({ label, count, accessibilityLabel, onPress,
   return <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? text} accessibilityState={{ disabled }}
     disabled={disabled} onPress={onPress} haptic={disabled ? 'none' : 'select'} style={[s.footerAction, brandAction, disabled && s.footerDisabled]}>
     <T variant="action" style={s.footerText}>{text}</T>
-    {arrow && !disabled ? <ArrowRight size={20} weight="bold" color={sys.color.ink} /> : null}
+    {arrow && !disabled ? <ArrowRight size={20} weight="bold" color={sys.color.onGreen} /> : null}
   </Press>;
 }
 
@@ -250,6 +250,6 @@ const s = StyleSheet.create({
   divider: { height: 1, backgroundColor: sys.color.line },
   footerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm },
-  footerText: { flexShrink: 1, textAlign: 'center', color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  footerText: { flexShrink: 1, textAlign: 'center', color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   footerDisabled: { opacity: 0.45 },
 });

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
-import { ChatCircleText, ShieldCheck } from 'phosphor-react-native';
 import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
+import { FactArt } from '../system/FactArt';
 
 const supportLabels = {
   RECEIVED: 'Zahtev je primljen', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
@@ -39,13 +39,13 @@ export function SupportLoading() {
     <T tone="muted">Učitavamo sačuvano stanje…</T></View>;
 }
 export function SupportPrivacy({ safety = false }: { safety?: boolean }) {
-  return <View style={supportStyles.privacy}><ShieldCheck size={22} color={sys.color.green} />
+  return <View style={supportStyles.privacy}><FactArt kind="shield" size={24} />
     <T variant="meta" tone="muted" style={supportStyles.grow}>{safety
       ? 'Ovaj predmet je privatan. Prijavljena osoba i grupa ne dobijaju sadržaj tvoje prijave.'
       : 'Zahtev vide podnosilac i posebno ovlašćeni operater. Sadržaj se ne prosleđuje drugoj strani u saradnji.'}</T></View>;
 }
 export function SupportEmpty({ children }: { children: ReactNode }) {
-  return <View style={supportStyles.empty}><ChatCircleText size={32} color={sys.color.green} />
+  return <View style={supportStyles.empty}><FactArt kind="chat" size={44} />
     <T style={supportStyles.center}>{children}</T></View>;
 }
 export function SupportField({ label, value, onChange, maximum, disabled = false, multiline = false, optional = false }: {

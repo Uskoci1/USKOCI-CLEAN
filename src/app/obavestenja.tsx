@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { ArrowClockwise, Bell, Check, CaretRight, CheckCircle, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText, Star } from 'phosphor-react-native';
+import { Check, CaretRight, GearSix } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import { useInbox } from '../hooks/useInbox';
@@ -16,6 +16,7 @@ import { spojInboxArt } from '../ui/v2/spojInboxArt';
 import { neprocitanih } from '../ui/system/plural';
 import { Segmented } from '../ui/system/Segmented';
 import { vreme } from '../lib/vreme';
+import { FactArt, type FactArtKind } from '../ui/system/FactArt';
 
 const filters: {label:string;role:InboxRole|null}[] = [
   {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
@@ -148,11 +149,11 @@ export default function Obavestenja() {
  * speech bubble over "Dogovor je završen" while "Nova poruka" wore a handshake. The event type
  * decides first, the family after it.
  */
-function EventIcon({family,eventType,unread}:{family:string;eventType:string;unread:boolean}) {
-  const Icon = eventType==='MESSAGE_RECEIVED'?ChatCircle:eventType==='REVIEW_RECEIVED'?Star
-    :family==='opportunities'?ClipboardText:family==='responses'?PaperPlaneTilt
-    :family==='dogovor'?Handshake:family==='execution'?CheckCircle:family==='recovery'?ArrowClockwise:Bell;
-  return <Icon size={21} color={unread?sys.color.ink:sys.color.muted}/>;
+function EventIcon({family,eventType}:{family:string;eventType:string;unread:boolean}) {
+  const kind: FactArtKind = eventType==='MESSAGE_RECEIVED'?'chat':eventType==='REVIEW_RECEIVED'?'star'
+    :family==='opportunities'?'tasks':family==='responses'?'offers'
+    :family==='dogovor'?'agreements':family==='execution'?'check':family==='recovery'?'shield':'bell';
+  return <FactArt kind={kind} size={26}/>;
 }
 
 const styles=StyleSheet.create({

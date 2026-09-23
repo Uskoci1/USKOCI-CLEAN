@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, CaretRight, Check, LockKey } from 'phosphor-react-native';
+import { CaretDown, CaretRight, Check } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { useReducedMotion } from '../system/motion';
 import { card, sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { FactArt } from '../system/FactArt';
 
 /** Location form geometry on the shared system; the existing native typography and action owners stay. */
 export const locationStyles = StyleSheet.create({
@@ -108,7 +109,7 @@ export function LocationConfirmation({ checked, disabled, onChange, children }: 
 
 export function PrivateLocationNote() {
   return <View style={[locationStyles.notice, locationStyles.row]}>
-    <LockKey size={22} color={sys.color.green} />
+    <FactArt kind="lock" size={24} />
     <T variant="meta" style={{ flex: 1, color: sys.color.ink }}>Tačna adresa i napomene su privatne. Dostupne su učesnicima tek kada Dogovor i dozvola za deljenje to omogućavaju.</T>
   </View>;
 }

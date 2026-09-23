@@ -1,6 +1,9 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { sys } from '../../ui/system/tokens';
+import { brandAction, sys } from '../../ui/system/tokens';
+// The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
+const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
+  : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
 import type { PotrebaProjekcija } from '../../contracts/projections';
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -17,7 +20,7 @@ let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const presses = () => tree.root.findAllByType('Press' as React.ElementType);
 const labels = () => presses().map(node => node.props.accessibilityLabel);
-const brand = () => presses().filter(node => JSON.stringify(node.props.style).includes(sys.color.orange)).map(node => node.props.accessibilityLabel);
+const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 const byLabel = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ id: 'need', revizija: 3, naslov: 'Prenos ormara', opis: 'Ormar sa trećeg sprata.', stanje: 'OBJAVLJENA',

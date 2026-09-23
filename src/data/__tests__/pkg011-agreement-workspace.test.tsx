@@ -1,6 +1,9 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { sys } from '../../ui/system/tokens';
+import { brandAction, sys } from '../../ui/system/tokens';
+// The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
+const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
+  : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
 const mockAccount = '10000000-0000-4000-8000-000000000001', mockOther = '10000000-0000-4000-8000-000000000002', mockAgreementId = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn() };
 const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '40000000-0000-4000-8000-000000000001';
@@ -46,7 +49,7 @@ const base = (patch: Record<string, unknown> = {}, mine: 'narucilac' | 'uskocer'
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const presses = () => tree.root.findAll(node => String(node.type) === 'Press');
-const brand = () => presses().filter(node => JSON.stringify(node.props.style).includes(sys.color.orange)).map(node => node.props.accessibilityLabel);
+const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 const labels = () => presses().map(node => node.props.accessibilityLabel);
 async function render(workspace: Record<string, unknown>) {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([]);

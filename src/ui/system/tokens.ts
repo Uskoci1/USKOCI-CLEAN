@@ -17,7 +17,7 @@ import { elevation, motion, radius, space, touch, type } from '../../theme/token
  * Every text/background pair below was checked for WCAG AA (≥ 4.5:1):
  * ink on surface 15.3 · muted on surface 5.5 · muted on greenSoft 5.0 · muted on wash 5.0 ·
  * green on surface 6.3 · white on green 6.3 · green on greenSoft 5.7 · money on surface 5.3 ·
- * onOrange on orange 6.2 (white on orange is 2.5 — a defect, so text on orange is always dark) ·
+ * onOrange on orange 6.2 (white on orange is 2.5 — a defect, so text on orange is always dark) · onGreen on green 6.3 ·
  * ink on orangeSoft 14.2 · danger on dangerSoft 6.0 · warn on warnSoft 5.9.
  */
 export const sys = {
@@ -36,6 +36,8 @@ export const sys = {
     orange: '#FA8229',
     orangeSoft: '#FFF5E9',
     onOrange: '#30200F',
+    /** The label on the one primary action, which is green. */
+    onGreen: '#FFFFFF',
     line: '#EBEEEA',
     lineStrong: '#C9D6CF',
     cardLine: '#D8DED7',
@@ -79,11 +81,12 @@ export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadiu
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 
 /**
- * The one primary action on a screen: orange surface with ink text (the forensic UI/UX analysis, owner 2026-09-23:
- * "jedno narandžasto po ekranu; sve ostalo belo sa zelenim tekstom"). Pass as `style` to a V2Action; V2Action reads
- * the surface and writes the label in `onOrange`.
+ * The one primary action on a screen: green surface with a white label, as V28 and V41 draw it. The owner, looking at
+ * the orange "Oceni saradnju" on his phone (2026-09-23 evening): "nije ove boje … loš fazon". Every other action stays
+ * white with a green label; orange is an accent only (the Home publish tile, what waits for you, the map's "+").
+ * Pass as `style` to a V2Action; V2Action reads the surface and writes the label in `onGreen`.
  */
-export const brandAction: ViewStyle = { backgroundColor: sys.color.orange, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
+export const brandAction: ViewStyle = { backgroundColor: sys.color.green, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
 /** 44px icon control in a quiet well (V5 head icon button). */
 export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };

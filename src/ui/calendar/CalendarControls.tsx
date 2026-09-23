@@ -2,7 +2,6 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
-import { CalendarBlank } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { brandAction, sys } from '../system/tokens';
@@ -10,6 +9,7 @@ import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T as BaseText } from '../Text';
 import { deviceDate, deviceTime } from './calendarPresentation';
+import { FactArt } from '../system/FactArt';
 
 /** Calendar surfaces on the shared system: ground, white cards, green as orientation, orange as the one brand action. */
 export const calendarStyles = StyleSheet.create({
@@ -91,7 +91,7 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
       <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{value || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
-      <CalendarBlank size={20} color={sys.color.green} />
+      <FactArt kind="calendar" size={22} />
     </Press>
     {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour
       onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}

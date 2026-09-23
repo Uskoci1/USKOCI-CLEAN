@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { CaretRight, Star } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
 import { needPriceBasisNote, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
@@ -79,7 +79,7 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
     {publisher ? <View style={s.footer}>
       <View style={s.avatar}><T style={s.avatarText}>{publisher.trim().charAt(0).toLocaleUpperCase('sr-Latn-RS')}</T></View>
       <T style={s.publisher} numberOfLines={1}>{publisher}</T>
-      {rating ? <View style={s.rating}><Star size={14} weight="fill" color="#ED9914" /><T style={s.ratingText}>{rating}</T></View> : null}
+      {rating ? <View style={s.rating}><FactArt kind="star" size={16} /><T style={s.ratingText}>{rating}</T></View> : null}
       <View style={s.grow} />
       <CaretRight size={16} color={sys.color.lineStrong} />
     </View> : null}

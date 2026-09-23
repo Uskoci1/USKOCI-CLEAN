@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, CaretRight, Check, CheckCircle, Info, PaperPlaneTilt, Star } from 'phosphor-react-native';
+import { CaretDown, CaretRight, Check, PaperPlaneTilt } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -79,7 +79,7 @@ function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) 
   </View>;
 }
 function BrandAction({ label, onPress, disabled, send }: { label: string; onPress: () => void; disabled?: boolean; send?: boolean }) {
-  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={send ? <PaperPlaneTilt size={20} color={sys.color.onOrange}  weight="fill" /> : undefined} style={brandAction} />;
+  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={send ? <PaperPlaneTilt size={20} color={sys.color.onGreen} weight="fill" /> : undefined} style={brandAction} />;
 }
 function ErrorMessage({ error }: { error?: string | null }) {
   return error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null;
@@ -242,7 +242,7 @@ function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatPr
   return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={80} initial={candidate.inicijali} />
     <View style={[s.grow, { gap: 3 }]}>
       <T style={s.candidateName}>{candidate.ime}</T>
-      {candidate.ocenaTekst !== '—' ? <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
+      {candidate.ocenaTekst !== '—' ? <View style={s.inline}><FactArt kind="star" size={15} />
         <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T></View>
         : <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T>}
       <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
@@ -270,7 +270,7 @@ const CandidateRow = memo(function CandidateRow({ candidate: k, need, open }: { 
       <View style={s.candidateId}>
         <T style={s.candidateListName}>{k.ime}</T>
         {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">{candidateTrustText(k)}</T>
-          : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
+          : <View style={s.inline}><FactArt kind="star" size={15} />
             <T variant="meta" tone="muted" style={s.shrink}>{candidateTrustText(k)}</T></View>}
       </View>
       <View style={s.candidateOffer}>
@@ -281,7 +281,7 @@ const CandidateRow = memo(function CandidateRow({ candidate: k, need, open }: { 
     <T variant="note" tone={message ? 'ink' : 'muted'} numberOfLines={2} ellipsizeMode="tail">{message || 'Nema dodatne poruke.'}</T>
     <View style={s.candidateBottom}>
       {selectable ? <FactArt kind="calendar" size={22} />
-        : k.stanje === 'SELECTED' ? <CheckCircle size={18} weight="fill" color={tone} /> : <Info size={18} color={tone} />}
+        : k.stanje === 'SELECTED' ? <FactArt kind="check" size={20} /> : <FactArt kind="info" size={20} muted />}
       <T variant="meta" tone="muted" style={[s.grow, !selectable && { color: tone, fontWeight: '600' }]}>{selectable ? time : candidateState(k)}</T>
       <CaretRight size={18} color={sys.color.muted} />
     </View>
@@ -406,7 +406,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
       renderItem={renderItem}
       ListFooterComponent={<View style={s.listFooter}>
-        {unavailable ? <View style={s.footnote}><Info size={18} color={sys.color.muted} />
+        {unavailable ? <View style={s.footnote}><FactArt kind="info" size={20} muted />
           <T variant="note" tone="muted" style={s.grow}>Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš. Razlog piše na njenoj kartici.</T></View> : null}
         <V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />
       </View>} />

@@ -7,15 +7,21 @@ import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
  * decision 2026-09-22: "identičan izgled"). Same 32-unit drawings, same three tones — green for
  * places and money, orange for time, people, alerts and tasks, grey when a thing is not active.
  * Decorative: the words beside it carry the meaning, so it is hidden from screen readers.
+ *
+ * The one icon system (owner, 2026-09-23): every fact a screen names is drawn here, so a row in Profil, a notification
+ * and a Dogovor fact look like one family. The later kinds (person … eye) follow the same construction: a ground
+ * shadow, a darker edge 1.5 units under the face, a light shine and white or ink details. Line icons stay for controls
+ * only: back, caret, close, send, edit, sign out.
  */
 export type FactArtKind = 'pin' | 'calendar' | 'clock' | 'users' | 'money' | 'remote' | 'bell' | 'phone' | 'map' | 'tasks'
-  | 'agreements' | 'offers';
+  | 'agreements' | 'offers' | 'person' | 'star' | 'shield' | 'lock' | 'document' | 'chat' | 'check' | 'support' | 'download'
+  | 'info' | 'photo' | 'eye';
 
 type Tone = { front: string; edge: string; light: string; soft: string };
 const MUTED: Tone = { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB' };
 const ORANGE: Tone = { front: '#F78028', edge: '#CF5B12', light: '#FFBE85', soft: '#FFF0E2' };
 const GREEN: Tone = { front: '#079C77', edge: '#077958', light: '#6FD0AB', soft: '#E1F4EC' };
-const ORANGE_KINDS: readonly FactArtKind[] = ['calendar', 'users', 'bell', 'tasks'];
+const ORANGE_KINDS: readonly FactArtKind[] = ['calendar', 'users', 'bell', 'tasks', 'person', 'star', 'support'];
 
 const line = (d: string, color = '#35463D', width = 1.9) =>
   <Path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />;
@@ -77,6 +83,18 @@ function drawing(kind: FactArtKind, c: Tone, muted: boolean): ReactNode {
     case 'offers': return <>{shadow}{edge('M8.4 4h15.2A5.4 5.4 0 0 1 29 9.4v12.2a5.4 5.4 0 0 1-5.4 5.4H13L5 31v-5.6A5.4 5.4 0 0 1 3 21.6V9.4A5.4 5.4 0 0 1 8.4 4Z')}
       {face('M8.4 2.3h15.2A5.4 5.4 0 0 1 29 7.7v12.2a5.4 5.4 0 0 1-5.4 5.4H13l-8 4v-5.6A5.4 5.4 0 0 1 3 19.9V7.7a5.4 5.4 0 0 1 5.4-5.4Z')}
       {shine('M8 6h15.3')}{line('M9.5 12h13M9.5 17.6h8.4', '#FFFFFF', 2.2)}</>;
+    case 'person': return <>{shadow}<Circle cx={16} cy={10.4} r={5.6} fill={c.edge}/><Circle cx={16} cy={9.2} r={5.6} fill={c.front}/>{shine('M12.9 7.6a3.4 3.4 0 0 1 3.1-1.9')}<Path d="M5.6 26.6v-2.4a10.4 10.4 0 0 1 20.8 0v2.4a2.8 2.8 0 0 1-2.8 2.8H8.4a2.8 2.8 0 0 1-2.8-2.8Z" fill={c.edge}/><Path d="M5.6 24.9v-2.2a10.4 10.4 0 0 1 20.8 0v2.2a2.8 2.8 0 0 1-2.8 2.8H8.4a2.8 2.8 0 0 1-2.8-2.8Z" fill={c.front}/>{shine('M9.9 21.9a6 6 0 0 1 2.5-3.4')}</>;
+    case 'star': return <>{shadow}<Path d="M16 4.4 19.06 12.79 27.98 13.11 20.95 18.61 23.41 27.19 16 22.2 8.59 27.19 11.05 18.61 4.02 13.11 12.94 12.79Z" fill={c.edge} stroke={c.edge} strokeWidth={2.2} strokeLinejoin="round"/><Path d="M16 2.9 19.06 11.29 27.98 11.61 20.95 17.11 23.41 25.69 16 20.7 8.59 25.69 11.05 17.11 4.02 11.61 12.94 11.29Z" fill={c.front} stroke={c.front} strokeWidth={2.2} strokeLinejoin="round"/>{shine('M13.8 11.1l1.5-4.2')}</>;
+    case 'shield': return <>{shadow}<Path d="M16 3.8 26 7.4v7.8C26 22 21.7 26.8 16 29.2 10.3 26.8 6 22 6 15.2V7.4Z" fill={c.edge}/><Path d="M16 2.4 26 6v7.8C26 20.6 21.7 25.4 16 27.8 10.3 25.4 6 20.6 6 13.8V6Z" fill={c.front}/>{shine('M9.3 8.2 13.6 6.6')}{line('m11.3 14.4 3.3 3.3 6.2-6.4', '#FFFFFF', 2.4)}</>;
+    case 'lock': return <>{shadow}{line('M10.4 13.4V9.6a5.6 5.6 0 0 1 11.2 0v3.8', '#5C6B61', 2.6)}<Rect x={5.4} y={13.9} width={21.2} height={15.2} rx={4.2} fill={c.edge}/><Rect x={5.4} y={12.4} width={21.2} height={15.2} rx={4.2} fill={c.front}/>{shine('M9 15.4h7.4')}<Circle cx={16} cy={19.2} r={2.3} fill="#FFFFFF"/><Rect x={15} y={19.6} width={2} height={4.4} rx={1} fill="#FFFFFF"/></>;
+    case 'document': return <>{shadow}<Rect x={7.4} y={4.3} width={19.6} height={25.2} rx={4.2} fill="#C5CDC7"/><Path d="M9.8 2.6h9.4l6.4 6.4v15.9a4 4 0 0 1-4 4H9.8a4 4 0 0 1-4-4V6.6a4 4 0 0 1 4-4Z" fill="#FFFFFF" stroke="#CCD4CE" strokeWidth={1.1}/><Path d="M19.2 2.6v4.4a2 2 0 0 0 2 2h4.4Z" fill={c.front}/>{line('M10.2 13.8h10.8', '{front}', 2.2)}{line('M10.2 18.3h10.8M10.2 22.8h6.6', '#7B887E', 1.7)}</>;
+    case 'chat': return <>{shadow}<Path d="M8.4 4h15.2A5.4 5.4 0 0 1 29 9.4v12.2a5.4 5.4 0 0 1-5.4 5.4H13L5 31v-5.6A5.4 5.4 0 0 1 3 21.6V9.4A5.4 5.4 0 0 1 8.4 4Z" fill={c.edge}/><Path d="M8.4 2.3h15.2A5.4 5.4 0 0 1 29 7.7v12.2a5.4 5.4 0 0 1-5.4 5.4H13l-8 4v-5.6A5.4 5.4 0 0 1 3 19.9V7.7a5.4 5.4 0 0 1 5.4-5.4Z" fill={c.front}/>{shine('M8 6h15.3')}<Circle cx={10.6} cy={14.2} r={2} fill="#FFFFFF"/><Circle cx={16} cy={14.2} r={2} fill="#FFFFFF"/><Circle cx={21.4} cy={14.2} r={2} fill="#FFFFFF"/></>;
+    case 'check': return <>{shadow}<Circle cx={16} cy={16.8} r={12.3} fill={c.edge}/><Circle cx={16} cy={15.3} r={12.3} fill={c.front}/>{shine('M8.5 10.5a8.8 8.8 0 0 1 4.6-4.4')}{line('m10.4 15.6 3.9 4 7.4-7.6', '#FFFFFF', 2.8)}</>;
+    case 'support': return <>{shadow}<Circle cx={16} cy={16.9} r={12.2} fill={c.edge}/><Circle cx={16} cy={15.4} r={12.2} fill={c.front}/><Path d="M27.06 20.56A12.2 12.2 0 0 1 21.16 26.46L18.28 20.29A5.4 5.4 0 0 0 20.89 17.68Z" fill="#FFFFFF"/><Path d="M10.84 26.46A12.2 12.2 0 0 1 4.94 20.56L11.11 17.68A5.4 5.4 0 0 0 13.72 20.29Z" fill="#FFFFFF"/><Path d="M4.94 10.24A12.2 12.2 0 0 1 10.84 4.34L13.72 10.51A5.4 5.4 0 0 0 11.11 13.12Z" fill="#FFFFFF"/><Path d="M21.16 4.34A12.2 12.2 0 0 1 27.06 10.24L20.89 13.12A5.4 5.4 0 0 0 18.28 10.51Z" fill="#FFFFFF"/><Circle cx={16} cy={15.4} r={5.4} fill="#FFFFFF" stroke={c.edge} strokeWidth={1.2}/>{shine('M13.3 4.6a11 11 0 0 1 5.4 0')}</>;
+    case 'download': return <>{shadow}<Rect x={3.6} y={19.9} width={24.8} height={8.6} rx={3.8} fill={c.edge}/><Rect x={3.6} y={18.4} width={24.8} height={8.6} rx={3.8} fill={c.front}/>{shine('M7.4 21h4.4')}<Rect x={10} y={22} width={12} height={2} rx={1} fill={c.edge}/>{line('M16 3.4v11.4M10.9 10l5.1 5.1 5.1-5.1', '#35463D', 2.6)}</>;
+    case 'info': return <>{shadow}<Circle cx={16} cy={16.8} r={12.3} fill={c.edge}/><Circle cx={16} cy={15.3} r={12.3} fill={c.front}/>{shine('M8.5 10.5a8.8 8.8 0 0 1 4.6-4.4')}<Circle cx={16} cy={9.8} r={1.9} fill="#FFFFFF"/><Rect x={14.4} y={13.1} width={3.2} height={9.4} rx={1.6} fill="#FFFFFF"/></>;
+    case 'photo': return <>{shadow}<Path d="M11.2 9.2 12.9 5.8a2.2 2.2 0 0 1 2-1.2h2.2a2.2 2.2 0 0 1 2 1.2L20.8 9.2Z" fill={c.edge}/><Rect x={2.8} y={9.9} width={26.4} height={18.6} rx={4.6} fill={c.edge}/><Rect x={2.8} y={8.4} width={26.4} height={18.6} rx={4.6} fill={c.front}/>{shine('M6.4 11.8h3.6')}<Circle cx={16} cy={17.6} r={5.8} fill="#FFFFFF"/><Circle cx={16} cy={17.6} r={3.2} fill={c.soft} stroke={c.light} strokeWidth={1.1}/><Circle cx={24.6} cy={12.4} r={1.3} fill={c.light}/></>;
+    case 'eye': return <>{shadow}<Path d="M2.6 17.5C5.9 11.5 10.6 8.5 16 8.5s10.1 3 13.4 9c-3.3 6-8 9-13.4 9s-10.1-3-13.4-9Z" fill={c.edge}/><Path d="M2.6 16C5.9 10 10.6 7 16 7s10.1 3 13.4 9c-3.3 6-8 9-13.4 9S5.9 22 2.6 16Z" fill={c.front}/>{shine('M7.4 12.2a11.6 11.6 0 0 1 4.2-2.6')}<Circle cx={16} cy={16} r={5.4} fill="#FFFFFF"/><Circle cx={16} cy={16} r={2.7} fill="#35463D"/><Circle cx={17.2} cy={14.8} r={0.9} fill="#FFFFFF"/></>;
   }
 }
 

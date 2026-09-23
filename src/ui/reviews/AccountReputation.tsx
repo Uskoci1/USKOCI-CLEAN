@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Star } from 'phosphor-react-native';
 import { accountReputationLabel, reviewsClientService } from '../../data/reviewsClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
+import { FactArt } from '../system/FactArt';
 
 /** One account reputation in both intents; an unavailable read is not zero reviews. */
 export function AccountReputation({ accountId }: { accountId: string }) {
@@ -22,7 +22,7 @@ export function AccountReputation({ accountId }: { accountId: string }) {
         <T variant="meta" tone="muted">Ocene trenutno nisu dostupne.</T>
         <V2Action label="Osveži ocene" kind="quiet" onPress={() => { void reputation.refresh(); }} />
       </> : reputation.data ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {reputation.data.reviewCount > 0 ? <Star size={18} weight="fill" color={sys.color.orange} /> : null}
+        {reputation.data.reviewCount > 0 ? <FactArt kind="star" size={20} /> : null}
         <T variant="bodyStrong" style={{ color: sys.color.ink }}>{accountReputationLabel(reputation.data)}</T>
       </View> : null}
   </View>;

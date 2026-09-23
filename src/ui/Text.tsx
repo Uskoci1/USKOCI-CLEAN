@@ -7,7 +7,7 @@ import { sys } from './system/tokens';
 loadInterWeb();
 
 type Variant = keyof typeof typeScale;
-type Tone = 'ink' | 'muted' | 'onDark' | 'onDarkMuted' | 'orange' | 'onOrange' | 'danger' | 'success';
+type Tone = 'ink' | 'muted' | 'onDark' | 'onDarkMuted' | 'orange' | 'onOrange' | 'onGreen' | 'green' | 'danger' | 'success';
 
 /**
  * Every word in the app is coloured here, so this is where the app has one voice or several.
@@ -27,6 +27,8 @@ const tones: Record<Tone, string> = {
   onDarkMuted: palette.onDarkMuted,
   orange: palette.orangeInk,
   onOrange: sys.color.onOrange,
+  onGreen: sys.color.onGreen,
+  green: sys.color.green,
   danger: sys.color.danger,
   success: palette.success,
 };

@@ -14,7 +14,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),Re
   return Reflect.get(target,key);
 }});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
-jest.mock('react-native-svg',()=>({SvgXml:'NativeSvgXml'}));
+jest.mock('react-native-svg',()=>({__esModule:true,default:'Svg',SvgXml:'NativeSvgXml',Path:'Path',Circle:'Circle',Rect:'Rect',Ellipse:'Ellipse'}));
 jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
 jest.mock('../../store/uloga',()=>({postaviUlogu:(role:string)=>mockRole(role),useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
@@ -130,9 +130,9 @@ test('the owner cancelling their own Zadatak still lands on that task',async()=>
 // The icon says what kind of thing happened: a message is a speech bubble, a completion is a check — seen
 // the other way round on a device on 2026-09-23, because the map went by family alone.
 test('a new message wears the speech bubble and a completion the check, whatever family the server files them under',async()=>{
-  // The phosphor mock renders every glyph as a host element named after itself, so the tree says which icon was drawn.
-  const drawn=(glyph:string)=>tree.root.findAll(node=>String(node.type)===glyph).length;
+  // Each event wears its FactArt drawing (the one icon system); counted once per drawing, not per wrapper.
+  const drawn=(kind:string)=>tree.root.findAll(node=>typeof node.type!=='string'&&node.props?.kind===kind,{deep:false}).length;
   mockState.page.items=[{...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor'},{...item,id:'c',eventType:'EXECUTION_STATE_CHANGED',family:'execution'},{...item,id:'a',eventType:'AGREEMENT_CHANGE_PROPOSED',family:'dogovor'}];
   mockState.page.unreadCount=3;await render();
-  expect([drawn('ChatCircle'),drawn('CheckCircle'),drawn('Handshake')]).toEqual([1,1,1]);
+  expect([drawn('chat'),drawn('check'),drawn('agreements')]).toEqual([1,1,1]);
 });

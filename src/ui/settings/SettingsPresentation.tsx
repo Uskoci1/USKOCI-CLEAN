@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   list: { ...card, paddingVertical: 0, paddingHorizontal: 18 },
   row: { minHeight: 66, paddingVertical: 13, flexDirection: 'row', gap: 12, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
   rowCompact: { minHeight: 54, paddingVertical: 10 },
-  rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
   rowTitle: { color: sys.color.ink },
   flat: { ...card, padding: 18, marginBottom: 14, gap: 12 },

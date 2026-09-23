@@ -407,7 +407,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
               accessibilityState={{ disabled: disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
               style={[s.publish, (disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
-              {editor.busy ? <ActivityIndicator color={sys.color.onOrange} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
+              {editor.busy ? <ActivityIndicator color={sys.color.onGreen} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
               ? 'Ovim potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
               : 'Ovim prihvataš prikazanu verziju i tražiš objavu.')}</T>
@@ -435,7 +435,7 @@ const s = StyleSheet.create({
   footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: a.color.line, gap: sys.space.sm },
   /** The one brand action of the screen, on the system's shape. */
   publish: { ...brandAction, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
-  publishLabel: { ...a.text.body, fontWeight: '700', color: sys.color.onOrange },
+  publishLabel: { ...a.text.body, fontWeight: '700', color: sys.color.onGreen },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   photoTile: { width: '48%', aspectRatio: 1 },
 });

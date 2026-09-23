@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Eye, MapPin, DownloadSimple, CaretDown, CaretUp } from 'phosphor-react-native';
+import { CaretDown, CaretUp } from 'phosphor-react-native';
 import { retentionPolicyClientService } from '../../../data/retentionPolicyClientService';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../../store/sesija';
@@ -10,6 +10,7 @@ import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsInfo, SettingsAction, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { Press } from '../../../ui/Press';
 import { ClosureEntry } from '../../../ui/closure/ClosureDialog';
+import { FactArt } from '../../../ui/system/FactArt';
 
 const labels: Readonly<Record<string, string>> = {
   ACCOUNT_IDENTITY: 'Nalog i identitet', PROFILE_DATA: 'Podaci profila', NEED_PUBLIC: 'Javni podaci Zadatka',
@@ -58,15 +59,15 @@ function OwnedPrivacy() {
       Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možeš pregledati ispod.
     </SettingsIntro>
     <SettingsPanel>
-      <SettingsInfo title="Javni podaci Zadatka" icon={<Eye size={22} color={sys.color.green} />}>
+      <SettingsInfo title="Javni podaci Zadatka" icon={<FactArt kind="eye" size={26} />}>
         Opis objavljenog Zadatka i njegova približna lokacija dostupni su drugim korisnicima.
       </SettingsInfo>
-      <SettingsInfo title="Lokacija i kontakt" last icon={<MapPin size={22} color={sys.color.green} />}>
+      <SettingsInfo title="Lokacija i kontakt" last icon={<FactArt kind="pin" size={26} />}>
         Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
       </SettingsInfo>
     </SettingsPanel>
     <SettingsPanel soft>
-      <SettingsInfo title="Izvoz mojih podataka" last icon={<DownloadSimple size={22} color={sys.color.green} />}>
+      <SettingsInfo title="Izvoz mojih podataka" last icon={<FactArt kind="download" size={26} />}>
         Pogledaj zahtev, pripremu i dostupnost svoje kopije.
       </SettingsInfo>
       <SettingsAction label="Otvori izvoz" kind="secondary" onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />

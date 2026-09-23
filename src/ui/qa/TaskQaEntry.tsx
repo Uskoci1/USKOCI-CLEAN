@@ -1,14 +1,15 @@
 import { StyleSheet, View } from 'react-native';
-import { CaretRight, ChatsCircle } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { card, sys } from '../system/tokens';
 import { T } from '../Text';
+import { FactArt } from '../system/FactArt';
 
 /** Entry to the Task's public Q&A: one row, the visible action text stays the spoken label. The Q&A screen owns the flow. */
 export function TaskQaEntry({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) {
   return <Press accessibilityRole="button" accessibilityLabel="Otvori pitanja i odgovore" accessibilityState={{ disabled }} disabled={disabled}
     onPress={onPress} haptic="select" scaleTo={0.99} style={[card, s.row, disabled && s.disabled]}>
-    <View style={s.icon}><ChatsCircle size={20} color={sys.color.green} /></View>
+    <View style={s.icon}><FactArt kind="chat" size={24} /></View>
     <View style={s.copy}>
       <T variant="bodyStrong" style={s.ink}>Pitanja o zadatku</T>
       <T variant="note" tone="muted">Otvori pitanja i odgovore</T>

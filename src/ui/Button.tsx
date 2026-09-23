@@ -35,13 +35,12 @@ export function Button({
   haptic = 'light',
   style,
 }: Props) {
-  // Six screens still use this button — the location and publication family. It draws from `sys`
-  // like the rest of the app, so those screens carry the same orange, the same ink and the same
-  // hairline as every card beside them instead of the older cream set they used to mix in.
+  // The location screens still use this button. It looks exactly like V2Action: the primary green with a white
+  // label, every other action white with a green label (the one rule for buttons).
   const skin = {
-    primary: { bg: sys.color.orange, border: 'transparent', tone: 'onOrange' as const },
-    secondary: { bg: 'transparent', border: sys.color.ink, tone: 'ink' as const },
-    quiet: { bg: 'transparent', border: 'transparent', tone: 'muted' as const },
+    primary: { bg: sys.color.green, border: 'transparent', tone: 'onGreen' as const },
+    secondary: { bg: sys.color.surface, border: sys.color.lineStrong, tone: 'green' as const },
+    quiet: { bg: 'transparent', border: 'transparent', tone: 'green' as const },
     danger: { bg: 'transparent', border: 'transparent', tone: 'danger' as const },
   }[kind];
 
@@ -59,7 +58,7 @@ export function Button({
           paddingHorizontal: space.base,
           borderRadius: radius.primary,
           backgroundColor: skin.bg,
-          borderWidth: kind === 'secondary' ? 1.5 : 0,
+          borderWidth: kind === 'secondary' ? 1 : 0,
           borderColor: skin.border,
           flexDirection: 'row',
           alignItems: 'center',

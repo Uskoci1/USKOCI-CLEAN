@@ -8,7 +8,7 @@ import { brandAction, sys } from '../system/tokens';
  * Shared action. Reuses existing UI-thread press feedback, system reduced motion and haptics.
  * Kinds: primary = strong ink surface; secondary = white with a line; quiet = green text
  * (a link-like action); destructive = danger text. The one brand action on a screen is a
- * secondary with `brandAction` style: the orange surface with an ink label. Every other action is white with a green
+ * secondary with `brandAction` style: the green surface with a white label. Every other action is white with a green
  * label (the forensic analysis's one rule for buttons).
  */
 export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', icon, style, compact = false }: {
@@ -21,7 +21,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   compact?: boolean;
 }) {
   const onBrand = StyleSheet.flatten(style)?.backgroundColor === brandAction.backgroundColor;
-  const color = onBrand ? sys.color.onOrange : kind === 'primary' ? sys.color.surface : kind === 'destructive' ? sys.color.danger : sys.color.green;
+  const color = onBrand ? sys.color.onGreen : kind === 'primary' ? sys.color.surface : kind === 'destructive' ? sys.color.danger : sys.color.green;
   return <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }}
     onPress={onPress} disabled={disabled} haptic={disabled ? 'none' : kind === 'primary' ? 'light' : 'select'}
     style={[{ minHeight: kind === 'primary' ? 50 : sys.touch.min, borderRadius: sys.radius.control,
