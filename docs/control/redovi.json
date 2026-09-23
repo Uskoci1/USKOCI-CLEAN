@@ -787,7 +787,7 @@
    ],
    "telefon": null,
    "problem": "Javni profil daje profileId, a prijava/blokiranje traže accountId. Ti identifikatori nisu zamenljivi.",
-   "sledece": "Analiza je odobrena. F05: prvo predlog i dokaz bezbednog serverskog konteksta cilja, zatim ulazi za prijavu/blokiranje; ne prosleđivati profileId kao accountId.",
+   "sledece": "PKG-047 napisan 22.09. uveče: jedna nova serverska funkcija rpc_read_safety_target pretvara javni profil u osobu iza njega, uz isto pravilo vidljivosti kao javni profil, i vraća tvoj sopstveni izbor blokiranja. Ti si 22.09. odobrio da broj naloga sme da se otkrije za tu svrhu (isto što Dogovor već radi). U aplikaciji je dugme „Prijavi ili blokiraj“ dodato na javni profil, sa prilike i sa liste prijava. Paket ne pomera sertifikat brisanja naloga i to sam proverava. Dokaz: .github/workflows/pkg047-safety-target-proof.yml. Primena traži tvoju reč.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -850,8 +850,8 @@
     "stanje": "DELIMIČNO",
     "dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
    },
-   "problem": "Učitava celu listu; straničenje mora očuvati zasebno čitanje konkretne prijave sa nedovršenom radnjom. Obična izmena ponude/termina dok čeka nije isto što i postojeća izmena posle promene zadatka.",
-   "sledece": "Otvaranje potvrđene prijave po identifikatoru i kontrole samo za promenjen zadatak su ispravljeni. Proveriti na novom APK-u; pre straničenja dokazati projekciju i oporavak, a pravilo obične izmene ponude definisati zasebno.",
+   "problem": "Učitava celu listu odjednom. Straničena serverska funkcija postoji, ali nije zamena jedan-za-jedan: redosled joj je drugačiji.",
+   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1336,8 +1336,8 @@
     "rpc_mark_activity_event_read"
    ],
    "telefon": null,
-   "problem": "Vreme obaveštenja je podignuto na font 12 u novom APK-u; prikaz čeka proveru posle prijave. Razrešavanje odredišta je grublje od predloženih 24 događaja; poruka ne bira direktno odgovarajući chat.",
-   "sledece": "Proveriti F03 na novoj verziji. Zatim za svaki događaj dokaz: ko šalje, kome, podešavanja, privatnost i tačno odredište. Audit F14/D9.",
+   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja: vraća samo Dogovor/Prijave/Moje prijave/Moj zadatak/Prilika. Dve vrste obaveštenja („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja je podignuto na font 12, ali to nije provereno na telefonu.",
+   "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1601,8 +1601,8 @@
     "rpc_clear_profile_avatar"
    ],
    "telefon": null,
-   "problem": "Crvena oznaka servera je posredan signal iz zajedničkog mediaClientService modula. Sam ekran avatara ne poziva nedostajući rpc_cancel_media_upload; koristi upload/read/apply/discard/clear. Ne tvrditi da je avatar pokvaren zbog greške A05; ceo tok još treba proveriti na telefonu.",
-   "sledece": "Proveriti stvarni tok avatara i kasnije precizirati automatski obračun zajedničkog servisa. Polje telefona čeka tvoju odluku. Audit F16. F04: oznaka dela je ispravljena, testovi prolaze i novi APK je napravljen; proveriti navigaciju posle prijave.",
+   "problem": "",
+   "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1638,7 +1638,7 @@
    ],
    "telefon": null,
    "problem": "Ulazi sa detalja zadatka i javnog profila nedostaju; javna projekcija ne daje accountId koji komanda zahteva. Prodavnice traže funkcionalno prijavljivanje/blokiranje, ne propisuju tačan raspored dugmadi.",
-   "sledece": "Posle odobrenja funkcionalne analize: bezbedan ciljni kontekst i dokaz, zatim ulazi iz relevantnog sadržaja. Audit F05.",
+   "sledece": "Ulaz postoji od PKG-047: „Prijavi ili blokiraj“ na javnom profilu, sa prilike i sa liste prijava, a server tek tada razrešava osobu. Blokiranje i dalje ide na nalog, ne na profil, pa i dalje prati čoveka a ne jedno njegovo lice. Odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Čeka dokaz i tvoju reč za primenu, pa proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1668,7 +1668,7 @@
    ],
    "telefon": null,
    "problem": "Isti problem ciljnog identifikatora kao N06. Čitanje moje prijave potvrđuje prijem, a ne tok istrage ili konačnu odluku.",
-   "sledece": "Posle odobrenja funkcionalne analize: ulazi i oporavak; zasebno dokazati operaterski ishod. Audit F05/D4.",
+   "sledece": "Isti ulaz kao N06 (PKG-047). Serversko pravilo konteksta je već dozvoljavalo i prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Prijava ostaje privatna i osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod su i dalje zaseban posao.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

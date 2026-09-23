@@ -1,5 +1,7 @@
 // PKG-047: the safety target of a public profile (F05 / B08 / N06 / N07 / GAP-PG01).
 // Disposable SQL plus the actual local Auth/PostgREST stack; no DEV, no provider, no phone.
+// The two people here are real authenticated accounts created for this run, each with its own profile,
+// so every call below carries a genuine JWT and passes through the same guards a phone would.
 import {readFileSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as rt from '../pre_v3/closure_runtime.mjs';
@@ -37,14 +39,24 @@ assert.equal(sql(`select to_regprocedure(${q(TARGET)}) is null`), 't');
 const baselineSurface = surface();
 pass('EXACT_PREDECESSOR_REPLAY_AND_READY_CERTIFICATE');
 
+// Two real people for this run: the one reading a profile, and the one behind it.
+const viewer = await rt.actor('pkg047-viewer'), person = await rt.actor('pkg047-person');
+const viewerProfile = randomUUID(), targetProfile = randomUUID();
+const profile = (id, account, kind) => `insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status)
+  values(${q(id)},${q(account)},${q(kind)},'Proof person','Novi Sad','ACTIVE');`;
+sql(profile(viewerProfile, viewer.id, 'WORKER') + profile(targetProfile, person.id, 'REQUESTER'));
+// Neither account is classified, so both live in the same visibility world; the reader checks that itself.
+assert.equal(sql(`select private.accounts_same_world(${q(viewer.id)},${q(person.id)})`), 't');
+const readTarget = (actor, profileId) => actor.client.rpc('rpc_read_safety_target', {p_profile_id: profileId});
+const publicProfile = (actor, profileId) => ok(actor.client.rpc('rpc_get_public_profile', {p_profile_id: profileId}));
+
 // 2. Before: the exact call the app will make does not exist, which is why the screens carry no entry.
-await rt.login();
-const viewerProfile = rt.rp, targetProfile = rt.wp;
-const readTarget = (client, profileId) => client.rpc('rpc_read_safety_target', {p_profile_id: profileId});
-const before = await readTarget(rt.worker, viewerProfile);
+const before = await readTarget(viewer, targetProfile);
 assert.ok(before.error, 'EXPECTED_MISSING_FUNCTION');
 report.beforeError = {code: before.error.code, message: before.error.message.slice(0, 200)};
 assert.ok(before.error.code === 'PGRST202' || /rpc_read_safety_target/.test(before.error.message));
+// The profile itself is visible: only the target is missing.
+assert.equal((await publicProfile(viewer, targetProfile)).profileId, targetProfile);
 pass('BEFORE_APP_SAFETY_TARGET_CALL_HAS_NO_SERVER_FUNCTION');
 
 // 3. Tamper: drifted authority, a changed body and a missing grant each abort and leave nothing behind.
@@ -72,84 +84,86 @@ pass('APPLIED_ONCE_ONE_FUNCTION_ADDED_CERTIFICATE_UNCHANGED');
 
 // 5. The target is the person, not the face: the account behind the profile, and the caller's own choice
 //    about it, agreeing with the independent block reader.
-const t = await ok(readTarget(rt.worker, viewerProfile));
-assert.deepEqual(t, {profileId: viewerProfile, accountId: rt.workerId, targetAccountId: rt.requesterId,
+const t = await ok(readTarget(viewer, targetProfile));
+assert.deepEqual(t, {profileId: targetProfile, accountId: viewer.id, targetAccountId: person.id,
   blocked: false, revision: 0, authoritative: true});
-assert.deepEqual(await ok(rt.worker.rpc('rpc_get_account_block', {p_target_account_id: rt.requesterId})),
-  {accountId: rt.workerId, targetAccountId: rt.requesterId, blocked: false, revision: 0, authoritative: true});
-const back = await ok(readTarget(rt.requester, targetProfile));
-assert.equal(back.targetAccountId, rt.workerId); assert.equal(back.accountId, rt.requesterId);
+assert.deepEqual(await ok(viewer.client.rpc('rpc_get_account_block', {p_target_account_id: person.id})),
+  {accountId: viewer.id, targetAccountId: person.id, blocked: false, revision: 0, authoritative: true});
+const back = await ok(readTarget(person, viewerProfile));
+assert.equal(back.targetAccountId, viewer.id); assert.equal(back.accountId, person.id);
 pass('TARGET_IS_THE_ACCOUNT_BEHIND_THE_PROFILE_AND_AGREES_WITH_THE_BLOCK_READER');
 
 // 6. It resolves exactly what the public profile shows, and never the caller's own account.
-const publicProfile = (client, profileId) => ok(client.rpc('rpc_get_public_profile', {p_profile_id: profileId}));
-const parity = async (client, profileId, label) => {
-  const visible = await publicProfile(client, profileId), target = await ok(readTarget(client, profileId));
+const parity = async (actor, profileId, label) => {
+  const visible = await publicProfile(actor, profileId), target = await ok(readTarget(actor, profileId));
   assert.equal(target === null, visible === null, 'PARITY:' + label);
   return {visible: visible !== null, target: target !== null};
 };
 report.parity = {};
-report.parity.strangerSeesOther = await parity(rt.worker, viewerProfile, 'worker-sees-requester');
-report.parity.unknownProfile = await parity(rt.worker, randomUUID(), 'unknown');
+report.parity.strangerSeesOther = await parity(viewer, targetProfile, 'viewer-sees-person');
+report.parity.unknownProfile = await parity(viewer, randomUUID(), 'unknown');
 // Self is the one deliberate difference: a person can see their own public profile and is never their own
 // safety target.
-const ownProfile = await publicProfile(rt.requester, viewerProfile);
-assert.ok(ownProfile && ownProfile.profileId === viewerProfile);
-assert.equal(await ok(readTarget(rt.requester, viewerProfile)), null);
+const ownProfile = await publicProfile(person, targetProfile);
+assert.ok(ownProfile && ownProfile.profileId === targetProfile);
+assert.equal(await ok(readTarget(person, targetProfile)), null);
 report.parity.self = {visible: true, target: false};
 // An inactive profile is no target either.
-sql(`update public.app_profiles set profile_status='INACTIVE' where id=${q(targetProfile)}::uuid`);
+sql(`update public.app_profiles set profile_status='INACTIVE' where id=${q(targetProfile)}`);
 await sleep(200);
-report.parity.inactive = await parity(rt.requester, targetProfile, 'inactive');
+report.parity.inactive = await parity(viewer, targetProfile, 'inactive');
 assert.equal(report.parity.inactive.target, false);
-sql(`update public.app_profiles set profile_status='ACTIVE' where id=${q(targetProfile)}::uuid`);
+sql(`update public.app_profiles set profile_status='ACTIVE' where id=${q(targetProfile)}`);
 pass('RESOLVES_ONLY_WHAT_THE_PUBLIC_PROFILE_SHOWS_NEVER_SELF');
 
 // 7. Blocking through the resolved target hides both the profile and the target; unblocking brings the target
 //    back with the revision the next block needs.
-const setBlock = (blocked, revision) => ok(rt.worker.rpc('rpc_set_account_block',
-  {p_target_account_id: rt.requesterId, p_blocked: blocked, p_expected_revision: revision, p_client_request_id: randomUUID()}));
+const setBlock = (blocked, revision) => ok(viewer.client.rpc('rpc_set_account_block',
+  {p_target_account_id: person.id, p_blocked: blocked, p_expected_revision: revision, p_client_request_id: randomUUID()}));
 const blocked = await setBlock(true, t.revision);
 assert.equal(blocked.blocked, true); assert.equal(blocked.revision, 1);
-assert.equal(await publicProfile(rt.worker, viewerProfile), null);
-assert.equal(await ok(readTarget(rt.worker, viewerProfile)), null);
-// The other side learns nothing: an incoming block is never disclosed, and the blocker stays visible to it.
-assert.equal(await ok(rt.requester.rpc('rpc_get_account_block', {p_target_account_id: rt.workerId})).then(x => x.blocked), false);
-const mine = await ok(rt.worker.rpc('rpc_list_my_account_blocks', {p_after: null}));
-assert.equal(mine.items.filter(x => x.targetAccountId === rt.requesterId && x.blocked).length, 1);
+assert.equal(await publicProfile(viewer, targetProfile), null);
+assert.equal(await ok(readTarget(viewer, targetProfile)), null);
+// The other side learns nothing: an incoming block is never disclosed.
+assert.equal((await ok(person.client.rpc('rpc_get_account_block', {p_target_account_id: viewer.id}))).blocked, false);
+const mine = await ok(viewer.client.rpc('rpc_list_my_account_blocks', {p_after: null}));
+assert.equal(mine.items.filter(x => x.targetAccountId === person.id && x.blocked).length, 1);
 const unblocked = await setBlock(false, blocked.revision);
 assert.equal(unblocked.blocked, false); assert.equal(unblocked.revision, 2);
-const again = await ok(readTarget(rt.worker, viewerProfile));
-assert.deepEqual(again, {profileId: viewerProfile, accountId: rt.workerId, targetAccountId: rt.requesterId,
+const again = await ok(readTarget(viewer, targetProfile));
+assert.deepEqual(again, {profileId: targetProfile, accountId: viewer.id, targetAccountId: person.id,
   blocked: false, revision: 2, authoritative: true});
 pass('BLOCK_HIDES_PROFILE_AND_TARGET_UNBLOCK_RETURNS_THE_REVISION');
 
 // 8. The report the entry exists for is accepted with the resolved target and stays private to its author.
-const needId = rt.need('pkg047 safety');
+//    The context is the published Zadatak the two met through, which the report validates on its own.
+const needId = randomUUID();
+sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
+  insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,
+    approximate_city,approximate_area,mode,required_slots,schedule_kind,response_deadline,published_at)
+  values(${q(needId)},${q(person.id)},${q(targetProfile)},'PUBLISHED','PKG-047 safety','Disposable SQL fixture',
+    'PROOF','Novi Sad','Liman','OFFERS',2,'FLEXIBLE',statement_timestamp()+interval '2 days',statement_timestamp());commit;`);
 const key = randomUUID();
-const receipt = await ok(rt.worker.rpc('rpc_submit_safety_report', {p_target_account_id: again.targetAccountId,
+const submit = () => viewer.client.rpc('rpc_submit_safety_report', {p_target_account_id: again.targetAccountId,
   p_need_id: needId, p_agreement_id: null, p_category: 'HARASSMENT', p_reason: 'Neprimereno obraćanje',
-  p_narrative: '', p_client_request_id: key}));
+  p_narrative: '', p_client_request_id: key});
+const receipt = await ok(submit());
 assert.equal(receipt.received, true); assert.equal(receipt.idempotentReplay, false);
-assert.deepEqual(await ok(rt.worker.rpc('rpc_submit_safety_report', {p_target_account_id: again.targetAccountId,
-  p_need_id: needId, p_agreement_id: null, p_category: 'HARASSMENT', p_reason: 'Neprimereno obraćanje',
-  p_narrative: '', p_client_request_id: key})), {...receipt, idempotentReplay: true});
-assert.equal(await ok(rt.requester.rpc('rpc_read_my_safety_report_command', {p_client_request_id: key})).then(x => x.found), false);
-assert.equal(sql(`select count(*) from private.safety_reports where reporter_account_id=${q(rt.workerId)}::uuid and target_account_id=${q(rt.requesterId)}::uuid`), '1');
+assert.deepEqual(await ok(submit()), {...receipt, idempotentReplay: true});
+assert.equal((await ok(person.client.rpc('rpc_read_my_safety_report_command', {p_client_request_id: key}))).found, false);
+assert.equal(sql(`select count(*) from private.safety_reports where reporter_account_id=${q(viewer.id)} and target_account_id=${q(person.id)}`), '1');
 pass('REPORT_THROUGH_THE_RESOLVED_TARGET_ACCEPTED_AND_PRIVATE_TO_ITS_AUTHOR');
 
 // 9. Owner-only: no anonymous caller and no service key may resolve a person from a profile.
-await denied(rt.anon.rpc('rpc_read_safety_target', {p_profile_id: viewerProfile}));
-await denied(rt.service.rpc('rpc_read_safety_target', {p_profile_id: viewerProfile}));
+await denied(rt.anon.rpc('rpc_read_safety_target', {p_profile_id: targetProfile}));
+await denied(rt.service.rpc('rpc_read_safety_target', {p_profile_id: targetProfile}));
 assert.equal(sql(`select has_function_privilege('anon',${q(TARGET)},'EXECUTE')::text||has_function_privilege('authenticated',${q(TARGET)},'EXECUTE')::text||has_function_privilege('service_role',${q(TARGET)},'EXECUTE')::text`), 'falsetruefalse');
 pass('ANONYMOUS_AND_SERVICE_CALLERS_ARE_REFUSED');
 
 // 10. The reader writes nothing, and the certificate is exactly where it was before the package.
 const beforeCounts = counts();
-for (let i = 0; i < 5; i++) {await ok(readTarget(rt.worker, viewerProfile)); await ok(readTarget(rt.requester, targetProfile));}
+for (let i = 0; i < 5; i++) {await ok(readTarget(viewer, targetProfile)); await ok(readTarget(person, viewerProfile));}
 assert.deepEqual(counts(), beforeCounts);
 assert.deepEqual(closure(), report.closureBefore);
-assert.equal(closure().ready, true);
-report.writesByTheNewReader = 0;
 pass('THE_READER_WRITES_NOTHING_AND_THE_CERTIFICATE_IS_UNMOVED');
 report.result = 'PASS'; save();
