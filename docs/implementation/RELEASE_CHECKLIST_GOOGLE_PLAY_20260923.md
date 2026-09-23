@@ -48,3 +48,13 @@ Vlasnik je 23. 9. rekao da večeras šalje aplikaciju na Google Play. Ovo je ta�
 - **Ime paketa je trajno u Play Console-u.** Provera trenutno traži `rs.uskoci.preview`. Ako aplikacija u
   prodavnici treba da bude `rs.uskoci`, to je odluka pre prvog uploada. Onda se menjaju `app.json`, ova provera
   i Firebase klijent.
+
+## Odluke vlasnika, 23. 9. kasno uveče (urađeno)
+- **Paket za prodavnicu: `rs.uskoci`.** Samo build za prodavnicu (EAS profil `production`) dobija to ime; interni APK
+  i CI buildovi ostaju kako jesu. Push za `rs.uskoci` kasnije traži novu Android aplikaciju u Firebase konzoli.
+- **Adresa servera i javni ključ** su upisani u `eas.json` za profil `production` (iste javne vrednosti kao CI build).
+  Provera pre builda prolazi za profil `production`.
+- **Preostaje vlasniku:** Play Console nalog i aplikacija, interni test sa testerima, i jedna komanda sa njegovog
+  računara: `npx eas-cli build --profile production --platform android` (pravi AAB fajl za upload).
+- **Javna objava kasnije:** novi lični Play nalozi moraju pre produkcije da imaju zatvoreni test sa najmanje 12
+  testera tokom 14 dana (Google pravilo za lične naloge); organizacioni nalozi su izuzeti.
