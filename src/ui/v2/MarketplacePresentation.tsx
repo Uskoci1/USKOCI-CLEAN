@@ -119,7 +119,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   </>;
   const searchField = <View style={[s.search, !owned && s.discoverySearch]}>
     <MagnifyingGlass size={21} color={sys.color.green} />
-    <TextInput accessibilityLabel="Pretraži zadatke" autoFocus={owned} placeholder="Naslov, mesto ili uslov…" placeholderTextColor={sys.color.muted}
+    <TextInput accessibilityLabel="Pretraži zadatke" autoFocus={owned} placeholder="Pretraži zadatke" placeholderTextColor={sys.color.muted}
       value={view.query} onChangeText={query => change({ query: query.slice(0, 1000), selectedId: null })} maxLength={1000} style={s.input}
       returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} />
     {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>

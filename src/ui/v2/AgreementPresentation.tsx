@@ -5,11 +5,11 @@ import { ArrowLeft, CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
-import { ProductFact, ProductFacts, ProductTitle } from '../product/ProductDetails';
+import { DetailFact, DetailFacts, ProductTitle } from '../product/ProductDetails';
 import { innerBar } from '../system/DetailTopBar';
-import { FactArt } from '../system/FactArt';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
-import { card, iconButton, sys } from '../system/tokens';
+import { iconButton, sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { T } from '../Text';
 
@@ -64,26 +64,27 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
+  // The same four facts as a task, in the same list (2026-09-23), so an agreed Dogovor reads like the task it grew out of.
   return <View style={s.hero}>
     <ProductTitle>{readableTitle(a.naslov)}</ProductTitle>
-    <ProductFacts>
-      <ProductFact art={a.rezim === 'DALJINSKI' ? 'remote' : 'pin'} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
-      <ProductFact art="calendar" label="Termin" value={a.vremeTekst} />
-      <ProductFact art="users" label="Ljudi" value={osoba(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
-      <ProductFact art="money" label="Dogovoreno ukupno" value={a.cena.prikaz} prominent />
-    </ProductFacts>
+    <DetailFacts>
+      <DetailFact art={a.rezim === 'DALJINSKI' ? 'remote' : 'pin'} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
+      <DetailFact art="calendar" label="Termin" value={a.vremeTekst} />
+      <DetailFact art="users" label="Ljudi" value={osoba(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
+      <DetailFact art="money" label="Dogovoreno ukupno" value={a.cena.prikaz} note="dogovoreno ukupno" spokenNote="" money={/\d/.test(a.cena.prikaz)} />
+    </DetailFacts>
   </View>;
 }
 
-/** Both sides of the Dogovor, each with role and seats; you are marked in words. */
+/** Both sides of the Dogovor, each with role and seats; you are marked in words. Flat rows, no card. */
 export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija }) {
-  return <View style={[card, s.people]}>
+  return <View style={s.people}>
     {/* pkg024a: the read names each side's public profile, so the person you agreed to work with
         has a face here. Without that id there is nothing to read a photograph by, and the initials
         stay — an account id must never be handed to the media service in its place. */}
     {agreement.ucesnici.map((person, index) => <View key={person.id} style={[s.person, index ? s.personDivider : null]}>
       {person.profilId
-        ? <ProfilePhoto profileId={person.profilId} size={64} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>} />
+        ? <ProfilePhoto profileId={person.profilId} size={48} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>} />
         : <View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>}
       <View style={s.grow}>
         <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
@@ -94,15 +95,16 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
   </View>;
 }
 
-/** A section that opens in place; `expanded` is spoken. */
-export function AgreementSection({ label, summary, children }: { label: string; summary?: string; children: ReactNode }) {
+/** A row that opens in place under its hairline; `expanded` is spoken. */
+export function AgreementSection({ label, summary, art, children }: { label: string; summary?: string; art?: FactArtKind; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  return <View style={[card, s.section]}>
+  return <View style={s.section}>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} haptic="select"
       onPress={() => setOpen(value => !value)} style={s.sectionRow}>
+      {art ? <View style={s.sectionArt}><FactArt kind={art} size={26} /></View> : null}
       <View style={s.grow}><T variant="bodyStrong" style={s.ink}>{label}</T>
         {summary ? <T variant="note" tone="muted">{summary}</T> : null}</View>
-      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted} /></View>
+      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><CaretRight size={20} color={sys.color.muted} /></View>
     </Press>
     {open ? <View style={s.sectionBody}>{children}</View> : null}
   </View>;
@@ -117,12 +119,13 @@ const s = StyleSheet.create({
   barInitials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
   hero: { gap: 12 },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
-  people: { paddingVertical: 4 },
-  person: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  personDivider: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  avatar: { width: 64, height: 64, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  initials: { color: sys.color.green, letterSpacing: 0, fontSize: 22, lineHeight: 28 },
-  section: { padding: 0, overflow: 'hidden' },
-  sectionRow: { minHeight: 62, paddingHorizontal: 18, paddingVertical: 14, gap: 12, flexDirection: 'row', alignItems: 'center' },
-  sectionBody: { paddingHorizontal: 18, paddingBottom: 18, gap: 12 },
+  people: { borderTopWidth: 1, borderTopColor: sys.color.line },
+  person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  personDivider: {},
+  avatar: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
+  initials: { color: sys.color.green, letterSpacing: 0, fontSize: 17, lineHeight: 22 },
+  section: { borderTopWidth: 1, borderTopColor: sys.color.line },
+  sectionRow: { minHeight: 60, paddingVertical: 12, gap: 14, flexDirection: 'row', alignItems: 'center' },
+  sectionArt: { width: 32, alignItems: 'center' },
+  sectionBody: { paddingBottom: 16, paddingLeft: 46, gap: 12 },
 });

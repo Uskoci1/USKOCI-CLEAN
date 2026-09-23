@@ -356,7 +356,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(texts()).toContain('Dogovor je završen');
-    await act(async () => button('Otvori poruke').props.onPress());
+    await act(async () => button('Poruke').props.onPress());
     expect(tree.root.findByType('AgreementChat' as any).props.writable).toBe(true);
     expect(mockProblemSubmit).not.toHaveBeenCalled();
   });
@@ -375,7 +375,7 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     await act(async () => button('Osveži detalje prijave').props.onPress());
     expect(mockProblemRead).toHaveBeenCalledTimes(2);
-    await act(async () => button('Otvori poruke').props.onPress());
+    await act(async () => button('Poruke').props.onPress());
     expect(tree.root.findByType('AgreementChat' as any).props.writable).toBe(true);
   });
   it.each(['LEGACY_UNAVAILABLE', 'UNAVAILABLE'])('cannot confirm a newly submitted report from %s details', async state => {

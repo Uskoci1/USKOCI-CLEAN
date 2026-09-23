@@ -258,7 +258,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Posao je gotov' : 'Potvrdi završetak';
   const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
   // One brand action per state: completion when the server allows it, the review after
-  // completion, otherwise the conversation. "Otvori poruke" stays one tap away in every case.
+  // completion, otherwise the conversation. The conversation is always one tap away: the Poruke tab.
   // A change proposal waiting for my answer blocks both completions, so answering it is the step.
   const pendingChange = active && me && radnje?.izmenaNaCekanju ? radnje.predlogIzmene : null;
   const changeWaits = active && me && !!radnje?.izmenaNaCekanju;
@@ -267,7 +267,6 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
       : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
         : { label: 'Otvori poruke', onPress: openMessages };
-  const secondary = brand.label === 'Otvori poruke' ? null : { label: 'Otvori poruke', onPress: openMessages };
   const nextStep = changeWaits ? { tone: 'warn' as const,
     title: pendingChange?.moj ? 'Tvoj predlog izmene čeka odgovor' : pendingChange ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' }
@@ -350,12 +349,12 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
             {/* PKG-048: where this Dogovor came from. The server says so only since 2026-09-23, so a reader
                 that does not carry the ids offers nothing here rather than a row that leads nowhere. Each
                 side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava. */}
-            {dogovor.izvor?.zadatakId ? <WorkspaceRow label="Zadatak iz kog je nastao Dogovor"
+            {dogovor.izvor?.zadatakId ? <WorkspaceRow art="tasks" label="Zadatak iz kog je nastao Dogovor"
               hint={requester ? 'Tvoj zadatak: opis, prijave i izmene' : 'Zadatak za koji je tvoja ponuda'} disabled={!enabled}
               onPress={() => { const needId = dogovor.izvor?.zadatakId; if (!needId || !formCurrent()) return;
                 router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
                   : { pathname: '/prilike/[id]', params: { id: needId } }); }} /> : null}
-            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow label="Tvoja ponuda" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
+            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow art="offers" label="Tvoja ponuda" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
               onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
                 router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
             {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);
@@ -363,15 +362,15 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
             {/* A finished or cancelled Dogovor has nothing left to change or cancel: the row opened a screen with no
                 possible action (emulator sweep, 2026-09-23). */}
             {!active || (requester && dogovor.stanje === 'AWAITING_REQUESTER') ? null
-              : <WorkspaceRow label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
+              : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
                 onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
-            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
+            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow art="pin" label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
               onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
-            {other ? <WorkspaceRow label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
+            {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
               onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
                 router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           </WorkspaceRows> : null}
-          <AgreementSection label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Podeli svoj broj kada ti odgovara'}>
+          <AgreementSection art="phone" label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Podeli svoj broj kada ti odgovara'}>
             <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
             <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
             {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
@@ -379,12 +378,12 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           </AgreementSection>
           {/* The child renders nothing once the agreement is finished or cancelled, so this section
               opened onto an empty card on exactly the agreements a person revisits. */}
-          {dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji ? <AgreementSection label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
+          {dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji ? <AgreementSection art="lock" label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
             {dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER'
               ? <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
               : <T variant="note" tone="muted">Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.</T>}
           </AgreementSection> : null}
-          {dogovor.hronologija.length ? <AgreementSection label="Tok Dogovora" summary="Sačuvani događaji">
+          {dogovor.hronologija.length ? <AgreementSection art="clock" label="Tok Dogovora" summary="Sačuvani događaji">
             {dogovor.hronologija.map((event, index) => <View key={index} style={s.event}>
               <View style={s.eventLine} /><View style={s.eventCopy}><T variant="body" style={s.ink}>{event.tekst}</T><T variant="meta" tone="muted">{event.vremeTekst}</T></View>
             </View>)}
@@ -393,7 +392,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           {workspace.error ? <WorkspaceNote tone="danger"><T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>
             <V2Action label="Osveži status Dogovora" disabled={workspace.busy} onPress={() => void osvezi()} /></WorkspaceNote> : null}
         </ScrollView>
-        <WorkspaceFooter brand={brand} secondary={secondary} />
+        <WorkspaceFooter brand={brand} />
       </>}
     </KeyboardAvoidingView>
   </SafeAreaView>;

@@ -62,7 +62,8 @@ test('a confirmed Agreement without server permission leads with the conversatio
   await render(base());
   expect(brand()).toEqual(['Otvori poruke']); expect(labels().filter(label => label === 'Otvori poruke')).toHaveLength(1);
   const copy = texts();
-  expect(copy).toContain('Dogovoreno'); expect(copy).toContain('Sledeći korak'); expect(copy).toContain('Potvrdi završetak kada je posao obavljen');
+  // Recomposed (2026-09-23): the step is one line with a dot in the state's colour; no "Sledeći korak" eyebrow over it.
+  expect(copy).toContain('Dogovoreno'); expect(copy).not.toContain('Sledeći korak'); expect(copy).toContain('Potvrdi završetak kada je posao obavljen');
   expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.');
   expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Trenutna lokacija osobe koja dolazi', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
   // The timeline is progressive disclosure: collapsed until the user asks for it.
@@ -72,7 +73,8 @@ test('a confirmed Agreement without server permission leads with the conversatio
 });
 test('when the server allows completion, completion is the brand action and the conversation stays one tap away', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
-  expect(brand()).toEqual(['Potvrdi završetak']); expect(labels()).toContain('Otvori poruke');
+  // The conversation is one tap away as the Poruke tab at the top; the footer no longer repeats it as a second button.
+  expect(brand()).toEqual(['Potvrdi završetak']); expect(labels()).toContain('Poruke'); expect(labels()).not.toContain('Otvori poruke');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
   expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Da, potvrdi završetak' }).props.onPress());
@@ -147,7 +149,7 @@ test('a change proposal waiting for my answer is the next step, says what it cha
   expect(copy).toContain('Predlog izmene čeka tvoj odgovor'); expect(copy).toContain('Cena'); expect(copy).toContain('3.000 RSD');
   expect(copy).toContain('4.500 RSD'); expect(copy).toContain('Ima više stvari nego što je rečeno.');
   expect(copy).toContain('Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.');
-  expect(brand()).toEqual(['Odgovori na predlog']); expect(labels()).toContain('Otvori poruke');
+  expect(brand()).toEqual(['Odgovori na predlog']); expect(labels()).toContain('Poruke');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Odgovori na predlog' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId } });
 });
