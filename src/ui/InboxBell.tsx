@@ -12,11 +12,11 @@ export function InboxBell() {
   const spoken = count == null ? 'Obaveštenja, broj nepročitanih nije dostupan' : `Obaveštenja, ${count} nepročitanih`;
   return <Press accessibilityRole="button" haptic="select" accessibilityLabel={spoken}
     onPress={() => router.push('/obavestenja')} style={iconButton}>
-    <Bell size={22} color={sys.color.ink} />
-    {count != null && count > 0 && <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 20, height: 20,
-      paddingHorizontal: 5, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, borderWidth: 2, borderColor: sys.color.surface,
+    <Bell size={26} color={sys.color.ink} weight="regular" />
+    {count != null && count > 0 && <View style={{ position: 'absolute', top: 1, right: 1, minWidth: 18, height: 18,
+      paddingHorizontal: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, borderWidth: 2, borderColor: sys.color.surface,
       alignItems: 'center', justifyContent: 'center' }}>
-      <T variant="label" style={{ color: sys.color.onOrange, lineHeight: 14, letterSpacing: 0 }}>{count > 99 ? '99+' : count}</T>
+      <T variant="label" style={{ color: sys.color.onOrange, fontSize: 10, lineHeight: 12, letterSpacing: 0 }}>{count > 99 ? '99+' : count}</T>
     </View>}
   </Press>;
 }
