@@ -346,7 +346,10 @@
     "rpc_list_need_candidates",
     "rpc_mark_response_viewed"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac (uskocibusiness, telefon) otvorio prijavu izvođača — server je upisao RESPONSE_VIEWED. Ekran prijava nije snimljen (telefon nije bio priključen)."
+   },
    "problem": "",
    "sledece": "Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
@@ -377,7 +380,10 @@
    "server": [
     "rpc_select_response"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac izabrao ponudu na telefonu → Dogovor f14625e8 CONFIRMED, RESPONSE_SELECTED izvođaču. Dogovor viđen sa strane izvođača na emulatoru."
+   },
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -953,7 +959,7 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/: lista Dogovora (Aktivni/Istorija/Svi) otvorena i snimljena na telefonu 23.09."
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno."
    },
    "problem": "",
    "sledece": "",
@@ -985,7 +991,7 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "docs/implementation/v5-ai-first/pkg048/device-20260923/: APK 35807138233 (izvor 332d285f, otisak 174009cb…) instaliran na VKP-NX9 23.09. u 03:52. Maestro šetnja bez ijednog upozorenja: ekran Dogovora nudi „Zadatak iz kog je nastao Dogovor“ i „Ponuda koju si poslao“. Ista provera je pala na prethodnoj verziji sat ranije. Nijedna veza nije praćena i strana naručioca nije viđena."
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor."
    },
    "problem": "",
    "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
@@ -1017,7 +1023,7 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/11-dogovor-poruke.png: kartica Poruke se otvara. Slanje i svežina poruka nisu proveravani."
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: poruka „Cao“ poslata sa telefona (naručilac) viđena u prepisci na emulatoru (izvođač); obaveštenje „Nova poruka“ otvara pravo karticu Poruke. Slanje sa strane izvođača nije rađeno."
    },
    "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
    "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
@@ -1355,9 +1361,9 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/12-obavestenja.png: stvarna obaveštenja sa porodicom i vremenom; vreme se čita u istoj veličini kao telo, pa F03 nije vidljiv. Nijedno obaveštenje nije otvoreno."
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu."
    },
-   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja: vraća samo Dogovor/Prijave/Moje prijave/Moj zadatak/Prilika. Dve vrste obaveštenja („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja je podignuto na font 12, ali to nije provereno na telefonu.",
+   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu.",
    "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
