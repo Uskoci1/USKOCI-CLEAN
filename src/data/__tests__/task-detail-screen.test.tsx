@@ -308,7 +308,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockId = ['task-a', 'task-b']; mockRouter.canGoBack.mockReturnValue(false); await render();
     expect(mockLoad).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak nije dostupan');
     await act(async () => { back(); back(); });
-    expect(mockRouter.replace.mock.calls).toEqual([['/mapa']]);
+    expect(mockRouter.replace.mock.calls).toEqual([['/zadaci']]);
   });
 
   it('keeps Back available while loading', async () => {

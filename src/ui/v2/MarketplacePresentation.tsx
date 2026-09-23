@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
-import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, publicPoint } from '../../data/marketplaceView';
+import { initialMarketplaceView, marketplaceItems, ownedTaskCounts, publicPoint } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt } from '../system/FactArt';
@@ -54,8 +54,9 @@ const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, rela
  * Zadaci. Owned: the requester's own Tasks in three sets (Aktivni · Nacrti ·
  * Istorija). Discovery: open Tasks as a List or a Map. One segmented control,
  * then the cards. Discovery keeps search visible and separates the map/list
- * view from the filter draft. Creation is the one orange action, floating
- * above the list. Presentation only: every callback is the route's existing command.
+ * view from the filter draft. In discovery, creation is the orange "+" in the
+ * tools row; my own tasks carry no creation action over their cards (Početna
+ * has "Objavi zadatak"). Presentation only: every callback is the route's existing command.
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { owned, items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
@@ -82,7 +83,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned)
       .filter(item => showMine || owned || !relations?.owned.has(item.id)).length,
   [items, view, priceDraft, attentionDraft, owned, loading, error, showMine, relations]);
-  const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
+  // The same count Početna's "Moji zadaci" row shows as "čeka izbor".
+  const attentionCount = useMemo(() => owned ? ownedTaskCounts(items).waiting : 0, [items, owned]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
   const selected = shown.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
   const withoutPins = shown.filter(item => !publicPoint(item)).length;
@@ -93,12 +95,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
   const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setAttentionDraft(view.attention); setFilterOpen(true); };
   // What the list is, in the two words the product uses for its two sides. It used to name the
-  // global mode the app was in; there is no such mode any more.
-  const eyebrow = owned ? 'Moje aktivnosti' : 'Uskoči i zaradi', title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
+  // global mode the app was in; there is no such mode any more. No eyebrow above it (owner, 2026-09-23): "Moje
+  // aktivnosti" over "Moji zadaci" only said where you are, and that destination is retired.
+  const title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
   const sectionTitle = owned ? SECTION_TITLES[view.section] : 'Otvoreni zadaci';
   const count = loading || error ? null : shown.length;
-  /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
-  const showCards = !loading && !error && shown.length > 0;
   // On a phone the orange "+" sat on top of a task pin near Belgrade. A map is the content a person
   // came to read, and a button parked on it hides one of the very things being looked for. Creation
   // stays reachable from the map — that is a tested decision, not an accident — so it moves off the
@@ -134,7 +135,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const appearRef = useRef(appear); appearRef.current = appear;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem} />, [relationOf, openItem]);
-  const listStyle = useMemo(() => [s.list, owned && !!props.onNew && showCards && s.listWithAction], [owned, props.onNew, showCards]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
@@ -158,10 +158,10 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
     <View aria-hidden={sheetShown} accessibilityElementsHidden={sheetShown} importantForAccessibility={sheetShown ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
-          screens carried the same name. The discovery view is what the Mapa tab opens. */}
+          screens carried the same name. The discovery view is what the Zadaci tab opens. */}
       {/* Underlined views scroll at large text sizes; search and filters keep full touch targets. */}
-      {props.onBack ? <ProductHeader subtitle={eyebrow} title={title} back={props.onBack} />
-        : <ScreenHeader eyebrow={eyebrow} title={title} onProfile={props.onProfile} />}
+      {props.onBack ? <ProductHeader title={title} back={props.onBack} />
+        : <ScreenHeader title={title} onProfile={props.onProfile} />}
       {owned ? <View style={s.controls}>
         <View style={s.grow}><Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} /></View>
         {headerControls}
@@ -215,7 +215,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           {withoutPins ? <View style={s.mapActions}>
           <V2Action label="Pogledaj listu" kind="quiet" compact onPress={() => toggleMode('list')} /></View> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : shown} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
-        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={listStyle}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
@@ -228,9 +228,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             <T variant="note" style={s.mineToggleText}>{showMine ? 'Sakrij moje' : `${plural(mine.length, 'tvoj zadatak je sakriven', 'tvoja zadatka su sakrivena', 'tvojih zadataka je sakriveno')} · Prikaži`}</T>
           </Press> : null}
         </View>} />}
-      {owned && props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
-        onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
-        <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
+      {/* No floating "+" over my own tasks (owner's information architecture, 2026-09-23): it sat on the cards and
+          covered a price, and creating a task lives on Početna's "Objavi zadatak". An empty list still offers it inline. */}
     </View>
     {mapShown && selected && !filterOpen ? <ProductSheet key={selected.id} title="Zadatak na mapi" closeLabel="Zatvori pregled pina"
       reduced={reduced} onClose={() => change({ selectedId: null })}>{dismiss => <>
@@ -289,10 +288,6 @@ const s = StyleSheet.create({
   clear: { width: 44, height: 44, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
-  listWithAction: { paddingBottom: 132 },
-  // Above the map legend and the attribution it used to cover, not on them.
-  add: { position: 'absolute', right: 20, bottom: 72, width: 48, height: 48, borderRadius: sys.radius.cardCompact, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: sys.color.orange, ...sys.elevation.raised },
   empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
   mapEmpty: { flex: 1, paddingHorizontal: 20 },
   stateArt: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

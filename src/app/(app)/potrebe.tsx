@@ -45,7 +45,7 @@ function OwnedCollection() {
   return <MarketplacePresentation owned={true} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
-    onSwitch={() => navigate(() => router.navigate('/mapa'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+    onSwitch={() => navigate(() => router.navigate('/zadaci'))} onProfile={() => navigate(() => router.navigate('/profil'))}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
     onNew={() => navigate(() => router.navigate('/nova'))} />;
 }

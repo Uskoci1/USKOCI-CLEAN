@@ -25,7 +25,8 @@ const row = (id: string, patch = {}): MarketplaceItem => ({ id, naslov: `Pomoć 
 let rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })], owned = false, loading = false, error = false;
 let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), switchView = jest.fn(), newTask = jest.fn(); let allowNew = true;
 let relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
-function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} relations={relations} />; }
+let withBack = false; const back = jest.fn();
+function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onBack={withBack ? back : undefined} relations={relations} />; }
 let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
@@ -36,7 +37,7 @@ const click = async (label: string) => act(async () => (label === 'Prikaži zada
 const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const render = async () => act(async () => { tree = create(<Screen />); });
-beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; relations = undefined; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
+beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; relations = undefined; withBack = false; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('List/Map preserves search and viewport; panning alone keeps same exact result set', async () => {
  await render(); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
@@ -144,6 +145,17 @@ test('requester creation stays reachable from both discovery list and map, while
  await act(async () => tree.unmount()); allowNew = false; await render();
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
  expect(tree.root.findAllByProps({ label: 'Dodaj zadatak' })).toHaveLength(0);
+});
+// Owner's information architecture, 2026-09-23: my own tasks are reached from Početna, where "Objavi zadatak" is.
+// The orange "+" that floated over their cards covered a price, and the eyebrow "Moje aktivnosti" only said where you are.
+test('my own tasks carry no floating creation action and no eyebrow; an empty list still offers the first task inline', async () => {
+ owned = true; withBack = true; rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 }), row('two', { stanje: 'OBJAVLJENA', brojPrijava: 0 })];
+ await render();
+ expect(press('Otvori Zadatak Pomoć one')).toBeTruthy();
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
+ expect(texts()).toContain('Moji zadaci'); expect(texts()).not.toContain('Moje aktivnosti');
+ await act(async () => tree.unmount()); rows = []; await render();
+ await click('Napravi prvi Zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
  mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');

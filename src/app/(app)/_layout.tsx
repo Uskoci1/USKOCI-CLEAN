@@ -8,12 +8,14 @@ import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
 
 /**
- * One shell for one account: Početna | Mapa | Dogovori (owner decision 1, 2026-09-19, which
- * supersedes the two intent-shaped shells of 2026-09-16). The same person may own tasks, have
- * applied to other people's and hold Dogovori on both sides at once, so what they are to a thing is
- * said on that thing and never chosen for the whole app. There is no mode here to read, and nothing
- * keys the navigator: `Tabs key={intent}` used to remount every screen beneath it on a switch.
- * Zadaci and Prijave keep their routes and their screens; they are reached from Početna now.
+ * One shell for one account: Početna | Zadaci | Dogovori (owner decision 1, 2026-09-19, which
+ * supersedes the two intent-shaped shells of 2026-09-16; the middle tab is Zadaci since the owner's
+ * information architecture of 2026-09-23, which retired the Mapa tab and the duplicate `/prilike` root).
+ * The same person may own tasks, have applied to other people's and hold Dogovori on both sides at once,
+ * so what they are to a thing is said on that thing and never chosen for the whole app. There is no mode
+ * here to read, and nothing keys the navigator: `Tabs key={intent}` used to remount every screen beneath
+ * it on a switch. My own tasks and my applications keep their routes and their screens; they are reached
+ * from Početna. `/mapa` and `/prilike` stay registered as redirects to Zadaci for old links.
  */
 /**
  * Around thirty screens live in this navigator with `href: null` — the whole profile family, the
@@ -25,7 +27,8 @@ import { T } from '../../ui/Text';
 const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.enter } } };
 
-const PRIMARY = { index: 'tasks', mapa: 'map', dogovori: 'agreements' } as const;
+// Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
+const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;
 type Primary = keyof typeof PRIMARY;
 function isPrimary(name: string): name is Primary { return Object.hasOwn(PRIMARY, name); }
 function sectionOf(state: { index: number; routes: readonly { name: string; key: string }[];
@@ -38,8 +41,27 @@ function sectionOf(state: { index: number; routes: readonly { name: string; key:
     const name = entry.type === 'route' ? state.routes.find(route => route.key === entry.key)?.name : undefined;
     if (name && isPrimary(name)) return name;
   }
-  return current === 'prilike' || current.startsWith('prilike/') ? 'mapa'
+  // A task and its application belong to Zadaci, and so do the two retired discovery addresses while they redirect.
+  return current === 'prilike' || current.startsWith('prilike/') || current === 'mapa' ? 'zadaci'
     : current === 'oceni-dogovor' ? 'dogovori' : 'index';
+}
+
+/**
+ * `/mapa` and `/prilike` only redirect to Zadaci. Inside a tab navigator a redirect is a jump, and with
+ * `backBehavior="history"` the jump left the retired route in the history: Back from Zadaci returned to it, it
+ * redirected again, and Back could never leave Zadaci (proved on the real router, retired-discovery-routes.test).
+ * A retired route therefore stays in the history only while it is the route on screen. Navigation state only; no
+ * screen, read or guard is involved.
+ */
+const RETIRED = new Set(['mapa', 'prilike']);
+type TabHistory = { index: number; routes: readonly { name: string; key?: string }[]; history?: readonly { type: string; key?: string }[] };
+function withoutRetired<State>(state: State): State {
+  const tabs = state as unknown as TabHistory | null;
+  if (!tabs || !Array.isArray(tabs.history) || !Array.isArray(tabs.routes)) return state;
+  const current = tabs.routes[tabs.index]?.key;
+  const history = tabs.history.filter(entry => entry.type !== 'route' || entry.key === current
+    || !RETIRED.has(tabs.routes.find(route => route.key === entry.key)?.name ?? ''));
+  return history.length === tabs.history.length ? state : { ...tabs, history } as unknown as State;
 }
 
 /**
@@ -61,10 +83,19 @@ export default function TabLayout() {
   const reducedMotion = useSystemReducedMotion();
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
+  const REDIRECT = { ...FULL, animation: 'none' as const };
   return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
+    UNSTABLE_router={original => ({
+      // The redirect leaves a retired route by REPLACE. This tab router's own REPLACE drops the history entry at the
+      // position of the new route's index in `routes`, not the entry of the route being left (with Zadaci second, it
+      // dropped Početna), so leaving a retired route is taken as the jump it is and the retired entry pruned.
+      getStateForAction: (state, action, options) => withoutRetired(original.getStateForAction(state,
+        action.type === 'REPLACE' && RETIRED.has(state.routes[state.index]?.name ?? '') ? { ...action, type: 'JUMP_TO' } : action, options)),
+      getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}
     // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
-    // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). The two exceptions are
-    // `prilike`, a root-like copy of Mapa, and `profil/razgovor`, whose composer gets its keyboard-aware inset first.
+    // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). The one exception is
+    // `profil/razgovor`, whose composer gets its keyboard-aware inset first. (`prilike`, the root-like copy of Mapa that
+    // was the other exception, is a redirect to Zadaci now.)
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
@@ -89,12 +120,15 @@ export default function TabLayout() {
         height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: 4,
         marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
+    <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...FULL }} />
+    {/* Retired as a destination (2026-09-23): nothing links here; a stale deep link still opens it. */}
     <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa' }} />
+    {/* Redirects to Zadaci: they never move and never show the bar for the frame before they hand over. */}
+    <Tabs.Screen name="prilike" options={{ href: null, ...REDIRECT }} />
+    <Tabs.Screen name="mapa" options={{ href: null, ...REDIRECT }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />

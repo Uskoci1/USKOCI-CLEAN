@@ -16,7 +16,8 @@ const missing = (relative: string) => !fs.existsSync(path.join(process.cwd(), re
 describe('PKG-003 one New Task entry, after the manual branch was retired', () => {
   it('sends the New Task control straight into the conversation from both lists', () => {
     const potrebe = source('src/app/(app)/potrebe.tsx');
-    const prilike = source('src/app/(app)/prilike.tsx');
+    // Public discovery is the Zadaci tab since 2026-09-23 (prilike.tsx only redirects there).
+    const prilike = source('src/app/(app)/zadaci.tsx');
 
     expect(potrebe).toContain("router.navigate('/nova')");
     expect(potrebe).not.toContain('novi-zadatak');

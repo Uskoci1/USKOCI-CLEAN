@@ -10,7 +10,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (...args: unknown[]) => mockSwitch(...args) }));
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
-import Public from '../../app/(app)/prilike';
+import Public from '../../app/(app)/zadaci';
 
 let tree: ReactTestRenderer;
 const market = () => tree.root.findByType('Marketplace' as React.ElementType).props;

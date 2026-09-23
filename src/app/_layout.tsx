@@ -80,8 +80,8 @@ export default function RootLayout() {
       const target = record.intent.returnTarget;
       if (!target || target.kind === 'NONE') {
         // What the person chose before signing in is where they go, not what the app becomes:
-        // "Uskoči i zaradi" opens the map, "Objavi zadatak" opens a new task.
-        router.replace(record.intent.intent === 'WORKER' ? '/mapa' : '/nova');
+        // "Uskoči i zaradi" opens Zadaci, "Objavi zadatak" opens a new task.
+        router.replace(record.intent.intent === 'WORKER' ? '/zadaci' : '/nova');
         return;
       }
       if (target.kind === 'REQUESTER_DRAFT') {

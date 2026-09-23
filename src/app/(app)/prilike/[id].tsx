@@ -145,7 +145,7 @@ export default function PrilikaDetaljiEkran() {
       const { agreementId, applicationId } = relation;
       navigate(() => agreementId ? router.navigate({ pathname: '/dogovor/[id]', params: { id: agreementId } })
         : router.navigate({ pathname: '/moje-prijave', params: { prijavaId: applicationId } })); }}
-    back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/mapa'))}
+    back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/zadaci'))}
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}

@@ -12,8 +12,9 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: jest.fn() }));
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
 import Owned from '../../app/(app)/potrebe';
-import Public from '../../app/(app)/prilike';
-import SharedMap from '../../app/(app)/mapa';
+// Discovery is the Zadaci tab since 2026-09-23; /prilike and /mapa only redirect to it (retired-discovery-routes.test).
+import Public from '../../app/(app)/zadaci';
+const SharedMap = Public;
 import { taskRelationIndex } from '../taskRelation';
 const deferred = () => { let resolve!: (rows: any[]) => void; const promise = new Promise<any[]>(done => { resolve = done; }); return { promise, resolve }; };
 let tree: ReactTestRenderer, Component: typeof Owned;
@@ -28,10 +29,10 @@ test.each(['owned', 'public'])('%s uses its existing source read and actual deta
  expect(kind === 'owned' ? mockMine : mockPublic).toHaveBeenCalledTimes(1);
 });
 test('account ABA clears filters and rejects retired data/callbacks even with same account ID', async () => {
- const late = deferred(); mockPublic.mockReturnValueOnce(late.promise); await render(); const old = props(); await act(async () => old.onView({ ...old.view, query: 'old', mode: 'map' }));
+ const late = deferred(); mockPublic.mockReturnValueOnce(late.promise); await render(); const old = props(); await act(async () => old.onView({ ...old.view, query: 'old', mode: 'list' }));
  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update(); mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
  await act(async () => { late.resolve([{ id: 'old' }]); old.onView({ ...old.view, query: 'late' }); old.onOpen({ id: 'old' }); });
- expect(props().items).toEqual([{ id: 'public' }]); expect(props().view.query).toBe(''); expect(props().view.mode).toBe('list'); expect(mockNavigate).not.toHaveBeenCalled();
+ expect(props().items).toEqual([{ id: 'public' }]); expect(props().view.query).toBe(''); expect(props().view.mode).toBe('map'); expect(mockNavigate).not.toHaveBeenCalled();
 });
 test('blur rejects actions and returning focus rereads/reset navigation; old callback remains invalid', async () => {
  await render(); const old = props(); mockFocused = false; await update(); await act(async () => { old.onOpen(old.items[0]); old.onView({ ...old.view, query: 'blurred' }); }); expect(mockNavigate).not.toHaveBeenCalled();

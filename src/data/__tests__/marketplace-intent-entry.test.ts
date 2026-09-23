@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-const source = readFileSync(require.resolve('../../app/(app)/prilike.tsx'), 'utf8');
+// Public discovery is the Zadaci tab since 2026-09-23 (prilike.tsx only redirects there).
+const source = readFileSync(require.resolve('../../app/(app)/zadaci.tsx'), 'utf8');
 
 /**
  * Owner decision 1 (2026-09-19) supersedes owner decision 2 of 2026-09-16 here. That decision said

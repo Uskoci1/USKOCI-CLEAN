@@ -1,16 +1,18 @@
 import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../contracts/projections';
 import { prijava } from '../ui/system/plural';
-import { hasNeedAttention } from './marketplaceView';
+import { hasNeedAttention, ownedTaskCounts, type OwnedTaskCounts } from './marketplaceView';
+import { applicationCounts, type ApplicationCounts } from './myApplicationsView';
 
 /**
- * Početna v1 (owner decision 1, 2026-09-19): what waits for this account, composed on the phone
- * from the three reads that already exist. No mode is consulted:
- * the same account's own tasks, its applications to other people's, and its Dogovori on either
- * side stand next to each other, and each row says what the person is to that thing.
+ * Početna (owner decision 1, 2026-09-19; the overview of the owner's information architecture, 2026-09-23): what
+ * waits for this account, composed on the phone from the three reads that already exist. No mode is consulted: the
+ * same account's own tasks, its applications to other people's, and its Dogovori on either side stand next to each
+ * other. My own tasks and my applications are two front doors, "Moji zadaci" and "Moje prijave", each counted by the
+ * same rule as the list it opens; the preview of their rows ("Moje aktivnosti") is retired.
  *
  * PKG-042 supplies server attention separately. The legacy attention composition stays as the
  * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
- * Activity and upcoming Agreement previews still need complete lists: limiting their reads would lose
+ * The counts and the next Agreement still need complete lists: limiting their reads would lose
  * ordering and totals. Attention integration alone does not make these remaining reads bounded.
  */
 export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable' };
@@ -23,11 +25,12 @@ export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: 
 export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget };
 export type HomeActivityRow = HomeRow & { relation: 'OWNED' | 'APPLIED' };
 type Preview<Row> = { rows: Row[]; more: number };
-/** `partial` keeps what could be read and names what could not; it is never shown as "nothing". */
-export type HomeActivities = HomeSection<Preview<HomeActivityRow>>
-  | { kind: 'partial'; missing: ('needs' | 'applications')[]; value: Preview<HomeActivityRow> };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<Preview<HomeRow>>;
-  activities: HomeActivities; partial: boolean; attentionState?: 'known' | 'unavailable';
+  /** The two front doors. A side that could not be read is unavailable, never zero. */
+  mine: { tasks: HomeSection<OwnedTaskCounts>; applications: HomeSection<ApplicationCounts> };
+  partial: boolean; attentionState?: 'known' | 'unavailable';
+  /** Every read answered and this account has no task, no application, no Dogovor and nothing waiting. */
+  firstRun: boolean;
   /** Completed Dogovori still waiting for this person's rating; 0 when the Dogovori could not be read. */
   ratingsDue: number };
 
@@ -43,7 +46,8 @@ export async function readHomeSection<T>(read: () => Promise<T>): Promise<HomeSe
   } catch { return { kind: 'unavailable' }; } finally { if (timer) clearTimeout(timer); }
 }
 
-const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 2, HOME_ACTIVITY_LIMIT = 5;
+// One next Dogovor (2026-09-23): the rest are one tab away, in Dogovori.
+const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 1;
 
 const activeApplication = (row: MojaPrijavaProjekcija) => ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'].includes(row.stanje);
 const staleApplication = (row: MojaPrijavaProjekcija) => row.stanje === 'STALE_REVIEW_REQUIRED' || row.promenjenaPotreba;
@@ -105,8 +109,8 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
 
-  // Since PKG-023a a Dogovor carries the start of the work, so the two the home shows are the two that
-  // come soonest; the ones with no term yet keep the order the server gave, behind them.
+  // Since PKG-023a a Dogovor carries the start of the work, so the one the home shows is the one that
+  // comes soonest; the ones with no term yet keep the order the server gave, behind them.
   const activeAgreements = (agreements ?? []).filter(activeAgreement)
     .map((row, index) => ({ row, index }))
     .sort((a, b) => {
@@ -117,10 +121,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       return a.index - b.index;
     })
     .map(entry => agreementRow(entry.row));
-  const activityRows = interleave((needs ?? []).filter(row => row.stanje !== 'ZATVORENA').map(needRow),
-    (applications ?? []).filter(activeApplication).map(applicationRow));
-  const preview = { rows: activityRows.slice(0, HOME_ACTIVITY_LIMIT), more: Math.max(0, activityRows.length - HOME_ACTIVITY_LIMIT) };
-  const missing = [...(needs ? [] : ['needs' as const]), ...(applications ? [] : ['applications' as const])];
+  const partial = serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   return {
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
@@ -128,8 +129,10 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     ...(serverAttention ? { attentionState: serverAttention.kind } : {}),
     agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT) } } : { kind: 'unavailable' },
-    activities: missing.length === 2 ? { kind: 'unavailable' } : missing.length ? { kind: 'partial', missing, value: preview } : { kind: 'known', value: preview },
-    partial: serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable'),
+    mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },
+      applications: applications ? { kind: 'known', value: applicationCounts(applications) } : { kind: 'unavailable' } },
+    partial,
+    firstRun: !partial && !attention.length && !needs?.length && !applications?.length && !agreements?.length,
     ratingsDue: (agreements ?? []).filter(ratingDue).length,
   };
 }

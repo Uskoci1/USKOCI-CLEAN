@@ -200,7 +200,7 @@ export default function MojePrijave() {
     } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži Prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
-  const navigate = (path: '/mapa' | '/profil') => { if (current()) router.navigate(path); };
+  const navigate = (path: '/zadaci' | '/profil') => { if (current()) router.navigate(path); };
   const pending = session.pending, visible = current();
   return <MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
@@ -209,7 +209,7 @@ export default function MojePrijave() {
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}
-    onRefresh={refresh} onExplore={() => navigate('/mapa')} onProfile={() => navigate('/profil')}
+    onRefresh={refresh} onExplore={() => navigate('/zadaci')} onProfile={() => navigate('/profil')}
     onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace('/'); } }}
     onReview={p => { if (rowCurrent(p) && idle()) { clearReview(); session.expanded = p.prijavaId; render(v => v + 1); } }}
     onClose={() => { if (current() && !session.pending) { clearReview(); render(v => v + 1); } }} onEdit={p => void edit(p)}

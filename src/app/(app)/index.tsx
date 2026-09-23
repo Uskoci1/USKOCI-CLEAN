@@ -10,8 +10,9 @@ import { HomePresentation } from '../../ui/home/HomePresentation';
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
  * redirect that read a global mode and sent the person to Zadaci or to Prijave. It now answers
- * "what waits for me" from the account-owned server aggregate, with separate activity previews, and
- * offers the two things a person can start. It reads no mode and sets none.
+ * "what waits for me" from the account-owned server aggregate, shows the next Dogovor, counts my own
+ * tasks and my applications from the reads it already makes, and offers the two things a person can
+ * start. It reads no mode and sets none.
  */
 export default function Pocetna() {
   const { user, accountRevision } = useSesija();
@@ -49,10 +50,13 @@ function Home() {
     else if (target.kind === 'AGREEMENT') router.navigate({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
     else router.navigate({ pathname: '/moje-prijave', params: { prijavaId: target.applicationId } });
   });
+  // My own tasks and my applications are reached from here, as two front doors; "Moje aktivnosti" is no longer a
+  // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   return <HomePresentation home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/mapa'))}
+    onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={() => navigate(() => router.navigate('/profil'))} onOpen={open}
-    onAllAgreements={() => navigate(() => router.navigate('/dogovori'))}
-    onAllActivities={() => navigate(() => router.navigate('/moje-aktivnosti'))}
+    onAgreements={() => navigate(() => router.navigate('/dogovori'))}
+    onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
+    onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
     onRefresh={() => { if (current()) void resource.refresh(true); }} />;
 }

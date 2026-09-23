@@ -53,6 +53,17 @@ export function marketplaceItems(items: readonly MarketplaceItem[], view: Market
     return true;
   });
 }
+/**
+ * How many of my own tasks each set of "Moji zadaci" holds, and how many of the active ones wait for my choice among
+ * applications. The list's own filter decides each set, so Početna's "Moji zadaci" row and the screen it opens can
+ * never count differently (owner's information architecture, 2026-09-23).
+ */
+export type OwnedTaskCounts = { total: number; active: number; waiting: number; drafts: number; history: number };
+export function ownedTaskCounts(items: readonly MarketplaceItem[]): OwnedTaskCounts {
+  const count = (section: MarketplaceView['section']) => marketplaceItems(items, { ...initialMarketplaceView(), section }, true).length;
+  return { total: count('all'), active: count('active'), drafts: count('drafts'), history: count('history'),
+    waiting: items.filter(item => isOwnedNeed(item) && hasNeedAttention(item)).length };
+}
 /** IDs and rounded public points only; no titles, accounts, exact locations or other properties enter the map SDK. */
 export function publicFeatures(items: readonly MarketplaceItem[]): GeoJSON.FeatureCollection<GeoJSON.Point, { needId: string }> {
   return { type: 'FeatureCollection', features: items.flatMap(item => {

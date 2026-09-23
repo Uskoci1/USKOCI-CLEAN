@@ -15,7 +15,7 @@ import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
  */
 export type FactArtKind = 'pin' | 'calendar' | 'clock' | 'users' | 'money' | 'remote' | 'bell' | 'phone' | 'map' | 'tasks'
   | 'agreements' | 'offers' | 'person' | 'star' | 'shield' | 'lock' | 'document' | 'chat' | 'check' | 'support' | 'download'
-  | 'info' | 'photo' | 'eye';
+  | 'info' | 'photo' | 'eye' | 'home';
 
 type Tone = { front: string; edge: string; light: string; soft: string };
 const MUTED: Tone = { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB' };
@@ -94,6 +94,12 @@ function drawing(kind: FactArtKind, c: Tone, muted: boolean): ReactNode {
     case 'download': return <>{shadow}<Rect x={3.6} y={19.9} width={24.8} height={8.6} rx={3.8} fill={c.edge}/><Rect x={3.6} y={18.4} width={24.8} height={8.6} rx={3.8} fill={c.front}/>{shine('M7.4 21h4.4')}<Rect x={10} y={22} width={12} height={2} rx={1} fill={c.edge}/>{line('M16 3.4v11.4M10.9 10l5.1 5.1 5.1-5.1', '#35463D', 2.6)}</>;
     case 'info': return <>{shadow}<Circle cx={16} cy={16.8} r={12.3} fill={c.edge}/><Circle cx={16} cy={15.3} r={12.3} fill={c.front}/>{shine('M8.5 10.5a8.8 8.8 0 0 1 4.6-4.4')}<Circle cx={16} cy={9.8} r={1.9} fill="#FFFFFF"/><Rect x={14.4} y={13.1} width={3.2} height={9.4} rx={1.6} fill="#FFFFFF"/></>;
     case 'photo': return <>{shadow}<Path d="M11.2 9.2 12.9 5.8a2.2 2.2 0 0 1 2-1.2h2.2a2.2 2.2 0 0 1 2 1.2L20.8 9.2Z" fill={c.edge}/><Rect x={2.8} y={9.9} width={26.4} height={18.6} rx={4.6} fill={c.edge}/><Rect x={2.8} y={8.4} width={26.4} height={18.6} rx={4.6} fill={c.front}/>{shine('M6.4 11.8h3.6')}<Circle cx={16} cy={17.6} r={5.8} fill="#FFFFFF"/><Circle cx={16} cy={17.6} r={3.2} fill={c.soft} stroke={c.light} strokeWidth={1.1}/><Circle cx={24.6} cy={12.4} r={1.3} fill={c.light}/></>;
+    // Početna's tab (2026-09-23): a green house, its body lifted 1.5 units off a darker base, an overhanging roof in the
+    // edge tone, a white door and one shine down the left slope. Nothing smaller than a door, so it holds at 20 px.
+    case 'home': return <>{shadow}{edge('M5.2 15.9 14.3 8.3a2.6 2.6 0 0 1 3.4 0l9.1 7.6v10.3a3.4 3.4 0 0 1-3.4 3.4H8.6a3.4 3.4 0 0 1-3.4-3.4Z')}
+      {face('M5.2 14.4 14.3 6.8a2.6 2.6 0 0 1 3.4 0l9.1 7.6v10.3a3.4 3.4 0 0 1-3.4 3.4H8.6a3.4 3.4 0 0 1-3.4-3.4Z')}
+      {line('M3.4 14.3 16 4.4l12.6 9.9', c.edge, 2.6)}{shine('M8.4 15.2 12.9 11.4')}
+      <Path d="M13.3 28.1v-8.1a1.7 1.7 0 0 1 1.7-1.7h2a1.7 1.7 0 0 1 1.7 1.7v8.1Z" fill="#FFFFFF" /></>;
     case 'eye': return <>{shadow}<Path d="M2.6 17.5C5.9 11.5 10.6 8.5 16 8.5s10.1 3 13.4 9c-3.3 6-8 9-13.4 9s-10.1-3-13.4-9Z" fill={c.edge}/><Path d="M2.6 16C5.9 10 10.6 7 16 7s10.1 3 13.4 9c-3.3 6-8 9-13.4 9S5.9 22 2.6 16Z" fill={c.front}/>{shine('M7.4 12.2a11.6 11.6 0 0 1 4.2-2.6')}<Circle cx={16} cy={16} r={5.4} fill="#FFFFFF"/><Circle cx={16} cy={16} r={2.7} fill="#35463D"/><Circle cx={17.2} cy={14.8} r={0.9} fill="#FFFFFF"/></>;
   }
 }

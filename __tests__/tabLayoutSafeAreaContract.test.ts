@@ -68,15 +68,16 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     }
   });
   // Owner decision 1 (2026-09-19) supersedes the two intent-shaped shells of 2026-09-16: the same
-  // account owns tasks, applies to others and holds Dogovori on both sides, under one set of tabs.
-  it('exposes Početna, the shared map and Dogovori, in that order, for every account', () => {
-    expect(visible().map((screen) => screen.name)).toEqual(['index', 'mapa', 'dogovori']);
-    expect(visible().map((screen) => screen.options.title)).toEqual(['Početna', 'Mapa', 'Dogovori']);
+  // account owns tasks, applies to others and holds Dogovori on both sides, under one set of tabs. Since the owner's
+  // information architecture of 2026-09-23 the middle tab is Zadaci (it replaced the Mapa tab and the `/prilike` root).
+  it('exposes Početna, Zadaci and Dogovori, in that order, for every account', () => {
+    expect(visible().map((screen) => screen.name)).toEqual(['index', 'zadaci', 'dogovori']);
+    expect(visible().map((screen) => screen.options.title)).toEqual(['Početna', 'Zadaci', 'Dogovori']);
   });
 
-  it('keeps Zadaci, Prijave and every detail route registered and reachable, but not as tabs', () => {
+  it('keeps my tasks, my applications, every detail route and the two retired addresses registered, but not as tabs', () => {
     const { screens } = configuration();
-    for (const name of detailRoutes) {
+    for (const name of [...detailRoutes, 'mapa', 'prilike']) {
       const matches = screens.filter((screen) => screen.name === name);
       expect(matches).toHaveLength(1);
       expect(matches[0].options.href).toBeNull();
@@ -85,14 +86,14 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
 
   it('shows the tab bar only on the three root screens', () => {
     // Owner's master UI/UX directive, 2026-09-23, supersedes the lists of 2026-09-18 and 2026-09-20: a detail, a flow, a
-    // conversation or a setting is "in this job", not in the main menu, so it hides the bar. Two documented exceptions
-    // wait for their own step: prilike (a root-like copy of Mapa) and profil/razgovor (its composer gets a
-    // keyboard-aware bottom inset first).
+    // conversation or a setting is "in this job", not in the main menu, so it hides the bar. One documented exception
+    // waits for its own step: profil/razgovor (its composer gets a keyboard-aware bottom inset first). The other,
+    // prilike (a root-like copy of Mapa), is a redirect to Zadaci since 2026-09-23 and hides the bar like mapa.
     const { screens } = configuration();
     const shown = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
       .tabBarStyle?.display !== 'none').map((screen) => screen.name).sort();
-    expect(shown).toEqual(['dogovori', 'index', 'mapa', 'prilike', 'profil/razgovor']);
-    for (const name of ['potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil', 'profil/obavestenja', 'podrska/index', 'oceni-dogovor', 'raspored']) {
+    expect(shown).toEqual(['dogovori', 'index', 'profil/razgovor', 'zadaci']);
+    for (const name of ['mapa', 'prilike', 'potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil', 'profil/obavestenja', 'podrska/index', 'oceni-dogovor', 'raspored']) {
       const screen = screens.find((candidate) => candidate.name === name)!;
       expect((screen.options as { tabBarStyle?: { display?: string } }).tabBarStyle?.display).toBe('none');
     }

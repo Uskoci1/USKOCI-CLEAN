@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
+// The same rule Početna's "Moje prijave" row counts by (2026-09-23).
+import { applicationSection, type ApplicationSection } from '../../data/myApplicationsView';
 import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { osoba } from '../system/plural';
 import { Press } from '../Press';
@@ -16,16 +18,12 @@ import { brandAction, card, cardCompact, sys, field } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
-export type ApplicationsTab = 'all' | 'attention' | 'active' | 'finished';
+export type ApplicationsTab = 'all' | ApplicationSection;
 export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null; pricing: ApplicationEditPricing };
 const applicationStatus = (state: MojaPrijavaProjekcija['stanje']) => ({
   SUBMITTED: 'Poslata', VIEWED: 'Pregledana', SHORTLISTED: 'U užem izboru', SELECTED: 'Izabrana',
   WITHDRAWN: 'Povučena', CLOSED: 'Zadatak je zatvoren', STALE_REVIEW_REQUIRED: 'Potrebna nova provera',
 })[state];
-function applicationSection(p: MojaPrijavaProjekcija): Exclude<ApplicationsTab, 'all'> {
-  if (p.traziPaznju) return 'attention';
-  return ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(p.stanje) ? 'active' : 'finished';
-}
 const statusTone = (state: MojaPrijavaProjekcija['stanje']) => state === 'STALE_REVIEW_REQUIRED' ? sys.color.warn
   : state === 'SELECTED' || state === 'SHORTLISTED' ? sys.color.green : state === 'WITHDRAWN' || state === 'CLOSED' ? sys.color.muted : sys.color.ink;
 const statusDot = (state: MojaPrijavaProjekcija['stanje']) => state === 'STALE_REVIEW_REQUIRED' ? sys.color.orange

@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
-  mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/mapa');
+  mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
 });
 
 

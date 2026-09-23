@@ -96,7 +96,7 @@ export default function Prijava() {
     session.navigated = true;
     if (router.canGoBack()) router.back();
     else if (id) router.replace({ pathname: '/prilike/[id]', params: { id } });
-    else router.replace('/prilike');
+    else router.replace('/zadaci');
   };
   const submit = async () => {
     const accountId = user?.id;

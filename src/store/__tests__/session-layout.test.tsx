@@ -188,9 +188,9 @@ it('bypasses the decorative intro for an unauthenticated deep route', async () =
   await render();
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
 });
-// "Uskoči i zaradi" leads to the map and "Objavi zadatak" to the conversation: two destinations in the one
+// "Uskoči i zaradi" leads to Zadaci and "Objavi zadatak" to the conversation: two destinations in the one
 // shell, not two modes of it.
-it.each([['WORKER', '/mapa'], ['REQUESTER', '/nova']])('continues the completed %s entry shortcut once, as a destination in the one shell', async (intent, destination) => {
+it.each([['WORKER', '/zadaci'], ['REQUESTER', '/nova']])('continues the completed %s entry shortcut once, as a destination in the one shell', async (intent, destination) => {
   mockConsume.mockResolvedValueOnce({ intent: { intent, returnTarget: { kind: 'NONE' } } });
   await render();
   expect(mockRouter.replace).toHaveBeenCalledWith(destination);
@@ -269,6 +269,6 @@ it('consumes the completed intention after a signed-in native app destination re
   mockSegments.push('(app)');
   await act(async () => tree.update(<RootLayout />));
   expect(mockConsume).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith('/mapa');
+  expect(mockRouter.replace).toHaveBeenCalledWith('/zadaci');
   expect(mockRole).not.toHaveBeenCalled();
 });

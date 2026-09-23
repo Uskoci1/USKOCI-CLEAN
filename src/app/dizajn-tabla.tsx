@@ -18,7 +18,7 @@ import { router } from 'expo-router';
  * It draws every system icon and pictogram at 20, 24, 32, 40 and 48 px, the picker states on a real selector,
  * and the icons inside a real task card, on white and on ivory. Nothing here reads or writes data.
  */
-const SYSTEM: FactArtKind[] = ['pin', 'calendar', 'clock', 'users', 'person', 'money', 'remote', 'map', 'tasks', 'agreements', 'offers',
+const SYSTEM: FactArtKind[] = ['home', 'pin', 'calendar', 'clock', 'users', 'person', 'money', 'remote', 'map', 'tasks', 'agreements', 'offers',
   'chat', 'bell', 'phone', 'star', 'check', 'info', 'shield', 'lock', 'eye', 'document', 'download', 'photo', 'support'];
 const SIZES = [20, 24, 32, 40, 48];
 const GROUPS: [PictogramGroup, string][] = [['vozila', 'Vozila'], ['alat', 'Oprema i alat'], ['usluge', 'Usluge'], ['ljudi', 'Ljudi i kapacitet']];
