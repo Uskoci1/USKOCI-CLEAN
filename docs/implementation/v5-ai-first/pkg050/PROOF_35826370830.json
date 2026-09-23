@@ -128,11 +128,31 @@
     "PKG-007 agreement completion proof": {
       "id": 35826366234,
       "conclusion": "failure",
-      "cause": "see the PKG-007 run; recorded when read"
+      "cause": "same task-detail-screen.test.tsx crash; 242 suites / 4724 tests passed otherwise; fixed in 94380b57"
     }
   },
   "notDone": [
     "Not applied to DEV: waits for the owner's \"primeni pkg050a\".",
     "No phone or emulator has the client half yet; it needs the next APK."
-  ]
+  ],
+  "reprovenOn52ce4cc0": {
+    "PKG-050 agreement messages read proof": {
+      "id": 35827171627,
+      "conclusion": "success"
+    },
+    "PKG-004 need lifecycle proof": {
+      "id": 35827171686,
+      "conclusion": "success"
+    },
+    "PKG-045 public task column privacy proof": {
+      "id": 35827171637,
+      "conclusion": "success"
+    },
+    "PKG-007 agreement completion proof (full regression)": {
+      "id": 35827171604,
+      "conclusion": "success",
+      "totals": "Test Suites: 8 passed, 8 total Tests:       193 passed, 193 total Test Suites: 243 passed, 243 total Tests:       4755 passed, 4755 total"
+    },
+    "note": "52ce4cc0 adds the task-detail suite fix (94380b57) and the conversation name/time nits; the candidate and proof files are byte-identical to 893b8d26."
+  }
 }
