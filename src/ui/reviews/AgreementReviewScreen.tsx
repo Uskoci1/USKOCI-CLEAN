@@ -75,7 +75,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
     });
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar eyebrow="Dogovor" title="Ocena saradnje" onBack={backFromReview} />
+    <DetailTopBar title="Ocena saradnje" onBack={backFromReview} />
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <View accessible accessibilityLabel="Učitavanje ocene"><SkeletonList count={1} rows={3} /></View>
         : receipt ? <View style={s.card}>

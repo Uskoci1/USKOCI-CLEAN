@@ -18,10 +18,14 @@ export function useUrgencyClock(values: readonly (NeedUrgencyProjection | undefi
   return Math.max(now, Date.now());
 }
 
-/** HITNO is a word with a symbol, never a colour alone. */
-export function NeedUrgencyBadge({ urgency }: { urgency?: NeedUrgencyProjection }) {
-  const now = useUrgencyClock([urgency]);
-  if (!displaysUrgent(urgency, now)) return null;
+/**
+ * HITNO is a word with a symbol, never a colour alone. A parent that already decides on HITNO (TaskCard) passes its
+ * own `now`, so both read one clock: two timers could leave one frame where the card kept the row the badge had left.
+ * Without `now` the badge keeps its own clock.
+ */
+export function NeedUrgencyBadge({ urgency, now }: { urgency?: NeedUrgencyProjection; now?: number }) {
+  const own = useUrgencyClock(now === undefined ? [urgency] : []);
+  if (!displaysUrgent(urgency, now ?? own)) return null;
   return <View accessible accessibilityLabel="HITNO" style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4,
     borderRadius: sys.radius.badge, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: sys.color.orangeSoft }}>
     <Lightning size={13} weight="fill" color={sys.color.danger} />

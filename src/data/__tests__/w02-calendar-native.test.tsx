@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
-import { civilClock, civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
+import { civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
 
 let mockFontScale = 1;
 jest.mock('react-native', () => {
@@ -225,7 +225,9 @@ describe('actual agenda screen', () => {
     const [from, to] = (workerCalendarClientService.readRange as jest.Mock).mock.calls[0];
     expect(Date.parse(to)).toBeGreaterThan(Date.parse(from));
     expect(text()).toContain('Nema potvrđenih tačnih termina');
-    expect(text()).toContain('Fleksibilni termini');
+    // Updated deliberately (review of plan step 0, 2026-09-24): the empty day says its scope, since this screen lists
+    // only the work I do, and still points to Dogovori for my own tasks and for flexible terms.
+    expect(text()).toContain('Dogovori za tvoje zadatke i fleksibilni termini su u Dogovorima.');
     // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The editor used to
     // be withheld from a person standing in the other app mode.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(1);
@@ -340,6 +342,41 @@ describe('availability reads the way the rest of the app writes time', () => {
     expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.disabled).toBe(true);
     expect(button('Dodaj — Ponedeljak').props.disabled).toBe(true);
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  // A pull while there were unsaved edits threw them away without asking (review of plan step 0, 2026-09-24): the read
+  // returns a new value and the form resets to it. The pull now does nothing until the edits are saved or discarded.
+  it('refuses a pull while there are unsaved edits, and keeps them', async () => {
+    const onRefresh = jest.fn(), onSave = jest.fn();
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={onSave} onRefresh={onRefresh} />); });
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    const control = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl;
+    expect(control.props.enabled).toBe(false);
+    await act(async () => control.props.onRefresh());
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(text()).toContain('Imaš nesačuvane izmene.');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(true);
+    // Once the edits are discarded, the same pull reads again.
+    await press('Odustani od izmena');
+    const clean = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl;
+    expect(clean.props.enabled).toBe(true);
+    await act(async () => clean.props.onRefresh());
+    expect(onRefresh).toHaveBeenCalledTimes(1); expect(onSave).not.toHaveBeenCalled();
+  });
+
+  // The standing "Osveži dostupnost" button was the only way a screen reader could read the saved state again.
+  it('lets a screen reader reach the same read as an action on the list, never over unsaved edits', async () => {
+    const onRefresh = jest.fn();
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} onRefresh={onRefresh} />); });
+    const list = () => tree.root.findByType('ScrollView' as React.ElementType);
+    expect(list().props.accessibilityActions).toEqual([{ name: 'activate', label: 'Učitaj sačuvano stanje' }]);
+    await act(async () => list().props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    expect(list().props.accessibilityActions).toBeUndefined();
+    await act(async () => list().props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('Imaš nesačuvane izmene.');
   });
 });
 

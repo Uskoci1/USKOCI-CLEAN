@@ -33,8 +33,8 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
     : relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava poslata' : null;
   const quiet = draft || (own && item.stanje === 'ZATVORENA');
   const tone = quiet ? sys.color.muted : sys.color.green;
-  // HITNO counts only until the server's expiry, on the same clock the badge reads: an expired HITNO on a task with no
-  // status drew an empty top row, the badge having already gone.
+  // HITNO counts only until the server's expiry, on the one clock the badge is given below: an expired HITNO on a task
+  // with no status drew an empty top row, the badge having already gone.
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
@@ -53,7 +53,7 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
     style={[s.card, compact && s.compact, disabled && s.disabled]}>
     {status || urgent ? <View style={s.top}>
       {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: tone }]} /><T variant="label" style={[s.status, { color: tone }]}>{status}</T></View> : <View style={s.grow} />}
-      <NeedUrgencyBadge urgency={item.urgency} />
+      <NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} />
     </View> : null}
     {/* Only an amount stands beside the name: it is short and it is what the eye compares down the list.
         A word about money ("Tražim ponude") squeezed the name into three lines on the phone, so it is a fact below. */}

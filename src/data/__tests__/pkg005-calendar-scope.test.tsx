@@ -59,6 +59,9 @@ describe('PKG-005 calendar scope', () => {
     // rule. The scope itself is unchanged: one calendar read, the availability editor, no app mode.
     expect(text()).not.toContain('uskočio');
     expect(text()).not.toContain('oni te ovde ne blokiraju');
+    // The scope is said where it matters instead (review of plan step 0, 2026-09-24): an empty day names the work I do
+    // and sends me to Dogovori for the Dogovori about my own tasks, so it is never untrue for a requester.
+    expect(text()).toContain('Dogovori za tvoje zadatke');
     expect(text()).toContain('Moja dostupnost za rad');
     expect(text()).not.toMatch(/JA MOGU|MENI TREBA/);
     expect(tree.root.findByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toBeTruthy();

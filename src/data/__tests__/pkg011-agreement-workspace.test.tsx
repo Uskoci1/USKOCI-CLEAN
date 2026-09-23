@@ -175,6 +175,51 @@ describe('the rating is offered only while it is not given', () => {
     await render(base({ stanje: 'CANCELLED' }));
     expect(mockReviewContext).not.toHaveBeenCalled();
   });
+  // The read runs before a finished Dogovor first shows, and a read that does not answer changes nothing, so it waits
+  // 5 s, not the 15 s a command gets (review of plan step 0, 2026-09-24).
+  test('a review read that hangs holds a finished Dogovor for 5 s at most, then keeps the rating on offer', async () => {
+    jest.useFakeTimers();
+    try {
+      mockReviewContext.mockReturnValue(new Promise(() => {}));
+      await render(base({ stanje: 'COMPLETED' }));
+      expect(texts()).not.toContain('Dogovor je završen');
+      await act(async () => { jest.advanceTimersByTime(4_999); });
+      expect(texts()).not.toContain('Dogovor je završen');
+      await act(async () => { jest.advanceTimersByTime(1); });
+      expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen');
+    } finally { jest.useRealTimers(); }
+  });
+});
+// A missing agreed amount printed "0 RSD" (plan step 0, 2026-09-23). The database allows only an amount above zero, so an
+// empty or zero amount was never saved, and every Dogovor screen that shows the price says so in words.
+describe('a Dogovor without a saved amount says so and never shows one', () => {
+  const missing = { iznos: 0, valuta: 'RSD', prikaz: '' };
+  test('the overview writes it in words, with no "dogovoreno ukupno" note under it', async () => {
+    await render(base({ cena: missing }));
+    expect(texts()).toContain('Iznos nije sačuvan'); expect(texts()).not.toContain('0 RSD');
+    expect(texts()).not.toContain('dogovoreno ukupno');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: Iznos nije sačuvan' })).toBeTruthy();
+    // The same overview with a saved amount keeps its note, so the check above is about the missing amount only.
+    await act(async () => tree.unmount());
+    await render(base());
+    expect(texts()).toContain('3.000 RSD'); expect(texts()).toContain('dogovoreno ukupno');
+  });
+  test('the summary above Poruke writes it in words too', async () => {
+    mockParams = { id: mockAgreementId, tab: 'poruke' };
+    await render(base({ cena: missing }));
+    const summary = tree.root.findByProps({ accessibilityLabel: 'Pregled uslova Dogovora' });
+    const copy = summary.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join('');
+    expect(copy).toContain('Iznos nije sačuvan'); expect(copy).not.toContain('0 RSD');
+  });
+  test('the completion review writes it as a label, never in the amount style', async () => {
+    await render(base({ cena: missing, radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
+    const modal = tree.root.findByType('Modal' as any);
+    const fact = modal.findAll(node => node.props.label === 'Dogovoreno ukupno' && node.props.prominentAs !== undefined)[0];
+    expect(fact.props.value).toBe('Iznos nije sačuvan'); expect(fact.props.prominentAs).toBe('label');
+    expect(modal.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: Iznos nije sačuvan' })).toBeTruthy();
+    expect(texts()).not.toContain('0 RSD');
+  });
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));

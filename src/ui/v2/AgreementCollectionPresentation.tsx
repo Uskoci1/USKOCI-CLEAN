@@ -14,6 +14,7 @@ import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
 import { brandAction, sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
+import { BEZ_IZNOSA } from '../../lib/novac';
 import { agreementStateText } from './AgreementPresentation';
 import { V2Action } from './V2Action';
 
@@ -107,7 +108,7 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
         {/* A missing amount is said in words and never wears the amount's green. */}
         <View style={s.money}>
           {item.cena.prikaz ? <><T style={s.price}>{item.cena.prikaz}</T><T style={s.priceNote}>dogovoreno ukupno</T></>
-            : <T style={s.noPrice}>Iznos nije sačuvan</T>}
+            : <T style={s.noPrice}>{BEZ_IZNOSA}</T>}
         </View>
       </View>
       <View style={s.minor}>
@@ -185,7 +186,7 @@ export function AgreementCollectionPresentation(props: Props) {
     {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
       : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
         <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve svoje saradnje, i one koje si objavio i one u koje si uskočio.</T>
+        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve svoje saradnje: i za tvoje zadatke i za one u koje uskačeš.</T>
           <V2Action label="Prikaži sve Dogovore" onPress={() => { props.onSection('all'); props.onConfirmationOnly(false); }} /></View>
           : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde.</T>
             <V2Action label="Idi na Početnu" onPress={props.onHome} style={brandAction} /></View>}

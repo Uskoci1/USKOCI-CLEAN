@@ -150,9 +150,17 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     setEditing(rule ?? { id: noviUuidZahtevId(), weekdays: day === undefined ? [] : [day], startTime: '', endTime: '',
       startsOn: zonedParts(new Date(), draft.timezone).date, endsOn: null, label: '', active: true });
   };
+  // A pull reads the saved state again, and the new value resets the form (the effect above). With unsaved edits, a
+  // pull made while scrolling up would throw them away unasked, so it does nothing until they are saved or discarded.
+  // The control stays mounted (removing it re-creates the Android scroll view and loses the position): `enabled`
+  // stops the Android gesture, the check in reload() stops an iOS pull. A screen reader reaches the same read as an
+  // action on the list, since the standing refresh button is gone.
+  const reload = () => { if (!dirty) onRefresh?.(); };
   return <View style={{ flex: 1 }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}
-      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
+      accessibilityActions={onRefresh && !dirty ? [{ name: 'activate', label: 'Učitaj sačuvano stanje' }] : undefined}
+      onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'activate') reload(); }}
+      refreshControl={onRefresh ? <RefreshControl enabled={!dirty} refreshing={refreshing} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
       {/* The screen is already named at its top edge. Repeating the name here, with a second title
           under it, pushed the first weekday past halfway down the screen. */}
       <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>

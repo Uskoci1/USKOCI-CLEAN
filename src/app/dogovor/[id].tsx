@@ -42,12 +42,12 @@ type ProblemWorkspace = DogovorProjekcija & {
   ownRating: OwnRating;
 };
 type CompletionReview = { agreement: ProblemWorkspace; focus: object; readEpoch: number };
-async function bounded<T>(operation: () => Promise<T>): Promise<T> {
+async function bounded<T>(operation: () => Promise<T>, ms = 15_000): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     // Caller timeout does not claim that the server cancelled or rejected a write.
     return await Promise.race([operation(), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('AGREEMENT_REQUEST_UNCONFIRMED')), 15_000);
+      timer = setTimeout(() => reject(new Error('AGREEMENT_REQUEST_UNCONFIRMED')), ms);
     })]);
   } finally { if (timer !== undefined) clearTimeout(timer); }
 }
@@ -106,7 +106,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       // Agreement it describes: a read that fails leaves the rating on offer.
       let ownRating: OwnRating = 'NOT_APPLICABLE';
       if (data.stanje === 'COMPLETED' && data.ucesnici.some(party => party.viSte && party.id === accountId)) {
-        const review = await bounded(() => reviewsClientService.context(id, { accountId, accountRevision })).catch(() => null);
+        // It runs after the workspace read, before the Dogovor first shows; a failed read changes nothing (the rating
+        // stays on offer), so it gets 5 s rather than the 15 s a command gets.
+        const review = await bounded(() => reviewsClientService.context(id, { accountId, accountRevision }), 5_000).catch(() => null);
         if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
         ownRating = !review?.ok ? 'UNKNOWN' : review.podatak.review ? 'GIVEN' : review.podatak.eligible ? 'DUE' : 'CLOSED';
       }

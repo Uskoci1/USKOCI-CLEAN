@@ -41,7 +41,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Posebni datumi</T>
       {p.availability.windows.length?p.availability.windows.map(w=>{const start=zonedParts(new Date(w.startsAt),p.availability.timezone),end=zonedParts(new Date(w.endsAt),p.availability.timezone);
         return <Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'} value={`${start.date} ${start.time} — ${end.date} ${end.time}${w.label?' · '+w.label:''}`} />;}):<T variant="body" style={s.ink}>Nema posebnih datuma.</T>}</View>
-    <T variant="meta" tone="muted">Veštine i licence su podaci koje sam navodiš. Postojeći Dogovori ostaju obaveze. Dostupnost ne uključuje HITNO.</T>
+    <T variant="meta" tone="muted">Veštine i licence navodiš ti. Postojeći Dogovori ostaju obaveze. Dostupnost ne uključuje HITNO.</T>
     {review.missingRequired.length?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>Dopuni: {review.missingRequired.join(', ')}.</T></View>:null}
   </>;
 }

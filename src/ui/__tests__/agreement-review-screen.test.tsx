@@ -25,6 +25,13 @@ const byLabel = (label: string) => tree.root.findByProps({ accessibilityLabel: l
 beforeEach(() => { mockContext.mockReset(); mockSubmit.mockReset(); mockContext.mockResolvedValue(context); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
+// No eyebrow (owner rule, 2026-09-23): the bar is the arrow and the title of the content, not the part of the app.
+test('the top bar names the screen by its content, with no eyebrow over it', async () => {
+  await act(async () => { tree = create(<AgreementReviewScreen agreementId={agreementId} accountId={accountId} accountRevision={0} />); });
+  const bar = tree.root.findByType('DetailTopBar' as React.ElementType);
+  expect(bar.props.title).toBe('Ocena saradnje'); expect(bar.props.eyebrow).toBeUndefined();
+});
+
 test('a star pressed right after the screen settles is selected, and the tag too — with no further render in between', async () => {
   await act(async () => { tree = create(<AgreementReviewScreen agreementId={agreementId} accountId={accountId} accountRevision={0} />); });
   const star = byLabel('Ocena 5 od 5');

@@ -47,8 +47,10 @@ export default function Raspored() {
         </View>
         {/* Seven equal columns that always fit (the seventh day was cut off on the phone, 2026-09-23): no sideways
             scroll, each day one seventh of the row. At a very large font the weekday shrinks to its letter; the
-            spoken label still names it in full. */}
-        <View style={{ flexDirection: 'row', gap: sys.space.xs }}>{days.map((day, index) => {
+            spoken label still names it in full. The gap is 2 so each column is as wide as it can be. A column is
+            (screen width − 40 padding − 6 gaps × 2) / 7 wide: 38.3 dp at 320, 44.0 dp at 360 (sys.touch.min; 42.3
+            with the former gap of 4), 48.3 dp at 390 and 54.0 dp at 430. Every column is sys.touch.min tall or more. */}
+        <View style={{ flexDirection: 'row', gap: sys.space.xs / 2 }}>{days.map((day, index) => {
           const range = localDayRange(day), hasEvents = events.some(event => overlapsInterval(event.startsAt, event.endsAt, range.from, range.to));
           const chosen = selected === day;
           return <Press key={day} accessibilityRole="button" accessibilityLabel={`${weekdays[index].name}, ${displayDate(day)}${day === today ? ', danas' : ''}${hasEvents ? ', ima Dogovor' : ''}`}
@@ -65,7 +67,10 @@ export default function Raspored() {
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
         {error ? <View style={s.note}><T accessibilityRole="alert" tone="danger">{error}</T><Button label="Pokušaj ponovo" onPress={refresh} /></View> : null}
         {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: sys.space.md }]}><FactArt kind="calendar" size={40} />
-          <T variant="heading">Nema potvrđenih tačnih termina</T><T tone="muted">Za ovaj dan nema Dogovora sa potvrđenim početkom i krajem. Fleksibilni termini stoje u Dogovorima.</T></View> : null}
+          <T variant="heading">Nema potvrđenih tačnih termina</T>
+          {/* This screen lists only the work the viewer does. Without the standing disclaimer, "no Dogovor this day" was
+              untrue for someone whose own task has a confirmed Dogovor that day, so the empty day says its scope. */}
+          <T tone="muted">Ovog dana ne radiš ni na jednom Dogovoru sa tačnim terminom. Dogovori za tvoje zadatke i fleksibilni termini su u Dogovorima.</T></View> : null}
         {!error && visible.map(event => {
           const detail = agreements.data?.find(item => item.id === event.agreementId && item.verzija === event.agreementVersion && item.stanje === 'CONFIRMED');
           const fromTime = displayTime(event.startsAt), toTime = displayTime(event.endsAt);
@@ -97,7 +102,7 @@ export default function Raspored() {
       </Press>
       {/* The engine still blocks a person only by the work they agreed to do (owner decision 6). The standing
           disclaimer that said so under the calendar is dropped with the other copy that explained the screen (plan
-          step 0, 2026-09-23); the empty day above still points to Dogovori. */}
+          step 0, 2026-09-23); the empty day above says the scope where it matters and points to Dogovori. */}
     </ScrollView>
   </SafeAreaView>;
 }

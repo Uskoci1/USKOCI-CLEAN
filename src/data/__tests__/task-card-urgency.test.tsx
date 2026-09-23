@@ -18,6 +18,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('phosphor-react-native', () => ({ Lightning: 'Lightning' }));
 import { TaskCard } from '../../ui/v2/TaskCard';
+import { NeedUrgencyBadge } from '../../ui/v2/NeedUrgencyBadge';
 
 const task = (patch: Partial<MarketplaceItem> = {}): MarketplaceItem => ({ id: 'need-1', naslov: 'Pomoć pri selidbi', podrucjeTekst: 'Novi Sad',
   vremeTekst: 'Po dogovoru', uslovi: [], statusTekst: 'Otvoren', rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' },
@@ -43,6 +44,35 @@ it('draws the badge while HITNO holds and drops the row the moment it expires', 
   await act(async () => { jest.advanceTimersByTime(6_000); });
   expect(texts()).not.toContain('HITNO');
   expect(topRow().findAllByType('T' as React.ElementType)[0].props.children).toBe('Pomoć pri selidbi');
+});
+
+// One clock per card (review of plan step 0, 2026-09-24): the card and its badge each ran a timer, which could leave one
+// frame where the row stayed and the badge had gone. The card now hands its clock to the badge.
+it('runs one urgency timer per card and hands that clock to the badge', async () => {
+  const timers = jest.spyOn(global, 'setTimeout');
+  try {
+    await act(async () => { tree = create(<TaskCard item={task({ urgency: { level: 'HITNO', expiresAt: '2026-09-23T10:00:05Z' } })} onOpen={jest.fn()} />); });
+    expect(tree.root.findByType(NeedUrgencyBadge).props.now).toBe(Date.parse('2026-09-23T10:00:00Z'));
+    expect(timers).toHaveBeenCalledTimes(1);
+  } finally { timers.mockRestore(); }
+});
+
+it('a badge given a clock follows it and runs no timer; without one it keeps its own', async () => {
+  const urgency = { level: 'HITNO', expiresAt: '2026-09-23T10:00:05Z' } as const;
+  const timers = jest.spyOn(global, 'setTimeout');
+  try {
+    await act(async () => { tree = create(<NeedUrgencyBadge urgency={urgency} now={Date.parse('2026-09-23T10:00:06Z')} />); });
+    expect(tree.toJSON()).toBeNull();
+    await act(async () => tree.update(<NeedUrgencyBadge urgency={urgency} now={Date.parse('2026-09-23T10:00:04Z')} />));
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'HITNO' }).length).toBeGreaterThan(0);
+    expect(timers).not.toHaveBeenCalled();
+    // The detail screens pass no clock: the badge runs its own, reads 10:00:00 here, and leaves at the expiry.
+    await act(async () => tree.update(<NeedUrgencyBadge urgency={urgency} />));
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'HITNO' }).length).toBeGreaterThan(0);
+    expect(timers).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(6_000); });
+    expect(tree.toJSON()).toBeNull();
+  } finally { timers.mockRestore(); }
 });
 
 it('keeps a status row when there is a status, with or without HITNO', async () => {
