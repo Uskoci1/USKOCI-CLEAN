@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:29:04Z",
+  "osvezeno": "2026-09-23T06:37:27Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "3d294167",
-  "head_poruka": "control: D03 carries the PKG-050 finding and proof",
+  "head": "b7812138",
+  "head_poruka": "PKG-050 receipt: all four proof workflows green on 52ce4cc0",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -5629,11 +5629,43 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35827171686,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "52ce4cc0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:31:45Z"
+  },
+  {
+   "id": 35827171637,
+   "ime": "PKG-045 public task column privacy proof",
+   "sha": "52ce4cc0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:31:45Z"
+  },
+  {
+   "id": 35827171627,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "52ce4cc0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:31:45Z"
+  },
+  {
+   "id": 35827171604,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "52ce4cc0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:31:45Z"
+  },
+  {
    "id": 35826894324,
    "ime": "PKG-007 agreement completion proof",
    "sha": "94380b57",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "cancelled",
    "vreme": "2026-09-23T06:28:15Z"
   },
   {
@@ -5648,8 +5680,8 @@
    "id": 35826892184,
    "ime": "PKG-004 need lifecycle proof",
    "sha": "94380b57",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "cancelled",
    "vreme": "2026-09-23T06:28:14Z"
   },
   {
@@ -5691,38 +5723,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-09-23T06:19:48Z"
-  },
-  {
-   "id": 35826125166,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "619ffb33",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:18:13Z"
-  },
-  {
-   "id": 35826119132,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "35260a9c",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:18:07Z"
-  },
-  {
-   "id": 35826113935,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "ecc5daaa",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:18:04Z"
-  },
-  {
-   "id": 35826113862,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "ecc5daaa",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:18:04Z"
   }
  ]
 }
