@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { brandAction, sys } from '../../ui/system/tokens';
+import { brandAction } from '../../ui/system/tokens';
 // The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -167,7 +167,7 @@ test('a pending change whose content cannot be read still says it exists and lea
 test('the requester reaches the Zadatak this Dogovor grew out of, and is offered no Prijava of their own', async () => {
   await render(base());
   expect(labels()).toContain('Zadatak iz kog je nastao Dogovor');
-  expect(labels()).not.toContain('Ponuda koju si poslao');
+  expect(labels()).not.toContain('Tvoja ponuda');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak iz kog je nastao Dogovor' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: mockNeedId } });
 });
@@ -184,7 +184,7 @@ test.each([
 ])('%s offers no source row instead of one that leads nowhere', async (_label, patch) => {
   await render(base(patch, 'uskocer'));
   expect(labels()).not.toContain('Zadatak iz kog je nastao Dogovor');
-  expect(labels()).not.toContain('Ponuda koju si poslao');
+  expect(labels()).not.toContain('Tvoja ponuda');
   // The rest of the screen is unaffected.
   expect(labels()).toContain('Izmene i otkazivanje Dogovora');
 });

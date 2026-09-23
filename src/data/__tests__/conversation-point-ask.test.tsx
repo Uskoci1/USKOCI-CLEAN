@@ -1,4 +1,5 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { Alert } from 'react-native';
 import type { ConfirmedLocationPoint, NeedLocationReview } from '../../contracts/location';
 import { pointsMissing } from '../../lib/location';
 import { ConversationPointAsk } from '../../ui/location/ConversationPointAsk';
@@ -165,5 +166,24 @@ describe('the conversation point ask', () => {
     const text = tree!.root.findAll(node => String(node.type) === 'T')
       .flatMap(node => node.children.filter((child): child is string => typeof child === 'string')).join(' ');
     expect(text).toContain('Server nije potvrdio mesto.');
+  });
+
+  it('after a failed save the same points can be sent again, and a reload asks before it replaces them', async () => {
+    // Review of 2026-09-23: the failed state had no "Sačuvaj ponovo" (the review was dropped), and its "Pokušaj ponovo"
+    // re-read the server over the pins the person had just placed.
+    mockSave.mockResolvedValueOnce({ ok: false, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED', poruka: 'Server nije potvrdio mesto.' });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    try {
+      await mount();
+      await act(async () => { editor().props.onConfirm(point('start')); });
+      await act(async () => { editor().props.onConfirm(point('end')); });
+      const reads = mockRead.mock.calls.length;
+      await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
+      expect(alert).toHaveBeenCalledWith('Učitaj sačuvano mesto?', expect.any(String), expect.any(Array));
+      expect(mockRead).toHaveBeenCalledTimes(reads);
+      await act(async () => { tree!.root.findByProps({ label: 'Sačuvaj ponovo' }).props.onPress(); });
+      expect(mockSave).toHaveBeenCalledTimes(2);
+      expect(mockSave.mock.calls[1][0].value.resolvedLocation.points).toEqual(mockSave.mock.calls[0][0].value.resolvedLocation.points);
+    } finally { alert.mockRestore(); }
   });
 });

@@ -101,6 +101,9 @@ function connectedCalendar(client,userId){
     // agreed time is shown in.
     '../lib/novac':'src/lib/novac.ts',
     '../lib/dogovorenoVreme':'src/lib/dogovorenoVreme.ts',
+    // The one time format (2026-09-23), imported by the Agreement service and by dogovorenoVreme.
+    '../lib/vreme':'src/lib/vreme.ts',
+    './vreme':'src/lib/vreme.ts',
   };
   const cache=new Map();
   const load=name=>{

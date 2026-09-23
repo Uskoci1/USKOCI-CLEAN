@@ -15,7 +15,9 @@ const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needCli
   'data/calendarErrors', 'data/legacyRpcFailure', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation',
   // Pure modules the read path imports since 2026-09-19 (task relations) and 2026-09-21 (money text).
-  'data/taskRelation', 'lib/novac'];
+  'data/taskRelation', 'lib/novac',
+  // The one time format (2026-09-23): message times on the read path.
+  'lib/vreme'];
 export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {
   const source = Object.fromEntries(modules.map(name => [name, readFileSync(join(sourceRoot, 'src', name + '.ts'), 'utf8')]));
   const cache = new Map();

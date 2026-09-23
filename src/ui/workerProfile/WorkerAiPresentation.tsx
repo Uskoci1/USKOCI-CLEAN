@@ -15,7 +15,7 @@ export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAi
   return <View style={[s.card,compact&&s.cardCompact]}><T variant="meta" style={s.label}>Tvoj radni profil</T>
     <T numberOfLines={compact?1:2} style={s.title}>{profile.skills.length?profile.skills.join(' · '):'Šta možeš da preuzmeš?'}</T>
     <T variant="body" style={s.ink}>{profile.location.city||'Područje rada'}{profile.location.operatingCountryCode?` · ${profile.location.operatingCountryCode}`:''} · {osoba(profile.teamCapacity)}</T>
-    {!compact?<T variant="meta" tone="muted">{profile.location.radiusKm} km · {profile.availability.availableNow?'Dostupan sada':'Dostupnost po rasporedu'} · {plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')}</T>:null}
+    {!compact?<T variant="meta" tone="muted">{profile.location.radiusKm} km · {profile.availability.availableNow?'Mogu odmah':'Dostupnost po rasporedu'} · {plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')}</T>:null}
     <V2Action label="Pregledaj profil" disabled={disabled} onPress={review} kind="quiet" style={s.quietLeft} />
   </View>;
 }
@@ -32,7 +32,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
       <Row label="Broj ljudi, uključujući tebe" value={String(p.teamCapacity)} /><Row label="Kratko predstavljanje" value={p.bio||'Nije navedeno'} />
       <Row label="Područje rada" value={`${p.location.city||'Nije navedeno'}${p.location.operatingCountryCode?' · '+p.location.operatingCountryCode:''} · ${p.location.radiusKm} km`} />
       <T variant="meta" tone="muted">{p.location.approximatePosition?'Približna tačka radnog područja je sačuvana.':'Približna tačka nije uneta. Možeš je podesiti kroz postojeće područje rada.'}</T>
-      <Row label="Dostupnost" value={p.availability.availableNow?'Dostupan sada, dok sam ne promeniš status':'Status „Dostupan sada“ je isključen'} />
+      <Row label="Dostupnost" value={p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'} />
       <T variant="meta" tone="muted">Vremenska zona: {p.availability.timezone}</T>
     </View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Redovna nedelja</T>
@@ -40,7 +40,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
         `${r.startTime}–${r.endTime} · od ${r.startsOn}${r.endsOn?' do '+r.endsOn:''}${r.active?'':' · pauzirano'}${r.label?' · '+r.label:''}`).join('\n')||'Nema redovnih termina'} />)}</View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Posebni datumi</T>
       {p.availability.windows.length?p.availability.windows.map(w=>{const start=zonedParts(new Date(w.startsAt),p.availability.timezone),end=zonedParts(new Date(w.endsAt),p.availability.timezone);
-        return <Row key={w.id} label={w.state==='AVAILABLE'?'Dostupan':'Nedostupan'} value={`${start.date} ${start.time} — ${end.date} ${end.time}${w.label?' · '+w.label:''}`} />;}):<T variant="body" style={s.ink}>Nema posebnih datuma.</T>}</View>
+        return <Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'} value={`${start.date} ${start.time} — ${end.date} ${end.time}${w.label?' · '+w.label:''}`} />;}):<T variant="body" style={s.ink}>Nema posebnih datuma.</T>}</View>
     <T variant="meta" tone="muted">Veštine i licence su podaci koje sam navodiš. Postojeći Dogovori ostaju obaveze. Dostupnost ne uključuje HITNO.</T>
     {review.missingRequired.length?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>Dopuni: {review.missingRequired.join(', ')}.</T></View>:null}
   </>;

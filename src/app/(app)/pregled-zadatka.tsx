@@ -391,7 +391,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
         {editor.uncertain || editor.error || !review ? <V2Action label="Učitaj pregled i proveri ishod" disabled={editor.busy || editor.loading} onPress={refresh} /> : null}
         {/* After the tap there is one way forward at a time — open the published task, publish the
-            saved draft, or go and change it — and that one wears the brand orange; the check of the
+            saved draft, or go and change it — and that one wears the brand green; the check of the
             outcome stands beside it in grey. */}
         {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
           : command ? <>

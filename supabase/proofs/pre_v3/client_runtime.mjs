@@ -17,7 +17,9 @@ const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClient
  'src/lib/calendarTime.ts','src/data/needDetailPresentation.ts','src/ui/calendar/calendarPresentation.ts',
  // Pure formatting helpers the services import since 2026-09-21: money (novac), Serbian plurals, and the
  // one zone an agreed time is shown in (dogovorenoVreme).
- 'src/lib/novac.ts','src/ui/system/plural.ts','src/lib/dogovorenoVreme.ts']);
+ 'src/lib/novac.ts','src/ui/system/plural.ts','src/lib/dogovorenoVreme.ts',
+ // The one time format (vreme, 2026-09-23): agreement, message and schedule text go through it.
+ 'src/lib/vreme.ts']);
 export function loadPreV3Clients({client,session,sourceSha}) {
  assert.equal(typeof client,'function');assert.equal(typeof session,'function');
  assert.match(sourceSha,/^[a-f0-9]{40}$/);

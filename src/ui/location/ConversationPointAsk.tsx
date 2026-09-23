@@ -43,7 +43,7 @@ const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string =>
 
 type State =
   | { kind: 'LOADING' }
-  | { kind: 'FAILED'; message: string }
+  | { kind: 'FAILED'; message: string; review?: NeedLocationReview }
   | { kind: 'READY'; review: NeedLocationReview }
   | { kind: 'SAVING'; review: NeedLocationReview }
   | { kind: 'SAVED' };
@@ -70,7 +70,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   }, [props.conversationId]);
   useEffect(() => { void load(); }, [load]);
 
-  const review = state.kind === 'READY' || state.kind === 'SAVING' ? state.review : null;
+  const review = state.kind === 'READY' || state.kind === 'SAVING' ? state.review : state.kind === 'FAILED' ? state.review ?? null : null;
   const country = review?.value.taskCountryCode ?? null;
   const geography = review?.value.geography ?? null;
   const slots = geography ? locationSlots(geography) : [];
@@ -96,7 +96,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
       },
     });
     if (!alive.current) return;
-    if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka }); return; }
+    if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return; }
     setState({ kind: 'SAVED' });
     props.onSaved();
   }, [props]);
@@ -131,7 +131,11 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
     {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
     {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
-    <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />
+    {points.length
+      ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => Alert.alert('Učitaj sačuvano mesto?',
+        'Tačke koje si potvrdio, a nisu sačuvane, zameniće poslednje sačuvano mesto.',
+        [{ text: 'Odustani', style: 'cancel' }, { text: 'Učitaj', style: 'destructive', onPress: () => { void load(); } }])} />
+      : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />}
     <Button kind="quiet" label="Zatvori" onPress={leave} />
   </View>;
 

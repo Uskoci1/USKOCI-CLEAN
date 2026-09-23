@@ -213,7 +213,7 @@ const s = StyleSheet.create({
   rowIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
   attentionIcon: { width: 40, height: 42, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface },
   calendarIcon: { width: 48, height: 58, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash },
-  agreement: { ...cardCompact, padding: 14 },
+  agreement: { ...cardCompact, padding: 14, borderBottomWidth: 1, borderBottomColor: sys.color.cardLine },
   agreementList: { gap: 10 },
   rowCopy: { flex: 1, minWidth: 0, gap: 4 },
   more: { paddingVertical: 8 },

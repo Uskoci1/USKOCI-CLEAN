@@ -11,7 +11,7 @@ import { T as BaseText } from '../Text';
 import { deviceDate, deviceTime } from './calendarPresentation';
 import { FactArt } from '../system/FactArt';
 
-/** Calendar surfaces on the shared system: ground, white cards, green as orientation, orange as the one brand action. */
+/** Calendar surfaces on the shared system: ground, white cards, green as orientation and as the one brand action. */
 export const calendarStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
@@ -36,7 +36,7 @@ export function CalendarText({ variant = 'body', tone = 'ink', style, ...props }
   return <BaseText {...props} style={[typography, { color }, style]} />;
 }
 const T = CalendarText;
-/** `primary` is the one brand action (orange surface, ink text); the rest map onto V2Action kinds. */
+/** `primary` is the one brand action (green surface, white label); the rest map onto V2Action kinds. */
 export function CalendarAction({ kind = 'primary', full: _full, style, ...props }: ComponentProps<typeof V2Action> & { full?: boolean }) {
   return <V2Action {...props} kind={kind === 'primary' ? 'secondary' : kind}
     style={[kind === 'primary' && brandAction, style]} />;

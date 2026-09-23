@@ -1,6 +1,6 @@
 import { Animated, StyleSheet, View, type DimensionValue } from 'react-native';
 import { useBreath } from './Arrive';
-import { card, sys, cardCompact } from './tokens';
+import { sys, cardCompact } from './tokens';
 
 /** Placeholder that matches the final geometry; the list breathes as one while it waits (V41), never per block. */
 function SkeletonBlock({ width, height, radius = 8 }: { width: DimensionValue; height: number; radius?: number }) {

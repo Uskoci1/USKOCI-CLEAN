@@ -1,4 +1,4 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { elevation, motion, radius, space, touch, type } from '../../theme/tokens';
 
 /**
@@ -81,7 +81,9 @@ export const sys = {
  * V28's measured two-layer shadow (the TaskCard shadow), so every card on every screen lifts the same way. Something
  * inside a card is never another card: it is a flat tint at control radius.
  */
-const cardShadow: ViewStyle = { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
+const cardShadow: ViewStyle = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
+  ? { elevation: 1 } // boxShadow needs Android 9+; minSdk is 24.
+  : { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
   borderColor: sys.color.cardLine, padding: 20, ...cardShadow };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dogovorenoVreme } from '../dogovorenoVreme';
+import { raspon } from '../vreme';
 
 /**
  * An agreed time has to read the same on both phones.
@@ -24,6 +25,24 @@ const NOTE = ' (po vremenu u Srbiji)';
 // so the year rule is deterministic.
 beforeAll(() => { jest.useFakeTimers({ now: new Date('2026-09-23T12:00:00Z') }); });
 afterAll(() => { jest.useRealTimers(); });
+
+describe('a window, spelled once', () => {
+  const zona = 'Europe/Belgrade';
+  it('joins one day, names two days, and writes one time for a single minute', () => {
+    expect(raspon('2026-09-24T10:00:00Z', '2026-09-24T17:00:00Z', { zona })).toBe('24. sep · 12:00–19:00');
+    expect(raspon('2026-09-24T20:00:00Z', '2026-09-25T04:00:00Z', { zona })).toBe('24. sep · 22:00 – 25. sep · 06:00');
+    expect(raspon('2026-09-24T10:00:00.000001Z', '2026-09-24T10:00:00.000009Z', { zona })).toBe('24. sep · 12:00');
+  });
+  it('names both offsets for the hour that repeats when clocks go back (review of 2026-09-23)', () => {
+    // 25 Oct 2026: 00:30Z is 02:30 summer time, 01:30Z is 02:30 winter time. One hour, the same wall clock.
+    expect(raspon('2026-10-25T00:30:00Z', '2026-10-25T01:30:00Z', { zona })).toBe('25. okt · 02:30 (UTC+02:00)–02:30 (UTC+01:00)');
+    expect(raspon('2026-10-25T00:30:00Z', '2026-10-25T01:45:00Z', { zona })).toBe('25. okt · 02:30 (UTC+02:00)–02:45 (UTC+01:00)');
+  });
+  it('an invalid end shows the valid one, and the fallback only when neither is valid', () => {
+    expect(raspon('2026-09-24T10:00:00Z', 'ne-datum', { zona, inace: 'Po dogovoru' })).toBe('24. sep · 12:00');
+    expect(raspon(null, undefined, { zona, inace: 'Po dogovoru' })).toBe('Po dogovoru');
+  });
+});
 
 describe('a time that was agreed', () => {
   it('reads in the task market zone, whatever zone the phone is in', () => {

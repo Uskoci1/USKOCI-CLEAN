@@ -13,7 +13,7 @@ import { V2Action } from '../v2/V2Action';
  * from these pieces, so restyling them here moves the whole family at once.
  * Exports, props and spoken labels are unchanged; native text stays scalable and
  * no row has a fixed height. White screen, one card per group, rows with a 40px
- * icon disc, a 16/600 label and a 14px detail; one orange brand action per screen.
+ * icon disc, a 16/600 label and a 14px detail; one green brand action per screen.
  */
 export function SettingsText({ variant = 'body', tone = 'ink', style, ...props }: ComponentProps<typeof T>) {
   const type = variant === 'display' ? styles.hero : variant === 'title' ? styles.title
@@ -78,7 +78,7 @@ export function SettingsInfo({ title, children, icon, last = false }: { title: s
   </View></View>;
 }
 
-/** `primary` is the screen's one brand action (orange surface, ink text); other kinds map onto V2Action. */
+/** `primary` is the screen's one brand action (green surface, white label); other kinds map onto V2Action. */
 export function SettingsAction({ label, onPress, disabled = false, kind = 'primary', icon, compact = false }: {
   label: string; onPress: () => void; disabled?: boolean; kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode;
   /** A small control beside content (under a photo tile), never for the screen's one brand action. */

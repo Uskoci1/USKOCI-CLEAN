@@ -92,7 +92,7 @@ function OwnedExport() {
     await editor.save(async () => {
       const result = await exports.requestExport(key);
       if (!current()) return changed(); if (!result.ok) return result;
-      if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Učitaj stanje ponovo.');
+      if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
       pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.'); return read();
     });
   };
@@ -101,7 +101,7 @@ function OwnedExport() {
     await editor.save(async () => {
       const result = await exports.prepareExport(request.receiptId);
       if (!current()) return changed(); if (!result.ok) return result;
-      if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Učitaj stanje ponovo.');
+      if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Osveži stanje.');
       if (result.podatak.kind === 'NOT_READY') return { ok: true, podatak: { ...editor.data!, preparation: result.podatak } };
       setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.');
       return read();
@@ -137,7 +137,7 @@ function OwnedExport() {
       bytes = result.podatak;
       if (!sameId(bytes.receiptId, request.receiptId) || !sameId(bytes.artifactGeneration, artifact.artifactGeneration)
         || bytes.byteLength !== artifact.byteLength || bytes.sha256 !== artifact.sha256 || bytes.md5 !== artifact.md5) {
-        requireFileReadback(true); setNotice('Preuzeta kopija nije potvrđena. Učitaj stanje ponovo.'); return;
+        requireFileReadback(true); setNotice('Preuzeta kopija nije potvrđena. Osveži stanje.'); return;
       }
       const saved = await saveDataExportFile({ artifact: bytes, isCurrent: ownedDownload, signal: controller.signal });
       if (!ownedDownload()) return;
@@ -163,7 +163,7 @@ function OwnedExport() {
   const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
   const primary = readyView ? available
     ? <Button label={savingFile ? 'Preuzimanje i čuvanje…' : 'Preuzmi i sačuvaj'} disabled={busy}
-      icon={<DownloadSimple size={20} color={sys.color.ink} />} onPress={() => { void saveFile(); }} />
+      icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
       ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} onPress={() => { void prepare(); }} />
       : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy} onPress={() => { void requestExport(); }} />

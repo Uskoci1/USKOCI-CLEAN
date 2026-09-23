@@ -45,9 +45,26 @@ export function vreme(value: string | number | Date | null | undefined, { zona, 
  * single time when both ends fall in the same minute.
  */
 export function raspon(start: string | Date | null | undefined, end: string | Date | null | undefined, opcije: VremeOpcije = {}): string {
-  const from = vreme(start, { ...opcije, danas: false }), to = vreme(end, { ...opcije, danas: false });
+  const plain = { ...opcije, danas: false, inace: '' };
+  const from = vreme(start, plain), to = vreme(end, plain);
   if (!from || !to) return from || to || opcije.inace || '';
   const [fromDay, fromClock] = from.split(' · '), [toDay, toClock] = to.split(' · ');
+  const a = new Date(start as string | Date).getTime(), b = new Date(end as string | Date).getTime();
+  // A clock change inside the window makes the wall clock lie about it (00:30Z–01:30Z in Belgrade on 25 Oct reads
+  // 02:30–02:30): name both offsets then, as the task schedule does.
+  const zone = opcije.zona ?? zonaTelefona() ?? 'UTC';
+  const [offA, offB] = [pomak(a, zone), pomak(b, zone)];
+  if (offA !== offB) return fromDay === toDay ? `${fromDay} · ${fromClock} (${offA})–${toClock} (${offB})` : `${from} (${offA}) – ${to} (${offB})`;
   if (fromDay !== toDay) return `${from} – ${to}`;
   return fromClock === toClock ? from : `${fromDay} · ${fromClock}–${toClock}`;
+}
+
+/** The zone's UTC offset at an instant, as "UTC+02:00". */
+function pomak(instant: number, zone: string): string {
+  const parts = zonedParts(new Date(instant), zone);
+  const wall = Date.UTC(Number(parts.date.slice(0, 4)), Number(parts.date.slice(5, 7)) - 1, Number(parts.date.slice(8, 10)),
+    Number(parts.time.slice(0, 2)), Number(parts.time.slice(3, 5)), Number(parts.time.slice(6, 8)));
+  const minutes = Math.round((wall - Math.floor(instant / 1000) * 1000) / 60_000);
+  const sign = minutes < 0 ? '−' : '+', abs = Math.abs(minutes);
+  return `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
 }
