@@ -126,3 +126,13 @@ test('the owner cancelling their own Zadatak still lands on that task',async()=>
   await openItem();
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/pregled',params:{id:'actual-need'}}]]);
 });
+
+// The icon says what kind of thing happened: a message is a speech bubble, a completion is a check — seen
+// the other way round on a device on 2026-09-23, because the map went by family alone.
+test('a new message wears the speech bubble and a completion the check, whatever family the server files them under',async()=>{
+  // The phosphor mock renders every glyph as a host element named after itself, so the tree says which icon was drawn.
+  const drawn=(glyph:string)=>tree.root.findAll(node=>String(node.type)===glyph).length;
+  mockState.page.items=[{...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor'},{...item,id:'c',eventType:'EXECUTION_STATE_CHANGED',family:'execution'},{...item,id:'a',eventType:'AGREEMENT_CHANGE_PROPOSED',family:'dogovor'}];
+  mockState.page.unreadCount=3;await render();
+  expect([drawn('ChatCircle'),drawn('CheckCircle'),drawn('Handshake')]).toEqual([1,1,1]);
+});

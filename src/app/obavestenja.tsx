@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { ArrowClockwise, Bell, Check, CaretRight, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText } from 'phosphor-react-native';
+import { ArrowClockwise, Bell, Check, CaretRight, CheckCircle, GearSix, Handshake, ChatCircle, PaperPlaneTilt, ClipboardText, Star } from 'phosphor-react-native';
 import { SvgXml } from 'react-native-svg';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import { useInbox } from '../hooks/useInbox';
@@ -120,7 +120,7 @@ export default function Obavestenja() {
         accessibilityLabel={`${item.readAt?'Pročitano':'Nepročitano'}. ${item.title}. ${item.body}`}
         onPress={()=>void open(item)} style={[styles.item,!item.readAt && styles.unread]}>
         <View style={[styles.itemIcon,!item.readAt && {backgroundColor:sys.color.orangeSoft}]}>{state.acting===item.id?<ActivityIndicator color={sys.color.green}/>:
-          <EventIcon family={item.family} unread={!item.readAt}/>}</View>
+          <EventIcon family={item.family} eventType={item.eventType} unread={!item.readAt}/>}</View>
         <View style={{flex:1,gap:5}}>
           <T style={[styles.body,{color:sys.color.ink,fontWeight:item.readAt?'400':'700'}]}>{item.title}</T>
           <T style={styles.meta}>{item.body}</T>
@@ -142,10 +142,16 @@ export default function Obavestenja() {
  * (20260911183000_clean_pre_v3_inbox_delivery_visibility.sql). This map was keyed to three names it
  * never sends ('agreements', 'messages', 'needs'), so five of the six drew the generic bell and the
  * icon column said nothing. The same six names are already spelled correctly in PushPreferences.
+ *
+ * Two families hide more than one thing. 'dogovor' carries a new message and a received review next
+ * to the Agreement itself, and 'execution' is completion — seen on a device on 2026-09-23 drawing a
+ * speech bubble over "Dogovor je završen" while "Nova poruka" wore a handshake. The event type
+ * decides first, the family after it.
  */
-function EventIcon({family,unread}:{family:string;unread:boolean}) {
-  const Icon = family==='opportunities'?ClipboardText:family==='responses'?PaperPlaneTilt
-    :family==='dogovor'?Handshake:family==='execution'?ChatCircle:family==='recovery'?ArrowClockwise:Bell;
+function EventIcon({family,eventType,unread}:{family:string;eventType:string;unread:boolean}) {
+  const Icon = eventType==='MESSAGE_RECEIVED'?ChatCircle:eventType==='REVIEW_RECEIVED'?Star
+    :family==='opportunities'?ClipboardText:family==='responses'?PaperPlaneTilt
+    :family==='dogovor'?Handshake:family==='execution'?CheckCircle:family==='recovery'?ArrowClockwise:Bell;
   return <Icon size={21} color={unread?sys.color.ink:sys.color.muted}/>;
 }
 
