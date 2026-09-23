@@ -109,10 +109,12 @@ function IntervalEditor({ draft, timezone, close, accept }: {
   </Modal>;
 }
 /** Composer of one application: price for the offered scope, people, optional exact interval, short note, one send. */
-export function ApplicationSelectionPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset }: {
+export function ApplicationSelectionPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked }: {
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
+  /** Why the brand action is grey, said next to it, with the one place that fixes it when there is one. */
+  blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null;
 }) {
   const [editingTime, setEditingTime] = useState(false);
   const [review, setReview] = useState<{ key: string } | null>(null);
@@ -149,6 +151,11 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
       : <BrandAction label="Pregledaj ponudu" onPress={() => {
         if (!disabled && canSubmit && !reviewing) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
       }} disabled={!canSubmit || reviewing} />}
+    {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. */}
+    {!canSubmit && !confirmed && !pending && blocked ? <View style={s.blocked}>
+      <T accessibilityLiveRegion="polite" variant="meta" tone="muted" style={s.center}>{blocked.reason}</T>
+      {blocked.actionLabel && blocked.onAction ? <V2Action kind="quiet" compact label={blocked.actionLabel} onPress={blocked.onAction} /> : null}
+    </View> : null}
   </>}>
     <TaskContext need={opportunity} />
     <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja ponuda</T>
@@ -397,6 +404,8 @@ const s = StyleSheet.create({
   identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
+  center: { textAlign: 'center' },
+  blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
   listHeader: { gap: 14, marginBottom: 14 },
   candidate: { ...card, gap: 12, padding: 18 },
   candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },

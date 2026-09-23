@@ -155,6 +155,11 @@ export default function Prijava() {
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
+    // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
+    blocked={data.profile.stanje !== 'ACTIVE'
+      ? { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil',
+        onAction: () => { if (current()) router.push('/profil/radnik'); } }
+      : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.' } : null}
     submit={submit} back={back} refresh={refresh} reset={reset}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId } }); }} />;
