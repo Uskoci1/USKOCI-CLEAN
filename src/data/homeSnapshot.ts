@@ -27,7 +27,9 @@ type Preview<Row> = { rows: Row[]; more: number };
 export type HomeActivities = HomeSection<Preview<HomeActivityRow>>
   | { kind: 'partial'; missing: ('needs' | 'applications')[]; value: Preview<HomeActivityRow> };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<Preview<HomeRow>>;
-  activities: HomeActivities; partial: boolean; attentionState?: 'known' | 'unavailable' };
+  activities: HomeActivities; partial: boolean; attentionState?: 'known' | 'unavailable';
+  /** Completed Dogovori still waiting for this person's rating; 0 when the Dogovori could not be read. */
+  ratingsDue: number };
 
 const READ_TIMEOUT_MS = 15_000;
 /** One read that fails or hangs costs its own section, never the screen, and never reads as empty. */
@@ -48,6 +50,8 @@ const staleApplication = (row: MojaPrijavaProjekcija) => row.stanje === 'STALE_R
 /** `traziPaznju` is the server's own flag; the phone does not second-guess it, only words it. */
 const needsMe = (row: MojaPrijavaProjekcija) => staleApplication(row) || row.traziPaznju;
 const activeAgreement = (row: DogovorProjekcija) => row.stanje === 'CONFIRMED' || row.stanje === 'AWAITING_REQUESTER';
+/** The same rule the Dogovori list uses for "Čeka tvoju ocenu"; Home must not contradict it. */
+const ratingDue = (row: DogovorProjekcija) => row.stanje === 'COMPLETED' && row.ocenaMoguca;
 /** What I am to a Dogovor comes from that Dogovor's own participants, never from an app-wide mode. */
 const mySide = (row: DogovorProjekcija) => row.ucesnici.find(person => person.viSte)?.uloga ?? null;
 const counterpart = (row: DogovorProjekcija) => row.ucesnici.find(person => !person.viSte)?.ime ?? 'Druga strana';
@@ -126,6 +130,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT) } } : { kind: 'unavailable' },
     activities: missing.length === 2 ? { kind: 'unavailable' } : missing.length ? { kind: 'partial', missing, value: preview } : { kind: 'known', value: preview },
     partial: serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable'),
+    ratingsDue: (agreements ?? []).filter(ratingDue).length,
   };
 }
 

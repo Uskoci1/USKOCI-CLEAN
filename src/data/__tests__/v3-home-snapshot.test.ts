@@ -37,7 +37,16 @@ test('PKG-035: historical totals never substitute for an unknown actionable coun
 describe('Početna v1 — composed from the reads that already exist, with no mode', () => {
   it('an account with nothing has no attention, no rows and no invented numbers', () => {
     expect(composeHome(reads())).toEqual({ attention: [], attentionMore: 0, agreements: known({ rows: [], more: 0 }),
-      activities: known({ rows: [], more: 0 }), partial: false });
+      activities: known({ rows: [], more: 0 }), partial: false, ratingsDue: 0 });
+  });
+
+  it("names the completed Dogovori that still wait for my rating, the same ones Dogovori/Aktivni lists (2026-09-23)", () => {
+    const home = composeHome(reads({ agreements: known([agreement("done-1", "uskocer", { stanje: "COMPLETED", ocenaMoguca: true }),
+      agreement("done-2", "uskocer", { stanje: "COMPLETED", ocenaMoguca: true }), agreement("rated", "uskocer", { stanje: "COMPLETED", ocenaMoguca: false }),
+      agreement("soon", "narucilac")]) }));
+    expect(home.ratingsDue).toBe(2);
+    // A completed Dogovor is not a next one: the scheduled list keeps only the confirmed one.
+    expect(home.agreements).toEqual(known({ more: 0, rows: [expect.objectContaining({ id: "agreement:soon" })] }));
   });
 
   it('holds both sides of one account at once and says on each row what I am to it', () => {

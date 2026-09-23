@@ -11,6 +11,7 @@ import { BrandLockup } from '../entry/BrandAssets';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
+import { plural } from '../system/plural';
 import { HomeIllustration } from './HomeIllustration';
 
 /**
@@ -147,7 +148,13 @@ export function HomePresentation(p: HomePresentationProps) {
             {home.agreements.value.rows.map((row, index) => <Appear key={row.id} index={index} animate={agreements.isNew(row.id)}>
               <Row row={row} onOpen={p.onOpen} kind="agreement" /></Appear>)}
             {home.agreements.value.more > 0 ? <T variant="note" tone="muted" style={s.more}>Još {home.agreements.value.more} aktivnih u listi Dogovora.</T> : null}
-          </View> : <T variant="note" tone="muted" style={s.more}>Nemaš aktivan Dogovor.</T>}
+          </View> : <T variant="note" tone="muted" style={s.more}>Nemaš zakazan Dogovor.</T>}
+        {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing (2026-09-23). */}
+        {home.ratingsDue > 0 ? <Press accessibilityRole="button" onPress={p.onAllAgreements} haptic="select" style={s.ratingsDue}
+          accessibilityLabel={`${dogovoraCekaOcenu(home.ratingsDue)} · otvori Dogovore`}>
+          <View style={s.ratingsDot} />
+          <T variant="note" style={s.ratingsDueText}>{dogovoraCekaOcenu(home.ratingsDue)}</T>
+        </Press> : null}
       </Section> : null}
 
       {home && !nothingYet ? <Section title="Moje aktivnosti" action="Vidi sve" onAction={p.onAllActivities}>
@@ -164,7 +171,17 @@ export function HomePresentation(p: HomePresentationProps) {
   </SafeAreaView>;
 }
 
+
+/** "Jedan završen Dogovor čeka tvoju ocenu" / "2 završena Dogovora čekaju tvoju ocenu". */
+function dogovoraCekaOcenu(count: number): string {
+  return count === 1 ? 'Jedan završen Dogovor čeka tvoju ocenu'
+    : `${count} ${plural(count, 'završen Dogovor čeka', 'završena Dogovora čekaju', 'završenih Dogovora čeka')} tvoju ocenu`;
+}
+
 const s = StyleSheet.create({
+  ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 4 },
+  ratingsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: sys.color.orange },
+  ratingsDueText: { color: sys.color.orange, fontWeight: '600' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 66, paddingHorizontal: 20, paddingVertical: 8,
     width: '100%', maxWidth: 640, alignSelf: 'center' },

@@ -26,11 +26,16 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
       const fraction = /\.(\d+)(?:Z|[+-])/.exec(value!)?.[1];
       const time = parts.time.endsWith(':00') && !fraction?.replace(/0/g, '') ? parts.time.slice(0, 5)
         : parts.time + (fraction ? `.${fraction}` : '');
+      // The end of a day (23:59:59, however many nines follow) is a date, not a time a person meant; a flexible
+      // range that starts at midnight is likewise day-granular. A fixed window keeps every instant it names.
+      const endOfDay = parts.time.startsWith('23:59:59');
+      const dayOnly = endOfDay || (schedule.kind !== 'FIXED_WINDOW' && parts.time === '00:00:00' && !fraction);
+      const dateText = `${displayDate(parts.date)} ${parts.date.slice(0, 4)}`;
       const wall = calendarInstant(`${parts.date}T${parts.time}Z`)!;
       const second = parsed >= 0n ? parsed / 1_000_000n : (parsed - 999_999n) / 1_000_000n;
       const offsetMinutes = Number((wall - second * 1_000_000n) / 60_000_000n);
       const offset = `UTC${offsetMinutes < 0 ? '−' : '+'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
-      return { text: `${displayDate(parts.date)} ${parts.date.slice(0, 4)} · ${time}`, offset, date: parts.date, time };
+      return { text: dayOnly ? dateText : `${dateText} · ${time}`, dateText, dayOnly, endOfDay, offset, date: parts.date, time };
     } catch { return null; }
   };
   const start = instant(schedule.startsAt), end = instant(schedule.endsAt);
@@ -40,8 +45,11 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   // 20. sep 2026 · 09:38:53". The second date says nothing the first did not. The exact instant is
   // kept to the microsecond, because for a Dogovor that is the thing being agreed.
   const sameDay = !!start && !!end && start.date === end.date;
-  const endText = sameDay ? end!.time : end?.text;
-  const range = start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
+  // A whole day is one date; a day that ends at its end says so in words, not in seconds.
+  const wholeDay = sameDay && start!.dayOnly && end!.endOfDay;
+  const endText = end?.endOfDay ? (sameDay ? 'kraj dana' : end.text) : sameDay ? end!.time : end?.text;
+  const range = wholeDay ? start!.dateText
+    : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
   // A zone the reader is already standing in does not need to be named; a different one does.
