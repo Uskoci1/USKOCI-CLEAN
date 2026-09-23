@@ -280,9 +280,13 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
     { ...k(), prijavaId: agreement, ime: 'Ranija ponuda', stanje: 'STALE', mozeIzabrati: false, verzija: 1, potrebaRevizija: 3 }, k(),
   ]);
   await render(Candidates);
+  // PKG-035: the total names every application ever sent; the ones still open to choose are counted apart.
+  expect(text()).toContain('2 prijave · 1 za izbor · još 3 mesta');
   expect(press('Pogledaj ponudu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj ponudu: Milan')).toBeDefined();
   await tap('Pogledaj ponudu: Ranija ponuda'); expect(text()).toContain('Potrebna nova provera');
   expect(press('Pregledaj povezivanje')).toBeUndefined(); expect(press('Izaberi ovu Prijavu')).toBeUndefined();
+  // An offer that cannot be chosen says so and carries the refresh it names, instead of ending there.
+  expect(press('Osveži prijave')).toBeDefined();
   await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); await tap('Izaberi ovu Prijavu');
   expect(mockSelect).toHaveBeenCalledTimes(1); expect(mockSelect.mock.calls[0][0]).toMatchObject({ prijavaId: k().prijavaId, potrebaRevizija: 3 });
 });

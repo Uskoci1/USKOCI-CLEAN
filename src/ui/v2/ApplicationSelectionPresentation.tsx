@@ -59,11 +59,15 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
     {!loading && retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={brandAction} /> : null}
   </View></SelectionFrame>;
 }
-/** The Task the offer belongs to, as a compact context card. */
+/** The Task the offer belongs to, as a compact context card. The green title is the task; no word
+ *  above it says so (owner's rule, 2026-09-23: nothing explains where you are). */
 function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) {
-  return <View style={s.context}><T variant="meta" style={s.eyebrow}>Zadatak</T><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
+  const price = needPriceText(need);
+  // "Tražim ponude" and "Cena nije navedena" are words about a price, never dressed as an amount.
+  const priceIsAmount = need.rezimCene === 'MY_PRICE' && /\d/.test(price);
+  return <View style={s.context}><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
     <T variant="meta" tone="muted">{need.podrucjeTekst}</T><T variant="meta" tone="muted">{need.vremeTekst}</T>
-    <View style={s.row}><T style={[s.contextPrice, need.rezimCene !== 'MY_PRICE' && s.offers]}>{needPriceText(need)}</T>
+    <View style={s.row}><T style={[s.contextPrice, !priceIsAmount && s.offers]}>{price}</T>
       <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} mesta</T></View></View>
   </View>;
 }
@@ -95,7 +99,7 @@ function IntervalEditor({ draft, timezone, close, accept }: {
   return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={close}>
     <SelectionFrame title="Predlog termina" back={close} footer={<BrandAction label="Potvrdi termin" onPress={apply} />}>
       <View style={s.card}>
-        <T variant="meta" style={s.eyebrow}>Vreme bez izmišljanja</T><T accessibilityRole="header" variant="title" style={s.ink}>Ponudi tačan početak i kraj.</T>
+        <T accessibilityRole="header" variant="title" style={s.ink}>Ponudi tačan početak i kraj.</T>
         <T variant="body" tone="muted">{timezone === 'Europe/Belgrade' ? 'Vreme je po vremenu u Srbiji.' : `Vremenska zona: ${timezone}.`} Ovaj predlog pripada tvojoj Prijavi.</T>
       </View>
       <View style={s.card}>
@@ -198,7 +202,7 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     {reviewing ? <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={closeReview}>
       <SelectionFrame title="Pregled ponude" backLabel="Nazad na izmenu ponude" back={closeReview}
         footer={<BrandAction label="Pošalji ovu Prijavu" onPress={confirmReview} send />}>
-        <View style={s.reviewContext}><T variant="meta" style={s.eyebrow}>Zadatak</T>
+        <View style={s.reviewContext}>
           <T style={s.contextTitle}>{readableTitle(opportunity.naslov)}</T>
           <T variant="meta" tone="muted">{opportunity.podrucjeTekst}</T></View>
         <View style={s.card}>
@@ -219,14 +223,21 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     </Modal> : null}
   </SelectionFrame>;
 }
+/** A missing rating reads as missing; the count beside it (reviews, or finished jobs when there are no
+ *  reviews) is the server's real number and is still worth reading. Never an invented figure. */
+function candidateTrustText(k: KandidatProjekcija): string {
+  const count = k.recenzijeTekst.trim();
+  if (k.ocenaTekst === '—') return count ? `Ocena nije dostupna · ${count}` : 'Ocena nije dostupna';
+  return count ? `${k.ocenaTekst} · ${count}` : k.ocenaTekst;
+}
 /** The same public-profile photo follows the person from list to full offer. */
 function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatProjekcija; publicProfile: () => void }) {
   return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={80} initial={candidate.inicijali} />
     <View style={[s.grow, { gap: 3 }]}>
       <T style={s.candidateName}>{candidate.ime}</T>
       {candidate.ocenaTekst !== '—' ? <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
-        <T variant="meta" tone="muted">{candidate.ocenaTekst} · {candidate.recenzijeTekst}</T></View>
-        : <T variant="meta" tone="muted">Ocena nije dostupna</T>}
+        <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T></View>
+        : <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T>}
       <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
     </View></View>;
 }
@@ -245,9 +256,9 @@ function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekc
       <ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
       <View style={s.grow}>
         <T style={s.candidateName}>{k.ime}</T>
-        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">Ocena nije dostupna</T>
+        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">{candidateTrustText(k)}</T>
           : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
-            <T variant="meta" tone="muted">{k.ocenaTekst} · {k.recenzijeTekst}</T></View>}
+            <T variant="meta" tone="muted">{candidateTrustText(k)}</T></View>}
       </View>
       <CaretRight size={20} color={sys.color.muted} />
     </View>
@@ -271,7 +282,7 @@ function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekci
     onPress={open} style={s.comparison}>
     <View style={s.compareIdentity}><ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
       <T variant="bodyStrong" style={s.ink}>{k.ime}</T>
-      <T variant="meta" tone="muted">{k.ocenaTekst === '—' ? 'Ocena nije dostupna' : `${k.ocenaTekst} · ${k.recenzijeTekst}`}</T></View>
+      <T variant="meta" tone="muted">{candidateTrustText(k)}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>
@@ -292,11 +303,16 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
   const appear = useAppear();
   appear.settle(candidates.map(k => k.prijavaId));
+  // PKG-035: the list keeps every application, historical ones included; the ones that can still be
+  // chosen are a different number and are named as such, never mixed into the total.
+  const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
+  const counts = `${prijava(candidates.length)}${candidates.length && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`
+    + ` · još ${plural(need.pokrivenost.preostalo, 'mesto', 'mesta', 'mesta')}`;
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}>
     <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
-        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{prijava(candidates.length)} · još {plural(need.pokrivenost.preostalo, 'mesto', 'mesta', 'mesta')}</T>
+        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{counts}</T>
           {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
       </View>}
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
@@ -375,7 +391,10 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       Izborom prihvataš ovu ponudu: {candidate.cena.prikaz} ukupno, {dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.</T>
       <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.</T></View> : null}
     {confirmed ? <T accessibilityRole="alert" variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
-      : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T> : null}
+      // An offer that cannot be chosen has no brand action; the sentence that says why also carries
+      // the one thing to do about it, instead of naming a refresh that was nowhere on the screen.
+      : !candidate.mozeIzabrati && !pending ? <View style={s.card}><T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T>
+        <V2Action label="Osveži prijave" onPress={refresh} disabled={busy} /></View> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
     <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" safety={safety} />
   </SelectionFrame>;

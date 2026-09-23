@@ -76,6 +76,12 @@ it('material answer rejection directs the owner back to canonical Task edit with
  mockAiRecover.mockResolvedValue(ok(status({type:'ANSWER',questionId:N,state:'REJECTED',outcome:'ALLOW',materiality:'MATERIAL',canCancel:false})));
  await render();expect(button('Vrati se na zadatak radi izmene')).toBeDefined();expect(allText()).toContain('menja uslove zadatka');expect(mockAnswer).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
 });
+it('a grey send button says why, and the reason leaves once the question is written',async()=>{
+ mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();
+ expect(button('Pošalji pitanje')!.props.disabled).toBe(true);expect(allText()).toContain('Upiši pitanje pre slanja.');
+ await type('Da li ima lift?');expect(button('Pošalji pitanje')!.props.disabled).toBe(false);expect(allText()).not.toContain('Upiši pitanje pre slanja.');
+ expect(mockAiSubmit).not.toHaveBeenCalled();
+});
 it('leaving while cancellation awaits a receipt cannot clear newer local state',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));let resolve!:(v:unknown)=>void;
  mockAiCancel.mockReturnValue(new Promise(r=>{resolve=r;}));await render();await act(async()=>button('Odustani od ovog slanja')!.props.onPress());

@@ -7,7 +7,7 @@ import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../
 import { readApplicationCommandState, readExistingApplicationInterval, type ApplicationCommandState } from '../../data/myApplicationsClientService';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
 import { positiveInteger, sameId } from '../../data/serverReceipt';
-import { fixedApplicationPeople, fixedApplicationPrice } from '../../data/needDetailPresentation';
+import { fixedApplicationPeople, fixedApplicationPrice, readableTitle } from '../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -182,7 +182,8 @@ export default function MojePrijave() {
   const withdraw = (p: MojaPrijavaProjekcija) => {
     if (!rowCurrent(p) || !idle()) return;
     const review = session.editRevision;
-    Alert.alert('Povući prijavu?', `Prijava za „${p.naslov}” više neće biti aktivna.`, [
+    // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
+    Alert.alert('Povući prijavu?', `Prijava za „${readableTitle(p.naslov)}” više neće biti aktivna.`, [
       { text: 'Odustani', style: 'cancel' }, { text: 'Povuci', style: 'destructive', onPress: () => {
         if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
       } },

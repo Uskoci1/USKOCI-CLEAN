@@ -15,6 +15,7 @@ import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
 import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions';
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
+import { plural } from '../../../../ui/system/plural';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
@@ -133,7 +134,8 @@ function OwnedNeed({ id }: { id: string }) {
   };
   const zatvoriPreostaluPotragu = () => {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
-    ask('Ne traži više nikoga?', `Zatvorićemo potragu za preostalih ${potreba.pokrivenost.preostalo} mesta. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
+    // "za preostalih 1 mesta" counted the English way; the case follows the number.
+    ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
       'Zatvori potragu', async () => { await editor.save(async () => {
         const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
         closeAttempt.current = attempt;
@@ -185,6 +187,8 @@ function OwnedNeed({ id }: { id: string }) {
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
     error={greska} busy={akcijaUToku || terminalActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
-    onBack={() => navigate(() => router.back())} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
+    // Opened from a notification on a cold start there is nothing behind this screen; the arrow then
+    // lands on the person's own tasks instead of doing nothing.
+    onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'))} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
     onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;
 }

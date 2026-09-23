@@ -111,12 +111,12 @@ export function MyApplicationsPresentation(props: Props) {
         : props.rows.length ? <View style={s.state}><T style={s.stateTitle}>Nema prijava u ovom prikazu</T><T variant="copy" tone="muted">Ostale Prijave su sačuvane u svojim statusima.</T>
           <V2Action label="Prikaži sve prijave" onPress={() => props.onTab('all')} /></View>
           : <View style={s.state}><View style={s.emptyArt}><FactArt kind="offers" size={56} /></View>
-            <T variant="label" style={s.eyebrow}>Tvoje ponude</T>
+            {/* The kicker "Tvoje ponude" only said where you are; the bar already does (owner, 2026-09-23). */}
             <T style={s.stateTitle}>Tvoja sledeća prilika.</T><T variant="copy" tone="muted">Kada se prijaviš na Zadatak, ovde pratiš svoju ponudu i svaki sledeći korak.</T>
             <V2Action label="Istraži zadatke" onPress={props.onExplore} style={brandAction} /></View>}
   </View>;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <DetailTopBar eyebrow="Moje aktivnosti" title="Moje prijave" onBack={props.onBack} />
+    <DetailTopBar title="Moje prijave" onBack={props.onBack} />
     {!props.unavailable && !props.loading ? <Segmented scroll style={s.tabs} value={props.tab} onChange={props.onTab}
       options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention') },
         { key: 'active', label: 'Aktivne', badge: badge('active') }, { key: 'finished', label: 'Završene', badge: badge('finished') }] as const} /> : null}

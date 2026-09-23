@@ -87,7 +87,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               opens their public profile, instead of a green line of text beneath it. */}
           <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'}
             initial={(need.narucilacIme || '?').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}
-            caption={need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : undefined}
+            // A missing rating is said to be missing, as it is for a candidate; a blank line would hide the fact.
+            caption={need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna'}
             photo={publicPhoto?.(need.narucilacProfilId, 72)} onPress={onRequesterProfile} disabled={busy} />
         </View>
       </> : null}

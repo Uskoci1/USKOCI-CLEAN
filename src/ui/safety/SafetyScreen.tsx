@@ -132,6 +132,10 @@ function PrivateReport(context: Context) {
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
       <SettingsAction label={busy ? 'Proveravam prijavu…' : pending ? 'Ponovi isti zahtev' : 'Pošalji privatnu prijavu'}
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
+      {/* A grey button carries its reason (owner's rule); a failed restore already speaks through `error` below. */}
+      {loaded && !busy && !frozen.current && (!category || !reason.trim()) ? <T variant="meta" tone="muted">
+        {!category && !reason.trim() ? 'Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.'
+          : !category ? 'Izaberi kategoriju da bi slanje bilo dostupno.' : 'Upiši kratak razlog da bi slanje bilo dostupno.'}</T> : null}
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}

@@ -196,7 +196,8 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
 
   return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
-      <SettingsIntro title={context?.title??'Razjasni zadatak.'}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
+      {/* The task's own title carries information; the tagline that stood in for it while loading did not (owner, 2026-09-23). */}
+      <SettingsIntro title={context?.title}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
       {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
@@ -213,14 +214,17 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
         <TextInput accessibilityLabel={target?'Tekst odgovora':'Tekst pitanja'} value={text} onChangeText={setText} editable={!busy} multiline textAlignVertical="top" style={input}/>
         {target&&target.needRevision!==context?.needRevision?<T accessibilityRole="alert">Zadatak je izmenjen. Zatvori odgovor i pregledaj aktuelna pitanja pre slanja.</T>:null}
         <SettingsAction label={target?'Objavi odgovor':'Pošalji pitanje'} disabled={busy||!text.trim()||!!target&&target.needRevision!==context?.needRevision} onPress={()=>submit()}/>
+        {/* A grey button says why (owner's rule): the revision case has its alert above; the empty field is the other reason. */}
+        {!busy&&!text.trim()?<T variant="meta" tone="muted">{target?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'}</T>:null}
         {target?<SettingsAction label="Zatvori odgovor" kind="quiet" disabled={busy} onPress={()=>{setTarget(null);setText('');}}/>:null}
       </SettingsPanel>:null}
       {context?.mode==='OWNER'&&pending.length?<><T variant="heading">Čekaju odgovor</T>{pending.map(q=>renderQuestion(q))}</>:null}
       {context?<><T variant="heading">Objavljena pitanja i odgovori</T>{answered.length?answered.map(q=>renderQuestion(q)):<SettingsPanel><T tone="muted">Još nema objavljenih odgovora za ovu verziju zadatka.</T></SettingsPanel>}</>:null}
       {context?.mode==='OWNER'?current.filter(q=>'status'in q&&['IGNORED','REPORTED'].includes(q.status)).map(q=>renderQuestion(q)):null}
       {context?.mode==='OWNER'&&historical.length?<><T variant="heading">Prethodne verzije</T><T tone="muted">Ovi odgovori ne opisuju aktuelne uslove zadatka.</T>{historical.map(q=>renderQuestion(q,true))}</>:null}
-      <View style={{marginVertical:16}}><SettingsAction label="Osveži pitanja i ishod radnje" kind="secondary" disabled={busy} onPress={()=>void run(restore)}/></View>
+      <View style={{marginVertical:sys.space.base}}><SettingsAction label="Osveži pitanja i ishod radnje" kind="secondary" disabled={busy} onPress={()=>void run(restore)}/></View>
     </SettingsScreen>
   </KeyboardAvoidingView>;
 }
-const input={minHeight:120,borderWidth:1,borderColor:sys.color.line,borderRadius:12,padding:14,fontSize:16,lineHeight:24,color:sys.color.ink,backgroundColor:sys.color.surface};
+// Body type and the control radius from the system, not numbers of their own (rule: no raw sizes in screens).
+const input={minHeight:120,borderWidth:1,borderColor:sys.color.line,borderRadius:sys.radius.control,padding:14,...sys.type.body,color:sys.color.ink,backgroundColor:sys.color.surface};

@@ -69,6 +69,16 @@ it('cannot bypass a failed restore with a new command or send after blur', async
   const send = action('Pošalji privatnu prijavu').onPress; mockFocused = false; await act(async () => tree.update(page()));
   await act(async () => send()); expect(mockSafety.report).not.toHaveBeenCalled();
 });
+it('a grey send button carries its reason until a category and a short reason are given', async () => {
+  const copy = () => tree.root.findAll(n => n.type === 'T' as React.ElementType).flatMap(n => n.children.filter(c => typeof c === 'string')).join(' ');
+  await render(); expect(action('Pošalji privatnu prijavu').disabled).toBe(true);
+  expect(copy()).toContain('Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).props.onPress());
+  expect(copy()).toContain('Upiši kratak razlog da bi slanje bilo dostupno.');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' }).props.onChangeText('Privatan razlog'));
+  expect(action('Pošalji privatnu prijavu').disabled).toBe(false); expect(copy()).not.toContain('da bi slanje bilo dostupno');
+  expect(mockSafety.report).not.toHaveBeenCalled();
+});
 it('checks account again after pending local persistence before network I/O', async () => {
   let resolve!: () => void; mockStorage.setItem.mockImplementation(() => new Promise<void>(r => { resolve = r; }));
   await render(); await fill(); await act(async () => action('Pošalji privatnu prijavu').onPress());

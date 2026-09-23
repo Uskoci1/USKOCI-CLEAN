@@ -10,7 +10,7 @@ let mockSession = { user: { id: ACCOUNT }, accountRevision: 1 };
 const mockNeed = jest.fn(), mockSearch = jest.fn(), mockClose = jest.fn(), mockEdit = jest.fn();
 const mockEvaluate = jest.fn(), mockPublish = jest.fn(), mockAlert = jest.fn();
 const mockSource = { potreba: (...args: unknown[]) => mockNeed(...args) };
-const mockRouter = { push: jest.fn(), back: jest.fn() };
+const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(state: string) => void>();
 const mockAppState = { currentState: 'active', addEventListener: (_: string, fn: (state: string) => void) => {
   mockAppListeners.add(fn); return { remove: () => mockAppListeners.delete(fn) };
@@ -242,5 +242,13 @@ describe('V2 saved Need presentation', () => {
     // The link says these are the questions of my own task, so the way back needs no app mode.
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } });
     expect(mockPublish).not.toHaveBeenCalled();
+  });
+  // Opened from a notification on a cold start, the arrow used to call back() into an empty stack and do nothing.
+  it('the arrow with no screen behind it lands on the owner\'s tasks; with one, it goes back', async () => {
+    await render(); const arrow = () => tree.root.findAll(node => node.props?.accessibilityLabel === 'Nazad')[0].props.onPress;
+    mockRouter.canGoBack.mockReturnValueOnce(false); await act(async () => arrow()());
+    expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
+    await act(async () => tree.unmount()); await render(); await act(async () => arrow()());
+    expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   });
 });
