@@ -39,12 +39,15 @@ assert.equal(sql(`select to_regprocedure(${q(TARGET)}) is null`), 't');
 const baselineSurface = surface();
 pass('EXACT_PREDECESSOR_REPLAY_AND_READY_CERTIFICATE');
 
-// Two real people for this run: the one reading a profile, and the one behind it.
+// Two real people for this run: the one reading a profile, and the one behind it. Every account is born
+// with both faces — the auth trigger creates a REQUESTER and a WORKER profile — which is exactly why a
+// block has to follow the person. They start as drafts, so the proof publishes them first.
 const viewer = await rt.actor('pkg047-viewer'), person = await rt.actor('pkg047-person');
-const viewerProfile = randomUUID(), targetProfile = randomUUID();
-const profile = (id, account, kind) => `insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status)
-  values(${q(id)},${q(account)},${q(kind)},'Proof person','Novi Sad','ACTIVE');`;
-sql(profile(viewerProfile, viewer.id, 'WORKER') + profile(targetProfile, person.id, 'REQUESTER'));
+const faces = id => Object.fromEntries(rows(`select kind,id from public.app_profiles where account_id=${q(id)}`).map(r => [r.kind, r.id]));
+const viewerFaces = faces(viewer.id), personFaces = faces(person.id);
+assert.deepEqual(Object.keys(personFaces).sort(), ['REQUESTER', 'WORKER']);
+const viewerProfile = viewerFaces.WORKER, targetProfile = personFaces.REQUESTER, targetOtherFace = personFaces.WORKER;
+sql(`update public.app_profiles set profile_status='ACTIVE' where account_id in (${q(viewer.id)},${q(person.id)})`);
 // Neither account is classified, so both live in the same visibility world; the reader checks that itself.
 assert.equal(sql(`select private.accounts_same_world(${q(viewer.id)},${q(person.id)})`), 't');
 const readTarget = (actor, profileId) => actor.client.rpc('rpc_read_safety_target', {p_profile_id: profileId});
@@ -91,6 +94,10 @@ assert.deepEqual(await ok(viewer.client.rpc('rpc_get_account_block', {p_target_a
   {accountId: viewer.id, targetAccountId: person.id, blocked: false, revision: 0, authoritative: true});
 const back = await ok(readTarget(person, viewerProfile));
 assert.equal(back.targetAccountId, viewer.id); assert.equal(back.accountId, person.id);
+// Both faces of one person resolve to that person: blocking from either reaches the same account.
+const otherFace = await ok(readTarget(viewer, targetOtherFace));
+assert.equal(otherFace.targetAccountId, t.targetAccountId);
+assert.notEqual(otherFace.profileId, t.profileId);
 pass('TARGET_IS_THE_ACCOUNT_BEHIND_THE_PROFILE_AND_AGREES_WITH_THE_BLOCK_READER');
 
 // 6. It resolves exactly what the public profile shows, and never the caller's own account.
@@ -108,11 +115,12 @@ const ownProfile = await publicProfile(person, targetProfile);
 assert.ok(ownProfile && ownProfile.profileId === targetProfile);
 assert.equal(await ok(readTarget(person, targetProfile)), null);
 report.parity.self = {visible: true, target: false};
-// An inactive profile is no target either.
-sql(`update public.app_profiles set profile_status='INACTIVE' where id=${q(targetProfile)}`);
-await sleep(200);
-report.parity.inactive = await parity(viewer, targetProfile, 'inactive');
-assert.equal(report.parity.inactive.target, false);
+// A profile that was never published, and one that was retired, are no targets either.
+for (const status of ['DRAFT', 'INACTIVE']) {
+  sql(`update public.app_profiles set profile_status=${q(status)} where id=${q(targetProfile)}`);
+  report.parity[status.toLowerCase()] = await parity(viewer, targetProfile, status.toLowerCase());
+  assert.equal(report.parity[status.toLowerCase()].target, false);
+}
 sql(`update public.app_profiles set profile_status='ACTIVE' where id=${q(targetProfile)}`);
 pass('RESOLVES_ONLY_WHAT_THE_PUBLIC_PROFILE_SHOWS_NEVER_SELF');
 
