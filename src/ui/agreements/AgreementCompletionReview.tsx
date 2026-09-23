@@ -5,7 +5,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { osoba } from '../system/plural';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -54,6 +54,6 @@ const s = StyleSheet.create({
   content: { padding: 20, gap: 24, paddingBottom: 28 },
   intro: { gap: 12 }, title: { color: sys.color.green }, ink: { color: sys.color.ink },
   terms: { gap: 8 },
-  notice: { padding: 16, gap: 8, borderRadius: sys.radius.card, backgroundColor: sys.color.warnSoft },
+  notice: { ...inset, padding: 16, gap: 8, backgroundColor: sys.color.warnSoft },
   footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line },
 });

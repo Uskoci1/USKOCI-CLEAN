@@ -18,7 +18,7 @@ import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDeta
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, prijava } from '../system/plural';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, cardCompact, sys } from '../system/tokens';
+import { brandAction, card, cardCompact, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
@@ -495,7 +495,7 @@ const s = StyleSheet.create({
   content: { padding: 20, paddingTop: 16, paddingBottom: 28 },
   card: { ...card, gap: 10 },
   cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
-  warnCard: { backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.card, padding: 18, gap: 8 },
+  warnCard: { ...inset, backgroundColor: sys.color.warnSoft, padding: 16, gap: 8 },
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
   context: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, gap: 4 },
   reviewContext: { gap: 4, paddingBottom: 4 },
@@ -539,7 +539,7 @@ const s = StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   shrink: { flexShrink: 1 },
   stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
-  comparison: { ...card, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
+  comparison: { ...cardCompact, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
   comparisonColumn: { flex: 1, minWidth: 0 },
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
   comparePrice: { ...sys.type.priceSmall, color: sys.color.money },

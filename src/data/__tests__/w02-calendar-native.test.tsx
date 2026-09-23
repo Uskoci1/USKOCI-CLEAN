@@ -65,12 +65,12 @@ describe('actual availability editor interactions', () => {
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };
     const onSave = await render(jest.fn(), loaded);
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: loaded.rules, windows: [] });
     expect(text()).not.toContain('Ne uključuje HITNO');
-    await press('O statusu Dostupan sada');
+    await press('O statusu Mogu odmah');
     expect(text()).toContain('Ne uključuje HITNO');
   });
 
@@ -88,7 +88,7 @@ describe('actual availability editor interactions', () => {
     expect(button('Uredi Sreda 09:00:00.123456')).toBeTruthy();
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
     expect(onSave).not.toHaveBeenCalled();
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: [shared], windows: [] });
   });
@@ -99,7 +99,7 @@ describe('actual availability editor interactions', () => {
       for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === 'ScrollView' as React.ElementType) return true;
       return false;
     };
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     expect(insideScroll(button('Sačuvaj dostupnost'))).toBe(false);
     expect(insideScroll(button('Odustani od izmena'))).toBe(false);
     await press('Dodaj — Ponedeljak');
@@ -187,7 +187,7 @@ describe('actual availability editor interactions', () => {
 
   it.each(['busy', 'uncertain'] as const)('blocks an already edited command while %s', async state => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await act(async () => tree.update(<AvailabilityForm availability={loaded} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
     const label = state === 'busy' ? 'Čuvamo unos…' : 'Sačuvaj dostupnost';
     expect(button(label).props.disabled).toBe(true);
@@ -196,15 +196,15 @@ describe('actual availability editor interactions', () => {
 
   it('discard restores the server value without any save', async () => {
     const onSave = await render();
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await press('Odustani od izmena');
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.value).toBe(false);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(false);
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true); expect(onSave).not.toHaveBeenCalled();
   });
   it('accepted idempotent receipt clears dirty edits even if revision is unchanged', async () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(true));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dostupan sada' }).props.onValueChange(false));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(false));
     await press('Sačuvaj dostupnost');
     await act(async () => tree.update(<AvailabilityForm availability={{ ...loaded }} busy={false} uncertain={false} onSave={onSave} />));
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);

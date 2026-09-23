@@ -7,7 +7,7 @@ import { needPriceBasisNote, needScheduleText, readableTitle } from '../../data/
 import { osoba, prijava as prijave } from '../system/plural';
 import { FactArt } from '../system/FactArt';
 import { Press } from '../Press';
-import { sys } from '../system/tokens';
+import { sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
@@ -89,9 +89,7 @@ export const TaskCard = memo(TaskCardBase);
 
 const s = StyleSheet.create({
   // V28 card surface: 21 px corner, #D8DED7 edge and its two-layer green-tinted shadow.
-  card: { backgroundColor: sys.color.surface, borderRadius: 21, borderWidth: 1, borderColor: sys.color.cardLine,
-    paddingHorizontal: 15, paddingTop: 14, paddingBottom: 13,
-    boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' },
+  card: { ...cardCompact, paddingHorizontal: 15, paddingTop: 14, paddingBottom: 13 },
   compact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 11 },
   disabled: { opacity: 0.55 },
   grow: { flex: 1 },

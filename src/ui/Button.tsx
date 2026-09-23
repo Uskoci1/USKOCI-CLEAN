@@ -1,4 +1,4 @@
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { type StyleProp, type ViewStyle } from 'react-native';
 import { Press, type HapticKind } from './Press';
 import { T } from './Text';
 import { radius, space, touch } from '../theme/tokens';
@@ -83,30 +83,3 @@ export function Button({
   );
 }
 
-/** Površina kartice. Odiže se od podloge za 0.087 svetline — vidi se da lebdi. */
-export function Card({
-  children,
-  style,
-  raised,
-}: {
-  children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-  raised?: boolean;
-}) {
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: sys.color.surface,
-          borderRadius: radius.card,
-          borderWidth: 1,
-          borderColor: sys.color.cardLine,
-          overflow: 'hidden',
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
-}

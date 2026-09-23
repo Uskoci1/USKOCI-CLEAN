@@ -7,7 +7,7 @@ import { useReducedMotion } from './motion';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from './tokens';
+import { sys, card, cardCompact } from './tokens';
 
 export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
 /** PKG-047 (F05): the one entry into report/block from a profile. The screen owns the read that turns
@@ -85,12 +85,12 @@ const s = StyleSheet.create({
   topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, warn: { color: sys.color.danger },
   content: { padding: 20, gap: 14, paddingBottom: 32 },
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 10 },
+  card: { ...card, gap: 10 },
   identity: { alignItems: 'center', gap: 8, paddingVertical: 8 },
   avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, overflow: 'hidden', backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   initial: { ...sys.type.monogram, color: sys.color.green },
   trust: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  trustCell: { flexGrow: 1, flexBasis: 0, minWidth: 140, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 16, gap: 4 },
+  trustCell: { ...cardCompact, flexGrow: 1, flexBasis: 0, minWidth: 140, gap: 4 },
   trustWide: { flexBasis: '100%' },
   trustValue: { ...sys.type.price, color: sys.color.ink },
 });

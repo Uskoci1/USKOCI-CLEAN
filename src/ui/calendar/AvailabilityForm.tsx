@@ -96,9 +96,9 @@ function WindowEditor({ window, timezone, close, accept }: {
     <CivilField label="Završni datum izuzetka" mode="date" value={end.date} onChange={value => { setEnd(current => ({ ...current, date: value })); setChangedEnd(true); }} />
     <CivilField label="Kraj izuzetka" mode="time" value={end.time} onChange={value => { setEnd(current => ({ ...current, time: value })); setChangedEnd(true); }} />
     <View style={s.row}>{(['UNAVAILABLE', 'AVAILABLE'] as const).map(option => <Press key={option} accessibilityRole="radio"
-      accessibilityLabel={option === 'AVAILABLE' ? 'Dostupan za rad' : 'Nisam dostupan'} accessibilityState={{ selected: state === option }}
-      onPress={() => setState(option)} style={[s.card, { flexGrow: 1, borderColor: state === option ? sys.color.green : sys.color.line, backgroundColor: state === option ? sys.color.greenSoft : sys.color.surface }]}>
-      <T>{option === 'AVAILABLE' ? 'Dostupan za rad' : 'Nisam dostupan'}</T>
+      accessibilityLabel={option === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto'} accessibilityState={{ selected: state === option }}
+      onPress={() => setState(option)} style={[s.option, { flexGrow: 1, borderColor: state === option ? sys.color.green : sys.color.line, backgroundColor: state === option ? sys.color.greenSoft : sys.color.surface }]}>
+      <T>{option === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto'}</T>
     </Press>)}</View>
     <CalendarField label="Naziv izuzetka (opciono)" value={label} onChange={setLabel} />
     <View style={[s.note, { backgroundColor: sys.color.warnSoft }]}><T variant="meta">Poseban datum ne otkazuje postojeće Dogovore. Potvrđen termin ostaje obaveza.</T></View>
@@ -152,11 +152,11 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           under it, pushed the first weekday past halfway down the screen. */}
       <T tone="muted">{candidateMode ? 'Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.' : 'Odredi kada možeš da uskočiš. Potvrđeni Dogovori ostaju obaveze.'}</T>
       <View style={s.note}>
-        <Toggle label="Dostupan sada" value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
+        <Toggle label="Mogu odmah" value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
         <T variant="meta" tone="muted">{profileDraft
           ? 'Radni profil je nacrt, pa ovaj status još nikome ništa ne govori. Aktiviraj profil da počne da važi.'
           : 'Ručni status · menja se tek kada sačuvaš dostupnost.'}</T>
-        <Press accessibilityRole="button" accessibilityLabel="O statusu Dostupan sada" accessibilityState={{ expanded: showStatusHelp }}
+        <Press accessibilityRole="button" accessibilityLabel="O statusu Mogu odmah" accessibilityState={{ expanded: showStatusHelp }}
           onPress={() => setShowStatusHelp(value => !value)} style={[s.row, { minHeight: 44 }]}>
           <T variant="meta" style={{ flex: 1, fontWeight: '600' }}>Šta znači ovaj status?</T>
           {showStatusHelp ? <CaretUp size={18} color={sys.color.ink} /> : <CaretDown size={18} color={sys.color.ink} />}
@@ -203,7 +203,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         </Press>
         {showWindows ? [...draft.windows].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).map(window => {
           const start = zonedParts(new Date(window.startsAt), draft.timezone), end = zonedParts(new Date(window.endsAt), draft.timezone);
-          return <View key={window.id} style={s.card}><T variant="bodyStrong">{window.state === 'AVAILABLE' ? 'Dostupan za rad' : 'Nisam dostupan'}</T>
+          return <View key={window.id} style={s.item}><T variant="bodyStrong">{window.state === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto'}</T>
             <T>{start.date} · {start.time} → {end.date} · {end.time}</T>{window.label ? <T variant="meta" tone="muted">{window.label}</T> : null}
             <View style={s.row}><Button label={`Uredi izuzetak ${start.date}`} kind="quiet" disabled={blocked} onPress={() => { if (!blocked) setWindowEditor({ value: window }); }} />
               <Button label={`Ukloni izuzetak ${start.date}`} kind="destructive" disabled={blocked} onPress={() => deleteItem('windows', window.id)} /></View>

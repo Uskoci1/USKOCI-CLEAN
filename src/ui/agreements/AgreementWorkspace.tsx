@@ -4,7 +4,7 @@ import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { type EyebrowTone } from '../system/DetailTopBar';
-import { brandAction, card, sys } from '../system/tokens';
+import { brandAction, card, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -76,6 +76,6 @@ const s = StyleSheet.create({
   rowDisabled: { opacity: 0.5 },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
   rowLabel: { color: sys.color.ink },
-  note: { borderRadius: sys.radius.card, padding: 16, gap: 8 },
+  note: { ...inset, padding: 16, gap: 8 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
 });

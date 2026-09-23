@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { sys, card } from '../system/tokens';
 
 type Action = NeedLifecycleCommand['action'];
 type Controller = ReturnType<typeof createNeedLifecycleController>;
@@ -155,6 +155,6 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   </View>;
 }
 /** PKG-011: same controller and copies; a card on the shared system. */
-const s = StyleSheet.create({ panel: { gap: 12, padding: 18, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+const s = StyleSheet.create({ panel: { ...card, gap: 12 },
   title: { ...sys.type.heading, color: sys.color.ink },
   copy: { ...sys.type.note, color: sys.color.muted }, error: { ...sys.type.note, color: sys.color.danger } });

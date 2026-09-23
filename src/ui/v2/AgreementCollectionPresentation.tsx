@@ -12,7 +12,7 @@ import { dogovora, osoba } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
 import { agreementStateText } from './AgreementPresentation';
 import { V2Action } from './V2Action';
@@ -228,7 +228,7 @@ const s = StyleSheet.create({
   stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   // V41 card: white, a hairline edge, a 20px corner and no shadow to speak of. The strip below the facts is
   // clipped to the corner, so the card stays one shape.
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.cardCompact, borderWidth: 1, borderColor: sys.color.cardLine, overflow: 'hidden' },
+  card: { ...cardCompact, padding: 0, overflow: 'hidden' },
   cardAttention: { borderColor: sys.color.orangeHalo },
   main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },

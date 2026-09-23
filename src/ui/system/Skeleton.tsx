@@ -1,6 +1,6 @@
 import { Animated, StyleSheet, View, type DimensionValue } from 'react-native';
 import { useBreath } from './Arrive';
-import { card, sys } from './tokens';
+import { card, sys, cardCompact } from './tokens';
 
 /** Placeholder that matches the final geometry; the list breathes as one while it waits (V41), never per block. */
 function SkeletonBlock({ width, height, radius = 8 }: { width: DimensionValue; height: number; radius?: number }) {
@@ -22,7 +22,7 @@ export function SkeletonList({ count = 3, rows }: { count?: number; rows?: numbe
 }
 
 const s = StyleSheet.create({
-  card: { ...card, gap: 10 },
+  card: { ...cardCompact, gap: 10 },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 14, borderTopWidth: 1, borderTopColor: sys.color.line },
   list: { gap: 12 },
 });

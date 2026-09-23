@@ -11,7 +11,7 @@ import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
 import { Appear, useAppear } from '../ui/system/Appear';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
-import { sys } from '../ui/system/tokens';
+import { sys, cardCompact, inset } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 import { neprocitanih } from '../ui/system/plural';
 import { Segmented } from '../ui/system/Segmented';
@@ -165,10 +165,10 @@ const styles=StyleSheet.create({
   content:{paddingHorizontal:20,paddingTop:6,paddingBottom:28,gap:12,flexGrow:1,width:'100%',maxWidth:640,alignSelf:'center'},
   summary:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
   readAll:{minHeight:44,flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:4},
-  item:{minHeight:96,flexDirection:'row',alignItems:'flex-start',gap:12,padding:16,borderRadius:18,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line},
+  item:{...cardCompact,minHeight:96,flexDirection:'row',alignItems:'flex-start',gap:12},
   unread:{borderColor:sys.color.lineStrong,backgroundColor:sys.color.greenSoft},
   itemIcon:{width:38,height:38,borderRadius:12,backgroundColor:sys.color.greenSoft,alignItems:'center',justifyContent:'center'},
-  notice:{backgroundColor:sys.color.orangeSoft,padding:16,borderRadius:18,gap:8},
+  notice:{...inset,backgroundColor:sys.color.orangeSoft,padding:16,gap:8},
   retry:{minHeight:44,justifyContent:'center',alignSelf:'flex-start'},
   empty:{alignItems:'center',justifyContent:'center',paddingTop:44,paddingHorizontal:12,gap:12},
   kicker:{...sys.type.meta,fontWeight:'600',color:sys.color.green,marginTop:8},

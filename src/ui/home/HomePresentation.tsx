@@ -9,7 +9,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { sys, cardCompact } from '../system/tokens';
 import { plural } from '../system/plural';
 import { HomeIllustration } from './HomeIllustration';
 
@@ -213,7 +213,7 @@ const s = StyleSheet.create({
   rowIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
   attentionIcon: { width: 40, height: 42, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface },
   calendarIcon: { width: 48, height: 58, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash },
-  agreement: { padding: 14, borderWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.cardCompact },
+  agreement: { ...cardCompact, padding: 14 },
   agreementList: { gap: 10 },
   rowCopy: { flex: 1, minWidth: 0, gap: 4 },
   more: { paddingVertical: 8 },

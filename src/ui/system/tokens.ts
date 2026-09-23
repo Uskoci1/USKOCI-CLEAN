@@ -75,10 +75,18 @@ export const sys = {
   elevation,
 } as const;
 
-/** A card resting on the white screen: soft shadow, hairline, 22px corners, 20px padding. */
+/**
+ * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (26px corners, 20px padding);
+ * an item in a list is `cardCompact` (20px corners, 16px padding). Both are white with the cardLine hairline and
+ * V28's measured two-layer shadow (the TaskCard shadow), so every card on every screen lifts the same way. Something
+ * inside a card is never another card: it is a flat tint at control radius.
+ */
+const cardShadow: ViewStyle = { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
-  borderColor: sys.color.cardLine, padding: 20, ...sys.elevation.soft };
+  borderColor: sys.color.cardLine, padding: 20, ...cardShadow };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
+/** A note inside a screen or a card: a flat tint, no border, no shadow. */
+export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 
 /**
  * The one primary action on a screen: green surface with a white label, as V28 and V41 draw it. The owner, looking at

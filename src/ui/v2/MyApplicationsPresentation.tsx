@@ -12,7 +12,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
 import { FactArt } from '../system/FactArt';
-import { brandAction, card, sys } from '../system/tokens';
+import { brandAction, card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
@@ -77,7 +77,7 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, focuse
   onAgreement: () => void; onWithdraw: () => void; onTask: () => void; disabled: boolean;
 }) {
   const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
-  return <View style={[card, s.card, focused && s.focusedCard, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
+  return <View style={[cardCompact, s.card, focused && s.focusedCard, stale && s.attentionCard, p.stanje === 'SELECTED' && s.selectedCard]}>
     {focused ? <T variant="meta" style={s.focusLabel}>Otvorena prijava</T> : null}
     {/* Everything a person reads to recognise the application is one press that opens the Task it
         belongs to. It used to be a small green line of text under the card, easy to miss and the

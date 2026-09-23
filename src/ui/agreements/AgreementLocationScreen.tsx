@@ -7,7 +7,7 @@ import { useSesija,sesijaSada } from '../../store/sesija';
 
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { sys, card } from '../system/tokens';
 import { PermissionRecovery } from '../system/PermissionRecovery';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
@@ -67,4 +67,4 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
 const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},content:{padding:20,paddingBottom:40,gap:16},
   heading:{...sys.type.heading,color:sys.color.ink},
   copy:{...sys.type.body,color:sys.color.muted},
-  group:{gap:12,padding:16,borderRadius:sys.radius.card,borderWidth:1,borderColor:sys.color.line,backgroundColor:sys.color.surface}});
+  group:{...card,gap:12}});

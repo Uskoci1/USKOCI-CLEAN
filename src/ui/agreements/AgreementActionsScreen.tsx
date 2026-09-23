@@ -15,7 +15,7 @@ import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { sys, card, inset } from '../system/tokens';
 import { AgreementActionsController, type AgreementActionsState } from './AgreementActionsController';
 import { journalFor, normalizeAgreementCommand, validProposal, type AgreementActionCommand } from './agreementActionsModel';
 import { novac } from '../../lib/novac';
@@ -166,7 +166,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
           : <V2Action label="Ponovi istu radnju" disabled={!state.canRetry || state.needsReentry} onPress={() => run('retry')} />}
       </View> : state.phase === 'CONFIRMED' || state.phase === 'REJECTED' ? <V2Action label="Prikaži aktuelni Dogovor" onPress={() => run('acknowledge')} />
         : state.phase === 'READY' && snapshot ? <View style={s.form}>
-          {snapshot.proposals.map(proposal => <View key={proposal.proposalId} style={s.form}>
+          {snapshot.proposals.map(proposal => <View key={proposal.proposalId} style={s.proposal}>
             <Terms title={proposal.proposedBy === accountId ? 'Tvoj predlog čeka odgovor' : 'Predlog druge strane'} terms={proposal.terms} />
             {proposal.reason ? <T style={s.copy}>{proposal.reason}</T> : null}
             {snapshot.actions.canRespondChange && proposal.proposedBy !== accountId ? <>
@@ -186,7 +186,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
 const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.ground },   content: { padding: 20, paddingBottom: 32, gap: 16 }, heading: { ...sys.type.heading, color: sys.color.ink, flexShrink: 1 },
   copy: { ...sys.type.copy, color: sys.color.muted }, label: { ...sys.type.meta, color: sys.color.ink },
   error: { ...sys.type.copy, color: sys.color.danger },
-  group: { gap: 8, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  form: { gap: 12, padding: 16, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface }, field: { gap: 6 },
+  group: { ...inset, gap: 8, backgroundColor: sys.color.wash },
+  form: { ...card, gap: 12 }, proposal: { gap: 12, paddingTop: 4 }, field: { gap: 6 },
   input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, padding: 12, backgroundColor: sys.color.surface,
     ...sys.type.body, color: sys.color.ink }, multiline: { minHeight: 100, textAlignVertical: 'top' } });

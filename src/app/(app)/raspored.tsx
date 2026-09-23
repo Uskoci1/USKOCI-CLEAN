@@ -72,7 +72,7 @@ export default function Raspored() {
               <T variant="meta" tone="muted">{toTime}</T><View style={{ width: 1, flex: 1, backgroundColor: sys.color.line, marginTop: sys.space.sm, marginLeft: sys.space.xs }} /></View> : null}
             <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${detail?.naslov || 'sa potvrđenim terminom'}`}
               onPress={() => router.navigate({ pathname: '/dogovor/[id]', params: { id: event.agreementId } })}
-              style={[s.card, { flex: 1, minWidth: 0, backgroundColor: sys.color.greenSoft }]}>
+              style={[s.item, { flex: 1, minWidth: 0 }]}>
               <View style={s.row}><T variant="heading" style={{ flex: 1 }}>{detail?.naslov || 'Potvrđen Dogovor'}</T><CaretRight size={20} color={sys.color.ink} /></View>
               <T variant="meta" tone="muted">{raspon(event.startsAt, event.endsAt)}</T>
               <T variant="meta" tone="success">Potvrđena satnica</T>

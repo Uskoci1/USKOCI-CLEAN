@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { mediaClientService } from '../../data/mediaClientService';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
-import { sys } from '../system/tokens';
+import { sys, card } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { FactArt } from '../system/FactArt';
@@ -18,12 +18,11 @@ export function NeedPhotos({ needId, owned = false }: { needId: string; owned?: 
   const editor = useOwnedEditor(read);
   if (editor.loading && !editor.data) return null;
   if (!editor.data?.photos.length && !editor.error && !owned) return null;
-  if (!editor.data?.photos.length && !editor.error) return <View style={{ gap: 8, backgroundColor: sys.color.surface,
-    borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18 }}>
+  if (!editor.data?.photos.length && !editor.error) return <View style={{ ...card, gap: 8 }}>
     <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T>
     <T variant="note" tone="muted">Nema nijedne. Fotografija pomaže da neko odmah vidi o čemu se radi.</T>
   </View>;
-  return <View style={{ gap: 12, backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18 }}>
+  return <View style={{ ...card, gap: 12 }}>
     {editor.data?.photos.length ? <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T> : null}
     {editor.data?.photos.map((photo, i) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1}`} />)}
     {editor.error ? <><T variant="meta" tone="muted">Fotografije trenutno nisu učitane.</T>

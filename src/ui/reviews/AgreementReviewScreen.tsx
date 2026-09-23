@@ -11,7 +11,7 @@ import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { SuccessMark } from '../system/SuccessMark';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, sys, card } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -143,7 +143,7 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, grow: { flex: 1 },
   content: { padding: 20, gap: 16, flexGrow: 1 },
   intro: { gap: 8, paddingHorizontal: 2 },
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 12 },
+  card: { ...card, gap: 12 },
   stars: { gap: 10, alignItems: 'center', paddingVertical: 6 },
   starRow: { flexDirection: 'row', gap: 6 },
   star: { width: 48, height: 52, alignItems: 'center', justifyContent: 'center' },

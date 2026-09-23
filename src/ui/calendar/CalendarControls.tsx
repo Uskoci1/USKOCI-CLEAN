@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useReducedMotion } from 'react-native-reanimated';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, sys, card, cardCompact } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T as BaseText } from '../Text';
@@ -16,8 +16,10 @@ export const calendarStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
   icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
-  card: { padding: 16, gap: 12, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.card, backgroundColor: sys.color.surface },
+  card: { ...card, gap: 12 }, item: { ...cardCompact, gap: 8 },
   note: { padding: 16, gap: 8, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
+  // A choice is an option row, not a card: the same control the price filter uses.
+  option: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   input: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1,
     borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface },

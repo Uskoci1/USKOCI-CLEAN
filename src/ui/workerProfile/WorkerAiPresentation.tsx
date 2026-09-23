@@ -4,7 +4,7 @@ import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
-import { sys } from '../system/tokens';
+import { sys, card, inset } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { weekdays, zonedParts } from '../calendar/calendarPresentation';
 import { osoba, plural } from '../system/plural';
@@ -82,14 +82,14 @@ export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;
 }
 const s=StyleSheet.create({
   ink:{color:sys.color.ink},
-  card:{padding:18,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,gap:6,borderWidth:1,borderColor:sys.color.cardLine,...sys.elevation.soft},
-  cardCompact:{padding:12,borderRadius:sys.radius.card-4},
+  card:{...card,gap:6},
+  cardCompact:{padding:12,borderRadius:sys.radius.cardCompact},
   title:{...sys.type.cardTitle,color:sys.color.ink},label:{color:sys.color.green,fontWeight:'600'},
-  section:{gap:10,padding:20,borderRadius:sys.radius.card,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.cardLine,...sys.elevation.soft},
+  section:{...card,gap:10},
   row:{gap:3,paddingVertical:8,borderBottomWidth:1,borderColor:sys.color.line},
   notice:{padding:14,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
   input:{...sys.type.body,color:sys.color.ink,borderWidth:1,borderColor:sys.color.lineStrong,borderRadius:sys.radius.control,paddingHorizontal:12,paddingVertical:11,minHeight:48,backgroundColor:sys.color.surface},
   multiline:{minHeight:96,textAlignVertical:'top'},
-  activation:{padding:16,borderRadius:sys.radius.card,backgroundColor:sys.color.orangeSoft,flexDirection:'row',gap:12,alignItems:'center'},
+  activation:{...inset,padding:16,backgroundColor:sys.color.orangeSoft,flexDirection:'row',gap:12,alignItems:'center'},
   quietLeft:{alignSelf:'flex-start',paddingHorizontal:0},
 });
