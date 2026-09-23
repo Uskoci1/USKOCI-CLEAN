@@ -137,8 +137,10 @@ describe('D03 actual message component', () => {
   });
   it('terminal state blocks new text/send but leaves unknown-intent retry', async () => {
     await render({ terminal: true, writable: false, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
-    expect(button('Napiši poruku').props.editable).toBe(false);
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
+    // A finished Dogovor draws no field and no send at all (owner, 2026-09-23); the one line says it is read-only.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
     expect(texts()).toContain('samo za čitanje');
     await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);

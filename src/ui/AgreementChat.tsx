@@ -156,12 +156,14 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       <View style={s.composerArea}>
         {state.error && <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T>}
         {state.phase === 'error' && <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} />}
-        {terminal && <T variant="meta" tone="muted">Dogovor je zatvoren; poruke su samo za čitanje.</T>}
+        {/* A finished Dogovor keeps its conversation to read; the composer, the photo tools and the refresh helper
+            used to stay under it, a third of the screen with nothing to do (emulator, 2026-09-23). One line remains. */}
+        {terminal && <T variant="meta" tone="muted" style={s.center}>Dogovor je završen · poruke su samo za čitanje.</T>}
         {!terminal && !writable && <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T>}
-        {(!writable || denied) && <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} />}
-        {length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T>}
-        {photos ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
-        <View style={[s.composer, !writable && s.composerLocked]}>
+        {!terminal && (!writable || denied) && <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} />}
+        {!terminal && length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T>}
+        {photos && !terminal ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
+        {terminal ? null : <View style={[s.composer, !writable && s.composerLocked]}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted} style={s.input} />
           <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
@@ -169,7 +171,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             style={[s.send, canSend && s.sendReady]}>
             <PaperPlaneTilt size={22} color={canSend ? sys.color.surface : sys.color.muted}  weight="fill" />
           </Press>
-        </View>
+        </View>}
       </View>
     </View>
   );
