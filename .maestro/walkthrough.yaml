@@ -1,0 +1,93 @@
+# USKOČI read-only device walkthrough
+#
+# Walks the app on a real, already signed-in phone and photographs each screen. It never writes:
+# no offer is sent, no Dogovor is changed, nobody is blocked or reported, no message leaves, and the
+# inbox is only read — "Označi sve kao pročitano" is a button this flow does not press.
+# A signed-out phone stops at the entry screen, which is a legitimate outcome, not a failure.
+#
+# Selectors are the accessibility labels the screens already carry. On Android those arrive as the
+# view's content description, which Maestro matches with "text" and not with "id", because the header
+# is icons and a card is named by what it opens rather than by whose Dogovor it is.
+#
+# Prerequisites: rs.uskoci.dev installed from the commit under test; adb sees the device.
+
+appId: rs.uskoci.dev
+---
+- launchApp:
+    clearState: false
+- takeScreenshot: 01-start
+
+- runFlow:
+    when:
+      visible: "Prijavi se"
+    commands:
+      - takeScreenshot: 01a-entry-signed-out
+
+# ── Početna ────────────────────────────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Početna"
+    optional: true
+- takeScreenshot: 02-pocetna
+- scroll
+- takeScreenshot: 03-pocetna-nize
+
+# ── Mapa / Lista prilika ───────────────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Mapa"
+    optional: true
+- takeScreenshot: 04-mapa
+- tapOn:
+    text: "Lista"
+    optional: true
+- takeScreenshot: 05-lista-prilika
+
+# ── Dogovori ───────────────────────────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Dogovori"
+    optional: true
+- takeScreenshot: 06-dogovori-aktivni
+- tapOn:
+    text: "Svi"
+    optional: true
+- takeScreenshot: 07-dogovori-svi
+
+# A card names the Dogovor it opens ("Otvori Dogovor <naslov>"), so the first one can be opened
+# without knowing whose account this is. Opening it changes nothing.
+- tapOn:
+    text: "Otvori Dogovor.*"
+    optional: true
+- takeScreenshot: 08-dogovor-pregled
+- scroll
+- takeScreenshot: 09-dogovor-radnje
+
+# PKG-048: the two rows that say where this Dogovor came from. Present only on a build whose server
+# carries the links, so the assertion is optional and the picture is the evidence either way.
+- assertVisible:
+    text: "Zadatak iz kog je nastao Dogovor"
+    optional: true
+- takeScreenshot: 10-dogovor-izvor
+
+- tapOn:
+    text: "Poruke"
+    optional: true
+- takeScreenshot: 11-dogovor-poruke
+- back
+- back
+
+# ── Obaveštenja (zvono u zaglavlju) ────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Obaveštenja,.*"
+    optional: true
+- takeScreenshot: 12-obavestenja
+- back
+
+# ── Profil (nalog u zaglavlju) ─────────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Početna"
+    optional: true
+- tapOn:
+    text: "Moj profil"
+    optional: true
+- takeScreenshot: 13-profil
+- scroll
+- takeScreenshot: 14-profil-nize
