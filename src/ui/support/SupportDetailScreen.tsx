@@ -118,6 +118,9 @@ function DetailActions({ model, detail }: { model: ReturnType<typeof useSupportC
       </SettingsGroup> : null}
       <SupportField label={deciding ? 'Obrazloženje' : form === 'APPEAL' ? 'Razlog i nove činjenice' : 'Tekst poruke'} value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
       <SettingsAction label={form === 'APPEAL' ? 'Pošalji zahtev za ponovni pregled' : deciding ? 'Sačuvaj odluku' : 'Pošalji poruku'} disabled={disabled || !valid} onPress={submit} />
+      {/* The reason the button is grey, written beside it (owner rule, 2026-09-23). */}
+      {!disabled && !valid ? <T variant="note" tone="muted">{!body.trim() ? (deciding ? 'Unesi obrazloženje pre čuvanja odluke.' : 'Unesi tekst pre slanja.')
+        : Array.from(body).length > 4000 ? 'Skrati tekst do 4000 znakova.' : 'Oznaka razloga: velika slova, brojevi i donja crta, do 64 znaka.'}</T> : null}
       <SettingsAction label="Zatvori unos" kind="quiet" disabled={disabled} onPress={() => { if (current()) { setForm(null); setBody(''); setReason(''); } }} />
     </SettingsPanel> : null}
     {allowed('CLOSE') ? <SettingsAction label="Zatvori obrađeni predmet" kind="quiet" disabled={disabled}

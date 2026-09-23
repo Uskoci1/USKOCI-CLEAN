@@ -29,16 +29,14 @@ export default function PushSettings() {
  }
  return <SafeAreaView style={s.screen} edges={['top']}>
   <Stack.Screen options={{ headerShown: false }} />
-  <DetailTopBar backLabel="Nazad na profil" eyebrow="Profil" title="Podešavanja obaveštenja" onBack={back} />
+  <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={back} />
   <View style={s.sets}><Segmented options={SETS} value={role} onChange={setRole} /></View>
   <ScrollView contentContainerStyle={s.content}><PushPreferences key={role} role={role} /></ScrollView>
   <View style={s.footer}><T style={s.caption}>{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Obaveštenja o poslovima na koje se prijavljuješ.'}</T></View>
  </SafeAreaView>;
 }
 const s = StyleSheet.create({
- screen: { flex: 1, backgroundColor: sys.color.ground }, sets: { paddingHorizontal: 24, paddingTop: 8 },
- header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
- back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
- title: { ...sys.type.title, color: sys.color.ink }, content: { padding: 24, paddingBottom: 32 },
+ screen: { flex: 1, backgroundColor: sys.color.ground }, sets: { paddingHorizontal: 20, paddingTop: 8 },
+ content: { padding: 20, paddingBottom: 32 },
  footer: { padding: 18, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface }, caption: { ...sys.type.meta, color: sys.color.muted },
 });

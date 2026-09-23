@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
-import { brandAction, card, iconButton, sys } from '../system/tokens';
-import { nested } from '../../theme/tokens';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -54,13 +53,16 @@ export function SettingsGroup({ title, children }: { title: string; children: Re
   </View>;
 }
 
-export function SettingsRow({ label, detail, icon, onPress, disabled = false, last = false }: {
+export function SettingsRow({ label, detail, icon, onPress, disabled = false, last = false, compact = false }: {
   label: string; detail?: string; icon?: ReactNode; onPress: () => void; disabled?: boolean; last?: boolean;
+  /** A row for something needed once in a long while (legal, export, the blocked list): lower, with no icon
+   *  disc, so it does not compete with the rows a person opens every day (owner rule, 2026-09-23). */
+  compact?: boolean;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail} disabled={disabled}
     accessibilityState={{ disabled }} onPress={onPress} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
-    style={[styles.row, last && styles.last, disabled && styles.disabled]}>
-    {icon ? <View style={styles.rowIcon}>{icon}</View> : null}<View style={styles.rowCopy}><SettingsText variant="bodyStrong" style={styles.rowTitle}>{label}</SettingsText>
+    style={[styles.row, compact && styles.rowCompact, last && styles.last, disabled && styles.disabled]}>
+    {icon && !compact ? <View style={styles.rowIcon}>{icon}</View> : null}<View style={styles.rowCopy}><SettingsText variant="bodyStrong" style={styles.rowTitle}>{label}</SettingsText>
       {detail ? <SettingsText variant="note" tone="muted">{detail}</SettingsText> : null}</View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
@@ -102,7 +104,6 @@ export const settingsStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  header: { minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', gap: 10, alignItems: 'center' },
   content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, flexGrow: 1, gap: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, gap: 8 },
   body: { ...sys.type.body },
@@ -118,6 +119,7 @@ const styles = StyleSheet.create({
   groupTitle: { color: sys.color.muted, letterSpacing: 0.4, paddingHorizontal: 2 },
   list: { ...card, paddingVertical: 0, paddingHorizontal: 18 },
   row: { minHeight: 66, paddingVertical: 13, flexDirection: 'row', gap: 12, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  rowCompact: { minHeight: 54, paddingVertical: 10 },
   rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
   rowTitle: { color: sys.color.ink },

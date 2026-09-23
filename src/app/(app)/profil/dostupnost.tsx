@@ -21,7 +21,7 @@ function OwnedAvailability() {
   const profile = useFocusedResource(useCallback(() => ownProfileClientService.read(accountId ?? '', 'uskocer'),
     [accountId, accountRevision]));
   const profileDraft = profile.data?.stanje === 'DRAFT';
-  return <CalendarScreen eyebrow="Kako mogu da uskočim" title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
+  return <CalendarScreen title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
     {editor.error ? <View style={[calendarStyles.note, { marginHorizontal: 20, marginTop: 12 }]}><T accessibilityRole="alert" tone="danger">{editor.error}</T>
       <Button label="Učitaj sačuvano stanje" kind="secondary" disabled={editor.busy} onPress={() => void editor.refresh()} />
     </View> : null}

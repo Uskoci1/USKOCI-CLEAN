@@ -66,10 +66,20 @@ afterEach(async () => { await act(async () => tree?.unmount()); expect(mockListe
 
 it('uses a private create form with optional outcome, scalar limits and no safety category replacement', async () => {
   await render(); expect(text()).toContain('Zahtev vide podnosilac'); expect(actions('Pošalji privatni zahtev')[0].props.disabled).toBe(true);
+  // A grey send button says why it is grey (owner rule, 2026-09-23).
+  expect(text()).toContain('Za slanje su potrebni naslov i opis.');
   await type('Kratak naslov', 'Pomoć'); await type('Opis zahteva', '🙂'.repeat(4000));
-  expect(action('Pošalji privatni zahtev').disabled).toBe(false); await type('Opis zahteva', '🙂'.repeat(4001));
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(text()).not.toContain('Za slanje su potrebni');
+  await type('Opis zahteva', '🙂'.repeat(4001));
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(text()).toContain('Skrati tekst');
   expect(mockService.prepare).not.toHaveBeenCalled(); expect(actions('Bezbednost')).toHaveLength(0);
+});
+it('a topic that needs a Dogovor says so under the grey send button until one is chosen', async () => {
+  await render(); await act(async () => action('Prijava nedolaska').onPress());
+  await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Nisam našao saradnika.');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(text()).toContain('Izaberi Dogovor iznad');
+  await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(text()).not.toContain('Izaberi Dogovor iznad');
 });
 it('does not submit a retained button after the visible draft changes', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Prva verzija');
@@ -167,7 +177,9 @@ it('opens a real decision appeal and submits its exact id only after the author 
   expect(mockService.prepare).toHaveBeenCalledWith('APPEAL', C, 2, { decisionId: D, body: 'Nova činjenica' }, expect.objectContaining({ accountId: A }));
 });
 it('does not submit a retained reply after its draft has been closed', async () => {
-  screen = 'DETAIL'; await render(); await act(async () => action('Dopuni zahtev').onPress()); await type('Tekst poruke', 'Uneta dopuna');
+  screen = 'DETAIL'; await render(); await act(async () => action('Dopuni zahtev').onPress());
+  expect(action('Pošalji poruku').disabled).toBe(true); expect(text()).toContain('Unesi tekst pre slanja.');
+  await type('Tekst poruke', 'Uneta dopuna'); expect(text()).not.toContain('Unesi tekst pre slanja.');
   const retained = action('Pošalji poruku').onPress; await act(async () => action('Zatvori unos').onPress());
   await act(async () => retained()); expect(mockService.prepare).not.toHaveBeenCalled();
 });
@@ -192,6 +204,15 @@ it('marks only the displayed page explicitly and never uses the unseen case last
   screen = 'DETAIL'; await render(); expect(mockService.markRead).not.toHaveBeenCalled();
   await act(async () => action('Označi prikazane događaje kao pročitane').onPress());
   expect(mockService.markRead).toHaveBeenCalledWith(C, '2', expect.any(Object)); expect(text()).toContain('Prikazani događaji');
+});
+it('the inbox intro is one sentence: the bar names the screen, so no tagline restates it', async () => {
+  screen = 'INBOX'; await render();
+  const intro = tree.root.findByType('Intro' as React.ElementType).props;
+  expect(intro.title).toBeUndefined(); expect(intro.kicker).toBeUndefined();
+  expect(text()).not.toContain('Prati svaki odgovor');
+  // The empty state keeps its sentence; its one action is the brand action in the frame's footer.
+  expect(text()).toContain('Još nema primljenih zahteva');
+  expect(tree.root.findByType('Screen' as React.ElementType).props.footer.props.label).toBe('Novi privatni zahtev');
 });
 it('shows the operator inbox entry only when the server grants it to this account', async () => {
   screen = 'INBOX'; await render(); expect(actions('Otvori operaterski inbox')).toHaveLength(0);

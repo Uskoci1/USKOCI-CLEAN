@@ -10,6 +10,7 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
+import { plural } from '../../../ui/system/plural';
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 
@@ -20,6 +21,8 @@ const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string
   NOT_AVAILABLE: 'Ova kopija trenutno nije dostupna. Proveri stanje zahteva.',
 };
 type Snapshot = { status: DataExportStatus; preparation: DataExportPreparation | null };
+/** "12.341 bajt", "12.342 bajta", "12.345 bajtova": the grouped number with the Serbian word for it. */
+const bytesLabel = (count: number) => `${count.toLocaleString('sr-Latn')} ${plural(count, 'bajt', 'bajta', 'bajtova').replace(/^\S+\s/, '')}`;
 const changed = () => failure('EXPORT_SCOPE_CHANGED', 'Ponovo otvori izvoz podataka.');
 
 export default function IzvozPodataka() {
@@ -70,7 +73,7 @@ function OwnedExport() {
     return () => clearTimeout(timer);
   }, [expires]);
   const back = () => { if (!owned() || navigating.current) return; navigating.current = true; dialog.current = null;
-    download.current?.abort(); router.back(); };
+    download.current?.abort(); if (router.canGoBack()) router.back(); else router.replace('/profil'); };
   const refresh = () => { if (!current() || editor.busy || download.current) return;
     dialog.current = null; setNotice(null); void editor.refresh(); };
   const ask = (title: string, copy: string, label: string, command: () => Promise<void>) => {
@@ -180,7 +183,7 @@ function OwnedExport() {
           preparationCopy[editor.data.preparation.code ?? 'NOT_AVAILABLE']}</T></SettingsPanel> : null}
         {available && artifact ? <SettingsPanel>
           <T variant="meta">Dostupno do {new Date(expires).toLocaleString('sr-Latn')}.</T>
-          <T variant="meta" tone="muted">JSON · {artifact.byteLength.toLocaleString('sr-Latn')} bajtova</T>
+          <T variant="meta" tone="muted">JSON · {bytesLabel(artifact.byteLength)}</T>
         </SettingsPanel> : null}
         <View style={styles.notice}>
           <ShieldCheck size={20} color={sys.color.green} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</T>

@@ -17,7 +17,7 @@ function OwnedPersonalProfile() {
   const editor = useOwnedEditor(read);
   return <SettingsScreen title="Ime na profilu" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
     <T tone="muted">Ovo ime vide ljudi sa kojima dogovaraš pomoć za svoje zadatke.</T>
-    {editor.loading ? <T>Učitavam podatke…</T> : null}
+    {editor.loading ? <T tone="muted">Učitavamo podatke…</T> : null}
     {editor.error ? <T accessibilityRole="alert" tone="danger">{editor.error}</T> : null}
     {editor.data ? <IdentityForm key={editor.data.revision} value={editor.data} busy={editor.busy} uncertain={editor.uncertain}
       save={(name, requestId) => editor.save(async () => {
@@ -30,11 +30,16 @@ function OwnedPersonalProfile() {
 }
 function IdentityForm(p: { value: RequesterIdentity; busy: boolean; uncertain: boolean; save: (name: string, key: string) => Promise<void> }) {
   const [name, setName] = useState(p.value.displayName), request = useRef<{ name: string; id: string } | null>(null);
-  return <SettingsPanel><View style={{ gap: 12 }}><T>Ime za prikaz</T>
+  // A grey button says why it is grey (owner rule, 2026-09-23). Busy and unconfirmed states are
+  // already named by the label and by the screen's check action, so only the two input reasons remain.
+  const reason = p.busy || p.uncertain ? null : !name.trim() ? 'Ime ne može da ostane prazno.'
+    : name.trim() === p.value.displayName ? 'Ovo ime je već sačuvano.' : null;
+  return <SettingsPanel><View style={{ gap: 12 }}><T variant="bodyStrong">Ime za prikaz</T>
     <TextInput accessibilityLabel="Ime za prikaz" autoComplete="name" textContentType="name" value={name} maxLength={200}
       editable={!p.busy && !p.uncertain} onChangeText={value => { request.current = null; setName(value); }}
-      style={{ color: sys.color.ink, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.control, minHeight: 54, padding: 14, fontSize: sys.type.body.fontSize }} />
-    <SettingsAction label={p.busy ? 'Čuvam ime…' : 'Sačuvaj ime'} disabled={p.busy || p.uncertain || !name.trim() || name.trim() === p.value.displayName}
+      style={{ color: sys.color.ink, borderColor: sys.color.lineStrong, borderWidth: 1, borderRadius: sys.radius.control, minHeight: 54, padding: 14, fontSize: sys.type.body.fontSize }} />
+    <SettingsAction label={p.busy ? 'Čuvamo ime…' : 'Sačuvaj ime'} disabled={p.busy || p.uncertain || !name.trim() || name.trim() === p.value.displayName}
       onPress={() => { const command = request.current ?? { name: name.trim(), id: noviUuidZahtevId() }; request.current = command; void p.save(command.name, command.id); }} />
+    {reason ? <T variant="note" tone="muted">{reason}</T> : null}
   </View></SettingsPanel>;
 }

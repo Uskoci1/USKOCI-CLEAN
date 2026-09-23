@@ -62,6 +62,10 @@ function NewContents({ model, initialReference }: { model: ReturnType<typeof use
   const valid = !!title.trim() && Array.from(title).length <= 200 && !!body.trim() && Array.from(body).length <= 4000
     && Array.from(desired).length <= 1000 && (!requiresAgreement || context?.kind === 'AGREEMENT')
     && (topic !== 'PUBLICATION_REVIEW' || context?.kind === 'TASK_REVIEW');
+  // The send button is grey until the form is complete; the line under it says what is still missing.
+  const missing = disabled || valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
+    : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o Zadatku.'
+      : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
   async function loadAgreements() {
     if (!current() || disabled) return;
     setChoosing(true); setChoiceError('');
@@ -121,5 +125,6 @@ function NewContents({ model, initialReference }: { model: ReturnType<typeof use
         channel: channel(topic), topic, title, body, desiredOutcome: desired.trim() ? desired : null, context,
         evidence: selectedEvidence ? [selectedEvidence] : [],
       }, state); }} />
+    {missing ? <T variant="note" tone="muted">{missing}</T> : null}
   </>;
 }

@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { User, SignOut, MapPin, CalendarBlank, Bell, DownloadSimple, Clock, Camera,
-  Lock, Prohibit, FileText, Lifebuoy, Info } from 'phosphor-react-native';
+import { User, SignOut, MapPin, CalendarBlank, Bell, Clock, Camera, Lifebuoy, Info } from 'phosphor-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
@@ -126,14 +125,16 @@ export default function Profil() {
       <SettingsRow label="Podešavanja obaveštenja" detail="Šta ti stiže i kada — kanali i tihi sati." icon={<Bell size={22} color={sys.color.green} />}
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/obavestenja'))} />
     </SettingsGroup>
+    {/* Needed once in a long while, so these rows sit lower and without the icon disc: they must not
+        weigh the same as the rows above that decide whether work is ever offered to you. */}
     <SettingsGroup title="Privatnost">
-      <SettingsRow label="Privatnost i podaci" detail="Šta je javno i kako se podaci čuvaju." icon={<Lock size={22} color={sys.color.green} />}
+      <SettingsRow compact label="Privatnost i podaci" detail="Šta je javno, rokovi čuvanja, zatvaranje naloga."
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/privatnost'))} />
-      <SettingsRow label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave." icon={<Prohibit size={22} color={sys.color.green} />}
+      <SettingsRow compact label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave."
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/blokirani'))} />
-      <SettingsRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije." icon={<DownloadSimple size={22} color={sys.color.green} />}
+      <SettingsRow compact label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije."
         disabled={busy} onPress={() => navigate(() => router.navigate('/profil/izvoz'))} />
-      <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<FileText size={22} color={sys.color.green} />}
+      <SettingsRow compact label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka."
         disabled={busy} last onPress={() => navigate(() => router.navigate('/profil/pravna'))} />
     </SettingsGroup>
     <SettingsGroup title="USKOČI">

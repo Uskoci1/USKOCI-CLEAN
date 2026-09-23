@@ -65,7 +65,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
       if (resolved || (intent.current?.phase === 'UPLOAD' && asset && (!asset.selected || asset.state === 'FAILED'))) {
         await AsyncStorage.removeItem(key); if (!current()) return changed();
         intent.current = null; bytes.current = null; asset = null;
-        setNotice(discarded ? 'Odustao/la si od izabrane fotografije.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
+        setNotice(discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
       }
       return { ok: true, podatak: { profile: profile.podatak, asset, intent: intent.current } };
     } catch { return failure('MEDIA_READ_UNCONFIRMED', 'Sačuvana fotografija nije potvrđena. Proveri ishod.'); }
@@ -154,7 +154,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   return <SettingsScreen title="Fotografija profila" onBack={() => { if (!current()) return; navigating.current = true;
     if (router.canGoBack()) router.back(); else router.replace('/profil'); }}>
     <T tone="muted">Jedna fotografija ovog profila, do 10 MB. Uklanjamo metapodatke i smanjujemo sliku. Nova fotografija se prikazuje drugima tek kada izabereš „Sačuvaj fotografiju“.</T>
-    {existing ? <AuthorizedPhoto assetId={existing} label="Sadašnja fotografija profila" /> : <T>Profil nema novu fotografiju.</T>}
+    {existing ? <AuthorizedPhoto assetId={existing} label="Sadašnja fotografija profila" /> : <T>Profil još nema fotografiju.</T>}
     {candidate?.state === 'READY' && snapshot?.intent?.phase === 'UPLOAD' ? <SettingsPanel>
       <T>Izabrana fotografija</T><AuthorizedPhoto assetId={candidate.assetId} label="Izabrana fotografija profila" />
       <SettingsAction label="Sačuvaj fotografiju" disabled={!canAct()} onPress={() => { void apply(); }} />
@@ -162,7 +162,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     </SettingsPanel> : null}
     {notice ? <T accessibilityLiveRegion="polite">{notice}</T> : null}
     {editor.error ? <T accessibilityRole="alert" tone="danger">{editor.error}</T> : null}
-    {editor.busy || editor.loading ? <T>Radnja je u toku…</T> : null}
+    {editor.busy || editor.loading ? <T tone="muted">Radnja je u toku…</T> : null}
     {intent.current && candidate?.state !== 'READY' ? <T>Slanje ili promena još nisu potvrđeni. Proveri ishod pre novog izbora.</T> : null}
     <SettingsAction label="Izaberi iz galerije" kind={candidate?.state === 'READY' ? 'secondary' : 'primary'} disabled={!canAct() || !!intent.current} onPress={() => { void pick('LIBRARY'); }} />
     <SettingsAction label="Fotografiši" kind="secondary" disabled={!canAct() || !!intent.current} onPress={() => { void pick('CAMERA'); }} />
