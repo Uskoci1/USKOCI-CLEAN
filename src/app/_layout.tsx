@@ -13,8 +13,12 @@ import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
-// A screen that throws while rendering shows a way out instead of a white page (release, 2026-09-23).
-export { AppErrorBoundary as ErrorBoundary } from '../ui/system/AppErrorBoundary';
+// A screen that throws while rendering shows a way out instead of a white page (release, 2026-09-23). The
+// screen-level boundary catches it at the screen, so "Pokušaj ponovo" redraws that screen and the back stack stays;
+// the root export is the last resort for an error in the layout itself.
+import { AppErrorBoundary } from '../ui/system/AppErrorBoundary';
+export { AppErrorBoundary as ErrorBoundary };
+export const unstable_settings = { screenErrorBoundary: AppErrorBoundary };
 
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();

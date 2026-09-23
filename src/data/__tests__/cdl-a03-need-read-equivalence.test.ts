@@ -392,6 +392,16 @@ describe('saved Need schedule and people presentation', () => {
     expect(day).toBe('Fleksibilan raspon · 12. sep 2026 (po vremenu u Srbiji)');
     const evening = needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-12T21:59:59Z' }, 'Europe/Belgrade');
     expect(evening).toBe('Fleksibilan raspon · 12. sep 2026 · 08:00 – kraj dana (po vremenu u Srbiji)');
+    // A flexible range that ends at midnight ends with the day before it (review of 2026-09-23: it read a day too long).
+    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-13T22:00:00Z' }, 'Europe/Belgrade'))
+      .toBe('Fleksibilan raspon · 12. sep 2026 · 08:00 – 13. sep 2026 (po vremenu u Srbiji)');
+    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-13T22:00:00Z' }, 'Europe/Belgrade'))
+      .toBe('Fleksibilan raspon · Do 13. sep 2026 (po vremenu u Srbiji)');
+    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T22:00:00Z' }, 'Europe/Belgrade'))
+      .toBe('Fleksibilan raspon · 12. sep 2026 (po vremenu u Srbiji)');
+    // A fixed window that ends at 23:59:59 keeps that instant.
+    expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T18:00:00Z', endsAt: '2026-09-12T21:59:59Z' }, 'Europe/Belgrade'))
+      .toBe('11. sep 2026 · 20:00 – 12. sep 2026 · 23:59:59 (po vremenu u Srbiji)');
     // A fixed window keeps every instant it names, midnight included.
     const fixed = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T00:00:00Z' }, 'Europe/Belgrade');
     expect(fixed).toBe('12. sep 2026 · 00:00 – 02:00 (po vremenu u Srbiji)');

@@ -170,8 +170,9 @@ export function MyApplicationsPresentation(props: Props) {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={keyOf}
         // Six of these cards are more than one phone screen. Off-screen cells are NOT detached here:
-        // the expanded review holds text inputs, and a detached input loses the keyboard on Android.
-        initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7}
+        // the expanded review holds text inputs, and a detached input loses the keyboard on Android. FlatList
+        // detaches them by default on Android, so it is said explicitly.
+        removeClippedSubviews={false} initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.list}
         refreshing={props.loading} onRefresh={props.onRefresh} ListEmptyComponent={empty}
         ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed) ? <View style={s.feedback}>

@@ -155,6 +155,7 @@ describe('Moje prijave', () => {
     await act(async () => tree.root.findByProps({ label: 'Povuci prijavu', accessibilityLabel: 'Povuci prijavu: Unos ormara x' }).props.onPress());
     expect(withdraw).toHaveBeenCalledWith(rows[0]);
     expect(list().props).toMatchObject({ initialNumToRender: 6, maxToRenderPerBatch: 6, windowSize: 7 });
-    expect(list().props.removeClippedSubviews).toBeUndefined();
+    // Android FlatList detaches off-screen cells by default; the expanded review holds text inputs, so it says no.
+    expect(list().props.removeClippedSubviews).toBe(false);
   });
 });

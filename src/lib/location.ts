@@ -208,14 +208,21 @@ function unwrapQuotes(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const text = value.trim();
   for (const [open, close] of [['"', '"'], ['„', '“'], ['“', '”'], ["'", "'"]] as const) {
-    if (text.length > 1 && text.startsWith(open) && text.endsWith(close)) return text.slice(1, -1).trim() || null;
+    if (text.length > 1 && text.startsWith(open) && text.endsWith(close)) {
+      const inner = text.slice(1, -1);
+      // '"Vračar" i "Zvezdara"' starts and ends with a quote but is not one quoted value; it stays as written.
+      if (/["„“”]/.test(inner) || (open === "'" && inner.includes("'"))) return text;
+      return inner.trim() || null;
+    }
   }
   return text || null;
 }
 
 export function podrucjeTekst(area: string | null | undefined, city: string | null | undefined): string {
   const parts = [unwrapQuotes(area), unwrapQuotes(city)].filter((part): part is string => !!part);
-  // "Vračar, Beograd" as the area and "Beograd" as the city would read the city twice.
-  const unique = parts.filter((part, index) => index === 0 || !parts[0].toLocaleLowerCase('sr-Latn-RS').includes(part.toLocaleLowerCase('sr-Latn-RS')));
+  // "Vračar, Beograd" as the area and "Beograd" as the city would read the city twice. Only a whole part of the
+  // area counts: "Bor" is not inside "Kod Sabornog hrama".
+  const key = (value: string) => value.trim().toLocaleLowerCase('sr-Latn-RS');
+  const unique = parts.filter((part, index) => index === 0 || !parts[0].split(',').some(piece => key(piece) === key(part)));
   return unique.join(', ') || 'Lokacija nije navedena';
 }

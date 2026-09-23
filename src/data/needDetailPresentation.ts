@@ -17,28 +17,37 @@ function deviceZone(): string | null {
 /** Presentation follows the saved task zone. Historical unknown zones are explicitly UTC. */
 export function needScheduleText(schedule: NeedScheduleProjection, timezone?: string): string {
   const zone = timezone ?? 'UTC';
-  const instant = (value: string | null) => {
+  // Day-granular reading belongs to a flexible range only. A fixed window keeps every instant it names.
+  const flexible = schedule.kind !== 'FIXED_WINDOW';
+  const instant = (value: string | null, role: 'start' | 'end') => {
     const parsed = calendarInstant(value);
     if (parsed === null) return null;
     const ms = parsed >= 0n ? parsed / 1000n : (parsed - 999n) / 1000n;
     try {
-      const parts = zonedParts(new Date(Number(ms)), zone);
       const fraction = /\.(\d+)(?:Z|[+-])/.exec(value!)?.[1];
-      const time = parts.time.endsWith(':00') && !fraction?.replace(/0/g, '') ? parts.time.slice(0, 5)
+      const whole = !fraction?.replace(/0/g, '');
+      let parts = zonedParts(new Date(Number(ms)), zone);
+      // A flexible range that ENDS at midnight ends with the day before it; printed as midnight it read one day
+      // too long ("– 14. sep" for a range that closes as the 13th ends).
+      const endsAtMidnight = flexible && role === 'end' && whole && parts.time === '00:00:00';
+      if (endsAtMidnight) parts = zonedParts(new Date(Number(ms - 1n)), zone);
+      const time = parts.time.endsWith(':00') && whole ? parts.time.slice(0, 5)
         : parts.time + (fraction ? `.${fraction}` : '');
-      // The end of a day (23:59:59, however many nines follow) is a date, not a time a person meant; a flexible
-      // range that starts at midnight is likewise day-granular. A fixed window keeps every instant it names.
-      const endOfDay = parts.time.startsWith('23:59:59');
-      const dayOnly = endOfDay || (schedule.kind !== 'FIXED_WINDOW' && parts.time === '00:00:00' && !fraction);
+      // The end of a day (23:59:59, however many nines follow) is a date, not a time a person meant, and a
+      // flexible range that STARTS at midnight starts with the day.
+      const endOfDay = flexible && role === 'end' && (endsAtMidnight || parts.time.startsWith('23:59:59'));
+      const dayOnly = endOfDay || (flexible && role === 'start' && whole && parts.time === '00:00:00');
       const dateText = `${displayDate(parts.date)} ${parts.date.slice(0, 4)}`;
       const wall = calendarInstant(`${parts.date}T${parts.time}Z`)!;
-      const second = parsed >= 0n ? parsed / 1_000_000n : (parsed - 999_999n) / 1_000_000n;
+      // The offset is read at the instant the parts were taken from, so a midnight end moved back by 1 ms stays exact.
+      const basis = endsAtMidnight ? parsed - 1000n : parsed;
+      const second = basis >= 0n ? basis / 1_000_000n : (basis - 999_999n) / 1_000_000n;
       const offsetMinutes = Number((wall - second * 1_000_000n) / 60_000_000n);
       const offset = `UTC${offsetMinutes < 0 ? '−' : '+'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
       return { text: dayOnly ? dateText : `${dateText} · ${time}`, dateText, dayOnly, endOfDay, offset, date: parts.date, time };
     } catch { return null; }
   };
-  const start = instant(schedule.startsAt), end = instant(schedule.endsAt);
+  const start = instant(schedule.startsAt, 'start'), end = instant(schedule.endsAt, 'end');
   // Repeated civil times across a DST change need both offsets to remain exact.
   const shifted = start && end && start.offset !== end.offset;
   // A window that begins and ends on one day named that day twice: "20. sep 2026 · 06:38:53 –

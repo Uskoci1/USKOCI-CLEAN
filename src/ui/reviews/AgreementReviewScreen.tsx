@@ -41,6 +41,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   // already owned by `useOwnedEditor` (its data is null while this screen is blurred, so nothing is editable
   // then, and a stale save is refused by its scope); the app's foreground state belongs to a mount effect.
   useEffect(() => {
+    activeRef.current = true;
     const subscription = AppState.addEventListener('change', state => {
       activeRef.current = state === 'active'; setForeground(activeRef.current); setResumeRequired(true);
     });
