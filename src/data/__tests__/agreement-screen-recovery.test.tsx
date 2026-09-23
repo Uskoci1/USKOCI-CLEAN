@@ -13,7 +13,7 @@ const mockMessages = jest.fn();
 const mockProblemSubmit = jest.fn(), mockProblemRead = jest.fn();
 const mockPhotoRead = jest.fn((_id: string, rows: unknown[]) => Promise.resolve(rows));
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(),
-  prijaviProblem: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
+  prijaviProblem: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn(), oznaciPorukeProcitanim: jest.fn().mockResolvedValue(0) };
 const mockOutbox = { reconcile: jest.fn().mockResolvedValue(undefined) };
 let mockOutboxState = { phase: 'loading', entries: [] as any[] };
 jest.mock('react-native', () => {

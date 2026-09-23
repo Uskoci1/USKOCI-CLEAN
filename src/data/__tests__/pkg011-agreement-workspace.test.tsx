@@ -4,9 +4,10 @@ import { sys } from '../../ui/system/tokens';
 const mockAccount = '10000000-0000-4000-8000-000000000001', mockOther = '10000000-0000-4000-8000-000000000002', mockAgreementId = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn() };
 const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '40000000-0000-4000-8000-000000000001';
-const mockRead = jest.fn(), mockMessages = jest.fn();
+const mockRead = jest.fn(), mockMessages = jest.fn(), mockMessagesRead = jest.fn();
+let mockParams: Record<string, string> = { id: mockAgreementId };
 let mockReducedMotion = false;
-const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
+const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn(), oznaciPorukeProcitanim: mockMessagesRead };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -15,7 +16,7 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockAgreementId }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => effect(), [effect]) }));
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: jest.fn(), read: jest.fn() } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: jest.fn().mockResolvedValue({ ok: true, podatak: { group: null } }) } }));
@@ -51,7 +52,7 @@ async function render(workspace: Record<string, unknown>) {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([]);
   await act(async () => { tree = create(<Dogovor />); });
 }
-beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; });
+beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 test('a confirmed Agreement without server permission leads with the conversation as the one brand action and names the next step', async () => {
@@ -181,4 +182,42 @@ test.each([
   expect(labels()).not.toContain('Ponuda koju si poslao');
   // The rest of the screen is unaffected.
   expect(labels()).toContain('Izmene i otkazivanje Dogovora');
+});
+
+// PKG-050: the conversation settles its own "Nova poruka" notifications; the overview does not.
+test('showing the Poruke tab with a loaded conversation settles the message notifications about this Dogovor once per list', async () => {
+  mockParams = { id: mockAgreementId, tab: 'poruke' };
+  await render(base());
+  expect(mockMessagesRead).toHaveBeenCalledTimes(1);
+  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
+});
+test('the Pregled tab settles nothing: the person has not read the messages there', async () => {
+  await render(base());
+  expect(mockMessagesRead).not.toHaveBeenCalled();
+});
+test('a refused settlement leaves the conversation exactly as it was', async () => {
+  mockParams = { id: mockAgreementId, tab: 'poruke' };
+  mockMessagesRead.mockRejectedValue(new Error('MESSAGES_READ_UNCONFIRMED'));
+  await render(base());
+  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
+  expect(tree.root.findAll(node => String(node.type) === 'AgreementChat')).toHaveLength(1);
+});
+
+// PKG-050: the conversation settles its own "Nova poruka" notifications; the overview does not.
+test('showing the Poruke tab with a loaded conversation settles the message notifications about this Dogovor once per list', async () => {
+  mockParams = { id: mockAgreementId, tab: 'poruke' };
+  await render(base());
+  expect(mockMessagesRead).toHaveBeenCalledTimes(1);
+  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
+});
+test('the Pregled tab settles nothing: the person has not read the messages there', async () => {
+  await render(base());
+  expect(mockMessagesRead).not.toHaveBeenCalled();
+});
+test('a refused settlement leaves the conversation exactly as it was', async () => {
+  mockParams = { id: mockAgreementId, tab: 'poruke' };
+  mockMessagesRead.mockRejectedValue(new Error('MESSAGES_READ_UNCONFIRMED'));
+  await render(base());
+  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
+  expect(tree.root.findAll(node => String(node.type) === 'AgreementChat')).toHaveLength(1);
 });

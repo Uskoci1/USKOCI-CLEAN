@@ -305,6 +305,14 @@ export const supabaseIzvor: SupabaseIzvor = {
     });
   },
 
+  async oznaciPorukeProcitanim(dogovorId: string) {
+    // PKG-050. The conversation itself is what a person reads, so showing it settles the "Nova poruka" events
+    // about this Dogovor — this one only, never a sweep. The caller treats a throw as "not settled" and moves on.
+    const { data, error } = await supabase.rpc('rpc_mark_agreement_messages_read', { p_agreement_id: dogovorId });
+    if (error || !Number.isSafeInteger(data) || Number(data) < 0) throw new Error('MESSAGES_READ_UNCONFIRMED');
+    return Number(data);
+  },
+
   async otkaziDogovor(dogovorId: string, razlog: string) {
     const { error } = await supabase.rpc('rpc_cancel_agreement', { p_agreement_id: dogovorId, p_reason: razlog });
     if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');

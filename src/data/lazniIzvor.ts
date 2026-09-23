@@ -636,6 +636,10 @@ export const lazniIzvor: Izvor = {
     return { ok: true, podatak: null };
   },
 
+  async oznaciPorukeProcitanim() {
+    return 0;
+  },
+
   async predloziIzmenu(k: IzmenaKomanda) {
     await kasnjenje();
     const trenutna = stanje.dogovorVerzija[k.dogovorId];

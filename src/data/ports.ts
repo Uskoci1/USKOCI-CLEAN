@@ -136,6 +136,10 @@ export interface Komande {
   /** rpc_mark_response_viewed */
   oznaciPrijavuVidjenom(prijavaId: string): Promise<Ishod<null>>;
 
+  /** rpc_mark_agreement_messages_read (PKG-050) — a person in the conversation has read its messages, so the
+   *  "Nova poruka" events about this one Dogovor settle. Returns how many were unread; throws when unconfirmed. */
+  oznaciPorukeProcitanim(dogovorId: string): Promise<number>;
+
   /** rpc_propose_agreement_change_v2 */
   predloziIzmenu(k: IzmenaKomanda): Promise<Ishod<{ predlogId: string }>>;
 

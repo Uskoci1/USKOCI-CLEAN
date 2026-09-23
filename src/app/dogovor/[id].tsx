@@ -156,6 +156,12 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
   useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
+  // PKG-050: a person looking at the conversation has read its messages, so the "Nova poruka" notifications about
+  // this Dogovor settle each time the Poruke tab shows a freshly loaded list. Best effort: a refusal changes nothing here.
+  useEffect(() => {
+    if (tab !== 'poruke' || !messages.data || messages.error) return;
+    izvor.oznaciPorukeProcitanim(id).catch(() => undefined);
+  }, [tab, messages.data, messages.error, izvor, id]);
   if (!foreground || resumeRequired) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
