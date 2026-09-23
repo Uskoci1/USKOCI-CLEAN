@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T04:04:49Z",
+  "osvezeno": "2026-09-23T04:05:06Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "00f85d53",
-  "head_poruka": "control: recompute at the commit the published page carries",
+  "head": "a2b18b20",
+  "head_poruka": "device: the owner sent a real offer, and the whole chain behind it is now evidence",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
