@@ -9,7 +9,7 @@ import { Appear, useAppear } from '../system/Appear';
 import { BrandLockup } from '../entry/BrandAssets';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { accountButton, sys } from '../system/tokens';
 import { HomeIllustration } from './HomeIllustration';
 
 /**
@@ -102,11 +102,11 @@ export function HomePresentation(p: HomePresentationProps) {
     && home.activities.kind === 'known' && !home.activities.value.rows.length;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
     <View style={s.header}>
-      <View style={s.grow}><BrandLockup width={123} /></View>
-      <InboxBell />
-      <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={p.onProfile} haptic="select" style={s.profile}>
-        <User size={22} color={sys.color.ink} />
+      <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={p.onProfile} haptic="select" style={accountButton}>
+        <User size={25} color={sys.color.green} weight="bold" />
       </Press>
+      <View style={s.brand}><BrandLockup width={116} /></View>
+      <InboxBell />
     </View>
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
@@ -161,10 +161,9 @@ export function HomePresentation(p: HomePresentationProps) {
 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.ground },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 66, paddingHorizontal: 20, paddingVertical: 8,
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 72, paddingHorizontal: 16, paddingVertical: 10,
     width: '100%', maxWidth: 640, alignSelf: 'center' },
-  profile: { width: 44, height: 44, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line,
-    backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
+  brand: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   grow: { flex: 1, minWidth: 0 }, flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 108, marginBottom: 16 },
