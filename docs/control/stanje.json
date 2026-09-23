@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:42:36Z",
+  "osvezeno": "2026-09-23T06:42:42Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "8df7ea3d",
-  "head_poruka": "control: recompute with the green CI on 52ce4cc0",
+  "head": "eefddd1c",
+  "head_poruka": "device: the requester completed the Dogovor from the phone; the worker side saw it on the emulator",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
