@@ -1,7 +1,8 @@
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowRight, CalendarBlank, CaretRight, ClipboardText, Handshake, MapPin, PaperPlaneTilt, Plus, User, Users } from 'phosphor-react-native';
+import { ArrowRight, CaretRight, MapPin, Plus, User } from 'phosphor-react-native';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeRow, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import { InboxBell } from '../InboxBell';
 import { Press } from '../Press';
@@ -45,12 +46,13 @@ function StartTile({ label, hint, publish = false, stacked, onPress }: {
 function Row({ row, onOpen, kind = 'activity', last = false }: {
   row: HomeRow; onOpen: (target: HomeTarget) => void; kind?: 'attention' | 'agreement' | 'activity'; last?: boolean;
 }) {
-  const Icon = kind === 'agreement' ? CalendarBlank : row.target.kind === 'CANDIDATES' ? Users
-    : row.target.kind === 'APPLICATION' ? PaperPlaneTilt : row.target.kind === 'AGREEMENT' ? Handshake : ClipboardText;
+  // The same coloured illustration the cards use for this kind of thing (owner, 2026-09-23: thin grey glyphs sat here while the rest of the app was illustrated).
+  const art: FactArtKind = kind === 'agreement' ? 'calendar' : row.target.kind === 'CANDIDATES' ? 'users'
+    : row.target.kind === 'APPLICATION' ? 'offers' : row.target.kind === 'AGREEMENT' ? 'agreements' : 'tasks';
   return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
     onPress={() => onOpen(row.target)} style={[s.row, kind === 'agreement' && s.agreement, last && s.lastRow]}>
     <View style={[s.rowIcon, kind === 'attention' && s.attentionIcon, kind === 'agreement' && s.calendarIcon]}>
-      <Icon size={kind === 'agreement' ? 25 : 22} color={sys.color.green} />
+      <FactArt kind={art} size={kind === 'agreement' ? 30 : 28} />
     </View>
     <View style={s.rowCopy}>
       <T variant="bodyStrong">{readableTitle(row.title)}</T>
