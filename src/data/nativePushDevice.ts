@@ -22,7 +22,13 @@ export async function nativePushDevice(requestPermission: boolean, current: () =
  let permission = await Notifications.getPermissionsAsync(); check();
  if (!permission.granted && requestPermission && permission.canAskAgain) { permission = await Notifications.requestPermissionsAsync(); check(); }
  if (!permission.granted) return { kind: permission.canAskAgain ? 'PERMISSION_REQUIRED' : 'DENIED' };
- const result = await Notifications.getExpoPushTokenAsync({ projectId }); check();
+ // A build without an initialised push provider (the preview APK keeps Firebase enrollment off; the phone logs
+ // "FirebaseApp has not been initialized") rejects here. That means push is not available in this build, and it must not
+ // take every other notification setting down with it (seen on the owner phone, 2026-09-23). A malformed token below
+ // still fails closed, and a changed scope still throws.
+ let result: Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
+ try { result = await Notifications.getExpoPushTokenAsync({ projectId }); } catch { check(); return { kind: 'UNCONFIGURED' }; }
+ check();
  if (result.type !== 'expo' || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(result.data) || result.data.length > 256) throw Error('PUSH_TOKEN_UNAVAILABLE');
  return { kind: 'READY', token: result.data, platform };
 }

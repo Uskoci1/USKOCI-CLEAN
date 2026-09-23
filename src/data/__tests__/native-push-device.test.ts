@@ -29,3 +29,11 @@ it('late permission response after blur/account change cannot acquire token', as
  await expect(nativePushDevice(true, () => current)).rejects.toThrow('PUSH_SCOPE_CHANGED'); expect(mockToken).not.toHaveBeenCalled();
 });
 it('malformed provider token is never eligible for registration', async () => { mockPermissions.mockResolvedValue({ granted: true }); mockToken.mockResolvedValue({ type: 'expo', data: 'https://private-token' }); await expect(nativePushDevice(false, () => true)).rejects.toThrow('PUSH_TOKEN_UNAVAILABLE'); });
+it('a build whose push provider cannot issue a token reads as not configured, so the other settings still load', async () => {
+ mockPermissions.mockResolvedValue({ granted: true }); mockToken.mockRejectedValue(new Error('FirebaseApp is not initialized'));
+ expect(await nativePushDevice(false, () => true)).toEqual({ kind: 'UNCONFIGURED' });
+});
+it('a provider failure after the scope changed still reports the changed scope', async () => {
+ let current = true; mockPermissions.mockResolvedValue({ granted: true }); mockToken.mockImplementation(async () => { current = false; throw new Error('late'); });
+ await expect(nativePushDevice(false, () => current)).rejects.toThrow('PUSH_SCOPE_CHANGED');
+});
