@@ -70,7 +70,9 @@ report.candidateSha256 = sha(text.replace(/\n$/, ''));
 const intact = () => {assert.deepEqual(surface(), baselineSurface); assert.deepEqual(closure(), report.closureBefore);
   assert.equal(md5(WORKSPACE), '06a6485e5bf6c12b6d4c22d1668ecf76');};
 assert.throws(() => sql(text.replace('06a6485e5bf6c12b6d4c22d1668ecf76', '0'.repeat(32))), /PKG048_PREDECESSOR_DRIFT/); intact();
-assert.throws(() => sql(text.replace("$anchor$'createdAt', a.created_at$anchor$", "$anchor$'notAKeyInThisBody'$anchor$")), /PKG048_ANCHOR_NOT_UNIQUE/); intact();
+// The replacement is a function: a literal "$'" in a replacement string is JavaScript's "everything
+// after the match", which would send mangled SQL to the server instead of the tamper under test.
+assert.throws(() => sql(text.replace("$anchor$'createdAt', a.created_at$anchor$", () => "$anchor$'notAKeyInThisBody'$anchor$")), /PKG048_ANCHOR_NOT_UNIQUE/); intact();
 assert.throws(() => sql(text.replace("'applicationId', a.selected_response_id,", "'applicationId', a.selected_response_id ,")), /PKG048_BODY_MISMATCH/); intact();
 pass('DRIFT_ANCHOR_AND_BODY_TAMPERS_ROLL_BACK_ATOMICALLY');
 
