@@ -207,7 +207,9 @@ describe('V2 saved Need presentation', () => {
     // Recomposed from zero (2026-09-23): the route's public stops are part of the one place section, not behind a
     // "Mesto izvršenja" row that repeated the place a third time.
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mesto izvršenja')).toHaveLength(0);
-    for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'Srbija']) expect(texts()).toContain(value);
+    // One line in the order of the trip, each stop's role heard rather than printed.
+    expect(texts()).toContain('Novi Sad  →  Beočin  →  Petrovaradin  →  Kamenica'); expect(texts()).toContain('Više stanica · Srbija');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Više stanica: Polazište Novi Sad, Stanica 1 Beočin, Stanica 2 Petrovaradin, Odredište Kamenica, Srbija')).not.toHaveLength(0);
     // A list reads as chips under its label, each item once per stored value, never a bullet under a bullet (2026-09-23).
     expect(texts()).not.toContain('•');
     // The place and the requirements are both visible at once.

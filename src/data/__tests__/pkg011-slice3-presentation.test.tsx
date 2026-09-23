@@ -94,6 +94,17 @@ test('the public Task leads with its title and four facts, offers the requester 
   // The place is said once in the facts and once as the map section; no disclosure repeats it a third time.
   expect(labels()).not.toContain('Mesto izvršenja'); expect(copy).not.toContain('Mesto izvršenja');
 });
+test('a task done in one place does not repeat its place under the map; a trip shows its stops in one line', async () => {
+  const one = { ...need, podrucjeTekst: 'Novi Sad', detalji: { rezimLokacije: 'STATIONARY', geografija: { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Novi Sad' } } } } as PrilikaProjekcija;
+  await act(async () => { tree = create(<PublicNeedPresentation need={one} loading={false} error={false} missing={false} stale={false} busy={false}
+    canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication} back={noop} retry={noop} apply={apply} map={<></>} />); });
+  expect(texts()).not.toContain('Na jednom mestu'); expect(texts()).not.toContain('Novi Sad · Novi Sad');
+  await act(async () => tree.unmount());
+  const trip = { ...need, podrucjeTekst: 'Kalenić', detalji: { rezimLokacije: 'POINT_TO_POINT', geografija: { mode: 'POINT_TO_POINT', start: { area: 'Kalenić' }, end: { city: 'Užice' } } } } as PrilikaProjekcija;
+  await act(async () => { tree = create(<PublicNeedPresentation need={trip} loading={false} error={false} missing={false} stale={false} busy={false}
+    canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication} back={noop} retry={noop} apply={apply} map={<></>} />); });
+  expect(texts()).toContain('Od mesta do mesta'); expect(texts()).toContain('Kalenić  →  Užice');
+});
 test('the server deadline for applications is said beside the action, only while a person can still apply', async () => {
   const withDeadline = { ...need, rokZaPrijaveIso: '2099-09-25T16:00:00Z' };
   await act(async () => { tree = create(<PublicNeedPresentation need={withDeadline} loading={false} error={false} missing={false} stale={false} busy={false}

@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
-import { DetailPairs } from '../system/Detail';
-import { DetailDescription, DetailFact, DetailFacts, DetailLink, DetailSection, ProductFooterAction, ProductHeader,
+import { DetailDescription, DetailFact, DetailFacts, DetailLink, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
   ProductRequirements, ProductTitle, productPriceParts } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
@@ -106,8 +105,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const selectable = need?.brojPrijavaZaIzbor;
   const counted = need ? applicationsDetail(need) : null;
   // The place as others see it, with the public stops of a route and the country when the task has them.
-  const route = need?.detalji?.geografija && !remote ? [...needGeographyRows(need),
-    ...(need.taskCountryCode ? [{ label: 'Država', value: countryName(need.taskCountryCode) ?? need.taskCountryCode }] : [])] : [];
+  const route = need?.detalji?.geografija && !remote && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
+  const country = need?.taskCountryCode ? countryName(need.taskCountryCode) ?? need.taskCountryCode : null;
   const canEdit = !!need && need.pokrivenost.popunjeno === 0 && !remainingClosed && need.stanje !== 'ZATVORENA';
   const canCloseRemaining = !!need && !remainingClosed && need.pokrivenost.popunjeno > 0 && need.pokrivenost.preostalo > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
@@ -158,7 +157,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {props.map}
           <View style={s.privacy}><FactArt kind="lock" size={18} />
             <T variant="note" tone="muted" style={s.grow}>Ovako drugi vide mesto. Tačnu adresu i privatne napomene vide samo izabrani, u Dogovoru.</T></View>
-          {route.length ? <DetailPairs rows={route} /> : null}
+          {route.length ? <DetailRoute rows={route} country={country} /> : null}
         </DetailSection> : null}
         {props.qaAction ? <DetailSection>{props.qaAction}</DetailSection> : null}
         {/* Everything that changes the task, together and last: the edit, closing the remaining search and

@@ -6,8 +6,7 @@ import type { PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { vreme } from '../../lib/vreme';
 import { osoba } from '../system/plural';
-import { DetailPairs } from '../system/Detail';
-import { DetailDescription, DetailFact, DetailFacts, DetailSection, ProductFooterAction, ProductHeader, ProductPerson,
+import { DetailDescription, DetailFact, DetailFacts, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader, ProductPerson,
   ProductRequirements, ProductTitle, productPriceParts } from '../product/ProductDetails';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
@@ -44,9 +43,9 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 }) {
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
-  // The stops of a route are public structure; they are shown only when the task stored one, since
-  // without it the one row would repeat the area the facts already name.
-  const route = need?.detalji?.geografija && !remote ? needGeographyRows(need) : [];
+  // The stops of a route are public structure. They are shown only when they say more than the area the
+  // facts already name: "Novi Sad · Novi Sad" under "Novi Sad" was the place a fourth time.
+  const route = need?.detalji?.geografija && !remote && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
   const price = need ? productPriceParts(need, 'Ukupan iznos predlažeš u prijavi.') : null;
   // The server's own deadline, said only when there is one and a person can still apply before it.
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
@@ -82,7 +81,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           {map}
           <View style={s.privacy}><FactArt kind="lock" size={18} />
             <T variant="note" tone="muted" style={s.grow}>Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View>
-          {route.length ? <DetailPairs rows={route} /> : null}
+          {route.length ? <DetailRoute rows={route} /> : null}
         </DetailSection> : null}
         {ready && !stale && qa ? <DetailSection>{qa}</DetailSection> : null}
         <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} overline="Traži pomoć"

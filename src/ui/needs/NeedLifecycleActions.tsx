@@ -129,32 +129,34 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
           : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
             : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
         {phase === 'UNKNOWN_OUTCOME' ? <>
-          <V2Action label="Proveri ishod" kind="quiet" onPress={() => run('reconcile')} />
-          <V2Action label="Ponovi isti zahtev" kind="quiet" disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
+          <V2Action label="Proveri ishod" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
+          <V2Action label="Ponovi isti zahtev" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
           <T style={s.copy}>Ponavljanje je dostupno tek posle uspešne provere. Zadržava istu radnju i verziju zadatka.</T>
         </> : phase === 'CONFIRMED' ? <>
-          {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" onPress={() => run('refreshCollection')} /> : null}
+          {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" style={s.quiet} onPress={() => run('refreshCollection')} /> : null}
           <V2Action label="Moji zadaci" onPress={() => { void finish(true); }} />
-        </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" onPress={() => { void finish(false); }} /> : null}
+        </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" style={s.quiet} onPress={() => { void finish(false); }} /> : null}
       </> : view.review && p.need ? <>
         <T style={s.title}>{label(view.review)}?</T><T style={s.copy}>{view.review === 'DELETE_DRAFT'
           ? 'Brišeš ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.'
           : 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.'}</T>
         <T style={s.copy}>{p.need.naslov}</T>
         <V2Action label={label(view.review)} disabled={busy || p.disabled} onPress={() => { void submit(); }} />
-        <V2Action label="Odustani" kind="quiet" disabled={busy} onPress={() => { if (latestView.current === view && current(owner) && !latch.current && !controller.current) setView({ ...initial, loading: false }); }} />
-      </> : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
+        <V2Action label="Odustani" kind="quiet" style={s.quiet} disabled={busy} onPress={() => { if (latestView.current === view && current(owner) && !latch.current && !controller.current) setView({ ...initial, loading: false }); }} />
+      </> : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" style={s.quiet} onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
         : !p.need ? null
           : p.need.pokrivenost.popunjeno > 0 ? <><T style={s.copy}>Postojeći Dogovori se otkazuju zasebno.</T>
-            <V2Action label="Otvori moje Dogovore" kind="quiet" disabled={p.disabled} onPress={() => { if (current(owner) && !p.disabled) router.push('/dogovori'); }} /></>
+            <V2Action label="Otvori moje Dogovore" kind="quiet" style={s.quiet} disabled={p.disabled} onPress={() => { if (current(owner) && !p.disabled) router.push('/dogovori'); }} /></>
             : p.need.stanje !== 'ZATVORENA' ? <>
               {/* Two quiet buttons of the same weight, one of which destroys the draft for good. */}
-              {p.need.stanje === 'NACRT' ? <V2Action label="Obriši nacrt" kind="destructive" disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
-              <V2Action label="Otkazivanje zadatka" kind="quiet" disabled={p.disabled} onPress={() => review('CANCEL')} />
+              {p.need.stanje === 'NACRT' ? <V2Action label="Obriši nacrt" kind="destructive" style={s.quiet} disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
+              <V2Action label="Otkazivanje zadatka" kind="quiet" style={s.quiet} disabled={p.disabled} onPress={() => review('CANCEL')} />
             </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
   </View>;
 }
 /** Same controller and copies; flat, in the task's own reading order (2026-09-23), not a card of its own. */
 const s = StyleSheet.create({ panel: { gap: 12, alignItems: 'flex-start' },
+  // Text actions start where the text of the screen starts, as the other ways to change the task do.
+  quiet: { paddingHorizontal: 0 },
   title: { ...sys.type.heading, color: sys.color.ink },
   copy: { ...sys.type.note, color: sys.color.muted }, error: { ...sys.type.note, color: sys.color.danger } });

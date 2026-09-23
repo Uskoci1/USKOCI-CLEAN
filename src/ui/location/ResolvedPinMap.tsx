@@ -195,8 +195,8 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
           : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
     {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}
     <View style={styles.attribution}>
-      <T variant="meta" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
-      <T variant="meta" accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
+      <T variant="meta" tone="muted" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
+      <T variant="meta" tone="muted" accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
     </View>
   </View>;
 }

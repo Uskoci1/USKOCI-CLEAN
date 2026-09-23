@@ -113,6 +113,29 @@ export function DetailLink({ art, label, detail, accessibilityLabel, onPress, di
 }
 
 /**
+ * The public stops of a task that moves, as one line: "Kalenić → Užice" under what kind of trip it is.
+ * The label of each stop is heard, not shown; a stop that names the same place twice is said once.
+ * A task done in one place draws nothing here: its place is already the first fact and the map.
+ */
+export function DetailRoute({ rows, country }: { rows: { label: string; value: string }[]; country?: string | null }) {
+  const [mode, ...stops] = rows;
+  const once = (value: string) => [...new Set(value.split(' · ').map(part => part.trim()).filter(Boolean))].join(' · ');
+  const named = stops.map(stop => ({ label: stop.label, value: once(stop.value) })).filter(stop => stop.value);
+  if (!mode || !named.length) return null;
+  return <View accessible accessibilityLabel={`${mode.value}: ${named.map(stop => `${stop.label} ${stop.value}`).join(', ')}${country ? `, ${country}` : ''}`}
+    style={s.route}>
+    <T variant="meta" tone="muted">{country ? `${mode.value} · ${country}` : mode.value}</T>
+    <T variant="bodyStrong" style={s.ink}>{named.map(stop => stop.value).join('  →  ')}</T>
+  </View>;
+}
+
+/** Whether the stops of a task name anything the area line does not already say. */
+export function routeAddsToArea(rows: { label: string; value: string }[], area: string): boolean {
+  const [, ...stops] = rows;
+  return stops.length > 1 || stops.some(stop => stop.value.split(' · ').map(part => part.trim()).filter(Boolean).some(part => !area.includes(part)));
+}
+
+/**
  * A task's words. A long description shows its first lines and one quiet press to read the rest;
  * the whole text is always there for a screen reader and for selection.
  */
@@ -236,6 +259,7 @@ const s = StyleSheet.create({
   link: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56 },
   disabled: { opacity: 0.5 },
   description: { gap: 6 },
+  route: { gap: 2 },
   descriptionText: { color: sys.color.ink, lineHeight: 26 },
   more: { alignSelf: 'flex-start', minHeight: sys.touch.min, justifyContent: 'center' },
   moreText: { color: sys.color.green },
