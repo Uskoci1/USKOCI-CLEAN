@@ -27,6 +27,7 @@ import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnap
 import { knownLegacyRefusal } from '../../data/legacyRpcFailure';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
+import { vreme } from '../../lib/vreme';
 
 type ProblemWorkspace = DogovorProjekcija & {
   problemReport: AgreementProblemSnapshot['report'];
@@ -280,7 +281,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const problemPanel = report ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
-    <T variant="meta" tone="muted">{new Date(report.openedAt).toLocaleString('sr-Latn-RS')}</T>
+    <T variant="meta" tone="muted">{vreme(report.openedAt)}</T>
     <T variant="body" style={s.ink}>{report.narrative}</T>
     <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
     {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Tvoj novi opis nije dodat. Za dopunu koristiš Poruke.</T> : null}

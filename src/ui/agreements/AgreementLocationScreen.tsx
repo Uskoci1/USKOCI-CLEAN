@@ -12,7 +12,8 @@ import { PermissionRecovery } from '../system/PermissionRecovery';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AgreementLocationController,initialLocationState } from './AgreementLocationController';
-const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS');
+import { vreme } from '../../lib/vreme';
+const date=(value:string)=>vreme(value);
 export function AgreementLocationScreen({agreementId}:{agreementId:string}){
   const {user,accountRevision}=useSesija(),accountId=user?.id??'';
   const [state,setState]=useState(initialLocationState),[epoch,setEpoch]=useState(0);
@@ -46,8 +47,8 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
       <V2Action label="Prekini deljenje" kind="quiet" onPress={()=>run('stopCapture')}/></View>:null}
     {ready&&state.context?.requestedAt?<T style={s.copy}>Lokacija je zatražena: {date(state.context.requestedAt)}. Deljenje je opciono.</T>:null}
     {ready&&point?<View style={s.group}>
-      <T style={s.heading}>Poslednja podeljena tačka</T><T style={s.copy}>Zabeležena na telefonu: {date(point.capturedAt)}</T>
-      <T style={s.copy}>Primljena na serveru: {date(point.sharedAt)} · procenjena preciznost {Math.ceil(point.accuracyMeters)} m.</T>
+      <T style={s.heading}>Poslednja podeljena tačka</T><T style={s.copy}>Zabeležena: {date(point.capturedAt)} · poslata: {date(point.sharedAt)}</T>
+      <T style={s.copy}>Preciznost oko {Math.ceil(point.accuracyMeters)} m.</T>
       <T style={s.copy}>Ovo je ranije zabeležena tačka. Ne potvrđuje sadašnji položaj.</T>
       <ResolvedPinMap position={{latitude:point.latitude,longitude:point.longitude}} onChoose={()=>{}} disabled scopeKey={`${accountId}:${agreementId}:${point.sharedAt}`}/>
     </View>:null}

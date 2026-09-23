@@ -15,24 +15,18 @@
  * same on both phones, and a phone set to another zone is told so with "po vremenu u Srbiji". The
  * accepted Agreement window and the change form read this constant too, so there is one answer.
  */
+import { vreme, zonaTelefona } from './vreme';
+
 export const DOGOVORENA_ZONA = 'Europe/Belgrade';
 
 /** " (po vremenu u Srbiji)" on a phone set to another zone; nothing on a phone already in Serbian time. */
 export function napomenaZone(): string {
-  let zone: string | undefined;
-  try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { zone = undefined; }
-  return zone === DOGOVORENA_ZONA ? '' : ' (po vremenu u Srbiji)';
+  return zonaTelefona() === DOGOVORENA_ZONA ? '' : ' (po vremenu u Srbiji)';
 }
 
 export function dogovorenoVreme(value: unknown, fallback = 'Po dogovoru'): string {
   if (typeof value !== 'string' || !value) return fallback;
-  const instant = new Date(value);
-  if (Number.isNaN(instant.getTime())) return fallback;
-  return instant.toLocaleString('sr-Latn-RS', {
-    timeZone: DOGOVORENA_ZONA,
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }) + napomenaZone();
+  // One time format (src/lib/vreme.ts): "24. sep · 12:00", read in Serbian time.
+  const text = vreme(value, { zona: DOGOVORENA_ZONA });
+  return text ? text + napomenaZone() : fallback;
 }

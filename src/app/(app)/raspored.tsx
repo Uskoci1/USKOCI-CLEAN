@@ -11,6 +11,7 @@ import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from '../../ui/calendar/CalendarControls';
 import { deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, shiftDate, weekDates, weekdays } from '../../ui/calendar/calendarPresentation';
+import { raspon } from '../../lib/vreme';
 
 export default function Raspored() {
   const { fontScale } = useWindowDimensions();
@@ -63,7 +64,8 @@ export default function Raspored() {
         {!error && visible.map(event => {
           const detail = agreements.data?.find(item => item.id === event.agreementId && item.verzija === event.agreementVersion && item.stanje === 'CONFIRMED');
           const fromTime = displayTime(event.startsAt), toTime = displayTime(event.endsAt);
-          const rail = fontScale <= 1.3 && fromTime.length <= 8 && toTime.length <= 8;
+          // Minutes only, so the clock always fits the rail; a large font moves it into the card.
+          const rail = fontScale <= 1.3;
           return <View key={event.eventId} style={{ flexDirection: rail ? 'row' : 'column', gap: sys.space.md, alignItems: 'stretch' }}>
             {rail ? <View style={{ width: sys.space.huge + sys.space.sm, gap: sys.space.xs, paddingTop: sys.space.md }}><T variant="meta" style={{ fontWeight: '700' }}>{fromTime}</T>
               <T variant="meta" tone="muted">{toTime}</T><View style={{ width: 1, flex: 1, backgroundColor: sys.color.line, marginTop: sys.space.sm, marginLeft: sys.space.xs }} /></View> : null}
@@ -71,7 +73,7 @@ export default function Raspored() {
               onPress={() => router.navigate({ pathname: '/dogovor/[id]', params: { id: event.agreementId } })}
               style={[s.card, { flex: 1, minWidth: 0, backgroundColor: sys.color.greenSoft }]}>
               <View style={s.row}><T variant="heading" style={{ flex: 1 }}>{detail?.naslov || 'Potvrđen Dogovor'}</T><CaretRight size={20} color={sys.color.ink} /></View>
-              <T variant="meta" tone="muted">{displayDate(deviceDate(new Date(event.startsAt)))} · {fromTime} → {displayDate(deviceDate(new Date(event.endsAt)))} · {toTime}</T>
+              <T variant="meta" tone="muted">{raspon(event.startsAt, event.endsAt)}</T>
               <T variant="meta" tone="success">Potvrđena satnica</T>
               {detail ? <><View style={s.divider} /><T variant="bodyStrong">{detail.cena.prikaz}</T>
                 <T variant="meta" tone="muted">{detail.putanjaTekst}</T></> : null}

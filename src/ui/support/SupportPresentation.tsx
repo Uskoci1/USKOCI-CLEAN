@@ -3,6 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInpu
 import { ChatCircleText, ShieldCheck } from 'phosphor-react-native';
 import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { sys } from '../system/tokens';
+import { vreme } from '../../lib/vreme';
 
 const supportLabels = {
   RECEIVED: 'Zahtev je primljen', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
@@ -19,10 +20,8 @@ const supportLabels = {
   ACCEPTED: 'Zahtev je prihvaćen', REJECTED: 'Zahtev je odbijen',
 } as const;
 export const supportLabel = (value: string) => supportLabels[value as keyof typeof supportLabels] ?? 'Događaj u predmetu';
-const timeFormat = new Intl.DateTimeFormat('sr-Latn-RS', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 export function supportTime(value: string) {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? timeFormat.format(date) : 'Vreme nije dostupno';
+  return vreme(value, { inace: 'Vreme nije dostupno' });
 }
 export function SupportFrame({ title, onBack, children, footer }: {
   title: string; onBack: () => void; children: ReactNode; footer?: ReactNode;

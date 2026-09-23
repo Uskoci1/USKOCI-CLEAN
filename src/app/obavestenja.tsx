@@ -15,12 +15,13 @@ import { sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 import { neprocitanih } from '../ui/system/plural';
 import { Segmented } from '../ui/system/Segmented';
+import { vreme } from '../lib/vreme';
 
 const filters: {label:string;role:InboxRole|null}[] = [
   {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
 ];
-const timestamp = (value: string) => new Date(value).toLocaleString('sr-Latn-RS',
-  {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+// One time format: the clock alone today, "22. sep · 14:05" before.
+const timestamp = (value: string) => vreme(value, { danas: true });
 
 export default function Obavestenja() {
   const [role,setRole] = useState<InboxRole|null>(null);

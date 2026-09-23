@@ -15,7 +15,8 @@ import { V2Action } from '../v2/V2Action';
 import { brandAction, sys } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
 import { neprocitanih } from '../system/plural';
-const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+import { vreme } from '../../lib/vreme';
+const date=(value:string)=>vreme(value,{danas:true});
 const status=(value:string)=>({CONFIRMED:'Važeći Dogovor',AWAITING_REQUESTER:'Čeka potvrdu završetka',COMPLETED:'Završen',CANCELLED:'Otkazan'}[value]??'Dogovor');
 export function GroupConversationScreen({agreementId}:{agreementId:string}){
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';

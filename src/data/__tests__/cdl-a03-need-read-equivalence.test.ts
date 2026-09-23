@@ -306,14 +306,15 @@ describe('V2 saved Need detail uses the existing public relations', () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
       starts_at: '2026-09-20T04:38:53.000000Z', ends_at: '2026-09-20T07:38:53.000000Z' } });
     const sameDay = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
-    expect(sameDay).toContain('06:38:53'); expect(sameDay).toContain('09:38:53');
-    expect(sameDay.split('2026').length - 1).toBe(1);
+    // One time format: minutes only, the two hours of one day joined, the day named once.
+    expect(sameDay).toContain('06:38–09:38'); expect(sameDay).not.toContain(':53');
+    expect(sameDay.split('2026').length - 1).toBeLessThanOrEqual(1);
 
     // Across two days both are named, because then the second one is the news.
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, task_timezone: 'Europe/Belgrade',
       starts_at: '2026-09-20T20:00:00.000000Z', ends_at: '2026-09-21T04:00:00.000000Z' } });
     const across = (await needClientService.potreba(rawNeed.id))!.vremeTekst;
-    expect(across.split('2026').length - 1).toBe(2);
+    expect(across).toMatch(/20\. sep( 2026)? · 22:00 – 21\. sep( 2026)? · 06:00/);
   });
   it('reads the coarse point the owner never asked for, and never a precise one', async () => {
     // The public reader hands `approximate_lat/lng` to every signed-in viewer as `pin`; the owner's
@@ -380,31 +381,26 @@ describe('saved Need schedule and people presentation', () => {
     const value = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-10-25T00:30:00Z', endsAt: '2026-10-25T01:30:00Z' }, 'Europe/Belgrade');
     expect(value.match(/02:30/g)).toHaveLength(2); expect(value).toContain('UTC+02:00'); expect(value).toContain('UTC+01:00');
   });
-  it('retains microseconds and never fabricates an unknown fixed endpoint', () => {
+  it('writes minutes, never seconds, and never fabricates an unknown fixed endpoint', () => {
     const value = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-10T16:00:00.123456Z', endsAt: null }, 'Europe/Belgrade');
-    expect(value).toContain('Od '); expect(value).toContain('18:00:00.123456'); expect(value).not.toContain(' – ');
+    expect(value).toContain('Od '); expect(value).toContain('18:00'); expect(value).not.toContain('18:00:00'); expect(value).not.toContain(' – ');
     expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: null })).toBe('Tačan termin nije potpun');
   });
   it('an end of day is a date, not "23:59:59" (seen on the phone 2026-09-23: "Do 31. dec 2026 · 23:59:59")', () => {
-    const open = needScheduleText({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-12-31T22:59:59.999999Z' }, 'Europe/Belgrade');
-    expect(open).toBe('Fleksibilan raspon · Do 31. dec 2026 (po vremenu u Srbiji)');
-    const day = needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T21:59:59Z' }, 'Europe/Belgrade');
-    expect(day).toBe('Fleksibilan raspon · 12. sep 2026 (po vremenu u Srbiji)');
-    const evening = needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-12T21:59:59Z' }, 'Europe/Belgrade');
-    expect(evening).toBe('Fleksibilan raspon · 12. sep 2026 · 08:00 – kraj dana (po vremenu u Srbiji)');
+    const now = new Date('2026-09-23T12:00:00Z');
+    const at = (schedule: Parameters<typeof needScheduleText>[0]) => needScheduleText(schedule, 'Europe/Belgrade', now);
+    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-12-31T22:59:59.999999Z' })).toBe('Fleksibilan raspon · Do 31. dec (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('Fleksibilan raspon · 12. sep (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('Fleksibilan raspon · 12. sep · 08:00 – kraj dana (po vremenu u Srbiji)');
     // A flexible range that ends at midnight ends with the day before it (review of 2026-09-23: it read a day too long).
-    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-13T22:00:00Z' }, 'Europe/Belgrade'))
-      .toBe('Fleksibilan raspon · 12. sep 2026 · 08:00 – 13. sep 2026 (po vremenu u Srbiji)');
-    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-13T22:00:00Z' }, 'Europe/Belgrade'))
-      .toBe('Fleksibilan raspon · Do 13. sep 2026 (po vremenu u Srbiji)');
-    expect(needScheduleText({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T22:00:00Z' }, 'Europe/Belgrade'))
-      .toBe('Fleksibilan raspon · 12. sep 2026 (po vremenu u Srbiji)');
-    // A fixed window that ends at 23:59:59 keeps that instant.
-    expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T18:00:00Z', endsAt: '2026-09-12T21:59:59Z' }, 'Europe/Belgrade'))
-      .toBe('11. sep 2026 · 20:00 – 12. sep 2026 · 23:59:59 (po vremenu u Srbiji)');
-    // A fixed window keeps every instant it names, midnight included.
-    const fixed = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T00:00:00Z' }, 'Europe/Belgrade');
-    expect(fixed).toBe('12. sep 2026 · 00:00 – 02:00 (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-13T22:00:00Z' })).toBe('Fleksibilan raspon · 12. sep · 08:00 – 13. sep (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-13T22:00:00Z' })).toBe('Fleksibilan raspon · Do 13. sep (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T22:00:00Z' })).toBe('Fleksibilan raspon · 12. sep (po vremenu u Srbiji)');
+    // A fixed window keeps every instant it names, to the minute; one day is named once and its hours are joined.
+    expect(at({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T18:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('11. sep · 20:00 – 12. sep · 23:59 (po vremenu u Srbiji)');
+    expect(at({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T00:00:00Z' })).toBe('12. sep · 00:00–02:00 (po vremenu u Srbiji)');
+    // Another year is written out.
+    expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2027-01-05T09:00:00Z', endsAt: '2027-01-05T11:00:00Z' }, 'Europe/Belgrade', now)).toBe('5. jan 2027 · 10:00–12:00 (po vremenu u Srbiji)');
   });
   it.each([[1, 'osoba'], [2, 'osobe'], [5, 'osoba'], [11, 'osoba'], [12, 'osoba'], [14, 'osoba'], [22, 'osobe']])('labels %s people', (count, word) => {
     expect(osoba(count as number)).toBe(`${count} ${word}`);

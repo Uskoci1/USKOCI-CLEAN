@@ -9,6 +9,7 @@ import { needScheduleText } from './needDetailPresentation';
 import { DOGOVORENA_ZONA } from '../lib/dogovorenoVreme';
 import { supabaseKlijent } from './supabaseClient';
 import { novac as novacTekst } from '../lib/novac';
+import { vreme } from '../lib/vreme';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -35,7 +36,7 @@ function novac(iznos: number, valuta = 'RSD') {
 }
 
 function formatTime(iso: string | null | undefined) {
-  return iso ? new Date(iso).toLocaleString('sr-Latn-RS') : 'Fleksibilno';
+  return vreme(iso, { inace: 'Fleksibilno' });
 }
 
 function mapAgreement(raw: any, uid: string): DogovorProjekcija {

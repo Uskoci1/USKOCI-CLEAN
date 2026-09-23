@@ -17,6 +17,7 @@ import type {
 } from '../contracts/projections';
 import { novac } from '../lib/novac';
 import { podrucjeTekst } from '../lib/location';
+import { vreme } from '../lib/vreme';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
@@ -39,21 +40,13 @@ function pokrivenost(ukupno: number, popunjeno: number): Pokrivenost {
   return { ukupno, popunjeno, preostalo, udeo: ukupno ? popunjeno / ukupno : 0 };
 }
 
-function fTime(iso: string | null): string {
-  if (!iso) return 'Fleksibilno';
-  return new Date(iso).toLocaleString('sr-Latn-RS');
-}
-
 /**
  * The time under a message bubble. A message is a moment in the reader's own day, so it reads in the
  * reader's zone (see dogovorenoVreme.ts for why an agreed TERM does not): the clock alone when it is
  * today, the day and month in front of it otherwise, and never seconds — a conversation is not a log.
  */
 function vremePoruke(iso: string): string {
-  const instant = new Date(iso), now = new Date();
-  const today = instant.getFullYear() === now.getFullYear() && instant.getMonth() === now.getMonth() && instant.getDate() === now.getDate();
-  return today ? instant.toLocaleTimeString('sr-Latn-RS', { hour: '2-digit', minute: '2-digit' })
-    : instant.toLocaleString('sr-Latn-RS', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return vreme(iso, { danas: true });
 }
 
 

@@ -11,6 +11,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { sys } from '../system/tokens';
+import { vreme } from '../../lib/vreme';
 
 const safetyCategoryCopy: Record<SafetyCategory, string> = {
   HARASSMENT: 'Uznemiravanje', FRAUD: 'Prevara', UNSAFE_WORK: 'Nebezbedan rad', DISCRIMINATION: 'Diskriminacija', OTHER: 'Drugo',
@@ -119,7 +120,7 @@ function PrivateReport(context: Context) {
   return <SettingsPanel><T variant="heading">Privatna prijava</T>
     <T tone="muted">Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
     {receipt ? <View style={{ gap: 12 }}><T accessibilityLiveRegion="polite">Prijava je primljena.</T>
-      <T variant="meta" tone="muted">{new Date(receipt.createdAt).toLocaleString('sr-Latn-RS')}</T>
+      <T variant="meta" tone="muted">{vreme(receipt.createdAt)}</T>
       <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} onPress={() => { void newReport(); }} /></View> : <>
       <View accessibilityRole="radiogroup" style={{ gap: 6 }}>{SAFETY_CATEGORIES.map(value => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}

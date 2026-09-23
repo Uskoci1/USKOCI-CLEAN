@@ -57,12 +57,10 @@ export function overlapsInterval(start: string, end: string, from: string, to: s
   const starts = calendarInstant(start), ends = calendarInstant(end), rangeStart = calendarInstant(from), rangeEnd = calendarInstant(to);
   return starts !== null && ends !== null && rangeStart !== null && rangeEnd !== null && starts < rangeEnd && ends > rangeStart;
 }
+/** The clock of an instant on this phone, to the minute (one time format: seconds never). */
 export function displayTime(instant: string): string {
-  const match = /T\d{2}:\d{2}:(\d{2})(?:\.(\d+))?/.exec(instant);
-  const fraction = (match?.[2] ?? '').replace(/0+$/, '');
-  const detailed = match?.[1] !== '00' || !!fraction;
-  const time = new Date(instant).toLocaleTimeString('sr-Latn-RS', { hour: '2-digit', minute: '2-digit', ...(detailed ? { second: '2-digit' as const } : {}) });
-  return fraction ? `${time}.${fraction}` : time;
+  const date = new Date(instant);
+  return Number.isNaN(date.getTime()) ? '' : deviceTime(date);
 }
 export const weekdays = [
   { day: 1, short: 'Pon', name: 'Ponedeljak' }, { day: 2, short: 'Uto', name: 'Utorak' },

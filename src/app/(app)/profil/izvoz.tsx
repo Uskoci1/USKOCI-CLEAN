@@ -14,6 +14,7 @@ import { plural } from '../../../ui/system/plural';
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { SkeletonList } from '../../../ui/system/Skeleton';
+import { vreme } from '../../../lib/vreme';
 
 const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
@@ -183,7 +184,7 @@ function OwnedExport() {
         {editor.data?.preparation?.kind === 'NOT_READY' ? <SettingsPanel><T accessibilityRole="alert" tone="muted">{
           preparationCopy[editor.data.preparation.code ?? 'NOT_AVAILABLE']}</T></SettingsPanel> : null}
         {available && artifact ? <SettingsPanel>
-          <T variant="meta">Dostupno do {new Date(expires).toLocaleString('sr-Latn')}.</T>
+          <T variant="meta">Dostupno do {vreme(expires)}.</T>
           <T variant="meta" tone="muted">JSON · {bytesLabel(artifact.byteLength)}</T>
         </SettingsPanel> : null}
         <View style={styles.notice}>

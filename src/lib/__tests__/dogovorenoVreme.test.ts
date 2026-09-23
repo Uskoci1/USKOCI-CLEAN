@@ -20,22 +20,28 @@ import { dogovorenoVreme } from '../dogovorenoVreme';
 // Jest runs in UTC (jest.config.cjs), so every agreed time here carries the note.
 const NOTE = ' (po vremenu u Srbiji)';
 
+// One time format (src/lib/vreme.ts): "24. sep · 12:00", the year only when it is not the current one. "Now" is fixed,
+// so the year rule is deterministic.
+beforeAll(() => { jest.useFakeTimers({ now: new Date('2026-09-23T12:00:00Z') }); });
+afterAll(() => { jest.useRealTimers(); });
+
 describe('a time that was agreed', () => {
   it('reads in the task market zone, whatever zone the phone is in', () => {
     // Summer: Belgrade is UTC+2.
-    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00' + NOTE);
+    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15. jun · 12:00' + NOTE);
     // Winter: UTC+1. The same code must follow the change, not a fixed offset.
-    expect(dogovorenoVreme('2026-01-15T10:00:00Z')).toBe('15.01. 11:00' + NOTE);
+    expect(dogovorenoVreme('2026-01-15T10:00:00Z')).toBe('15. jan · 11:00' + NOTE);
     // Across midnight, where a dropped zone also moves the DAY, not just the hour.
-    expect(dogovorenoVreme('2026-09-21T22:30:00Z')).toBe('22.09. 00:30' + NOTE);
+    expect(dogovorenoVreme('2026-09-21T22:30:00Z')).toBe('22. sep · 00:30' + NOTE);
+    // Another year is written out; seconds never are.
+    expect(dogovorenoVreme('2027-01-05T09:00:59.999Z')).toBe('5. jan 2027 · 10:00' + NOTE);
   });
 
   it('agrees with an explicitly pinned reference on this machine too', () => {
     const iso = '2026-03-10T07:45:00Z';
-    const reference = new Date(iso).toLocaleString('sr-Latn-RS', {
-      timeZone: 'Europe/Belgrade', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    });
-    expect(dogovorenoVreme(iso)).toBe(reference + NOTE);
+    const day = new Date(iso).toLocaleDateString('sr-Latn-RS', { timeZone: 'Europe/Belgrade', day: 'numeric', month: 'short' });
+    const clock = new Date(iso).toLocaleTimeString('sr-Latn-RS', { timeZone: 'Europe/Belgrade', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    expect(dogovorenoVreme(iso)).toBe(`${day} · ${clock}` + NOTE);
   });
 
   it('says nothing extra on a phone that is already in Serbian time', () => {
@@ -43,9 +49,9 @@ describe('a time that was agreed', () => {
     const phone = jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
       .mockImplementation(function (this: Intl.DateTimeFormat) { return { ...real.call(this), timeZone: 'Europe/Belgrade' }; });
     try {
-      expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00');
+      expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15. jun · 12:00');
     } finally { phone.mockRestore(); }
-    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15.06. 12:00' + NOTE);
+    expect(dogovorenoVreme('2026-06-15T10:00:00Z')).toBe('15. jun · 12:00' + NOTE);
   });
 
   it('says the caller words rather than inventing a time it does not have', () => {

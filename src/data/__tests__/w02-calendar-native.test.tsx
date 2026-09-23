@@ -235,7 +235,7 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Nema potvrđenih tačnih termina');
     expect(button('Pokušaj ponovo')).toBeTruthy();
   });
-  it.each([{ scale: 2, fraction: '.000' }, { scale: 1, fraction: '.123456' }])('keeps full endpoints in a wider agenda card at scale $scale and precision $fraction', async ({ scale, fraction }) => {
+  it.each([{ scale: 2, fraction: '.000', layout: 'column' }, { scale: 1, fraction: '.123456', layout: 'row' }])('writes the window to the minute, with the rail only at a normal font (scale $scale, precision $fraction)', async ({ scale, fraction, layout }) => {
     mockFontScale = scale;
     const day = deviceDate(new Date());
     const startsAt = new Date(`${day}T09:15:00`).toISOString().replace('.000', fraction);
@@ -244,8 +244,9 @@ describe('actual agenda screen', () => {
       eventId: 'event-1', agreementId: 'agreement-1', agreementVersion: 2, startsAt, endsAt, agreementStatus: 'CONFIRMED', source: 'AGREEMENT',
     }] } }));
     await act(async () => { tree = create(<Raspored />); });
-    expect(text().replace(/\s+/g, ' ')).toContain(`${displayDate(day)} · ${displayTime(startsAt)} → ${displayDate(day)} · ${displayTime(endsAt)}`);
-    expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBe('column');
+    expect(text().replace(/\s+/g, ' ')).toContain(`${displayDate(day)} · ${displayTime(startsAt)}–${displayTime(endsAt)}`);
+    expect(text()).not.toContain('.123456');
+    expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBe(layout);
   });
 
   it('renders an exact receipt and never mixes an older Agreement version into it', async () => {
@@ -270,9 +271,9 @@ describe('calendar civil date boundaries', () => {
     expect(weekDates('2027-01-01')).toEqual(['2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02', '2027-01-03']);
     const day = localDayRange('2026-09-11'); expect(Date.parse(day.to) - Date.parse(day.from)).toBe(86_400_000);
   });
-  it('retains microsecond boundary overlap and visible precision', () => {
+  it('retains microsecond boundary overlap and shows the clock to the minute', () => {
     expect(overlapsInterval('2026-09-10T23:59:59Z', '2026-09-11T00:00:00.000001Z', '2026-09-11T00:00:00Z', '2026-09-12T00:00:00Z')).toBe(true);
     expect(overlapsInterval('2026-09-10T23:59:59Z', '2026-09-11T00:00:00Z', '2026-09-11T00:00:00Z', '2026-09-12T00:00:00Z')).toBe(false);
-    expect(displayTime('2026-09-11T09:00:01.123456Z')).toContain(':01.123456');
+    expect(displayTime('2026-09-11T09:00:01.123456Z')).toBe('09:00');
   });
 });

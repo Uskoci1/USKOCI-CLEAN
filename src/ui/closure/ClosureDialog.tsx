@@ -10,6 +10,7 @@ import {closureIntentJournal,type ClosureIntent} from './closureIntent';
 import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsInfo,SettingsText as T,SettingsAction} from '../settings/SettingsPresentation';
 import { sys } from '../system/tokens';
 import { plural } from '../system/plural';
+import { vreme } from '../../lib/vreme';
 export function ClosureEntry(){
  const [open,setOpen]=useState(false);useFocusEffect(useCallback(()=>()=>setOpen(false),[]));
  return <><SettingsInfo title="Zatvaranje naloga" last>Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva.</SettingsInfo>
@@ -91,7 +92,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
     <T>{terminal?'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.':state.ordinaryContentErased?'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.':'Server postupno uklanja obične podatke aplikacije. Završetak se potvrđuje tek posle svih provera.'}</T>
     {!terminal&&state.totalSteps?<T tone="muted">Provereni koraci: {state.completedSteps} od {state.totalSteps}.</T>:null}
    </>:<T>Identifikator naloga i evidencije obuhvaćene objavljenim pravilima ostaju ograničeno dostupni tokom propisanog čuvanja.</T>}
-   {terminal?<T tone="muted">Završeno: {new Date(state.closedAt!).toLocaleString('sr-Latn')}</T>:null}
+   {terminal?<T tone="muted">Završeno: {vreme(state.closedAt)}</T>:null}
   </SettingsPanel>:null}
   {!intent&&!state&&review?<>
    {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?(erasure?'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.':'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.'):review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremi pregled trenutnih obaveza pre zatvaranja.':'Najpre reši obaveze navedene ispod.'}</T>

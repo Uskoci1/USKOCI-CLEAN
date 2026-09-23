@@ -27,6 +27,7 @@ import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
+import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 
 const rsd = (iznos: number): Novac => ({
   iznos,
@@ -540,7 +541,7 @@ export const lazniIzvor: Izvor = {
       recenzijeTekst: "Nema ocena",
       cena: { iznos: k.cenaRsd, valuta: "RSD", prikaz: novac(k.cenaRsd) },
       pokrivaMesta: k.pokrivenaMesta,
-      dolazakTekst: k.predlozeniPocetak ? new Date(k.predlozeniPocetak).toLocaleString("sr-Latn-RS") : "Dogovor",
+      dolazakTekst: dogovorenoVreme(k.predlozeniPocetak, "Dogovor"),
       prevozTekst: "Dogovor",
     });
     return {

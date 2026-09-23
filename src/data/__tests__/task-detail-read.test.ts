@@ -49,8 +49,8 @@ describe('V2 complete public task context', () => {
       required_licenses: ['Dozvola'], need_requirement_details: { critical_conditions: ['Teške kutije'] },
       exact_address: 'PRIVATE_ADDRESS', resolved_location: { privateAddress: 'PRIVATE_ADDRESS' } }, error: null });
     const result = await supabaseIzvor.prilika('task-a');
-    expect(result?.vremeTekst).toContain('12:05:01.123456');
-    expect(result?.vremeTekst).toContain('13:35:02.654321');
+    expect(result?.vremeTekst).toMatch(/12\. sep( 2026)? · 12:05–13:35/); expect(result?.vremeTekst).not.toContain('12:05:01');
+    expect(result?.vremeTekst).not.toContain('13:35:02');
     expect(result?.vremeTekst).toContain('po vremenu u Srbiji');
     expect(result?.detalji?.zahtevi).toMatchObject({ dozvole: ['Dozvola'], bitniUslovi: ['Teške kutije'] });
     expect(JSON.stringify(result)).not.toContain('PRIVATE_ADDRESS');

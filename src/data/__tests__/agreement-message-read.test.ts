@@ -81,6 +81,6 @@ it('shows a message from today as the clock alone, without seconds', async () =>
 it('shows an older message with its day and month, still without seconds', async () => {
   mockRead.mockResolvedValue({ data: [{ ...row, created_at: '2026-01-05T11:07:00Z' }], error: null });
   const text = (await supabaseIzvor.poruke(agreement, account))[0].vremeTekst;
-  expect(text).toMatch(/^\d{1,2}\. \d{1,2}\. \d{2}:\d{2}$/);
+  expect(text).toMatch(/^\d{1,2}\. [a-z]{3}( \d{4})? · \d{2}:\d{2}$/);
   expect(text).not.toMatch(/:\d{2}:\d{2}/);
 });

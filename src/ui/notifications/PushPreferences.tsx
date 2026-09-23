@@ -12,6 +12,7 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
 import { sys } from '../system/tokens';
+import { vreme } from '../../lib/vreme';
 
 type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
 type Scope = AuthAccountScope & { role: NotificationRole; alive: boolean; busy: boolean; generation: number };
@@ -188,7 +189,7 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
      : snapshot.readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
       : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na serveru trenutno nije uključeno.'
        : 'Nema sveže potvrde da je slanje na serveru dostupno.'}</T>
-    {snapshot.readiness ? <T variant="meta" tone="muted">Provereno: {new Date(snapshot.readiness.checkedAt).toLocaleString('sr-Latn')}</T> : null}
+    {snapshot.readiness ? <T variant="meta" tone="muted">Provereno: {vreme(snapshot.readiness.checkedAt)}</T> : null}
     <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na tvoj telefon.</T>
    </View>
    {snapshot.native.kind === 'DENIED' && <Button label="Podešavanja telefona" kind="secondary" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />}

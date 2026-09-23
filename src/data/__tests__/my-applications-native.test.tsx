@@ -164,11 +164,11 @@ it('updates price, people and note while preserving the exact existing interval 
   await tap('Sačuvaj izmenjenu prijavu'); expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 5600, pokrivenaMesta: 3,
     napomena: 'Donosimo nove trake.', predlozeniPocetak: interval.start, predlozeniKraj: interval.end });
 });
-it('shows distinct microsecond endpoints with an honest unknown timezone and the existing people plural', async () => {
+it('shows an interval inside one minute as one time, with an honest unknown timezone and the existing people plural', async () => {
   mockRows = [stale()]; mockRows[0].pokrivaMesta = 12;
   mockInterval.mockResolvedValue({ ok: true, podatak: { start: '2026-09-20T10:00:00.000001Z', end: '2026-09-20T10:00:00.000009Z', pricing } });
   await render(); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
-  expect(text()).toContain('10:00:00.000001'); expect(text()).toContain('10:00:00.000009');
+  expect(text()).toMatch(/20\. sep( 2026)? · 10:00/); expect(text()).not.toContain('10:00–10:00'); expect(text()).not.toContain('10:00:00');
   expect(text()).not.toContain('zona nije navedena'); expect(text()).toContain('12 osoba'); expect(text()).not.toContain('12 osobe');
 });
 it('does not infer a missing interval as null and refuses editing after an interval read failure', async () => {

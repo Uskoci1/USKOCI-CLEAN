@@ -374,7 +374,7 @@ it('prepares a new immutable review for an explicit deadline without publishing 
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
   expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
   // A deadline is a term other people read: Serbian time, said so on a phone in another zone (jest runs in UTC).
-  expect(text()).toContain('Rok: 12.10. 12:15 (po vremenu u Srbiji)');
+  expect(text()).toMatch(/Rok: 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
   expect(publish().disabled).toBe(false); expect(mockAccept).not.toHaveBeenCalled();
   await act(async () => publish().onPress());
   expect(mockAccept.mock.calls[0][0].review).toMatchObject({ reviewId: OTHER, responseDeadline: deadline });

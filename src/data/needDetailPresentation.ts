@@ -14,9 +14,18 @@ function deviceZone(): string | null {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
 }
 
-/** Presentation follows the saved task zone. Historical unknown zones are explicitly UTC. */
-export function needScheduleText(schedule: NeedScheduleProjection, timezone?: string): string {
+/**
+ * Presentation follows the saved task zone. Historical unknown zones are explicitly UTC.
+ *
+ * One way to write a time everywhere (the forensic UI/UX analysis, 2026-09-23): "24. sep · 12:00–19:00". The year is
+ * written only when it is not the current one, seconds never (the stored instant keeps its full precision; a person
+ * reads minutes), and the two offsets only when a DST change makes the same civil time happen twice. `now` exists so
+ * tests can fix "the current year".
+ */
+export function needScheduleText(schedule: NeedScheduleProjection, timezone?: string, now: Date = new Date()): string {
   const zone = timezone ?? 'UTC';
+  let thisYear = '';
+  try { thisYear = zonedParts(now, zone).date.slice(0, 4); } catch { thisYear = ''; }
   // Day-granular reading belongs to a flexible range only. A fixed window keeps every instant it names.
   const flexible = schedule.kind !== 'FIXED_WINDOW';
   const instant = (value: string | null, role: 'start' | 'end') => {
@@ -31,13 +40,13 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
       // too long ("– 14. sep" for a range that closes as the 13th ends).
       const endsAtMidnight = flexible && role === 'end' && whole && parts.time === '00:00:00';
       if (endsAtMidnight) parts = zonedParts(new Date(Number(ms - 1n)), zone);
-      const time = parts.time.endsWith(':00') && whole ? parts.time.slice(0, 5)
-        : parts.time + (fraction ? `.${fraction}` : '');
+      const time = parts.time.slice(0, 5);
       // The end of a day (23:59:59, however many nines follow) is a date, not a time a person meant, and a
       // flexible range that STARTS at midnight starts with the day.
       const endOfDay = flexible && role === 'end' && (endsAtMidnight || parts.time.startsWith('23:59:59'));
       const dayOnly = endOfDay || (flexible && role === 'start' && whole && parts.time === '00:00:00');
-      const dateText = `${displayDate(parts.date)} ${parts.date.slice(0, 4)}`;
+      const year = parts.date.slice(0, 4);
+      const dateText = year === thisYear ? displayDate(parts.date) : `${displayDate(parts.date)} ${year}`;
       const wall = calendarInstant(`${parts.date}T${parts.time}Z`)!;
       // The offset is read at the instant the parts were taken from, so a midnight end moved back by 1 ms stays exact.
       const basis = endsAtMidnight ? parsed - 1000n : parsed;
@@ -50,14 +59,16 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   const start = instant(schedule.startsAt, 'start'), end = instant(schedule.endsAt, 'end');
   // Repeated civil times across a DST change need both offsets to remain exact.
   const shifted = start && end && start.offset !== end.offset;
-  // A window that begins and ends on one day named that day twice: "20. sep 2026 · 06:38:53 –
-  // 20. sep 2026 · 09:38:53". The second date says nothing the first did not. The exact instant is
-  // kept to the microsecond, because for a Dogovor that is the thing being agreed.
+  // A window that begins and ends on one day names that day once: "20. sep · 06:38–09:38".
   const sameDay = !!start && !!end && start.date === end.date;
   // A whole day is one date; a day that ends at its end says so in words, not in seconds.
   const wholeDay = sameDay && start!.dayOnly && end!.endOfDay;
+  // Two times of one day are joined tightly ("12:00–19:00"); anything with a date or a word keeps spaces.
+  const tight = sameDay && !start!.dayOnly && !end!.endOfDay && !shifted;
   const endText = end?.endOfDay ? (sameDay ? 'kraj dana' : end.text) : sameDay ? end!.time : end?.text;
+  // Two ends inside one minute are one time: "10:00–10:00" reads as a mistake, not as a window.
   const range = wholeDay ? start!.dateText
+    : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
     : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
   const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
