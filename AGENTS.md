@@ -18,6 +18,22 @@ bell), warm strips, underlined tabs with quiet counts, person-first Dogovori car
 Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
 green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
 
+SYSTEM PASS (2026-09-23 night, owner: "ovaj sistem ikona … kroz ceo app … izgled kartice isti", and of the orange
+"Oceni saradnju" on his phone: "nije ove boje … loš fazon"). The PRIMARY ACTION IS NOW GREEN with a white label (V28 and
+V41 both draw it so; `brandAction` + `sys.color.onGreen`); orange stays an accent only (Home publish tile, what waits,
+map "+"). Do not switch it back from the doc alone. Also landed: one `vreme()` time format (src/lib/vreme.ts: "24. sep ·
+12:00", year only when not current, never seconds); FactArt as the one icon system for every fact (12 new kinds); one
+card look (`card`/`cardCompact` with V28's TaskCard shadow, `inset` for notes, no card inside a card); one voice without
+grammatical gender (Tražiš pomoć / Uskačeš, Posao je gotov, Mogu odmah); one command vocabulary; no "server" wording;
+notification settings in plain Serbian; one `field` token and pill chips. Commits cd2ffa2d…fbea3919 = checkpoint A,
+including the eight fixes from the independent code review and the push-provider fix for Podešavanja obaveštenja found
+on the phone. The owner's USB phone (HONOR, Android 16) runs fbea3919 via `adb install -r`, 0 crash lines
+(docs/implementation/design-audit-20260923/phone-fbea3919/). After checkpoint A the owner's MASTER directive puts the work
+in design-lead mode (memory: uskoci-design-lead-directive): toolset in docs/implementation/design-system/TOOLSET.md;
+audit, design system, pictograms and screen order in the Claude Doc
+https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923; no screen is done before the phone screenshot loop.
+Not done: one reduced-motion hook (motion.ts and useSystemReducedMotion.ts remain), write paths on the phone.
+
 CURRENT PRODUCT CHECKPOINT (2026-09-22): read
 `docs/implementation/NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` first, then the current status,
 integrated finishing plan, owner design direction/UX blueprint and control README. The paragraphs
