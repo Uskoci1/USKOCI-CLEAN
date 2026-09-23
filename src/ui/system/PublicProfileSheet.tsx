@@ -8,12 +8,13 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys, card, cardCompact } from './tokens';
+import { plural } from './plural';
 
 export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
 /** PKG-047 (F05): the one entry into report/block from a profile. The screen owns the read that turns
  *  this profile into the person behind it; the sheet only offers it and shows what came back. */
 export type SafetyEntry = { onPress: () => void; busy: boolean; error: string | null };
-const reviewsText = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'recenzija' : n % 10 === 1 ? 'recenzija' : n % 10 >= 2 && n % 10 <= 4 ? 'recenzije' : 'recenzija'}`;
+const reviewsText = (n: number) => plural(n, 'recenzija', 'recenzije', 'recenzija');
 
 /**
  * Public profile as a sheet over the current context (owner decision 3, 2026-09-16):
@@ -21,8 +22,8 @@ const reviewsText = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'rec
  * exposes — a rating, a review count or a verified identity appear solely when
  * the server marks them available. The caller owns the read and its guards.
  */
-export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel, safety }: {
-  state: PublicProfileState; onClose: () => void; onRetry: () => void; photo?: (profileId: string) => ReactNode; roleLabel?: string;
+export function PublicProfileSheet({ state, onClose, onRetry, photo, safety }: {
+  state: PublicProfileState; onClose: () => void; onRetry: () => void; photo?: (profileId: string) => ReactNode;
   safety?: SafetyEntry;
 }) {
   const reduced = useReducedMotion();
@@ -30,9 +31,11 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel, 
   const profile = state.data, trust = profile?.poverenje;
   return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={onClose}>
     <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+      {/* No role eyebrow over the title ("Traži pomoć" / "Nudi pomoć"): the person was chosen from a task or an offer a
+          moment ago, so the sheet says who they are, not where you are (owner rule, 2026-09-23). */}
       <View style={s.topBar}>
         <Press accessibilityRole="button" accessibilityLabel="Zatvori javni profil" haptic="select" onPress={onClose} style={s.close}><ArrowLeft /></Press>
-        <View style={s.topCopy}>{roleLabel ? <T variant="meta" style={s.eyebrow}>{roleLabel}</T> : null}<T accessibilityRole="header" variant="title" style={s.ink}>Javni profil</T></View>
+        <View style={s.topCopy}><T accessibilityRole="header" variant="title" style={s.ink}>Javni profil</T></View>
       </View>
       <ScrollView contentContainerStyle={s.content}>
         {state.loading ? <View style={s.card}><ActivityIndicator accessibilityLabel="Učitavanje javnog profila" color={sys.color.green} /><T variant="meta" tone="muted" style={s.center}>Učitavamo javni profil…</T></View>
@@ -82,7 +85,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
-  topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
+  topCopy: { flex: 1, minWidth: 0, gap: 1 },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, warn: { color: sys.color.danger },
   content: { padding: 20, gap: 14, paddingBottom: 32 },
   card: { ...card, gap: 10 },

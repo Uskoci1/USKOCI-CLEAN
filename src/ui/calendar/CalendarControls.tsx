@@ -8,7 +8,7 @@ import { brandAction, sys, card, cardCompact, fieldBox } from '../system/tokens'
 import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T as BaseText } from '../Text';
-import { deviceDate, deviceTime } from './calendarPresentation';
+import { civilClock, civilDay, deviceDate, deviceTime } from './calendarPresentation';
 import { FactArt } from '../system/FactArt';
 
 /** Calendar surfaces on the shared system: ground, white cards, green as orientation and as the one brand action. */
@@ -88,10 +88,13 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
     : deviceTime(date)); setOpen(false); };
   if (Platform.OS === 'web') return <CalendarField label={label} value={value} onChange={onChange}
     disabled={disabled} placeholder={mode === 'date' ? 'GGGG-MM-DD' : 'HH:MM'} maxLength={mode === 'date' ? 10 : 15} />;
+  // The stored civil value stays exact; a person reads "23. sep" and "16:00" (one time format, 2026-09-23), and the
+  // button's label no longer hides it from a screen reader.
+  const shown = value ? mode === 'date' ? civilDay(value) : civilClock(value) : '';
   return <View style={{ gap: 6 }}><T variant="meta" tone="muted">{label}</T>
-    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
+    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={shown ? { text: shown } : undefined} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
-      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{value || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
+      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
       <FactArt kind="calendar" size={22} />
     </Press>
     {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour

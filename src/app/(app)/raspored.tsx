@@ -12,6 +12,7 @@ import { Press } from '../../ui/Press';
 import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from '../../ui/calendar/CalendarControls';
 import { deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, shiftDate, weekDates, weekdays } from '../../ui/calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
+import { BEZ_IZNOSA } from '../../lib/novac';
 import { FactArt } from '../../ui/system/FactArt';
 
 export default function Raspored() {
@@ -36,26 +37,29 @@ export default function Raspored() {
           "Danas" in one row, the seven days in the next. What used to stand between them and the
           agenda — a third control row, the availability entry and a paragraph — now follows the agenda. */}
       <View style={{ gap: sys.space.md }}>
-        <View style={s.row}><View style={{ flex: 1, minWidth: sys.space.huge * 3, gap: sys.space.xs }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
-          <T variant="meta" tone="muted">Potvrđeni termini poslova u koje si uskočio</T></View>
+        {/* The week names itself; the subtitle that explained the screen under it is gone (owner rule, 2026-09-23). */}
+        <View style={s.row}><View style={{ flex: 1, minWidth: sys.space.huge * 3, gap: sys.space.xs }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T></View>
           {days.includes(today) ? null : <Button label="Danas" kind="quiet" compact onPress={() => setSelected(today)} />}
           <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={sys.color.ink} /></Press>
           <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, 7))}><ArrowRight size={20} color={sys.color.ink} /></Press>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: sys.space.xs, flexGrow: 1 }}>{days.map((day, index) => {
+        {/* Seven equal columns that always fit (the seventh day was cut off on the phone, 2026-09-23): no sideways
+            scroll, each day one seventh of the row. At a very large font the weekday shrinks to its letter; the
+            spoken label still names it in full. */}
+        <View style={{ flexDirection: 'row', gap: sys.space.xs }}>{days.map((day, index) => {
           const range = localDayRange(day), hasEvents = events.some(event => overlapsInterval(event.startsAt, event.endsAt, range.from, range.to));
           const chosen = selected === day;
           return <Press key={day} accessibilityRole="button" accessibilityLabel={`${weekdays[index].name}, ${displayDate(day)}${day === today ? ', danas' : ''}${hasEvents ? ', ima Dogovor' : ''}`}
-            accessibilityState={{ selected: chosen }} haptic="select" onPress={() => setSelected(day)} style={{ flexGrow: 1, minWidth: sys.touch.min,
-              paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm, gap: sys.space.xs, alignItems: 'center', borderRadius: sys.radius.control,
+            accessibilityState={{ selected: chosen }} haptic="select" onPress={() => setSelected(day)} style={{ flex: 1, minWidth: 0, minHeight: sys.touch.min,
+              paddingVertical: sys.space.sm, gap: sys.space.xs, alignItems: 'center', borderRadius: sys.radius.control,
               backgroundColor: chosen ? sys.color.green : sys.color.greenSoft, borderWidth: 1, borderColor: day === today && !chosen ? sys.color.green : 'transparent' }}>
-            <T variant="meta" tone={chosen ? 'onDark' : 'muted'}>{weekdays[index].short}</T>
-            <T variant="heading" tone={chosen ? 'onDark' : 'ink'}>{Number(day.slice(-2))}</T>
+            <T variant="meta" tone={chosen ? 'onDark' : 'muted'} numberOfLines={1}>{fontScale >= 1.5 ? weekdays[index].short.charAt(0) : weekdays[index].short}</T>
+            <T variant="heading" tone={chosen ? 'onDark' : 'ink'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{Number(day.slice(-2))}</T>
             <View style={{ width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: hasEvents ? sys.color.orange : 'transparent' }} />
           </Press>;
-        })}</ScrollView>
+        })}</View>
       </View>
       <View style={{ gap: sys.space.base }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
@@ -75,8 +79,10 @@ export default function Raspored() {
               style={[s.item, { flex: 1, minWidth: 0 }]}>
               <View style={s.row}><T variant="heading" style={{ flex: 1 }}>{detail?.naslov || 'Potvrđen Dogovor'}</T><CaretRight size={20} color={sys.color.ink} /></View>
               <T variant="meta" tone="muted">{raspon(event.startsAt, event.endsAt)}</T>
-              <T variant="meta" tone="success">Potvrđena satnica</T>
-              {detail ? <><View style={s.divider} /><T variant="bodyStrong">{detail.cena.prikaz}</T>
+              {/* Every row here is a confirmed term, so a "Potvrđena satnica" line under each one said nothing. A missing
+                  amount is a word, never "0 RSD". */}
+              {detail ? <><View style={s.divider} />{detail.cena.prikaz ? <T variant="bodyStrong">{detail.cena.prikaz}</T>
+                : <T variant="meta" tone="muted">{BEZ_IZNOSA}</T>}
                 <T variant="meta" tone="muted">{detail.putanjaTekst}</T></> : null}
             </Press>
           </View>;
@@ -84,15 +90,14 @@ export default function Raspored() {
       </View>
       {agreements.error ? <T variant="meta" tone="muted">Detalji Dogovora nisu učitani. Tačni termini iz radnog rasporeda ostaju dostupni.</T> : null}
       <Button label="Otvori sve Dogovore" kind="secondary" onPress={() => router.navigate('/dogovori')} full />
-      {/* Set once in a while, read every time: the availability editor and the note about what this
-          calendar holds stand under the day, not before it. */}
+      {/* Set once in a while, read every time: the availability editor stands under the day, not before it. */}
       <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" haptic="select" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
         <FactArt kind="clock" size={26} /><View style={{ flex: 1, gap: sys.space.xs }}><T variant="bodyStrong">Moja dostupnost za rad</T>
           <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={sys.color.ink} />
       </Press>
-      {/* The engine blocks a person only by the work they agreed to do (owner decision 6). What they
-          asked others to do is theirs to see in Dogovori, and is said here rather than hidden. */}
-      <T variant="meta" tone="muted">Ovde su termini u kojima ti radiš. Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.</T>
+      {/* The engine still blocks a person only by the work they agreed to do (owner decision 6). The standing
+          disclaimer that said so under the calendar is dropped with the other copy that explained the screen (plan
+          step 0, 2026-09-23); the empty day above still points to Dogovori. */}
     </ScrollView>
   </SafeAreaView>;
 }

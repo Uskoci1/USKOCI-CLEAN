@@ -109,7 +109,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
-      photo={publicPhoto} roleLabel="Traži pomoć" safety={safety} /> : null}
+      photo={publicPhoto} safety={safety} /> : null}
   </SafeAreaView>;
 }
 

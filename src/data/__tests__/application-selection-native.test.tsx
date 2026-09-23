@@ -95,6 +95,13 @@ it('previews the actual offer message without marking it viewed; opening keeps t
   expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
 });
 
+// The offer's price label read "Ukupno za dolazi 1 osoba" on the phone (2026-09-23): a sentence glued into a label.
+it('says whom the total is for in plain grammar on the offer screen', async () => {
+  await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Ukupno za 2 osobe: 4.500 RSD')).not.toHaveLength(0);
+  expect(text()).not.toContain('Ukupno za dolaz');
+});
+
 it('keeps a long accessible message preview bounded and opens the full saved message', async () => {
   const message = 'Donosimo trake i veliki kombi. 🚚 '.repeat(12);
   mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);

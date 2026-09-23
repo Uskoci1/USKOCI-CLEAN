@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
-import { civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
+import { civilClock, civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
 
 let mockFontScale = 1;
 jest.mock('react-native', () => {
@@ -77,15 +77,17 @@ describe('actual availability editor interactions', () => {
   it('reveals one day at a time without changing a shared weekly rule or saving', async () => {
     const shared = { id: ruleId, weekdays: [1, 3], startTime: '09:00:00.123456', endTime: '12:00:00.654321', startsOn: '2026-09-01', endsOn: null, label: 'Isti termin', active: true };
     const loaded = { ...availability(), rules: [shared] }, onSave = await render(jest.fn(), loaded);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00:00.123456' })).toHaveLength(0);
+    // The labels speak minutes since 2026-09-23 ("Uredi Ponedeljak 09:00", not "09:00:00.123456"); the saved rule below
+    // still carries its exact stored times.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00' })).toHaveLength(0);
     await press('Prikaži termine — Ponedeljak');
     expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(true);
-    expect(button('Uredi Ponedeljak 09:00:00.123456')).toBeTruthy();
+    expect(button('Uredi Ponedeljak 09:00')).toBeTruthy();
     await press('Prikaži termine — Sreda');
     expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(false);
     expect(button('Prikaži termine — Sreda').props.accessibilityState.expanded).toBe(true);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00:00.123456' })).toHaveLength(0);
-    expect(button('Uredi Sreda 09:00:00.123456')).toBeTruthy();
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00' })).toHaveLength(0);
+    expect(button('Uredi Sreda 09:00')).toBeTruthy();
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
     expect(onSave).not.toHaveBeenCalled();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
@@ -161,7 +163,7 @@ describe('actual availability editor interactions', () => {
   it('keeps exact historical fractional instants when only an exception label changes', async () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: '2026-10-25T00:30:00.123456Z', endsAt: '2026-10-25T02:30:00.654321Z', state: 'UNAVAILABLE' as const, label: 'Staro' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press('Prikaži posebne datume'); await press('Uredi izuzetak 2026-10-25'); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0].windows).toEqual([{ ...loaded.windows[0], label: 'Novo' }]);
   });
 
@@ -178,7 +180,7 @@ describe('actual availability editor interactions', () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: item.startsAt, endsAt: item.endsAt,
       state: 'UNAVAILABLE' as const, label: 'Sačuvan izuzetak' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${item.date}`);
+    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${civilDay(item.date)}`);
     await edit(item.field, item.time);
     await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ windows: [{ ...loaded.windows[0],
@@ -258,7 +260,86 @@ describe('actual agenda screen', () => {
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([{ id: 'agreement-1', verzija: 1, stanje: 'CONFIRMED', naslov: 'Stari naslov', cena: { prikaz: '999 RSD' } }]);
     await act(async () => { tree = create(<Raspored />); });
     expect(text()).toContain('09:15'); expect(text()).toContain('10:45');
-    expect(text()).toContain('Potvrđena satnica'); expect(text()).not.toContain('999'); expect(text()).not.toContain('Stari naslov');
+    // "Potvrđena satnica" under every row is gone (2026-09-23): every row on this screen is a confirmed term.
+    expect(text()).not.toContain('Potvrđena satnica'); expect(text()).toContain('Potvrđen Dogovor');
+    expect(text()).not.toContain('999'); expect(text()).not.toContain('Stari naslov');
+  });
+
+  // The seventh day was cut off on the phone (2026-09-23): the strip scrolled sideways. Seven equal columns now always
+  // fit, and at a very large font the weekday shrinks to its letter while the spoken label keeps the whole name.
+  it.each([[1, ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']], [1.5, ['P', 'U', 'S', 'Č', 'P', 'S', 'N']]])(
+    'lays the week out as seven equal columns that always fit (font scale %s)', async (scale, letters) => {
+      mockFontScale = scale;
+      await act(async () => { tree = create(<Raspored />); });
+      const days = tree.root.findAll(node => node.type === 'Press' as React.ElementType
+        && /^(Ponedeljak|Utorak|Sreda|Četvrtak|Petak|Subota|Nedelja), /.test(String(node.props.accessibilityLabel)));
+      expect(days).toHaveLength(7);
+      for (const day of days) expect(day.props.style).toEqual(expect.objectContaining({ flex: 1, minWidth: 0 }));
+      expect(tree.root.findAll(node => node.type === 'ScrollView' as React.ElementType && node.props.horizontal)).toHaveLength(0);
+      expect(days.map(day => day.findAllByType('T' as React.ElementType)[0].props.children)).toEqual(letters);
+      expect(days[0].props.accessibilityLabel).toMatch(/^Ponedeljak, /);
+    });
+
+  it('shows a Dogovor without a saved amount in words, never as an amount', async () => {
+    const day = deviceDate(new Date());
+    (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [{
+      eventId: 'event-1', agreementId: 'agreement-1', agreementVersion: 1, startsAt: new Date(`${day}T09:15:00`).toISOString(),
+      endsAt: new Date(`${day}T10:45:00`).toISOString(), agreementStatus: 'CONFIRMED', source: 'AGREEMENT',
+    }] } }));
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([{ id: 'agreement-1', verzija: 1, stanje: 'CONFIRMED', naslov: 'Selidba',
+      cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, putanjaTekst: 'Novi Sad' }]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Selidba'); expect(text()).toContain('Iznos nije sačuvan'); expect(text()).not.toContain('0 RSD');
+  });
+});
+
+// Dostupnost on the phone (2026-09-23) read "16:00:00", "2026-09-23" and "Europe/Belgrade". The stored values stay exact;
+// the screen writes minutes, the app's day ("23. sep") and Serbian time by name, and no line explains a button.
+describe('availability reads the way the rest of the app writes time', () => {
+  const loaded = () => ({ ...availability(),
+    rules: [{ id: ruleId, weekdays: [1], startTime: '16:00:00', endTime: '20:30:00.000001', startsOn: '2026-09-23', endsOn: '2027-01-05', label: '', active: true }],
+    windows: [{ id: windowId, startsAt: '2026-10-02T07:30:00Z', endsAt: '2026-10-02T10:00:00Z', state: 'UNAVAILABLE' as const, label: '' }] });
+
+  it('writes the weekly rule to the minute, its dates as days and the zone in words', async () => {
+    await render(jest.fn(), loaded());
+    expect(text()).toContain('16:00–20:30'); expect(text()).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    expect(text()).toContain('Po vremenu u Srbiji.'); expect(text()).not.toContain('Europe/Belgrade');
+    await press('Prikaži termine — Ponedeljak');
+    expect(text()).toContain(`Od ${civilDay('2026-09-23')} do ${civilDay('2027-01-05')}`); expect(text()).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(button('Uredi Ponedeljak 16:00')).toBeTruthy();
+  });
+
+  it('writes a special date as one moment, in the schedule zone', async () => {
+    await render(jest.fn(), loaded());
+    expect(text()).toContain('1 poseban datum');
+    await press('Prikaži posebne datume');
+    expect(text()).toMatch(/2\. okt( 2026)? · 09:30–12:00/); expect(text()).not.toContain('2026-10-02');
+    expect(button(`Uredi izuzetak ${civilDay('2026-10-02')}`)).toBeTruthy();
+  });
+
+  it('drops the eyebrow over the special-date sheet, the zone name and the line that explained the save button', async () => {
+    await render();
+    expect(text()).not.toContain('Dugme se uključuje');
+    await press('Dodaj — Ponedeljak');
+    expect(text()).toContain('Po vremenu u Srbiji.'); expect(text()).not.toContain('Vremenska zona');
+    await press('Odustani od termina');
+    await press('Dodaj izuzetak');
+    expect(text()).not.toContain('Izuzetak od nedelje'); expect(text()).not.toContain('Promeni dostupnost za poseban termin.');
+    expect(text()).toContain('Redovni termini ostaju sačuvani. Po vremenu u Srbiji.');
+  });
+
+  it('refreshes by pulling the list, and holds every edit while the saved state is read again', async () => {
+    const onRefresh = jest.fn(), onSave = jest.fn(), value = availability();
+    await act(async () => { tree = create(<AvailabilityForm availability={value} busy={false} uncertain={false} onSave={onSave} onRefresh={onRefresh} />); });
+    const control = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl;
+    expect(control.props.refreshing).toBe(false);
+    await act(async () => control.props.onRefresh());
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<AvailabilityForm availability={value} busy={false} uncertain={false} onSave={onSave} onRefresh={onRefresh} refreshing />));
+    expect(tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.refreshing).toBe(true);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.disabled).toBe(true);
+    expect(button('Dodaj — Ponedeljak').props.disabled).toBe(true);
+    expect(onSave).not.toHaveBeenCalled();
   });
 });
 

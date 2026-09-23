@@ -123,7 +123,8 @@ describe('real profile hub', () => {
   });
 
   it('says in every state whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
-    await render(); expect(visibleText()).toContain('Još nisi podesio kako možeš da uskočiš.');
+    // The not-set-up copy lost its grammatical gender ("nisi podesio", 2026-09-23); what it says is unchanged.
+    await render(); expect(visibleText()).toContain('Radni profil još nije podešen.'); expect(visibleText()).not.toContain('podesio');
     for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Ime, grad i veštine'], ['SUSPENDED', 'Profil je obustavljen']] as const) {
       mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
       await act(async () => tree.update(<Profil />)); expect(visibleText()).toContain(copy);

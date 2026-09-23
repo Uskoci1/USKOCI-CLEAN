@@ -38,9 +38,10 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
+// The availability switch is labelled "Mogu odmah" since 2026-09-23 (it was the gendered "Dostupan sam"); only the label changed.
 it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on %s, retaining true availability and comma-containing terms', async platform => {
   mockPlatform = platform; await render();
-  expect(control('Dostupan sam').props.value).toBe(true);
+  expect(control('Mogu odmah').props.value).toBe(true);
   expect(control('Radijus rada (km)').props.value).toBe('20');
   expect(texts()).toContain('Prevoz, utovar');
   expect(texts()).toContain('Nije oznaka HITNO niti dozvola za push obaveštenja.');
@@ -51,7 +52,7 @@ it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on
 });
 it('a successfully absent profile starts with truthful empty values and the primary action saves the first draft before activation', async () => {
   mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-  expect(control('Dostupan sam').props.value).toBe(false); expect(control('Radijus rada (km)').props.value).toBe('');
+  expect(control('Mogu odmah').props.value).toBe(false); expect(control('Radijus rada (km)').props.value).toBe('');
   expect(control('Koliko ljudi možeš da obezbediš').props.editable).toBe(false);
   click('Sačuvaj profil'); await settle();
   expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
@@ -62,8 +63,8 @@ it('a successfully absent profile starts with truthful empty values and the prim
 it('read failure offers retry without constructing a false/15km draft', async () => {
   mockRead.mockRejectedValueOnce(new Error('private diagnostic')); await render();
   expect(texts()).toContain('Profil nije učitan'); expect(texts()).not.toContain('private diagnostic');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dostupan sam' })).toHaveLength(0);
-  click('Ponovo učitaj profil'); await settle(); expect(control('Dostupan sam').props.value).toBe(true);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Mogu odmah' })).toHaveLength(0);
+  click('Ponovo učitaj profil'); await settle(); expect(control('Mogu odmah').props.value).toBe(true);
 });
 it('location fields are read-only and route to the authoritative location editor', async () => {
   await render(); expect(control('Grad ili mesto rada').props.editable).toBe(false);
@@ -137,9 +138,9 @@ it('optional resources preserve exact items and refuse to silently lose an unadd
   expect(mockWrite.mock.calls[0][0]).not.toHaveProperty('licence'); expect(mockWrite.mock.calls[0][0]).not.toHaveProperty('vestine');
 });
 it('availability is a truthful read-only summary and links to its revision-bound writer', async () => {
-  await render(); expect(control('Dostupan sam').props.disabled).toBe(true);
-  act(() => control('Dostupan sam').props.onValueChange(false));
-  expect(control('Dostupan sam').props.value).toBe(true);
+  await render(); expect(control('Mogu odmah').props.disabled).toBe(true);
+  act(() => control('Mogu odmah').props.onValueChange(false));
+  expect(control('Mogu odmah').props.value).toBe(true);
   click('Redovna dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
   expect(mockWrite).not.toHaveBeenCalled();
 });

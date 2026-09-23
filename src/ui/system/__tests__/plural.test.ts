@@ -31,4 +31,11 @@ describe('a price is for the people an application brings', () => {
     expect([1, 2, 4, 5, 11, 12, 21, 22, 25].map(dolaziOsoba)).toEqual(['dolazi 1 osoba', 'dolaze 2 osobe', 'dolaze 4 osobe',
       'dolazi 5 osoba', 'dolazi 11 osoba', 'dolazi 12 osoba', 'dolazi 21 osoba', 'dolaze 22 osobe', 'dolazi 25 osoba']);
   });
+
+  // The offer screen read "Ukupno za dolazi 1 osoba" (phone, 2026-09-23): after "za" the people take the accusative.
+  it.each([[1, 'Ukupno za 1 osobu'], [2, 'Ukupno za 2 osobe'], [5, 'Ukupno za 5 osoba'], [11, 'Ukupno za 11 osoba'],
+    [21, 'Ukupno za 21 osobu'], [22, 'Ukupno za 22 osobe']])('says the total is for %i in the accusative', (count, expected) => {
+    const { osobuAkuz } = require('../plural') as typeof import('../plural');
+    expect(`Ukupno za ${osobuAkuz(count)}`).toBe(expected);
+  });
 });

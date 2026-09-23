@@ -5,6 +5,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { osoba } from '../system/plural';
+import { BEZ_IZNOSA } from '../../lib/novac';
 import { brandAction, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -32,7 +33,9 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
           <ProductFacts>
             <ProductFact art="calendar" label="Dogovoreni termin" value={agreement.vremeTekst} />
             <ProductFact art="users" label="Dogovoreni broj ljudi" value={osoba(agreement.pokrivenost.popunjeno)} />
-            <ProductFact art="money" label="Dogovoreno ukupno" value={agreement.cena.prikaz} prominent />
+            {/* A missing amount is a word and never wears the amount's style. */}
+            <ProductFact art="money" label="Dogovoreno ukupno" value={agreement.cena.prikaz || BEZ_IZNOSA} prominent
+              prominentAs={agreement.cena.prikaz ? 'amount' : 'label'} />
           </ProductFacts>
         </View>
         {agreement.problemOtvoren ? <View style={s.notice}>

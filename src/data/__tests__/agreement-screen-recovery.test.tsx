@@ -49,6 +49,11 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockId, loaded: true, busy: false, items: [] }) }));
 jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (...args: Parameters<typeof mockPhotoRead>) => mockPhotoRead(...args) } }));
+// Since 2026-09-23 a finished Dogovor asks the own-review read whether "Oceni saradnju" is still due. The real module
+// reaches supabaseClient, which registers an AppState listener before this suite's listener set exists; the default
+// answer below ("still due") keeps every existing expectation about a finished Dogovor unchanged.
+const mockReviewContext = jest.fn();
+jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: (...args: unknown[]) => mockReviewContext(...args) } }));
 import Dogovor from '../../app/dogovor/[id]';
 
 const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć pri selidbi', stanje: 'CONFIRMED',
@@ -84,6 +89,7 @@ beforeEach(() => {
   mockProblemRead.mockReset();
   mockPhotoRead.mockReset().mockImplementation((_id, rows) => Promise.resolve(rows));
   mockGroupContext.mockReset().mockResolvedValue({ ok: true, podatak: { group: null } });
+  mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } });
   mockOutboxState = { phase: 'loading', entries: [] };
   for (const name of ['oznaciZavrsetak', 'potvrdiZavrsetak', 'prijaviProblem', 'podeliTelefon', 'opoziviTelefon'] as const) {
     mockSource[name].mockReset().mockResolvedValue({ ok: true, podatak: null });

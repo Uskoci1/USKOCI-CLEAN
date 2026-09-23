@@ -129,15 +129,16 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <V2Action label="Država i područje na mapi" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/lokacija')} style={s.quietLeft} />
     </View>
     <View style={s.card}>
-      <View style={s.switchRow}><View style={s.grow}><T variant="bodyStrong" style={s.ink}>Dostupan sam</T>
+      {/* "Mogu odmah", the words the Dostupnost screen uses for the same status; "Dostupan sam" spoke to a man only. */}
+      <View style={s.switchRow}><View style={s.grow}><T variant="bodyStrong" style={s.ink}>Mogu odmah</T>
         <T variant="meta" tone="muted">{draft.dostupanOdmah ? 'Uključeno · sačuvano stanje' : 'Isključeno · sačuvano stanje'}</T></View>
-        <Switch accessibilityLabel="Dostupan sam" value={draft.dostupanOdmah} disabled={true}
+        <Switch accessibilityLabel="Mogu odmah" value={draft.dostupanOdmah} disabled={true}
           trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} onValueChange={() => {}} /></View>
       <T variant="meta" tone="muted">Ovu dostupnost menjaš kroz „Redovna dostupnost“, jednim zajedničkim načinom čuvanja. Nije oznaka HITNO niti dozvola za push obaveštenja.</T>
       <V2Action label="Redovna dostupnost" kind="quiet" disabled={disabled} onPress={() => navigate('/profil/dostupnost')} style={s.quietLeft} />
       <V2Action label="Pogledaj raspored" kind="quiet" disabled={disabled} onPress={() => navigate('/raspored')} style={s.quietLeft} />
     </View>
-    <T variant="meta" tone="muted" style={s.center}>Veštine, alat i vozila su podaci koje sam navodiš. Izmena profila ne prepisuje već poslate Prijave.</T>
+    <T variant="meta" tone="muted" style={s.center}>Veštine, alat i vozila navodiš ti. Izmena profila ne prepisuje već poslate Prijave.</T>
   </>;
 }
 const s = StyleSheet.create({

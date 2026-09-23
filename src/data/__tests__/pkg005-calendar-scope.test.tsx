@@ -54,9 +54,12 @@ describe('PKG-005 calendar scope', () => {
     await render();
     expect(mockReadRange).toHaveBeenCalledTimes(1);
     expect(text()).toContain('Kalendar obaveza');
-    expect(text()).toContain('Potvrđeni termini poslova u koje si uskočio');
+    // Updated deliberately (plan step 0, 2026-09-23): the subtitle under the week ("… u koje si uskočio", gendered) and
+    // the standing disclaimer under the calendar pinned copy that explained the screen; both are gone by the owner's
+    // rule. The scope itself is unchanged: one calendar read, the availability editor, no app mode.
+    expect(text()).not.toContain('uskočio');
+    expect(text()).not.toContain('oni te ovde ne blokiraju');
     expect(text()).toContain('Moja dostupnost za rad');
-    expect(text()).toContain('Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.');
     expect(text()).not.toMatch(/JA MOGU|MENI TREBA/);
     expect(tree.root.findByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toBeTruthy();
   });

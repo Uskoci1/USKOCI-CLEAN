@@ -62,6 +62,28 @@ export function displayTime(instant: string): string {
   const date = new Date(instant);
   return Number.isNaN(date.getTime()) ? '' : deviceTime(date);
 }
+/**
+ * A stored civil clock as a person reads it: "16:00", never "16:00:00" or "09:00:00.123456" (Dostupnost on the
+ * phone, 2026-09-23). Only the display is shortened; the stored value keeps its precision. Anything that is not a
+ * clock is returned as it came, so a malformed value is never disguised as a valid one.
+ */
+export function civilClock(value: string): string {
+  return /^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$/.test(value) ? value.slice(0, 5) : value;
+}
+/**
+ * A civil date the way vreme() writes the day of a moment: "23. sep", the year only when it is not the current one
+ * ("5. jan 2027"). A value that is not a calendar date is returned as it came.
+ */
+export function civilDay(value: string, now = new Date()): string {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return value;
+  const year = value.slice(0, 4);
+  return year === deviceDate(now).slice(0, 4) ? displayDate(value) : `${displayDate(value)} ${year}`;
+}
+/** The zone a schedule is kept in, in words: Serbian time by name, never "Europe/Belgrade". */
+export function scheduleZone(timezone: string): string {
+  return timezone === 'Europe/Belgrade' ? 'Po vremenu u Srbiji' : `Vremenska zona: ${timezone}`;
+}
 export const weekdays = [
   { day: 1, short: 'Pon', name: 'Ponedeljak' }, { day: 2, short: 'Uto', name: 'Utorak' },
   { day: 3, short: 'Sre', name: 'Sreda' }, { day: 4, short: 'Čet', name: 'Četvrtak' },

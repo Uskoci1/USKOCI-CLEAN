@@ -11,6 +11,7 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
 import { iconButton, sys } from '../system/tokens';
 import { osoba } from '../system/plural';
+import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
 
 export type AgreementTab = 'pregled' | 'poruke';
@@ -60,7 +61,7 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
     <View style={s.grow}>
       <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(a.naslov)}</T>
       {/* The state is in the top bar right above; said here too, it was said twice on one screen. */}
-      <T variant="note" tone="muted">{a.cena.prikaz} · {osoba(a.pokrivenost.popunjeno)}</T>
+      <T variant="note" tone="muted">{a.cena.prikaz || BEZ_IZNOSA} · {osoba(a.pokrivenost.popunjeno)}</T>
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
@@ -71,7 +72,9 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
       <DetailFact art={a.rezim === 'DALJINSKI' ? 'remote' : 'pin'} label="Mesto" value={a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst} />
       <DetailFact art="calendar" label="Termin" value={a.vremeTekst} />
       <DetailFact art="users" label="Ljudi" value={osoba(a.pokrivenost.popunjeno)} note={a.verzija > 1 ? `verzija ${a.verzija}` : undefined} />
-      <DetailFact art="money" label="Dogovoreno ukupno" value={a.cena.prikaz} note="dogovoreno ukupno" spokenNote="" money={/\d/.test(a.cena.prikaz)} />
+      {/* A Dogovor without a saved amount says so in words, in ink, and without "dogovoreno ukupno" under it. */}
+      <DetailFact art="money" label="Dogovoreno ukupno" value={a.cena.prikaz || BEZ_IZNOSA} note={a.cena.prikaz ? 'dogovoreno ukupno' : undefined} spokenNote=""
+        money={/\d/.test(a.cena.prikaz)} />
     </DetailFacts>
   </View>;
 }

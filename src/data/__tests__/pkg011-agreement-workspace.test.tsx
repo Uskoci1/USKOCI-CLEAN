@@ -36,6 +36,9 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: { reconcile: jest.fn().mockResolvedValue(undefined) }, state: { phase: 'ready', entries: [] } }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockAgreementId, loaded: true, busy: false, items: [] }) }));
 jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (_id: string, rows: unknown[]) => Promise.resolve(rows) } }));
+// The own-review read behind "Oceni saradnju" (2026-09-23). Default: the rating is still due, as before.
+const mockReviewContext = jest.fn();
+jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: (...args: unknown[]) => mockReviewContext(...args) } }));
 import Dogovor from '../../app/dogovor/[id]';
 
 const base = (patch: Record<string, unknown> = {}, mine: 'narucilac' | 'uskocer' = 'narucilac') => ({
@@ -55,7 +58,8 @@ async function render(workspace: Record<string, unknown>) {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([]);
   await act(async () => { tree = create(<Dogovor />); });
 }
-beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0); });
+beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0);
+  mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 test('a confirmed Agreement without server permission leads with the conversation as the one brand action and names the next step', async () => {
@@ -132,6 +136,45 @@ test('a completed Agreement leads with the review; a cancelled one offers only t
   await act(async () => tree.unmount());
   await render(base({ stanje: 'CANCELLED' }));
   expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dogovor je otkazan.'); expect(labels()).not.toContain('Prijavi problem'); expect(labels()).not.toContain('Izmene i otkazivanje Dogovora');
+});
+// "Oceni saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23). The route now asks the existing
+// own-review read, inside its guarded workspace read, and offers the rating only while it can still be given.
+describe('the rating is offered only while it is not given', () => {
+  const ownReview = { reviewId: '50000000-0000-4000-8000-000000000001', agreementId: mockAgreementId, reviewerAccountId: mockAccount,
+    targetAccountId: mockOther, rating: 5, tags: [], clientRequestId: '60000000-0000-4000-8000-000000000001', createdAt: '2026-09-23T10:00:00Z',
+    idempotentReplay: false, authoritative: true };
+  test('a saved rating turns the footer back into the conversation and says the rating is kept', async () => {
+    mockReviewContext.mockResolvedValue({ ok: true, podatak: { accountId: mockAccount, agreementId: mockAgreementId, targetAccountId: mockOther,
+      eligible: false, review: ownReview, authoritative: true } });
+    await render(base({ stanje: 'COMPLETED' }));
+    expect(mockReviewContext).toHaveBeenCalledWith(mockAgreementId, { accountId: mockAccount, accountRevision: 0 });
+    expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Oceni saradnju');
+    expect(texts()).toContain('Tvoja ocena je sačuvana.');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori poruke' }).props.onPress());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+  test('a rating that can no longer be given is not offered either', async () => {
+    mockReviewContext.mockResolvedValue({ ok: true, podatak: { eligible: false, review: null } });
+    await render(base({ stanje: 'COMPLETED' }));
+    expect(brand()).toEqual(['Otvori poruke']); expect(texts()).not.toContain('Ocena pomaže drugima da izaberu.');
+  });
+  test('a due rating is the one brand action', async () => {
+    await render(base({ stanje: 'COMPLETED' }));
+    expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Ocena pomaže drugima da izaberu.');
+  });
+  test.each([['refused', () => mockReviewContext.mockResolvedValue({ ok: false, kod: 'REVIEW_READ_UNAVAILABLE', poruka: 'x' })],
+    ['thrown', () => mockReviewContext.mockRejectedValue(new Error('offline'))]])(
+    'a review read that did not answer (%s) keeps the rating on offer and never hides the Dogovor', async (_name, fail) => {
+      fail();
+      await render(base({ stanje: 'COMPLETED' }));
+      expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen');
+    });
+  test('the review read is asked only for a finished Dogovor', async () => {
+    await render(base());
+    await act(async () => tree.unmount());
+    await render(base({ stanje: 'CANCELLED' }));
+    expect(mockReviewContext).not.toHaveBeenCalled();
+  });
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));

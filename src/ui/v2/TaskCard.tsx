@@ -8,7 +8,8 @@ import { FactArt } from '../system/FactArt';
 import { Press } from '../Press';
 import { sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
-import { NeedUrgencyBadge } from './NeedUrgencyBadge';
+import { displaysUrgent } from '../../lib/needUrgency';
+import { NeedUrgencyBadge, useUrgencyClock } from './NeedUrgencyBadge';
 
 const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' } as const;
 
@@ -32,7 +33,10 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
     : relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava poslata' : null;
   const quiet = draft || (own && item.stanje === 'ZATVORENA');
   const tone = quiet ? sys.color.muted : sys.color.green;
-  const urgent = item.urgency?.level === 'HITNO';
+  // HITNO counts only until the server's expiry, on the same clock the badge reads: an expired HITNO on a task with no
+  // status drew an empty top row, the badge having already gone.
+  const urgencyNow = useUrgencyClock([item.urgency]);
+  const urgent = displaysUrgent(item.urgency, urgencyNow);
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
   const remote = item.detalji?.rezimLokacije === 'REMOTE';
   const offers = item.rezimCene === 'OFFERS';

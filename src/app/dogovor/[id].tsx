@@ -24,14 +24,22 @@ import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { reviewsClientService } from '../../data/reviewsClientService';
 import { knownLegacyRefusal } from '../../data/legacyRpcFailure';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
 import { vreme } from '../../lib/vreme';
 
+/**
+ * My rating of a finished Dogovor, from the review read the rating screen itself uses. `DUE` and `UNKNOWN` both keep
+ * "Oceni saradnju" on offer (a read that did not answer must not hide the only way to rate); `GIVEN` and `CLOSED` are
+ * the review read saying there is nothing left to rate, and the footer falls back to the conversation.
+ */
+type OwnRating = 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE';
 type ProblemWorkspace = DogovorProjekcija & {
   problemReport: AgreementProblemSnapshot['report'];
   problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';
+  ownRating: OwnRating;
 };
 type CompletionReview = { agreement: ProblemWorkspace; focus: object; readEpoch: number };
 async function bounded<T>(operation: () => Promise<T>): Promise<T> {
@@ -92,19 +100,29 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
       if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
       if (!data) return { ok: true, podatak: null };
+      // "Oceni saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23): the workspace read does
+      // not say whether MY review exists. The existing own-review read does; it is asked only for a finished Dogovor
+      // I am a party of, inside this same guarded read, and like the problem details below it can never erase the
+      // Agreement it describes: a read that fails leaves the rating on offer.
+      let ownRating: OwnRating = 'NOT_APPLICABLE';
+      if (data.stanje === 'COMPLETED' && data.ucesnici.some(party => party.viSte && party.id === accountId)) {
+        const review = await bounded(() => reviewsClientService.context(id, { accountId, accountRevision })).catch(() => null);
+        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
+        ownRating = !review?.ok ? 'UNKNOWN' : review.podatak.review ? 'GIVEN' : review.podatak.eligible ? 'DUE' : 'CLOSED';
+      }
       if (data.problemOtvoren) {
         const result = await agreementProblemService.read(id, data.verzija, data.ucesnici.map(party => party.id), { accountId, accountRevision })
           .catch(() => null);
         if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
         if (result?.ok && result.podatak.state === 'AVAILABLE') {
-          return { ok: true, podatak: { ...data, problemReport: result.podatak.report, problemReportState: 'AVAILABLE' } };
+          return { ok: true, podatak: { ...data, problemReport: result.podatak.report, problemReportState: 'AVAILABLE', ownRating } };
         }
         // Optional report details cannot erase an independently read Agreement.
         // The base open flag remains authoritative; absent/conflicting detail is unknown.
         return { ok: true, podatak: { ...data, problemReport: null,
-          problemReportState: result?.ok && result.podatak.state === 'LEGACY_UNAVAILABLE' ? 'LEGACY_UNAVAILABLE' : 'UNAVAILABLE' } };
+          problemReportState: result?.ok && result.podatak.state === 'LEGACY_UNAVAILABLE' ? 'LEGACY_UNAVAILABLE' : 'UNAVAILABLE', ownRating } };
       }
-      return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT' } };
+      return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT', ownRating } };
     } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proveri vezu i pokušaj ponovo.' }; }
   }, [izvor, id, accountId, accountRevision, ownsAccount, closeCompletionReview]);
   const workspace = useOwnedEditor(read);
@@ -263,14 +281,19 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const pendingChange = active && me && radnje?.izmenaNaCekanju ? radnje.predlogIzmene : null;
   const changeWaits = active && me && !!radnje?.izmenaNaCekanju;
   const openChanges = () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); };
+  // The rating is offered only while it can still be given: once the review read says it is saved (or closed), the
+  // footer falls back to the conversation. A read that did not answer keeps the offer; the rating screen re-reads.
+  const ratingOpen = dogovor.ownRating === 'DUE' || dogovor.ownRating === 'UNKNOWN';
   const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: openCompletionReview }
     : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
-      : dogovor.stanje === 'COMPLETED' && me ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
+      : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
         : { label: 'Otvori poruke', onPress: openMessages };
   const nextStep = changeWaits ? { tone: 'warn' as const,
     title: pendingChange?.moj ? 'Tvoj predlog izmene čeka odgovor' : pendingChange ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' }
-    : dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: me ? 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' : null }
+    : dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: !me ? null
+      : dogovor.ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
+        : dogovor.ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' }
     : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
       : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se potvrda druge strane' : 'Završetak je označen i čeka tvoju potvrdu',
         body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }

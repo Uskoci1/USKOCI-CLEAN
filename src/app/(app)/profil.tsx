@@ -78,7 +78,8 @@ export default function Profil() {
 
   const identity = profile.data?.identity ?? null, capability = profile.data?.capability ?? null;
   const capabilityDetail = !profile.data ? 'Veštine, alat i tim za prijavljivanje na zadatke.'
-    : !capability ? 'Još nisi podesio kako možeš da uskočiš. Bez toga ne možeš da se prijaviš na zadatak.'
+    // No grammatical gender (one voice, 2026-09-23): "nisi podesio" spoke to a man only.
+    : !capability ? 'Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak.'
       : capability.stanje === 'DRAFT' ? 'Profil je nacrt — dok je nacrt, zadaci ti se ne nude.'
         : capability.stanje === 'SUSPENDED' ? 'Profil je obustavljen. Piši podršci.' : 'Ime, grad i veštine za prijavljivanje na zadatke.';
   const initials = identity?.ime?.split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase();

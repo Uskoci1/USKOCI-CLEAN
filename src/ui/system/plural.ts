@@ -30,6 +30,11 @@ export const neprocitanih = (count: number) => plural(count, 'nepročitano', 'ne
  * "dolaze 2 osobe", "dolazi 5 osoba". This replaced "Za 1 ljudi".
  */
 export const osoba = (count: number) => plural(count, 'osoba', 'osobe', 'osoba');
+/**
+ * The same people after a preposition that takes the accusative: "Ukupno za 1 osobu", "za 2 osobe", "za 5 osoba".
+ * The offer screen read "Ukupno za dolazi 1 osoba" (seen on the phone, 2026-09-23): a sentence glued to a sentence.
+ */
+export const osobuAkuz = (count: number) => plural(count, 'osobu', 'osobe', 'osoba');
 export function dolaziOsoba(count: number): string {
   const hundred = Math.abs(count) % 100, ten = Math.abs(count) % 10;
   const few = !(hundred >= 11 && hundred <= 14) && ten >= 2 && ten <= 4;

@@ -28,3 +28,6 @@ export function novac(value: number, valuta = 'RSD'): string {
   const grouped = iznos(value);
   return grouped ? `${grouped} ${valuta}` : '';
 }
+
+/** An agreed amount that was never saved, said in words wherever an amount would stand; never "0 RSD". */
+export const BEZ_IZNOSA = 'Iznos nije sačuvan';

@@ -56,6 +56,18 @@ describe('SDK57 native civil-field adapter', () => {
     expect(tree.root.findAllByType('DateTimePicker' as React.ElementType)).toHaveLength(0);
   });
 
+  // Dostupnost on the phone showed "16:00:00" and "2026-09-23" in these fields (2026-09-23). The value stays exact; the
+  // field writes minutes and the app's day, and a screen reader now hears it too.
+  it.each([['time', '16:00:00.123456', '16:00'], ['date', '2026-09-23', null]] as const)('writes a stored %s the way a person reads it', async (mode, value, expected) => {
+    const { civilDay } = require('../../ui/calendar/calendarPresentation') as typeof import('../../ui/calendar/calendarPresentation');
+    const shown = expected ?? civilDay(value);
+    await act(async () => { tree = create(<CivilField label="Polje" mode={mode} value={value} onChange={jest.fn()} />); });
+    const field = tree.root.findByProps({ accessibilityLabel: 'Polje' });
+    expect(field.findAllByType('T' as React.ElementType).map(node => node.props.children)).toContain(shown);
+    expect(field.props.accessibilityValue).toEqual({ text: shown });
+    expect(shown).not.toContain(value);
+  });
+
   it('reads native time picker local hours independently of its instant date', async () => {
     const onChange = jest.fn();
     await act(async () => { tree = create(<CivilField label="Vreme" mode="time" value="09:00" onChange={onChange} />); });

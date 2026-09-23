@@ -16,7 +16,7 @@ import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '.
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
-import { dolaziOsoba, osoba, prijava } from '../system/plural';
+import { dolaziOsoba, osoba, osobuAkuz, prijava } from '../system/plural';
 import { SkeletonList } from '../system/Skeleton';
 import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
 import { T } from '../Text';
@@ -463,7 +463,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     <TaskContext need={need} />
     <View style={s.card}><CandidateIdentity candidate={candidate} publicProfile={() => { void openProfile(); }} />
       <ProductFacts>
-        <ProductFact art="money" label={`Ukupno za ${dolaziOsoba(candidate.pokrivaMesta)}`} value={candidate.cena.prikaz} prominent />
+        <ProductFact art="money" label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={candidate.cena.prikaz} prominent />
         <ProductFact art="users" label="Ljudi" value={osoba(candidate.pokrivaMesta)} />
         <ProductFact art="calendar" label="Termin" value={applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst} />
       </ProductFacts>
@@ -485,7 +485,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       : !candidate.mozeIzabrati && !pending ? <View style={s.card}><T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T>
         <V2Action label="Osveži prijave" onPress={refresh} disabled={busy} /></View> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
-    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Nudi pomoć" safety={safety} />
+    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />
   </SelectionFrame>;
 }
 const s = StyleSheet.create({

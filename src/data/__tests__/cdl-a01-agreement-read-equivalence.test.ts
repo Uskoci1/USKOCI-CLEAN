@@ -235,6 +235,23 @@ it('does not conceal a malformed accepted endpoint behind a valid start', async 
   expect((await agreementClientService.dogovor('agr-1'))?.vremeTekst).toBe('Termin nije dostupan');
 });
 
+// Deliberate contract change (plan step 0, 2026-09-23): the projection used to map a missing amount to novac(0), so
+// a Dogovor without a saved price showed "0 RSD" like any other amount. It now keeps the shape with an empty display,
+// and the screens say it in words.
+it.each([['missing', undefined], ['null', null], ['zero', 0], ['negative', -500], ['unreadable', 'abc']])(
+  'never turns a %s agreed amount into "0 RSD"', async (_name, price) => {
+    resetHappyAuth();
+    mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms, price_rsd: price } }, error: null });
+    const result = await agreementClientService.dogovor('agr-1');
+    expect(result?.cena).toEqual({ iznos: 0, valuta: 'RSD', prikaz: '' });
+  });
+
+it('keeps a real agreed amount exactly as before', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: rawAgreement, error: null });
+  expect((await agreementClientService.dogovor('agr-1'))?.cena).toEqual({ iznos: 2400, valuta: 'RSD', prikaz: '2.400 RSD' });
+});
+
 it('attributes accepted coverage to the worker when the viewing account is the worker', async () => {
   resetHappyAuth();
   mockGetUser.mockResolvedValue({ data: { user: { id: 'worker-1' } }, error: null });

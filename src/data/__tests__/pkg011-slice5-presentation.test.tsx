@@ -41,7 +41,7 @@ test('the frame says what the screen is for and names no app mode; the form lead
 test('status tone follows the server state and the availability switch stays read-only', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
   expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Uključeno · sačuvano stanje');
-  const toggle = tree.root.findAllByType('Switch' as React.ElementType)[0]; expect(toggle.props.disabled).toBe(true); expect(toggle.props.accessibilityLabel).toBe('Dostupan sam');
+  const toggle = tree.root.findAllByType('Switch' as React.ElementType)[0]; expect(toggle.props.disabled).toBe(true); expect(toggle.props.accessibilityLabel).toBe('Mogu odmah'); // was the gendered "Dostupan sam" (one voice, 2026-09-23)
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
   expect(texts()).toContain('Profil je trenutno suspendovan');

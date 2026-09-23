@@ -80,13 +80,16 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const status = raw.status as DogovorProjekcija['stanje'];
   const amount = Number(terms.price_rsd ?? 0);
   const currency = String(terms.currency ?? 'RSD');
+  // A missing, zero or unreadable agreed amount never reads as "0 RSD" (plan step 0, 2026-09-23): the projection
+  // keeps its shape with an empty `prikaz`, and every screen says that in words instead of drawing an amount.
+  const agreedAmount = Number.isFinite(amount) && amount > 0;
 
   return {
     id: raw.id,
     verzija: Number(raw.currentVersion),
     naslov: raw.title ?? '',
     stanje: status,
-    cena: novac(amount, currency),
+    cena: agreedAmount ? novac(amount, currency) : { iznos: 0, valuta: currency, prikaz: '' },
     // Parent task edits cannot silently change an already accepted Agreement.
     vremeTekst: acceptedSchedule(terms),
     putanjaTekst: [raw.approximateArea, raw.approximateCity].filter(Boolean).join(', '),

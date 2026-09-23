@@ -21,17 +21,22 @@ function OwnedAvailability() {
   const profile = useFocusedResource(useCallback(() => ownProfileClientService.read(accountId ?? '', 'uskocer'),
     [accountId, accountRevision]));
   const profileDraft = profile.data?.stanje === 'DRAFT';
-  return <CalendarScreen title="Dostupnost za rad" back={back} loading={editor.loading} scroll={false}>
+  // A refresh keeps the loaded week on screen under the pull spinner instead of swapping the whole form for a
+  // loading card; only the first read, with nothing yet to show, is a loading screen.
+  const refreshing = editor.loading && !!editor.data;
+  return <CalendarScreen title="Dostupnost za rad" back={back} loading={editor.loading && !editor.data} scroll={false}>
     {editor.error ? <View style={[calendarStyles.note, { marginHorizontal: 20, marginTop: 12 }]}><T accessibilityRole="alert" tone="danger">{editor.error}</T>
       <Button label="Učitaj sačuvano stanje" kind="secondary" disabled={editor.busy} onPress={() => void editor.refresh()} />
     </View> : null}
     {editor.saved ? <T accessibilityRole="alert" tone="success" style={{ paddingHorizontal: 20, paddingVertical: 8 }}>Dostupnost je sačuvana.</T> : null}
+    {/* Pull to refresh replaced a standing "Osveži dostupnost" button under the form (plan step 0, 2026-09-23);
+        it calls the same read. */}
     {editor.data ? <AvailabilityForm key={`${editor.data.accountId}:${editor.data.revision}`} availability={editor.data}
-      profileDraft={profileDraft} busy={editor.busy} uncertain={editor.uncertain} onSave={value => void editor.save(async () => {
+      profileDraft={profileDraft} busy={editor.busy} uncertain={editor.uncertain}
+      refreshing={refreshing} onRefresh={() => { if (!editor.busy) void editor.refresh(); }} onSave={value => void editor.save(async () => {
         const result = await workerAvailabilityClientService.save({ expectedRevision: editor.data!.revision, value });
         return result.ok ? { ok: true, podatak: result.podatak.availability } : result;
       })} /> : null}
-    {!editor.error ? <Button label="Osveži dostupnost" kind="quiet" disabled={editor.busy} onPress={() => void editor.refresh()} style={{ marginHorizontal: 20 }} /> : null}
   </CalendarScreen>;
 }
 /** When a person can work is theirs to set whenever they like; it used to be reachable in one mode only. */
