@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T04:00:30Z",
+  "osvezeno": "2026-09-23T04:04:49Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "aeca551a",
-  "head_poruka": "device: F05 is visible on the phone, and the earlier conclusion was wrong",
+  "head": "00f85d53",
+  "head_poruka": "control: recompute at the commit the published page carries",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "NA TELEFONU NIJE PROVERENO": 44,
-  "PROBLEM": 18
+  "NA TELEFONU NIJE PROVERENO": 45,
+  "PROBLEM": 17
  },
  "redovi": [
   {
@@ -1904,9 +1904,9 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "50178e6b: na stvarnom zadatku pregled lokalne ponude i Android Nazad sa sačuvanim iznosom; ništa nije poslato. Istorijski dokaz u docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
-   "problem": "Pregled i slanje su povezani u kodu; ceo put sa stvarnim slanjem i prijemom na drugom telefonu još nije prihvaćen.",
-   "sledece": "Tipovi i 242 grupe/4719 testova prolaze. Tačan završni APK: 35775425984 / 9286fdeb. Proveriti stvarno slanje, neizvestan ishod i otvaranje baš potvrđene prijave sa obe strane; ne prenositi staru proveru na novi build.",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
+   "problem": "",
+   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1915,7 +1915,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "PROBLEM",
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
     "povrsina": "Mapa/Lista",
     "nivo": 2,
@@ -1972,9 +1972,9 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
    "problem": "Učitava celu listu odjednom. Straničena serverska funkcija postoji, ali nije zamena jedan-za-jedan: redosled joj je drugačiji.",
-   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana.",
+   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana. NA TELEFONU 23.09: ekran prikazuje stvarnu poslatu ponudu od 2.000 RSD, sa karticama Sve/Čeka te/Aktivne i dugmetom „Povuci prijavu“ (nije pritisnuto).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2035,13 +2035,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
     "test": "8 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "Isti snimak: dugme „Povuci prijavu“ je vidljivo na kartici poslate ponude. Nije pritisnuto — povlačenje menja stvarne podatke.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {

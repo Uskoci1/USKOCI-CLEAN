@@ -820,10 +820,10 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "50178e6b: na stvarnom zadatku pregled lokalne ponude i Android Nazad sa sačuvanim iznosom; ništa nije poslato. Istorijski dokaz u docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233."
    },
-   "problem": "Pregled i slanje su povezani u kodu; ceo put sa stvarnim slanjem i prijemom na drugom telefonu još nije prihvaćen.",
-   "sledece": "Tipovi i 242 grupe/4719 testova prolaze. Tačan završni APK: 35775425984 / 9286fdeb. Proveriti stvarno slanje, neizvestan ishod i otvaranje baš potvrđene prijave sa obe strane; ne prenositi staru proveru na novi build.",
+   "problem": "",
+   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -852,10 +852,10 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json"
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233."
    },
    "problem": "Učitava celu listu odjednom. Straničena serverska funkcija postoji, ali nije zamena jedan-za-jedan: redosled joj je drugačiji.",
-   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana.",
+   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana. NA TELEFONU 23.09: ekran prikazuje stvarnu poslatu ponudu od 2.000 RSD, sa karticama Sve/Čeka te/Aktivne i dugmetom „Povuci prijavu“ (nije pritisnuto).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -887,7 +887,10 @@
     "rpc_withdraw_response",
     "rpc_resolve_stale_response_after_need_edit"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "Isti snimak: dugme „Povuci prijavu“ je vidljivo na kartici poslate ponude. Nije pritisnuto — povlačenje menja stvarne podatke."
+   },
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
