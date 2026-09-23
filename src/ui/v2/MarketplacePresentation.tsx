@@ -13,7 +13,7 @@ import { ProductSheet } from '../product/ProductSheet';
 import { plural, zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
-import { SkeletonList } from '../system/Skeleton';
+import { StateView } from '../system/StateView';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { DiscoveryMap } from './DiscoveryMap';
@@ -138,23 +138,23 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem} />, [relationOf, openItem]);
 
-  const empty = <View style={s.empty} accessibilityLiveRegion="polite">
-    {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
-      : error ? <View style={s.state}><View style={s.stateArt}><FactArt kind="tasks" size={56} muted /></View><T style={s.stateTitle}>Zadatke trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
-        <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : hasFilter ? <View style={s.state}><View style={s.stateArt}><FactArt kind="map" size={56} /></View><T style={s.stateTitle}>Nema zadataka u ovom prikazu</T><T style={s.stateBody}>Promeni pretragu ili poništi filtere.</T>
-          <V2Action label="Poništi filtere" onPress={() => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport })} /></View>
-          : owned ? <View style={s.state}><T style={s.stateTitle}>{items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}</T>
-            <T style={s.stateBody}>{items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}</T>
-            {props.onNew ? <V2Action label={items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak'} onPress={props.onNew} style={brandAction} /> : null}
-            {items.length ? <V2Action label="Prikaži sve moje zadatke" kind="quiet" onPress={() => change({ section: 'all' })} /> : null}</View>
+  // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
+  const empty = <View style={s.empty}>
+    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" />
+      : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
+        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+        : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."
+          primary={{ label: 'Poništi filtere', onPress: () => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport }) }} />
+          : owned ? <StateView art="tasks" title={items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}
+            body={items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}
+            primary={props.onNew ? { label: items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak', onPress: props.onNew } : undefined}
+            quiet={items.length ? { label: 'Prikaži sve moje zadatke', onPress: () => change({ section: 'all' }) } : undefined} />
             // The brand action is what the screen wants you to do. On the screen a worker meets
             // before anything exists, that is not "refresh" — it is the profile that decides
             // whether a task can ever be offered to them.
-            : <View style={s.state}><View style={s.stateArt}><FactArt kind="tasks" size={56} /></View><T style={s.stateTitle}>Trenutno nema otvorenih zadataka</T>
-              <T style={s.stateBody}>Zadaci se nude prema tvom radnom profilu — veštinama, području i dostupnosti.</T>
-              <V2Action label="Dopuni radni profil" onPress={props.onProfile} style={brandAction} />
-              <V2Action label="Osveži zadatke" kind="quiet" onPress={props.onRefresh} /></View>}
+            : <StateView art="tasks" title="Trenutno nema otvorenih zadataka"
+              body="Zadaci se nude prema tvom radnom profilu — veštinama, području i dostupnosti."
+              primary={{ label: 'Dopuni radni profil', onPress: props.onProfile }} quiet={{ label: 'Osveži zadatke', onPress: props.onRefresh }} />}
   </View>;
 
   return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
@@ -290,11 +290,8 @@ const s = StyleSheet.create({
   clear: { width: 44, height: 44, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
-  empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
+  empty: { paddingVertical: 8, flex: 1 },
   mapEmpty: { flex: 1, paddingHorizontal: 20 },
-  stateArt: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
-  stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
   mapArea: { flex: 1, minHeight: 180 },
   // Give facts the full width: two actions previously squeezed them into a column of letters.
   mapLegend: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line, gap: 4 },

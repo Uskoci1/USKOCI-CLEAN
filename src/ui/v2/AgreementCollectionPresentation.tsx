@@ -11,12 +11,11 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { dogovora, osoba } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
-import { SkeletonList } from '../system/Skeleton';
-import { brandAction, sys, cardCompact } from '../system/tokens';
+import { StateView } from '../system/StateView';
+import { sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { agreementStateText } from './AgreementPresentation';
-import { V2Action } from './V2Action';
 
 export type AgreementCollectionSection = 'active' | 'history' | 'all';
 type Props = {
@@ -182,14 +181,17 @@ export function AgreementCollectionPresentation(props: Props) {
   const openItem = useCallback((item: DogovorProjekcija) => openRef.current(item), []);
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<DogovorProjekcija>) =>
     <AgreementRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} onOpen={openItem} />, [openItem]);
-  const empty = <View style={s.empty} accessibilityLiveRegion="polite">
-    {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
-      : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
-        <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={brandAction} /></View>
-        : items.length ? <View style={s.state}><T style={s.stateTitle}>Nema Dogovora u ovom prikazu</T><T style={s.stateBody}>Pogledaj sve svoje saradnje: i za tvoje zadatke i za one u koje uskačeš.</T>
-          <V2Action label="Prikaži sve Dogovore" onPress={() => { props.onSection('all'); props.onConfirmationOnly(false); }} /></View>
-          : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde.</T>
-            <V2Action label="Idi na Početnu" onPress={props.onHome} style={brandAction} /></View>}
+  // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
+  const empty = <View style={s.empty}>
+    {loading ? <StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 3, rows: 2 }} />
+      : error ? <StateView kind="error" art="agreements" title="Dogovore trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
+        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+        : items.length ? <StateView art="agreements" title="Nema Dogovora u ovom prikazu"
+          body="Pogledaj sve svoje saradnje: i za tvoje zadatke i za one u koje uskačeš."
+          primary={{ label: 'Prikaži sve Dogovore', onPress: () => { props.onSection('all'); props.onConfirmationOnly(false); } }} />
+          : <StateView art="agreements" title="Još nemaš Dogovor"
+            body="Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde."
+            primary={{ label: 'Idi na Početnu', onPress: props.onHome }} />}
   </View>;
   const chip = waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
     onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
@@ -224,9 +226,7 @@ const s = StyleSheet.create({
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
   list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, flexGrow: 1 },
-  empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
-  state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
-  stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
+  empty: { paddingVertical: 8, flex: 1 },
   // V41 card: white, a hairline edge, a 20px corner and no shadow to speak of. The strip below the facts is
   // clipped to the corner, so the card stays one shape.
   card: { ...cardCompact, padding: 0, overflow: 'hidden' },
