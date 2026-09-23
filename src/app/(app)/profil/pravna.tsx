@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Linking, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { LegalDocument } from '../../../contracts/legal';
 import type { ProcessorLegalRole } from '../../../contracts/processorMap';
@@ -12,6 +12,7 @@ import { LegalDocumentRows } from '../../../ui/legal/LegalDocuments';
 import { LegalReviewController, legalHttpsUrl, reviewedDocuments, sessionLegalIntentJournal } from '../../../ui/legal/legalReview';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsScreen, SettingsText as T } from '../../../ui/settings/SettingsPresentation';
 import { sys } from '../../../ui/system/tokens';
+import { SkeletonList } from '../../../ui/system/Skeleton';
 
 const roles: Record<ProcessorLegalRole, string> = { PROCESSOR: 'Obrađivač', SUBPROCESSOR: 'Podobrađivač', INDEPENDENT_CONTROLLER: 'Samostalni rukovalac' };
 export default function PravnaDokumenta() {
@@ -55,7 +56,7 @@ function OwnedLegal() {
       onPress={() => { if (current()) void controller.accept(state.bundle); }} /> : null;
   return <SettingsScreen title="Pravna dokumenta" onBack={back} footer={action}>
     <SettingsIntro>Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
-    {state.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pravnih dokumenata" color={sys.color.green} /> : <>
+    {state.loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
       <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} />
       {confirmed ? <SettingsPanel soft><T accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></SettingsPanel>
         : state.receipt ? <SettingsPanel soft><T>Prethodno prihvatanje je potvrđeno. Učitaj aktuelne dokumente ponovo.</T></SettingsPanel> : null}

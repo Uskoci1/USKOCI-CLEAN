@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { DownloadSimple, ShieldCheck } from 'phosphor-react-native';
 import type { DataExportFile, DataExportPreparation, DataExportStatus } from '../../../contracts/dataExport';
@@ -13,6 +13,7 @@ import { sesijaSada, useSesija } from '../../../store/sesija';
 import { plural } from '../../../ui/system/plural';
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
+import { SkeletonList } from '../../../ui/system/Skeleton';
 
 const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
@@ -167,7 +168,7 @@ function OwnedExport() {
     : null;
   return <SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
     <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
-    {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje stanja izvoza" color={sys.color.green} />
+    {editor.loading ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
       : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
         <T accessibilityRole="alert">{editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.')}</T>
         <Button label="Učitaj stanje ponovo" onPress={refresh} disabled={editor.busy} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Star } from 'phosphor-react-native';
@@ -10,6 +10,7 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { SuccessMark } from '../system/SuccessMark';
+import { SkeletonList } from '../system/Skeleton';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -76,7 +77,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar eyebrow="Dogovor" title="Ocena saradnje" onBack={backFromReview} />
     <ScrollView contentContainerStyle={s.content}>
-      {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
+      {workspace.loading || !foreground || resumeRequired ? <View accessible accessibilityLabel="Učitavanje ocene"><SkeletonList count={1} rows={3} /></View>
         : receipt ? <View style={s.card}>
           {/* Settles in with one spring and a success haptic only right after saving; reopened later it is still. */}
           <SuccessMark fresh={workspace.saved} tone="orange"><Star size={32} weight="fill" color={sys.color.orange} /></SuccessMark>
