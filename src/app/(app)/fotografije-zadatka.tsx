@@ -152,12 +152,16 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
       : message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
     {busy ? <T>Radnja je u toku…</T> : null}
     {photos ? <T>{photos.photos.length} / 6 fotografija</T> : null}
-    {photos?.photos.map((photo, i) => <SettingsPanel key={photo.assetId}><View style={{ gap: 8 }}>
-      {photo.state === 'READY' ? <AuthorizedPhoto assetId={photo.assetId} label={`Fotografija zadatka ${i + 1}`} />
-        : <T>{photo.state === 'FAILED' ? 'Fotografija nije obrađena.' : 'Fotografija se obrađuje.'}</T>}
-      <SettingsAction label={`Ukloni fotografiju ${i + 1}`} kind="destructive" disabled={busy || unconfirmed || !recovered}
-        onPress={() => { void remove(photo.assetId); }} />
-    </View></SettingsPanel>)}
+    {/* A grid, two square tiles to a row, each with its small remove control (owner, 2026-09-23). It used to be a
+        card and a full-width button per photo — six photos were six screens of buttons. */}
+    {photos?.photos.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      {photos.photos.map((photo, i) => <View key={photo.assetId} style={{ width: '48%', gap: 6 }}>
+        {photo.state === 'READY' ? <AuthorizedPhoto assetId={photo.assetId} label={`Fotografija zadatka ${i + 1}`} contentFit="cover" style={{ aspectRatio: 1 }} />
+          : <SettingsPanel soft style={{ aspectRatio: 1, marginTop: 0, marginBottom: 0, justifyContent: 'center' }}><T variant="meta" tone="muted">{photo.state === 'FAILED' ? 'Fotografija nije obrađena.' : 'Fotografija se obrađuje.'}</T></SettingsPanel>}
+        <SettingsAction label={`Ukloni fotografiju ${i + 1}`} kind="destructive" compact disabled={busy || unconfirmed || !recovered}
+          onPress={() => { void remove(photo.assetId); }} />
+      </View>)}
+    </View> : null}
     <SettingsAction label="Izaberi iz galerije" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('LIBRARY'); }} />
     <SettingsAction label="Fotografiši" kind="secondary" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('CAMERA'); }} />
     <SettingsAction label="Osveži i proveri fotografije" kind="quiet" disabled={busy} onPress={() => { void refresh(); }} />

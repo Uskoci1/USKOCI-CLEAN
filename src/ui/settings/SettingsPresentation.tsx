@@ -77,10 +77,12 @@ export function SettingsInfo({ title, children, icon, last = false }: { title: s
 }
 
 /** `primary` is the screen's one brand action (orange surface, ink text); other kinds map onto V2Action. */
-export function SettingsAction({ label, onPress, disabled = false, kind = 'primary', icon }: {
+export function SettingsAction({ label, onPress, disabled = false, kind = 'primary', icon, compact = false }: {
   label: string; onPress: () => void; disabled?: boolean; kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode;
+  /** A small control beside content (under a photo tile), never for the screen's one brand action. */
+  compact?: boolean;
 }) {
-  if (kind !== 'primary') return <V2Action label={label} onPress={onPress} disabled={disabled} kind={kind} icon={icon} />;
+  if (kind !== 'primary') return <V2Action label={label} onPress={onPress} disabled={disabled} kind={kind} icon={icon} compact={compact} />;
   return <V2Action label={label} onPress={onPress} disabled={disabled} icon={icon} style={brandAction} />;
 }
 
