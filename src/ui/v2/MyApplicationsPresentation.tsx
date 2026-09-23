@@ -90,8 +90,8 @@ const ApplicationCard = memo(function ApplicationCard({ row: p, expanded, focuse
     {/* The orange border already says this card wants you. An orange button inside it as well, on
         every card of the "Čeka te" tab, spends the one colour that is supposed to mean "the step". */}
     {stale ? <><T variant="copy" style={s.ink}>Zadatak je izmenjen. Pregledaj aktuelne uslove pre nego što odlučiš o svojoj Prijavi.</T>
-      {!expanded ? <V2Action label="Pregledaj izmene" accessibilityLabel={`Pregledaj izmene: ${readableTitle(p.naslov)}`} onPress={onReview} disabled={disabled} kind="primary" /> : null}</> : null}
-    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label="Otvori Dogovor" accessibilityLabel={`Otvori Dogovor: ${readableTitle(p.naslov)}`} onPress={onAgreement} kind="primary" disabled={disabled} /> : null}
+      {!expanded ? <V2Action label="Pregledaj izmene" accessibilityLabel={`Pregledaj izmene: ${readableTitle(p.naslov)}`} onPress={onReview} disabled={disabled} /> : null}</> : null}
+    {p.stanje === 'SELECTED' && p.dogovorId ? <V2Action label="Otvori Dogovor" accessibilityLabel={`Otvori Dogovor: ${readableTitle(p.naslov)}`} onPress={onAgreement} disabled={disabled} /> : null}
     {p.stanje !== 'STALE_REVIEW_REQUIRED' && p.napomena?.trim() ? <View style={s.offerNote}>
       <T variant="meta" tone="muted">Tvoja poruka</T><T variant="note" style={s.ink}>{p.napomena}</T></View> : null}
     {!stale && p.mozePovuci ? <V2Action label="Povuci prijavu" accessibilityLabel={`Povuci prijavu: ${readableTitle(p.naslov)}`} onPress={onWithdraw} compact kind="destructive" disabled={disabled} style={s.quietLeft} /> : null}
@@ -136,7 +136,7 @@ export function MyApplicationsPresentation(props: Props) {
           ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: props.draft.start, endsAt: props.draft.end }, deviceZone()) : 'Nije naveden u Prijavi.'}</T>
         <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
         <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
-      </View> : <><V2Action label="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} kind="primary" />
+      </View> : <><V2Action label="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
         <V2Action label="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
         <V2Action label="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} kind="destructive" style={s.quietLeft} /></>}
       <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" />

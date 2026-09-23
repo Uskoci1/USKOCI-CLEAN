@@ -12,7 +12,7 @@ import { T } from '../Text';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
 import { neprocitanih } from '../system/plural';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -84,7 +84,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
      <TextInput accessibilityLabel={retry?'Unesi prvobitnu poruku':'Poruka grupi'} multiline value={draft} onChangeText={change} style={s.input}
       placeholder="Dogovori zajedničke korake…" placeholderTextColor={sys.color.muted} maxLength={4000}/>
      <T style={s.meta}>{Array.from(normalizeGroupBody(draft)).length} / 2.000 znakova</T>
-     <V2Action label={retry?'Ponovi slanje iste poruke':'Pošalji poruku grupi'} kind="primary" disabled={!groupBody(normalizeGroupBody(draft))}
+     <V2Action label={retry?'Ponovi slanje iste poruke':'Pošalji poruku grupi'} style={brandAction} disabled={!groupBody(normalizeGroupBody(draft))}
       onPress={()=>{if(current()){if(retry)void controller?.retry(input.current);else void controller?.send(input.current);}}}/>
     </View>:null}
     {state.phase==='SENDING'?<T accessibilityLiveRegion="polite" style={s.copy}>Čekam potvrdu slanja…</T>:null}

@@ -13,7 +13,7 @@ import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
-import { sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { pointsMissing } from '../../lib/location';
@@ -96,8 +96,8 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
     <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{loading ? 'Otvaramo razgovor' : 'Razgovor nije dostupan'}</T>
     {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
       : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>
-        {recover ? <V2Action kind="primary" label="Otvori prethodni razgovor" onPress={recover} /> : null}
-        {retry ? <V2Action kind="primary" label="Učitaj razgovor ponovo" onPress={retry} /> : null}</>}
+        {recover ? <V2Action label="Otvori prethodni razgovor" onPress={recover} style={brandAction} /> : null}
+        {retry ? <V2Action label="Učitaj razgovor ponovo" onPress={retry} style={recover ? undefined : brandAction} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
 }
@@ -200,7 +200,7 @@ export function IntakePresentation(props: Props) {
         </Suspense>
       </> : null}
       {needsPoint && pointAskHidden
-        ? <V2Action kind="primary" label="Pokaži mesto na mapi" onPress={() => { Keyboard.dismiss(); setPointAskHidden(false); }} /> : null}
+        ? <V2Action label="Pokaži mesto na mapi" style={brandAction} onPress={() => { Keyboard.dismiss(); setPointAskHidden(false); }} /> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
@@ -226,7 +226,7 @@ export function IntakePresentation(props: Props) {
           task was to abandon it and start another. The review is what finishes this one, so it
           goes first and it is the strong one; starting over is an ordinary choice near the end,
           beside abandoning. */}
-      {props.canReview ? <V2Action label={props.reviewLabel} kind="primary" onPress={() => { close(); props.onReview(); }} /> : null}
+      {props.canReview ? <V2Action label={props.reviewLabel} onPress={() => { close(); props.onReview(); }} style={brandAction} /> : null}
       {props.onPhotos ? <V2Action label="Fotografije zadatka" disabled={props.photosDisabled}
         onPress={() => { close(); props.onPhotos?.(); }} /> : null}
       {/* Reachable whenever the task has a place, not only while a point is missing, so a point
