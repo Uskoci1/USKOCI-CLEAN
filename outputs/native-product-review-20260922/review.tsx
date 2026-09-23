@@ -47,6 +47,8 @@ const agreement: DogovorProjekcija = { id: 'preview-agreement', verzija: 1, stan
     { id: 'preview-other', profilId: null, ime: 'Nikola', inicijali: 'N', uloga: 'uskocer', viSte: false, mesta: 2, telefon: null }],
   kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null,
+  // PKG-048: the Zadatak and the Prijava this preview Dogovor grew out of, so the review shows both source rows.
+  izvor: { zadatakId: need.id, prijavaId: candidates[0].prijavaId },
 };
 const myApplications: MojaPrijavaProjekcija[] = [{ prijavaId: 'preview-own-offer', potrebaId: need.id, potrebaRevizija: 1, prijavaRevizija: 1,
   prijavaVerzija: 1, stanje: 'SUBMITTED', naslov: need.naslov, opis: need.opis, cena: candidates[0].cena, pokrivaMesta: 2,
