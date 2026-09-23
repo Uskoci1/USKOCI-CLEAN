@@ -39,20 +39,35 @@ function validateFirebase(firebase) {
     'Firebase client configuration must not contain private credential material.');
 }
 
+/**
+ * The two reviewed Android builds this hook admits. `preview` is the internal APK the phones have run since
+ * 2026-09; `production` is the store app bundle for Google Play (owner, 2026-09-23: "večeras šaljem app na Google
+ * Play"). Both keep every other boundary below: the same project, package, version floor, public backend form,
+ * fake-source ban and Firebase client. Any other profile is refused.
+ */
+const REVIEWED_PROFILES = {
+  preview: profile => profile?.autoIncrement === true && profile?.distribution === 'internal' && profile?.environment === 'preview' &&
+    profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'apk',
+  production: profile => profile?.autoIncrement === true && profile?.distribution === 'store' && profile?.environment === 'production' &&
+    profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'app-bundle',
+};
+
 function validatePreview({ app, eas, env, firebase }) {
   const expo = app?.expo;
-  const preview = eas?.build?.preview;
+  const name = env.EAS_BUILD_PROFILE;
+  const reviewed = Object.prototype.hasOwnProperty.call(REVIEWED_PROFILES, name) ? REVIEWED_PROFILES[name] : null;
+  const selected = reviewed ? eas?.build?.[name] : null;
   requireCondition(expo?.owner === 'sljivas-team' && expo?.slug === 'uskoci' &&
     expo?.extra?.eas?.projectId === PROJECT_ID, 'Expected the existing @sljivas-team/uskoci EAS project.');
   requireCondition(expo?.android?.package === 'rs.uskoci.preview', 'Expected the existing Android preview package.');
   requireCondition(Number.isSafeInteger(expo?.android?.versionCode) && expo.android.versionCode >= 35,
     'Android versionCode must retain the source seed floor of 35.');
-  requireCondition(eas?.cli?.appVersionSource === 'remote' && preview?.autoIncrement === true &&
-    preview?.distribution === 'internal' && preview?.environment === 'preview' &&
-    preview?.credentialsSource === 'remote' && preview?.android?.buildType === 'apk',
-  'Expected the reviewed preview internal APK profile with remote credentials and version increment.');
-  requireCondition(env.EAS_BUILD_PROFILE === 'preview' && env.EAS_BUILD_PLATFORM === 'android',
-    'This EAS hook admits only the reviewed Android preview build.');
+  requireCondition(!!reviewed && env.EAS_BUILD_PLATFORM === 'android',
+    'This EAS hook admits only the reviewed Android preview APK or the reviewed store app bundle.');
+  requireCondition(eas?.cli?.appVersionSource === 'remote' && reviewed(selected),
+    name === 'production'
+      ? 'Expected the reviewed production store app bundle profile with remote credentials and version increment.'
+      : 'Expected the reviewed preview internal APK profile with remote credentials and version increment.');
   requireCondition(!env.EAS_BUILD_PROJECT_ID || env.EAS_BUILD_PROJECT_ID === PROJECT_ID,
     'The EAS job project does not match the selected existing project.');
   requireCondition(env.EXPO_PUBLIC_USE_FAKE_SOURCE !== '1' && env.NODE_ENV !== 'test' &&
@@ -83,7 +98,7 @@ function main() {
   }
   try {
     validatePreview({ app, eas, env: process.env, firebase });
-    console.log('EAS preview preflight PASS: existing project/package/profile and public environment form. Auth, signing artifact and push delivery remain unproven.');
+    console.log(`EAS ${process.env.EAS_BUILD_PROFILE} preflight PASS: existing project/package/profile and public environment form. Auth, signing artifact and push delivery remain unproven.`);
     return 0;
   } catch (error) {
     console.error(`EAS preview preflight FAIL: ${error.message}`);

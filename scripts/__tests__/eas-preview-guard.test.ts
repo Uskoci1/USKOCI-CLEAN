@@ -65,10 +65,30 @@ describe('actual EAS preview pre-install guard', () => {
     const input = fixture();
     if (field === 'buildType') input.eas.build.preview.android.buildType = 'app-bundle';
     else if (field === 'versionSource') input.eas.cli.appVersionSource = 'local';
-    else if (field === 'profile') input.env.EAS_BUILD_PROFILE = 'production';
+    else if (field === 'profile') input.env.EAS_BUILD_PROFILE = 'development';
     else if (field === 'platform') input.env.EAS_BUILD_PLATFORM = 'ios';
     else input.eas.build.preview[field] = 'other';
     expect(() => validatePreview(input)).toThrow(/preview/);
+  });
+
+  // Store build, owner 2026-09-23: the production profile is the Google Play app bundle and keeps every other boundary.
+  it('admits the reviewed production store app bundle with the same public environment', () => {
+    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production';
+    expect(() => validatePreview(input)).not.toThrow();
+  });
+
+  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement'])('rejects production store profile drift: %s', (field) => {
+    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production';
+    const production = input.eas.build.production;
+    if (field === 'buildType') production.android.buildType = 'apk';
+    else if (field === 'autoIncrement') production.autoIncrement = false;
+    else production[field] = 'other';
+    expect(() => validatePreview(input)).toThrow(/production store app bundle/);
+  });
+
+  it.each([{ EXPO_PUBLIC_USE_FAKE_SOURCE: '1' }, { EXPO_PUBLIC_SUPABASE_URL: 'https://another.supabase.co' }, { EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_secret_NEVER_LOG_THIS_KEY' }])('keeps the fake-source, backend and key checks for the store build: %j', (override) => {
+    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production'; Object.assign(input.env, override);
+    expect(() => validatePreview(input)).toThrow(/fake or test|confirmed canonical|must be a public/);
   });
 
   it.each([undefined, 1, 34, 35.5])('rejects a version reset below the existing build lineage', (version) => {
