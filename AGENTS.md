@@ -18,6 +18,9 @@ bell), warm strips, underlined tabs with quiet counts, person-first Dogovori car
 Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
 green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
 
+MASTER DESIGN PLAN (2026-09-24): read `USKOCI_MASTER_PLAN_DIZAJNA.md` first for all UI/UX work. It holds the audit, the shared
+components that replace the conflicting ones, and the owner's 12-step order. Work branch: `work/uskoci-ui-unification-20260924`.
+
 AUTONOMOUS PERFECTION DIRECTIVE (owner, 2026-09-23 late night; memory: uskoci-autonomous-perfection-directive). Act as the
 whole senior product team and decide everything except: real payments, prices, payment provider, Google Maps/API billing,
 external accounts or keys, legal/privacy decisions, a permission with serious privacy consequences, destructive production
