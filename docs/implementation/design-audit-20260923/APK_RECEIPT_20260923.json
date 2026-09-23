@@ -40,5 +40,35 @@
   "notVerified": [
     "PKG-050 read-marking on a device: the only unread MESSAGE_RECEIVED on this account was already read; needs a fresh incoming message while the Poruke tab is open",
     "anything on the phone"
+  ],
+  "laterBuilds": [
+    {
+      "sourceCommit": "1213f739",
+      "emulator": {
+        "run": 35834299786,
+        "sha256": "566bf81937f44d408e97fd25633b7f52ac38ebe8740015243eb1cfd253aa4232",
+        "installed": "emulator-5554, sign-in retained; step-0 screens in emulator-1213f739/"
+      },
+      "phone": {
+        "run": 35834303143,
+        "downloaded": false
+      }
+    },
+    {
+      "sourceCommit": "aacff002",
+      "emulator": {
+        "run": 35836802571,
+        "sha256": "c7615285b9e9abaca37fe0e061918bcb76feda1067b88344c09304f305e81c2b",
+        "installed": "emulator-5554 at 10:34 device time, sign-in retained; AI welcome in emulator-aacff002/"
+      },
+      "phone": {
+        "run": 35836806220,
+        "sha256": "1ad70d9b2b624b5dee14fd891c765280eab816e90b884aed85db55273e55a161",
+        "checksumFileMatches": true,
+        "recoveryAttestationMatches": true,
+        "installed": false,
+        "note": "phone not connected at 10:45; carries step 0, hold-to-talk sends on release, Lottie package (no files), the AI welcome — not the later detail/discovery/offer commits (42dfe993…f2703baa)"
+      }
+    }
   ]
 }

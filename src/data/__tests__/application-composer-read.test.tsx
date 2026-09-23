@@ -110,6 +110,8 @@ it('refuses a submission when the authoritative task gate says remaining search 
   await offer();
   const review = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
   expect(review.props.disabled).toBe(true);
+  // The grey button says why (owner, 2026-09-23): the reason stands under it.
+  expect(text()).toContain('Zadatak više ne prima prijave.');
   // Exercise the unchanged route guard directly, even though the presentation prevents entry.
   const presentation = tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation);
   await act(async () => { await presentation.props.submit(); });
