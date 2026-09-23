@@ -24,7 +24,8 @@ import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 const row = (id: string, patch = {}): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat', 'Iskustvo', 'Prevoz'], statusTekst: 'Otvoren', rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 }, ...patch } as MarketplaceItem);
 let rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })], owned = false, loading = false, error = false;
 let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), switchView = jest.fn(), newTask = jest.fn(); let allowNew = true;
-function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} />; }
+let relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
+function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} relations={relations} />; }
 let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
@@ -35,7 +36,7 @@ const click = async (label: string) => act(async () => (label === 'Prikaži zada
 const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const render = async () => act(async () => { tree = create(<Screen />); });
-beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
+beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; relations = undefined; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('List/Map preserves search and viewport; panning alone keeps same exact result set', async () => {
  await render(); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
@@ -148,4 +149,24 @@ test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding 
  expect(tree.root.findByType(BottomSheet).props.animateOnMount).toBe(false);
  expect(tree.root.findByType(BottomSheet).props.animationConfigs.duration).toBe(0);
  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
+});
+
+// The tasks a person posted are not what they came to Prilike for (owner's rule of place: what you
+// need constantly is on the screen, the rest is one tap away).
+test('discovery hides the tasks I posted by default, says how many, and shows them on a tap — in the list and on the map', async () => {
+ rows = [row('one'), row('mine'), row('two', { priblizno: null, rezimCene: 'OFFERS' })];
+ relations = { owned: new Set(['mine']), applied: new Set() };
+ await render();
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori priliku Pomoć mine' })).toHaveLength(0);
+ expect(texts()).toContain('2 zadatka'); expect(texts()).toContain('1 tvoj zadatak je sakriven · Prikaži');
+ await tap('Prikaži i moje zadatke');
+ expect(press('Otvori priliku Pomoć mine')).toBeTruthy(); expect(texts()).toContain('3 zadatka'); expect(texts()).toContain('Sakrij moje');
+ await tap('Sakrij moje zadatke');
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori priliku Pomoć mine' })).toHaveLength(0);
+ await tap('Mapa');
+ expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one', 'two']);
+});
+test('Moji zadaci and a discovery without relations show everything, as before', async () => {
+ rows = [row('one'), row('mine')]; relations = undefined; await render();
+ expect(press('Otvori priliku Pomoć mine')).toBeTruthy(); expect(texts()).not.toContain('sakriven');
 });
