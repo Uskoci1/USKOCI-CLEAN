@@ -58,6 +58,14 @@ export function ProductFacts({ children }: { children: ReactNode }) {
   return <View style={s.facts}>{children}</View>;
 }
 
+/** A bulleted list ("• a" lines) as ["a", "b"]; anything that is not a bulleted list stays text (null). */
+const BULLET = /^[•\-–]\s*/;
+function listItems(value: string): string[] | null {
+  const lines = value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (!lines.length || !lines.every(line => BULLET.test(line))) return null;
+  return lines.map(line => line.replace(BULLET, '')).filter(Boolean);
+}
+
 /** An explicit list: none of the requirements needed for deciding is hidden behind a disclosure. */
 export function ProductRequirements({ rows, title = 'Važno za ovaj zadatak' }: {
   rows: { label: string; value: string }[]; title?: string;
@@ -66,12 +74,17 @@ export function ProductRequirements({ rows, title = 'Važno za ovaj zadatak' }: 
   // on the one screen where a person decides whether to apply.
   if (!rows.length) return null;
   return <ProductSection title={title}>
-    {rows.length ? <View style={s.requirements}>{rows.map((row, index) =>
-      <View key={`${row.label}:${index}`} style={s.requirement}>
-        <View style={s.requirementDot} />
-        <View style={s.factCopy}><T variant="meta" tone="muted">{row.label}</T>
-          <T selectable variant="body" style={s.ink}>{row.value}</T></View>
-      </View>)}
+    {rows.length ? <View style={s.requirements}>{rows.map((row, index) => {
+      // A list arrives as bulleted lines. Drawn under a dot of its own it read as a bullet inside a bullet on the
+      // phone (2026-09-23); a list is a row of chips under its label, a sentence stays a sentence.
+      const items = listItems(row.value);
+      return <View key={`${row.label}:${index}`} style={s.requirement}>
+        <T variant="meta" tone="muted">{row.label}</T>
+        {items ? <View style={s.chips}>{items.map((item, at) => <View key={`${item}:${at}`} style={s.chip}>
+          <T selectable variant="bodyStrong" style={s.ink}>{item}</T></View>)}</View>
+          : <T selectable variant="body" style={s.ink}>{row.value}</T>}
+      </View>;
+    })}
     </View> : <T variant="body" tone="muted">Nema dodatih uslova.</T>}
   </ProductSection>;
 }
@@ -106,8 +119,9 @@ const s = StyleSheet.create({
   priceValue: { ...sys.type.priceLarge, color: sys.color.money },
   priceLabel: { ...sys.type.title, color: sys.color.green },
   requirements: { gap: 16, padding: 16, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
-  requirement: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  requirementDot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.green, marginTop: 8 },
+  requirement: { gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
   person: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, paddingHorizontal: 16,
     borderWidth: 1, borderColor: sys.color.cardLine, borderRadius: sys.radius.card, backgroundColor: sys.color.surface },
   personName: { color: sys.color.ink, fontSize: 18, lineHeight: 24 },

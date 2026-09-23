@@ -203,13 +203,15 @@ describe('V2 saved Need presentation', () => {
     // The category is not shown to people (owner decision 2026-09-21); the server reads it only to match.
     expect(texts()).not.toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
     expect(texts()).toContain('19:00'); expect(texts()).toContain('Čćšžđ '.repeat(800));
-    for (const value of ['• Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
+    for (const value of ['Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
     expect(texts()).not.toContain('Petrovaradin');
     await act(async () => press('Mesto izvršenja').props.onPress());
-    for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'RS']) expect(texts()).toContain(value);
+    for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'Srbija']) expect(texts()).toContain(value);
+    // A list reads as chips under its label, each item once per stored value, never a bullet under a bullet (2026-09-23).
+    expect(texts()).not.toContain('•');
     // Reading location no longer collapses the independently visible requirements.
     expect(texts()).toContain('Petrovaradin');
-    for (const value of ['• Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
+    for (const value of ['Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
     expect(texts()).not.toContain('Revizija 7');
   });

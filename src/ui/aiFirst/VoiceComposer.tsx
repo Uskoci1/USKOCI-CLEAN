@@ -41,7 +41,8 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
   const listening = p.state.phase === 'LISTENING';
   return <View style={s.wrap}>
     {(p.state.finalText || p.state.interimText) && active ? <T selectable style={s.transcript}>{p.state.finalText}{p.state.finalText && p.state.interimText ? ' ' : ''}{p.state.interimText}</T> : null}
-    {/* Idle, the microphone speaks for itself; its accessibility label still says what it does. */}
+    {/* Idle, the one line under the microphone is how to use it (owner, 2026-09-23: hold, talk, release). It used to
+        be the switch to the other mode, which read as the microphone's own name. */}
     {p.state.phase !== 'IDLE' ? <T variant="label" style={[s.caption, listening && s.captionActive]}>{label}</T> : null}
     <View style={s.stage}>
       <View style={listening ? s.ringActive : undefined}>
@@ -63,9 +64,10 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
           style={{ width: 3, height: 6 + i * 4, borderRadius: sys.radius.pill, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : a.color.lineStrong }} />)}
       </View> : null}
       {active ? <V2Action kind="quiet" label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
+      {p.state.phase === 'IDLE' ? <T variant="label" importantForAccessibility="no" style={s.caption}>{explicit ? 'Dodirni i govori' : 'Drži i govori'}</T> : null}
     </View>
     {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact
-      label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
+      label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'} style={s.modeSwitch}
       onPress={() => setAccessibleMode(value => !value)} /> : null}
     {active ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
       {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti — poruka ide u razgovor. Povuci nagore da odustaneš.'}
@@ -91,6 +93,8 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
+  // The other mode is an accessibility alternative, so it reads as a quiet link under the instruction, not as its title.
+  modeSwitch: { opacity: 0.85 },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
   transcript: { ...sys.type.body, color: a.color.ink, maxHeight: 72, padding: 10, borderRadius: sys.radius.control, backgroundColor: a.color.iconWell },
   error: { color: a.color.danger, textAlign: 'center' },

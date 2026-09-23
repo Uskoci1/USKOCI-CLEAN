@@ -142,7 +142,10 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {props.lifecycleActions}
         {props.qaAction}
       </ScrollView>}
-    {usable ? <View style={s.footer}>
+    {/* A published Zadatak nobody has applied to yet has no next step for its owner: the orange "Pogledaj prijave"
+        opened an empty list (phone, 2026-09-23). The strip at the top already says applications arrive here, and the
+        row above still opens the list, so the footer waits for the first application. */}
+    {usable && (draft || blocked || busy || need!.brojPrijava > 0) ? <View style={s.footer}>
       <V2Action label={primaryLabel} disabled={busy} onPress={primaryAction} style={brandAction} />
     </View> : null}
   </SafeAreaView>;
