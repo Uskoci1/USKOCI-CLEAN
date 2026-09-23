@@ -56,14 +56,16 @@ function AgreementStatus({ loading = false, error = false, retry }: { loading?: 
   </SafeAreaView>;
 }
 export default function Dogovor() {
-  const { id } = useLocalSearchParams<{ id: string | string[] }>();
+  // A notification about a message opens the conversation itself, not the overview it lives behind.
+  const { id, tab } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[] }>();
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
-  return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision} />;
+  return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
+    initialTab={tab === 'poruke' ? 'poruke' : 'pregled'} />;
 }
-function DogovorContent({ id, accountId, accountRevision }: { id: string; accountId: string; accountRevision: number }) {
+function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled' }: { id: string; accountId: string; accountRevision: number; initialTab?: AgreementTab }) {
   const izvor = useIzvor();
-  const [tab, setTab] = useState<AgreementTab>('pregled');
+  const [tab, setTab] = useState<AgreementTab>(initialTab);
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);

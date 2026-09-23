@@ -40,10 +40,20 @@ export default function Obavestenja() {
     // the question to be found inside it. The event type says what it was about, so the landing does
     // too — for both sides, since answering and being answered are the same screen.
     const questions = item.eventType.startsWith('CLARIFICATION_');
+    // A cancelled Zadatak is not a place to stand: the person who applied to it came to see what
+    // happened to their own offer, so they land on it rather than on a task that no longer takes any.
+    const cancelledTask = item.eventType === 'NEED_CANCELLED';
     const needTarget = (id: string, own: boolean) => questions ? {pathname:'/pitanja-zadatka' as const,params:{needId:id,own:own?'1':'0'}}
-      : own ? {pathname:'/potrebe/[id]/pregled' as const,params:{id}} : {pathname:'/prilike/[id]' as const,params:{id}};
+      : own ? {pathname:'/potrebe/[id]/pregled' as const,params:{id}}
+      : cancelledTask ? {pathname:'/moje-prijave' as const,params:{}} : {pathname:'/prilike/[id]' as const,params:{id}};
+    // Inside a Dogovor the event says which part of it the person came for. Everything else keeps the
+    // overview, which is where the next step is stated.
+    const agreementTarget = (id: string) => item.eventType === 'AGREEMENT_CHANGE_PROPOSED'
+      ? {pathname:'/dogovor/[id]/izmene' as const,params:{id}}
+      : item.eventType === 'MESSAGE_RECEIVED' ? {pathname:'/dogovor/[id]' as const,params:{id,tab:'poruke'}}
+      : {pathname:'/dogovor/[id]' as const,params:{id}};
     const go = () => { switch (target.kind) {
-      case 'AGREEMENT': router.push({pathname:'/dogovor/[id]',params:{id:target.id}}); break;
+      case 'AGREEMENT': router.push(agreementTarget(target.id)); break;
       case 'APPLICATIONS': router.push({pathname:'/moje-prijave',params:{prijavaId:target.id}}); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;
       case 'OWN_NEED': router.push(needTarget(target.id,true)); break;
