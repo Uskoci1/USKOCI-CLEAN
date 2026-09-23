@@ -41,13 +41,15 @@ pass('EXACT_PREDECESSOR_REPLAY_AND_READY_CERTIFICATE');
 
 // Two real people for this run: the one reading a profile, and the one behind it. Every account is born
 // with both faces — the auth trigger creates a REQUESTER and a WORKER profile — which is exactly why a
-// block has to follow the person. They start as drafts, so the proof publishes them first.
+// block has to follow the person and not one profile. The server derives their status: a REQUESTER face is
+// active at once, a WORKER face stays a draft until its owner completes it, and nothing outside
+// rpc_complete_worker_profile may change that (private.guard_profile_write).
 const viewer = await rt.actor('pkg047-viewer'), person = await rt.actor('pkg047-person');
-const faces = id => Object.fromEntries(rows(`select kind,id from public.app_profiles where account_id=${q(id)}`).map(r => [r.kind, r.id]));
+const faces = id => Object.fromEntries(rows(`select kind,id,profile_status status from public.app_profiles where account_id=${q(id)}`).map(r => [r.kind, r]));
 const viewerFaces = faces(viewer.id), personFaces = faces(person.id);
 assert.deepEqual(Object.keys(personFaces).sort(), ['REQUESTER', 'WORKER']);
-const viewerProfile = viewerFaces.WORKER, targetProfile = personFaces.REQUESTER, targetOtherFace = personFaces.WORKER;
-sql(`update public.app_profiles set profile_status='ACTIVE' where account_id in (${q(viewer.id)},${q(person.id)})`);
+assert.equal(personFaces.REQUESTER.status, 'ACTIVE'); assert.equal(personFaces.WORKER.status, 'DRAFT');
+const viewerProfile = viewerFaces.REQUESTER.id, targetProfile = personFaces.REQUESTER.id, targetDraftFace = personFaces.WORKER.id;
 // Neither account is classified, so both live in the same visibility world; the reader checks that itself.
 assert.equal(sql(`select private.accounts_same_world(${q(viewer.id)},${q(person.id)})`), 't');
 const readTarget = (actor, profileId) => actor.client.rpc('rpc_read_safety_target', {p_profile_id: profileId});
@@ -94,10 +96,11 @@ assert.deepEqual(await ok(viewer.client.rpc('rpc_get_account_block', {p_target_a
   {accountId: viewer.id, targetAccountId: person.id, blocked: false, revision: 0, authoritative: true});
 const back = await ok(readTarget(person, viewerProfile));
 assert.equal(back.targetAccountId, viewer.id); assert.equal(back.accountId, person.id);
-// Both faces of one person resolve to that person: blocking from either reaches the same account.
-const otherFace = await ok(readTarget(viewer, targetOtherFace));
-assert.equal(otherFace.targetAccountId, t.targetAccountId);
-assert.notEqual(otherFace.profileId, t.profileId);
+// The same person's other face is a different profile id on the same account, and while it is still a
+// draft it is nobody's target — the person is reached through the face they actually published.
+assert.notEqual(targetDraftFace, targetProfile);
+assert.equal(sql(`select account_id from public.app_profiles where id=${q(targetDraftFace)}`), t.targetAccountId);
+assert.equal(await ok(readTarget(viewer, targetDraftFace)), null);
 pass('TARGET_IS_THE_ACCOUNT_BEHIND_THE_PROFILE_AND_AGREES_WITH_THE_BLOCK_READER');
 
 // 6. It resolves exactly what the public profile shows, and never the caller's own account.
@@ -115,13 +118,10 @@ const ownProfile = await publicProfile(person, targetProfile);
 assert.ok(ownProfile && ownProfile.profileId === targetProfile);
 assert.equal(await ok(readTarget(person, targetProfile)), null);
 report.parity.self = {visible: true, target: false};
-// A profile that was never published, and one that was retired, are no targets either.
-for (const status of ['DRAFT', 'INACTIVE']) {
-  sql(`update public.app_profiles set profile_status=${q(status)} where id=${q(targetProfile)}`);
-  report.parity[status.toLowerCase()] = await parity(viewer, targetProfile, status.toLowerCase());
-  assert.equal(report.parity[status.toLowerCase()].target, false);
-}
-sql(`update public.app_profiles set profile_status='ACTIVE' where id=${q(targetProfile)}`);
+// A face that was never published is no target either, and the public profile hides it just the same.
+report.parity.draftFace = await parity(viewer, targetDraftFace, 'draft-face');
+assert.equal(report.parity.draftFace.target, false);
+assert.equal(report.parity.draftFace.visible, false);
 pass('RESOLVES_ONLY_WHAT_THE_PUBLIC_PROFILE_SHOWS_NEVER_SELF');
 
 // 7. Blocking through the resolved target hides both the profile and the target; unblocking brings the target

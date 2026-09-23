@@ -35,7 +35,12 @@ pass('EXACT_PREDECESSOR_REPLAY_AND_READY_CERTIFICATE');
 const requester = await rt.actor('pkg048-requester'), worker = await rt.actor('pkg048-worker');
 const faces = id => Object.fromEntries(rows(`select kind,id from public.app_profiles where account_id=${q(id)}`).map(r => [r.kind, r.id]));
 const requesterProfile = faces(requester.id).REQUESTER, workerProfile = faces(worker.id).WORKER;
-sql(`update public.app_profiles set profile_status='ACTIVE' where account_id in (${q(requester.id)},${q(worker.id)})`);
+// The server derives profile status: a REQUESTER face is active at once, a WORKER face is a draft until
+// its owner completes it, and only rpc_complete_worker_profile may make that move. The fixture fills what
+// that function requires and then takes the real path.
+sql(`update public.app_profiles set city='Novi Sad', skills='{"Fizicki poslovi"}' where id=${q(workerProfile)};`);
+await ok(worker.client.rpc('rpc_complete_worker_profile', {p_profile_id: workerProfile}));
+assert.equal(sql(`select profile_status from public.app_profiles where id=${q(workerProfile)}`), 'ACTIVE');
 const needId = randomUUID();
 sql(`begin;select set_config('uskoci.need_lifecycle','PUBLISH',true);
   insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,
