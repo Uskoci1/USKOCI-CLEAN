@@ -90,10 +90,17 @@ export function SettingsAction({ label, onPress, disabled = false, kind = 'prima
 
 export const settingsStyles = StyleSheet.create({
   /** Identity block of the profile hub: no card, centred, breathing (V5 profile head). */
-  identity: { alignItems: 'center', gap: 6, paddingTop: 8, paddingBottom: 22 },
-  avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10, ...sys.elevation.soft },
+  identity: { gap: 12, paddingTop: 8, paddingBottom: 22 },
+  // V41 identity row: photo left, name and city beside it, one quiet "Uredi" on the right.
+  identityRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  identityCopy: { flex: 1, minWidth: 0, gap: 4 },
+  identityCity: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  editButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.control,
+    borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  editText: { color: sys.color.green, fontWeight: '600' },
+  avatar: { width: 80, height: 80, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center' },
   avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
-  name: { ...sys.type.pageTitle, textAlign: 'center' },
+  name: { ...sys.type.pageTitle },
   /** A status badge within the shared account, never a global role switch. */
   intent: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   logout: { paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line, marginTop: 6, marginBottom: 12, alignItems: 'flex-start' },

@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { User, SignOut, MapPin, CalendarBlank, Bell, Clock, Camera, Lifebuoy, Info } from 'phosphor-react-native';
+import { User, SignOut, MapPin, CalendarBlank, Bell, Clock, Camera, Lifebuoy, Info, PencilSimple } from 'phosphor-react-native';
+import { FactArt } from '../../ui/system/FactArt';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
@@ -95,14 +96,23 @@ export default function Profil() {
         <T>Profil trenutno nije dostupan.</T><T variant="note" tone="muted">Proveri vezu pa probaj ponovo.</T>
         <SettingsAction label="Probaj ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
       </View> : <>
-        {/* The avatar itself opens the photo; the small camera badge says so without a second control. */}
-        <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
-          disabled={!photoReady || busy} accessibilityState={{ disabled: !photoReady || busy }} onPress={openPhoto} haptic="select" scaleTo={0.97}>
-          {identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={96} fallback={avatar} /> : avatar}
-          {photoReady ? <View style={styles.avatarBadge}><Camera size={16} color={sys.color.ink} /></View> : null}
-        </Press>
-        <T variant="display" accessibilityRole="header" style={styles.name}>{identity?.ime ?? 'Ime još nije uneto'}</T>
-        <T variant="copy" tone="muted" style={{ textAlign: 'center' }}>{identity?.grad ?? 'Grad još nije unet'}</T>
+        {/* V41: one identity row — the photo, the name with the city under it, and "Uredi" on the right. The avatar
+            itself opens the photo; the small camera badge says so without a second control. */}
+        <View style={styles.identityRow}>
+          <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
+            disabled={!photoReady || busy} accessibilityState={{ disabled: !photoReady || busy }} onPress={openPhoto} haptic="select" scaleTo={0.97}>
+            {identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={80} fallback={avatar} /> : avatar}
+            {photoReady ? <View style={styles.avatarBadge}><Camera size={16} color={sys.color.ink} /></View> : null}
+          </Press>
+          <View style={styles.identityCopy}>
+            <T variant="display" accessibilityRole="header" style={styles.name} numberOfLines={2}>{identity?.ime ?? 'Ime još nije uneto'}</T>
+            <View style={styles.identityCity}><FactArt kind="pin" size={18} /><T variant="copy" tone="muted">{identity?.grad ?? 'Grad još nije unet'}</T></View>
+          </View>
+          <Press accessibilityRole="button" accessibilityLabel="Uredi ime na profilu" haptic="select" disabled={busy}
+            onPress={() => navigate(() => router.push('/profil/podaci'))} style={styles.editButton}>
+            <PencilSimple size={16} color={sys.color.green} /><T variant="meta" style={styles.editText}>Uredi</T>
+          </Press>
+        </View>
       </>}
       {accountId ? <AccountReputation accountId={accountId} /> : null}
     </View>
