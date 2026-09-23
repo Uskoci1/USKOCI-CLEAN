@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:18:03Z",
+  "osvezeno": "2026-09-23T06:18:08Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "ecc5daaa",
-  "head_poruka": "PKG-050: reading the conversation settles its Nova poruka notifications (candidate, proof, client)",
+  "head": "35260a9c",
+  "head_poruka": "control: D03 and P01 carry PKG-050, written and unproven",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -5629,6 +5629,46 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35826119132,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "35260a9c",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:18:07Z"
+  },
+  {
+   "id": 35826113935,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "ecc5daaa",
+   "stanje": "queued",
+   "ishod": "",
+   "vreme": "2026-09-23T06:18:04Z"
+  },
+  {
+   "id": 35826113862,
+   "ime": "PKG-045 public task column privacy proof",
+   "sha": "ecc5daaa",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T06:18:04Z"
+  },
+  {
+   "id": 35826113861,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "ecc5daaa",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T06:18:04Z"
+  },
+  {
+   "id": 35826112784,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "ecc5daaa",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:18:03Z"
+  },
+  {
    "id": 35817831835,
    "ime": "Build Android development APK",
    "sha": "3e6450f4",
@@ -5683,46 +5723,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-23T01:19:02Z"
-  },
-  {
-   "id": 35805442425,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "f0d7fb7b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:13:58Z"
-  },
-  {
-   "id": 35805442368,
-   "ime": "PKG-047 safety target proof",
-   "sha": "f0d7fb7b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T01:13:58Z"
-  },
-  {
-   "id": 35805133806,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "cbe048b9",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:09:34Z"
-  },
-  {
-   "id": 35804869897,
-   "ime": "PKG-047 safety target proof",
-   "sha": "2c430346",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:05:43Z"
-  },
-  {
-   "id": 35804451368,
-   "ime": "PKG-047 safety target proof",
-   "sha": "2a17e3ce",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:00:03Z"
   }
  ]
 }
