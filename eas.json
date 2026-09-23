@@ -20,6 +20,10 @@
       "credentialsSource": "remote",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW"
       }
     }
   }

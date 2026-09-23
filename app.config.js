@@ -3,8 +3,13 @@ const { buildIdentity } = require('./scripts/build-identity.cjs');
 
 // Expo supplies normalized app.json, including each disposable workflow's
 // package/label overrides. Never replace those with the preview identity.
+// The Google Play identity (owner, 2026-09-23: "rs.uskoci"). Only the EAS production profile, the store app bundle,
+// takes it; the preview APK and every CI build keep the package they are given. A package is permanent in Play Console.
+const STORE_PACKAGE = 'rs.uskoci';
+
 module.exports = ({ config }) => {
   const android = { ...config.android };
+  if (process.env.EAS_BUILD_PROFILE === 'production') android.package = STORE_PACKAGE;
   android.permissions = [...new Set([...(android.permissions ?? []),
     'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION'])];
   const ios = { ...config.ios, infoPlist: { ...config.ios?.infoPlist,

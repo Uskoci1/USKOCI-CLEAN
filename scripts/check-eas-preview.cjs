@@ -59,7 +59,9 @@ function validatePreview({ app, eas, env, firebase }) {
   const selected = reviewed ? eas?.build?.[name] : null;
   requireCondition(expo?.owner === 'sljivas-team' && expo?.slug === 'uskoci' &&
     expo?.extra?.eas?.projectId === PROJECT_ID, 'Expected the existing @sljivas-team/uskoci EAS project.');
-  requireCondition(expo?.android?.package === 'rs.uskoci.preview', 'Expected the existing Android preview package.');
+  const store = name === 'production';
+  requireCondition(expo?.android?.package === (store ? 'rs.uskoci' : 'rs.uskoci.preview'),
+    store ? 'Expected the Google Play package rs.uskoci for the store bundle.' : 'Expected the existing Android preview package.');
   requireCondition(Number.isSafeInteger(expo?.android?.versionCode) && expo.android.versionCode >= 35,
     'Android versionCode must retain the source seed floor of 35.');
   requireCondition(!!reviewed && env.EAS_BUILD_PLATFORM === 'android',
@@ -76,6 +78,11 @@ function validatePreview({ app, eas, env, firebase }) {
     'EXPO_PUBLIC_SUPABASE_URL must identify the confirmed canonical Supabase project.');
   requireCondition(isPublicKeyForm(env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
     'EXPO_PUBLIC_SUPABASE_ANON_KEY must be a public publishable key or canonical-project anon JWT.');
+  if (store) {
+    // The reviewed Firebase client belongs to rs.uskoci.preview; the store package must not borrow it.
+    requireCondition(!expo?.android?.googleServicesFile, 'The store bundle must not carry the preview Firebase client.');
+    return;
+  }
   requireCondition(expo?.android?.googleServicesFile === './config/firebase/google-services.json' &&
     expo?.plugins?.includes('./plugins/withFirebaseEnrollmentDisabled.js'),
   'Expected the reviewed public Firebase file and disabled native enrollment configuration.');

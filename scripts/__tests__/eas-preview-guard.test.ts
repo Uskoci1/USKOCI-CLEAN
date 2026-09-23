@@ -71,14 +71,35 @@ describe('actual EAS preview pre-install guard', () => {
     expect(() => validatePreview(input)).toThrow(/preview/);
   });
 
-  // Store build, owner 2026-09-23: the production profile is the Google Play app bundle and keeps every other boundary.
-  it('admits the reviewed production store app bundle with the same public environment', () => {
+  // Store build, owner 2026-09-23: the production profile is the Google Play app bundle rs.uskoci and keeps every other
+  // boundary; it carries no Firebase client, because the reviewed one belongs to the preview package.
+  function storeFixture() {
     const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production';
+    const before = process.env.EAS_BUILD_PROFILE; process.env.EAS_BUILD_PROFILE = 'production';
+    try { input.app = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) }; }
+    finally { if (before === undefined) delete process.env.EAS_BUILD_PROFILE; else process.env.EAS_BUILD_PROFILE = before; }
+    return input;
+  }
+  it('admits the reviewed production store app bundle as rs.uskoci with the same public environment', () => {
+    const input = storeFixture();
+    expect(input.app.expo.android.package).toBe('rs.uskoci');
+    expect(input.app.expo.android.googleServicesFile).toBeUndefined();
     expect(() => validatePreview(input)).not.toThrow();
+  });
+  it('refuses a store bundle under the preview package or with the preview Firebase client', () => {
+    const preview = fixture(); preview.env.EAS_BUILD_PROFILE = 'production';
+    expect(() => validatePreview(preview)).toThrow(/rs\.uskoci for the store/);
+    const borrowed = storeFixture(); borrowed.app.expo.android.googleServicesFile = './config/firebase/google-services.json';
+    expect(() => validatePreview(borrowed)).toThrow(/must not carry the preview Firebase/);
+  });
+  it('the store profile carries the canonical public backend address and a publishable key in eas.json', () => {
+    const env = easSource.build.production.env;
+    expect(env.EXPO_PUBLIC_SUPABASE_URL).toBe(`https://${ref}.supabase.co`);
+    expect(env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toMatch(/^sb_publishable_[A-Za-z0-9_-]+$/);
   });
 
   it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement'])('rejects production store profile drift: %s', (field) => {
-    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production';
+    const input = storeFixture();
     const production = input.eas.build.production;
     if (field === 'buildType') production.android.buildType = 'apk';
     else if (field === 'autoIncrement') production.autoIncrement = false;
@@ -87,7 +108,7 @@ describe('actual EAS preview pre-install guard', () => {
   });
 
   it.each([{ EXPO_PUBLIC_USE_FAKE_SOURCE: '1' }, { EXPO_PUBLIC_SUPABASE_URL: 'https://another.supabase.co' }, { EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_secret_NEVER_LOG_THIS_KEY' }])('keeps the fake-source, backend and key checks for the store build: %j', (override) => {
-    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production'; Object.assign(input.env, override);
+    const input = storeFixture(); Object.assign(input.env, override);
     expect(() => validatePreview(input)).toThrow(/fake or test|confirmed canonical|must be a public/);
   });
 
