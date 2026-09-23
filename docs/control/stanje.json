@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:22:57Z",
+  "osvezeno": "2026-09-23T05:27:49Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "ac867229",
-  "head_poruka": "control: recompute at the commit the published page carries",
+  "head": "be331355",
+  "head_poruka": "control: the requester's price is enforced by the screen, not by the server (B09)",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -1904,9 +1904,9 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
+   "telefon_dokaz": "Dva stvarna slanja 23.09: tvoje sa telefona (2.000 RSD, adversarial_a) i jedno sa emulatora na tvoju reč (3.000 RSD, zadatak uskocibusiness-a, tvoj lični nalog). Oba su na serveru kao SUBMITTED i oba su napravila obaveštenje drugoj strani. Emulator: docs/implementation/functional-audit-20260922/device-20260923/ponuda-emulator/. Viđeno: zaključana cena kad naručilac zada iznos, pregled pre slanja, imenovano sletanje „Tvoja prijava“.",
    "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server.",
-   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena. PREDLOG PKG-049: na zadatku u režimu MY_PRICE server odbija (ili prepisuje na zadatu cenu) svaki drugi iznos; funkcija-samo, ne pomera sertifikat; dokaz na jednokratnoj bazi; tvoje odobrenje pre primene.",
+   "sledece": "Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
