@@ -29,3 +29,14 @@ Vlasnik je 23. 9. rekao da večeras šalje aplikaciju na Google Play. Ovo je ta�
 3. Play Console: interni track, testeri, listing, privatnost URL (može i placeholder stranica koju vlasnik drži).
 4. Dve prave osobe prođu put A i put B na dva telefona sa tim buildom (plan R9).
 5. Tek posle: produkciona baza, pravni dokumenti, push, praćenje padova → zatvoreni test → javna objava.
+
+## Pre `eas build --profile production` — obavezno (dopuna, 23. 9. uveče)
+- **Adresa servera i javni ključ.** Aplikacija namerno puca pri pokretanju ako nema `EXPO_PUBLIC_SUPABASE_URL` i
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` (nikad ne pada tiho na izmišljene podatke). CI build ih ima u svom workflow-u;
+  profil `production` u `eas.json` ih **nema**. Vlasnik ih upisuje u EAS okruženje `production` (iste vrednosti kao
+  CI build, jer interni test radi nad DEV bazom), ili mi kaže da ih upišem u `eas.json`. Upisivanje sam zaustavio
+  jer je to odluka o produkcionom buildu.
+- **Paket i Firebase.** `app.config.js` vezuje `google-services.json` samo za `rs.uskoci.preview`. Ako paket za
+  prodavnicu bude drugi (npr. `rs.uskoci`), build prolazi, ali push za taj paket nema Firebase klijenta.
+- **Ocena saradnje (RATING-DEAD-STARS-01) je zatvorena** na emulatoru, build `4e864a08`: zvezda, oznaka i dugme
+  „Sačuvaj ocenu" rade na prvi dodir. Na telefonu prstom još nije probano.
