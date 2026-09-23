@@ -133,7 +133,7 @@ export default function PrilikaDetaljiEkran() {
     }} /> : undefined}
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     map={fresh && fresh.priblizno && !resource.loading && !resource.error
-      ? <ResolvedPinMap position={{ latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }} coarse disabled
+      ? <ResolvedPinMap position={{ latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }} coarse disabled height={184}
         onChoose={() => {}} scopeKey={`${accountId}:${epoch}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
       : undefined}
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}

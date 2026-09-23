@@ -69,7 +69,7 @@ async function render() { await act(async () => { tree = create(<Detail />); });
 async function update() { await act(async () => { tree!.update(<Detail />); }); }
 const text = () => tree!.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const buttons = (label: string) => tree!.root.findAllByProps({ label });
-const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad na Zadatke' }).props.onPress();
+const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress();
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();

@@ -67,7 +67,8 @@ test('a published Task leads with its state, price and people, shows the applica
   // V41 (2026-09-23): the one orange action carries the count of the applications that can be chosen.
   expect(copy).toContain('Pregledaj prijave · 3');
   expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
-  expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
+  // Recomposed from zero (2026-09-23): the place is one section, never a disclosure that repeats it.
+  expect(labels()).not.toContain('Mesto izvršenja');
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
   // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
@@ -80,8 +81,8 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
     schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T16:00:00Z', endsAt: '2026-09-20T17:00:00Z' } });
   await act(async () => { tree = create(<Screen value={fixed} />); });
   const spoken = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel);
-  // The saved sentence is only split where it is exactly a day and its hours; nothing is reworded, and it is still heard whole.
-  expect(texts()).toContain('20. sep 2026 18:00 – 19:00 (po vremenu u Srbiji)');
+  // The saved sentence is shown whole as the value of Termin; nothing is reworded, and it is heard whole.
+  expect(texts()).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
   expect(spoken).toContain('Termin: 20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
   expect(spoken).toContain('Lokacija: Novi Sad, Liman');
   expect(spoken).toContain('Potrebno: 2 osobe, popunjeno 0 od 2 mesta');
@@ -113,7 +114,8 @@ test('the footer leads somewhere with an arrow; while an action runs it says so,
 });
 test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
-  expect(texts()).toContain('Privatan nacrt'); expect(texts()).toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
+  // The state is one line under the title; the footer is the next step, so no card describes it as well.
+  expect(texts()).toContain('Privatan nacrt'); expect(texts()).not.toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
   expect(labels()).toContain('Izmeni nacrt'); expect(labels()).not.toContain('Izmeni Zadatak');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} remainingClosed />); });

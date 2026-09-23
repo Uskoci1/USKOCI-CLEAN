@@ -1,12 +1,13 @@
 import { useCallback, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { mediaClientService } from '../../data/mediaClientService';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
-import { sys, card } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { FactArt } from '../system/FactArt';
+import { DetailSection } from '../product/ProductDetails';
 
 /**
  * `owned` is the owner looking at their own task: for them an absence is something they can still
@@ -16,18 +17,27 @@ import { FactArt } from '../system/FactArt';
 export function NeedPhotos({ needId, owned = false }: { needId: string; owned?: boolean }) {
   const read = useCallback(() => mediaClientService.readNeedPhotos(needId), [needId]);
   const editor = useOwnedEditor(read);
+  const photos = editor.data?.photos ?? [];
   if (editor.loading && !editor.data) return null;
-  if (!editor.data?.photos.length && !editor.error && !owned) return null;
-  if (!editor.data?.photos.length && !editor.error) return <View style={{ ...card, gap: 8 }}>
-    <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T>
-    <T variant="note" tone="muted">Nema nijedne. Fotografija pomaže da neko odmah vidi o čemu se radi.</T>
-  </View>;
-  return <View style={{ ...card, gap: 12 }}>
-    {editor.data?.photos.length ? <T accessibilityRole="header" variant="heading" style={{ color: sys.color.ink }}>Fotografije</T> : null}
-    {editor.data?.photos.map((photo, i) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1}`} />)}
-    {editor.error ? <><T variant="meta" tone="muted">Fotografije trenutno nisu učitane.</T>
+  if (!photos.length && !editor.error && !owned) return null;
+  // The owner is told plainly that there are none, in one line of the task's own reading order: a card
+  // with advice and no way to act on it was a box of noise. Photos are added when the task is edited.
+  if (!photos.length && !editor.error) return <DetailSection>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+      <View style={{ width: 32, alignItems: 'center' }}><FactArt kind="photo" size={28} /></View>
+      <T variant="bodyStrong" tone="muted" style={{ flex: 1 }}>Još nema fotografija</T>
+    </View>
+  </DetailSection>;
+  // Photos are a strip to swipe through, each a real picture of the job, not a column of full-width frames.
+  return <DetailSection title={photos.length ? `Fotografije · ${photos.length}` : 'Fotografije'}>
+    {photos.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }}
+      contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+      {photos.map((photo, i) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1}`}
+        contentFit="cover" style={{ width: photos.length === 1 ? 320 : 248, borderRadius: sys.radius.cardCompact }} />)}
+    </ScrollView> : null}
+    {editor.error ? <><T variant="note" tone="muted">Fotografije trenutno nisu učitane.</T>
       <V2Action label="Učitaj fotografije" kind="quiet" disabled={editor.loading} onPress={() => { void editor.refresh(); }} /></> : null}
-  </View>;
+  </DetailSection>;
 }
 
 /**

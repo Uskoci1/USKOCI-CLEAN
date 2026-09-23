@@ -75,18 +75,34 @@ function Detail({ canApply = true, profile = null, relation = { kind: 'NONE' } }
     back={noop} retry={noop} apply={apply} onRequesterProfile={open} requesterProfile={profile} onCloseRequesterProfile={close} />;
 }
 beforeEach(() => { for (const mock of [open, close, apply, ownTask, ownApplication]) mock.mockClear(); });
-test('the public Task leads with status, title, price and people, offers the requester profile, and has exactly one brand action while applications are open', async () => {
+test('the public Task leads with its title and four facts, offers the requester profile, and has exactly one brand action while applications are open', async () => {
   await act(async () => { tree = create(<Detail />); });
   const copy = texts();
-  // V41 (2026-09-23): Potrebno shows "0 / 2 popunjeno" and is heard as words, not as a slash.
-  expect(copy).toContain('Traži ponude'); expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0 / 2 popunjeno');
+  // Recomposed from zero (owner, 2026-09-23): no status box repeating what the action already says ("Traži ponude" over
+  // a fixed price of 9.000 RSD said the opposite of the price). Potrebno is heard as words, not as a slash.
+  expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
+  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0 / 2 popunjeno');
+  for (const fact of ['Lokacija: Beograd, Vračar', 'Termin: Sutra ujutru', 'Budžet: 9.000 RSD']) {
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
+  }
   expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, popunjeno 0 od 2 mesta')).not.toHaveLength(0);
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
   expect(copy).toContain('Traži pomoć');
   expect(brand()).toEqual(['Sastavi prijavu']);
   await act(async () => byLabel('Pogledaj javni profil').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
-  expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
+  // The place is said once in the facts and once as the map section; no disclosure repeats it a third time.
+  expect(labels()).not.toContain('Mesto izvršenja'); expect(copy).not.toContain('Mesto izvršenja');
+});
+test('the server deadline for applications is said beside the action, only while a person can still apply', async () => {
+  const withDeadline = { ...need, rokZaPrijaveIso: '2099-09-25T16:00:00Z' };
+  await act(async () => { tree = create(<PublicNeedPresentation need={withDeadline} loading={false} error={false} missing={false} stale={false} busy={false}
+    canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication} back={noop} retry={noop} apply={apply} />); });
+  expect(texts()).toMatch(/Prijave do 25\. sep( 2099)? · \d\d:00/);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<PublicNeedPresentation need={withDeadline} loading={false} error={false} missing={false} stale={false} busy={false}
+    canApply={false} canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication} back={noop} retry={noop} apply={apply} />); });
+  expect(texts()).not.toContain('Prijave do');
 });
 test('an open price is a word addressed to the person applying, never the amount\'s dress', async () => {
   await act(async () => { tree = create(<PublicNeedPresentation need={{ ...need, rezimCene: 'OFFERS', ponudjenaCena: undefined }} loading={false} error={false}

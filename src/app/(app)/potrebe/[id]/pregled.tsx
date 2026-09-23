@@ -178,7 +178,7 @@ function OwnedNeed({ id }: { id: string }) {
   return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
     map={potreba?.priblizno
-      ? <ResolvedPinMap position={{ latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }} coarse disabled
+      ? <ResolvedPinMap position={{ latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }} coarse disabled height={184}
         onChoose={() => {}} scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
       : undefined}
     qaAction={potreba ? <TaskQaEntry disabled={!canAct()}

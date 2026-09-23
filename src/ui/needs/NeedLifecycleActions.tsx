@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys, card } from '../system/tokens';
+import { sys } from '../system/tokens';
 
 type Action = NeedLifecycleCommand['action'];
 type Controller = ReturnType<typeof createNeedLifecycleController>;
@@ -119,8 +119,8 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   // With no current row and no retained command there is no lifecycle UI to show.
   // The initial loading pass still runs so a retained command can be recovered.
   if (!p.need && !view.loading && !view.state && !view.error) return null;
+  // Headless: the screen places it under its own "Upravljanje zadatkom" heading, beside the other ways to change the task.
   return <View style={s.panel}>
-    <T style={s.title}>Upravljanje zadatkom</T>
     {view.error ? <T accessibilityLiveRegion="polite" style={s.error}>{view.error}</T> : null}
     {view.loading ? <T accessibilityLiveRegion="polite" style={s.copy}>Proveravamo prethodni zahtev…</T>
       : view.state ? <>
@@ -154,7 +154,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
             </> : <T style={s.copy}>Zadatak je zatvoren.</T>}
   </View>;
 }
-/** PKG-011: same controller and copies; a card on the shared system. */
-const s = StyleSheet.create({ panel: { ...card, gap: 12 },
+/** Same controller and copies; flat, in the task's own reading order (2026-09-23), not a card of its own. */
+const s = StyleSheet.create({ panel: { gap: 12, alignItems: 'flex-start' },
   title: { ...sys.type.heading, color: sys.color.ink },
   copy: { ...sys.type.note, color: sys.color.muted }, error: { ...sys.type.note, color: sys.color.danger } });

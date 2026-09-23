@@ -191,7 +191,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
 });
 
 describe('V2 saved Need presentation', () => {
-  it('shows every authoritative requirement immediately and preserves all location stops on disclosure', async () => {
+  it('shows every authoritative requirement and every public location stop immediately, with no disclosure', async () => {
     mockNeed.mockResolvedValue({ ...need(), opis: 'Čćšžđ '.repeat(800), rezimCene: 'OFFERS', taskCountryCode: 'RS',
       vremeTekst: '10. sep 2026 · 18:00 – 10. sep 2026 · 19:00 (Europe/Belgrade)',
       schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-10T16:00:00Z', endsAt: '2026-09-10T17:00:00Z' },
@@ -204,12 +204,13 @@ describe('V2 saved Need presentation', () => {
     expect(texts()).not.toContain('Prevoz'); expect(texts()).toContain('Tražim ponude');
     expect(texts()).toContain('19:00'); expect(texts()).toContain('Čćšžđ '.repeat(800));
     for (const value of ['Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
-    expect(texts()).not.toContain('Petrovaradin');
-    await act(async () => press('Mesto izvršenja').props.onPress());
+    // Recomposed from zero (2026-09-23): the route's public stops are part of the one place section, not behind a
+    // "Mesto izvršenja" row that repeated the place a third time.
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mesto izvršenja')).toHaveLength(0);
     for (const value of ['Stanica 1', 'Stanica 2', 'Odredište', 'Beočin', 'Petrovaradin', 'Kamenica', 'Srbija']) expect(texts()).toContain(value);
     // A list reads as chips under its label, each item once per stored value, never a bullet under a bullet (2026-09-23).
     expect(texts()).not.toContain('•');
-    // Reading location no longer collapses the independently visible requirements.
+    // The place and the requirements are both visible at once.
     expect(texts()).toContain('Petrovaradin');
     for (const value of ['Alat, jedan', 'B kategorija', 'Bez lifta', '3 god.', 'Potreban je potvrđen identitet']) expect(texts()).toContain(value);
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
@@ -222,13 +223,15 @@ describe('V2 saved Need presentation', () => {
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);
-    expect(texts()).not.toContain('HITNO'); expect(texts()).toContain('Otvori pitanja i odgovore');
+    expect(texts()).not.toContain('HITNO'); expect(texts()).toContain('Pitanja i odgovori');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Otvori pitanja i odgovore')).not.toHaveLength(0);
   });
   it('does not display a raw transport secret attached outside the public projection', async () => {
     mockNeed.mockResolvedValue({ ...need(), need_sensitive: { exact_address: 'SECRET address', exact_lat: 45.123456 }, resolved_location: 'SECRET pin' });
-    await render(); await act(async () => press('Mesto izvršenja').props.onPress());
+    await render();
     expect(texts()).not.toMatch(/SECRET|45.123456/);
-    expect(texts()).toContain('Javna struktura lokacije nije dostupna. Prikazano je približno područje.');
+    // Without a stored public structure the place is the approximate area the facts already name; nothing else is drawn.
+    expect(texts()).toContain('Novi Sad');
   });
   it('provides the real candidates route after publication and no duplicate publication action', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'OBJAVLJENA'), brojPrijava: 3 }); await render();

@@ -8,6 +8,8 @@ export type ResolvedPinMapProps = Readonly<{
   scopeKey: string;
   /** Worker base / public approximation: only two-decimal positions are displayed or emitted. */
   coarse?: boolean;
+  /** The frame's height; a read-only map on a detail screen is a glance, not the picker's 320. */
+  height?: number;
 }>;
 
 // Public style configuration reused from the reviewed PR67 renderer. No address,

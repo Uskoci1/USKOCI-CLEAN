@@ -133,7 +133,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   };
   const offset = dragOffset?.token === token ? dragOffset.delta : null;
   return <View style={styles.container}>
-    <View style={styles.frame}
+    <View style={[styles.frame, props.height ? { height: props.height } : null]}
       // Read-only: the point no longer prints under the map, so the frame carries it for a screen
       // reader instead of losing it.
       accessible={disabled && !!pin} accessibilityRole={disabled && pin ? 'image' : undefined}
