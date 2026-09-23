@@ -130,7 +130,7 @@ it('says it is confirming changes when the review belongs to a task that already
   mockRead.mockResolvedValue(ok({ review: review(), command: null })); mockPrepare.mockResolvedValue(ok(review()));
   await render();
   expect(publish().disabled).toBe(false);
-  expect(text()).toContain('Ti odlučuješ šta objavljuješ');
+  /* the eyebrow "Ti odlučuješ šta objavljuješ" is no longer drawn (owner, 2026-09-23) */ 
 });
 
 it('serializes retained taps to one immutable review command and freezes an unknown result until explicit readback', async () => {
