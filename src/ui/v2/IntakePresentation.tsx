@@ -2,7 +2,8 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
-import { ArrowRight, CaretRight, ChatCircle, Clock, MapPin, Users } from 'phosphor-react-native';
+import { ArrowRight, CaretRight, ChatCircle } from 'phosphor-react-native';
+import { FactArt } from '../system/FactArt';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
@@ -160,7 +161,7 @@ export function IntakePresentation(props: Props) {
       style={[s.taskCard, compact && s.taskCardCompact, !conversation.facts.length && s.taskCardEmpty]}>
       <View style={s.row}>
         <View style={[s.dot, busy && s.dotBusy]} />
-        <T variant="label" style={s.kicker}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
+        <T variant="label" style={s.kicker}>Tvoj zadatak · {busy ? 'usklađujem' : 'nacrt'}</T>
         {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Detalji</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
       </View>
       <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
@@ -168,8 +169,8 @@ export function IntakePresentation(props: Props) {
         {stillNeeded.length ? `Još treba: ${stillNeededText}` : 'Sve traženo je uneto — otvori pregled'}
       </T> : null}
       {!compact && (summary.zone || summary.schedule) ? <View style={s.metaRows}>
-        {summary.zone ? <View style={s.metaRow}><MapPin size={16} color={sys.color.muted} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
-        {summary.schedule ? <View style={s.metaRow}><Clock size={16} color={sys.color.muted} /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
+        {summary.zone ? <View style={s.metaRow}><FactArt kind="pin" size={22} /><T variant="meta" tone="muted" numberOfLines={1} style={s.metaText}>{summary.zone}</T></View> : null}
+        {summary.schedule ? <View style={s.metaRow}><FactArt kind="calendar" size={22} /><T variant="meta" tone="muted" style={s.metaText}>{summary.schedule}</T></View> : null}
       </View> : null}
       {compact && summary.zone ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.zone}</T> : null}
       {!compact && (summary.price || summary.people) ? <View style={s.cardFoot}>
@@ -177,7 +178,7 @@ export function IntakePresentation(props: Props) {
           <T style={s.money}>{summary.price}</T>
           {summary.priceNote ? <T variant="meta" tone="muted" numberOfLines={1}>{summary.priceNote}</T> : null}
         </View> : <View style={s.grow} />}
-        {summary.people ? <View style={s.peopleRow}><Users size={18} color={sys.color.ink} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
+        {summary.people ? <View style={s.peopleRow}><FactArt kind="users" size={22} /><T variant="meta" style={s.people}>{summary.people}</T></View> : null}
       </View> : null}
     </Press>}
     actions={<>
@@ -255,7 +256,7 @@ const s = StyleSheet.create({
   taskCardCompact: { borderRadius: sys.radius.cardCompact, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   dotBusy: { backgroundColor: sys.color.orange },
-  kicker: { flex: 1, color: sys.color.green, letterSpacing: 0.9 },
+  kicker: { flex: 1, color: sys.color.green, letterSpacing: 0.2 },
   detailLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   cardTitle: { ...sys.type.cardTitle, color: sys.color.ink },
   cardTitleCompact: { ...sys.type.cardTitleCompact },

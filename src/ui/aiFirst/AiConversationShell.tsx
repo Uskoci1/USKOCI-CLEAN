@@ -5,6 +5,7 @@ import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt }
 import { T } from '../Text';
 import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
+import { BrandMark } from '../entry/BrandAssets';
 import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
@@ -66,7 +67,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, []);
   return <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ProductHeader subtitle={p.subtitle} title={p.title} back={p.onBack}
+      <ProductHeader title={p.title} back={p.onBack}
         right={<Press accessibilityRole="button" accessibilityLabel="Opcije" accessibilityHint="Opcije razgovora." onPress={p.onOptions} haptic="select" style={iconButton}>
           <DotsThree size={26} weight="bold" color={sys.color.ink} /></Press>} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one
@@ -84,6 +85,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         // cuts its first line off the top. There is nothing to follow, so stay put.
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
+          <AssistantPresence reduced={reduced} />
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>
@@ -145,6 +147,27 @@ export function AiConversationShell(p: AiConversationShellProps) {
   </SafeAreaView>;
 }
 
+/**
+ * The assistant, present before the first word: the brand mark on a soft disc that breathes — a
+ * slow, small swell, the way something alive and waiting does. Gate: the welcome is seen once per
+ * conversation, so it may carry this; purpose: state indication, "somebody is here and listening".
+ * Under reduced motion it holds still. Decoration beside the title, so a screen reader skips it.
+ */
+function AssistantPresence({ reduced }: { reduced: boolean }) {
+  const breath = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) { cancelAnimation(breath); breath.set(0); return; }
+    breath.set(withRepeat(withTiming(1, { duration: 1800 }), -1, true));
+    return () => cancelAnimation(breath);
+  }, [breath, reduced]);
+  const halo = useAnimatedStyle(() => ({ transform: [{ scale: 1 + breath.get() * 0.08 }], opacity: 0.55 + breath.get() * 0.45 }));
+  return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
+    {/* Under reduced motion the halo is a plain view: nothing here animates, and the screen keeps its promise that no animated view is mounted. */}
+    {reduced ? <View style={s.presenceHalo} /> : <Animated.View style={[s.presenceHalo, halo]} />}
+    <View style={s.presenceDisc}><BrandMark size={40} /></View>
+  </View>;
+}
+
 /** One of three dots that rise and fall while an answer is being written. */
 function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
   const life = useSharedValue(0);
@@ -188,6 +211,9 @@ const s = StyleSheet.create({
   thread: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 28, gap: 22 },
   threadEmpty: { justifyContent: 'center', paddingBottom: 60 },
   welcome: { gap: 12, paddingTop: 14, paddingBottom: 8, maxWidth: 330 },
+  presence: { width: 84, height: 84, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
+  presenceHalo: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: sys.color.greenSoft },
+  presenceDisc: { width: 64, height: 64, borderRadius: 32, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
   welcomeTitle: { ...sys.type.hero, color: sys.color.green },
   welcomeCopy: { lineHeight: 24 },
   openings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },

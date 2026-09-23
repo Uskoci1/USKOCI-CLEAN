@@ -57,7 +57,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
-jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', G: 'SvgGroup',
+jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', Circle: 'SvgCircle', Ellipse: 'SvgEllipse', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
@@ -466,7 +466,7 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(text()).toContain('Unos ormara'); expect(text()).toContain('NACRT');
+  expect(text()).toContain('Unos ormara'); expect(text()).toContain('nacrt');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
   expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
