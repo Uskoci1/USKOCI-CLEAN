@@ -78,7 +78,11 @@ export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadiu
   borderColor: sys.color.cardLine, padding: 20, ...sys.elevation.soft };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 
-/** The one brand action on a screen: orange surface with ink text. Pass as `style` to a secondary V2Action. */
+/**
+ * The one primary action on a screen: orange surface with ink text (the forensic UI/UX analysis, owner 2026-09-23:
+ * "jedno narandžasto po ekranu; sve ostalo belo sa zelenim tekstom"). Pass as `style` to a V2Action; V2Action reads
+ * the surface and writes the label in `onOrange`.
+ */
 export const brandAction: ViewStyle = { backgroundColor: sys.color.orange, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
 /** 44px icon control in a quiet well (V5 head icon button). */

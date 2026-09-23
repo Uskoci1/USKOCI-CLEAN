@@ -14,6 +14,7 @@ import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 import { neprocitanih } from '../ui/system/plural';
+import { Segmented } from '../ui/system/Segmented';
 
 const filters: {label:string;role:InboxRole|null}[] = [
   {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
@@ -76,13 +77,9 @@ export default function Obavestenja() {
       contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
       refreshing={state.loading && !!state.page} onRefresh={()=>void model.refresh()}
       ListHeaderComponent={<View style={{gap:14}}>
-        <View style={styles.filters} accessibilityRole="tablist">
-          {filters.map(filter=><Press key={filter.label} accessibilityRole="tab"
-            accessibilityState={{selected:role===filter.role}} haptic="select"
-            onPress={()=>setRole(filter.role)} style={[styles.filter,role===filter.role && styles.selected]}>
-            <T style={[styles.filterText, {color:role===filter.role?sys.color.ink:sys.color.muted}]}>{filter.label}</T>
-          </Press>)}
-        </View>
+        {/* V41: the same underlined tabs as every other set in the app. */}
+        <Segmented appearance="underline" value={role ?? 'ALL'} onChange={key => setRole(key === 'ALL' ? null : key as InboxRole)}
+          options={filters.map(filter => ({ key: filter.role ?? 'ALL', label: filter.label }))} />
         {state.page && state.page.unreadCount>0 && <View style={styles.summary}>
           <T style={styles.meta} accessibilityLiveRegion="polite">{neprocitanih(state.page.unreadCount)}</T>
           {state.page.unreadCount>0 && <Press accessibilityRole="button" disabled={busy}
@@ -164,9 +161,6 @@ const styles=StyleSheet.create({
   filterText:{fontSize:13,lineHeight:19,fontWeight:'600',color:sys.color.ink},
   iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:13},
   content:{paddingHorizontal:20,paddingTop:6,paddingBottom:28,gap:12,flexGrow:1,width:'100%',maxWidth:640,alignSelf:'center'},
-  filters:{flexDirection:'row',flexWrap:'wrap',gap:4,backgroundColor:sys.color.line,padding:4,borderRadius:14},
-  filter:{flexGrow:1,minHeight:44,paddingHorizontal:12,paddingVertical:10,borderRadius:11,alignItems:'center',justifyContent:'center'},
-  selected:{backgroundColor:sys.color.surface},
   summary:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
   readAll:{minHeight:44,flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:4},
   item:{minHeight:96,flexDirection:'row',alignItems:'flex-start',gap:12,padding:16,borderRadius:18,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line},

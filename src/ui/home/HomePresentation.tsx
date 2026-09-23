@@ -1,13 +1,12 @@
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowRight, CaretRight, MapPin, Plus, User } from 'phosphor-react-native';
+import { ArrowRight, CaretRight, MapPin, Plus } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeRow, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
-import { InboxBell } from '../InboxBell';
+import { ScreenHeader } from '../system/ScreenHeader';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
-import { BrandLockup } from '../entry/BrandAssets';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
@@ -106,13 +105,8 @@ export function HomePresentation(p: HomePresentationProps) {
     // Finished work waiting for a rating is not a first step (2026-09-23).
     && !home.ratingsDue;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
-    <View style={s.header}>
-      <View style={s.grow}><BrandLockup width={123} /></View>
-      <InboxBell />
-      <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={p.onProfile} haptic="select" style={s.profile}>
-        <User size={22} color={sys.color.ink} />
-      </Press>
-    </View>
+    {/* The one header of the three tabs (V41): profile left, the mark in the middle, the inbox right. */}
+    <ScreenHeader title="Početna" onProfile={p.onProfile} />
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
       <View style={s.hero}>
@@ -156,6 +150,7 @@ export function HomePresentation(p: HomePresentationProps) {
           accessibilityLabel={`${dogovoraCekaOcenu(home.ratingsDue)} · otvori Dogovore`}>
           <View style={s.ratingsDot} />
           <T variant="note" style={s.ratingsDueText}>{dogovoraCekaOcenu(home.ratingsDue)}</T>
+          <CaretRight size={18} color={sys.color.warn} />
         </Press> : null}
       </Section> : null}
 
@@ -182,14 +177,12 @@ function dogovoraCekaOcenu(count: number): string {
 }
 
 const s = StyleSheet.create({
-  ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 4 },
-  ratingsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: sys.color.orange },
-  ratingsDueText: { color: sys.color.orange, fontWeight: '600' },
+  // V41 strip: what waits for me reads on a warm band in dark orange (orange text on white was 2.5:1).
+  ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, marginTop: 8, paddingHorizontal: 14,
+    borderRadius: sys.radius.control, backgroundColor: sys.color.orangeSoft, borderWidth: 1, borderColor: sys.color.orangeHalo },
+  ratingsDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
+  ratingsDueText: { flex: 1, color: sys.color.warn, fontWeight: '600' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 66, paddingHorizontal: 20, paddingVertical: 8,
-    width: '100%', maxWidth: 640, alignSelf: 'center' },
-  profile: { width: 44, height: 44, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line,
-    backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   grow: { flex: 1, minWidth: 0 }, flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 108, marginBottom: 16 },
@@ -204,8 +197,9 @@ const s = StyleSheet.create({
   actionGlyph: { width: 30, height: 30, borderRadius: sys.radius.badge, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   publishGlyph: { backgroundColor: '#FFFFFF38' }, publishHint: { color: '#584022' },
   actionCopy: { gap: 4 },
-  attention: { borderRadius: sys.radius.cardCompact, backgroundColor: sys.color.surface, borderWidth: 1,
-    borderColor: sys.color.line, paddingHorizontal: 14 },
+  // V41: what needs my answer sits on one warm band, its rows white inside it.
+  attention: { borderRadius: sys.radius.card, backgroundColor: sys.color.orangeSoft, borderWidth: 1,
+    borderColor: sys.color.orangeHalo, paddingHorizontal: 14 },
   section: { marginTop: 16 },
   sectionHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 8, minHeight: 48, marginBottom: 4 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
@@ -217,7 +211,7 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   lastRow: { borderBottomWidth: 0 },
   rowIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  attentionIcon: { width: 40, height: 42, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft },
+  attentionIcon: { width: 40, height: 42, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface },
   calendarIcon: { width: 48, height: 58, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash },
   agreement: { padding: 14, borderWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.cardCompact },
   agreementList: { gap: 10 },

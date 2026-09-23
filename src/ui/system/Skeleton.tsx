@@ -1,7 +1,8 @@
-import { StyleSheet, View, type DimensionValue } from 'react-native';
+import { Animated, StyleSheet, View, type DimensionValue } from 'react-native';
+import { useBreath } from './Arrive';
 import { card, sys } from './tokens';
 
-/** Static placeholder that matches the final geometry. No shimmer: loading is frequent and motion here would be decoration. */
+/** Placeholder that matches the final geometry; the list breathes as one while it waits (V41), never per block. */
 function SkeletonBlock({ width, height, radius = 8 }: { width: DimensionValue; height: number; radius?: number }) {
   return <View style={{ width, height, borderRadius: radius, backgroundColor: sys.color.skeleton }} />;
 }
@@ -16,7 +17,8 @@ export function SkeletonCard({ rows = 2 }: { rows?: number }) {
 }
 
 export function SkeletonList({ count = 3, rows }: { count?: number; rows?: number }) {
-  return <View style={s.list}>{Array.from({ length: count }, (_, index) => <SkeletonCard key={index} rows={rows} />)}</View>;
+  const opacity = useBreath();
+  return <Animated.View style={[s.list, { opacity }]}>{Array.from({ length: count }, (_, index) => <SkeletonCard key={index} rows={rows} />)}</Animated.View>;
 }
 
 const s = StyleSheet.create({

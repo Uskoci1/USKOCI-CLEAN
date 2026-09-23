@@ -8,6 +8,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
+import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
 
 /**
@@ -30,9 +31,10 @@ export function ActivitiesPresentation({ page, filter, loading, refreshing, erro
   </View>;
   return <SafeAreaView edges={['top']} style={s.canvas}>
     <DetailTopBar title="Moje aktivnosti" onBack={onBack} />
+    {/* V41: which things (underlined tabs) first, then when (the quiet pill), then the list. */}
     <View style={s.controls}>
+      <Segmented options={RELATIONS} value={filter.relation} onChange={relation => onFilter({ ...filter, relation })} appearance="underline" />
       <Segmented options={PERIODS} value={filter.period} onChange={period => onFilter({ ...filter, period })} />
-      <Segmented options={RELATIONS} value={filter.relation} onChange={relation => onFilter({ ...filter, relation })} scroll />
     </View>
     <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
@@ -41,6 +43,8 @@ export function ActivitiesPresentation({ page, filter, loading, refreshing, erro
         : filter.relation === 'APPLIED' ? MISSING.applications : 'Tvoji zadaci i prijave') : null}
       {rows.map(row => <Press key={row.id} accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
         onPress={() => onOpen(row.target)} style={s.row}>
+        {/* The same coloured illustration Početna gives a task of mine and an offer I sent. */}
+        <View style={s.rowIcon}><FactArt kind={row.relation === 'APPLIED' ? 'offers' : 'tasks'} size={28} /></View>
         <View style={s.copy}>
           <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(row.title)}</T>
           <T variant="note" tone="muted" numberOfLines={2}>{row.detail}</T>
@@ -56,12 +60,13 @@ export function ActivitiesPresentation({ page, filter, loading, refreshing, erro
 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.ground },
-  controls: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
+  controls: { paddingHorizontal: 20, paddingBottom: 10, gap: 12 },
   list: { paddingHorizontal: 20, paddingBottom: 32 },
   ink: { color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.lineStrong },
   copy: { flex: 1, minWidth: 0, gap: 2 },
+  rowIcon: { width: 44, height: 44, borderRadius: sys.radius.control, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
   state: { paddingVertical: 16, gap: 2, alignItems: 'flex-start' },
   skeletons: { gap: 12, paddingTop: 8 },
   skeleton: { height: 52, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton },
