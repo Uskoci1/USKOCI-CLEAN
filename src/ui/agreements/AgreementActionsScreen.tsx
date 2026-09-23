@@ -133,7 +133,7 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     <DetailTopBar eyebrow="Dogovor" title="Izmene i otkazivanje"
       onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } }} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      {busy ? <T accessibilityLiveRegion="polite" style={s.copy}>{state.phase === 'SENDING' ? 'Šaljem pregledanu radnju…' : 'Učitavam važeće uslove i potvrdu…'}</T> : null}
+      {busy ? <T accessibilityLiveRegion="polite" style={s.copy}>{state.phase === 'SENDING' ? 'Šaljem pregledanu radnju…' : 'Učitavamo važeće uslove i potvrdu…'}</T> : null}
       {error || state.error ? <T accessibilityLiveRegion="polite" style={s.error}>{error || state.error}</T> : null}
       {state.message ? <T accessibilityLiveRegion="polite" style={s.heading}>{state.message}</T> : null}
       {snapshot ? <Terms title="Važeći uslovi" terms={snapshot.terms} /> : null}

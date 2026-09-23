@@ -78,7 +78,7 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   // What the OTHER person is to me, third person, from this Dogovor's own participants (owner, 2026-09-19):
   // their name comes first, so a sentence about me beside it ("Uskočio si") read as if it were about them.
   // The same words the Dogovor itself uses in AgreementPeople, with V41's "na tvoj zadatak" saying whose task.
-  const relation = other?.uloga === 'narucilac' ? 'Objavio zadatak' : other?.uloga === 'uskocer' ? 'Uskočio na tvoj zadatak' : '';
+  const relation = other?.uloga === 'narucilac' ? 'Traži pomoć' : other?.uloga === 'uskocer' ? 'Uskače na tvoj zadatak' : '';
   const term = termParts(item.vremeTekst), remote = item.rezim === 'DALJINSKI';
   const initials = <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>;
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${readableTitle(item.naslov)}`}

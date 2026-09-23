@@ -51,7 +51,7 @@ it('keeps first-speech preparation cancellable and accessible', async () => {
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pokreni govorni unos' }).props.onPress());
   await act(async () => { tree.update(<VoiceComposer controller={c as unknown as HoldToTalkController}
     state={{ ...idle, phase: 'PREPARING' }} disabled={true} onKeepText={jest.fn()} />); });
-  const pending = tree.root.findByProps({ accessibilityLabel: 'Pripremam govorni unos…' });
+  const pending = tree.root.findByProps({ accessibilityLabel: 'Pripremamo govorni unos…' });
   expect(pending.props.disabled).toBe(false);
   await act(async () => pending.props.onPress());
   expect(c.release).toHaveBeenCalledWith('GESTURE_SYNTHETIC');

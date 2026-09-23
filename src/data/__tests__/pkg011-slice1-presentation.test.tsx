@@ -95,7 +95,7 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Dogovori')).length).toBeGreaterThan(0);
   expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
-  expect(copy).toContain('Mila'); expect(copy).toContain('Uskočio'); expect(copy).not.toContain('Objavio si');
+  expect(copy).toContain('Mila'); expect(copy).toContain('Uskače'); expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Kalendar obaveza');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements rows={rows} />); });

@@ -35,7 +35,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
   };
   const release = () => { const id = gesture.current; gesture.current = null; if (id) void p.controller.release(id); };
   const label = p.state.phase === 'LISTENING' ? explicit ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti da pošalješ'
-    : p.state.phase === 'PERMISSION_PENDING' ? 'Čekam dozvolu mikrofona' : p.state.phase === 'PREPARING' ? 'Pripremam govorni unos…'
+    : p.state.phase === 'PERMISSION_PENDING' ? 'Čekam dozvolu mikrofona' : p.state.phase === 'PREPARING' ? 'Pripremamo govorni unos…'
       : p.state.phase === 'STARTING' ? 'Povezujem mikrofon…'
       : p.state.phase === 'FINALIZING' ? 'Završavam transkript…' : explicit ? 'Pokreni govorni unos' : 'Drži da govoriš';
   const listening = p.state.phase === 'LISTENING';

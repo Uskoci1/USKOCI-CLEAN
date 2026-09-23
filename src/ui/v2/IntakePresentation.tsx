@@ -194,7 +194,7 @@ export function IntakePresentation(props: Props) {
         <T variant="note" style={s.muted}>{gap.total > 1
           ? 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe. Dve tačke, dva dodira.'
           : 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe.'}</T>
-        <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+        <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
           <ConversationPointAsk conversationId={conversation.conversationId}
             onSaved={props.onRefresh} onClose={() => setPointAskHidden(true)} />
         </Suspense>
@@ -211,7 +211,7 @@ export function IntakePresentation(props: Props) {
       {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'points' ? <Panel title="Mesto zadatka" close={close} reduced={reduced}>
-      <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
+      <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
         <ConversationPointAsk conversationId={conversation.conversationId}
           onSaved={props.onRefresh} onClose={close} />
       </Suspense>

@@ -42,7 +42,7 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
     <T style={s.copy}>Jedna tačka, podeljena dobrovoljno u ovom Dogovoru. Prikaz se ne pomera i ne prati putovanje.</T>
     {state.message&&state.message.includes('podešavanjima telefona')?<PermissionRecovery message={state.message}/>
       :state.message?<T accessibilityLiveRegion="polite" style={s.copy}>{state.message}</T>:null}
-    {state.phase==='LOADING'||state.phase==='SENDING'?<T accessibilityLiveRegion="polite" style={s.copy}>{state.phase==='SENDING'?'Čekam potvrdu servera…':'Proveravam Dogovor…'}</T>:null}
+    {state.phase==='LOADING'||state.phase==='SENDING'?<T accessibilityLiveRegion="polite" style={s.copy}>{state.phase==='SENDING'?'Čekam potvrdu servera…':'Proveravamo Dogovor…'}</T>:null}
     {state.phase==='CAPTURING'?<View style={s.group}><T accessibilityLiveRegion="polite" style={s.copy}>Uzimam jednu novu lokaciju telefona…</T>
       <V2Action label="Prekini deljenje" kind="quiet" onPress={()=>run('stopCapture')}/></View>:null}
     {ready&&state.context?.requestedAt?<T style={s.copy}>Lokacija je zatražena: {date(state.context.requestedAt)}. Deljenje je opciono.</T>:null}

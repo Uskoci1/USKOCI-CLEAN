@@ -255,7 +255,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
 
   // ---- presentation (state above is untouched by PKG-011) ----
   const openMessages = () => setTab('poruke');
-  const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Završio sam' : 'Potvrdi završetak';
+  const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Posao je gotov' : 'Potvrdi završetak';
   const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
   // One brand action per state: completion when the server allows it, the review after
   // completion, otherwise the conversation. "Otvori poruke" stays one tap away in every case.
@@ -351,11 +351,11 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 that does not carry the ids offers nothing here rather than a row that leads nowhere. Each
                 side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava. */}
             {dogovor.izvor?.zadatakId ? <WorkspaceRow label="Zadatak iz kog je nastao Dogovor"
-              hint={requester ? 'Tvoj zadatak: opis, prijave i izmene' : 'Objava na koju si poslao ponudu'} disabled={!enabled}
+              hint={requester ? 'Tvoj zadatak: opis, prijave i izmene' : 'Zadatak za koji je tvoja ponuda'} disabled={!enabled}
               onPress={() => { const needId = dogovor.izvor?.zadatakId; if (!needId || !formCurrent()) return;
                 router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
                   : { pathname: '/prilike/[id]', params: { id: needId } }); }} /> : null}
-            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow label="Ponuda koju si poslao" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
+            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow label="Tvoja ponuda" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
               onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
                 router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
             {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);

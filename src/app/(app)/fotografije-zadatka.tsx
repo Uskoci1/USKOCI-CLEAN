@@ -104,7 +104,7 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     if (!recovered || !photos || photos.photos.length >= MAX_PHOTOS || pending.current || !key || !begin()) return;
     try {
       setMessage(null); setPermissionDenied(false);
-      const photo = await pickPreparedPhoto(source, current, () => { if (current()) setMessage('Pripremam fotografiju…'); });
+      const photo = await pickPreparedPhoto(source, current, () => { if (current()) setMessage('Pripremamo fotografiju…'); });
       if (!photo || !current()) return;
       const command = { id: noviUuidZahtevId(), photo }; pending.current = command;
       // Persist identity before I/O, never pixels, path, or metadata.

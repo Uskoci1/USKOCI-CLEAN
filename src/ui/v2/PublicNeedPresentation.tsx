@@ -92,7 +92,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'}
           initial={(need.narucilacIme || '?').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}
           // A missing rating is said to be missing, as it is for a candidate; a blank line would hide the fact.
-          caption={`Objavio zadatak · ${need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna'}`}
+          caption={`Traži pomoć · ${need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna'}`}
           photo={publicPhoto?.(need.narucilacProfilId, 48)} onPress={onRequesterProfile} disabled={busy} />
       </> : null}
     </ScrollView>
@@ -103,7 +103,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <T variant="note" tone="muted" style={s.center}>Ovo je tvoj zadatak. Ovako ga vide drugi.</T>
         <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></>
         : relation.kind === 'APPLIED' ? <>
-          <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Već si se prijavio na ovaj zadatak.'}</T>
+          <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Tvoja prijava na ovaj zadatak je već poslata.'}</T>
           <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></>
           : relation.kind === 'UNKNOWN' ? <>
             <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili si se već prijavio.</T>
@@ -112,7 +112,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
-      photo={publicPhoto} roleLabel="Objavio zadatak" safety={safety} /> : null}
+      photo={publicPhoto} roleLabel="Traži pomoć" safety={safety} /> : null}
   </SafeAreaView>;
 }
 

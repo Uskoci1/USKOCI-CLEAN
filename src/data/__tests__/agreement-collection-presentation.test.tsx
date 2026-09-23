@@ -50,7 +50,7 @@ test('active and history preserve both actual participant roles; attention means
   // third person — the same words the Dogovor itself uses in AgreementPeople. It used to read
   // "Milos SLJIVIC   Uskočio si": their name, then a sentence about me, with nothing to mark that
   // the subject had changed. Početna keeps the first person because it puts the relation first.
-  expect(texts()).toContain('Objavio zadatak'); expect(texts()).toContain('Uskočio na tvoj zadatak');
+  expect(texts()).toContain('Traži pomoć'); expect(texts()).toContain('Uskače na tvoj zadatak');
   expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);

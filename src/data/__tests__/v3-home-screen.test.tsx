@@ -58,7 +58,7 @@ it('shows one account on both sides at once, each row saying what I am to it, wi
   mockSource.mojiDogovori.mockResolvedValue([agreement('g-a', 'narucilac'), agreement('g-c', 'uskocer')]);
   await render();
   const copy = text();
-  expect(copy).toContain('Tvoj zadatak'); expect(copy).toContain('Tvoja prijava'); expect(copy).toContain('Objavio si'); expect(copy).toContain('Uskočio si');
+  expect(copy).toContain('Tvoj zadatak'); expect(copy).toContain('Tvoja prijava'); expect(copy).toContain('Uskačeš'); expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio si');
   await act(async () => row('Dogovor g-c').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'g-c' } });
 });

@@ -222,7 +222,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     await check();
     await act(async () => tree.update(<NeedLocationForm review={{ ...loaded, editable: state !== 'read-only' }} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    const button = tree.root.findByProps({ label: state === 'busy' ? 'Pripremam mesto…' : 'Potvrdi i sačuvaj mesto' });
+    const button = tree.root.findByProps({ label: state === 'busy' ? 'Pripremamo mesto…' : 'Potvrdi i sačuvaj mesto' });
     expect(button.props.kind).toBe('primary');
     expect(button.props.disabled).toBe(true);
     await act(async () => button.props.onPress());

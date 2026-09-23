@@ -56,8 +56,8 @@ describe('Početna v1 — composed from the reads that already exist, with no mo
       { id: 'need:a', relation: 'OWNED', title: 'Zadatak a', detail: 'Tvoj zadatak · sutra 17–19 · još nema prijava', target: { kind: 'NEED', needId: 'a' } },
       { id: 'application:c', relation: 'APPLIED', title: 'Tuđ zadatak c', detail: 'Tvoja prijava · 2.500 RSD ukupno · čeka izbor', target: { kind: 'APPLICATION', applicationId: 'c' } }] }));
     expect(home.agreements).toEqual(known({ more: 0, rows: [
-      { id: 'agreement:g-a', title: 'Dogovor g-a', detail: 'Objavio si · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-a' } },
-      { id: 'agreement:g-c', title: 'Dogovor g-c', detail: 'Uskočio si · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-c' } }] }));
+      { id: 'agreement:g-a', title: 'Dogovor g-a', detail: 'Tvoj zadatak · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-a' } },
+      { id: 'agreement:g-c', title: 'Dogovor g-c', detail: 'Uskačeš · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-c' } }] }));
   });
 
   it('orders attention by what blocks a person first, bounds it, and counts the rest honestly', () => {

@@ -96,9 +96,9 @@ test.each([false, true])('completion review uses the accepted facts, sends nothi
 });
 test('native Back dismisses a worker completion review without marking the work done', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null } }, 'uskocer'));
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Završio sam' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Posao je gotov' }).props.onPress());
   expect(texts()).toContain('Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem.');
-  expect(labels()).toContain('Da, završio sam');
+  expect(labels()).toContain('Da, posao je gotov');
   await act(async () => tree.root.findByType('Modal' as any).props.onRequestClose());
   expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
@@ -107,7 +107,7 @@ test('a worker awaiting the requester sees the wait and the deadline; no complet
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));
   const copy = texts();
   expect(copy).toContain('Čeka se potvrda druge strane'); expect(copy).toContain('Bez odgovora se Dogovor zatvara sam.'); expect(copy).toContain('Čeka se potvrda završetka');
-  expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Završio sam');
+  expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Posao je gotov');
 });
 test('after the worker says done the requester confirms or reports a problem; changes and cancelling are not offered (owner decision 2026-09-21)', async () => {
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z',
@@ -175,7 +175,7 @@ test('the worker reaches the Prilika and the offer they sent', async () => {
   await render(base({}, 'uskocer'));
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak iz kog je nastao Dogovor' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: mockNeedId } });
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ponuda koju si poslao' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tvoja ponuda' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: mockApplicationId } });
 });
 test.each([

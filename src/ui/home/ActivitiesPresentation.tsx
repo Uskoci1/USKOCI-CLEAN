@@ -16,7 +16,7 @@ import { sys } from '../system/tokens';
  * filters of that list and change nothing about the app. A row only navigates; managing an
  * application, a task or a Dogovor stays on the screen that already owns it.
  */
-const RELATIONS = [{ key: 'ALL', label: 'Sve' }, { key: 'OWNED', label: 'Objavio sam' }, { key: 'APPLIED', label: 'Prijavio sam se' }] as const;
+const RELATIONS = [{ key: 'ALL', label: 'Sve' }, { key: 'OWNED', label: 'Moji zadaci' }, { key: 'APPLIED', label: 'Moje prijave' }] as const;
 const PERIODS = [{ key: 'ACTIVE', label: 'Aktivno' }, { key: 'HISTORY', label: 'Istorija' }] as const;
 const MISSING = { needs: 'Tvoji zadaci', applications: 'Tvoje prijave' } as const;
 

@@ -119,7 +119,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
       [{ text: 'Nastavi potvrđivanje', style: 'cancel' }, { text: 'Izađi ipak', style: 'destructive', onPress: props.onClose }]);
   };
 
-  if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaram mesto zadatka…</T>;
+  if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
   if (state.kind === 'SAVED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="success">Mesto je sačuvano.</T>
     <Button kind="primary" label="Vrati se u razgovor" onPress={props.onClose} />

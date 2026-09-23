@@ -176,7 +176,7 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
       <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
         onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} />
     </View> : null}
-    <Button kind="primary" label={busy ? 'Pripremam mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
+    <Button kind="primary" label={busy ? 'Pripremamo mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
       disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
     {/* A grey button says why it is grey, in the line where its explanation used to stand (owner rule,
         2026-09-23). The pending point has its own block above; a run in progress is the label itself. */}

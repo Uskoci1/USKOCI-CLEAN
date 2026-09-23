@@ -102,7 +102,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
         || latest.current.items.some(item => !item.receipt || item.receipt.state !== 'READY')) return;
       const version = live.current.agreementVersion;
       let photo: PreparedPhoto | null;
-      try { photo = await pickPreparedPhoto(source, valid, () => { if (valid()) apply({ message: 'Pripremam fotografiju…' }); }); }
+      try { photo = await pickPreparedPhoto(source, valid, () => { if (valid()) apply({ message: 'Pripremamo fotografiju…' }); }); }
       catch (error) { if (valid()) apply({ message: photoSelectionMessage(error) }); return; }
       if (!photo || !valid()) return;
       const ref = { agreementId, agreementVersion: version, clientRequestId: noviUuidZahtevId() };

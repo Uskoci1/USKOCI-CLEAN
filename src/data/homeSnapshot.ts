@@ -68,7 +68,7 @@ function applicationRow(row: MojaPrijavaProjekcija): HomeActivityRow {
 function agreementRow(row: DogovorProjekcija): HomeRow {
   const side = mySide(row);
   return { id: `agreement:${row.id}`, title: row.naslov, target: { kind: 'AGREEMENT', agreementId: row.id },
-    detail: [side === 'narucilac' ? 'Objavio si' : side === 'uskocer' ? 'Uskočio si' : null, counterpart(row), row.vremeTekst].filter(Boolean).join(' · ') };
+    detail: [side === 'narucilac' ? 'Tvoj zadatak' : side === 'uskocer' ? 'Uskačeš' : null, counterpart(row), row.vremeTekst].filter(Boolean).join(' · ') };
 }
 /** Alternate the two sides, so an account busy on one of them still sees the other in five rows. */
 function interleave<T>(first: readonly T[], second: readonly T[]): T[] {

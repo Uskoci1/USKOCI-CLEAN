@@ -485,7 +485,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       : !candidate.mozeIzabrati && !pending ? <View style={s.card}><T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T>
         <V2Action label="Osveži prijave" onPress={refresh} disabled={busy} /></View> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
-    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" safety={safety} />
+    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Nudi pomoć" safety={safety} />
   </SelectionFrame>;
 }
 const s = StyleSheet.create({

@@ -65,8 +65,8 @@ const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 async function render() { await act(async () => { tree = create(<Dogovor />); }); }
 async function completionConfirmation(worker = false) {
-  await act(async () => button(worker ? 'Završio sam' : 'Potvrdi završetak').props.onPress());
-  return button(worker ? 'Da, završio sam' : 'Da, potvrdi završetak').props.onPress as () => void;
+  await act(async () => button(worker ? 'Posao je gotov' : 'Potvrdi završetak').props.onPress());
+  return button(worker ? 'Da, posao je gotov' : 'Da, potvrdi završetak').props.onPress as () => void;
 }
 async function confirmCompletion(worker = false) {
   const confirm = await completionConfirmation(worker);
@@ -271,7 +271,7 @@ describe('D03 actual route and scoped resource integration', () => {
   it.each(['CANCELLED', 'COMPLETED'])('a %s Agreement has no completion action', async state => {
     mockRead.mockResolvedValue({ ...workspace, stanje: state }); await render();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Završio sam' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Posao je gotov' })).toHaveLength(0);
   });
   it('requires an explicit narrative for a problem and preserves its draft on failure', async () => {
     mockRead.mockResolvedValue({ ...workspace, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-12T14:00:00Z' });
@@ -588,7 +588,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     'a pending change hides the %s completion action while %s and explains why', async (role, state) => {
     mockRead.mockResolvedValue(asParty(pendingChange, role as 'narucilac' | 'uskocer', state));
     await render();
-    absent('Potvrdi završetak'); absent('Završio sam');
+    absent('Potvrdi završetak'); absent('Posao je gotov');
     expect(texts()).toContain('Predlog izmene čeka odgovor');
     expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
     expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
@@ -596,7 +596,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
   it.each([null, undefined])('missing server permissions (%s) fail closed until an explicit readback restores the action', async radnje => {
     mockRead.mockResolvedValueOnce({ ...workspace, radnje });
     await render();
-    absent('Potvrdi završetak'); absent('Završio sam');
+    absent('Potvrdi završetak'); absent('Posao je gotov');
     expect(texts()).toContain('Dozvole za završetak nisu potvrđene');
     await act(async () => button('Osveži dozvole za završetak').props.onPress());
     expect(mockRead).toHaveBeenCalledTimes(2);
@@ -614,7 +614,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     'a permission granted to the other party does not enable the %s', async (role, radnje) => {
     mockRead.mockResolvedValue(asParty(radnje, role as 'narucilac' | 'uskocer'));
     await render();
-    absent('Potvrdi završetak'); absent('Završio sam');
+    absent('Potvrdi završetak'); absent('Posao je gotov');
   });
   it('an unchanged readback after a valid confirmation receipt stays unconfirmed until explicit reconciliation', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce(receipt);
@@ -666,11 +666,11 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(texts()).toContain('Server nije potvrdio završetak');
-    expect(button('Završio sam').props.disabled).toBe(true);
+    expect(button('Posao je gotov').props.disabled).toBe(true);
     mockRead.mockResolvedValue({ ...asWorker, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', radnje: none });
     await act(async () => button('Osveži status Dogovora').props.onPress());
     expect(texts()).toContain('Čeka se potvrda druge strane');
-    absent('Završio sam');
+    absent('Posao je gotov');
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledTimes(1);
   });
   it('a completion receipt arriving after an A→B→A auth incarnation change cannot apply or read back', async () => {

@@ -122,11 +122,11 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   return <View style={s.panel}>
     <T style={s.title}>Upravljanje zadatkom</T>
     {view.error ? <T accessibilityLiveRegion="polite" style={s.error}>{view.error}</T> : null}
-    {view.loading ? <T accessibilityLiveRegion="polite" style={s.copy}>Proveravam prethodni zahtev…</T>
+    {view.loading ? <T accessibilityLiveRegion="polite" style={s.copy}>Proveravamo prethodni zahtev…</T>
       : view.state ? <>
         <T accessibilityLiveRegion="polite" style={s.copy}>{phase === 'CONFIRMED'
           ? view.command?.action === 'DELETE_DRAFT' ? 'Server je potvrdio brisanje nacrta.' : 'Server je potvrdio otkazivanje zadatka.'
-          : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravam potvrdu…'
+          : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
             : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
         {phase === 'UNKNOWN_OUTCOME' ? <>
           <V2Action label="Proveri ishod" kind="quiet" onPress={() => run('reconcile')} />

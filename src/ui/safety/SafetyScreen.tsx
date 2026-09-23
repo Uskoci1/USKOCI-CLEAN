@@ -28,7 +28,7 @@ export function SafetyScreen(p: Context) {
       <T variant="heading">Kontakt sa korisnikom</T>
       <T>Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.</T>
       <T variant="meta" tone="muted">Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.</T>
-      {editor.loading ? <T>Proveravam blokiranje…</T> : null}
+      {editor.loading ? <T>Proveravamo blokiranje…</T> : null}
       {editor.error ? <T tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
       {editor.data ? <>
         <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Korisnik je blokiran.' : 'Korisnik nije blokiran.'}</T>
@@ -131,7 +131,7 @@ function PrivateReport(context: Context) {
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
       <T variant="bodyStrong">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
-      <SettingsAction label={busy ? 'Proveravam prijavu…' : pending ? 'Ponovi isti zahtev' : 'Pošalji privatnu prijavu'}
+      <SettingsAction label={busy ? 'Proveravamo prijavu…' : pending ? 'Ponovi isti zahtev' : 'Pošalji privatnu prijavu'}
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
       {/* A grey button carries its reason (owner's rule); a failed restore already speaks through `error` below. */}
       {loaded && !busy && !frozen.current && (!category || !reason.trim()) ? <T variant="meta" tone="muted">

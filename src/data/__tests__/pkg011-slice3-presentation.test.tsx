@@ -82,7 +82,7 @@ test('the public Task leads with status, title, price and people, offers the req
   expect(copy).toContain('Traži ponude'); expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0 / 2 popunjeno');
   expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, popunjeno 0 od 2 mesta')).not.toHaveLength(0);
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
-  expect(copy).toContain('Objavio zadatak');
+  expect(copy).toContain('Traži pomoć');
   expect(brand()).toEqual(['Sastavi prijavu']);
   await act(async () => byLabel('Pogledaj javni profil').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
@@ -117,7 +117,7 @@ test('my own task offers my view of it, never an application to myself', async (
 });
 test('a task I applied to offers my application, and my Dogovor once I am chosen', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: null }} />); });
-  expect(texts()).toContain('Već si se prijavio na ovaj zadatak.'); expect(labels()).not.toContain('Sastavi prijavu');
+  expect(texts()).toContain('Tvoja prijava na ovaj zadatak je već poslata.'); expect(labels()).not.toContain('Sastavi prijavu');
   await act(async () => byLabel('Pogledaj svoju prijavu').props.onPress()); expect(ownApplication).toHaveBeenCalledTimes(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: 'g1' }} />); });

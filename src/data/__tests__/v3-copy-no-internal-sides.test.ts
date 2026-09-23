@@ -3,8 +3,8 @@ import { join, relative, resolve, sep } from 'path';
 
 /**
  * Owner rule (V3, 2026-09-19): a person is never told the internal names of the two sides of a task.
- * What the app says is what the person did: "Objavio si" / "Uskočio si", and for somebody else
- * "objavio zadatak" / "uskočio". "Naručilac" and "Uskočer" are words of the engine and of its
+ * What the app says is what the person does, without grammatical gender (forensic analysis, 2026-09-23):
+ * "Tražiš pomoć" / "Uskačeš", and for somebody else "Traži pomoć" / "Uskače". "Naručilac" and "Uskočer" are words of the engine and of its
  * documents, not of the screens. Identifiers are unaffected: in code they are written without
  * diacritics (`narucilac`, `uskocer`), and the contract of the server is not copy.
  */
