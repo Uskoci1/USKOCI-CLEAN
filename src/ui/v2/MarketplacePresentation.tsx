@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from 'phosphor-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -34,6 +34,21 @@ const MODES = [{ key: 'list', label: 'Lista' }, { key: 'map', label: 'Mapa' }] a
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
 const Separator = () => <View style={{ height: 12 }} />;
 const keyOf = (item: MarketplaceItem) => item.id;
+/** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input that could lose focus. */
+const CLIP_OFFSCREEN = Platform.OS === 'android';
+type Relation = 'OWNED' | 'APPLIED' | undefined;
+
+/**
+ * One row of the list. Memoised on primitives and the row's own object, so a keystroke in the
+ * search field or an open filter sheet re-renders the screen and not every card under it; the
+ * `onOpen` it receives is the list's one stable function, and the closure over `item` is made here.
+ */
+const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, relation, onOpen }: {
+  item: MarketplaceItem; index: number; animate: boolean; relation: Relation; onOpen: (item: MarketplaceItem) => void;
+}) {
+  const open = useCallback(() => onOpen(item), [onOpen, item]);
+  return <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} relation={relation} /></Appear>;
+});
 
 /**
  * Zadaci. Owned: the requester's own Tasks in three sets (Aktivni · Nacrti ·
@@ -45,8 +60,12 @@ const keyOf = (item: MarketplaceItem) => item.id;
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { owned, items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
   const relations = props.relations;
-  const relationOf = useCallback((item: MarketplaceItem) => owned || !relations ? undefined
-    : relations.owned.has(item.id) ? 'OWNED' as const : relations.applied.has(item.id) ? 'APPLIED' as const : undefined, [owned, relations]);
+  const relationOf = useCallback((item: MarketplaceItem): Relation => owned || !relations ? undefined
+    : relations.owned.has(item.id) ? 'OWNED' : relations.applied.has(item.id) ? 'APPLIED' : undefined, [owned, relations]);
+  // The route hands down a fresh `onOpen` closure on every render (its guards read the latest
+  // read). The rows get one function that never changes and calls whatever is current at press time.
+  const openRef = useRef(onOpen); openRef.current = onOpen;
+  const openItem = useCallback((item: MarketplaceItem) => openRef.current(item), []);
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
   const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
@@ -107,8 +126,12 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
   appear.settle(shown.map(keyOf));
-  const renderItem = useCallback(({ item, index }: { item: MarketplaceItem; index: number }) =>
-    <Appear index={index} animate={appear.isNew(keyOf(item))}><TaskCard item={item} onOpen={() => onOpen(item)} relation={relationOf(item)} /></Appear>, [onOpen, appear, relationOf]);
+  // `useAppear` returns a new object each render over the same two refs; read it through a ref so
+  // `renderItem` keeps its identity and the list does not re-render every cell on every render.
+  const appearRef = useRef(appear); appearRef.current = appear;
+  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
+    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem} />, [relationOf, openItem]);
+  const listStyle = useMemo(() => [s.list, !!props.onNew && showCards && s.listWithAction], [props.onNew, showCards]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
@@ -183,7 +206,10 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
             onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : shown} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
-        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={listStyle}
+        // Six cards are more than one phone screen of this card; the window stays modest so a fast
+        // scroll fills in quickly without holding the whole list mounted.
+        initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
         ListHeaderComponent={loading || error || (!shown.length && !mine.length) ? null : <View style={s.countRow}>
           {count === null ? <T variant="note" tone="muted">Učitavamo…</T>

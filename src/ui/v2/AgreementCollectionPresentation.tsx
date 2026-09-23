@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useRef } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -33,6 +33,8 @@ const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAIT
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
 const Separator = () => <View style={{ height: 12 }} />;
 const keyOf = (item: DogovorProjekcija) => item.id;
+/** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
+const CLIP_OFFSCREEN = Platform.OS === 'android';
 
 /**
  * One Agreement as a scan block: a status line only when it asks for something or
@@ -91,6 +93,17 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
       {item.izmenaCeka.mojPredlog ? 'Tvoja izmena čeka odgovor' : 'Izmena čeka tvoj odgovor'}</T></View> : null}
   </Press>;
 }
+/**
+ * One row of the list: the arrival animation and the card. Memoised on the row's own object and
+ * primitives, so changing the segment or pulling to refresh re-renders the screen and only the rows
+ * whose Dogovor actually changed. The closure over `item` is made here, from the list's one stable `onOpen`.
+ */
+const AgreementRow = memo(function AgreementRow({ item, index, animate, onOpen }: {
+  item: DogovorProjekcija; index: number; animate: boolean; onOpen: (item: DogovorProjekcija) => void;
+}) {
+  const open = useCallback(() => onOpen(item), [onOpen, item]);
+  return <Appear index={index} animate={animate}><AgreementCard item={item} onOpen={open} /></Appear>;
+});
 
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
@@ -114,8 +127,13 @@ export function AgreementCollectionPresentation(props: Props) {
   const count = loading || error ? null : visible.length;
   const appear = useAppear();
   appear.settle(visible.map(keyOf));
-  const renderItem = useCallback(({ item, index }: { item: DogovorProjekcija; index: number }) =>
-    <Appear index={index} animate={appear.isNew(keyOf(item))}><AgreementCard item={item} onOpen={() => onOpen(item)} /></Appear>, [onOpen, appear]);
+  // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
+  // is a fresh closure each render; both are read through refs so `renderItem` keeps its identity.
+  const appearRef = useRef(appear); appearRef.current = appear;
+  const openRef = useRef(onOpen); openRef.current = onOpen;
+  const openItem = useCallback((item: DogovorProjekcija) => openRef.current(item), []);
+  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<DogovorProjekcija>) =>
+    <AgreementRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} onOpen={openItem} />, [openItem]);
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} rows={2} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Dogovore…</T></>
       : error ? <View style={s.state}><T style={s.stateTitle}>Dogovore trenutno nije moguće učitati</T><T style={s.stateBody}>Proveri internet vezu i pokušaj ponovo.</T>
@@ -141,6 +159,8 @@ export function AgreementCollectionPresentation(props: Props) {
     </View>
     <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
       onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
+      // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.
+      initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
       ItemSeparatorComponent={Separator} renderItem={renderItem}
       ListHeaderComponent={count ? <View style={s.countRow}><T variant="note" tone="muted">{dogovora(count)}</T></View> : null} />
   </SafeAreaView>;

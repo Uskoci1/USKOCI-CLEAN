@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
-import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, PaperPlaneTilt, Star } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
@@ -17,6 +17,7 @@ import { ProfilePhoto } from '../media/ContextPhotos';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, prijava, plural } from '../system/plural';
+import { SkeletonList } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -52,12 +53,16 @@ function SelectionFrame({ title, back, children, footer, scroll = true, backLabe
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
+/** While the read runs, the shape of what is coming stands in for it — cards, not a spinner — so nothing jumps when the rows arrive. */
 export function SelectionUnavailable({ loading, message, retry, back }: { loading: boolean; message: string; retry?: () => void; back: () => void }) {
-  return <SelectionFrame title="Prijave" back={back}><View style={s.card}>
-    {loading ? <ActivityIndicator accessibilityLabel="Učitavanje prijava" color={sys.color.green} /> : null}
-    <T accessibilityRole={loading ? undefined : 'alert'} variant="body" style={loading ? s.muted : s.ink}>{loading ? 'Učitavamo aktuelne podatke…' : message}</T>
-    {!loading && retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={brandAction} /> : null}
-  </View></SelectionFrame>;
+  return <SelectionFrame title="Prijave" back={back}>
+    {loading ? <View accessibilityLiveRegion="polite" style={s.loading}><SkeletonList count={3} rows={2} />
+      <T variant="meta" tone="muted" style={s.center}>Učitavamo aktuelne podatke…</T></View>
+      : <View style={s.card}>
+        <T accessibilityRole="alert" variant="body" style={s.ink}>{message}</T>
+        {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={brandAction} /> : null}
+      </View>}
+  </SelectionFrame>;
 }
 /** The Task the offer belongs to, as a compact context card. The green title is the task; no word
  *  above it says so (owner's rule, 2026-09-23: nothing explains where you are). */
@@ -242,7 +247,7 @@ function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatPr
     </View></View>;
 }
 /** Price, offered capacity and proposed time are visible before opening an offer. */
-function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
+const CandidateRow = memo(function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
   const time = applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst;
   const message = k.napomena?.trim() ?? '';
   const messagePreview = Array.from(message).slice(0, 180).join('');
@@ -272,12 +277,12 @@ function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekc
     {k.stanje === 'SELECTABLE' ? null
       : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
   </Press>;
-}
+});
 
 /** Two offers side by side. A comparison only compares if the same three cells line up in both
  *  columns, so the free-text capabilities line — which is a different length for everyone — moved
  *  to the offer screen where it can have the room it needs. */
-function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
+const CompareCell = memo(function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} haptic="select" scaleTo={0.985}
     onPress={open} style={s.comparison}>
     <View style={s.compareIdentity}><ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
@@ -289,7 +294,25 @@ function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekci
       <T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
     {k.stanje === 'SELECTABLE' ? null : <T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T>}
   </Press>;
-}
+});
+
+const candidateKey = (k: KandidatProjekcija) => k.prijavaId;
+const CandidateSeparator = () => <View style={{ height: 12 }} />;
+/**
+ * One candidate in the list, as a card or as a comparison column. Memoised on the row's own object
+ * and primitives so a re-render of the screen touches only the rows whose offer changed; the
+ * closure over `candidate` is made here, from the list's one stable `open`.
+ */
+const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columns, open }: {
+  candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean; columns: number;
+  open: (candidate: KandidatProjekcija) => void;
+}) {
+  const openThis = useCallback(() => open(candidate), [open, candidate]);
+  return <Appear index={index} animate={animate} style={columns === 2 ? s.comparisonColumn : undefined}>
+    {compare ? <CompareCell candidate={candidate} need={need} open={openThis} />
+      : <CandidateRow candidate={candidate} need={need} open={openThis} />}
+  </Appear>;
+});
 
 /** Candidates of one Task: offers as cards, or side by side for a fast decision (owner decision 3, TARG-034). */
 export function CandidateListPresentation({ need, candidates, open, back, refresh }: {
@@ -302,24 +325,29 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // The list that was already there settles silently, and switching to the comparison and back is
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
   const appear = useAppear();
-  appear.settle(candidates.map(k => k.prijavaId));
+  appear.settle(candidates.map(candidateKey));
+  // The route's `open` is a fresh closure every render (its guards read the latest read); the rows
+  // get one function that never changes. `useAppear` is read through a ref for the same reason.
+  const appearRef = useRef(appear); appearRef.current = appear;
+  const openRef = useRef(open); openRef.current = open;
+  const openCandidate = useCallback((k: KandidatProjekcija) => openRef.current(k), []);
+  const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
+    <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columns={columns} open={openCandidate} />,
+  [need, compare, columns, openCandidate]);
   // PKG-035: the list keeps every application, historical ones included; the ones that can still be
   // chosen are a different number and are named as such, never mixed into the total.
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
   const counts = `${prijava(candidates.length)}${candidates.length && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`
     + ` · još ${plural(need.pokrivenost.preostalo, 'mesto', 'mesta', 'mesta')}`;
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}>
-    <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={candidates} keyExtractor={k => k.prijavaId} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
-      contentContainerStyle={s.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+    <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={candidates} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
+      contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator}
       ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
         <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{counts}</T>
           {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
       </View>}
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
-      renderItem={({ item: k, index }) => <Appear index={index} animate={appear.isNew(k.prijavaId)} style={columns === 2 ? s.comparisonColumn : undefined}>
-        {compare ? <CompareCell candidate={k} need={need} open={() => open(k)} />
-          : <CandidateRow candidate={k} need={need} open={() => open(k)} />}
-      </Appear>}
+      renderItem={renderItem}
       ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
   </SelectionFrame>;
 }
@@ -402,7 +430,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
 const s = StyleSheet.create({
   compareIdentity: { minHeight: 156, gap: 8 },
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
-  eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink }, muted: { color: sys.color.muted },
+  eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink },
   content: { padding: 20, paddingTop: 16, paddingBottom: 28 },
   card: { ...card, gap: 10 },
   cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
@@ -424,6 +452,7 @@ const s = StyleSheet.create({
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
+  loading: { gap: 16 },
   blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
   listHeader: { gap: 14, marginBottom: 14 },
   candidate: { ...card, gap: 12, padding: 18 },
