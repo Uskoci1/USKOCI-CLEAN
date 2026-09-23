@@ -4,6 +4,7 @@ import { ArrowLeft, CaretRight, type Icon } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { card, iconButton, sys } from './tokens';
+import { FactArt, type FactArtKind } from './FactArt';
 
 /**
  * Detail-screen primitives shared by Task, Opportunity and Dogovor screens (V5
@@ -18,12 +19,13 @@ import { card, iconButton, sys } from './tokens';
 export { DetailTopBar } from './DetailTopBar';
 
 /** One line that says what happens next, with a quiet sentence under it. */
-export function NextStrip({ icon: IconComponent, title, detail, tone = 'green' }: {
-  icon?: Icon; title: string; detail?: string; tone?: 'green' | 'warn' | 'muted';
+export function NextStrip({ icon: IconComponent, art, title, detail, tone = 'green' }: {
+  icon?: Icon; /** The coloured illustration the rest of the screen uses; wins over `icon`. */ art?: FactArtKind;
+  title: string; detail?: string; tone?: 'green' | 'warn' | 'muted';
 }) {
   const color = tone === 'warn' ? sys.color.warn : tone === 'muted' ? sys.color.muted : sys.color.green;
   return <View style={s.strip}>
-    {IconComponent ? <IconComponent size={20} color={color} /> : null}
+    {art ? <FactArt kind={art} size={28} /> : IconComponent ? <IconComponent size={20} color={color} /> : null}
     <View style={s.grow}><T variant="meta" style={[s.stripTitle, { color }]}>{title}</T>{detail ? <T variant="note" tone="muted">{detail}</T> : null}</View>
   </View>;
 }

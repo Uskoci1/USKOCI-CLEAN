@@ -62,6 +62,9 @@ export function ProductFacts({ children }: { children: ReactNode }) {
 export function ProductRequirements({ rows, title = 'Važno za ovaj zadatak' }: {
   rows: { label: string; value: string }[]; title?: string;
 }) {
+  // Nothing to say, nothing drawn: a heading over "Nema dodatih uslova." was a section of noise
+  // on the one screen where a person decides whether to apply.
+  if (!rows.length) return null;
   return <ProductSection title={title}>
     {rows.length ? <View style={s.requirements}>{rows.map((row, index) =>
       <View key={`${row.label}:${index}`} style={s.requirement}>

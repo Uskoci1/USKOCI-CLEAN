@@ -54,7 +54,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {stale ? <T variant="note" tone="muted">Poslednji učitani podaci. Osveži zadatak pre nastavka.</T> : null}
       </View> : null}
       {need ? <>
-        <NextStrip icon={PaperPlaneTilt} title={need.statusTekst} detail={canApply ? 'Prijave su otvorene. Ponudu sastavljaš ispod.' : undefined} tone={canApply ? 'green' : 'muted'} />
+        <NextStrip art="offers" title={need.statusTekst} detail={canApply ? 'Prijave su otvorene. Ponudu sastavljaš ispod.' : undefined} tone={canApply ? 'green' : 'muted'} />
         <View style={s.hero}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>

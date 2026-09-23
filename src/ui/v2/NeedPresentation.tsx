@@ -89,7 +89,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View>
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {step ? <NextStrip icon={PaperPlaneTilt} title={step.title} detail={step.detail} tone={step.tone} /> : null}
+        {step ? <NextStrip art="offers" title={step.title} detail={step.detail} tone={step.tone} /> : null}
         <View style={s.hero}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
