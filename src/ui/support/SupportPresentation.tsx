@@ -72,7 +72,7 @@ export function SupportRecovery({ busy, absent, onRead, onCancel }: {
     <T>{absent ? 'Potvrda još nije pronađena. Prethodni zahtev i dalje može da stigne.'
       : 'Ishod prethodne radnje nije potvrđen. Novo slanje je zaustavljeno dok ne proveriš stanje.'}</T>
     <T variant="meta" tone="muted">Provera ne šalje ponovo tekst. Zaustavljanje važi samo za ovu radnju; ne briše ranije primljen predmet.</T>
-    <SettingsAction label="Proveri ishod" disabled={busy} onPress={onRead} />
+    <SettingsAction kind="secondary" label="Proveri ishod" disabled={busy} onPress={onRead} />
     <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} onPress={onCancel} />
   </SettingsPanel>;
 }

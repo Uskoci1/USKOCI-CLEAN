@@ -28,7 +28,7 @@ function OwnedBlocks() {
     {editor.data?.items.length ? <SettingsGroup title="Tvoja blokiranja">{editor.data.items.map((item, i, all) =>
       <SettingsRow key={item.targetAccountId} label={item.displayName ?? 'USKOČI korisnik'} detail="Blokiran kontakt" last={i === all.length - 1}
         onPress={() => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: item.targetAccountId } })} />)}</SettingsGroup> : null}
-    {editor.error ? <><T accessibilityRole="alert" tone="danger">{editor.error}</T><SettingsAction label="Pokušaj ponovo" onPress={() => { void editor.refresh(); }} /></> : null}
+    {editor.error ? <><T accessibilityRole="alert" tone="danger">{editor.error}</T><SettingsAction kind="secondary" label="Pokušaj ponovo" onPress={() => { void editor.refresh(); }} /></> : null}
     {editor.data?.nextCursor ? <SettingsAction label="Sledeći korisnici" kind="secondary" onPress={() => setCursor(editor.data!.nextCursor)} /> : null}
     {cursor && !empty ? <SettingsAction label="Početak liste" kind="quiet" onPress={() => setCursor(null)} /> : null}
   </SettingsScreen>;

@@ -25,7 +25,7 @@ function OwnedPersonalProfile() {
         return result.ok ? { ok: true, podatak: result.podatak.identity } : result;
       })} /> : null}
     {editor.saved ? <T accessibilityLiveRegion="polite">Ime je sačuvano.</T> : null}
-    {editor.uncertain || editor.error ? <SettingsAction label="Proveri sačuvane podatke" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
+    {editor.uncertain || editor.error ? <SettingsAction kind="secondary" label="Proveri sačuvane podatke" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
   </SettingsScreen>;
 }
 function IdentityForm(p: { value: RequesterIdentity; busy: boolean; uncertain: boolean; save: (name: string, key: string) => Promise<void> }) {
