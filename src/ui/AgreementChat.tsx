@@ -106,7 +106,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} />}
         contentContainerStyle={s.list}>
-        <T variant="meta" tone="muted" style={s.center}>Razgovor o ovom Dogovoru. Povuci naniže za nove poruke.</T>
+        {/* The tab already says this is the conversation; the one useful line is how new messages arrive. */}
+        <T variant="meta" tone="muted" style={s.center}>Povuci naniže za nove poruke.</T>
         {loading && <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} />}
         {error && <View style={s.errorBlock}>
           <T variant="bodyStrong" style={s.ink}>Poruke nisu učitane</T>
@@ -117,8 +118,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         </View>}
         {!loading && !error && messages.length === 0 && local.length === 0 &&
           <View style={[s.emptyCopy, { gap: 6, alignItems: 'center' }]}>
+            {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
+            {terminal ? <T variant="copy" tone="muted" style={s.center}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>Napiši prvu poruku</T>
-            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde dogovaraš detalje sa drugom stranom — poruke vide samo učesnici ovog Dogovora.</T>
+            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde dogovaraš detalje sa drugom stranom — poruke vide samo učesnici ovog Dogovora.</T></>}
           </View>}
         {!error && messages.map(message => <Press key={message.id} accessibilityRole="button"
           accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."
