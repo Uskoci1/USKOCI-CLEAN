@@ -61,10 +61,17 @@
       "server": "agreement_messages a5e60fa9… by msljivic031 05:49:24Z; MESSAGE_RECEIVED → requester (uskocibusiness), 2 deliveries queued, unread at the time of writing",
       "flow": ".maestro/send-message.yaml, all steps COMPLETED",
       "harnessNote": "The stored text reads \"Ok, Vidimo se sutra u 12. Javi ako se Nesto Promeni.\" — the emulator keyboard capitalised words while Maestro typed; the flow sent lowercase. That is the emulator IME, not the app. The purple pill on the left of 03-poslato is the emulator keyboard toolbar."
+    },
+    {
+      "n": 8,
+      "who": "owner/phone",
+      "what": "opened the Dogovor's Poruke on the phone as the requester and photographed it: his \"Cao\" on the right, the worker's reply on the left under \"Sagovornik\", header \"Poruke · msljivic031\", the task card above",
+      "screenshot": "telefon-poruke-obe-strane.jpg (owner's own screenshot, 07:58 local)",
+      "server": "the requester's MESSAGE_RECEIVED (05:49:24Z) still has read_at null at 05:58Z, while the worker's earlier one was marked read at 05:38:39Z when the notification was tapped on the emulator — so the owner most likely reached Poruke through Dogovori, not through the notification; whether reading the conversation itself should mark the event read is an open product question, not a proven defect"
     }
   ],
   "stillOpen": [
-    "The requester has not yet seen the worker's message on the phone; its MESSAGE_RECEIVED is unread on the server.",
+    "Reading the conversation from Dogovori does not mark the MESSAGE_RECEIVED event read; only the notification tap does. Decide whether that is wanted.",
     "\"Završio sam\" not pressed; completion, confirmation and both ratings remain.",
     "The requester-side screens (Prijave, candidate profile, selection) were the owner's and are not photographed here; the phone was not connected.",
     "Push delivery of any of these events is untested; the transport is off."
@@ -81,6 +88,7 @@
     "11-dogovor-poruke.png",
     "poruka-01-poruke-pre.png",
     "poruka-02-nacrt.png",
-    "poruka-03-poslato.png"
+    "poruka-03-poslato.png",
+    "telefon-poruke-obe-strane.jpg"
   ]
 }

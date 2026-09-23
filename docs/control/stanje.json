@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:50:56Z",
+  "osvezeno": "2026-09-23T05:59:23Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "1ecc8d3f",
-  "head_poruka": "device: the worker's first message, sent from the emulator on the owner's word",
+  "head": "7c7a4824",
+  "head_poruka": "control: recompute at the commit the published page carries",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -2334,7 +2334,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: poruke u oba smera — „Cao“ sa telefona (naručilac) viđena na emulatoru; odgovor izvođača poslat sa emulatora (na vlasnikovo „Da“), server ga ima, obaveštenje MESSAGE_RECEIVED upisano naručiocu. Naručilac ga još nije video na telefonu; slika telefona nedostaje.",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Otvoreno: čitanje prepiske iz Dogovora ne označava obaveštenje kao pročitano — samo dodir na obaveštenje.",
    "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
    "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
    "funkcionalni_audit": {
