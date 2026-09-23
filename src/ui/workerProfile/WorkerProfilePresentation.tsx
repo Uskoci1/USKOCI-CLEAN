@@ -6,7 +6,7 @@ import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { card, sys } from '../system/tokens';
+import { card, sys, field } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
 import { plural } from '../system/plural';
@@ -151,10 +151,10 @@ eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterS
   initials: { ...sys.type.monogram, color: sys.color.green },
   statusChip: { borderRadius: sys.radius.badge, paddingHorizontal: 12, paddingVertical: 7 },
   field: { gap: 6 },
-  input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 11, minHeight: 48, backgroundColor: sys.color.surface },
+  input: { ...field },
   multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 }, chipRemove: { color: sys.color.green, fontWeight: '700' },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addButton: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.green, paddingHorizontal: 12 },

@@ -85,6 +85,10 @@ const cardShadow: ViewStyle = { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063)
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
   borderColor: sys.color.cardLine, padding: 20, ...cardShadow };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
+/** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
+export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
+  paddingHorizontal: 14, paddingVertical: 12, backgroundColor: sys.color.surface } satisfies ViewStyle;
+export const field = { ...fieldBox, ...sys.type.body, color: sys.color.ink } satisfies TextStyle;
 /** A note inside a screen or a card: a flat tint, no border, no shadow. */
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 

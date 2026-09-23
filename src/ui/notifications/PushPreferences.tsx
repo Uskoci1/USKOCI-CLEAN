@@ -11,7 +11,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { sys, field } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
 
 type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
  working: { opacity: 0.55 },
  timeRow: { flexDirection: 'row', gap: 12 },
  timeField: { flex: 1, gap: 6 },
- input: { minHeight: 48, borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, paddingHorizontal: 14, paddingVertical: 10, color: sys.color.ink, backgroundColor: sys.color.surface, fontSize: sys.type.body.fontSize },
+ input: { ...field },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {

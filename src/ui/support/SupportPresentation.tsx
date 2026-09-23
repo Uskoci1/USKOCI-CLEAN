@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
-import { sys } from '../system/tokens';
+import { sys, field } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
 import { FactArt } from '../system/FactArt';
 
@@ -81,11 +81,10 @@ export const supportStyles = StyleSheet.create({
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginVertical: 16 },
   empty: { paddingVertical: 32, paddingHorizontal: 16, alignItems: 'center', gap: 16 },
   field: { gap: 8, marginBottom: 20 },
-  input: { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
-    backgroundColor: sys.color.surface, ...sys.type.body, color: sys.color.ink, padding: 12 },
+  input: { ...field },
   multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
   row: { gap: 6, paddingVertical: 16, borderBottomColor: sys.color.line, borderBottomWidth: 1 },
-  status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip },
+  status: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.pill },
   gap: { gap: 12 }, actions: { gap: 12, marginVertical: 16 },
   pager: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
   event: { paddingLeft: 16, paddingVertical: 12, borderLeftColor: sys.color.lineStrong, borderLeftWidth: 2, gap: 8 },

@@ -12,7 +12,7 @@ import { T } from '../Text';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
-import { brandAction, sys, card } from '../system/tokens';
+import { brandAction, sys, card, field } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
 import { neprocitanih } from '../system/plural';
 import { vreme } from '../../lib/vreme';
@@ -101,6 +101,6 @@ const s=StyleSheet.create({screen:{flex:1,backgroundColor:sys.color.ground},cont
  bubble:{padding:12,borderRadius:sys.radius.card,gap:4,maxWidth:'88%'},mine:{alignSelf:'flex-end',backgroundColor:sys.color.greenSoft,borderBottomRightRadius:6},
  peer:{alignSelf:'flex-start',backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.line,borderBottomLeftRadius:6},
  composer:{...card,gap:10},
- input:{...sys.type.body,color:sys.color.ink,minHeight:90,textAlignVertical:'top',padding:12,borderWidth:1,borderColor:sys.color.lineStrong,borderRadius:sys.radius.control},
+ input:{...field,minHeight:90,textAlignVertical:'top'},
  member:{flexDirection:'row',alignItems:'center',gap:12},memberText:{flex:1},avatar:{height:44,width:44,borderRadius:22,overflow:'hidden',alignItems:'center',justifyContent:'center',backgroundColor:sys.color.greenSoft},initial:{fontSize:20,color:sys.color.green},
  privatePanel:{...card,gap:14}});

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, Check } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { useReducedMotion } from '../system/motion';
-import { card, sys } from '../system/tokens';
+import { card, sys, fieldBox } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -16,8 +16,7 @@ export const locationStyles = StyleSheet.create({
   content: { padding: 20, gap: 16, paddingBottom: 36 },
   section: { gap: 12 },
   card: { ...card, gap: 12 },
-  input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, paddingHorizontal: 12,
-    paddingVertical: 12, backgroundColor: sys.color.surface, color: sys.color.ink, ...sys.type.body },
+  input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notice: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, padding: 16, gap: 10 },
 });

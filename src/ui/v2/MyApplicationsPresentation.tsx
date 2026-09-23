@@ -12,7 +12,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
 import { FactArt } from '../system/FactArt';
-import { brandAction, card, cardCompact, sys } from '../system/tokens';
+import { brandAction, card, cardCompact, sys, field } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
@@ -213,7 +213,7 @@ const s = StyleSheet.create({
   people: { flexDirection: 'row', flexShrink: 1, alignItems: 'center', gap: 6, paddingBottom: 4 },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   review: { gap: 12, paddingTop: 14, marginTop: 6, borderTopWidth: 1, borderColor: sys.color.line }, fields: { gap: 8 },
-  input: { ...sys.type.body, minHeight: 48, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.lineStrong, color: sys.color.ink, backgroundColor: sys.color.surface, paddingHorizontal: 12, paddingVertical: 9 },
+  input: { ...field },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   notice: { padding: 14, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control }, noticeWarn: { backgroundColor: sys.color.warnSoft },
   pendingCard: { gap: 8 },

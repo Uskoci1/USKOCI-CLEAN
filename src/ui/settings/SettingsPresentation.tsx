@@ -102,7 +102,7 @@ export const settingsStyles = StyleSheet.create({
   avatarBadge: { position: 'absolute', right: -4, bottom: -4, width: 30, height: 30, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
   name: { ...sys.type.pageTitle },
   /** A status badge within the shared account, never a global role switch. */
-  intent: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.chip, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
+  intent: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.pill, paddingHorizontal: 12, paddingVertical: 6, marginTop: 6 },
   logout: { paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line, marginTop: 6, marginBottom: 12, alignItems: 'flex-start' },
   notice: { padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft, flexDirection: 'row', gap: 10 },
   gap: { gap: 12 },

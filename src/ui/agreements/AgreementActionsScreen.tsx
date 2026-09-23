@@ -15,7 +15,7 @@ import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
-import { sys, card, inset } from '../system/tokens';
+import { sys, card, inset, field } from '../system/tokens';
 import { AgreementActionsController, type AgreementActionsState } from './AgreementActionsController';
 import { journalFor, normalizeAgreementCommand, validProposal, type AgreementActionCommand } from './agreementActionsModel';
 import { novac } from '../../lib/novac';
@@ -188,5 +188,4 @@ const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: sys.color.grou
   error: { ...sys.type.copy, color: sys.color.danger },
   group: { ...inset, gap: 8, backgroundColor: sys.color.wash },
   form: { ...card, gap: 12 }, proposal: { gap: 12, paddingTop: 4 }, field: { gap: 6 },
-  input: { minHeight: 50, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, padding: 12, backgroundColor: sys.color.surface,
-    ...sys.type.body, color: sys.color.ink }, multiline: { minHeight: 100, textAlignVertical: 'top' } });
+  input: { ...field }, multiline: { minHeight: 100, textAlignVertical: 'top' } });

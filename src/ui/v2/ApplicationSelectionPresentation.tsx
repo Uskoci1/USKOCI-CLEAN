@@ -18,7 +18,7 @@ import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDeta
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, prijava } from '../system/plural';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, cardCompact, sys, inset } from '../system/tokens';
+import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
@@ -504,7 +504,7 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   pill: { paddingVertical: 4 }, pillText: { color: sys.color.ink, fontWeight: '600' },
   offerRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-end' }, field: { flex: 1, gap: 6 },
-  input: { ...sys.type.body, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, padding: 12 },
+  input: { ...field },
   amountInput: { ...sys.type.price, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, minHeight: 54, paddingHorizontal: 12, paddingVertical: 10 },
   inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   multiline: { minHeight: 90, textAlignVertical: 'top' },

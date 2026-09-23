@@ -4,7 +4,7 @@ import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
-import { sys, card, inset } from '../system/tokens';
+import { sys, card, inset, field } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { weekdays, zonedParts } from '../calendar/calendarPresentation';
 import { osoba, plural } from '../system/plural';
@@ -88,7 +88,7 @@ const s=StyleSheet.create({
   section:{...card,gap:10},
   row:{gap:3,paddingVertical:8,borderBottomWidth:1,borderColor:sys.color.line},
   notice:{padding:14,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
-  input:{...sys.type.body,color:sys.color.ink,borderWidth:1,borderColor:sys.color.lineStrong,borderRadius:sys.radius.control,paddingHorizontal:12,paddingVertical:11,minHeight:48,backgroundColor:sys.color.surface},
+  input:{...field},
   multiline:{minHeight:96,textAlignVertical:'top'},
   activation:{...inset,padding:16,backgroundColor:sys.color.orangeSoft,flexDirection:'row',gap:12,alignItems:'center'},
   quietLeft:{alignSelf:'flex-start',paddingHorizontal:0},
