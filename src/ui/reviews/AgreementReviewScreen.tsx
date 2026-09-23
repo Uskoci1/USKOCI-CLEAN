@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Star } from 'phosphor-react-native';
 import { reviewsClientService, type ReviewCommand, type ReviewTag } from '../../data/reviewsClientService';
 import { failure } from '../../data/serverReceipt';
@@ -35,8 +35,8 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   // A mount effect, not a focus effect. On 2026-09-23 every star and tag on this screen was dead on two phones
   // and the emulator while the back arrow in the same top bar worked; the one difference was a guard that
   // compared a focus token minted inside `useFocusEffect` with the token the render had captured, and on the
-  // device the two never met. This screen is a hidden tab reached from the root-level Dogovor, so it lives in a
-  // second Tabs instance, which none of the other screens with that guard do. Which screen is current is
+  // device the two never met: the emulator probe of 2026-09-23 (build 4e864a08) showed the focus effect ran once with
+  // AppState active, so the token was minted after the render that drew the stars, and nothing re-rendered after it. Which screen is current is
   // already owned by `useOwnedEditor` (its data is null while this screen is blurred, so nothing is editable
   // then, and a stale save is refused by its scope); the app's foreground state belongs to a mount effect.
   useEffect(() => {
@@ -45,12 +45,6 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
     });
     return () => { subscription.remove(); activeRef.current = false; };
   }, []);
-  // TEMPORARY DEVICE PROBE (rs.uskoci.dev only; removed once read): counts this screen's focus-effect runs so a
-  // uiautomator dump can say whether `useFocusEffect` ran at all on the phone. It forces a redraw so the count
-  // it shows is current.
-  const focusRuns = useRef(0);
-  const [, redrawProbe] = useState(0);
-  useFocusEffect(useCallback(() => { focusRuns.current += 1; redrawProbe(value => value + 1); }, []));
   useEffect(() => {
     if (!foreground || !resumeRequired || workspace.busy) return;
     let current = true;
@@ -79,7 +73,6 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar eyebrow="Dogovor" title="Ocena saradnje" onBack={backFromReview} />
-    <View accessible accessibilityLabel={`probe focus=${focusRuns.current} app=${AppState.currentState}`} style={s.probe} />
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
         : receipt ? <View style={s.card}>
@@ -157,5 +150,4 @@ const s = StyleSheet.create({
   tagSelected: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, tagDisabled: { opacity: 0.5 },
   tagText: { color: sys.color.ink }, tagTextSelected: { color: sys.color.green, fontWeight: '700' },
   errorBlock: { gap: 12 },
-  probe: { width: 1, height: 1 },
 });
