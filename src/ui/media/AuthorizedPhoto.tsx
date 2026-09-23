@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -22,7 +22,8 @@ function jpegDataUri(bytes: ArrayBuffer): string {
   chunks.push(part); return 'data:image/jpeg;base64,' + chunks.join('');
 }
 
-export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; caseId?: string; agreementId?: string; messageId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover' }) {
+export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; caseId?: string; agreementId?: string; messageId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover';
+  /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode }) {
   const { user, accountRevision } = useSesija();
   const binding = `${user?.id}:${accountRevision}:${p.assetId}:${p.needId ?? ''}:${p.profileId ?? ''}:${p.caseId ?? ''}:${p.agreementId ?? ''}:${p.messageId ?? ''}`;
   const [image, setImage] = useState<{ key: object; uri: string; binding: string } | null>(null), [failed, setFailed] = useState(false);
@@ -43,7 +44,7 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     {image && image.key === active.current && image.binding === binding ? <Image source={{ uri: image.uri }} accessibilityLabel={p.label}
       accessible contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={binding}
       transition={0} style={{ width: '100%', height: '100%' }} />
-      : failed ? <T style={{ ...a.text.meta, color: a.color.muted, padding: 12 }}>Fotografija trenutno nije dostupna.</T>
+      : failed ? p.unavailable ?? <T style={{ ...a.text.meta, color: a.color.muted, padding: 12 }}>Fotografija trenutno nije dostupna.</T>
         : <ActivityIndicator accessibilityLabel="Učitavanje fotografije" color={a.color.green} />}
   </View>;
 }

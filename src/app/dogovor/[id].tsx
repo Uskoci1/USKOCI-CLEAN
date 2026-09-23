@@ -344,7 +344,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
             </View> : null}
           </NextStepCard>
           <AgreementPeople agreement={dogovor} />
-          {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
+          {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <WorkspaceRows>
             {/* PKG-048: where this Dogovor came from. The server says so only since 2026-09-23, so a reader
                 that does not carry the ids offers nothing here rather than a row that leads nowhere. Each

@@ -53,14 +53,15 @@ export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId
   const editor = useOwnedEditor(read), photo = editor.data?.photo;
   const box = size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
     : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 };
-  if (photo) return <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
-    contentFit={size ? 'cover' : 'contain'} style={box} />;
-  if (editor.loading) return <View accessibilityLabel="Učitavamo fotografiju" style={[box, { backgroundColor: sys.color.skeleton }]} />;
-  if (fallback) return <>{fallback}</>;
   const letter = (initial ?? '').trim().slice(0, 1).toLocaleUpperCase('sr-Latn-RS');
-  return <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
+  // What stands for the person when there is no photograph, or when it cannot be read right now.
+  const standIn = fallback ? <>{fallback}</> : <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
     style={[box, { backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }]}>
     {letter ? <T accessible={false} variant="title" style={{ color: sys.color.green }}>{letter}</T>
       : <FactArt kind="person" size={size ? Math.round(size / 2.2) : 40} />}
   </View>;
+  if (photo) return <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
+    contentFit={size ? 'cover' : 'contain'} style={box} unavailable={size ? standIn : undefined} />;
+  if (editor.loading) return <View accessibilityLabel="Učitavamo fotografiju" style={[box, { backgroundColor: sys.color.skeleton }]} />;
+  return standIn;
 }
