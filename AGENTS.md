@@ -1,5 +1,16 @@
 # USKOČI — repository entry map
 
+SHIP PASS (2026-09-23 evening, owner: "večeras šaljem app na Google Play", ship mode). Read
+`docs/implementation/RELEASE_CHECKLIST_GOOGLE_PLAY_20260923.md` first: only an internal-testing upload is realistic
+tonight, and its remaining steps are the owner's (package name, which is permanent in Play Console; EAS `production`
+environment variables; Play Console app, listing and privacy URL). The EAS pre-install hook now admits the reviewed
+store bundle (`production`) next to the preview APK with every other boundary unchanged. The rating screen's dead
+stars (RATING-DEAD-STARS-01) are fixed and re-checked on the emulator. A read-only regression of 24 screens on build
+e9e0ab65 found four copy/logic defects, fixed in 815bedfc
+(`docs/implementation/design-audit-20260923/emulator-e9e0ab65/REGRESSION_RECEIPT.json`). Root error boundary,
+SuccessMark, sliding segments, memoised lists and `userInterfaceStyle: light` are in. No server, guard contract,
+migration or dependency changed tonight; no phone finger test was possible (phone not connected).
+
 CURRENT PRODUCT CHECKPOINT (2026-09-22): read
 `docs/implementation/NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` first, then the current status,
 integrated finishing plan, owner design direction/UX blueprint and control README. The paragraphs
