@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
 import { T } from '../Text';
@@ -8,8 +8,9 @@ import { ProductHeader } from '../product/ProductDetails';
 import { BrandMark } from '../entry/BrandAssets';
 import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 import { aiFirst as a } from './tokens';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string;
@@ -54,6 +55,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const reduced = useSystemReducedMotion();
+  const notice = useConfirmSheet({ reduced });
   // Everything present on the first render is history; anything after it is news.
   const seen = useRef<Set<string>>(new Set());
   const settled = useRef(false);
@@ -138,12 +140,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <KeyboardIcon size={22} color={sys.color.ink} /></Press>
           <View style={s.barCentre}>{p.voice}</View>
           <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.barWell}
-            onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
+            // A notice, not a question: one "U redu" (the system alert's only button) and nothing to cancel.
+            onPress={() => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null })}>
             <Info size={22} color={sys.color.muted} /></Press>
         </View> : null}
       </View>
     </KeyboardAvoidingView>
     {p.children}
+    {notice.sheet}
   </SafeAreaView>;
 }
 
@@ -153,10 +157,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
  * conversation, so it may carry this; purpose: state indication, "somebody is here and listening".
  * Under reduced motion it holds still. Decoration beside the title, so a screen reader skips it.
  */
-function AssistantPresence({ reduced: live }: { reduced: boolean }) {
-  // The startup snapshot AND the live system value: the welcome is drawn before the live value has
-  // been read, and a person who asked for less motion must not see the first breath either.
-  const reduced = useReducedMotion() || live;
+function AssistantPresence({ reduced }: { reduced: boolean }) {
+  // One source for the setting: the shell's useSystemReducedMotion, which already starts from the startup snapshot and
+  // follows the live value, so a person who asked for less motion never sees the first breath either.
   const breath = useSharedValue(0);
   useEffect(() => {
     if (reduced) { cancelAnimation(breath); breath.set(0); return; }

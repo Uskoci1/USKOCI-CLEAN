@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { needLocationClientService } from '../../data/locationClientService';
@@ -8,6 +8,7 @@ import { locationSlots } from '../../lib/location';
 import { T } from '../Text';
 import { V2Action as Button } from '../v2/V2Action';
 import { LocationPointEditor } from './LocationPointEditor';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 
 /**
  * The conversation asks for the map point instead of waiting for the person to discover a form.
@@ -59,6 +60,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>([]);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const confirmation = useConfirmSheet();
 
   const load = useCallback(async () => {
     setState({ kind: 'LOADING' });
@@ -114,9 +116,9 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   // last point of a set commits, so on a two-point task that is exactly what "Kasnije" did.
   const leave = () => {
     if (!points.length || state.kind === 'SAVED') { props.onClose(); return; }
-    Alert.alert('Potvrđena tačka nije sačuvana',
-      'Potvrdio si tačku, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova se gubi.',
-      [{ text: 'Nastavi potvrđivanje', style: 'cancel' }, { text: 'Izađi ipak', style: 'destructive', onPress: props.onClose }]);
+    confirmation.ask({ title: 'Potvrđena tačka nije sačuvana',
+      message: 'Potvrdio si tačku, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova se gubi.',
+      cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: props.onClose });
   };
 
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
@@ -132,11 +134,12 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
     {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
     {points.length
-      ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => Alert.alert('Učitaj sačuvano mesto?',
-        'Tačke koje si potvrdio, a nisu sačuvane, zameniće poslednje sačuvano mesto.',
-        [{ text: 'Odustani', style: 'cancel' }, { text: 'Učitaj', style: 'destructive', onPress: () => { void load(); } }])} />
+      ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => confirmation.ask({ title: 'Učitaj sačuvano mesto?',
+        message: 'Tačke koje si potvrdio, a nisu sačuvane, zameniće poslednje sačuvano mesto.',
+        cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { void load(); } })} />
       : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />}
     <Button kind="quiet" label="Zatvori" onPress={leave} />
+    {confirmation.sheet}
   </View>;
 
   // The thread asks for the point from the geography alone, which never looks at the country, so a
@@ -168,6 +171,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
       countryCode={country} initialQuery={seed(next, review.value)} autoLocate resolver={resolver}
       disabled={state.kind === 'SAVING'} onInvalidate={() => {}} onConfirm={confirm} /> : null}
     <Button kind="quiet" label="Kasnije" onPress={leave} />
+    {confirmation.sheet}
   </View>;
 }
 

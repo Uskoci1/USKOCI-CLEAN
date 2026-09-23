@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
@@ -19,6 +19,7 @@ import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 
 type Panel='chat'|'review'|'manual'|'availability';
 type Attempt={id:string;text:string|null};
@@ -39,13 +40,16 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const draftText=useRef(input);draftText.current=input;
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
+  // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
+  const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;return()=>{
-    if(focus.current===token)focus.current=null;abort.current?.abort();abort.current=null;setStream('');
-  };},[]));
+    if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
+  };},[retireConfirmation]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
     active.current=state==='active';setForeground(active.current);abort.current?.abort();setStream('');
+    if(!active.current)retireConfirmation();
     if(active.current){setResuming(true);void refreshRef.current().finally(()=>{if(active.current)setResuming(false);});}
-  });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[]);
+  });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[retireConfirmation]);
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
     [accountId,accountRevision]);
   const read=useCallback(async():Promise<Ishod<WorkerAiSnapshot>>=>{
@@ -153,13 +157,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   };
   const restart=()=>{
     if(!canAct()||voiceBusy||!data)return;
-    Alert.alert('Pokrenuti nov razgovor?','Predlog iz ovog razgovora ostaje u istoriji. Novi razgovor kreće od sačuvanog profila.',[
-      {text:'Nastavi ovaj razgovor',style:'cancel'},{text:'Novi razgovor',onPress:()=>{
-        if(!canAct()||voiceBusy)return;void editor.save(async()=>{const result=await api.abandon(data.conversationId);if(!current())return unavailable();
+    confirmSheet.ask({title:'Pokrenuti nov razgovor?',message:'Predlog iz ovog razgovora ostaje u istoriji. Novi razgovor kreće od sačuvanog profila.',
+      cancelLabel:'Nastavi ovaj razgovor',confirmLabel:'Novi razgovor',onConfirm:()=>{
+        // Returned so the confirmation waits on the command it started instead of closing before it is sent.
+        if(!canAct()||voiceBusy)return;return editor.save(async()=>{const result=await api.abandon(data.conversationId);if(!current())return unavailable();
           if(!result.ok)return result;
           const confirmed=await read();if(!current())return unavailable();
           if(confirmed.ok&&confirmed.podatak.status==='ABANDONED'&&!pending.current)router.replace('/profil/razgovor');return confirmed;});
-      }}]);
+      }});
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
@@ -192,7 +197,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         <V2Action label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={()=>setPanel('chat')}/></>:null}
     </WorkerProfileFrame>;
   }
-  return <AiConversationShell title="Tvoj radni profil" subtitle="Reci šta možeš da preuzmeš"
+  return <><AiConversationShell title="Tvoj radni profil" subtitle="Reci šta možeš da preuzmeš"
     card={compact=><WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome="Čime se baviš?" welcomeDetail="Opiši veštine, opremu, područje i vreme kada možeš da radiš. Sve ćemo složiti u jedan pregled."
@@ -214,5 +219,5 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {pending.current?.text&&recovery?.retryAllowed?<V2Action label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>{if(current())router.replace('/profil/radnik');}}/>:null}
       {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
-    </>}/>;
+    </>}/>{confirmSheet.sheet}</>;
 }

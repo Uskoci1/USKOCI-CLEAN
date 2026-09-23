@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const ID = '11111111-1111-4111-8111-111111111111', GENERATION = '22222222-2222-4222-8222-222222222222';
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockFocused = true;
 const mockStatus = jest.fn(), mockRequest = jest.fn(), mockPrepare = jest.fn(), mockCancel = jest.fn(), mockRevoke = jest.fn(), mockDownload = jest.fn(), mockSaveFile = jest.fn();
-const mockAlert = jest.fn(), mockRouter = { back: jest.fn() };
+const mockRouter = { back: jest.fn() };
 jest.mock('../dataExportClientService', () => ({ dataExportClientService: { readStatus: (...a: unknown[]) => mockStatus(...a),
   requestExport: (...a: unknown[]) => mockRequest(...a), prepareExport: (...a: unknown[]) => mockPrepare(...a),
   cancelExport: (...a: unknown[]) => mockCancel(...a), revokeExport: (...a: unknown[]) => mockRevoke(...a), downloadExport: (...a: unknown[]) => mockDownload(...a) } }));
@@ -13,11 +13,12 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusE
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('unexpected transport'); } }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
-  if (key === 'Alert') return { alert: mockAlert }; return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+  return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' })); jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import ExportScreen from '../../app/(app)/profil/izvoz';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const descriptor = () => ({ artifactAvailable: true, artifactGeneration: GENERATION, artifactExpiresAt: '2099-01-01T00:00:00Z', byteLength: 3, sha256: 'a'.repeat(64), md5: 'b'.repeat(32) });
 const status = (state: string | null = null, fulfillment: unknown = null, key = 'existing-export-key') => ({ hasRequest: state !== null,
@@ -32,7 +33,12 @@ const update = async () => { await act(async () => tree.update(<ExportScreen />)
 const button = (label: string) => tree.root.findByProps({ label });
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
 const texts = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-const confirm = () => mockAlert.mock.calls.at(-1)[2][1].onPress;
+// The confirmations were Alert.alert and are an in-app ConfirmSheet now. `confirm()` is its confirm button; `retained()` is
+// the screen's own answer as the sheet holds it (the closure the Alert used to get), fired after the screen retired it.
+const sheet = () => tree.root.findByType(ConfirmSheet);
+const sheets = () => tree.root.findAllByType(ConfirmSheet);
+const confirm = () => sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress;
+const retained = () => sheet().props.onConfirm;
 beforeEach(() => {
   jest.clearAllMocks(); for (const mock of [mockStatus, mockRequest, mockPrepare, mockCancel, mockRevoke, mockDownload, mockSaveFile]) mock.mockReset();
   mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockFocused = true;
@@ -85,15 +91,24 @@ it('reads actual availability after a READY preparation receipt rather than manu
   expect(tree.root.findAllByProps({ label: 'Preuzmi i sačuvaj' })).toHaveLength(0); expect(button('Zatraži novu kopiju')).toBeTruthy();
 });
 it.each(['account', 'incarnation', 'blur'])('rejects a retained cancellation after %s changes', async change => {
-  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Otkaži zahtev'); const old = confirm();
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Otkaži zahtev'); const old = retained();
   if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
-  else { mockFocused = false; await update(); mockFocused = true; await update(); }
+  else { mockFocused = false; await update(); expect(sheets()).toHaveLength(0); mockFocused = true; await update(); }
   await act(async () => old()); expect(mockCancel).not.toHaveBeenCalled();
+});
+it('cancelling the question sends nothing, and the same question can be asked again', async () => {
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Otkaži zahtev');
+  await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+  expect(sheets()).toHaveLength(0); expect(mockCancel).not.toHaveBeenCalled();
+  // The cancel path released the dialog token: the question opens again and its answer runs once.
+  await tap('Otkaži zahtev'); await act(async () => { confirm()(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
 });
 it('cancels only after explicit confirmation and refetches the real cancelled state', async () => {
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
-  await render(); await tap('Otkaži zahtev'); expect(mockCancel).not.toHaveBeenCalled(); const action = confirm();
+  await render(); await tap('Otkaži zahtev'); expect(mockCancel).not.toHaveBeenCalled();
+  expect(sheet().props).toMatchObject({ title: 'Otkaži zahtev?', confirmLabel: 'Otkaži zahtev', cancelLabel: 'Odustani', tone: 'danger' });
+  const action = confirm();
   await act(async () => { action(); action(); }); expect(mockCancel).toHaveBeenCalledTimes(1); expect(texts()).toContain('Zahtev je otkazan');
 });
 it('does not report saved or open a picker until explicit download completes and actual local save succeeds', async () => {
@@ -145,7 +160,7 @@ it('never downloads an expired descriptor, even from a retained enabled callback
 });
 it('revokes the server copy only after confirmation and explains that existing local files remain', async () => {
   mockStatus.mockResolvedValueOnce(ok(status('READY', descriptor()))).mockResolvedValue(ok(status('EXPIRED')));
-  await render(); await tap('Opozovi kopiju'); expect(mockAlert.mock.calls[0][1]).toContain('Već sačuvani fajlovi');
+  await render(); await tap('Opozovi kopiju'); expect(sheet().props.message).toContain('Već sačuvani fajlovi');
   await act(async () => confirm()()); expect(mockRevoke).toHaveBeenCalledWith(ID); expect(mockSaveFile).not.toHaveBeenCalled();
   expect(texts()).toContain('Preuzimanje kopije je opozvano');
 });

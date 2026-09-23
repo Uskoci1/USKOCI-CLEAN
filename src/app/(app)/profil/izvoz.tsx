@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { DownloadSimple } from 'phosphor-react-native';
 import type { DataExportFile, DataExportPreparation, DataExportStatus } from '../../../contracts/dataExport';
@@ -15,6 +15,7 @@ import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, Settin
 import { SkeletonList } from '../../../ui/system/Skeleton';
 import { vreme } from '../../../lib/vreme';
 import { FactArt } from '../../../ui/system/FactArt';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 
 const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
@@ -43,11 +44,13 @@ function OwnedExport() {
   const fileReadback = useRef(false);
   const requireFileReadback = (value: boolean) => { fileReadback.current = value; setFileReadbackRequired(value); };
   const [, tick] = useState(0);
+  // Wherever the screen retires `dialog.current`, the open question it belonged to leaves the screen too.
+  const confirmSheet = useConfirmSheet(), retireConfirmation = confirmSheet.close;
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false; setSavingFile(false); setNotice(null);
-    return () => { if (focus.current === scope) focus.current = null; dialog.current = null;
+    return () => { if (focus.current === scope) focus.current = null; dialog.current = null; retireConfirmation();
       download.current?.abort(); download.current = null; };
-  }, [identity]));
+  }, [identity, retireConfirmation]));
   const owned = () => focus.current !== null && latestIdentity.current === identity && !!accountId
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
@@ -75,16 +78,18 @@ function OwnedExport() {
     const timer = setTimeout(() => tick(value => value + 1), Math.min(expires - Date.now() + 1, 2_147_483_647));
     return () => clearTimeout(timer);
   }, [expires]);
-  const back = () => { if (!owned() || navigating.current) return; navigating.current = true; dialog.current = null;
+  const back = () => { if (!owned() || navigating.current) return; navigating.current = true; dialog.current = null; retireConfirmation();
     download.current?.abort(); if (router.canGoBack()) router.back(); else router.replace('/profil'); };
   const refresh = () => { if (!current() || editor.busy || download.current) return;
-    dialog.current = null; setNotice(null); void editor.refresh(); };
+    dialog.current = null; retireConfirmation(); setNotice(null); void editor.refresh(); };
+  // Both questions withdraw something (a request, a copy), so the confirm is drawn as the destructive one. The sheet
+  // waits on the command it started and shows no outcome of its own: the notice below does.
   const ask = (title: string, copy: string, label: string, command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return; const token = {}; dialog.current = token;
     const cancel = () => { if (dialog.current === token) dialog.current = null; };
-    Alert.alert(title, copy, [{ text: 'Odustani', style: 'cancel', onPress: cancel }, { text: label, onPress: () => {
-      if (dialog.current !== token || !canAct()) return; dialog.current = null; void command();
-    } }], { cancelable: true, onDismiss: cancel });
+    confirmSheet.ask({ title, message: copy, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label, tone: 'danger', onConfirm: () => {
+      if (dialog.current !== token || !canAct()) return; dialog.current = null; return command();
+    } });
   };
   const requestExport = async () => {
     if (!canAct() || (request && ['REQUESTED', 'PROCESSING'].includes(request.status))) return;
@@ -168,7 +173,7 @@ function OwnedExport() {
       ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} onPress={() => { void prepare(); }} />
       : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy} onPress={() => { void requestExport(); }} />
     : null;
-  return <SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
+  return <><SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
     <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
     {editor.loading ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
       : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
@@ -198,5 +203,5 @@ function OwnedExport() {
         </View>
       </>}
     {notice ? <View style={{ marginTop: 16 }}><T accessibilityLiveRegion="polite">{notice}</T></View> : null}
-  </SettingsScreen>;
+  </SettingsScreen>{confirmSheet.sheet}</>;
 }

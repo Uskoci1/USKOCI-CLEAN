@@ -25,7 +25,7 @@ jest.mock('../../features/voice/nativeSpeechAdapter', () => ({
 jest.mock('../supabaseClient', () => ({ supabaseKonfigurisan: () => false }));
 const mockVoiceCancel = jest.fn(), mockVoiceOptions = jest.fn();
 const mockCancel = jest.fn(), mockRecover = jest.fn();
-const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn(), mockAlert = jest.fn();
+const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock('../index', () => ({ aiNeedV2Izvor: { openConversation: (...args: unknown[]) => mockOpen(...args),
   loadConversation: (...args: unknown[]) => mockLoad(...args), sendMessage: (...args: unknown[]) => mockSend(...args),
@@ -42,16 +42,20 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
     state: { phase: mockVoicePhase } }; } }));
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
-  if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
   if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
     mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
   } };
   if (key === 'Keyboard') return { dismiss: jest.fn(), addListener: jest.fn(() => ({ remove: jest.fn() })) };
+  // One setting, read the way the shell reads it now (useSystemReducedMotion: the startup snapshot, then the live OS value).
+  // On a phone both come from the same switch; the harness makes them agree the same way.
+  if (key === 'AccessibilityInfo') return { isReduceMotionEnabled: async () => mockReduced, addEventListener: () => ({ remove: () => undefined }) };
   if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 1, fontScale: 1 });
   return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' },
+// The shell now reaches the sheet engine, which imports react-native-gesture-handler, and gesture-handler wraps one of its
+// own views with `createAnimatedComponent` when it loads. The harness hands that component back unchanged.
+jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   FadeIn: { duration: (duration: number) => ({ duration }) },
   FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
   useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
@@ -65,6 +69,7 @@ jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: '
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Intake from '../../app/(app)/nova';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
@@ -109,6 +114,11 @@ const start = async (body = 'Treba preneti ormar sutra.') => {
 const resume = async () => { mockParams = { conversationId: id }; await render(); };
 const blur = async () => { mockFocused = false; await update(); };
 const focus = async () => { mockFocused = true; await update(); };
+// Leaving the conversation is asked in an in-app ConfirmSheet (it was Alert.alert). `leaveSheet().props.onConfirm` is the
+// screen's own answer, the closure the Alert used to get; the buttons are what a person presses.
+const leaveSheet = () => tree.root.findByType(ConfirmSheet);
+const leaveSheets = () => tree.root.findAllByType(ConfirmSheet);
+const answer = (testID: 'confirm-sheet-confirm' | 'confirm-sheet-cancel') => leaveSheet().findByProps({ testID }).props.onPress();
 const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
 beforeEach(async () => {
   await AsyncStorage.clear();
@@ -379,16 +389,22 @@ it('does not read or navigate from a late send result after account change', asy
 });
 it('retires a confirmation callback after blur/refocus and never abandons on Back', async () => {
   await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
-  const confirm = mockAlert.mock.calls[0][2][1].onPress; await blur(); await focus();
+  expect(leaveSheet().props).toMatchObject({ title: 'Napustiti razgovor?', cancelLabel: 'Nastavi razgovor', confirmLabel: 'Napusti razgovor', tone: 'danger' });
+  const confirm = leaveSheet().props.onConfirm; await blur(); expect(leaveSheets()).toHaveLength(0); await focus();
   await act(async () => confirm()); expect(mockAbandon).not.toHaveBeenCalled();
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
+it('cancelling the leave question keeps the conversation open and sends nothing', async () => {
+  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  await act(async () => answer('confirm-sheet-cancel'));
+  expect(leaveSheets()).toHaveLength(0); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockVoiceCancel).not.toHaveBeenCalled();
+});
 it('explicit abandonment uses the actual authority and becomes closed only after readback', async () => {
   await resume(); await options(); await act(async () => button('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
-  await act(async () => mockAlert.mock.calls[0][2][1].onPress());
-  expect(mockAbandon).toHaveBeenCalledWith(id); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledWith(id); expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
 });
 it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
@@ -399,7 +415,7 @@ it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING
     expect(mockVoiceCancel).toHaveBeenCalledWith('navigation');
     return ok({ conversationId: id, status: 'ABANDONED', authoritative: true });
   });
-  await act(async () => mockAlert.mock.calls[0][2][1].onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBeNull();
   expect(tree.root.findAllByType('VoiceComposer' as React.ElementType)).toHaveLength(0);
   expect(mockSend).not.toHaveBeenCalled();
@@ -525,7 +541,7 @@ it('offers the owned photo route and options without automatic abandonment', asy
   expect(optionLabels()).toContain('Fotografije zadatka');
   expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
-  await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
+  await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(leaveSheets()).toHaveLength(0);
 });
 
 it('respects reduced motion for screen entry and the options panel', async () => {

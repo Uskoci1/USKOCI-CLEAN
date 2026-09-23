@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState } from 'react-native';
+import { AppState } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { Ishod, PovuciPrijavuKomanda } from '../../data/ports';
@@ -14,6 +14,7 @@ import { calendarInstant } from '../../lib/calendarTime';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
+import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'resolve'; command: Ru4RazresiPrijavuInput };
 type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
@@ -70,9 +71,13 @@ export default function MojePrijave() {
     expanded: null as string | null, draft: null as OfferEdit | null, pending: null as Pending | null, message: null as string | null }),
   [izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
+  const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
   const accountCurrent = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
     sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
-  const clearReview = useCallback(() => { session.expanded = null; session.draft = null; session.editRevision++; session.editingLoading = false; session.message = null; }, [session]);
+  // Every retirement below also makes an open withdrawal question stale (its answer checks `editRevision`), so the
+  // question leaves the screen with it instead of waiting there as a button that no longer does anything.
+  const clearReview = useCallback(() => { session.expanded = null; session.draft = null; session.editRevision++; session.editingLoading = false; session.message = null;
+    retireConfirmation(); }, [session, retireConfirmation]);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.token++; clearReview(); render(v => v + 1);
     return () => { session.focused = false; session.token++; session.readRevision++; session.reading = false; clearReview(); };
@@ -183,11 +188,10 @@ export default function MojePrijave() {
     if (!rowCurrent(p) || !idle()) return;
     const review = session.editRevision;
     // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
-    Alert.alert('Povući prijavu?', `Prijava za „${readableTitle(p.naslov)}” više neće biti aktivna.`, [
-      { text: 'Odustani', style: 'cancel' }, { text: 'Povuci', style: 'destructive', onPress: () => {
+    confirmation.ask({ title: 'Povući prijavu?', message: `Prijava za „${readableTitle(p.naslov)}” više neće biti aktivna.`,
+      cancelLabel: 'Odustani', confirmLabel: 'Povuci', tone: 'danger', onConfirm: () => {
         if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
-      } },
-    ]);
+      } });
   };
   const edit = async (p: MojaPrijavaProjekcija) => {
     if (!rowCurrent(p) || !idle() || session.expanded !== p.prijavaId) return;
@@ -202,7 +206,7 @@ export default function MojePrijave() {
   };
   const navigate = (path: '/zadaci' | '/profil') => { if (current()) router.navigate(path); };
   const pending = session.pending, visible = current();
-  return <MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
+  return <><MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
     unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
     focusId={visible ? focusId : null} requestedId={visible ? named : null}
@@ -221,5 +225,5 @@ export default function MojePrijave() {
     onRetry={() => { if (pending?.result === 'unknown' && pending === session.pending) perform(pending); }}
     onReset={() => { if (current() && pending === session.pending && pending?.reconciled && (pending.result === 'rejected' || pending.result === 'receipt') && !editor.busy && !editor.uncertain) {
       session.pending = null; clearReview(); render(v => v + 1);
-    } }} />;
+    } }} />{confirmation.sheet}</>;
 }

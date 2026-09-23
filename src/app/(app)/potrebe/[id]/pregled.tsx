@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState } from 'react-native';
+import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod } from '../../../../data/ports';
@@ -16,6 +16,7 @@ import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions'
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { plural } from '../../../../ui/system/plural';
+import { useConfirmSheet } from '../../../../ui/system/ConfirmSheet';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
@@ -44,18 +45,20 @@ function OwnedNeed({ id }: { id: string }) {
   const [terminalActive, setTerminalActive] = useState(false);
   const terminalActiveRef = useRef(false);
   const setTerminal = useCallback((active: boolean) => { terminalActiveRef.current = active; setTerminalActive(active); }, []);
+  // Wherever the screen retires `dialog.current`, the open question it belonged to leaves the screen too.
+  const confirmSheet = useConfirmSheet(), retireConfirmation = confirmSheet.close;
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; life.current++; navigating.current = false;
     foreground.current = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
     const subscription = AppState.addEventListener('change', state => {
       const active = state === 'active';
       if (active === foreground.current) return;
-      foreground.current = active; life.current++; dialog.current = null;
+      foreground.current = active; life.current++; dialog.current = null; retireConfirmation();
       setLifecycle(value => value + 1);
     });
     return () => { subscription.remove(); if (focus.current === scope) focus.current = null;
-      life.current++; dialog.current = null; };
-  }, [identity]));
+      life.current++; dialog.current = null; retireConfirmation(); };
+  }, [identity, retireConfirmation]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const owner = focus.current, generation = life.current, invocation = {};
     reading.current = invocation;
@@ -120,17 +123,17 @@ function OwnedNeed({ id }: { id: string }) {
   // server checks that again on every command. No app-wide mode stands in for that any more.
   const canAct = () => current() && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
-    dialog.current = null; navigating.current = true; action(); };
-  const refresh = () => { if (!current() || editor.busy) return; dialog.current = null;
+    dialog.current = null; retireConfirmation(); navigating.current = true; action(); };
+  const refresh = () => { if (!current() || editor.busy) return; dialog.current = null; retireConfirmation();
     void editor.refresh(); };
   const ask = (title: string, description: string, label: string, command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return;
     const confirmation = {}; dialog.current = confirmation;
     const cancel = () => { if (dialog.current === confirmation) dialog.current = null; };
-    Alert.alert(title, description, [{ text: 'Odustani', style: 'cancel', onPress: cancel }, {
-      text: label, onPress: () => { if (dialog.current !== confirmation || !canAct()) return;
-        dialog.current = null; void command(); },
-    }], { cancelable: true, onDismiss: cancel });
+    // The sheet waits on the command it started (busy confirm, no way out) and shows no outcome of its own.
+    confirmSheet.ask({ title, message: description, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label,
+      onConfirm: () => { if (dialog.current !== confirmation || !canAct()) return;
+        dialog.current = null; return command(); } });
   };
   const zatvoriPreostaluPotragu = () => {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
@@ -175,7 +178,7 @@ function OwnedNeed({ id }: { id: string }) {
       'Nastavi', async () => openOwnedReview('/nova'));
   };
 
-  return <NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
+  return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
     map={potreba?.priblizno
       ? <ResolvedPinMap position={{ latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }} coarse disabled height={184}
@@ -190,5 +193,5 @@ function OwnedNeed({ id }: { id: string }) {
     // Opened from a notification on a cold start there is nothing behind this screen; the arrow then
     // lands on the person's own tasks instead of doing nothing.
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'))} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
-    onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />;
+    onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />{confirmSheet.sheet}</>;
 }

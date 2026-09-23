@@ -2,13 +2,13 @@ import React from 'react';
 import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',K='44444444-4444-4444-8444-444444444444';
 let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:string}={conversationId:C};
-const mockListeners=new Set<(s:string)=>void>(),mockAlert=jest.fn();
+const mockListeners=new Set<(s:string)=>void>();
 const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
 const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:()=>true,setParams:jest.fn()};
 const mockVoice={controller:{},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
- if(key==='View')return 'View';if(key==='Alert')return{alert:(...a:unknown[])=>mockAlert(...a)};
+ if(key==='View')return 'View';
  if(key==='AppState')return{currentState:'active',addEventListener:(_:string,fn:(s:string)=>void)=>{mockListeners.add(fn);return{remove:()=>mockListeners.delete(fn)};}};
  return Reflect.get(target,key);}});});
 jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>mockParams,useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
@@ -25,6 +25,7 @@ jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:'Availabil
 jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 import Screen from '../../app/(app)/profil/razgovor';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 const intent=()=>({accountId:A,conversationId:C,clientRequestId:K});
 const turn=(state='PROCESSING',id=K)=>({turnId:B,conversationId:C,clientRequestId:id,attemptId:A,state,retryAllowed:false,authoritative:true});
 const recovery=(state:string|null=null,extras={})=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,conversationStatus:'OPEN',clientRequestId:K,turn:state?turn(state):null,providerDispatched:false,cancelled:false,canCancel:true,retryAllowed:state===null,authoritative:true,...extras});
@@ -35,6 +36,9 @@ const visibleText=()=>tree.root.findAllByType('T' as any).flatMap(node=>node.chi
 const flush=async()=>{await act(async()=>{});};
 const render=async()=>{await act(async()=>{tree=create(<Screen/>);});};
 const click=async(label:string)=>{await act(async()=>{action(label).props.onPress();});};
+// "Novi razgovor" is asked in an in-app ConfirmSheet (it was Alert.alert); a test presses its buttons.
+const sheets=()=>tree.root.findAllByType(ConfirmSheet);
+const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
 beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
  mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
  mockApi.read.mockResolvedValue(ok(snapshot()));mockApi.open.mockResolvedValue(ok(snapshot()));mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery(),clientRequestId:key}));
@@ -114,7 +118,9 @@ it('explicit abandon clears dispatched journal only after exact canonical parent
  mockApi.abandon.mockImplementation(async()=>{mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{conversationStatus:'ABANDONED',providerDispatched:true,canCancel:false,retryAllowed:false})));
   mockApi.read.mockResolvedValue(ok({...snapshot(turn('UNKNOWN_OUTCOME')),status:'ABANDONED'}));return ok({...snapshot(),status:'ABANDONED'});});
  await render();await click('Novi razgovor');expect(mockJournal.clear).not.toHaveBeenCalled();
- await act(async()=>{mockAlert.mock.calls[0][2][1].onPress();});expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({title:'Pokrenuti nov razgovor?',cancelLabel:'Nastavi ovaj razgovor',confirmLabel:'Novi razgovor'});
+ await answer('confirm-sheet-cancel');expect(sheets()).toHaveLength(0);expect(mockApi.abandon).not.toHaveBeenCalled();
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');expect(mockApi.send).not.toHaveBeenCalled();
 });
 

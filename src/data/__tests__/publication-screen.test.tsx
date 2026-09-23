@@ -8,7 +8,7 @@ const CONVERSATION = '55555555-6666-4777-8888-999999999999';
 let mockId = NEED, mockIntent = 'narucilac', mockFocused = true;
 let mockSession = { user: { id: ACCOUNT }, accountRevision: 1 };
 const mockNeed = jest.fn(), mockSearch = jest.fn(), mockClose = jest.fn(), mockEdit = jest.fn();
-const mockEvaluate = jest.fn(), mockPublish = jest.fn(), mockAlert = jest.fn();
+const mockEvaluate = jest.fn(), mockPublish = jest.fn();
 const mockSource = { potreba: (...args: unknown[]) => mockNeed(...args) };
 const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockAppListeners = new Set<(state: string) => void>();
@@ -36,7 +36,6 @@ jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: (
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
-    if (key === 'Alert') return { alert: mockAlert };
     if (key === 'AppState') return mockAppState;
     return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
@@ -45,6 +44,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Review from '../../app/(app)/potrebe/[id]/pregled';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 function need(revizija = 7, stanje = 'NACRT') {
   return { id: NEED, revizija, stanje, naslov: 'Pregledani Zadatak', opis: 'Opis', podrucjeTekst: 'Novi Sad',
@@ -64,7 +64,13 @@ const press = (accessibilityLabel: string) => tree.root.findByProps({ accessibil
 const texts = () => tree.root.findAll(node => node.type === 'T' as React.ElementType)
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
-const confirmation = () => mockAlert.mock.calls[mockAlert.mock.calls.length - 1][2][1].onPress;
+// The confirmations were Alert.alert and are an in-app ConfirmSheet now. `confirmation()` is its confirm button, pressed
+// the way a person presses it; `retainedAnswer()` is the screen's own answer as the sheet holds it (the closure the Alert
+// used to get), for a test that fires it after the screen has retired the question.
+const sheet = () => tree.root.findByType(ConfirmSheet);
+const sheets = () => tree.root.findAllByType(ConfirmSheet);
+const confirmation = () => sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress;
+const retainedAnswer = () => sheet().props.onConfirm;
 const confirm = async () => { const action = confirmation(); await act(async () => { action(); }); };
 const readback = async () => { await act(async () => { await press('Pokušaj ponovo').props.onPress(); }); };
 async function appState(state: string) { await act(async () => { mockAppState.currentState = state;
@@ -85,12 +91,12 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     await tap('Pregledaj za objavu');
     expect(mockEdit).toHaveBeenCalledWith(NEED);
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: CONVERSATION } });
-    expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
+    expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled(); expect(sheets()).toHaveLength(0);
   });
   it('keeps manual conversation editing available without a separate draft confirmation', async () => {
     await render(); await tap('Izmeni nacrt');
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
-    expect(mockAlert).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
+    expect(sheets()).toHaveLength(0); expect(mockPublish).not.toHaveBeenCalled();
   });
   it('serializes retained double taps and navigates only after an exact server receipt', async () => {
     const pending = deferred(); mockEdit.mockReturnValueOnce(pending.promise); await render();
@@ -173,6 +179,16 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     expect(texts()).toContain(poruka); expect(texts()).not.toContain('Potraga nije potvrđeno zatvorena');
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockNeed).toHaveBeenCalledTimes(1);
   });
+  it('cancelling a confirmation sends nothing, and the same question can be asked again', async () => {
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    await render(); await tap('Ne traži više nikoga');
+    expect(sheet().props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', cancelLabel: 'Odustani' });
+    await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+    expect(sheets()).toHaveLength(0); expect(mockClose).not.toHaveBeenCalled();
+    // The cancel path released the screen's dialog token, so the question opens again and its answer runs once.
+    mockSearch.mockResolvedValue({ closed: true }); await tap('Ne traži više nikoga'); await confirm();
+    expect(mockClose).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(0);
+  });
   it('keeps an unknown remaining-search result uncertain instead of echoing arbitrary text', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     mockClose.mockResolvedValue({ ok: false, kod: 'UNRECOGNIZED', poruka: 'PRIVATE_SQL' });
@@ -184,7 +200,8 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')
       : { ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     await render(); await tap(action === 'edit' ? 'Izmeni Zadatak' : 'Ne traži više nikoga');
-    const retained = confirmation(); mockFocused = false; await update(); mockFocused = true; await update();
+    const retained = retainedAnswer(); mockFocused = false; await update(); expect(sheets()).toHaveLength(0);
+    mockFocused = true; await update();
     await act(async () => retained()); expect(mockEdit).not.toHaveBeenCalled(); expect(mockClose).not.toHaveBeenCalled();
   });
 });

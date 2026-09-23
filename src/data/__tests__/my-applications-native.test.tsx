@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), mockInterval = jest.fn(), mockCommandState = jest.fn(), mockAlert = jest.fn();
+const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), mockInterval = jest.fn(), mockCommandState = jest.fn();
 const mockSource = { mojePrijave: mockRead, povuciPrijavu: mockWithdraw };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
 let mockFocused = true, mockRole = 'uskocer';
@@ -12,7 +12,6 @@ jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
-    if (key === 'Alert') return { alert: mockAlert };
     if (key === 'AppState') return { currentState: mockState, addEventListener: (_: string, listener: any) => {
       mockListeners.add(listener); return { remove: () => mockListeners.delete(listener) };
     } };
@@ -35,6 +34,7 @@ jest.mock('../ru4Production', () => ({ ru4Production: { resolveChangedApplicatio
 jest.mock('../myApplicationsClientService', () => ({ readExistingApplicationInterval: (...args: any[]) => mockInterval(...args),
   readApplicationCommandState: (...args: any[]) => mockCommandState(...args) }));
 import Screen from '../../app/(app)/moje-prijave';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 const row = (overrides: any = {}) => ({ prijavaId: '10000000-0000-4000-8000-000000000001', potrebaId: '10000000-0000-4000-8000-000000000002',
   potrebaRevizija: 4, prijavaRevizija: 4, prijavaVerzija: 2, stanje: 'SUBMITTED', naslov: 'Unos ormara', opis: 'Dvoje ljudi i trake.',
   cena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' }, pokrivaMesta: 2, napomena: 'Sa trakama.', podrucjeTekst: 'Liman, Novi Sad',
@@ -54,7 +54,15 @@ const edit = async (label: string, value: string) => { await act(async () => tre
 const render = async () => { await act(async () => { tree = create(<Screen />); }); };
 const update = async () => { await act(async () => tree!.update(<Screen />)); };
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { resolve, promise }; };
-const confirm = () => mockAlert.mock.calls.at(-1)![2].find((b: any) => b.text === 'Povuci').onPress;
+// The withdrawal question was Alert.alert and is an in-app ConfirmSheet now. `confirm()` is the sheet's confirm button, so a
+// test presses what a person presses; `retained()` is the screen's own answer as the sheet holds it (the same closure the
+// Alert used to get), for the tests that fire an answer after the screen has retired its question.
+const sheet = () => tree!.root.findByType(ConfirmSheet);
+const sheets = () => tree!.root.findAllByType(ConfirmSheet);
+const confirm = () => { const open = sheet(); expect(open.props).toMatchObject({ title: 'Povući prijavu?', confirmLabel: 'Povuci', cancelLabel: 'Odustani', tone: 'danger' });
+  return open.findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress; };
+const cancel = () => sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress;
+const retained = () => sheet().props.onConfirm;
 const background = async (state: string) => { await act(async () => { mockState = state; mockListeners.forEach(f => f(state)); }); };
 async function review() { mockRows = [stale()]; await render(); await tap('Pregledaj izmene: Unos ormara'); }
 async function editing() { await review(); await tap('Izmeni prijavu'); }
@@ -192,12 +200,20 @@ it('stale WITHDRAW uses its actual revision-resolution authority', async () => {
   mockResolve.mockResolvedValue({ ok: true, podatak: { status: 'WITHDRAWN', version: 2 } }); await review(); await tap('Povuci izmenjenu prijavu'); await act(async () => confirm()());
   expect(mockWithdraw).not.toHaveBeenCalled(); expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'WITHDRAW', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4 });
 });
+it('cancelling the withdrawal question sends nothing and leaves the application as it was', async () => {
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => cancel()());
+  expect(sheets()).toHaveLength(0); expect(mockWithdraw).not.toHaveBeenCalled(); expect(mockRead).toHaveBeenCalledTimes(1);
+  // The question can be asked again, and then answered.
+  await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()()); expect(mockWithdraw).toHaveBeenCalledTimes(1);
+});
 it.each(['blur', 'account', 'background', 'refresh'])('retires an open withdrawal confirmation after %s', async change => {
-  await render(); await tap('Povuci prijavu: Unos ormara'); const old = confirm();
+  await render(); await tap('Povuci prijavu: Unos ormara'); const old = retained();
   if (change === 'blur') { mockFocused = false; await update(); mockFocused = true; await update(); }
   if (change === 'account') { mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; await update(); }
   if (change === 'background') { await background('background'); expect(text()).not.toContain('Unos ormara'); await background('active'); }
   if (change === 'refresh') { await act(async () => tree!.root.findByType('FlatList' as any).props.onRefresh()); }
+  // The question leaves the screen with the review it belonged to, and its retained answer still does nothing.
+  expect(sheets()).toHaveLength(0);
   await act(async () => old()); expect(mockWithdraw).not.toHaveBeenCalled();
 });
 // Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.

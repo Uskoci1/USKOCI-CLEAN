@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from '../../contracts/aiNeedV2';
@@ -15,6 +14,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { VoiceComposer } from '../../ui/aiFirst/VoiceComposer';
+import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
 type PendingTurn = { id: string; body: string | null };
@@ -46,11 +46,13 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false;
-    return () => { if (focus.current === scope) focus.current = null;
+    // Leaving retires an open question: its answer checks this focus and would do nothing any more.
+    return () => { if (focus.current === scope) focus.current = null; retireConfirmation();
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); };
-  }, [accountId, accountRevision]));
+  }, [accountId, accountRevision, retireConfirmation]));
   const read = useCallback(async (): Promise<Ishod<IntakeSnapshot>> => {
     const scope = focus.current;
     const current = () => scope !== null && scope === focus.current && !!accountId
@@ -229,7 +231,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       // Stop native capture before the terminal command can hide its controls.
       // Cancellation never finalizes audio or sends a transcript to the AI.
       voice.controller.cancel('navigation');
-      void editor.save(async () => {
+      // Returned so the confirmation waits on it (busy, no way out) instead of closing before the command is sent.
+      return editor.save(async () => {
         abandoning.current = true;
         const result = await aiNeedV2Izvor.abandonConversation(razgovorId);
         if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
@@ -237,9 +240,9 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         return read();
       });
     };
-    if (abandoning.current) { submit(); return; }
-    Alert.alert('Napustiti razgovor?', 'Ovaj razgovor više ne možeš da nastaviš. Njegovi podaci se ovim ne brišu.',
-      [{ text: 'Nastavi razgovor', style: 'cancel' }, { text: 'Napusti razgovor', style: 'destructive', onPress: submit }]);
+    if (abandoning.current) { void submit(); return; }
+    confirmation.ask({ title: 'Napustiti razgovor?', message: 'Ovaj razgovor više ne možeš da nastaviš. Njegovi podaci se ovim ne brišu.',
+      cancelLabel: 'Nastavi razgovor', confirmLabel: 'Napusti razgovor', tone: 'danger', onConfirm: submit });
   };
 
   if (!stanje) return <IntakeUnavailable loading={editor.loading}
@@ -268,7 +271,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
           ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
 
-  return <IntakePresentation conversation={stanje} value={unos} busy={radi} error={greska}
+  return <><IntakePresentation conversation={stanje} value={unos} busy={radi} error={greska}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
     sentMessage={request.current?.body ?? null}
@@ -299,5 +302,5 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     onReview={() => {
       if (!canAct() || !razgovorId || request.current) return;
       navigate(() => router.push({ pathname: '/pregled-zadatka', params: { conversationId: razgovorId } }));
-    }} />;
+    }} />{confirmation.sheet}</>;
 }

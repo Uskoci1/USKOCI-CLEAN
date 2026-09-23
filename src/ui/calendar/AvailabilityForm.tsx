@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, Switch, View } from 'react-native';
+import { RefreshControl, ScrollView, Switch, View } from 'react-native';
 import { CaretDown, CaretUp, PencilSimple, Plus, Trash } from 'phosphor-react-native';
 import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
 import { normalizeWorkerAvailability } from '../../lib/workerAvailability';
@@ -10,6 +10,7 @@ import { CalendarAction as Button, CalendarText as T, CalendarField, CivilField,
 import { civilClock, civilDay, civilInstant, scheduleZone, shiftDate, weekdays, zonedParts } from './calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { plural } from '../system/plural';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 
 function Toggle({ label, value, change, disabled }: { label: string; value: boolean; change: (value: boolean) => void; disabled?: boolean }) {
   return <View style={s.row}><T style={{ flex: 1 }}>{label}</T><Switch accessibilityLabel={label} value={value}
@@ -122,6 +123,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [showWindows, setShowWindows] = useState(false), [showStatusHelp, setShowStatusHelp] = useState(false);
   const [windowEditor, setWindowEditor] = useState<{ value: AvailabilityWindow | null } | null>(null);
+  const confirmation = useConfirmSheet();
   useEffect(() => {
     // An idempotent accepted receipt can keep the same revision while ending this edit.
     setDraft({ timezone: availability.timezone, availableNow: availability.availableNow,
@@ -135,9 +137,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   };
   const deleteItem = (kind: 'rules' | 'windows', id: string) => {
     if (blocked) return;
-    Alert.alert('Ukloniti termin?', 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.', [
-      { text: 'Odustani', style: 'cancel' }, { text: 'Ukloni', style: 'destructive', onPress: () => update({ [kind]: draft[kind].filter(item => item.id !== id) }) },
-    ]);
+    confirmation.ask({ title: 'Ukloniti termin?', message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.',
+      cancelLabel: 'Odustani', confirmLabel: 'Ukloni', tone: 'danger', onConfirm: () => update({ [kind]: draft[kind].filter(item => item.id !== id) }) });
   };
   const save = () => {
     if (blocked || !dirty || editing || windowEditor) return;
@@ -246,5 +247,6 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     {windowEditor && !blocked ? <WindowEditor window={windowEditor.value} timezone={draft.timezone} close={() => setWindowEditor(null)} accept={window => {
       update({ windows: [...draft.windows.filter(item => item.id !== window.id), window] }); setWindowEditor(null);
     }} /> : null}
+    {confirmation.sheet}
   </View>;
 }

@@ -1,9 +1,9 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { Alert } from 'react-native';
 import type { ConfirmedLocationPoint, NeedLocationReview } from '../../contracts/location';
 import { pointsMissing } from '../../lib/location';
 import { ConversationPointAsk } from '../../ui/location/ConversationPointAsk';
 import { LocationPointEditor } from '../../ui/location/LocationPointEditor';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 /**
  * The conversation asks for the map point, and the ask saves only a fully confirmed set.
@@ -172,18 +172,45 @@ describe('the conversation point ask', () => {
     // Review of 2026-09-23: the failed state had no "Sačuvaj ponovo" (the review was dropped), and its "Pokušaj ponovo"
     // re-read the server over the pins the person had just placed.
     mockSave.mockResolvedValueOnce({ ok: false, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED', poruka: 'Server nije potvrdio mesto.' });
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-    try {
-      await mount();
-      await act(async () => { editor().props.onConfirm(point('start')); });
-      await act(async () => { editor().props.onConfirm(point('end')); });
-      const reads = mockRead.mock.calls.length;
-      await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
-      expect(alert).toHaveBeenCalledWith('Učitaj sačuvano mesto?', expect.any(String), expect.any(Array));
-      expect(mockRead).toHaveBeenCalledTimes(reads);
-      await act(async () => { tree!.root.findByProps({ label: 'Sačuvaj ponovo' }).props.onPress(); });
-      expect(mockSave).toHaveBeenCalledTimes(2);
-      expect(mockSave.mock.calls[1][0].value.resolvedLocation.points).toEqual(mockSave.mock.calls[0][0].value.resolvedLocation.points);
-    } finally { alert.mockRestore(); }
+    // The question is an in-app ConfirmSheet now (it was Alert.alert); the test answers it with its own buttons.
+    const answer = async (testID: 'confirm-sheet-confirm' | 'confirm-sheet-cancel') => {
+      await act(async () => { tree!.root.findByType(ConfirmSheet).findByProps({ testID }).props.onPress(); }); };
+    await mount();
+    await act(async () => { editor().props.onConfirm(point('start')); });
+    await act(async () => { editor().props.onConfirm(point('end')); });
+    const reads = mockRead.mock.calls.length;
+    await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
+    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Učitaj sačuvano mesto?', confirmLabel: 'Učitaj', cancelLabel: 'Odustani', tone: 'danger' });
+    expect(mockRead).toHaveBeenCalledTimes(reads);
+    await answer('confirm-sheet-cancel');
+    expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(mockRead).toHaveBeenCalledTimes(reads);
+    await act(async () => { tree!.root.findByProps({ label: 'Sačuvaj ponovo' }).props.onPress(); });
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockSave.mock.calls[1][0].value.resolvedLocation.points).toEqual(mockSave.mock.calls[0][0].value.resolvedLocation.points);
+  });
+
+  it('a confirmed reload replaces the unsaved points only after it is confirmed', async () => {
+    mockSave.mockResolvedValueOnce({ ok: false, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED', poruka: 'Server nije potvrdio mesto.' });
+    await mount();
+    await act(async () => { editor().props.onConfirm(point('start')); });
+    await act(async () => { editor().props.onConfirm(point('end')); });
+    const reads = mockRead.mock.calls.length;
+    await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
+    const confirmReload = tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress;
+    await act(async () => { confirmReload(); confirmReload(); });
+    expect(mockRead).toHaveBeenCalledTimes(reads + 1); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  });
+
+  it('leaving with a confirmed but unsaved point asks first, and only the confirm leaves', async () => {
+    const { onClose } = await mount();
+    await act(async () => { editor().props.onConfirm(point('start')); });
+    await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
+    const leave = tree!.root.findByType(ConfirmSheet);
+    expect(leave.props).toMatchObject({ title: 'Potvrđena tačka nije sačuvana', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger' });
+    await act(async () => { leave.findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+    expect(onClose).not.toHaveBeenCalled(); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+    await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
+    await act(async () => { tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress(); });
+    expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
   });
 });

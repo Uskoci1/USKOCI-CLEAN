@@ -27,6 +27,7 @@ jest.mock('../agreementClientService', () => ({ agreementClientService: { mojiDo
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: (read: () => unknown) => ({ data: read(), loading: false, error: false, refresh: jest.fn() }) }));
 
 import { AvailabilityForm } from '../../ui/calendar/AvailabilityForm';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import Raspored from '../../app/(app)/raspored';
 import { workerCalendarClientService } from '../workerCalendarClientService';
 import { agreementClientService } from '../agreementClientService';
@@ -318,6 +319,20 @@ describe('availability reads the way the rest of the app writes time', () => {
     await press('Prikaži posebne datume');
     expect(text()).toMatch(/2\. okt( 2026)? · 09:30–12:00/); expect(text()).not.toContain('2026-10-02');
     expect(button(`Uredi izuzetak ${civilDay('2026-10-02')}`)).toBeTruthy();
+  });
+
+  it('asks in the app before removing a slot, and removing one only changes the unsaved draft', async () => {
+    const onSave = await render(jest.fn(), loaded());
+    await press('Prikaži termine — Ponedeljak'); await press('Ukloni Ponedeljak 16:00');
+    const ask = () => tree.root.findByType(ConfirmSheet);
+    expect(ask().props).toMatchObject({ title: 'Ukloniti termin?', cancelLabel: 'Odustani', confirmLabel: 'Ukloni', tone: 'danger',
+      message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.' });
+    await act(async () => ask().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(text()).toContain('16:00–20:30'); expect(text()).not.toContain('Imaš nesačuvane izmene.');
+    await press('Ukloni Ponedeljak 16:00');
+    await act(async () => ask().findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(text()).not.toContain('16:00–20:30');
+    expect(text()).toContain('Imaš nesačuvane izmene.'); expect(onSave).not.toHaveBeenCalled();
   });
 
   it('drops the eyebrow over the special-date sheet, the zone name and the line that explained the save button', async () => {

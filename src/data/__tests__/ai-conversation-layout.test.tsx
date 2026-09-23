@@ -13,7 +13,9 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'KeyboardAvoidingView', 'TextInput', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' },
+// The shell now reaches the sheet engine, which imports react-native-gesture-handler, and gesture-handler wraps one of its
+// own views with `createAnimatedComponent` when it loads. The harness hands that component back unchanged.
+jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   FadeIn: { duration: (duration: number) => ({ duration }) },
   FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
   useReducedMotion: () => false, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
@@ -25,6 +27,8 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { AiConversationShell, type AiConversationShellProps } from '../../ui/aiFirst/AiConversationShell';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 let tree: ReactTestRenderer;
 const props = (): AiConversationShellProps => ({title:'Novi zadatak',subtitle:'MENI TREBA',card:jest.fn(()=>null),
   messages:[],welcome:'Šta ti treba?',welcomeDetail:'Opiši zadatak.',value:'Sačuvana poruka',canEdit:true,
@@ -79,4 +83,15 @@ it.each([{height:640,scale:1},{height:844,scale:2}])('compacts without disabling
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
   expect(p.card).toHaveBeenLastCalledWith(true);
   expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.editable).toBe(true);
+});
+it('explains speech privacy in an in-app notice with one button, not a system alert',async()=>{
+  const p=props();p.value='';p.voice=<></>;
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  await act(async()=>tree.root.findByProps({accessibilityLabel:'O govornom unosu i privatnosti'}).props.onPress());
+  const notice=tree.root.findByType(ConfirmSheet);
+  expect(notice.props).toMatchObject({title:'Govorni unos i privatnost',message:VOICE_PROCESSING_NOTICE,confirmLabel:'U redu',cancelLabel:null});
+  expect(notice.findAllByProps({testID:'confirm-sheet-cancel'})).toHaveLength(0);
+  await act(async()=>notice.findByProps({testID:'confirm-sheet-confirm'}).props.onPress());
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
 });
