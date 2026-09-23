@@ -10,7 +10,7 @@ import { Appear, useAppear } from '../system/Appear';
 import { FactArt } from '../system/FactArt';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
-import { zadataka } from '../system/plural';
+import { plural, zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
@@ -51,13 +51,19 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
   const visible = useMemo(() => marketplaceItems(items, view, owned), [items, view, owned]);
+  // In discovery the person is looking for work; the tasks they posted themselves sat between the
+  // others' with a "Tvoj zadatak" label (seen on the emulator, 2026-09-23: the first two cards).
+  // They are kept out of the list by default and one quiet row says how many and shows them.
+  const [showMine, setShowMine] = useState(false);
+  const mine = useMemo(() => !owned && relations ? visible.filter(item => relations.owned.has(item.id)) : [], [owned, relations, visible]);
+  const shown = useMemo(() => showMine || !mine.length ? visible : visible.filter(item => !relations!.owned.has(item.id)), [showMine, mine.length, visible, relations]);
   const draftCount = useMemo(() => loading || error ? null
     : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned).length,
   [items, view, priceDraft, attentionDraft, owned, loading, error]);
   const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
-  const selected = visible.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
-  const withoutPins = visible.filter(item => !publicPoint(item)).length;
+  const selected = shown.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
+  const withoutPins = shown.filter(item => !publicPoint(item)).length;
   const hasFilter = !!view.query || view.price !== 'all' || view.attention || !!view.area || owned && view.section !== 'active';
   const filterActive = view.price !== 'all' || view.attention;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
@@ -68,9 +74,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // global mode the app was in; there is no such mode any more.
   const eyebrow = owned ? 'Moje aktivnosti' : 'Uskoči i zaradi', title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
   const sectionTitle = owned ? SECTION_TITLES[view.section] : 'Otvoreni zadaci';
-  const count = loading || error ? null : visible.length;
+  const count = loading || error ? null : shown.length;
   /** The floating action appears only above cards; an empty set carries its own inline primary, so a screen state never shows two orange actions. */
-  const showCards = !loading && !error && visible.length > 0;
+  const showCards = !loading && !error && shown.length > 0;
   // On a phone the orange "+" sat on top of a task pin near Belgrade. A map is the content a person
   // came to read, and a button parked on it hides one of the very things being looked for. Creation
   // stays reachable from the map — that is a tested decision, not an accident — so it moves off the
@@ -100,7 +106,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
-  appear.settle(visible.map(keyOf));
+  appear.settle(shown.map(keyOf));
   const renderItem = useCallback(({ item, index }: { item: MarketplaceItem; index: number }) =>
     <Appear index={index} animate={appear.isNew(keyOf(item))}><TaskCard item={item} onOpen={() => onOpen(item)} relation={relationOf(item)} /></Appear>, [onOpen, appear, relationOf]);
 
@@ -166,22 +172,26 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       {/* With nothing to show, a map is not a data state: the Mapa tab used to open on the whole
           world centred in the Atlantic with "0 zadataka", while the composed empty state sat
           unreachable in the other branch. Emptiness is answered the same way in both modes. */}
-      {!owned && view.mode === 'map' && !loading && !error && !visible.length ? <View style={s.mapEmpty}>{empty}</View>
+      {!owned && view.mode === 'map' && !loading && !error && !shown.length ? <View style={s.mapEmpty}>{empty}</View>
         : !owned && view.mode === 'map' && !loading && !error ? <View style={s.mapArea}>
-        <DiscoveryMap items={visible} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
+        <DiscoveryMap items={shown} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
-        <View style={s.mapLegend}><T variant="note" tone="muted">{zadataka(visible.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
+        <View style={s.mapLegend}><T variant="note" tone="muted">{zadataka(shown.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
           {withoutPins || props.onNew ? <View style={s.mapActions}>
           {withoutPins ? <V2Action label="Pogledaj listu" kind="quiet" compact onPress={() => toggleMode('list')} /> : null}
           {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
             onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View> : null}</View>
-      </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
+      </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : shown} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={[s.list, !!props.onNew && showCards && s.listWithAction]}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
-        ListHeaderComponent={loading || error || !visible.length ? null : <View style={s.countRow}>
+        ListHeaderComponent={loading || error || (!shown.length && !mine.length) ? null : <View style={s.countRow}>
           {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
             : <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
+          {mine.length ? <Press accessibilityRole="button" accessibilityLabel={showMine ? 'Sakrij moje zadatke' : 'Prikaži i moje zadatke'}
+            onPress={() => setShowMine(value => !value)} haptic="select" style={s.mineToggle}>
+            <T variant="note" style={s.mineToggleText}>{showMine ? 'Sakrij moje' : `${plural(mine.length, 'tvoj zadatak je sakriven', 'tvoja zadatka su sakrivena', 'tvojih zadataka je sakriveno')} · Prikaži`}</T>
+          </Press> : null}
         </View>} />}
       {props.onNew && showCards && !mapShown ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
@@ -230,6 +240,8 @@ const s = StyleSheet.create({
   appliedFilter: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control },
   appliedFilterText: { color: sys.color.green, flexShrink: 1 },
   countRow: { paddingBottom: 8 },
+  mineToggle: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 4 },
+  mineToggleText: { color: sys.color.green, fontWeight: '600' },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
   discoverySearch: { marginTop: 4, marginBottom: 12, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
