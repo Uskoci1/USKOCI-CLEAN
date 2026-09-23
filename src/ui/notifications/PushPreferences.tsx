@@ -158,10 +158,10 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
     disabled={locked} onChange={value => edit('quiet_hours_enabled', value)} />
    <View style={styles.timeRow}>
     <View style={styles.timeField}><T variant="meta" tone="muted">Početak</T><TextInput accessibilityLabel="Početak tihih sati" value={settings.quiet_start ?? ''}
-      editable={!locked && settings.quiet_hours_enabled} placeholder="22:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
+      editable={!locked && settings.quiet_hours_enabled} placeholder="22:00" placeholderTextColor={sys.color.muted} keyboardType="numbers-and-punctuation" autoCapitalize="none"
       style={styles.input} onChangeText={value => edit('quiet_start', value.trim() || null)} /></View>
     <View style={styles.timeField}><T variant="meta" tone="muted">Kraj</T><TextInput accessibilityLabel="Kraj tihih sati" value={settings.quiet_end ?? ''}
-      editable={!locked && settings.quiet_hours_enabled} placeholder="07:00" keyboardType="numbers-and-punctuation" autoCapitalize="none"
+      editable={!locked && settings.quiet_hours_enabled} placeholder="07:00" placeholderTextColor={sys.color.muted} keyboardType="numbers-and-punctuation" autoCapitalize="none"
       style={styles.input} onChangeText={value => edit('quiet_end', value.trim() || null)} /></View>
    </View>
    {/* A text box asking a person to type an IANA identifier by hand, where one typo silently moves
