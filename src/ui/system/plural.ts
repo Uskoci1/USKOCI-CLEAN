@@ -21,6 +21,8 @@ export const dogovora = (count: number) => plural(count, 'Dogovor', 'Dogovora', 
 // Lower case: this one is used inside a sentence ("3 prijave za pregled"), while a Zadatak and a
 // Dogovor are named as such wherever they are counted.
 export const prijava = (count: number) => plural(count, 'prijava', 'prijave', 'prijava');
+/** Unread notifications or messages: "1 nepročitano", "3 nepročitana", "5 nepročitanih" (seen wrong on the phone 2026-09-23). */
+export const neprocitanih = (count: number) => plural(count, 'nepročitano', 'nepročitana', 'nepročitanih');
 
 /**
  * A price is read together with the people it is for (owner decision 2, 2026-09-19): "5.500 RSD

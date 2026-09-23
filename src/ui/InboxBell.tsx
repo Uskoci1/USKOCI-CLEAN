@@ -5,11 +5,12 @@ import { useInbox } from '../hooks/useInbox';
 import { Press } from './Press';
 import { iconButton, sys } from './system/tokens';
 import { T } from './Text';
+import { neprocitanih } from './system/plural';
 
 export function InboxBell() {
   const { state } = useInbox(null);
   const count = state.error ? null : state.page?.unreadCount;
-  const spoken = count == null ? 'Obaveštenja, broj nepročitanih nije dostupan' : `Obaveštenja, ${count} nepročitanih`;
+  const spoken = count == null ? 'Obaveštenja, broj nepročitanih nije dostupan' : `Obaveštenja, ${neprocitanih(count)}`;
   return <Press accessibilityRole="button" haptic="select" accessibilityLabel={spoken}
     onPress={() => router.push('/obavestenja')} style={iconButton}>
     <Bell size={22} color={sys.color.ink} />

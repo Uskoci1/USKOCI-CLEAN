@@ -95,7 +95,7 @@ it('a flip of the retired app mode retires nothing: the retained send still goes
  await act(async()=>old());expect(mockService.send).toHaveBeenCalledTimes(1);
 });
 it('entry becomes reachable only after authoritative group context and routes exact Agreement identity',async()=>{
- entry=true;await render();await tap('Grupni razgovor · 1 nepročitanih');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});
+ entry=true;await render();await tap('Grupni razgovor · 1 nepročitano');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});
 });
 it('entry hides unsupported group and discards late availability after account transition',async()=>{
  entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toBe('null');

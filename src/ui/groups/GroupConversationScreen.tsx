@@ -14,6 +14,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { SupportContextEntry } from '../support/SupportContextEntry';
+import { neprocitanih } from '../system/plural';
 const date=(value:string)=>new Date(value).toLocaleString('sr-Latn-RS',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const status=(value:string)=>({CONFIRMED:'Važeći Dogovor',AWAITING_REQUESTER:'Čeka potvrdu završetka',COMPLETED:'Završen',CANCELLED:'Otkazan'}[value]??'Dogovor');
 export function GroupConversationScreen({agreementId}:{agreementId:string}){
@@ -54,7 +55,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
    onViewableItemsChanged={onVisible} viewabilityConfig={viewability} refreshing={state.phase==='LOADING'} onRefresh={()=>invoke('refresh')}
    ListHeaderComponent={<View style={s.stack}>
     {group?<><T style={s.heading}>{group.title}</T><T style={s.copy}>Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
-     <T style={s.meta}>{group.unreadCount} nepročitanih · {group.terminal?'Razgovor je završen':group.canSend?'Poruke su dostupne':'Dostupna istorija razgovora'}</T>
+     <T style={s.meta}>{neprocitanih(group.unreadCount)} · {group.terminal?'Razgovor je završen':group.canSend?'Poruke su dostupne':'Dostupna istorija razgovora'}</T>
      <V2Action label={showPeople?'Sakrij učesnike':'Učesnici razgovora'} kind="quiet" onPress={()=>{if(current())setShowPeople(x=>!x);}}/>
      {showPeople?<View style={s.stack}>{group.members.map(member=><View key={member.accountId} style={s.member}>
       <View style={s.avatar}><ProfilePhoto profileId={member.profileId} size={44} fallback={<T style={s.initial}>{member.displayName.slice(0,1).toLocaleUpperCase('sr-Latn-RS')}</T>}/></View>

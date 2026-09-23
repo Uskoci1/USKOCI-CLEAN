@@ -13,6 +13,7 @@ import { Appear, useAppear } from '../ui/system/Appear';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { sys } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
+import { neprocitanih } from '../ui/system/plural';
 
 const filters: {label:string;role:InboxRole|null}[] = [
   {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
@@ -83,7 +84,7 @@ export default function Obavestenja() {
           </Press>)}
         </View>
         {state.page && state.page.unreadCount>0 && <View style={styles.summary}>
-          <T style={styles.meta} accessibilityLiveRegion="polite">{`${state.page.unreadCount} nepročitanih`}</T>
+          <T style={styles.meta} accessibilityLiveRegion="polite">{neprocitanih(state.page.unreadCount)}</T>
           {state.page.unreadCount>0 && <Press accessibilityRole="button" disabled={busy}
             accessibilityState={{disabled:busy,busy:state.acting==='all'}}
             onPress={()=>void model.readAll()} style={styles.readAll}>

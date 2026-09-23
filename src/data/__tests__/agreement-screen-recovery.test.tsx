@@ -95,7 +95,7 @@ describe('D03 actual route and scoped resource integration', () => {
     mockGroupContext.mockResolvedValue({ ok: true, podatak: { group: { groupId: '30000000-0000-4000-8000-000000000001', unreadCount: 2 } } });
     await render();
     expect(mockGroupContext).toHaveBeenCalledWith(workspace.id, { accountId: mockAccount, accountRevision: 0 });
-    await act(async () => button('Grupni razgovor · 2 nepročitanih').props.onPress());
+    await act(async () => button('Grupni razgovor · 2 nepročitana').props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/grupa', params: { id: workspace.id } });
   });
   it.each(['android', 'ios'])('owns keyboard avoidance at the full-screen boundary on %s without changing workspace/outbox authority', async platform => {

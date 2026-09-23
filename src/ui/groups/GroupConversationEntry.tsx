@@ -6,6 +6,7 @@ import { sesijaSada,useSesija } from '../../store/sesija';
 
 import { V2Action } from '../v2/V2Action';
 import { T } from '../Text';
+import { neprocitanih } from '../system/plural';
 export function GroupConversationEntry({agreementId}:{agreementId:string}){
  const session=useSesija(),accountId=session.user?.id??'',revision=session.accountRevision;
  const [entry,setEntry]=useState<{groupId:string;unread:number}|null>(null),owner=useRef<object|null>(null),[epoch,setEpoch]=useState(0);
@@ -20,7 +21,7 @@ export function GroupConversationEntry({agreementId}:{agreementId:string}){
   return()=>{listener.remove();if(owner.current===scope)owner.current=null;};
  },[agreementId,accountId,revision,epoch]));
  const renderedOwner=owner.current;
- return entry?<V2Action label={`Grupni razgovor${entry.unread>0?` · ${entry.unread} nepročitanih`:''}`} onPress={()=>{
+ return entry?<V2Action label={`Grupni razgovor${entry.unread>0?` · ${neprocitanih(entry.unread)}`:''}`} onPress={()=>{
   if(renderedOwner!==null&&owner.current===renderedOwner&&!['inactive','background'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===revision)
    router.push({pathname:'/dogovor/[id]/grupa',params:{id:agreementId}});
  }}/>:available===false?<T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T>:null;
