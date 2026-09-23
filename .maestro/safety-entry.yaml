@@ -26,14 +26,28 @@ appId: rs.uskoci.dev
     optional: true
 - takeScreenshot: 01-prilike
 
-# The first opportunity card. A card of someone else's task is named "Otvori priliku …"; your own is
-# "Otvori Zadatak …", which is a different screen and not what this flow wants.
+# A card posted by somebody else. Selecting by index is not enough: the owner's own tasks sit in the same
+# list, and opening one of those shows the public view of your own Zadatak, which has no other person on
+# it. This picks a task the other test-world account posted.
+- scrollUntilVisible:
+    element:
+      text: ".*troseda.*"
+    direction: DOWN
+    timeout: 20000
+    optional: true
 - tapOn:
-    text: "Otvori priliku.*"
+    text: ".*troseda.*"
     optional: true
 - takeScreenshot: 02-detalj-prilike
 
-# The person who posted it, as a public profile over the detail.
+# The person who posted it, as a public profile over the detail. Their identity sits below the facts,
+# so the screen has to be scrolled to it first.
+- scrollUntilVisible:
+    element:
+      text: "Pogledaj javni profil"
+    direction: DOWN
+    timeout: 20000
+    optional: true
 - tapOn:
     text: "Pogledaj javni profil"
     optional: true

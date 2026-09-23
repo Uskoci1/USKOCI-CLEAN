@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T02:01:02Z",
+  "osvezeno": "2026-09-23T04:00:10Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "c40d927c",
-  "head_poruka": "control: the phone evidence from tonight, and what it does not cover",
+  "head": "2590f076",
+  "head_poruka": "control: recompute at the commit the published page carries",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -1834,15 +1834,15 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
     "test": "7 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
-   "sledece": "PRIMENJENO 23.09. u 01:27 UTC uz tvoju reč. Server sada ima rpc_read_safety_target: sa javnog profila koji smeš da vidiš dobijaš osobu iza njega i svoj sopstveni izbor blokiranja. Sertifikat se nije pomerio (cc248ff1), ledger 199. Dugme „Prijavi ili blokiraj“ stoji na javnom profilu, sa prilike i sa liste prijava. OSTAJE: proveriti na telefonu — za to treba nov APK, jer je ovo izmena u aplikaciji, ne samo na serveru. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
+   "sledece": "PRIMENJENO 23.09. u 01:27 UTC uz tvoju reč. Server sada ima rpc_read_safety_target: sa javnog profila koji smeš da vidiš dobijaš osobu iza njega i svoj sopstveni izbor blokiranja. Sertifikat se nije pomerio (cc248ff1), ledger 199. Dugme „Prijavi ili blokiraj“ stoji na javnom profilu, sa prilike i sa liste prijava. OSTAJE: proveriti na telefonu — za to treba nov APK, jer je ovo izmena u aplikaciji, ne samo na serveru. NA TELEFONU 23.09: ulaz je viđen i snimljen — tuđi javni profil nudi „Prijavi ili blokiraj“. Nije pritisnuto. Put preko kandidata (neko ko se prijavi na tvoj zadatak) još nije proveren jer takve prijave nema.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3800,15 +3800,15 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
-   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Blokiranje i dalje ide na nalog, pa prati čoveka a ne jedno njegovo lice; odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Dokazano: blokiranje sakrije i profil i cilj, druga strana ne sazna ništa, odblokiranje vrati broj verzije koji sledeće blokiranje traži. OSTAJE provera na telefonu sa novim APK-om. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Blokiranje i dalje ide na nalog, pa prati čoveka a ne jedno njegovo lice; odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Dokazano: blokiranje sakrije i profil i cilj, druga strana ne sazna ništa, odblokiranje vrati broj verzije koji sledeće blokiranje traži. OSTAJE provera na telefonu sa novim APK-om. NA TELEFONU 23.09: ulaz je viđen na tuđem profilu. Samo blokiranje nije izvršeno — to menja stvarne podatke i traži tvoju reč.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3872,15 +3872,15 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
-   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu. NA TELEFONU 23.09: ulaz nije mogao da se prikaže jer na ovom nalogu nema druge osobe — sve vidljive prilike su tvoji zadaci, a tvoj zadatak još nema prijava. Paket namerno odbija tvoj sopstveni nalog kao cilj. Treba test sa dva telefona ili jedna prijava sa drugog naloga: docs/implementation/v5-ai-first/pkg047/device-20260923/DEVICE_ATTEMPT.json.",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu. NA TELEFONU 23.09: ulaz je viđen na tuđem profilu, sa rečenicom da prijava ostaje privatna. Prijava nije poslata.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

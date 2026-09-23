@@ -1,7 +1,7 @@
 {
   "package": "PKG-047a",
   "date": "2026-09-23",
-  "result": "NOT_SHOWN_ON_DEVICE_FOR_LACK_OF_A_SECOND_PERSON",
+  "result": "SHOWN_ON_DEVICE",
   "apk": {
     "workflowRun": 35807138233,
     "sourceCommit": "332d285f",
@@ -26,6 +26,22 @@
   "screenshots": [
     "01-pocetna-nema-druge-strane.png",
     "02-lista-samo-tvoji-zadaci.png",
-    "03-tvoj-zadatak-kako-ga-vide-drugi.png"
+    "03-tvoj-zadatak-kako-ga-vide-drugi.png",
+    "04-lista-sa-tudjim-zadacima.png",
+    "05-tudji-zadatak.png",
+    "06-javni-profil.png",
+    "07-ulaz-prijavi-ili-blokiraj.png"
+  ],
+  "correction": "The first attempt concluded there was no second person. That was wrong, and the reason is worth keeping: the flow opened the FIRST card in the list, which happened to be one of the owner's own tasks. The list holds six: two of his and four posted by adversarial_a@example.com, an account in the same TEST visibility world with an ACTIVE profile. Scrolling to one of those opens a stranger's task, and the entry is there.",
+  "shown": {
+    "at": "2026-09-23 05:58 local",
+    "screen": "Javni profil of adversarial_a, opened from \"Hitno prenošenje troseda\" (Vračar, Beograd)",
+    "assertion": "Maestro assertVisible \"Prijavi ili blokiraj.*\" COMPLETED",
+    "copySeen": "Bezbednost — \"Ako te neko uznemirava ili ti nešto ne deluje ispravno, prijavi ga nama ili ga blokiraj. Prijava je privatna i ne vidi je osoba koju prijavljuješ.\"",
+    "alsoVisible": "The same profile shows \"Još nema ocena\" rather than an invented rating, which is F11 on the device as well."
+  },
+  "stillNotDone": [
+    "The entry was not pressed: this pass does not open the safety screen and does not report or block a real account.",
+    "The candidate path (a person who applied to one of the owner's tasks) is still unexercised, because no application exists yet."
   ]
 }
