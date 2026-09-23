@@ -21,10 +21,12 @@ export const locationStyles = StyleSheet.create({
 });
 
 /** Keep secondary fields available without competing with the current place or pin. */
-export function LocationDetails({ label, summary, children, disabled = false }: {
+export function LocationDetails({ label, summary, children, disabled = false, initiallyOpen = false }: {
   label: string; summary?: string; children: ReactNode; disabled?: boolean;
+  /** Open from the start when what it holds still has to be chosen (a country that is not set). */
+  initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   return <View style={locationStyles.section}>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open, disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={() => { if (!disabled) setOpen(value => !value); }}

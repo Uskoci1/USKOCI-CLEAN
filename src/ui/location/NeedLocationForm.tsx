@@ -7,7 +7,7 @@ import { V2Action as Button } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
-import { CountryField, selectableCountry, useCountryOptions } from './CountryField';
+import { CountryField, countryName, selectableCountry, useCountryOptions } from './CountryField';
 import { LocationPointEditor } from './LocationPointEditor';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 
@@ -95,15 +95,19 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
   }
 
   return <View style={{ gap: 16 }}>
-    <View style={s.section}>
-      <T accessibilityRole="header" style={{ ...sys.type.title, color: sys.color.ink }}>Gde treba uskočiti?</T>
-      <T tone="muted">Unesi mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
-    </View>
+    {/* The bar already names the screen; one sentence says what to do here. */}
+    <T tone="muted">Unesi mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
     {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na Zadatak.</T> : null}
-    <CountryField label="Država Zadatka" value={country} disabled={disabled} options={countryOptions}
-      onChange={code => change(() => setCountry(code))} />
-    <LocationChoice label="Način rada" value={mode} options={MODES.map(([value, label]) => ({ value, label }))}
-      disabled={disabled} onChange={value => change(() => setMode(value as NeedTaskGeography['mode']))} />
+    {/* Constant on the screen: the place, the map and the one save. The country and the working mode
+        are chosen once and rarely changed, so they fold into one row that says what is chosen
+        (owner's rule of place, 2026-09-23) — open from the start only while the country is unset. */}
+    <LocationDetails label="Država i način rada" disabled={disabled} initiallyOpen={!country || !selectableCountry(countryOptions.countries, country)}
+      summary={`${countryName(country) ?? 'Država nije izabrana'} · ${MODES.find(([value]) => value === mode)?.[1] ?? ''}`}>
+      <CountryField label="Država Zadatka" value={country} disabled={disabled} options={countryOptions}
+        onChange={code => change(() => setCountry(code))} />
+      <LocationChoice label="Način rada" value={mode} options={MODES.map(([value, label]) => ({ value, label }))}
+        disabled={disabled} onChange={value => change(() => setMode(value as NeedTaskGeography['mode']))} />
+    </LocationDetails>
     {mode === 'REMOTE' ? <View style={s.notice}><T>Rad na daljinu nema adresu, pin ili radijus. Čuvanjem se uklanjaju podaci o fizičkom mestu iz ovog pregleda.</T></View> : <>
       {mode !== 'AREA_BASED' ? <PlaceFields title={mode === 'STATIONARY' ? 'Mesto rada' : 'Polazište'} value={start}
         disabled={disabled} onChange={value => change(() => setStart(value))} /> : <PlaceFields title="Područje rada" value={area}

@@ -19,6 +19,8 @@ export function useCountryOptions() {
     error: state.error ? 'Države trenutno nisu učitane.' : state.data && !state.data.ok ? state.data.poruka : null,
     refresh: state.refresh };
 }
+/** The name a person reads; the code stays the server's. */
+export const countryName = (code: string | null) => code ? NAMES[code] ?? code : null;
 export const selectableCountry = (countries: readonly MarketConfig[], code: string | null) =>
   countries.some(country => country.countryCode === code && ['BUILDING', 'LIVE'].includes(country.productStatus));
 

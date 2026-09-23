@@ -47,6 +47,8 @@ async function chooseMode(label: string) {
   if (!tree.root.findAllByProps({ accessibilityLabel: label }).length) {
     const country = ['Srbija', 'Bosna i Hercegovina', 'Hrvatska'].includes(label);
     const field = country ? tree.root.findAllByProps({ accessibilityLabel: 'Država rada' }).length ? 'Država rada' : 'Država Zadatka' : 'Način rada';
+    // The task form folds country and mode into "Država i način rada" once a country is set (2026-09-23).
+    if (!tree.root.findAllByProps({ accessibilityLabel: field }).length && tree.root.findAllByProps({ accessibilityLabel: 'Država i način rada' }).length) await openChoice('Država i način rada');
     await openChoice(field);
   }
   await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onPress());
