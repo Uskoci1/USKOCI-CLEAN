@@ -54,8 +54,8 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
           onTouchMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) {
             gesture.current = null; p.controller.cancel('gesture'); } }}
           style={[s.mic, listening && s.micListening, blocked && s.disabled]}>
-          {active && explicit ? <StopCircle size={24} color={a.color.surface} weight="fill" />
-            : <Microphone size={24} color={listening ? a.color.ink : a.color.surface} weight="fill" />}
+          {active && explicit ? <StopCircle size={26} color={a.color.surface} weight="fill" />
+            : <Microphone size={26} color={listening ? a.color.ink : a.color.surface} weight="fill" />}
         </Pressable>
       </View>
       {listening && p.state.audioLevel !== null ? <View importantForAccessibility="no" style={s.levels}>
@@ -79,14 +79,14 @@ const s = StyleSheet.create({
   // The bar is one row: the shell puts the keyboard on its left and the privacy info on
   // its right, so everything here stays centred and short. Anything taller steals the
   // conversation, which is what it used to do.
-  wrap: { gap: 1, alignItems: 'center' }, center: { textAlign: 'center' },
-  stage: { alignItems: 'center', gap: 4, paddingTop: 1 },
+  wrap: { gap: 2, alignItems: 'center', justifyContent: 'center', minWidth: 0 }, center: { textAlign: 'center' },
+  stage: { alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0 },
   // The idle ring was decoration that widened the control to 80px, and the microphone
   // itself was 66. Together they took half the screen on a real phone. The halo now
   // appears only while listening, when it actually says something.
   ringActive: { padding: 3, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: a.color.orangeHalo },
-  mic: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
-    shadowColor: a.color.ink, shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  mic: { width: 52, height: 52, borderRadius: sys.radius.pill, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
+    shadowColor: a.color.ink, shadowOpacity: 0.10, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   micListening: { backgroundColor: a.color.orange, borderColor: a.color.orangeEdge },
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
