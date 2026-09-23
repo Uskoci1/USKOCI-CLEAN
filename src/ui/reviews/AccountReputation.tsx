@@ -15,7 +15,8 @@ export function AccountReputation({ accountId }: { accountId: string }) {
     return result.podatak;
   }, [accountId]);
   const reputation = useFocusedResource(load);
-  return <View style={{ alignItems: 'center', gap: 8 }}>
+  // Left-aligned under the V41 identity row of the profile (2026-09-23), with the star before the words.
+  return <View style={{ alignItems: 'flex-start', gap: 8 }}>
     {reputation.loading ? <ActivityIndicator accessibilityLabel="Učitavanje reputacije" color={sys.color.green} />
       : reputation.error ? <>
         <T variant="meta" tone="muted">Ocene trenutno nisu dostupne.</T>
