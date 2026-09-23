@@ -107,6 +107,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     chatDostupan: raw.agreementStatus === 'CONFIRMED' || raw.agreementStatus === 'SUPERSEDED',
     rokPotvrdeIso: raw.requesterDeadlineAt ?? null,
     problemOtvoren: Boolean(raw.problemOpened),
+    // Only whether the Dogovor is finished; the list below asks the review read whether MY rating is still due.
     ocenaMoguca: status === 'COMPLETED',
     hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
     radnje: agreementActions(raw, uid),
@@ -538,6 +539,25 @@ export const agreementChangeService = {
  * Backend authority remains in canonical Agreement RPCs; this service preserves
  * the existing Izvor request, validation, mapping and error semantics exactly.
  */
+/**
+ * A finished Dogovor waits for my rating only while the review read says I may still rate it (`eligible`). The list
+ * used to mark every finished Dogovor as due, so one already rated stayed under Aktivni with "Čeka tvoju ocenu"
+ * forever (review of 2026-09-23). The read is asked once per finished Dogovor, in parallel; if it cannot answer, the
+ * Dogovor is not called due — the rating stays reachable from the Dogovor itself, which reads the same thing.
+ */
+async function withRatingsDue(rows: DogovorProjekcija[]): Promise<DogovorProjekcija[]> {
+  const finished = rows.filter(row => row.stanje === 'COMPLETED');
+  if (!finished.length) return rows;
+  const due = new Map<string, boolean>();
+  await Promise.all(finished.map(async row => {
+    try {
+      const { data, error } = await supabase.rpc('rpc_get_my_agreement_review', { p_agreement_id: row.id });
+      due.set(row.id, !error && !!data && typeof data === 'object' && (data as { eligible?: unknown }).eligible === true);
+    } catch { due.set(row.id, false); }
+  }));
+  return rows.map(row => row.stanje === 'COMPLETED' ? { ...row, ocenaMoguca: due.get(row.id) === true } : row);
+}
+
 export const agreementClientService: AgreementService = {
   /**
    * PKG-023a. The paged reader answers what the unpaged one could not: the start instant of the work
@@ -562,7 +582,7 @@ export const agreementClientService: AgreementService = {
       if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
       cursor = { at: last.sortAt, id: last.id };
     }
-    return rows.map((row) => mapAgreement(row, uid));
+    return withRatingsDue(rows.map((row) => mapAgreement(row, uid)));
   },
 
   async dogovor(id) {
