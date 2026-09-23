@@ -164,7 +164,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         {showStatusHelp ? <T variant="meta">Ovaj izbor ostaje sačuvan dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T> : null}
       </View>
       <View style={{ gap: 12 }}><View style={{ gap: 4 }}><T variant="heading" accessibilityRole="header">Redovna nedelja</T>
-        <T variant="meta" tone="muted">Vremenska zona rasporeda: {draft.timezone}</T></View>
+        <T variant="meta" tone="muted">{draft.timezone === 'Europe/Belgrade' ? 'Termini su po vremenu u Srbiji.' : `Vremenska zona rasporeda: ${draft.timezone}`}</T></View>
         <View style={[s.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>{weekdays.map((day, index) => {
           const rules = draft.rules.filter(rule => rule.weekdays.includes(day.day)), expanded = expandedDay === day.day;
           return <View key={day.day} style={{ borderTopWidth: index ? 1 : 0, borderColor: sys.color.line }}>
@@ -215,7 +215,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     </ScrollView>
     <View style={s.footer}>
       {error ? <T accessibilityRole="alert" tone="danger">{error}</T> : null}
-      {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T> : null}
+      {dirty ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T>
+        : !blocked && !uncertain ? <T variant="meta" tone="muted">Dugme se uključuje kad promeniš raspored ili dostupnost.</T> : null}
       {uncertain ? <T variant="meta" tone="muted">Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.</T> : null}
       <Button label={busy ? 'Čuvamo unos…' : candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost'} disabled={blocked || !dirty || !!editing || !!windowEditor} onPress={save} full />
       {dirty ? <Button label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={() => {

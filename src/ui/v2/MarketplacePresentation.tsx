@@ -76,9 +76,12 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const [showMine, setShowMine] = useState(false);
   const mine = useMemo(() => !owned && relations ? visible.filter(item => relations.owned.has(item.id)) : [], [owned, relations, visible]);
   const shown = useMemo(() => showMine || !mine.length ? visible : visible.filter(item => !relations!.owned.has(item.id)), [showMine, mine.length, visible, relations]);
+  // The sheet promises what the list will show: own tasks the list keeps hidden are not counted (emulator,
+  // 2026-09-23: "Prikaži 8 zadataka" over a list of 6).
   const draftCount = useMemo(() => loading || error ? null
-    : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned).length,
-  [items, view, priceDraft, attentionDraft, owned, loading, error]);
+    : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned)
+      .filter(item => showMine || owned || !relations?.owned.has(item.id)).length,
+  [items, view, priceDraft, attentionDraft, owned, loading, error, showMine, relations]);
   const attentionCount = useMemo(() => owned ? items.filter(item => isOwnedNeed(item) && hasNeedAttention(item) && item.stanje !== 'NACRT' && item.stanje !== 'ZATVORENA').length : 0, [items, owned]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
   const selected = shown.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;

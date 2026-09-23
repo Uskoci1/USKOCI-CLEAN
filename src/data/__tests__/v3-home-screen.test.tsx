@@ -76,6 +76,17 @@ it('a row only navigates, and to the exact object: my task opens its candidates,
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'polica' } });
 });
 
+it('names the completed Dogovori that wait for my rating once, with the count written once, and opens the Dogovori', async () => {
+  mockSource.mojiDogovori.mockResolvedValue([{ ...agreement('d1', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true },
+    { ...agreement('d2', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true }]);
+  await render();
+  // Seen on the emulator 2026-09-23 as "2 2 završena Dogovora": the count was written by plural() and again in front of it.
+  expect(text()).toContain('2 završena Dogovora čekaju tvoju ocenu'); expect(text()).not.toContain('2 2 ');
+  expect(text()).toContain('Nemaš zakazan Dogovor.');
+  await act(async () => row('2 završena Dogovora čekaju tvoju ocenu').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalled();
+});
+
 it('a section that failed says so and offers the read again; it is never drawn as nothing', async () => {
   mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();

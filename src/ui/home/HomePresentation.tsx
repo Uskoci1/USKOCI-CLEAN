@@ -102,7 +102,9 @@ export function HomePresentation(p: HomePresentationProps) {
   if (home && home.activities.kind !== 'unavailable') activities.settle(home.activities.value.rows.map(row => row.id));
   const nothingYet = !!home && !home.partial && !home.attention.length
     && home.agreements.kind === 'known' && !home.agreements.value.rows.length
-    && home.activities.kind === 'known' && !home.activities.value.rows.length;
+    && home.activities.kind === 'known' && !home.activities.value.rows.length
+    // Finished work waiting for a rating is not a first step (2026-09-23).
+    && !home.ratingsDue;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
     <View style={s.header}>
       <View style={s.grow}><BrandLockup width={123} /></View>
@@ -175,7 +177,8 @@ export function HomePresentation(p: HomePresentationProps) {
 /** "Jedan završen Dogovor čeka tvoju ocenu" / "2 završena Dogovora čekaju tvoju ocenu". */
 function dogovoraCekaOcenu(count: number): string {
   return count === 1 ? 'Jedan završen Dogovor čeka tvoju ocenu'
-    : `${count} ${plural(count, 'završen Dogovor čeka', 'završena Dogovora čekaju', 'završenih Dogovora čeka')} tvoju ocenu`;
+    // plural() already carries the count; the emulator showed "2 2 završena Dogovora" when it was added twice.
+    : `${plural(count, 'završen Dogovor čeka', 'završena Dogovora čekaju', 'završenih Dogovora čeka')} tvoju ocenu`;
 }
 
 const s = StyleSheet.create({
