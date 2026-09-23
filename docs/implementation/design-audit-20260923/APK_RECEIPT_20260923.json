@@ -70,5 +70,14 @@
         "note": "phone not connected at 10:45; carries step 0, hold-to-talk sends on release, Lottie package (no files), the AI welcome — not the later detail/discovery/offer commits (42dfe993…f2703baa)"
       }
     }
+  ],
+  "openDefects": [
+    {
+      "id": "RATING-DEAD-STARS-01",
+      "seen": "2026-09-23 emulator-5554, builds aacff002 and f0206da2 (cold start)",
+      "what": "On the rating screen (Oceni saradnju) the stars and tags report enabled/checkable to accessibility, but Maestro taps and an adb coordinate tap on star 5 leave checked=false; Sačuvaj ocenu stays disabled. No review row was written.",
+      "notTheCause": "The focus-token guard: a Jest regression (agreement-review-screen.test.tsx) selects a star and a tag on the current guard.",
+      "next": "Reproduce with a person's finger on the phone (owner rates as requester); if it reproduces, capture logcat around the press. Release-blocking if real."
+    }
   ]
 }

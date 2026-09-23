@@ -12,6 +12,15 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "production": {
+      "distribution": "store",
+      "environment": "production",
+      "autoIncrement": true,
+      "credentialsSource": "remote",
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   }
 }
