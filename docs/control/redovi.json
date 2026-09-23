@@ -787,7 +787,7 @@
    ],
    "telefon": null,
    "problem": "Javni profil daje profileId, a prijava/blokiranje traže accountId. Ti identifikatori nisu zamenljivi.",
-   "sledece": "PKG-047 napisan 22.09. uveče: jedna nova serverska funkcija rpc_read_safety_target pretvara javni profil u osobu iza njega, uz isto pravilo vidljivosti kao javni profil, i vraća tvoj sopstveni izbor blokiranja. Ti si 22.09. odobrio da broj naloga sme da se otkrije za tu svrhu (isto što Dogovor već radi). U aplikaciji je dugme „Prijavi ili blokiraj“ dodato na javni profil, sa prilike i sa liste prijava. Paket ne pomera sertifikat brisanja naloga i to sam proverava. Dokaz: .github/workflows/pkg047-safety-target-proof.yml. Primena traži tvoju reč.",
+   "sledece": "PKG-047 napisan 22.09. uveče: jedna nova serverska funkcija rpc_read_safety_target pretvara javni profil u osobu iza njega, uz isto pravilo vidljivosti kao javni profil, i vraća tvoj sopstveni izbor blokiranja. Ti si 22.09. odobrio da broj naloga sme da se otkrije za tu svrhu (isto što Dogovor već radi). U aplikaciji je dugme „Prijavi ili blokiraj“ dodato na javni profil, sa prilike i sa liste prijava. Paket ne pomera sertifikat brisanja naloga i to sam proverava. DOKAZANO: CI 35805442368, 10 od 10 — dodaje se tačno jedna funkcija, sertifikat se ne pomera, anoniman i servisni poziv odbijeni, prijava ostaje privatna. Primena traži tvoju reč („primeni pkg047a“).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -973,7 +973,7 @@
    ],
    "telefon": null,
    "problem": "Server ne vraća ID zadatka/prijave iz kojih je Dogovor nastao. Trenutni prikaz istorije ima samo kreiranje, bez stvarnog dolaska/ETA.",
-   "sledece": "PKG-048 napisan 23.09: serverski dokument Dogovora dobija dva ključa — needId i applicationId — pa ekran može da otvori zadatak iz kog je Dogovor nastao i prijavu koja je izabrana. Ništa novo se ne otkriva: funkcija ionako odgovara samo dvema stranama, a svaka strana već poseduje svoj kraj. Telo se ne prekucava: transakcija menja živu definiciju zamenom jednog sidra koje se mora pojaviti tačno jednom, pa ostaje doslovno isto. Ne pomera sertifikat. Dokaz pravi pravi Dogovor (objavljen zadatak, prava ponuda, pravi izbor) i proverava da je sve ostalo u dokumentu isto do bajta. Prikaz koraka napretka (stvarna stanja, bez izmišljenog dolaska) ostaje zaseban posao — vidi D13.",
+   "sledece": "PKG-048 napisan 23.09: serverski dokument Dogovora dobija dva ključa — needId i applicationId — pa ekran može da otvori zadatak iz kog je Dogovor nastao i prijavu koja je izabrana. Ništa novo se ne otkriva: funkcija ionako odgovara samo dvema stranama, a svaka strana već poseduje svoj kraj. Telo se ne prekucava: transakcija menja živu definiciju zamenom jednog sidra koje se mora pojaviti tačno jednom, pa ostaje doslovno isto. Ne pomera sertifikat. DOKAZANO: CI 35805788358, 7 od 7 — dokaz pravi pravi Dogovor (objavljen zadatak, prava ponuda, pravi izbor) i potvrđuje da je sve ostalo u dokumentu isto do bajta, da su prava i sertifikat netaknuti i da stranac i dalje ne vidi ništa. Primena traži tvoju reč („primeni pkg048a“). Prikaz koraka napretka (stvarna stanja, bez izmišljenog dolaska) ostaje zaseban posao — vidi D13.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1638,7 +1638,7 @@
    ],
    "telefon": null,
    "problem": "Ulazi sa detalja zadatka i javnog profila nedostaju; javna projekcija ne daje accountId koji komanda zahteva. Prodavnice traže funkcionalno prijavljivanje/blokiranje, ne propisuju tačan raspored dugmadi.",
-   "sledece": "Ulaz postoji od PKG-047: „Prijavi ili blokiraj“ na javnom profilu, sa prilike i sa liste prijava, a server tek tada razrešava osobu. Blokiranje i dalje ide na nalog, ne na profil, pa i dalje prati čoveka a ne jedno njegovo lice. Odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Čeka dokaz i tvoju reč za primenu, pa proveru na telefonu.",
+   "sledece": "Ulaz postoji od PKG-047: „Prijavi ili blokiraj“ na javnom profilu, sa prilike i sa liste prijava, a server tek tada razrešava osobu. Blokiranje i dalje ide na nalog, ne na profil, pa i dalje prati čoveka a ne jedno njegovo lice. Odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. DOKAZANO (CI 35805442368, 10 od 10); čeka tvoju reč za primenu, pa proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

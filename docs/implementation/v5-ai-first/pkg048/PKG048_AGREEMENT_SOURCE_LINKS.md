@@ -1,7 +1,8 @@
 # PKG-048 — the Zadatak and the Prijava a Dogovor grew out of (F12 / D02 / PG04)
 
-Status 2026-09-23: **candidate and proof written, not applied.** Function-only; the certificate must not
-move and the candidate asserts that on both sides.
+Status 2026-09-23: **proven on a disposable database, not applied.** Run `35805788358`, source `48bc8155`, all **7 checks PASS**, receipt `PROOF_35805788358.json`. The surface
+diff is exactly one rewritten function, `06a6485e…` → `afa60817…`, with its grants and the certificate
+unchanged. Application still needs the owner's word.
 
 ## The defect
 
@@ -24,7 +25,7 @@ owns the task and selected that offer, the worker wrote that offer and applied t
 
 ## What the proof establishes
 
-Run pending. The checks:
+Run `35805788358`, 7 of 7:
 
 1. the exact predecessor chain (PKG-042a, PKG-045a, PKG-046a), the pinned workspace body `06a6485e…` and a
    ready certificate;
