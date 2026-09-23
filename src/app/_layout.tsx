@@ -13,6 +13,9 @@ import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
+// A screen that throws while rendering shows a way out instead of a white page (release, 2026-09-23).
+export { AppErrorBoundary as ErrorBoundary } from '../ui/system/AppErrorBoundary';
+
 export default function RootLayout() {
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();

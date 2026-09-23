@@ -32,7 +32,7 @@ test('the frame says what the screen is for and names no app mode; the form lead
   expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
   expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge', 'Grad ili mesto rada', 'Radijus rada (km)']));
   expect(inputs()).not.toContain('Nova stavka: Alat i oprema');
-  expect(byLabel('Alat i vozila').props.accessibilityState).toEqual({ expanded: false }); expect(copy).toContain('1 stavki alata · 0 vozila');
+  expect(byLabel('Alat i vozila').props.accessibilityState).toEqual({ expanded: false }); expect(copy).toContain('1 stavka alata · 0 vozila');
   await act(async () => byLabel('Alat i vozila').props.onPress());
   expect(inputs()).toContain('Nova stavka: Alat i oprema'); expect(labels()).toContain('Ukloni alat i oprema: Kolica');
   await act(async () => byLabel('Ukloni veštine i usluge: Selidbe').props.onPress()); expect(change).toHaveBeenCalledWith(expect.objectContaining({ vestine: ['Montaža'] }));

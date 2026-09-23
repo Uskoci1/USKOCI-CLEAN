@@ -18,6 +18,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
 import { osoba, prijava as prijave } from '../system/plural';
+import { countryName } from '../location/CountryField';
 
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
@@ -130,7 +131,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         <DisclosureGroup>
           <DisclosureRow first label="Mesto izvršenja" detail={need.detalji?.geografija ? rows[0]?.value : 'Približno područje'} expanded={expanded} onPress={() => setExpanded(current => !current)}>
             {!need.detalji?.geografija ? <T variant="note" tone="muted">Javna struktura lokacije nije dostupna. Prikazano je približno područje.</T> : null}
-            <DetailPairs rows={[...rows, ...(need.taskCountryCode ? [{ label: 'Država', value: need.taskCountryCode }] : [])]} />
+            <DetailPairs rows={[...rows, ...(need.taskCountryCode ? [{ label: 'Država', value: countryName(need.taskCountryCode) ?? need.taskCountryCode }] : [])]} />
           </DisclosureRow>
         </DisclosureGroup>
         {remainingClosed ? <View style={[card, s.mutedCard]}><T variant="heading" style={s.ink}>Preostala potraga je zatvorena</T><T variant="note" tone="muted">Originalni Zadatak i postojeći Dogovori ostaju nepromenjeni.</T></View>

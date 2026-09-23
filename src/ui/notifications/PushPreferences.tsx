@@ -176,6 +176,7 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
     disabled={locked || !settings.quiet_hours_enabled} onChange={value => edit('urgent_overrides_quiet_hours', value)} />
    {validation ? <T accessibilityRole="alert" tone="danger">{validation}</T> : null}
    <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={locked || !dirty} />
+   {!dirty && !locked ? <T variant="meta" tone="muted">Dugme se uključuje kad promeniš neko podešavanje.</T> : null}
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Push obaveštenja</T>
    <T tone="muted">Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>

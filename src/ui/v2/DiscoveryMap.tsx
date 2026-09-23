@@ -74,11 +74,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
-        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': v2.color.ink, 'circle-stroke-width': 3, 'circle-stroke-color': v2.color.surface }} />
+        {/* Pins and clusters wear the brand green (2026-09-23); HITNO keeps the danger red, the chosen one an orange ring. */}
+        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': v2.color.teal, 'circle-stroke-width': 3, 'circle-stroke-color': v2.color.surface }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': v2.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], v2.color.danger, v2.color.ink],
+          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], v2.color.danger, v2.color.teal],
             'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], v2.color.orange, v2.color.surface] }} />
         <Layer id="need-pin-centers" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 5, 'circle-color': v2.color.surface }} />
@@ -116,7 +117,7 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   area: { position: 'absolute', top: 12, left: 16, right: 76 }, zoom: { position: 'absolute', top: 12, right: 12, gap: 6 },
   zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
   zoomText: { ...sys.type.cardTitle, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
-    borderWidth: 3, borderColor: v2.color.orange, backgroundColor: v2.color.ink, alignItems: 'center', justifyContent: 'center' },
+    borderWidth: 3, borderColor: v2.color.orange, backgroundColor: v2.color.teal, alignItems: 'center', justifyContent: 'center' },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: v2.color.canvas },
   attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: v2.color.surface, padding: 4 },
   credit: { ...v2.text.label, color: v2.color.muted },

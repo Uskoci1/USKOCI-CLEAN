@@ -9,6 +9,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { card, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
+import { plural } from '../system/plural';
 
 /** Frame of the worker profile: back, intent eyebrow, title, keyboard-safe body, sticky footer. */
 export function WorkerProfileFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
@@ -112,7 +113,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     </View>
     <View style={s.rows}>
       <Row label="Alat i vozila" expanded={resourcesOpen} onPress={() => setResourcesOpen(value => !value)}
-        hint={draft.alati.length + draft.vozila.length ? `${draft.alati.length} stavki alata · ${draft.vozila.length} vozila` : 'Dodaj kada je relevantno · opciono'} />
+        hint={draft.alati.length + draft.vozila.length ? `${plural(draft.alati.length, 'stavka alata', 'stavke alata', 'stavki alata')} · ${plural(draft.vozila.length, 'vozilo', 'vozila', 'vozila')}` : 'Dodaj kada je relevantno · opciono'} />
       {resourcesOpen ? <View style={s.rowBody}><Terms label="Alat i oprema" values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
         change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
         <Terms label="Vozila" values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}

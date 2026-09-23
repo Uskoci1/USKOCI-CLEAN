@@ -9,6 +9,7 @@ import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { SuccessMark } from '../system/SuccessMark';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -76,7 +77,8 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
         : receipt ? <View style={s.card}>
-          <View style={s.badge}><Star size={32} weight="fill" color={sys.color.orange} /></View>
+          {/* Settles in with one spring and a success haptic only right after saving; reopened later it is still. */}
+          <SuccessMark fresh={workspace.saved} tone="orange"><Star size={32} weight="fill" color={sys.color.orange} /></SuccessMark>
           <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana</T>
           <T variant="body" style={s.ink}>Tvoja ocena: {receipt.rating} od 5</T>
           {receipt.tags.length ? <View style={s.tags}>{receipt.tags.map(tag => <View key={tag} style={[s.tag, s.tagSelected]}><T variant="meta" style={s.tagTextSelected}>{tagLabels[tag]}</T></View>)}</View> : null}
@@ -140,7 +142,6 @@ const s = StyleSheet.create({
   content: { padding: 20, gap: 16, flexGrow: 1 },
   intro: { gap: 8, paddingHorizontal: 2 },
   card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 12 },
-  badge: { width: 64, height: 64, borderRadius: sys.radius.pill, backgroundColor: sys.color.orangeSoft, alignItems: 'center', justifyContent: 'center' },
   stars: { gap: 10, alignItems: 'center', paddingVertical: 6 },
   starRow: { flexDirection: 'row', gap: 6 },
   star: { width: 48, height: 52, alignItems: 'center', justifyContent: 'center' },

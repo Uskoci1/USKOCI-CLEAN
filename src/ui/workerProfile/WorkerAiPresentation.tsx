@@ -7,14 +7,15 @@ import { T } from '../Text';
 import { sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { weekdays, zonedParts } from '../calendar/calendarPresentation';
+import { osoba, plural } from '../system/plural';
 
 const list=(values:readonly string[],empty='Još nije navedeno')=>values.length?values.join(' · '):empty;
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
   return <View style={[s.card,compact&&s.cardCompact]}><T variant="meta" style={s.label}>Tvoj radni profil</T>
     <T numberOfLines={compact?1:2} style={s.title}>{profile.skills.length?profile.skills.join(' · '):'Šta možeš da preuzmeš?'}</T>
-    <T variant="body" style={s.ink}>{profile.location.city||'Područje rada'}{profile.location.operatingCountryCode?` · ${profile.location.operatingCountryCode}`:''} · {profile.teamCapacity} {profile.teamCapacity===1?'osoba':'ljudi'}</T>
-    {!compact?<T variant="meta" tone="muted">{profile.location.radiusKm} km · {profile.availability.availableNow?'Dostupan sada':'Dostupnost po rasporedu'} · {profile.availability.rules.length} redovnih termina</T>:null}
+    <T variant="body" style={s.ink}>{profile.location.city||'Područje rada'}{profile.location.operatingCountryCode?` · ${profile.location.operatingCountryCode}`:''} · {osoba(profile.teamCapacity)}</T>
+    {!compact?<T variant="meta" tone="muted">{profile.location.radiusKm} km · {profile.availability.availableNow?'Dostupan sada':'Dostupnost po rasporedu'} · {plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')}</T>:null}
     <V2Action label="Pregledaj profil" disabled={disabled} onPress={review} kind="quiet" style={s.quietLeft} />
   </View>;
 }
