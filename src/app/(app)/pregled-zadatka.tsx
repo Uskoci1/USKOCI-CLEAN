@@ -394,10 +394,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
               accessibilityState={{ disabled: disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
               style={[s.publish, (disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
-              {editor.busy ? <ActivityIndicator color={a.color.surface} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
+              {editor.busy ? <ActivityIndicator color={sys.color.onOrange} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
-              ? 'Klikom potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
-              : 'Klikom prihvataš ovu prikazanu verziju i tražiš objavu.')}</T>
+              ? 'Ovim potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
+              : 'Ovim prihvataš prikazanu verziju i tražiš objavu.')}</T>
             {/* A new task only: accepting an edit of an existing one confirms that edit, which is not a draft. */}
             {!revising && review.canAccept && !unavailableIdentityFact ? <V2Action label="Sačuvaj nacrt" kind="quiet"
               disabled={disabled || !!edit || !!locationEditor || deadlineEditor} onPress={() => { void accept(false); }} /> : null}
@@ -419,6 +419,6 @@ const s = StyleSheet.create({
   input: { ...a.text.body, padding: 12, borderWidth: 1, borderColor: a.color.green, borderRadius: sys.radius.control, minHeight: 56, color: a.color.ink },
   notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: a.color.warm, gap: 12 }, error: { ...a.text.meta, color: a.color.danger },
   footer: { padding: 20, borderTopWidth: 1, borderTopColor: a.color.line, gap: 10 },
-  publish: { minHeight: 54, borderRadius: sys.radius.primary, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center', padding: 14 },
-  publishLabel: { ...a.text.body, fontWeight: '700', color: a.color.surface },
+  publish: { minHeight: 54, borderRadius: sys.radius.primary, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  publishLabel: { ...a.text.body, fontWeight: '700', color: sys.color.onOrange },
 });
