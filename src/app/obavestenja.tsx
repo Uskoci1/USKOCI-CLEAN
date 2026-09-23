@@ -125,7 +125,8 @@ export default function Obavestenja() {
           <T style={[styles.body,{color:sys.color.ink,fontWeight:item.readAt?'400':'700'}]}>{item.title}</T>
           <T style={styles.meta}>{item.body}</T>
           <T style={[styles.meta,{fontSize:12,marginTop:3}]}>
-            {item.role==='WORKER'?'Moje prijave':'Moji zadaci'} · {timestamp(item.occurredAt)}{!item.readAt?' · Novo':''}
+            {/* The tab names the family and the tint says unread (a screen reader hears "Nepročitano" in the label); the row keeps only the time. */}
+            {timestamp(item.occurredAt)}
           </T>
         </View>
         <CaretRight size={17} color={sys.color.muted}/>

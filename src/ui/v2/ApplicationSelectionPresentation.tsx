@@ -28,7 +28,7 @@ function applicationInterval(start: string | null | undefined, end: string | nul
   try {
     const zone = timezone ?? 'UTC';
     const a = zonedParts(new Date(Number(from / 1000n)), zone), b = zonedParts(new Date(Number(to / 1000n)), zone);
-    return `${displayDate(a.date)} · ${a.time.slice(0, 5)}–${a.date === b.date ? '' : `${displayDate(b.date)} · `}${b.time.slice(0, 5)} (${zone})`;
+    return `${displayDate(a.date)} · ${a.time.slice(0, 5)}–${a.date === b.date ? '' : `${displayDate(b.date)} · `}${b.time.slice(0, 5)} (${zone === 'Europe/Belgrade' ? 'po vremenu u Srbiji' : zone})`;
   } catch { return null; }
 }
 function candidateState(k: KandidatProjekcija): string {
@@ -96,7 +96,7 @@ function IntervalEditor({ draft, timezone, close, accept }: {
     <SelectionFrame title="Predlog termina" back={close} footer={<BrandAction label="Potvrdi termin" onPress={apply} />}>
       <View style={s.card}>
         <T variant="meta" style={s.eyebrow}>Vreme bez izmišljanja</T><T accessibilityRole="header" variant="title" style={s.ink}>Ponudi tačan početak i kraj.</T>
-        <T variant="body" tone="muted">Vremenska zona: {timezone}. Ovaj predlog pripada tvojoj Prijavi.</T>
+        <T variant="body" tone="muted">{timezone === 'Europe/Belgrade' ? 'Vreme je po vremenu u Srbiji.' : `Vremenska zona: ${timezone}.`} Ovaj predlog pripada tvojoj Prijavi.</T>
       </View>
       <View style={s.card}>
         <CivilField label="Datum početka" mode="date" value={start.date} onChange={value => { setStart(v => ({ ...v, date: value })); setDirtyStart(true); }} />

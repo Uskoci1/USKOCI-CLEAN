@@ -89,7 +89,7 @@ it('previews the actual offer message without marking it viewed; opening keeps t
   await render(Candidates);
   const hint = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityHint;
   expect(hint).toContain('4.500 RSD'); expect(hint).toContain('2 osobe');
-  expect(hint).toContain('10:00–11:00 (Europe/Belgrade)'); expect(hint).toContain(message);
+  expect(hint).toContain('10:00–11:00 (po vremenu u Srbiji)'); expect(hint).toContain(message);
   expect(text()).toContain(message); expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
