@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:50:51Z",
+  "osvezeno": "2026-09-23T05:50:56Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "bd04f119",
-  "head_poruka": "control: recompute at the commit the published page carries",
+  "head": "1ecc8d3f",
+  "head_poruka": "device: the worker's first message, sent from the emulator on the owner's word",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
