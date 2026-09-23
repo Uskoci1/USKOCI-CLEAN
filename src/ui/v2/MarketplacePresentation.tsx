@@ -134,7 +134,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const appearRef = useRef(appear); appearRef.current = appear;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem} />, [relationOf, openItem]);
-  const listStyle = useMemo(() => [s.list, !!props.onNew && showCards && s.listWithAction], [props.onNew, showCards]);
+  const listStyle = useMemo(() => [s.list, owned && !!props.onNew && showCards && s.listWithAction], [owned, props.onNew, showCards]);
 
   const empty = <View style={s.empty} accessibilityLiveRegion="polite">
     {loading ? <><SkeletonList count={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatke…</T></>
@@ -166,22 +166,30 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         <View style={s.grow}><Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} /></View>
         {headerControls}
       </View> : <>
-        {searchField}
-        <View style={s.discoveryTools}>
+        {/* Recomposed (owner, 2026-09-23): the tools are two rows instead of four. Search, filters and the
+            one creation action share the first; how many tasks and the list/map switch share the second.
+            The orange "+" floated over the cards and covered the very price a person compares down the list. */}
+        <View style={s.toolsRow}>
+          {searchField}
+          <Press accessibilityRole="button" accessibilityLabel={filterLabel} accessibilityState={{ selected: filterActive }} haptic="select"
+            onPress={openFilters} style={[s.toolButton, filterActive && s.modeActive]}>
+            <SlidersHorizontal size={22} color={sys.color.green} />
+            {filterActive ? <View style={s.filterDot} /> : null}
+          </Press>
+          {props.onNew ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
+            onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={[s.toolButton, s.addTool]}>
+            <Plus size={22} weight="bold" color={sys.color.onOrange} /></Press> : null}
+        </View>
+        <View style={s.modeRow}>
+          <T variant="note" tone="muted" numberOfLines={1} style={s.grow}>{count === null ? '' : zadataka(count)}</T>
           <View accessibilityRole="tablist" accessibilityLabel="Prikaz zadataka" style={s.viewModes}>
             {MODES.map(mode => <Press key={mode.key} accessibilityRole="tab" accessibilityLabel={mode.label}
               accessibilityState={{ selected: view.mode === mode.key }} aria-selected={view.mode === mode.key} haptic="select"
-              onPress={() => { if (view.mode !== mode.key) toggleMode(mode.key); }} style={[s.mode, view.mode === mode.key && s.modeActive]}>
-              <FactArt kind={mode.key === 'map' ? 'map' : 'tasks'} size={24} muted={view.mode !== mode.key} />
+              onPress={() => { if (view.mode !== mode.key) toggleMode(mode.key); }} style={[s.mode, view.mode === mode.key && s.modeOn]}>
+              <FactArt kind={mode.key === 'map' ? 'map' : 'tasks'} size={20} muted={view.mode !== mode.key} />
               <T variant="meta" style={{ color: view.mode === mode.key ? sys.color.green : sys.color.muted }}>{mode.label}</T>
             </Press>)}
           </View>
-          <Press accessibilityRole="button" accessibilityLabel={filterLabel} accessibilityState={{ selected: filterActive }} haptic="select"
-            onPress={openFilters} style={[s.filterButton, filterActive && s.modeActive]}>
-            <SlidersHorizontal size={21} color={sys.color.green} />
-            <T variant="meta" style={{ color: sys.color.green }}>Filteri</T>
-            {filterActive ? <View style={s.filterDot} /> : null}
-          </Press>
         </View>
         {view.price !== 'all' ? <View style={s.appliedFilters}>
           <Press accessibilityRole="button" accessibilityLabel="Ukloni filter cene" haptic="select"
@@ -203,26 +211,24 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         <DiscoveryMap items={shown} selectedId={selected?.id ?? null} viewport={view.viewport} scopeKey={props.scopeKey}
           onSelect={selectedId => change({ selectedId })} onViewport={viewport => change({ viewport })}
           onSearchArea={area => change({ area, selectedId: null })} onList={() => toggleMode('list')} />
-        <View style={s.mapLegend}><T variant="note" tone="muted">{zadataka(shown.length)} · približne lokacije{withoutPins ? ` · ${withoutPins} bez tačke` : ''}</T>
-          {withoutPins || props.onNew ? <View style={s.mapActions}>
-          {withoutPins ? <V2Action label="Pogledaj listu" kind="quiet" compact onPress={() => toggleMode('list')} /> : null}
-          {props.onNew ? <V2Action label="Dodaj zadatak" kind="quiet" compact
-            onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} /> : null}</View> : null}</View>
+        <View style={s.mapLegend}><T variant="note" tone="muted">{withoutPins ? `Približne lokacije · ${withoutPins} bez tačke` : 'Približne lokacije'}</T>
+          {withoutPins ? <View style={s.mapActions}>
+          <V2Action label="Pogledaj listu" kind="quiet" compact onPress={() => toggleMode('list')} /></View> : null}</View>
       </View> : <FlatList<MarketplaceItem> data={loading || error ? [] : shown} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={listStyle}
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
-        ListHeaderComponent={loading || error || (!shown.length && !mine.length) ? null : <View style={s.countRow}>
-          {count === null ? <T variant="note" tone="muted">Učitavamo…</T>
-            : <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{owned && view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
+        ListHeaderComponent={loading || error || (!shown.length && !mine.length) || (!owned && !mine.length) ? null : <View style={s.countRow}>
+          {!owned ? null : count === null ? <T variant="note" tone="muted">Učitavamo…</T>
+            : <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>}
           {mine.length ? <Press accessibilityRole="button" accessibilityLabel={showMine ? 'Sakrij moje zadatke' : 'Prikaži i moje zadatke'}
             onPress={() => setShowMine(value => !value)} haptic="select" style={s.mineToggle}>
             <T variant="note" style={s.mineToggleText}>{showMine ? 'Sakrij moje' : `${plural(mine.length, 'tvoj zadatak je sakriven', 'tvoja zadatka su sakrivena', 'tvojih zadataka je sakriveno')} · Prikaži`}</T>
           </Press> : null}
         </View>} />}
-      {props.onNew && showCards && !mapShown ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
+      {owned && props.onNew && showCards ? <Press accessibilityRole="button" accessibilityLabel="Dodaj zadatak" accessibilityHint="Otvara novi Zadatak."
         onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} haptic="light" scaleTo={0.94} style={s.add}>
         <Plus size={26} weight="bold" color={sys.color.onOrange} /></Press> : null}
     </View>
@@ -259,12 +265,17 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
-  discoveryTools: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 20, paddingBottom: 6 },
-  viewModes: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  mode: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 48, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.control },
+  toolsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8 },
+  toolButton: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine,
+    backgroundColor: sys.color.surface },
+  addTool: { backgroundColor: sys.color.orange, borderColor: sys.color.orange },
+  modeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingBottom: 10 },
+  // One quiet switch: a pill with the chosen view lifted onto white.
+  viewModes: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: sys.radius.control, backgroundColor: sys.color.iconWell },
+  mode: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, paddingHorizontal: 12, borderRadius: sys.radius.control - 3 },
+  modeOn: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
   modeActive: { backgroundColor: sys.color.greenSoft },
-  filterButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine },
-  filterDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: sys.color.green },
+  filterDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: sys.color.orange },
   appliedFilters: { paddingHorizontal: 20, paddingBottom: 6, alignItems: 'flex-start' },
   appliedFilter: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control },
   appliedFilterText: { color: sys.color.green, flexShrink: 1 },
@@ -273,7 +284,7 @@ const s = StyleSheet.create({
   mineToggleText: { color: sys.color.green, fontWeight: '600' },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
-  discoverySearch: { marginTop: 4, marginBottom: 12, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
+  discoverySearch: { flex: 1, marginHorizontal: 0, marginTop: 0, marginBottom: 0, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
   clear: { width: 44, height: 44, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   areaNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: sys.color.greenSoft, paddingHorizontal: 20, paddingVertical: 2 },

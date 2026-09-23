@@ -134,12 +134,13 @@ test('attention and price are one filter draft: cancel, system back and reset ha
 });
 test('requester creation stays reachable from both discovery list and map, while worker discovery has no creation action', async () => {
  await render(); expect(press('Dodaj zadatak')).toBeTruthy(); await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
- // On the map it is reachable but it is no longer the floating button: on a phone that button sat
- // on top of a task pin near Belgrade, hiding one of the very things a person opened the map to
- // find. It is a labelled action in the legend strip under the map, which is chrome, not content.
+ // It is never a floating button over content: on the map it hid a task pin, in the list it covered the price
+ // a person compares down the cards (phone, 2026-09-23). It sits in the tools row beside search and filters,
+ // the same press in both views, and no second creation action is drawn anywhere.
  await tap('Mapa');
- expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
- await click('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(2);
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(1);
+ expect(tree.root.findAllByProps({ label: 'Dodaj zadatak' })).toHaveLength(0);
+ await tap('Dodaj zadatak'); expect(newTask).toHaveBeenCalledTimes(2);
  await act(async () => tree.unmount()); allowNew = false; await render();
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
  expect(tree.root.findAllByProps({ label: 'Dodaj zadatak' })).toHaveLength(0);

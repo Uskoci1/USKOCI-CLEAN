@@ -51,18 +51,20 @@ function TaskCardBase({ item, onOpen, compact = false, disabled = false, relatio
       {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: tone }]} /><T variant="label" style={[s.status, { color: tone }]}>{status}</T></View> : <View style={s.grow} />}
       <NeedUrgencyBadge urgency={item.urgency} />
     </View> : null}
+    {/* Only an amount stands beside the name: it is short and it is what the eye compares down the list.
+        A word about money ("Tražim ponude") squeezed the name into three lines on the phone, so it is a fact below. */}
     <View style={s.head}>
       <T style={s.title} numberOfLines={3}>{readableTitle(item.naslov)}</T>
-      <View style={s.priceSide}>
-        {offers ? <T style={s.priceWord}>Tražim ponude</T>
-          : amount ? <T style={s.price}>{amount}</T>
-          : <T style={s.noPrice}>Cena nije navedena</T>}
+      {amount ? <View style={s.priceSide}>
+        <T style={s.price}>{amount}</T>
         {basis ? <T style={s.basis}>{basis}</T> : null}
-      </View>
+      </View> : null}
     </View>
     <View style={s.facts}>
       <View style={s.fact}><FactArt kind={remote ? 'remote' : 'pin'} size={16} /><T style={s.factText} numberOfLines={1}>{remote ? 'Na daljinu' : item.podrucjeTekst}</T></View>
       <View style={s.fact}><FactArt kind="calendar" size={16} /><T style={s.factText}>{schedule}</T></View>
+      {!amount ? <View style={s.fact}><FactArt kind={offers ? 'offers' : 'money'} size={16} muted={!offers} />
+        <T style={offers ? s.priceWord : s.noPrice}>{offers ? 'Tražim ponude' : 'Cena nije navedena'}</T></View> : null}
     </View>
     <View style={s.bottom}>
       {draft ? <T style={s.next}>Nastavi uređivanje</T>
@@ -93,11 +95,11 @@ const s = StyleSheet.create({
   status: { flexShrink: 1, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { flex: 1, minWidth: 0, fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
-  // The money keeps its width and the name wraps beside it; a long word about money may take two lines.
+  // The amount keeps its width and the name wraps beside it.
   priceSide: { alignItems: 'flex-end', maxWidth: '42%' },
   price: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  priceWord: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: sys.color.ink, textAlign: 'right' },
-  noPrice: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.muted, textAlign: 'right' },
+  priceWord: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.ink, flexShrink: 1 },
+  noPrice: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.muted, flexShrink: 1 },
   basis: { fontSize: 12, lineHeight: 16, color: sys.color.muted, textAlign: 'right' },
   facts: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 4 },
   fact: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
@@ -110,7 +112,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 9, paddingVertical: 3, borderRadius: sys.radius.badge, backgroundColor: sys.color.iconWell, overflow: 'hidden' },
   waiting: { borderRadius: sys.radius.badge, paddingHorizontal: 9, paddingVertical: 3, backgroundColor: sys.color.orangeSoft },
   waitingText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: '#874515' },
-  publisher: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 'auto', flexShrink: 1, maxWidth: '55%' },
+  // Beside the places when there is room; under them, from the same left edge, when there is not.
+  publisher: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1, maxWidth: '100%' },
   avatar: { width: 22, height: 22, borderRadius: sys.radius.pill, backgroundColor: '#EEF3EF', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 12, lineHeight: 15, fontWeight: '700', color: sys.color.ink },
   publisherName: { fontSize: 13, lineHeight: 17, fontWeight: '600', color: sys.color.ink, flexShrink: 1 },
