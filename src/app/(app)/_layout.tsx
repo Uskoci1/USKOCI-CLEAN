@@ -66,15 +66,17 @@ function withoutRetired<State>(state: State): State {
 
 /**
  * This tab router's own REPLACE drops the history entry at the position of the new route's index in `routes`, not the
- * entry of the route being left. Zadaci is second in that list, so a replace onto Zadaci dropped Početna: the sign-in
- * shortcut "Uskoči i zaradi" lands on Početna and is replaced with Zadaci (src/app/_layout.tsx), and Back from Zadaci
- * then left the app. A replace that leaves a retired route or lands on Zadaci is therefore taken as the jump it is,
- * and the route being left is then dropped, as a replace means — except Početna, which stays behind Zadaci so Back
- * returns home (proved on the real router, retired-discovery-routes.test). Navigation state only.
+ * entry of the route being left, so what vanished depended on where two screens happen to be registered. Zadaci is
+ * second in that list, so a replace onto Zadaci dropped Početna (the sign-in shortcut "Uskoči i zaradi" lands on
+ * Početna and is replaced with Zadaci, src/app/_layout.tsx, and Back from Zadaci then left the app); a sent application
+ * replaced by Moje prijave kept its sent form in the history and lost Moje prijave itself; Raspored and Moji zadaci
+ * opened cold stayed behind the screen that replaced them. Every REPLACE is therefore taken as the jump it is, and the
+ * route being left is then dropped, as a replace means — except Početna, which stays behind what replaced it so Back
+ * returns home (proved on the real router with every route registered, retired-discovery-routes.test). Navigation
+ * state only; no screen, read or guard is involved.
  */
-function replacedAsJump(state: { index: number; routes: readonly { name: string }[] }, action: { type: string; payload?: object }): boolean {
-  if (action.type !== 'REPLACE') return false;
-  return RETIRED.has(state.routes[state.index]?.name ?? '') || (action.payload as { name?: unknown } | undefined)?.name === 'zadaci';
+function replacedAsJump(action: { type: string }): boolean {
+  return action.type === 'REPLACE';
 }
 function withoutLeft<State>(state: State, left: { name: string; key?: string } | undefined): State {
   const tabs = state as unknown as TabHistory | null;
@@ -105,9 +107,9 @@ export default function TabLayout() {
   const REDIRECT = { ...FULL, animation: 'none' as const };
   return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     UNSTABLE_router={original => ({
-      // The redirect leaves a retired route by REPLACE, and the sign-in shortcut replaces Početna with Zadaci; both
-      // are taken as a jump (see `replacedAsJump`), and a retired entry never stays in the history.
-      getStateForAction: (state, action, options) => withoutRetired(replacedAsJump(state, action)
+      // Every replace is taken as a jump that leaves the screen it replaces (see `replacedAsJump`), and a retired entry
+      // never stays in the history.
+      getStateForAction: (state, action, options) => withoutRetired(replacedAsJump(action)
         ? withoutLeft(original.getStateForAction(state, { ...action, type: 'JUMP_TO' }, options), state.routes[state.index])
         : original.getStateForAction(state, action, options)),
       getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}

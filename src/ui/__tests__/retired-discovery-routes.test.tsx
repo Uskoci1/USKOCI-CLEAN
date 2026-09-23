@@ -16,6 +16,8 @@ jest.mock('../system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => false }));
 jest.mock('../Text', () => ({ T: 'T' }));
 
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { ExpoRoot, router, Stack } from 'expo-router';
 import { inMemoryContext } from 'expo-router/build/testing-library/context-stubs';
 import RealTabsLayout from '../../app/(app)/_layout';
@@ -24,9 +26,21 @@ import RetiredPrilike from '../../app/(app)/prilike';
 
 function RootLayout() { return <Stack screenOptions={{ headerShown: false }}><Stack.Screen name="(app)" /></Stack>; }
 const Screen = (name: string) => function Stub() { return <Text>{`screen:${name}`}</Text>; };
-const routes = inMemoryContext({ _layout: RootLayout, '(app)/_layout': RealTabsLayout, '(app)/index': Screen('pocetna'),
-  '(app)/zadaci': Screen('zadaci'), '(app)/dogovori': Screen('dogovori'), '(app)/mapa': RetiredMapa, '(app)/prilike': RetiredPrilike,
-  '(app)/prilike/[id]': Screen('zadatak') });
+/**
+ * Every route of the real `(app)` group, read from disk. The tab router's own REPLACE works with the position of a route
+ * in its `routes` list, so a navigator holding only the handful of screens a case visits has different positions from
+ * the app's thirty-eight, and a history case could pass here by accident while failing on the phone.
+ */
+const APP = join(__dirname, '..', '..', 'app', '(app)');
+function routeNames(dir: string, prefix = ''): string[] {
+  return readdirSync(dir).flatMap(name => statSync(join(dir, name)).isDirectory() ? routeNames(join(dir, name), `${prefix}${name}/`)
+    : name.endsWith('.tsx') && name !== '_layout.tsx' ? [`${prefix}${name.slice(0, -4)}`] : []);
+}
+const STUB_NAMES: Record<string, string> = { index: 'pocetna', 'prilike/[id]': 'zadatak', 'prilike/[id]/prijava': 'prijava' };
+const REAL: Record<string, React.ComponentType> = { mapa: RetiredMapa, prilike: RetiredPrilike };
+const APP_ROUTES = routeNames(APP);
+const routes = inMemoryContext({ _layout: RootLayout, '(app)/_layout': RealTabsLayout,
+  ...Object.fromEntries(APP_ROUTES.map(name => [`(app)/${name}`, REAL[name] ?? Screen(STUB_NAMES[name] ?? name)])) });
 
 let tree: ReactTestRenderer;
 const settle = async () => { for (let i = 0; i < 8; i++) await act(async () => { await Promise.resolve(); }); };
@@ -112,4 +126,56 @@ test('a task opened cold and replaced by Zadaci does not stay in the Back histor
   await act(async () => router.replace('/zadaci')); await settle();
   expect([...new Set(selectedTabs())]).toEqual(['Zadaci']);
   expect(tabHistory()).toEqual(['zadaci']);
+});
+
+/** The route the `(app)` tab navigator has on screen, and how many routes it holds. */
+function tabState(): { focused: string; count: number } {
+  type Nav = { type?: string; index?: number; routes?: { name: string; key: string; state?: Nav }[] };
+  const find = (state: Nav | undefined): Nav | undefined => !state ? undefined : state.type === 'tab' ? state
+    : state.routes?.map(route => find(route.state)).find(Boolean);
+  const tabs = find(require('expo-router/build/global-state/store').store.navigationRef.current.getRootState())!;
+  return { focused: tabs.routes![tabs.index!].name, count: tabs.routes!.length };
+}
+
+// Every REPLACE in this navigator is a jump that drops the screen being left (verifier, 2026-09-24). The router's own
+// replace dropped the history entry just before the new route's POSITION in the route list, so which screen vanished
+// depended on where the two screens were registered: the sent application form stayed behind Moje prijave while Moje
+// prijave itself fell out of the history, and a screen opened cold stayed behind the one that replaced it.
+test('an application sent from a task opened on Početna lands on Moje prijave, and Back skips the sent form', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  // The navigator holds the app's real routes in the real order, or the positions below are not the phone's.
+  expect(tabState().count).toBe(APP_ROUTES.length);
+  await act(async () => router.navigate({ pathname: '/prilike/[id]', params: { id: 't1' } })); await settle();
+  await act(async () => router.navigate({ pathname: '/prilike/[id]/prijava', params: { id: 't1' } })); await settle();
+  expect(tabHistory()).toEqual(['index', 'prilike/[id]', 'prilike/[id]/prijava']);
+  // prilike/[id]/prijava.tsx: a sent application replaces its form with Moje prijave.
+  await act(async () => router.replace({ pathname: '/moje-prijave', params: { prijavaId: 'p1' } })); await settle();
+  expect(tabState().focused).toBe('moje-prijave');
+  expect(tabHistory()).toEqual(['index', 'prilike/[id]', 'moje-prijave']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('prilike/[id]');
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+});
+
+// raspored.tsx: the calendar opened cold (a notification, a shared link) has nothing behind it and its arrow replaces it
+// with Dogovori. Back from Dogovori must not open the calendar again.
+test('Raspored opened cold and replaced by Dogovori does not stay in the Back history', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/raspored" />); });
+  await settle();
+  expect(tabState().focused).toBe('raspored');
+  await act(async () => router.replace('/dogovori')); await settle();
+  expect(tabState().focused).toBe('dogovori');
+  expect(tabHistory()).toEqual(['dogovori']); expect(router.canGoBack()).toBe(false);
+});
+
+// potrebe.tsx: Moji zadaci opened cold replaces itself with Početna on its arrow.
+test('Moji zadaci opened cold and replaced by Početna does not stay in the Back history', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/potrebe" />); });
+  await settle();
+  expect(tabState().focused).toBe('potrebe');
+  await act(async () => router.replace('/')); await settle();
+  expect(tabState().focused).toBe('index');
+  expect(tabHistory()).toEqual(['index']); expect(router.canGoBack()).toBe(false);
 });
