@@ -3,7 +3,7 @@
   "source_commit": "f63f18d4f73286ef645a00fa21619734456ca7d7",
   "builds": {
     "emulator": { "workflow_run": 35872112413, "apk_sha256": "4872b1d0a4c864d70b4fc81d128d82f49548c9abaa2768254ba661c1f2205479", "checksum_file_matched": true, "installed_on": "emulator-5554 with adb install -r" },
-    "phone": { "workflow_run": 35872117790, "apk_sha256": "4bea6a87b3d0da2b8b81c0764871de4763a4ada8c96c5c9c22004d9dd1c0afdf", "checksum_file_matched": true, "installed_on": null, "note": "phone not connected; the file was handed to the owner" }
+    "phone": { "workflow_run": 35872117790, "apk_sha256": "4bea6a87b3d0da2b8b81c0764871de4763a4ada8c96c5c9c22004d9dd1c0afdf", "checksum_file_matched": true, "installed_on": null, "note": "phone not connected; the verified APK was shared in the desktop app (66.6 MiB is over the 30 MiB limit for phone/web viewers)" }
   },
   "package": "rs.uskoci.dev (development APK from the CI workflow). The Google Play app bundle is built by the owner with eas build --profile production; see RELEASE_CHECKLIST_GOOGLE_PLAY_20260923.md.",
   "local_checks": "tsc clean; Jest 251 suites / 4,803 tests passed on f63f18d4",
