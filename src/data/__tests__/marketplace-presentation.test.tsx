@@ -14,7 +14,9 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'View' },
-  FadeInDown: { duration: () => ({ delay: () => ({}) }) }, useReducedMotion: () => mockReduced }));
+  FadeInDown: { duration: () => ({ delay: () => ({}) }) } }));
+// Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));

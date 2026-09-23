@@ -3,7 +3,8 @@ import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle 
 import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, Check, PaperPlaneTilt } from 'phosphor-react-native';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useReducedMotion } from '../system/motion';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
 import { novac } from '../../lib/novac';

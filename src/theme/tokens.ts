@@ -133,22 +133,9 @@ export const type = {
 } as const;
 
 /**
- * Pokret. Vrednosti nisu izmišljene — dolaze iz pravila:
- * ease-in se ne koristi na UI, izlaz je kraći od ulaza,
- * a sve što je pod prstom ide na spring, ne na timing.
+ * Pokret više nije ovde: jedina lestvica pokreta je `sys.motion` (src/ui/system/tokens.ts, 2026-09-24), uz pravilo da
+ * se ništa što iskazuje činjenicu ne pomera, a jedini izvor za „smanji pokret“ je src/ui/system/motion.ts.
  */
-export const motion = {
-  press: 120, // odziv na dodir
-  toggle: 180, // prekidač, čip
-  enter: 260,
-  exit: 180, // izlaz je kraći od ulaza
-  easeOut: [0.23, 1, 0.32, 1] as const,
-  easeInOut: [0.77, 0, 0.175, 1] as const,
-  sheet: [0.32, 0.72, 0, 1] as const,
-  pressScale: 0.97,
-  spring: { duration: 400, dampingRatio: 0.85 },
-  springSheet: { duration: 300, dampingRatio: 0.8 },
-} as const;
 
 /** Minimalna dodirna meta. Ako je vizuelno manje, širi se hitSlop-om. */
 export const touch = {

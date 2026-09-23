@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, GeoJSONSource, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef } from '@maplibre/maplibre-react-native';
-import { useReducedMotion } from 'react-native-reanimated';
 import { MapPin } from 'phosphor-react-native';
 import { publicFeatures, publicInitialBounds, publicPoint, publicViewport } from '../../data/marketplaceView';
 import { RESOLVED_PIN_MAP_STYLE } from '../location/ResolvedPinMap.types';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
-import { v2 } from './tokens';
 import { sys } from '../system/tokens';
+import { useReducedMotion } from '../system/motion';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
@@ -45,7 +44,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         const zoom = await source.current?.getClusterExpansionZoom(properties.cluster_id);
         if (!owns() || load.current !== 'ready' || typeof zoom !== 'number' || !Number.isFinite(zoom)) return;
         const options = { center: [coordinates[0], coordinates[1]] as [number, number], zoom: Math.min(18, Math.max(0, zoom)) };
-        if (reduced) camera.current?.jumpTo(options); else camera.current?.easeTo({ ...options, duration: v2.motion.screenMs });
+        if (reduced) camera.current?.jumpTo(options); else camera.current?.easeTo({ ...options, duration: sys.motion.camera });
       } catch { /* Native source may retire during a refresh; no invented selection. */ }
     } else if (typeof properties?.needId === 'string') {
       const actual = latest.current.props.items.find(item => item.id === properties.needId), point = actual && publicPoint(actual);
@@ -58,7 +57,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
   const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
   const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
-  const changeZoom = (delta: number) => { if (owns() && load.current === 'ready' && viewport) camera.current?.zoomTo(Math.min(18, Math.max(0, viewport.zoom + delta)), { duration: reduced ? 0 : v2.motion.screenMs }); };
+  const changeZoom = (delta: number) => { if (owns() && load.current === 'ready' && viewport) camera.current?.zoomTo(Math.min(18, Math.max(0, viewport.zoom + delta)), { duration: reduced ? 0 : sys.motion.camera }); };
   return <View style={s.container}>
     <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
@@ -75,18 +74,18 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
         {/* Pins and clusters wear the brand green (2026-09-23); HITNO keeps the danger red, the chosen one an orange ring. */}
-        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': v2.color.teal, 'circle-stroke-width': 3, 'circle-stroke-color': v2.color.surface }} />
+        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': sys.color.green, 'circle-stroke-width': 3, 'circle-stroke-color': sys.color.surface }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
-          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': v2.color.surface }} />
+          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], v2.color.danger, v2.color.teal],
-            'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], v2.color.orange, v2.color.surface] }} />
+          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green],
+            'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], sys.color.orange, sys.color.surface] }} />
         <Layer id="need-pin-centers" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': 5, 'circle-color': v2.color.surface }} />
+          paint={{ 'circle-radius': 5, 'circle-color': sys.color.surface }} />
       </GeoJSONSource>
       {point && selected ? <ViewAnnotation id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${selected.naslov}, približna lokacija`} style={[s.selectedPin, displaysUrgent(selected.urgency, urgencyNow) && { backgroundColor: v2.color.danger }]}>
-          <MapPin size={23} color={v2.color.surface} />
+        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${selected.naslov}, približna lokacija`} style={[s.selectedPin, displaysUrgent(selected.urgency, urgencyNow) && { backgroundColor: sys.color.danger }]}>
+          <MapPin size={23} color={sys.color.surface} />
         </View>
       </ViewAnnotation> : null}
     </Map>
@@ -94,8 +93,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <View style={s.area}><V2Action label="Pretraži ovu oblast" disabled={!viewport} onPress={() => { if (owns() && viewport) props.onSearchArea(viewport.bounds); }} /></View>
       <View style={s.zoom}>{[['Uvećaj mapu', '+', 1], ['Umanji mapu', '−', -1]].map(([label, text, delta]) => <Press key={String(label)} accessibilityRole="button" accessibilityLabel={String(label)}
         accessibilityState={{ disabled: !viewport }} disabled={!viewport} haptic="select" onPress={() => changeZoom(Number(delta))} style={s.zoomButton}><T style={s.zoomText}>{text}</T></Press>)}</View>
-    </> : <View style={s.feedback}>{status === 'loading' ? <><ActivityIndicator color={v2.color.teal} /><T style={v2.text.body}>Učitavamo mapu…</T></>
-      : <><T accessibilityRole="alert" style={v2.text.title}>Mapa nije učitana</T><T style={v2.text.body}>Proveri vezu. Zadaci i filteri ostaju u Listi.</T>
+    </> : <View style={s.feedback}>{status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></>
+      : <><T accessibilityRole="alert" style={sys.type.title}>Mapa nije učitana</T><T style={sys.type.body}>Proveri vezu. Zadaci i filteri ostaju u Listi.</T>
         <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
         <V2Action label="Pogledaj listu" onPress={props.onList} /></>}</View>}
     <View style={s.attribution}><T style={s.credit} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
@@ -113,12 +112,12 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
   return <MapSession key={`${owner.epoch}:${attempt}`} {...props} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
 }
-const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: v2.color.soft }, map: { flex: 1 },
+const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
   area: { position: 'absolute', top: 12, left: 16, right: 76 }, zoom: { position: 'absolute', top: 12, right: 12, gap: 6 },
-  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: v2.color.surface },
-  zoomText: { ...sys.type.cardTitle, color: v2.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
-    borderWidth: 3, borderColor: v2.color.orange, backgroundColor: v2.color.teal, alignItems: 'center', justifyContent: 'center' },
-  feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: v2.color.canvas },
-  attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: v2.color.surface, padding: 4 },
-  credit: { ...v2.text.label, color: v2.color.muted },
+  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: sys.color.surface },
+  zoomText: { ...sys.type.cardTitle, color: sys.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
+    borderWidth: 3, borderColor: sys.color.orange, backgroundColor: sys.color.green, alignItems: 'center', justifyContent: 'center' },
+  feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
+  attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: sys.color.surface, padding: 4 },
+  credit: { ...sys.type.label, color: sys.color.muted },
 });

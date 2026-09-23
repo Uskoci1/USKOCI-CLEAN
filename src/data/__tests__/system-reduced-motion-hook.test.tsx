@@ -1,6 +1,17 @@
 import React from 'react';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
+import { useReducedMotion, useReducedMotionRoot } from '../../ui/system/motion';
+
+/**
+ * The one reduced-motion store (src/ui/system/motion.ts, 2026-09-24). `useSystemReducedMotion` is the same store under
+ * its older name. Until today each hook instance asked the platform on its own and took its startup value from
+ * Reanimated; now the root layout seeds the store once with that launch value and follows the platform for as long
+ * as it is mounted, and every reader sees one answer. The cases below are the ones the per-hook version was held to,
+ * with the root standing where each hook used to start.
+ */
 
 const mockCurrent = jest.fn();
 const mockPreferenceSubscribe = jest.fn();
@@ -10,7 +21,6 @@ type Subscription<T> = { callback: (value: T) => void; remove: jest.Mock };
 const mockPreferences: Subscription<boolean>[] = [];
 const mockForegrounds: Subscription<string>[] = [];
 
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockStartup }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -36,9 +46,19 @@ function Probe() {
   rendered.push(reduced);
   return React.createElement('Snapshot', { reduced });
 }
+/** A second reader through the store's own name, as a component deep in a screen reads it. */
+function Other() {
+  return React.createElement('Other', { reduced: useReducedMotion() });
+}
+/** Stands where the root layout stands: seeds with the launch value, then follows the platform. */
+function Root({ children }: { children?: React.ReactNode }) {
+  useReducedMotionRoot(mockStartup);
+  return <>{children ?? <Probe />}</>;
+}
 let tree: ReactTestRenderer | undefined;
 const snapshot = () => tree!.root.findByType('Snapshot' as React.ElementType).props.reduced as boolean;
-function mount() { act(() => { tree = create(<Probe />); }); }
+const other = () => tree!.root.findByType('Other' as React.ElementType).props.reduced as boolean;
+function mount(element: React.ReactElement = <Root />) { act(() => { tree = create(element); }); }
 function unmount() { act(() => { tree?.unmount(); tree = undefined; }); }
 function preference(value: boolean) { act(() => { mockPreferences.at(-1)!.callback(value); }); }
 function foreground(value: string) { act(() => { mockForegrounds.at(-1)!.callback(value); }); }
@@ -60,7 +80,7 @@ beforeEach(() => {
 });
 afterEach(unmount);
 
-it.each([false, true])('renders the Reanimated startup snapshot %s while the current native query is pending', startup => {
+it.each([false, true])('renders the root\'s launch snapshot %s while the current native query is pending', startup => {
   mockStartup = startup; mount();
   expect(rendered).toEqual([startup]); expect(snapshot()).toBe(startup);
   expect(mockCurrent).toHaveBeenCalledTimes(1);
@@ -75,11 +95,23 @@ it.each([false, true])('replaces a stale cached startup value with the native cu
   await act(async () => { query.resolve(current); }); expect(snapshot()).toBe(current);
 });
 
-it('applies runtime on/off events without waiting for a hanging startup query', () => {
-  mount(); preference(true); expect(snapshot()).toBe(true);
-  preference(false); expect(snapshot()).toBe(false);
+it('follows the change event: every reader turns with one event, on and off, without waiting for a hanging query', () => {
+  mount(<Root><Probe /><Other /></Root>);
+  expect([snapshot(), other()]).toEqual([false, false]);
+  preference(true); expect([snapshot(), other()]).toEqual([true, true]);
+  preference(false); expect([snapshot(), other()]).toEqual([false, false]);
   expect(mockCurrent).toHaveBeenCalledTimes(1);
+  // One subscription for the whole app, however many components read it.
   expect(mockPreferenceSubscribe).toHaveBeenCalledTimes(1);
+  expect(mockForegroundSubscribe).toHaveBeenCalledTimes(1);
+});
+
+it('a reader without a mounted root never touches a native API and reads "not reduced"', () => {
+  mount(<Probe />);
+  expect(snapshot()).toBe(false);
+  expect(mockCurrent).not.toHaveBeenCalled();
+  expect(mockPreferenceSubscribe).not.toHaveBeenCalled();
+  expect(mockForegroundSubscribe).not.toHaveBeenCalled();
 });
 
 it('rejects the startup query after a newer preference event, including an on/off ABA transition', async () => {
@@ -119,7 +151,7 @@ it('keeps the known preference after native query failure and recovers on a late
 
 it('does not reset a current runtime preference or replace listeners on rerender', () => {
   mockStartup = true; mount(); preference(false);
-  act(() => { tree!.update(<Probe />); });
+  act(() => { tree!.update(<Root />); });
   expect(snapshot()).toBe(false);
   expect(mockPreferenceSubscribe).toHaveBeenCalledTimes(1);
   expect(mockForegroundSubscribe).toHaveBeenCalledTimes(1);
@@ -140,4 +172,12 @@ it('removes both native subscriptions and isolates late responses and queued eve
   preference(false); expect(snapshot()).toBe(false);
   expect(mockPreferences).toHaveLength(2); expect(mockForegrounds).toHaveLength(2);
   expect(mockPreferences[1].remove).not.toHaveBeenCalled();
+});
+
+it('the store itself imports no Reanimated, so every route suite can load it', () => {
+  const source = readFileSync(join(__dirname, '../../ui/system/motion.ts'), 'utf8');
+  expect(source).not.toMatch(/react-native-reanimated/);
+  const alias = readFileSync(join(__dirname, '../../hooks/useSystemReducedMotion.ts'), 'utf8');
+  expect(alias).not.toMatch(/react-native-reanimated/);
+  expect(alias).toMatch(/from '\.\.\/ui\/system\/motion'/);
 });

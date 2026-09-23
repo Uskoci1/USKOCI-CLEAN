@@ -15,7 +15,8 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => true }));
+// Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() } }));

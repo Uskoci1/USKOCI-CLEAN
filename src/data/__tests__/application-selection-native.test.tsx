@@ -22,7 +22,9 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' }, useReducedMotion: () => true, FadeIn: { duration: () => ({}) } }));
+jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' }, FadeIn: { duration: () => ({}) } }));
+// Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));

@@ -20,10 +20,8 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../../ui/Text';
 import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
-import { aiFirst as a } from '../../ui/aiFirst/tokens';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { brandAction, sys } from '../../ui/system/tokens';
-import { type } from '../../theme/tokens';
 import { DOGOVORENA_ZONA, dogovorenoVreme } from '../../lib/dogovorenoVreme';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
@@ -318,7 +316,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <DetailTopBar backLabel="Nazad u razgovor" onBack={back}
         title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled zadatka'} />
-      {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
+      {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={sys.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {review ? <>
           {blockReason ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{blockReason}</T>
@@ -421,21 +419,21 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: a.color.surface },
-  meta: { ...a.text.meta, color: a.color.muted }, body: { ...a.text.body, color: a.color.ink },
-  content: { padding: 20, gap: 24 }, section: { gap: 8 }, sectionTitle: { ...a.text.card, color: a.color.ink },
-  hero: { ...type.hero, color: a.color.ink },
+  canvas: { flex: 1, backgroundColor: sys.color.surface },
+  meta: { ...sys.type.meta, color: sys.color.muted }, body: { ...sys.type.body, color: sys.color.ink },
+  content: { padding: 20, gap: 24 }, section: { gap: 8 }, sectionTitle: { ...sys.type.cardTitle, color: sys.color.ink },
+  hero: { ...sys.type.hero, color: sys.color.ink },
   inlineValue: { flexShrink: 1, textAlign: 'right' },
-  field: { borderBottomWidth: 1, borderBottomColor: a.color.line, paddingVertical: 12, gap: 4 },
+  field: { borderBottomWidth: 1, borderBottomColor: sys.color.line, paddingVertical: 12, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, editButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'flex-end' },
-  editLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green }, private: { padding: 16, borderRadius: sys.radius.cardCompact, backgroundColor: a.color.wash },
-  input: { ...a.text.body, padding: 12, borderWidth: 1, borderColor: a.color.green, borderRadius: sys.radius.control, minHeight: 56, color: a.color.ink },
-  notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: a.color.warm, gap: 12 },
-  noticeDone: { flexDirection: 'row', alignItems: 'center', backgroundColor: sys.color.greenSoft }, grow: { flex: 1 }, error: { ...a.text.meta, color: a.color.danger },
-  footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: a.color.line, gap: sys.space.sm },
+  editLabel: { ...sys.type.meta, fontWeight: '600', color: sys.color.green }, private: { padding: 16, borderRadius: sys.radius.cardCompact, backgroundColor: sys.color.wash },
+  input: { ...sys.type.body, padding: 12, borderWidth: 1, borderColor: sys.color.green, borderRadius: sys.radius.control, minHeight: 56, color: sys.color.ink },
+  notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.orangeSoft, gap: 12 },
+  noticeDone: { flexDirection: 'row', alignItems: 'center', backgroundColor: sys.color.greenSoft }, grow: { flex: 1 }, error: { ...sys.type.meta, color: sys.color.danger },
+  footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line, gap: sys.space.sm },
   /** The one brand action of the screen, on the system's shape. */
   publish: { ...brandAction, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
-  publishLabel: { ...a.text.body, fontWeight: '700', color: sys.color.onGreen },
+  publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   photoTile: { width: '48%', aspectRatio: 1 },
 });

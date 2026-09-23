@@ -4,7 +4,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { useReducedMotion as useLaunchReducedMotion } from 'react-native-reanimated';
 import { sys } from '../ui/system/tokens';
+import { useReducedMotionRoot } from '../ui/system/motion';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
@@ -21,6 +23,9 @@ export { AppErrorBoundary as ErrorBoundary };
 export const unstable_settings = { screenErrorBoundary: AppErrorBoundary };
 
 export default function RootLayout() {
+  // The one reduced-motion store starts here: Reanimated read the system setting natively at launch, so the first frame
+  // of the first screen already respects it, and from here the store follows every change (ui/system/motion.ts).
+  useReducedMotionRoot(useLaunchReducedMotion());
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();

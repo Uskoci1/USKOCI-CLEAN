@@ -5,14 +5,14 @@ import Animated, {
   withSpring,
   withTiming,
   Easing,
-  useReducedMotion,
   ReduceMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { motion, touch } from '../theme/tokens';
+import { useReducedMotion } from './system/motion';
+import { sys } from './system/tokens';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const EASE_OUT = Easing.bezier(...motion.easeOut);
+const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 export type HapticKind = 'none' | 'select' | 'light' | 'medium' | 'success' | 'error';
 
@@ -54,10 +54,14 @@ type Props = Omit<PressableProps, 'style'> & {
  * kao greška a ne kao potvrda.
  *
  * Sve radi na UI niti — dodir ostaje gladak i kad JS radi nešto drugo.
+ *
+ * Kad je u sistemu uključeno „smanji pokret“, površina se ne skuplja uopšte: haptika i promena stanja ostaju,
+ * pokret nestaje. Podešavanje se čita iz jednog izvora (ui/system/motion), pa važi i ako se promeni dok je
+ * aplikacija otvorena.
  */
 export function Press({
   style,
-  scaleTo = motion.pressScale,
+  scaleTo = sys.motion.pressScale,
   haptic = 'none',
   onPressIn,
   onPressOut,
@@ -75,20 +79,21 @@ export function Press({
   return (
     <AnimatedPressable
       {...rest}
-      hitSlop={hitSlop ?? touch.gap}
+      hitSlop={hitSlop ?? sys.touch.gap}
       style={[style, animated]}
       onPressIn={(e) => {
         if (!reduced) {
-          s.set(withTiming(scaleTo, { duration: motion.press, easing: EASE_OUT }));
+          s.set(withTiming(scaleTo, { duration: sys.motion.press, easing: EASE_OUT }));
         }
         if (haptic !== 'none') fire(haptic);
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
+        // Under reduced motion the surface is put back at once, even if the setting changed mid-press.
         s.set(
           reduced
             ? 1
-            : withSpring(1, { ...motion.spring, reduceMotion: ReduceMotion.System }),
+            : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System }),
         );
         onPressOut?.(e);
       }}

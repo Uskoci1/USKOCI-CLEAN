@@ -25,7 +25,7 @@ import { T } from '../../ui/Text';
  * the three real tabs stays instant, which is what the tab contract records and what a tab bar is for.
  */
 const PUSH_TRANSITION = { animation: 'shift' as const,
-  transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.enter } } };
+  transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.push } } };
 
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
-import { radius, space } from '../../theme/tokens';
 import { sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
@@ -183,7 +182,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         on the public Task these three lines printed as a strip of instrument output under the map —
         latitude and longitude, "Mapa je centrirana", "Prikazana je izabrana lokacija" — where the
         screen's own sentence belongs. A screen reader still hears the point: it is on the frame. */}
-    {pin && !disabled ? <View style={{ gap: space.xs }}>
+    {pin && !disabled ? <View style={{ gap: sys.space.xs }}>
       <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
         variant="meta" tone="muted">{coordinateText}</T>
@@ -221,11 +220,11 @@ export function ResolvedPinMap(props: ResolvedPinMapProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: space.sm },
-  frame: { height: 320, borderRadius: radius.card, overflow: 'hidden', backgroundColor: sys.color.greenSoft },
+  container: { gap: sys.space.sm },
+  frame: { height: 320, borderRadius: sys.radius.card, overflow: 'hidden', backgroundColor: sys.color.greenSoft },
   map: { flex: 1 },
-  feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: space.lg,
-    gap: space.md, backgroundColor: sys.color.surface },
-  attribution: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingTop: space.xs },
+  feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
+    gap: sys.space.md, backgroundColor: sys.color.surface },
+  attribution: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.md, paddingTop: sys.space.xs },
   marker: { width: 44, height: 48 },
 });

@@ -1,7 +1,6 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useReducedMotion } from 'react-native-reanimated';
 import { CaretRight } from 'phosphor-react-native';
 import { FactArt } from '../system/FactArt';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
@@ -14,11 +13,11 @@ import { calendarInstant } from '../../lib/calendarTime';
 import { displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { brandAction, sys } from '../system/tokens';
+import { useReducedMotion } from '../system/motion';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { pointsMissing } from '../../lib/location';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
-import { aiFirst as a } from '../aiFirst/tokens';
 import { novac } from '../../lib/novac';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.

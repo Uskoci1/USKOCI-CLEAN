@@ -1,5 +1,13 @@
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
-import { elevation, motion, radius, space, touch, type } from '../../theme/tokens';
+import { elevation, palette, radius, space, touch, type } from '../../theme/tokens';
+
+/**
+ * `sys` is the one surface screens and components read for colour, type, space, corners, touch and motion (2026-09-24:
+ * the older `theme/tokens`, `aiFirst` and `v2` token files are no longer read by a screen). It may build on the theme
+ * scale here, inside the system; nothing outside it imports that scale directly. A nested corner is geometry, not a
+ * value, so it is exported beside `sys`.
+ */
+export { nested } from '../../theme/tokens';
 
 /**
  * One light system for every inner screen (PKG-011, redesigned 2026-09-16 against
@@ -18,7 +26,12 @@ import { elevation, motion, radius, space, touch, type } from '../../theme/token
  * ink on surface 15.3 · muted on surface 5.5 · muted on greenSoft 5.0 · muted on wash 5.0 ·
  * green on surface 6.3 · white on green 6.3 · green on greenSoft 5.7 · money on surface 5.3 ·
  * onOrange on orange 6.2 (white on orange is 2.5 — a defect, so text on orange is always dark) · onGreen on green 6.3 ·
- * ink on orangeSoft 14.2 · danger on dangerSoft 6.0 · warn on warnSoft 5.9.
+ * ink on orangeSoft 14.2 · danger on dangerSoft 6.0 · warn on warnSoft 5.9 · fact on surface 6.6 · attentionInk on
+ * surface 5.9 · waitingInk on orangeSoft 6.7 · orangeInk on surface 5.3 · onDark on green 5.7.
+ *
+ * A colour that was written by hand beside this list and sat a hair off one of its values (CIEDE2000 ≤ 2.5, below what
+ * reads as a different colour) now uses that value: two colours that nearly agree are worse than one. The ones that are
+ * clearly their own colour got a name here instead, so nothing outside the token files spells a colour.
  */
 export const sys = {
   color: {
@@ -52,6 +65,33 @@ export const sys = {
     greenEdge: '#226B52',
     orangeEdge: '#E57917',
     orangeHalo: '#FFD2A8',
+    /** A fact beside its icon on a card (where, when): a step darker than muted, so a scanned list reads. */
+    fact: '#4F6157',
+    /** A count that asks for attention, on white: few places left. */
+    attentionInk: '#985223',
+    /** The words on a waiting chip, which sits on orangeSoft. */
+    waitingInk: '#874515',
+    /** Orange as words. The action orange fails as text (2.5:1), so a word that must read orange uses this. */
+    orangeInk: palette.orangeInk,
+    /** Words on a filled green or dark surface that is not the primary action (a chosen day), and their quiet partner. */
+    onDark: palette.onDark,
+    onDarkMuted: palette.onDarkMuted,
+  },
+  /**
+   * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
+   * Where the drawing used a colour a hair off the palette it now uses the palette colour (its ground shadow is iconWell,
+   * the back sheet greenSoft, the pin orange); these are the tones that are deliberately its own.
+   */
+  art: {
+    /** The two ends of the green disc's gradient. */
+    leafLight: '#24866A',
+    leafDeep: '#0D5141',
+    paperEdge: '#D8E7DF',
+    /** The title line on the paper, and the two quieter lines under it. */
+    paperTitle: '#327960',
+    paperRule: '#C8DBD0',
+    spark: '#FFAD60',
+    dot: '#AECDBB',
   },
   /** One scale, defined once in `theme/tokens`. A circle or capsule is `pill`, never half of its own width. */
   radius,
@@ -70,7 +110,38 @@ export const sys = {
     /** The letter standing in for a photo, on a 96px avatar. */
     monogram: { fontSize: 30, lineHeight: 36, fontWeight: '700' } as TextStyle,
   },
-  motion,
+  /**
+   * Motion, in milliseconds. Short, and only on a real change of state: a press, a switch, something arriving or
+   * leaving, a screen pushed, the map camera moving. Exit is shorter than entry, and UI never eases in.
+   *
+   * THE RULE: nothing that states a fact animates. A price, an amount, a time, a place, a count, a status word or a
+   * button label appears in its final form — never counted up, cross-faded between values or slid in on its own. What
+   * moves is the container that carries it (a row arriving, a sheet opening), and under reduced motion nothing moves
+   * at all: read `useReducedMotion` from `ui/system/motion`, the one source for that preference.
+   */
+  motion: {
+    /** Response to a finger. */
+    press: 120,
+    /** A switch, a chip, a segment. */
+    toggle: 180,
+    /** Something arriving: a row, a panel, a confirmation. */
+    enter: 240,
+    exit: 160,
+    /** A screen pushed onto the stack. */
+    push: 280,
+    /** The map camera flying to a place. */
+    camera: 360,
+    /** The step between rows arriving together; stops after six rows. */
+    stagger: 40,
+    easeOut: [0.23, 1, 0.32, 1] as const,
+    easeInOut: [0.77, 0, 0.175, 1] as const,
+    sheet: [0.32, 0.72, 0, 1] as const,
+    /** How far a pressed surface gives under the finger. */
+    pressScale: 0.97,
+    /** Everything under a finger settles on a spring, not a timing curve. */
+    spring: { duration: 400, dampingRatio: 0.85 },
+    springSheet: { duration: 300, dampingRatio: 0.8 },
+  },
   touch,
   elevation,
 } as const;

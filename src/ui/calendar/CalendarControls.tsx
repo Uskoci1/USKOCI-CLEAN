@@ -2,7 +2,7 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
-import { useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from '../system/motion';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { brandAction, sys, card, cardCompact, fieldBox } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';

@@ -6,7 +6,7 @@ import { PermissionRecovery } from '../system/PermissionRecovery';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { v2 } from '../v2/tokens';
+import { sys } from '../system/tokens';
 
 export function AgreementPhotoComposer({ photos, capturing }: { photos: AgreementPhotosController; capturing: boolean }) {
   const [showSaved, setShowSaved] = useState(false);
@@ -24,12 +24,12 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
       {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proveri njen ishod.</T> : <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Press accessibilityRole="button" accessibilityLabel={`Ukloni pripremljenu fotografiju ${index + 1}`} disabled={disabled}
           onPress={() => { void photos.remove(item.ref); }} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <T variant="action" style={{ color: v2.color.ink }}>Ukloni</T>
+          <T variant="action" style={{ color: sys.color.ink }}>Ukloni</T>
         </Press>
         {photos.canRetry(item.ref.clientRequestId) && item.receipt?.state !== 'READY' ? <Press accessibilityRole="button"
           accessibilityLabel={`Ponovi istu fotografiju ${index + 1}`} disabled={disabled}
           onPress={() => { void photos.retry(item.ref); }} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <T variant="action" style={{ color: v2.color.ink }}>Proveri i ponovi</T>
+          <T variant="action" style={{ color: sys.color.ink }}>Proveri i ponovi</T>
         </Press> : null}
       </View>}
     </View>)}

@@ -1,26 +1,6 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, AppState } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
-
-/** Reanimated supplies the startup snapshot; native events keep it current. */
-export function useSystemReducedMotion() {
-  const initial = useReducedMotion();
-  const [reduced, setReduced] = useState(initial);
-  useEffect(() => {
-    let active = true, revision = 0;
-    const refresh = () => {
-      const request = ++revision;
-      void AccessibilityInfo.isReduceMotionEnabled().then(value => {
-        if (active && request === revision) setReduced(value);
-      }).catch(() => {});
-    };
-    const preference = AccessibilityInfo.addEventListener('reduceMotionChanged', value => {
-      revision++;
-      if (active) setReduced(value);
-    });
-    const foreground = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
-    refresh();
-    return () => { active = false; revision++; preference.remove(); foreground.remove(); };
-  }, []);
-  return reduced;
-}
+/**
+ * The one reduced-motion source is `src/ui/system/motion.ts`: a store the root layout seeds with the launch value and
+ * keeps current from the accessibility change event and every return to the foreground. This name stays so the
+ * screens that already read it keep reading the same answer as everything else.
+ */
+export { useReducedMotion as useSystemReducedMotion } from '../ui/system/motion';

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { readBuildIdentity } from '../data/buildIdentity';
-import { space, type } from '../theme/tokens';
 import { sys } from './system/tokens';
 
 const targets = {
@@ -29,9 +28,9 @@ export function BuildIdentity() {
 }
 
 const styles = StyleSheet.create({
-  root: { gap: space.sm },
+  root: { gap: sys.space.sm },
   button: { minHeight: 48, justifyContent: 'center', alignItems: 'center' },
-  label: { color: sys.color.muted, ...type.meta, textAlign: 'center' },
-  details: { gap: space.sm, paddingHorizontal: space.sm },
-  copy: { color: sys.color.muted, ...type.meta },
+  label: { color: sys.color.muted, ...sys.type.meta, textAlign: 'center' },
+  details: { gap: sys.space.sm, paddingHorizontal: sys.space.sm },
+  copy: { color: sys.color.muted, ...sys.type.meta },
 });

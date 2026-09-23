@@ -36,14 +36,14 @@ export function useAppear() {
   return api.current;
 }
 
-/** The 40ms step is per row, and stops at six: past that it is a wait, not a rhythm. */
+/** The stagger step (`sys.motion.stagger`) is per row, and stops at six: past that it is a wait, not a rhythm. */
 export function Appear({ index = 0, animate = true, children, style }: {
   index?: number; animate?: boolean; children: ReactNode; style?: object;
 }) {
   const reduced = useReducedMotion();
   return <Animated.View style={style}
     entering={reduced || !animate ? undefined
-      : FadeInDown.duration(sys.motion.enter).delay(Math.min(index, 6) * 40)}>
+      : FadeInDown.duration(sys.motion.enter).delay(Math.min(index, 6) * sys.motion.stagger)}>
     {children}
   </Animated.View>;
 }

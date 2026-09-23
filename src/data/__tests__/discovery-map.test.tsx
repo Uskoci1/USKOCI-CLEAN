@@ -11,7 +11,8 @@ jest.mock('@maplibre/maplibre-react-native', () => {
 });
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } }); });
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReduced }));
+// Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));

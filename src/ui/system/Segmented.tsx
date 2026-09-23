@@ -3,13 +3,12 @@ import { Animated, Easing, ScrollView, StyleSheet, View, type LayoutChangeEvent 
 import { Press } from '../Press';
 import { T } from '../Text';
 import { useReducedMotion } from './motion';
-import { sys } from './tokens';
-import { motion, nested } from '../../theme/tokens';
+import { nested, sys } from './tokens';
 
 export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label; not part of the spoken label. */ badge?: number | string;
   /** A set that needs the person ("Čeka te") keeps an orange count; every other count is quiet (V41). */ badgeTone?: 'attention' };
 
-const EASE_OUT = Easing.bezier(...motion.easeOut);
+const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 /**
  * Segmented control (V4.9 segment): a quiet track, the selected segment is a white
@@ -37,7 +36,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
     if (!target) return;
     // The first placement is where the pill already is; only a change of segment moves.
     if (!placed.current || reduced) { translateX.setValue(target.x); placed.current = true; return; }
-    const slide = Animated.timing(translateX, { toValue: target.x, duration: motion.toggle, easing: EASE_OUT, useNativeDriver: true });
+    const slide = Animated.timing(translateX, { toValue: target.x, duration: sys.motion.toggle, easing: EASE_OUT, useNativeDriver: true });
     slide.start();
     return () => slide.stop();
   }, [target?.x, reduced, translateX]); // eslint-disable-line react-hooks/exhaustive-deps

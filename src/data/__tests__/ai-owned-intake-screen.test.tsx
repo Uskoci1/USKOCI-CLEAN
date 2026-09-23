@@ -57,6 +57,9 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
+// The options panel reads reduced motion from the one store (ui/system/motion) since 2026-09-24; the conversation shell
+// still asks Reanimated, so both answer the same.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', Circle: 'SvgCircle', Ellipse: 'SvgEllipse', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));

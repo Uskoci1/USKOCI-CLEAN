@@ -1,36 +1,37 @@
 import { Text as RNText, type TextProps } from 'react-native';
-import { palette, type as typeScale } from '../theme/tokens';
 import { withInter } from './interFont';
 import { loadInterWeb } from './loadInterWeb';
 import { sys } from './system/tokens';
 
 loadInterWeb();
 
+const typeScale = sys.type;
 type Variant = keyof typeof typeScale;
 type Tone = 'ink' | 'muted' | 'onDark' | 'onDarkMuted' | 'orange' | 'onOrange' | 'onGreen' | 'green' | 'danger' | 'success';
 
 /**
  * Every word in the app is coloured here, so this is where the app has one voice or several.
- * It had several: text was drawn in the older forest ink #0E3D37 while every card, control and
- * surface around it was built for #183A30. Two greens one shade apart, side by side on every
+ * It had several: text was drawn in the older forest ink while every card, control and surface
+ * around it was built for a different green. Two greens one shade apart, side by side on every
  * screen, is most of why the product read as unfinished rather than as a decision.
  *
- * The light tones now come from `sys`, which is the direction the owner recorded. The dark ones
- * stay in `palette`: `sys` describes white surfaces only, and the recovery screen and dark
- * headers still need ink that survives on forest. The orange stays `orangeInk` too — the action
- * orange is a surface colour and fails as text at 2.51, which is a fact about eyes, not a style.
+ * Every tone now comes from `sys` (2026-09-24), the one token surface. The dark ones are named
+ * there too (`onDark`, `onDarkMuted`) for words on a filled surface. The orange is `orangeInk`:
+ * the action orange is a surface colour and fails as text at 2.51, a fact about eyes, not a style.
+ * `success` was the last of the near-greens — a hair off the action green, below what reads as a
+ * different colour — so it is now that green: a confirmation and a chosen thing speak one green.
  */
 const tones: Record<Tone, string> = {
   ink: sys.color.ink,
   muted: sys.color.muted,
-  onDark: palette.onDark,
-  onDarkMuted: palette.onDarkMuted,
-  orange: palette.orangeInk,
+  onDark: sys.color.onDark,
+  onDarkMuted: sys.color.onDarkMuted,
+  orange: sys.color.orangeInk,
   onOrange: sys.color.onOrange,
   onGreen: sys.color.onGreen,
   green: sys.color.green,
   danger: sys.color.danger,
-  success: palette.success,
+  success: sys.color.green,
 };
 
 type Props = TextProps & {

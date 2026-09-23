@@ -1,5 +1,5 @@
 import Svg, { G, Path } from 'react-native-svg';
-import { v2 } from './tokens';
+import { sys } from '../system/tokens';
 
 /**
  * Exact paths/tones from SPOJ V2 assets/icons/{back,send,chat,chevron}.svg.
@@ -11,7 +11,7 @@ import { v2 } from './tokens';
  * supplied asset and the decision to stop showing it is not a decision to lose it.
  */
 export type V2IconName = 'back' | 'send' | 'chat' | 'chevron';
-export function V2Icon({ name, size = 22, color = v2.color.ink }: { name: V2IconName; size?: number; color?: string }) {
+export function V2Icon({ name, size = 22, color = sys.color.ink }: { name: V2IconName; size?: number; color?: string }) {
   return <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
     strokeLinecap="round" strokeLinejoin="round" strokeWidth={name === 'send' || name === 'chat' ? 1.7 : 1.75}
     accessible={false} focusable={false}>

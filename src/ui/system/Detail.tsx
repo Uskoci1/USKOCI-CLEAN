@@ -74,7 +74,7 @@ export function QuietNote({ children }: { children: ReactNode }) {
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: '#E1EBE3' },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.control },
   stripTitle: { fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: sys.color.line },
   fact: { width: '50%', paddingVertical: 14, paddingRight: 12, gap: 6, borderBottomWidth: 1, borderBottomColor: sys.color.line },
