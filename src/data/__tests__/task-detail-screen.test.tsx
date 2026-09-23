@@ -2,6 +2,9 @@ import React from 'react';
 // The public Task now shows the requester's photograph in the card that opens their profile, so
 // this suite renders `publicPhoto` on every pass instead of only when the profile sheet is open.
 jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', ProfilePhoto: 'ProfilePhoto' }));
+// PKG-047: the screen resolves a safety target through the production client; this suite is about the task detail,
+// so the entry stays absent here and the client module is never loaded.
+jest.mock('../../ui/safety/useSafetyEntry', () => ({ useSafetyEntry: () => undefined }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 
