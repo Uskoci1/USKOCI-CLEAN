@@ -6,7 +6,8 @@ import { useReducedMotion } from './motion';
 import { sys } from './tokens';
 import { motion, nested } from '../../theme/tokens';
 
-export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label; not part of the spoken label. */ badge?: number | string };
+export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label; not part of the spoken label. */ badge?: number | string;
+  /** A set that needs the person ("Čeka te") keeps an orange count; every other count is quiet (V41). */ badgeTone?: 'attention' };
 
 const EASE_OUT = Easing.bezier(...motion.easeOut);
 
@@ -51,8 +52,8 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
       haptic="select" scaleTo={0.98} onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
       style={[s.segment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>
-      {option.badge !== undefined && option.badge !== null ? <View style={s.badge}>
-        <T variant="label" style={s.badgeText}>{String(option.badge)}</T></View> : null}
+      {option.badge !== undefined && option.badge !== null ? <View style={[s.badge, option.badgeTone === 'attention' ? s.badgeAttention : selected ? s.badgeSelected : null]}>
+        <T variant="label" style={[s.badgeText, option.badgeTone === 'attention' ? s.badgeTextAttention : selected ? s.badgeTextSelected : null]}>{String(option.badge)}</T></View> : null}
     </Press>;
   });
   // The track is the grey band, and when the segments scroll it has to be the part that stays put.
@@ -84,6 +85,11 @@ const s = StyleSheet.create({
   underlineSelected: { borderBottomColor: sys.color.green },
   text: { ...sys.type.tab, color: sys.color.muted, textAlign: 'center' },
   selectedText: { color: sys.color.ink, fontWeight: '700' },
-  badge: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: sys.color.onOrange, lineHeight: 14, letterSpacing: 0 },
+  // V41 counts are quiet: grey beside an unselected set, green on the chosen one; orange only for what needs me.
+  badge: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: sys.radius.badge, backgroundColor: sys.color.control, alignItems: 'center', justifyContent: 'center' },
+  badgeSelected: { backgroundColor: sys.color.greenSoft },
+  badgeAttention: { backgroundColor: sys.color.orange },
+  badgeText: { color: sys.color.muted, lineHeight: 14, letterSpacing: 0 },
+  badgeTextSelected: { color: sys.color.green },
+  badgeTextAttention: { color: sys.color.onOrange },
 });

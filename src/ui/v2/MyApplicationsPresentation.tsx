@@ -166,7 +166,7 @@ export function MyApplicationsPresentation(props: Props) {
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
     {/* V41: the sets of my applications are underlined tabs with their counts. */}
     {!props.unavailable && !props.loading ? <Segmented scroll appearance="underline" style={s.tabs} value={props.tab} onChange={props.onTab}
-      options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention') },
+      options={[{ key: 'all', label: 'Sve', badge: badge('all') }, { key: 'attention', label: 'Čeka te', badge: badge('attention'), badgeTone: 'attention' as const },
         { key: 'active', label: 'Aktivne', badge: badge('active') }, { key: 'finished', label: 'Završene', badge: badge('finished') }] as const} /> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={keyOf}
