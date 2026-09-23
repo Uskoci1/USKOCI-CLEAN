@@ -113,6 +113,24 @@ consolidated at the owner's request on 2026-09-22. It covers engineering, push, 
 account data, moderation/support, operator/legal/charging, production and store release. Keep its order
 and completion evidence aligned with the status index. It grants no new permissions or product decisions.
 
+PKG-047 and PKG-048 (2026-09-23, proven and **applied** on the owner's "primeni pkg047a i primeni pkg048a").
+Canonical DEV ledger is now **200 = 147 + 53 dev_alpha**; both are function-only and the certified closure digest
+stays `cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7`, ready, which each candidate asserts
+before and after.
+- **PKG-047a** (F05 / B08 / N06 / N07): `public.rpc_read_safety_target(uuid)`, authenticated only, resolves a
+  public profile into the person behind it plus the caller's own block revision, repeating the visibility of
+  `rpc_get_public_profile` exactly and answering null — never an error — for an unknown, unpublished or hidden
+  profile, the caller's own account, or a block in either direction. Report and block are keyed by the account
+  because a person shows two faces; the owner decided on 2026-09-22 that this id may be disclosed for safety,
+  the same disclosure a Dogovor already makes. The app gains one entry, "Prijavi ili blokiraj", on the public
+  profile sheet, wired from an opportunity and from a candidate. Proof `35805442368`, 10/10.
+- **PKG-048a** (F12 / D02): `rpc_get_agreement_workspace` also returns `needId` and `applicationId`, so a Dogovor
+  can open the Zadatak and the Prijava it grew out of. Nothing new is disclosed — the function already answers
+  only the two parties and each owns its end. Proof `35805788358`, 7/7, including that the rest of the document
+  is byte-identical. **The app does not show the links yet.**
+Receipts: `supabase/operations/dev-alpha/ledger/20260923_pkg047a_application.receipt.json` and
+`…_pkg048a_application.receipt.json`. Neither has been exercised on a phone.
+
 PKG-046 (2026-09-22, proven and **applied**; the owner approved the certificate movement with "primeni pkg046a"):
 task-photo upload cancellation, finding F16 / control row A05. The app's "Odustani od nepotvrđenog slanja" called
 `rpc_cancel_media_upload(uuid,uuid)`, which did not exist on DEV. The 2026-09-16 pkg008 candidate could not be used:

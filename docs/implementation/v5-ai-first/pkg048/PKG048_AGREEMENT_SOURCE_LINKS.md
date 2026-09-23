@@ -1,6 +1,8 @@
 # PKG-048 — the Zadatak and the Prijava a Dogovor grew out of (F12 / D02 / PG04)
 
-Status 2026-09-23: **proven on a disposable database, not applied.** Run `35805788358`, source `48bc8155`, all **7 checks PASS**, receipt `PROOF_35805788358.json`. The surface
+Status 2026-09-23: **proven and APPLIED to canonical DEV** after the owner's explicit "primeni pkg048a". Ledger **200**, `dev_alpha_pkg048a_agreement_source_links` (`20260923012811`); the stored text is `80c0512e…`, byte for byte the text the proof applied. Read back: body `06a6485e…` → `afa60817…`, grants unchanged, both keys present, the certificate still `cc248ff1…` and the source ready; the three existing Agreements were not touched. Receipt: `supabase/operations/dev-alpha/ledger/20260923_pkg048a_application.receipt.json`.
+
+Proof before that: Run `35805788358`, source `48bc8155`, all **7 checks PASS**, receipt `PROOF_35805788358.json`. The surface
 diff is exactly one rewritten function, `06a6485e…` → `afa60817…`, with its grants and the certificate
 unchanged. Application still needs the owner's word.
 

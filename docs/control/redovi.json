@@ -783,11 +783,12 @@
    ],
    "server": [
     "rpc_get_public_profile",
-    "rpc_get_account_reputation"
+    "rpc_get_account_reputation",
+    "rpc_read_safety_target"
    ],
    "telefon": null,
-   "problem": "Javni profil daje profileId, a prijava/blokiranje traže accountId. Ti identifikatori nisu zamenljivi.",
-   "sledece": "PKG-047 napisan 22.09. uveče: jedna nova serverska funkcija rpc_read_safety_target pretvara javni profil u osobu iza njega, uz isto pravilo vidljivosti kao javni profil, i vraća tvoj sopstveni izbor blokiranja. Ti si 22.09. odobrio da broj naloga sme da se otkrije za tu svrhu (isto što Dogovor već radi). U aplikaciji je dugme „Prijavi ili blokiraj“ dodato na javni profil, sa prilike i sa liste prijava. Paket ne pomera sertifikat brisanja naloga i to sam proverava. DOKAZANO: CI 35805442368, 10 od 10 — dodaje se tačno jedna funkcija, sertifikat se ne pomera, anoniman i servisni poziv odbijeni, prijava ostaje privatna. Primena traži tvoju reč („primeni pkg047a“).",
+   "problem": "",
+   "sledece": "PRIMENJENO 23.09. u 01:27 UTC uz tvoju reč. Server sada ima rpc_read_safety_target: sa javnog profila koji smeš da vidiš dobijaš osobu iza njega i svoj sopstveni izbor blokiranja. Sertifikat se nije pomerio (cc248ff1), ledger 199. Dugme „Prijavi ili blokiraj“ stoji na javnom profilu, sa prilike i sa liste prijava. OSTAJE: proveriti na telefonu — za to treba nov APK, jer je ovo izmena u aplikaciji, ne samo na serveru.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -968,12 +969,11 @@
     "agreementClientService"
    ],
    "server": [
-    "rpc_get_agreement_workspace",
-    "NOVO: veza Dogovora sa zadatkom i prijavom"
+    "rpc_get_agreement_workspace"
    ],
    "telefon": null,
-   "problem": "Server ne vraća ID zadatka/prijave iz kojih je Dogovor nastao. Trenutni prikaz istorije ima samo kreiranje, bez stvarnog dolaska/ETA.",
-   "sledece": "PKG-048 napisan 23.09: serverski dokument Dogovora dobija dva ključa — needId i applicationId — pa ekran može da otvori zadatak iz kog je Dogovor nastao i prijavu koja je izabrana. Ništa novo se ne otkriva: funkcija ionako odgovara samo dvema stranama, a svaka strana već poseduje svoj kraj. Telo se ne prekucava: transakcija menja živu definiciju zamenom jednog sidra koje se mora pojaviti tačno jednom, pa ostaje doslovno isto. Ne pomera sertifikat. DOKAZANO: CI 35805788358, 7 od 7 — dokaz pravi pravi Dogovor (objavljen zadatak, prava ponuda, pravi izbor) i potvrđuje da je sve ostalo u dokumentu isto do bajta, da su prava i sertifikat netaknuti i da stranac i dalje ne vidi ništa. Primena traži tvoju reč („primeni pkg048a“). Prikaz koraka napretka (stvarna stanja, bez izmišljenog dolaska) ostaje zaseban posao — vidi D13.",
+   "problem": "Aplikacija još ne prikazuje veze: server ih od 23.09. vraća, ali ekran Dogovora još nema dugmad „Otvori zadatak“ i „Otvori moju prijavu“. Prikaz koraka napretka (stvarna stanja) je zaseban posao, D13.",
+   "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1634,11 +1634,12 @@
    "server": [
     "rpc_set_account_block",
     "rpc_list_my_account_blocks",
-    "rpc_get_account_block"
+    "rpc_get_account_block",
+    "rpc_read_safety_target"
    ],
    "telefon": null,
-   "problem": "Ulazi sa detalja zadatka i javnog profila nedostaju; javna projekcija ne daje accountId koji komanda zahteva. Prodavnice traže funkcionalno prijavljivanje/blokiranje, ne propisuju tačan raspored dugmadi.",
-   "sledece": "Ulaz postoji od PKG-047: „Prijavi ili blokiraj“ na javnom profilu, sa prilike i sa liste prijava, a server tek tada razrešava osobu. Blokiranje i dalje ide na nalog, ne na profil, pa i dalje prati čoveka a ne jedno njegovo lice. Odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. DOKAZANO (CI 35805442368, 10 od 10); čeka tvoju reč za primenu, pa proveru na telefonu.",
+   "problem": "",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Blokiranje i dalje ide na nalog, pa prati čoveka a ne jedno njegovo lice; odblokiranje ostaje u Podešavanja → Blokirani, jer blokirana osoba više nije vidljiva. Dokazano: blokiranje sakrije i profil i cilj, druga strana ne sazna ništa, odblokiranje vrati broj verzije koji sledeće blokiranje traži. OSTAJE provera na telefonu sa novim APK-om.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1664,11 +1665,12 @@
    ],
    "server": [
     "rpc_submit_safety_report",
-    "rpc_read_my_safety_report_command"
+    "rpc_read_my_safety_report_command",
+    "rpc_read_safety_target"
    ],
    "telefon": null,
-   "problem": "Isti problem ciljnog identifikatora kao N06. Čitanje moje prijave potvrđuje prijem, a ne tok istrage ili konačnu odluku.",
-   "sledece": "Isti ulaz kao N06 (PKG-047). Serversko pravilo konteksta je već dozvoljavalo i prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Prijava ostaje privatna i osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod su i dalje zaseban posao.",
+   "problem": "",
+   "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

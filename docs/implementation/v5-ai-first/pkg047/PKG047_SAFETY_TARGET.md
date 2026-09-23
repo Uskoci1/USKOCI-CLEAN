@@ -1,6 +1,8 @@
 # PKG-047 — the safety target of a public profile (F05 / B08 / N06 / N07 / PG01)
 
-Status 2026-09-23: **proven on a disposable database, not applied.** Run `35805442368`, source `f0d7fb7b`,
+Status 2026-09-23: **proven and APPLIED to canonical DEV** after the owner's explicit "primeni pkg047a". Ledger **199**, `dev_alpha_pkg047a_safety_target` (`20260923012714`); the stored text is `95c44806…`, byte for byte the text the proof applied. Read back: body `4f4e88c2…`, ACL `{postgres, authenticated}`, security definer, `search_path=pg_catalog`, STABLE; `rpc_get_public_profile` unchanged; the certificate is still `cc248ff1…` in all three places and the source is ready. Receipt: `supabase/operations/dev-alpha/ledger/20260923_pkg047a_application.receipt.json`.
+
+Proof before that: Run `35805442368`, source `f0d7fb7b`,
 all **10 checks PASS**, receipt `PROOF_35805442368.json`. The surface diff is exactly one added object —
 `rpc_read_safety_target(p_profile_id uuid)`, body `4f4e88c2…`, security definer, `search_path=pg_catalog`,
 ACL `{postgres, authenticated}` — and the certificate is byte-identical before and after. Application still
