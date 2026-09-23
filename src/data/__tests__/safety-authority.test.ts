@@ -51,3 +51,26 @@ it('fences a late private receipt after an account switch', async () => {
   const pending = service.report(report()); mockSession = { user: { id: B }, accountRevision: 2 };
   resolve({ data: receipt(), error: null }); expect(await pending).toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
 });
+
+// PKG-047 (F05): a profile is a face; report and block need the person behind it.
+const P = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const target = () => ({ profileId: P, accountId: A, targetAccountId: B, blocked: false, revision: 2, authoritative: true });
+it('resolves a public profile into the person behind it and asks for nothing else', async () => {
+  mockRpc.mockResolvedValue({ data: target(), error: null });
+  expect(await service.readTarget(P)).toEqual({ ok: true, podatak: { profileId: P, available: true,
+    target: { accountId: A, targetAccountId: B, blocked: false, revision: 2, authoritative: true } } });
+  expect(mockRpc).toHaveBeenCalledWith('rpc_read_safety_target', { p_profile_id: P });
+});
+it('treats a hidden profile as no target rather than a failure', async () => {
+  mockRpc.mockResolvedValue({ data: null, error: null });
+  expect(await service.readTarget(P)).toEqual({ ok: true, podatak: { profileId: P, available: false, target: null } });
+});
+it.each([{ profileId: B }, { targetAccountId: A }, { targetAccountId: 'bad' }, { accountId: B }, { revision: -1 }, { authoritative: false }, { blocked: 'no' }])
+('rejects an uncorrelated safety target %j', async patch => {
+  mockRpc.mockResolvedValue({ data: { ...target(), ...patch }, error: null });
+  expect(await service.readTarget(P)).toMatchObject({ ok: false, kod: 'SAFETY_TARGET_INVALID_RECEIPT' });
+});
+it('refuses a malformed profile before any IO', async () => {
+  expect((await service.readTarget('not-a-profile')).ok).toBe(false);
+  expect(mockRpc).not.toHaveBeenCalled();
+});

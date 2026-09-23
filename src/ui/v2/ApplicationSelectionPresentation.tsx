@@ -12,7 +12,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
-import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
+import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
@@ -317,12 +317,14 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
     <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} disabled={state.loading} /></>;
 }
 /** One offer in full, the public profile as a sheet, and the one choice that forms the Agreement. */
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto }: {
+export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety }: {
   need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>; choose: () => void;
   busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void; error: string | null; confirmed: boolean;
   openAgreement: () => void; reset?: () => void;
   readAgreement: () => Promise<Ishod<{ dogovorId: string | null }>>; openLinkedAgreement: (id: string) => void;
   publicPhoto?: (profileId: string) => ReactNode;
+  /** PKG-047 (F05): report or block this candidate from their own public profile. */
+  safety?: SafetyEntry;
 }) {
   const [review, setReview] = useState(false);
   const [profile, setProfile] = useState<PublicProfileState>(null);
@@ -368,7 +370,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     {confirmed ? <T accessibilityRole="alert" variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
       : !candidate.mozeIzabrati && !pending ? <T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T> : null}
     <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
-    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" />
+    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} roleLabel="Prijavio se" safety={safety} />
   </SelectionFrame>;
 }
 const s = StyleSheet.create({

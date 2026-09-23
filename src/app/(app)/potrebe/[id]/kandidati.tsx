@@ -9,6 +9,7 @@ import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../../../../ui/v2/ApplicationSelectionPresentation';
+import { useSafetyEntry } from '../../../../ui/safety/useSafetyEntry';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
 type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; receipt: Receipt | null };
@@ -46,6 +47,8 @@ export default function Kandidati() {
   const editor = useOwnedEditor(read), data = editor.data;
   const pending = session.pending;
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
+  // F05: a candidate is a person; the server resolves the safety target before bezbednost opens.
+  const safety = useSafetyEntry(candidate?.radnikProfilId, { needId: id ?? null });
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
@@ -100,7 +103,7 @@ export default function Kandidati() {
     open={openOffer} />;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
-    publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />}
+    publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />} safety={safety}
     readAgreement={async () => {
       if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);

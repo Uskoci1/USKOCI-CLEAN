@@ -10,6 +10,9 @@ import { V2Action } from '../v2/V2Action';
 import { sys } from './tokens';
 
 export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
+/** PKG-047 (F05): the one entry into report/block from a profile. The screen owns the read that turns
+ *  this profile into the person behind it; the sheet only offers it and shows what came back. */
+export type SafetyEntry = { onPress: () => void; busy: boolean; error: string | null };
 const reviewsText = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'recenzija' : n % 10 === 1 ? 'recenzija' : n % 10 >= 2 && n % 10 <= 4 ? 'recenzije' : 'recenzija'}`;
 
 /**
@@ -18,8 +21,9 @@ const reviewsText = (n: number) => `${n} ${n % 100 >= 11 && n % 100 <= 14 ? 'rec
  * exposes — a rating, a review count or a verified identity appear solely when
  * the server marks them available. The caller owns the read and its guards.
  */
-export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }: {
+export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel, safety }: {
   state: PublicProfileState; onClose: () => void; onRetry: () => void; photo?: (profileId: string) => ReactNode; roleLabel?: string;
+  safety?: SafetyEntry;
 }) {
   const reduced = useReducedMotion();
   if (!state) return null;
@@ -60,6 +64,14 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, roleLabel }
                 <T variant="bodyStrong" style={{ color: sys.color.green }}>Identitet je potvrđen.</T></View> : null}
             </View> : null}
             {profile.biografija ? <View style={s.card}><T variant="meta" tone="muted">O sebi</T><T variant="body" style={s.ink}>{profile.biografija}</T></View> : null}
+            {safety ? <View style={s.card}>
+              <T variant="meta" tone="muted">Bezbednost</T>
+              <T variant="body" style={s.ink}>Ako te neko uznemirava ili ti nešto ne deluje ispravno, prijavi ga nama ili ga blokiraj. Prijava je privatna i ne vidi je osoba koju prijavljuješ.</T>
+              {safety.error ? <T accessibilityRole="alert" variant="body" style={s.warn}>{safety.error}</T> : null}
+              <V2Action kind="quiet" label={safety.busy ? 'Otvaramo…' : 'Prijavi ili blokiraj'}
+                accessibilityLabel={`Prijavi ili blokiraj korisnika ${profile.ime ?? ''}`.trim()}
+                disabled={safety.busy} onPress={safety.onPress} />
+            </View> : null}
           </>}
       </ScrollView>
     </SafeAreaView>
@@ -71,7 +83,7 @@ const s = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   topCopy: { flex: 1, minWidth: 0, gap: 1 }, eyebrow: { color: sys.color.green, fontWeight: '600' },
-  ink: { color: sys.color.ink }, center: { textAlign: 'center' },
+  ink: { color: sys.color.ink }, center: { textAlign: 'center' }, warn: { color: sys.color.danger },
   content: { padding: 20, gap: 14, paddingBottom: 32 },
   card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line, padding: 18, gap: 10 },
   identity: { alignItems: 'center', gap: 8, paddingVertical: 8 },

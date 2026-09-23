@@ -3,6 +3,7 @@ import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
 import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
 import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
+import { useSafetyEntry } from '../../../ui/safety/useSafetyEntry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIzvor } from '../../../store/uloga';
@@ -122,6 +123,8 @@ export default function PrilikaDetaljiEkran() {
       .catch(() => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: null }); });
   }
   function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); }
+  // F05: the poster is a person, not a profile; the server resolves the target before bezbednost opens.
+  const safety = useSafetyEntry(fresh?.narucilacProfilId, { needId: fresh?.id ?? null });
 
   return <PublicNeedPresentation key={`${accountId}:${epoch}:${id}`}
     qa={fresh && !resource.loading && !resource.error ? <TaskQaEntry disabled={busy} onPress={() => {
@@ -145,5 +148,6 @@ export default function PrilikaDetaljiEkran() {
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/mapa'))}
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
+    safety={safety}
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />} />;
 }

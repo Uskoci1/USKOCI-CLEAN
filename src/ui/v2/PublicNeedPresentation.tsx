@@ -8,7 +8,7 @@ import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } 
 import { osoba } from '../system/plural';
 import { DetailPairs, DisclosureGroup, DisclosureRow, NextStrip, SectionTitle } from '../system/Detail';
 import { ProductFact, ProductFacts, ProductHeader, ProductPerson, ProductRequirements, ProductTitle } from '../product/ProductDetails';
-import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
+import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -22,7 +22,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * Presentation only; the route owns reads, deadline and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
-  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto }: {
+  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
   /** What this account is to this task, from its own tasks and applications. Never from an app mode. */
@@ -34,6 +34,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   onRequesterProfile?: () => void; requesterProfile?: PublicProfileState; onCloseRequesterProfile?: () => void;
   /** The sheet wants a large portrait and the row a small one, so the caller is told which. */
   publicPhoto?: (profileId: string, size?: number) => ReactNode;
+  /** PKG-047 (F05): report or block the person who posted this task, from their own profile. */
+  safety?: SafetyEntry;
 }) {
   const [expanded, setExpanded] = useState(false);
   const rows = need ? needGeographyRows(need) : [];
@@ -106,7 +108,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
-      photo={publicPhoto} roleLabel="Objavio zadatak" /> : null}
+      photo={publicPhoto} roleLabel="Objavio zadatak" safety={safety} /> : null}
   </SafeAreaView>;
 }
 

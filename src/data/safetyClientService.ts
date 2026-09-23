@@ -11,6 +11,10 @@ export type SafetyReportCommand = { targetAccountId: string; needId: string | nu
   category: SafetyCategory; reason: string; narrative: string; clientRequestId: string };
 export type SafetyReportReceipt = { reportId: string; received: true; createdAt: string; clientRequestId: string; idempotentReplay: boolean; authoritative: true };
 export type MyBlockedAccounts = { accountId: string; items: Array<AccountBlockState & { displayName: string | null }>; nextCursor: string | null; authoritative: true };
+/** PKG-047: the person behind a public profile, so report and block can reach them from a screen that
+ *  only ever knew the profile. `available` false is the server's own "this is not a target" — an unknown,
+ *  inactive or hidden profile, the caller's own account, or a block in either direction — never an error. */
+export type SafetyTargetState = { profileId: string; available: boolean; target: AccountBlockState | null };
 export type MySafetyReportCommand = { accountId: string; clientRequestId: string; found: boolean; receipt: SafetyReportReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
@@ -19,6 +23,7 @@ const errors: Readonly<Record<string, string>> = {
   TARGET_NOT_AVAILABLE: 'Korisnik trenutno nije dostupan.',
   REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proveri potvrdu prethodne radnje.',
   SAFETY_REPORT_INPUT_INVALID: 'Proveri kategoriju i dužinu privatne prijave.',
+  SAFETY_TARGET_INPUT_INVALID: 'Ponovo otvori profil korisnika.',
   SAFETY_CONTEXT_NOT_AVAILABLE: 'Ovaj kontekst nije dostupan za prijavu.',
   REPORT_NOT_AVAILABLE: 'Privatna prijava nije dostupna ovom nalogu.',
   INTERACTION_BLOCKED: 'Ova komunikacija trenutno nije dostupna.',
@@ -66,6 +71,20 @@ export const safetyClientService = {
         }
         if (r.nextCursor !== null && (items.length !== 50 || !sameId(r.nextCursor, previous))) return null;
         return { accountId: account.accountId, items, nextCursor: r.nextCursor, authoritative: true };
+      } });
+  },
+  readTarget(profileId: string, explicit?: ReceiptAccount): Promise<Ishod<SafetyTargetState>> {
+    const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');
+    if (!uuid(profileId)) return bad('BLOCK_INPUT_INVALID');
+    return readOwnedResult({ account, request: () => supabaseKlijent().rpc('rpc_read_safety_target', { p_profile_id: profileId }),
+      errors, fallback: 'SAFETY_TARGET_READ_UNAVAILABLE', invalid: 'SAFETY_TARGET_INVALID_RECEIPT', decode: raw => {
+        // A hidden profile is a legitimate answer, not a broken receipt.
+        if (raw === null) return { profileId, available: false, target: null };
+        const r = record(raw);
+        if (!r || !sameId(r.profileId, profileId) || typeof r.targetAccountId !== 'string' || !uuid(r.targetAccountId) ||
+            sameId(r.targetAccountId, account.accountId)) return null;
+        const target = block(r, account.accountId, r.targetAccountId);
+        return target ? { profileId, available: true, target } : null;
       } });
   },
   readReportCommand(requestId: string, explicit?: ReceiptAccount): Promise<Ishod<MySafetyReportCommand>> {
