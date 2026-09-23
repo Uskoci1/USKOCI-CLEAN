@@ -50,7 +50,7 @@ export class SupportController {
     this.prepared = null;
     this.update({ pending: null, absent: false, canReplay: false,
       receipt: command.state === 'COMMITTED' ? command.receipt : null,
-      message: command.state === 'COMMITTED' ? 'Radnja je potvrđena na serveru.'
+      message: command.state === 'COMMITTED' ? 'Radnja je potvrđena.'
         : 'Prvobitno slanje je zaustavljeno. Ranije primljen predmet ostaje sačuvan.' });
   }
   private async recoverPending() {

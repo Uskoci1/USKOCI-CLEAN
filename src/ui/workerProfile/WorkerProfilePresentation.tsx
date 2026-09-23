@@ -107,7 +107,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
       <Field label="Koliko ljudi možeš da obezbediš" value={draft.capacity} change={capacity => patch({ capacity })}
         disabled={disabled || draft.capacityRevision === null} numeric inputRef={capacityRef}
-        hint={draft.capacityRevision === null ? 'Sačuvaj profil i učitaj kapacitet sa servera.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
+        hint={draft.capacityRevision === null ? 'Sačuvaj profil da bi se broj ljudi potvrdio.' : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'} />
       <Terms label="Veštine i usluge" values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
         change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
     </View>

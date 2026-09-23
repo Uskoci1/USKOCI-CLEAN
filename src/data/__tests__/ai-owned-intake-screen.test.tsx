@@ -301,7 +301,7 @@ it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resu
 });
 it('keeps a failed resume as a read failure and does not create another conversation', async () => {
   mockParams = { conversationId: id }; mockLoad.mockRejectedValueOnce(new Error('private backend detail')); await render();
-  expect(text()).not.toContain('private backend detail'); await act(async () => button('Učitaj razgovor ponovo').onPress());
+  expect(text()).not.toContain('private backend detail'); await act(async () => button('Pokušaj ponovo').onPress());
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).toHaveBeenCalledTimes(2);
 });
 it('serializes two retained send taps before render and keeps the original body and key', async () => {

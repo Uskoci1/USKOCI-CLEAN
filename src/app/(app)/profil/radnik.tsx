@@ -164,7 +164,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
       {message ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.green }}>{message}</T> : null}
       {validation || editor.error ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.danger }}>{validation ?? editor.error}</T> : null}
-      {pending && !transportBusy ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikaz potvrđuje samo podatke koji su ponovo pročitani sa servera.</T> : null}
+      {pending && !transportBusy ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.</T> : null}
       <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         unmet={[...(!basicsReady ? ['ime i bar jedna veština'] : []), ...(!locationReady ? ['područje rada'] : []),
           ...(!capacityReady ? ['kapacitet tima'] : [])]} />

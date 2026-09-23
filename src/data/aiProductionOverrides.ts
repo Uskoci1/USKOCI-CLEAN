@@ -125,7 +125,7 @@ export const aiProductionOverrides: AiOverrides = {
 
     let bezbednost: OdlukaBezbednosti = 'REVIEW';
     let bezbednostPoruka: string | null =
-      'Nacrt je sačuvan na serveru. Završna provera i objava ostaju zaključane dok serverski publish gate ne bude zatvoren.';
+      'Nacrt je sačuvan. Objava još nije otvorena — probaj ponovo kasnije.';
 
     for (let i = (messagesResult.data?.length ?? 0) - 1; i >= 0; i -= 1) {
       const row: any = messagesResult.data?.[i];

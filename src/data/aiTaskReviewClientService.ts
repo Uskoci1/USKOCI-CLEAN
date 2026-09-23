@@ -172,7 +172,7 @@ function notReadyCopy(code: string, missing?: readonly string[], stationary = fa
       return 'Fotografije još nisu proverene. Sačekaj proveru ili ih ukloni, pa objavi.';
     case 'POLICY_NOT_READY':
     case 'POLICY_CONTENT_NOT_READY':
-      return 'Pravila objave nisu spremna na serveru. Nije na tebi — nacrt je sačuvan, probaj kasnije.';
+      return 'Objava trenutno nije moguća. Nije do tebe — nacrt je sačuvan, probaj kasnije.';
     case 'EVALUATOR_UNAVAILABLE':
       return 'Provera objave trenutno nije dostupna. Nacrt je sačuvan, probaj ponovo za koji minut.';
     default:

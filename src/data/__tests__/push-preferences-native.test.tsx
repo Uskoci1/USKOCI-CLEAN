@@ -107,7 +107,7 @@ it('reads actual transport evidence independently and never turns a healthy tick
  expect(screenText()).toContain('a ne potvrda da je obaveštenje stiglo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 it('transport failure preserves available device controls with honest missing evidence', async () => {
- mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Nema sveže potvrde');
+ mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Još ne možemo da potvrdimo da slanje obaveštenja radi');
  expect(button('Uključi push za ovu ulogu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
 });
 it('late transport result cannot replace a new account snapshot', async () => {

@@ -71,7 +71,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);if(!live(token))return 'UNKNOWN';
       setIntent(null);setAbsent(false);setClassification(null);setMaterial(s.materiality==='MATERIAL');
       setReceipt(s.state==='CANCELLED'&&s.safeReasonCodes.includes('QA_PROCESSING_FAILED')?'Provera teksta nije uspela. Tekst nije poslat ovim zahtevom. Možeš ponovo da ga pošalješ.'
-        :s.state==='CANCELLED'?'Slanje je otkazano na serveru. Ova radnja neće naknadno objaviti tekst.'
+        :s.state==='CANCELLED'?'Slanje je otkazano. Tekst neće biti objavljen naknadno.'
         :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledaj aktuelna pitanja pre novog slanja.'
          :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmeni zadatak kroz pregled i objavu.'
           :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušaj kasnije.'
@@ -201,7 +201,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
-      {material?<SettingsAction label="Vrati se na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
+      {material?<SettingsAction label="Nazad na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
       {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što server već obrađuje.</T>
         {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesi isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
         {absent?<SettingsAction label="Ponovi isti zahtev" kind="secondary" disabled={busy} onPress={()=>void retry()}/>:null}

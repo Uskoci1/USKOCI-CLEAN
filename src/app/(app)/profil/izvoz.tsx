@@ -10,7 +10,6 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { plural } from '../../../ui/system/plural';
 import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
 import { SkeletonList } from '../../../ui/system/Skeleton';
@@ -24,8 +23,9 @@ const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string
   NOT_AVAILABLE: 'Ova kopija trenutno nije dostupna. Proveri stanje zahteva.',
 };
 type Snapshot = { status: DataExportStatus; preparation: DataExportPreparation | null };
-/** "12.341 bajt", "12.342 bajta", "12.345 bajtova": the grouped number with the Serbian word for it. */
-const bytesLabel = (count: number) => `${count.toLocaleString('sr-Latn')} ${plural(count, 'bajt', 'bajta', 'bajtova').replace(/^\S+\s/, '')}`;
+/** A file size as a person reads it, never in bytes (forensic analysis: no technical text): "12 KB", "1,4 MB". */
+const sizeLabel = (count: number) => count < 1024 ? 'manje od 1 KB' : count < 1024 * 1024 ? `${Math.round(count / 1024)} KB`
+  : `${(count / (1024 * 1024)).toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 })} MB`;
 const changed = () => failure('EXPORT_SCOPE_CHANGED', 'Ponovo otvori izvoz podataka.');
 
 export default function IzvozPodataka() {
@@ -173,7 +173,7 @@ function OwnedExport() {
     {editor.loading ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
       : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
         <T accessibilityRole="alert">{editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.')}</T>
-        <Button label="Učitaj stanje ponovo" onPress={refresh} disabled={editor.busy} />
+        <Button label="Osveži stanje" onPress={refresh} disabled={editor.busy} />
       </SettingsPanel> : <>
         <SettingsPanel soft>
           {step('Zahtev', request?.status === 'CANCELLED' ? 'Zahtev je otkazan.' : request ? 'Zahtev je zabeležen na tvom nalogu.' : 'Kopija podataka tvog naloga.', !!request)}
@@ -186,7 +186,7 @@ function OwnedExport() {
           preparationCopy[editor.data.preparation.code ?? 'NOT_AVAILABLE']}</T></SettingsPanel> : null}
         {available && artifact ? <SettingsPanel>
           <T variant="meta">Dostupno do {vreme(expires)}.</T>
-          <T variant="meta" tone="muted">JSON · {bytesLabel(artifact.byteLength)}</T>
+          <T variant="meta" tone="muted">Datoteka JSON · {sizeLabel(artifact.byteLength)}</T>
         </SettingsPanel> : null}
         <View style={styles.notice}>
           <FactArt kind="shield" size={22} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</T>

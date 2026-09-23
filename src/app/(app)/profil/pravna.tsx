@@ -75,7 +75,7 @@ function OwnedLegal() {
         ].filter(([, value]) => !!value).map(([title, value]) => <View key={title} style={{ gap: 3 }}><T variant="bodyStrong">{title}</T><T variant="meta" tone="muted">{value}</T></View>)}
         <SettingsAction label={`Obaveštenje o privatnosti · ${provider.providerDisplayName}`} kind="quiet" onPress={() => { void openUrl(provider.privacyNoticeUrl); }} />
       </SettingsPanel>) : null}
-      <SettingsAction label="Učitaj stanje ponovo" kind="quiet" disabled={state.busy} onPress={() => { if (current()) void controller.refresh(); }} />
+      <SettingsAction label="Osveži stanje" kind="quiet" disabled={state.busy} onPress={() => { if (current()) void controller.refresh(); }} />
     </>}
     {state.error || linkError ? <SettingsPanel><T accessibilityRole="alert" accessibilityLiveRegion="polite">{linkError ?? state.error}</T></SettingsPanel> : null}
   </SettingsScreen>;

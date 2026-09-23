@@ -86,7 +86,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
   </SettingsIntro>
   {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={sys.color.green}/><T>Proveravamo stanje…</T></View>:null}
   {message?<T accessibilityRole="alert">{message}</T>:null}
-  {state?<SettingsPanel soft><T variant="bodyStrong">{terminal?'Završene radnje':'Obrada na serveru'}</T>
+  {state?<SettingsPanel soft><T variant="bodyStrong">{terminal?'Završene radnje':'Obrada je u toku'}</T>
    <T>{terminal?'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.':'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>
    {erasure?<>
     <T>{terminal?'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.':state.ordinaryContentErased?'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.':'Server postupno uklanja obične podatke aplikacije. Završetak se potvrđuje tek posle svih provera.'}</T>

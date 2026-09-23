@@ -187,8 +187,8 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    <View style={styles.stack}><T variant="bodyStrong">Poslednja provera slanja</T>
     <T tone="muted">{snapshot.readiness?.state === 'OPERATIONAL' ? 'Server je pri proveri uspešno obrađivao slanje obaveštenja.'
      : snapshot.readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
-      : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na serveru trenutno nije uključeno.'
-       : 'Nema sveže potvrde da je slanje na serveru dostupno.'}</T>
+      : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na telefon još nije uključeno.'
+       : 'Još ne možemo da potvrdimo da slanje obaveštenja radi.'}</T>
     {snapshot.readiness ? <T variant="meta" tone="muted">Provereno: {vreme(snapshot.readiness.checkedAt)}</T> : null}
     <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na tvoj telefon.</T>
    </View>

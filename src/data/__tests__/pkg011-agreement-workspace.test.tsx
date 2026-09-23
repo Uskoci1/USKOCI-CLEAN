@@ -133,7 +133,7 @@ test('a completed Agreement leads with the review; a cancelled one offers only t
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));
-  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.');
+  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.');
   expect(labels()).toContain('Osveži dozvole za završetak');
 });
 

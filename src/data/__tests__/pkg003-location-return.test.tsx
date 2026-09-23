@@ -82,7 +82,7 @@ describe('PKG-003 location review return', () => {
   it('uses the same canonical fallback after a saved location when no back stack exists', async () => {
     mockEditor = { ...mockEditor, saved: true };
     await render();
-    const button = tree.root.findByProps({ label: 'Vrati se na pregled' });
+    const button = tree.root.findByProps({ label: 'Nazad na pregled' });
     act(() => button.props.onPress());
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/pregled-zadatka',

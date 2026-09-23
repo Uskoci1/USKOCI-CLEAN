@@ -107,7 +107,7 @@ describe('real profile hub', () => {
     mockResource = { ...mockResource, error: true };
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).not.toContain('Ime još nije uneto');
-    await act(async () => tree.root.findByProps({ label: 'Probaj ponovo' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress());
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     mockResource = { ...mockResource, error: false, loading: true };
     await act(async () => tree.update(<Profil />));

@@ -97,7 +97,7 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
     {loading ? <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
       : <><T accessibilityRole="alert" variant="copy" tone="muted" style={s.center}>{error}</T>
         {recover ? <V2Action label="Otvori prethodni razgovor" onPress={recover} style={brandAction} /> : null}
-        {retry ? <V2Action label="Učitaj razgovor ponovo" onPress={retry} style={recover ? undefined : brandAction} /> : null}</>}
+        {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={recover ? undefined : brandAction} /> : null}</>}
     <V2Action kind="quiet" label="Nazad" onPress={back} />
   </View></SafeAreaView>;
 }

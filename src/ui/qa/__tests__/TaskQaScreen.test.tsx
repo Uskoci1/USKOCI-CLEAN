@@ -49,13 +49,13 @@ it('restored provider processing never offers replay and cancellation is explici
  expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockAiCancel).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev')).toBeUndefined();
  await act(async()=>button('Odustani od ovog slanja')!.props.onPress());
  expect(mockAiCancel).toHaveBeenCalledWith({type:'ASK',needId:N,needRevision:2,clientRequestId:mockKey,textSha256:pending().textSha256},{accountId:A,accountRevision:1});
- expect(mockClear).toHaveBeenCalledWith(A,N,mockKey);expect(allText()).toContain('otkazano na serveru');
+ expect(mockClear).toHaveBeenCalledWith(A,N,mockKey);expect(allText()).toContain('Slanje je otkazano');
 });
 it('canonical commit winning cancellation is shown as sent, never falsely cancelled',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));
  mockAiCancel.mockResolvedValue(ok(status({state:'COMMITTED',canCancel:false,outcome:'ALLOW',receipt:{questionId:mockKey,status:'PENDING_ANSWER',needRevision:2,idempotentReplay:true}})));
  await render();await act(async()=>button('Odustani od ovog slanja')!.props.onPress());
- expect(allText()).toContain('Pitanje je poslato');expect(allText()).not.toContain('otkazano na serveru');expect(mockClear).toHaveBeenCalledTimes(1);
+ expect(allText()).toContain('Pitanje je poslato');expect(allText()).not.toContain('Slanje je otkazano');expect(mockClear).toHaveBeenCalledTimes(1);
 });
 it('unknown cancellation keeps persisted intent and reads again without a new submit',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));mockAiCancel.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Nepotvrđeno'});
@@ -74,7 +74,7 @@ it('a mismatched classifier hash cannot clear the intent or offer retry/cancel',
 it('material answer rejection directs the owner back to canonical Task edit without publishing',async()=>{
  const intent={...pending(),type:'ANSWER',questionId:N};mockLoad.mockResolvedValue(intent);
  mockAiRecover.mockResolvedValue(ok(status({type:'ANSWER',questionId:N,state:'REJECTED',outcome:'ALLOW',materiality:'MATERIAL',canCancel:false})));
- await render();expect(button('Vrati se na zadatak radi izmene')).toBeDefined();expect(allText()).toContain('menja uslove zadatka');expect(mockAnswer).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
+ await render();expect(button('Nazad na zadatak radi izmene')).toBeDefined();expect(allText()).toContain('menja uslove zadatka');expect(mockAnswer).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
 });
 it('a grey send button says why, and the reason leaves once the question is written',async()=>{
  mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();

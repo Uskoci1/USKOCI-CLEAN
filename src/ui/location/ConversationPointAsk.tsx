@@ -122,7 +122,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
   if (state.kind === 'SAVED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="success">Mesto je sačuvano.</T>
-    <Button kind="primary" label="Vrati se u razgovor" onPress={props.onClose} />
+    <Button kind="primary" label="Nazad u razgovor" onPress={props.onClose} />
   </View>;
   // A failed save used to offer a reload, which re-read the server over the pins the person had
   // just placed by hand: the work that is hardest to get was the work least protected. The points
@@ -131,7 +131,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
     {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
     {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
-    <Button kind="quiet" label="Učitaj mesto ponovo" onPress={() => { void load(); }} />
+    <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />
     <Button kind="quiet" label="Zatvori" onPress={leave} />
   </View>;
 

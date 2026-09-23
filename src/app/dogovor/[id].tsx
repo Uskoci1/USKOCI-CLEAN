@@ -331,7 +331,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           <AgreementHero agreement={dogovor} />
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
-              <T variant="meta" tone="muted">Dozvole za završetak nisu potvrđene sa servera. Osveži status Dogovora pre završetka.</T>
+              <T variant="meta" tone="muted">Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.</T>
               <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
             </View> : null}
             {changeWaits ? <View style={s.stack}>

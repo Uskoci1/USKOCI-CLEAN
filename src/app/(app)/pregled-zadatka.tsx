@@ -329,7 +329,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
           </T></View> : null}
           {locationEditor ? <View style={s.section}><NeedLocationForm reviewOnly review={locationEditor}
             resolver={resolver} busy={editor.busy} uncertain={editor.uncertain} onSave={proposeLocation} />
-            <V2Action label="Vrati se na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}
+            <V2Action label="Nazad na pregled" kind="quiet" disabled={disabled} onPress={() => { resolver.cancel(); setLocationEditor(null); }} /></View> : null}
           <View style={s.section}>
             {(() => {
               const title = review.publicProjection.find(fact => fact.key === 'need.title');

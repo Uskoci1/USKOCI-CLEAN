@@ -72,7 +72,7 @@ it('serializes request double taps and reads back the accepted request', async (
 it('retains the same request key after unknown outcome and requires readback', async () => {
   mockRequest.mockRejectedValueOnce(new Error('private SQL detail')); await render(); await tap('Zatraži izvoz'); const key = mockRequest.mock.calls[0][0];
   expect(texts()).not.toContain('private SQL'); expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
-  await tap('Učitaj stanje ponovo'); await tap('Ponovi isti zahtev'); expect(mockRequest).toHaveBeenLastCalledWith(key);
+  await tap('Osveži stanje'); await tap('Ponovi isti zahtev'); expect(mockRequest).toHaveBeenLastCalledWith(key);
 });
 it('presents POLICY_NOT_READY without a fabricated READY or download', async () => {
   mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Pripremi kopiju');
@@ -135,7 +135,7 @@ it('requires an owned readback after an unknown download response before any sec
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); mockDownload.mockRejectedValueOnce(new Error('private storage error'));
   await render(); const old = button('Preuzmi i sačuvaj').props.onPress; await act(async () => old());
   expect(texts()).not.toContain('private storage'); await act(async () => old()); expect(mockDownload).toHaveBeenCalledTimes(1);
-  await tap('Učitaj stanje ponovo'); await tap('Preuzmi i sačuvaj'); expect(mockDownload).toHaveBeenCalledTimes(2);
+  await tap('Osveži stanje'); await tap('Preuzmi i sačuvaj'); expect(mockDownload).toHaveBeenCalledTimes(2);
 });
 it('never downloads an expired descriptor, even from a retained enabled callback', async () => {
   jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-10T10:00:00Z'));

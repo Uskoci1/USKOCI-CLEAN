@@ -94,7 +94,7 @@ export default function Profil() {
         <ActivityIndicator color={sys.color.green} /><T tone="muted">Učitavamo profil…</T>
       </View> : profile.error ? <View style={styles.gap}>
         <T>Profil trenutno nije dostupan.</T><T variant="note" tone="muted">Proveri vezu pa probaj ponovo.</T>
-        <SettingsAction label="Probaj ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
+        <SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={() => { void profile.refresh(); }} />
       </View> : <>
         {/* V41: one identity row — the photo, the name with the city under it, and "Uredi" on the right. The avatar
             itself opens the photo; the small camera badge says so without a second control. */}

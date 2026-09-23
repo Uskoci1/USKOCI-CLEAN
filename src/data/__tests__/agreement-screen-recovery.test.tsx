@@ -597,18 +597,18 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     mockRead.mockResolvedValueOnce({ ...workspace, radnje });
     await render();
     absent('Potvrdi završetak'); absent('Posao je gotov');
-    expect(texts()).toContain('Dozvole za završetak nisu potvrđene');
+    expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
     await act(async () => button('Osveži dozvole za završetak').props.onPress());
     expect(mockRead).toHaveBeenCalledTimes(2);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
-    expect(texts()).not.toContain('Dozvole za završetak nisu potvrđene');
+    expect(texts()).not.toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
   });
   it('a server-denied requester permission hides the action even without a pending change', async () => {
     mockRead.mockResolvedValue({ ...workspace, radnje: none });
     await render();
     absent('Potvrdi završetak');
     expect(texts()).not.toContain('Predlog izmene čeka odgovor');
-    expect(texts()).not.toContain('Dozvole za završetak nisu potvrđene');
+    expect(texts()).not.toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
   });
   it.each([['narucilac', { ...none, mozeOznacitiZavrsetak: true }], ['uskocer', { ...none, mozePotvrditiZavrsetak: true }]])(
     'a permission granted to the other party does not enable the %s', async (role, radnje) => {

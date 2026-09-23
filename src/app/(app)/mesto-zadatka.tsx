@@ -20,7 +20,7 @@ export default function MestoZadatka() {
   return <LocationScreen title="Mesto zadatka" onBack={back} loading={editor.loading} error={editor.error} onRetry={() => { void editor.refresh(); }}>
     {editor.saved ? <>
       <T accessibilityRole="alert" tone="success">Lokacija je sačuvana u pregledu Zadatka.</T>
-      <Button label="Vrati se na pregled" onPress={back} />
+      <Button label="Nazad na pregled" onPress={back} />
     </> : null}
     {editor.data ? <NeedLocationForm key={editor.data.revision} review={editor.data} busy={editor.busy} uncertain={editor.uncertain}
       resolver={resolver}
