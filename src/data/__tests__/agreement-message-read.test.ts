@@ -71,3 +71,16 @@ describe('real Agreement message read and retry reconciliation fields', () => {
     expect(mockAuth).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
   });
 });
+
+// The time under a bubble is the reader's own moment: today only the clock, an older day with its date, never seconds.
+it('shows a message from today as the clock alone, without seconds', async () => {
+  const today = new Date(); today.setHours(9, 5, 0, 0);
+  mockRead.mockResolvedValue({ data: [{ ...row, created_at: today.toISOString() }], error: null });
+  expect((await supabaseIzvor.poruke(agreement, account))[0].vremeTekst).toBe('09:05');
+});
+it('shows an older message with its day and month, still without seconds', async () => {
+  mockRead.mockResolvedValue({ data: [{ ...row, created_at: '2026-01-05T11:07:00Z' }], error: null });
+  const text = (await supabaseIzvor.poruke(agreement, account))[0].vremeTekst;
+  expect(text).toMatch(/^\d{1,2}\. \d{1,2}\. \d{2}:\d{2}$/);
+  expect(text).not.toMatch(/:\d{2}:\d{2}/);
+});

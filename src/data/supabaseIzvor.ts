@@ -44,6 +44,18 @@ function fTime(iso: string | null): string {
   return new Date(iso).toLocaleString('sr-Latn-RS');
 }
 
+/**
+ * The time under a message bubble. A message is a moment in the reader's own day, so it reads in the
+ * reader's zone (see dogovorenoVreme.ts for why an agreed TERM does not): the clock alone when it is
+ * today, the day and month in front of it otherwise, and never seconds — a conversation is not a log.
+ */
+function vremePoruke(iso: string): string {
+  const instant = new Date(iso), now = new Date();
+  const today = instant.getFullYear() === now.getFullYear() && instant.getMonth() === now.getMonth() && instant.getDate() === now.getDate();
+  return today ? instant.toLocaleTimeString('sr-Latn-RS', { hour: '2-digit', minute: '2-digit' })
+    : instant.toLocaleString('sr-Latn-RS', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 
 /**
  * One item of public.rpc_list_open_tasks_v3, shaped like the row the shared public projection reads, so
@@ -299,7 +311,7 @@ export const supabaseIzvor: SupabaseIzvor = {
         posiljalacIme: r.sender_account_id === accountId ? 'Ja' : 'Sagovornik',
         moja: r.sender_account_id === accountId,
         telo: r.body,
-        vremeTekst: fTime(r.created_at),
+        vremeTekst: vremePoruke(r.created_at),
         procitano: null,
       };
     });

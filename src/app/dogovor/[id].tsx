@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Platform, KeyboardAvoidingView, TextInput, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -142,6 +142,13 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
   }, [izvor, id, accountId, accountRevision, ownsAccount]));
   const dogovor = workspace.data;
+  // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble
+  // carries that name the way the header above it already does.
+  const namedMessages = useMemo(() => (messages.data ?? []).map(message => {
+    if (message.moja || !message.posiljalacAccountId) return message;
+    const who = dogovor?.ucesnici.find(person => person.id === message.posiljalacAccountId)?.ime;
+    return who ? { ...message, posiljalacIme: who } : message;
+  }), [messages.data, dogovor?.ucesnici]);
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
@@ -314,7 +321,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
         {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
         <AgreementTabs tab={tab} onChange={setTab} />
       </View>
-      {tab === 'poruke' ? <AgreementChat messages={messages.data ?? []} loading={messages.loading} error={messages.error}
+      {tab === 'poruke' ? <AgreementChat messages={namedMessages} loading={messages.loading} error={messages.error}
         writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
         support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>

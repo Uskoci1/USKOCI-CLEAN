@@ -221,3 +221,15 @@ test('a refused settlement leaves the conversation exactly as it was', async () 
   expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
   expect(tree.root.findAll(node => String(node.type) === 'AgreementChat')).toHaveLength(1);
 });
+
+// The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble carries that name.
+test('a bubble from the other person carries their name from the workspace, not the adapter label', async () => {
+  mockParams = { id: mockAgreementId, tab: 'poruke' };
+  mockRead.mockResolvedValue(base());
+  mockMessages.mockResolvedValue([
+    { id: '50000000-0000-4000-8000-000000000001', posiljalacAccountId: mockOther, posiljalacIme: 'Sagovornik', moja: false, telo: 'Cao', vremeTekst: '07:36', procitano: null },
+    { id: '50000000-0000-4000-8000-000000000002', posiljalacAccountId: mockAccount, posiljalacIme: 'Ja', moja: true, telo: 'Ok', vremeTekst: '07:49', procitano: null }]);
+  await act(async () => { tree = create(<Dogovor />); });
+  const chat = tree.root.findAll(node => String(node.type) === 'AgreementChat')[0];
+  expect(chat.props.messages.map((message: { posiljalacIme: string }) => message.posiljalacIme)).toEqual(['Marko', 'Ja']);
+});
