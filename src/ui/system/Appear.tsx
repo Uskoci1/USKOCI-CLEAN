@@ -17,7 +17,9 @@ import { useReducedMotion } from './motion';
 export function useAppear() {
   const seen = useRef<Set<string>>(new Set());
   const settled = useRef(false);
-  return {
+  // One object for the life of the list, so a memoised renderItem can depend on it directly (2026-09-23).
+  const api = useRef<{ settle(keys: readonly string[]): void; isNew(key: string): boolean } | null>(null);
+  if (!api.current) api.current = {
     /** Call once per render pass, before the rows, with the keys the list is about to draw. */
     settle(keys: readonly string[]) {
       if (settled.current || !keys.length) return;
@@ -31,6 +33,7 @@ export function useAppear() {
       return true;
     },
   };
+  return api.current;
 }
 
 /** The 40ms step is per row, and stops at six: past that it is a wait, not a rhythm. */
