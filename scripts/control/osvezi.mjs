@@ -216,7 +216,7 @@ if (existsSync(join(R4DIR, 'MANIFEST.json'))) {
   // route matches nothing lands in "ostalo" instead of disappearing.
   const RUTA_POVRSINA = [
     [/^\/$/, 'Početna'],
-    [/^\/(mapa|prilike)$/, 'Mapa / Lista'],
+    [/^\/(zadaci|mapa|prilike)$/, 'Mapa / Lista'],
     [/^\/prilike\//, 'Detalj prilike / Ponuda'],
     [/^\/dogovori$/, 'Dogovori'],
     [/^\/(dogovor\/|oceni-dogovor)/, 'Dogovor · Pregled / Poruke'],

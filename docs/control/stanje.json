@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T21:03:49Z",
-  "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "91eb4bbd",
-  "head_poruka": "fix: a photo that cannot be read shows initials; no group line on a one-person Dogovor",
+  "osvezeno": "2026-09-23T23:14:26Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "d7152e9f",
+  "head_poruka": "ia: apply the round-1 review - one place for what waits, steady tiles, Back after sign-in",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -118,7 +118,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "1 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen.",
+   "telefon_dokaz": "2026-09-24: Početna kao pregled (dve pločice, Čeka te, Moji zadaci i Moje prijave) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Na Androidu „velika slova“ (1,3) ne prebacuju pločice jednu ispod druge: ispravka ide sa drugim krugom. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen.",
    "problem": "",
    "sledece": "F04: oznaka dela kroz unutrašnje ekrane je ispravljena i testovi prolaze. Novi APK je napravljen; emulator otvara prijavu. Provera posle prijave i na telefonu sledi.",
    "funkcionalni_audit": {
@@ -1476,9 +1476,9 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "1 test fajl(ova)"
+    "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
+   "telefon_dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1525,6 +1525,7 @@
     "FUNC-3773"
    ],
    "ekrani": [
+    "/zadaci",
     "/mapa",
     "/prilike"
    ],
@@ -1546,9 +1547,9 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
-   "telefon_dokaz": "2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
+   "telefon_dokaz": "2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
    "sledece": "Pretraga i jasnije Lista/Mapa kontrole su u proverenim APK-ovima 6d3c7ead. Emulator je instaliran i otvoren do ulaza; provera mape sa nalogom, telefon i Claude pregled čekaju. Serversko filtriranje ostaje poseban korak F06/F07. DISCOVERY_SEARCH_RECEIPT.json. Razlike za sledeći serverski ugovor opisane u DISCOVERY_SEARCH.md (analiza sačuvanog snimka, bez nove promene baze).",
    "funkcionalni_audit": {
@@ -1604,6 +1605,7 @@
     "FUNC-3774"
    ],
    "ekrani": [
+    "/zadaci",
     "/prilike"
    ],
    "servisi": [
@@ -1623,7 +1625,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
@@ -2116,7 +2118,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
+   "telefon_dokaz": "2026-09-24: Kalendar sa sedam kolona i novim praznim danom viđen na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Otvoreno: Dogovor završen istog dana se ne vidi u kalendaru. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -2180,7 +2182,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "17 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno.",
+   "telefon_dokaz": "2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -3015,7 +3017,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Ekran ocene je na uređaju bio mrtav (zvezde i oznake nisu reagovale; RATING-DEAD-STARS-01). Uzrok: čuvar je poredio token fokusa kovan posle crtanja. Popravljeno 23.09. (4e864a08, 5e415f1a): na emulatoru zvezda, oznaka i „Sačuvaj ocenu“ rade na prvi dodir; ocena nije sačuvana. Server pri oceni i dalje šalje „Dobili ste…“ (Audit F15).",
@@ -5624,19 +5626,51 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35930654407,
+   "ime": "Build Android development APK",
+   "sha": "d7152e9f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T22:52:05Z"
+  },
+  {
+   "id": 35926555699,
+   "ime": "PRE-P4 integrity",
+   "sha": "7444b4ee",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T22:07:39Z"
+  },
+  {
+   "id": 35926552064,
+   "ime": "CodeQL",
+   "sha": "7444b4ee",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T22:07:36Z"
+  },
+  {
+   "id": 35922728253,
+   "ime": "Build Android development APK",
+   "sha": "240723c4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T21:29:14Z"
+  },
+  {
    "id": 35919881681,
    "ime": "PKG-007 agreement completion proof",
    "sha": "91eb4bbd",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-23T21:02:15Z"
   },
   {
    "id": 35919881549,
    "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
    "sha": "91eb4bbd",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-23T21:02:15Z"
   },
   {
@@ -5686,38 +5720,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-23T20:37:20Z"
-  },
-  {
-   "id": 35916858611,
-   "ime": "PKG-003 manual task proof",
-   "sha": "25dc016a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:34:26Z"
-  },
-  {
-   "id": 35916588600,
-   "ime": "Build Android development APK",
-   "sha": "25dc016a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:32:02Z"
-  },
-  {
-   "id": 35916382989,
-   "ime": "PKG-010 system contracts proof",
-   "sha": "25dc016a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:30:15Z"
-  },
-  {
-   "id": 35914765868,
-   "ime": "Build Android development APK",
-   "sha": "af3a11df",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:15:52Z"
   }
  ]
 }
