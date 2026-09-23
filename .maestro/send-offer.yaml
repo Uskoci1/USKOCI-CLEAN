@@ -1,0 +1,66 @@
+# Send one offer on somebody else's Zadatak (B09), the two-device run of 2026-09-23.
+#
+# THIS FLOW WRITES. It sends a real Prijava from the signed-in account to a real task. It runs only
+# on the owner's explicit word for that one run, on the device and task he named, and never as part
+# of any routine pass. Price and task come in as env so nothing is baked in.
+#
+#   maestro --device emulator-5554 test -e TASK=".*krečenja stana.*" -e PRICE=2500 .maestro/send-offer.yaml
+#
+# The compose screen already opens an explicit review before sending (F10); this flow goes through it
+# the way a person does: compose → Pregledaj ponudu → Pošalji ovu Prijavu → "Prijava je poslata."
+
+appId: rs.uskoci.dev
+env:
+  TASK: ".*krečenja stana.*"
+  PRICE: "2500"
+---
+- launchApp:
+    clearState: false
+- tapOn:
+    text: "Mapa"
+- tapOn:
+    text: "Lista"
+    optional: true
+- scrollUntilVisible:
+    element:
+      text: ${TASK}
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: ${TASK}
+- takeScreenshot: 01-tudji-zadatak
+
+# The card marked "Tvoj zadatak" belongs to this account and must not be here.
+- assertNotVisible: "Ovo je tvoj zadatak"
+- scrollUntilVisible:
+    element:
+      text: "Sastavi prijavu"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Sastavi prijavu"
+- takeScreenshot: 02-sastavi-prijavu
+
+- tapOn:
+    text: "Ukupna cena za ljude koje dovodiš (RSD)"
+- eraseText
+- inputText: ${PRICE}
+- hideKeyboard
+- takeScreenshot: 03-cena-uneta
+
+- scrollUntilVisible:
+    element:
+      text: "Pregledaj ponudu"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Pregledaj ponudu"
+- takeScreenshot: 04-pregled-pre-slanja
+
+# The one write. Everything before this point could be walked away from.
+- tapOn:
+    text: "Pošalji ovu Prijavu"
+- extendedWaitUntil:
+    visible: "Prijava je poslata."
+    timeout: 20000
+- takeScreenshot: 05-prijava-poslata

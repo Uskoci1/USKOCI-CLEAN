@@ -61,10 +61,10 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "pkg043/PKG043_GEMINI_QUESTION_SENTINEL.md: tvoj pokušaj na telefonu 22.09 dao dva uspešna AI odgovora. Nije proveren ceo razgovor do objave."
+    "dokaz": "23.09. 07:11–07:13, telefon VKP-NX9, nalog uskocibusiness: ceo razgovor do objave prošao i zadatak „Pomoć oko krečenja stana“ je PUBLISHED na serveru (be549970…). Jedna greška: kategorija nije sama izvedena."
    },
-   "problem": "",
-   "sledece": "",
+   "problem": "Viđeno na telefonu 23.09. (nalog uskocibusiness): iz „Pomoć oko krečenja stana“ AI nije sam izveo kategoriju, nego je ostavio „Još treba: Kategorija“ i tražio je od tebe; tek kad si je rekao kroz razgovor, upisana je „Molerski radovi“. Jasan naslov posla treba da nosi kategoriju bez pitanja. Sve ostalo (mesto, termin sa satima u Beogradu, cena, broj ljudi, ćirilica u poruci) prošlo je i zadatak je objavljen.",
+   "sledece": "Popravka je u Edge funkciji uskoci-ai-interview (izvođenje kategorije iz naslova/opisa pre nego što se pita), pa zaseban paket sa lokalnim testovima, CI i tvojom CLI komandom za deploy — kao PKG-043/044. Dokaz sa telefona: docs/implementation/functional-audit-20260922/device-20260923/ (snimci razgovora i objave, uskocibusiness, 07:11–07:13).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -221,7 +221,10 @@
     "rpc_publish_accepted_ai_task_review",
     "rpc_get_need_publication_context"
    ],
-   "telefon": null,
+   "telefon": {
+    "stanje": "DELIMIČNO",
+    "dokaz": "23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu."
+   },
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
