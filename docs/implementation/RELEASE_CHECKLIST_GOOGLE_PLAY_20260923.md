@@ -40,3 +40,11 @@ Vlasnik je 23. 9. rekao da večeras šalje aplikaciju na Google Play. Ovo je ta�
   prodavnicu bude drugi (npr. `rs.uskoci`), build prolazi, ali push za taj paket nema Firebase klijenta.
 - **Ocena saradnje (RATING-DEAD-STARS-01) je zatvorena** na emulatoru, build `4e864a08`: zvezda, oznaka i dugme
   „Sačuvaj ocenu" rade na prvi dodir. Na telefonu prstom još nije probano.
+- **EAS provera pre builda (ispravljeno večeras).** Skripta koja se pokreće na početku EAS builda puštala je samo
+  `preview`, pa bi `eas build --profile production` pao odmah. Sada propušta tačno dva pregledana profila: `preview`
+  (interni APK) i `production` (AAB za prodavnicu). Sve ostale provere ostaju iste za oba: projekat, paket
+  `rs.uskoci.preview`, najmanji versionCode, kanonska adresa servera, oblik javnog ključa, zabrana lažnih podataka
+  i Firebase klijent. Bez dve `EXPO_PUBLIC_…` promenljive u EAS okruženju `production` build se namerno zaustavlja.
+- **Ime paketa je trajno u Play Console-u.** Provera trenutno traži `rs.uskoci.preview`. Ako aplikacija u
+  prodavnici treba da bude `rs.uskoci`, to je odluka pre prvog uploada. Onda se menjaju `app.json`, ova provera
+  i Firebase klijent.
