@@ -40,6 +40,6 @@ const styles = StyleSheet.create({
 /** Forms stay open and readable against the sheet, including larger text. */
 export const authStageForm = StyleSheet.create({
   form: { backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0,
-    borderBottomWidth: 1, borderColor: '#345D50', paddingHorizontal: 0, paddingTop: 5,
+    borderBottomWidth: 1, borderColor: c.divider, paddingHorizontal: 0, paddingTop: 5,
     paddingBottom: 17, marginTop: 0, marginBottom: 17 },
 }).form;

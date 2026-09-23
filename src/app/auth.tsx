@@ -415,7 +415,7 @@ export default function AuthScreen() {
                     <Text style={styles.methodHeading}>Drugi načini prijave</Text>
                     <MethodButton
                       title="Telefon"
-                      icon={<Phone size={23} color="#174B43" />}
+                      icon={<Phone size={23} color={authColors.methodIcon} />}
                       disabled={radi}
                       onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
                     />
@@ -551,7 +551,7 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  authFooter: { borderTopWidth: 1, borderTopColor: '#345D50', backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
+  authFooter: { borderTopWidth: 1, borderTopColor: authColors.divider, backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
   footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
   screen: { flex: 1, backgroundColor: 'transparent' },
   header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
@@ -573,17 +573,17 @@ const styles = StyleSheet.create({
   forgotText: { ...type.tab, color: authColors.accentLight },
   methods: { marginTop: 20, gap: 10 },
   methodHeading: { ...type.meta, fontWeight: '600', color: authColors.muted, marginBottom: 2 },
-  method: { minHeight: 56, borderRadius: radius.control, borderWidth: 1, borderColor: '#DCE3DE', backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  method: { minHeight: 56, borderRadius: radius.control, borderWidth: 1, borderColor: authColors.methodLine, backgroundColor: authColors.methodSurface, flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
   methodPressed: { opacity: 0.76 },
   methodIcon: { width: 24, height: 24, flexShrink: 0 },
   methodCopy: { flex: 1, minWidth: 0, gap: 3 },
-  methodText: { ...type.bodyStrong, color: '#143D35' },
+  methodText: { ...type.bodyStrong, color: authColors.methodInk },
   consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.control, backgroundColor: authColors.input },
   consentText: { ...type.meta, flex: 1, color: authColors.muted },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
   backText: { ...type.tab, color: authColors.accentLight },
   smallNote: { ...type.meta, color: authColors.muted, marginVertical: 12 },
-  stateIcon: { width: 56, height: 56, borderRadius: radius.cardCompact, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4EDE8' },
+  stateIcon: { width: 56, height: 56, borderRadius: radius.cardCompact, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.stateWell },
   stateTitle: { ...type.title, color: authColors.ink },
   stateCopy: { ...type.copy, color: authColors.muted },
   linkButton: { minHeight: 48, justifyContent: 'center' },

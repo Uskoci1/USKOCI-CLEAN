@@ -4,4 +4,8 @@ export const authTheme = {
   ink: '#FFFAF0', muted: '#CFDDD5', placeholder: '#A4BAAE', line: '#527469',
   accent: '#FF850F', accentLight: '#FFAD63', accentPressed: '#FFA342', buttonInk: '#133B31',
   error: '#FFD6CB', soft: '#174B3F', cream: '#FFF8EB',
+  /** Hairline between the dark form and its footer. */
+  divider: '#345D50',
+  /** The light sign-in method cards and the sheet behind them (the second, light auth surface). */
+  sheet: '#FBFCFB', methodSurface: '#FFFFFF', methodLine: '#DCE3DE', methodInk: '#143D35', methodIcon: '#174B43', stateWell: '#E4EDE8',
 } as const;
