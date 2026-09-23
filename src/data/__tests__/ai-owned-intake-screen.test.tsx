@@ -211,19 +211,35 @@ it('first-speech preparation has a deadline; a late response cannot restart it',
   } finally { jest.useRealTimers(); }
 });
 
-it('speech fills the visible editable draft; only explicit Send writes an AI intent with the edited text', async () => {
+// Owner, 2026-09-23: what you say while holding the microphone is the message — it goes into the
+// conversation when the finger lifts, and the typed draft stays untouched.
+it('held speech is sent as its own message on release; the typed draft stays where it was', async () => {
   await render(); await type('Već ukucano.');
   const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
-  await act(async () => expect(receive({ text: 'Treba mi prevoz.', isCurrent: () => true })).toBe(true));
+  await act(async () => expect(receive({ text: ' Treba mi prevoz. ', isCurrent: () => true, session: { mode: 'hold' } })).toBe(true));
+  expect(mockSend).toHaveBeenCalledTimes(1); expect(mockSend.mock.calls[0][1]).toBe('Treba mi prevoz.');
+  expect(input().value).toBe('Već ukucano.');
+});
+it('the accessible start/stop mode still hands speech to the draft for review; only explicit Send writes the AI intent', async () => {
+  await render(); await type('Već ukucano.');
+  const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+  await act(async () => expect(receive({ text: 'Treba mi prevoz.', isCurrent: () => true, session: { mode: 'accessible' } })).toBe(true));
   expect(input().value).toBe('Već ukucano.\nTreba mi prevoz.');
   expect(mockSend).not.toHaveBeenCalled(); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   await type('Treba mi prevoz u petak.');
   await act(async () => submit().onPress());
   expect(mockSend).toHaveBeenCalledTimes(1); expect(mockSend.mock.calls[0][1]).toBe('Treba mi prevoz u petak.');
 });
-it('speech refuses a full draft without overwriting it or starting an AI request', async () => {
+it('held speech that is empty or over the limit is refused without a send, so the controller keeps it as fallback text', async () => {
+  await render();
+  const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+  await act(async () => expect(receive({ text: '   ', isCurrent: () => true, session: { mode: 'hold' } })).toBe(false));
+  await act(async () => expect(receive({ text: 'a'.repeat(4001), isCurrent: () => true, session: { mode: 'hold' } })).toBe(false));
+  expect(mockSend).not.toHaveBeenCalled();
+});
+it('accessible speech refuses a full draft without overwriting it or starting an AI request', async () => {
   await render(); await type('a'.repeat(3999));
-  await act(async () => expect(mockVoiceOptions.mock.calls.at(-1)![0].onTranscript({ text: 'Još.', isCurrent: () => true })).toBe(false));
+  await act(async () => expect(mockVoiceOptions.mock.calls.at(-1)![0].onTranscript({ text: 'Još.', isCurrent: () => true, session: { mode: 'accessible' } })).toBe(false));
   expect(input().value).toBe('a'.repeat(3999)); expect(mockSend).not.toHaveBeenCalled();
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
 });

@@ -195,7 +195,20 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         return true;
       } };
     },
-    onTranscript: input => input.isCurrent() && keepTranscript(input.text) });
+    onTranscript: input => {
+      if (!input.isCurrent()) return false;
+      // Held microphone: what was said is the message, sent the moment the finger lifts (owner,
+      // 2026-09-23). The typed draft stays where it is. The accessible start/stop mode keeps the
+      // old hand-off — the text lands in the draft for review — because a person who cannot hold
+      // the button cannot pull up to cancel either, so the review IS their cancel.
+      if (input.session?.mode !== 'accessible') {
+        const spoken = input.text.trim();
+        if (!spoken || spoken.length > 4000 || !canAct() || !canSubmit || request.current) return false;
+        void submitTurn(spoken);
+        return true;
+      }
+      return keepTranscript(input.text);
+    } });
   const voiceBusy = voice.state.phase !== 'IDLE';
   const posalji = async () => {
     if (voice.controller.getSnapshot().phase !== 'IDLE') return;

@@ -34,7 +34,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     void p.controller.begin(id, explicit ? 'accessible' : 'hold');
   };
   const release = () => { const id = gesture.current; gesture.current = null; if (id) void p.controller.release(id); };
-  const label = p.state.phase === 'LISTENING' ? explicit ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti za tekst'
+  const label = p.state.phase === 'LISTENING' ? explicit ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti da pošalješ'
     : p.state.phase === 'PERMISSION_PENDING' ? 'Čekam dozvolu mikrofona' : p.state.phase === 'PREPARING' ? 'Pripremam govorni unos…'
       : p.state.phase === 'STARTING' ? 'Povezujem mikrofon…'
       : p.state.phase === 'FINALIZING' ? 'Završavam transkript…' : explicit ? 'Pokreni govorni unos' : 'Drži da govoriš';
@@ -46,7 +46,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     <View style={s.stage}>
       <View style={listening ? s.ringActive : undefined}>
         <Pressable accessibilityRole="button" accessibilityLabel={label}
-          accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.' : 'Drži tokom govora. Puštanje priprema tekst za pregled i izmenu. Povuci prst naviše da otkažeš.'}
+          accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.' : 'Drži tokom govora. Kad pustiš, poruka ide u razgovor.' + ' Povuci prst naviše da otkažeš.'}
           accessibilityState={{ disabled: blocked }} disabled={blocked}
           onPressIn={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
           onPressOut={explicit ? undefined : release}
@@ -68,7 +68,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
       label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
       onPress={() => setAccessibleMode(value => !value)} /> : null}
     {active ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
-      {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti, pregledaj tekst i izaberi Pošalji.'}
+      {explicit ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Pusti — poruka ide u razgovor. Povuci nagore da odustaneš.'}
     </T> : null}
     {p.state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[p.state.error]} />
       : p.state.error ? <T accessibilityLiveRegion="polite" variant="meta" style={s.error}>{VOICE_ERROR_COPY[p.state.error]}</T> : null}
