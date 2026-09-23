@@ -254,7 +254,10 @@
         "rpc_read_task",
         "rpc_get_my_task_relations"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -569,7 +572,10 @@
         "rpc_get_worker_capacity",
         "rpc_complete_worker_profile"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -601,7 +607,10 @@
         "rpc_save_worker_location",
         "rpc_list_location_markets"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -631,7 +640,10 @@
         "rpc_get_worker_availability",
         "rpc_save_worker_availability"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -730,7 +742,10 @@
       "server": [
         "rpc_read_task"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -928,7 +943,10 @@
       "server": [
         "rpc_get_worker_calendar"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -1401,7 +1419,10 @@
         "rpc_get_notification_preferences",
         "rpc_set_notification_preferences"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
       "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. Novi APK je napravljen; proveriti ekran posle prijave u emulatoru i na telefonu.",
       "funkcionalni_audit": {
@@ -1603,7 +1624,10 @@
         "rpc_accept_reviewed_legal_bundle",
         "rpc_read_my_legal_acceptance"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "Dokumenti nisu objavljeni: čekaju podatke operatera i pravnika.",
       "sledece": "Tvoj deo: podaci operatera i odgovori pravnika.",
       "funkcionalni_audit": {
@@ -1636,7 +1660,10 @@
         "rpc_read_profile_avatar",
         "rpc_clear_profile_avatar"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu.",
       "funkcionalni_audit": {
@@ -1748,7 +1775,10 @@
         "rpc_support_find_context_v5",
         "rpc_support_mark_read_v5"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {
@@ -1783,7 +1813,10 @@
         "uskoci-data-export-worker",
         "uskoci-data-export-download"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
       "sledece": "Tvoj deo: rokovi čuvanja od pravnika.",
       "funkcionalni_audit": {
@@ -1846,7 +1879,10 @@
         "rpc_get_retention_policy_status",
         "rpc_get_processor_map_status"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+      },
       "problem": "",
       "sledece": "",
       "funkcionalni_audit": {

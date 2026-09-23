@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T13:31:37Z",
+  "osvezeno": "2026-09-23T19:20:28Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "e9e0ab65",
-  "head_poruka": "pokret: the white pill slides to the chosen segment; the arrival helper is one stable object",
+  "head": "721be0c1",
+  "head_poruka": "evidence: the icon and pictogram board on the owner's phone (step E)",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -633,13 +633,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1328,13 +1328,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1401,13 +1401,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
     "test": "7 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1472,13 +1472,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "1 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1685,13 +1685,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -2110,13 +2110,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -3015,7 +3015,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Ekran ocene je na uređaju bio mrtav (zvezde i oznake nisu reagovale; RATING-DEAD-STARS-01). Uzrok: čuvar je poredio token fokusa kovan posle crtanja. Popravljeno 23.09. (4e864a08, 5e415f1a): na emulatoru zvezda, oznaka i „Sačuvaj ocenu“ rade na prvi dodir; ocena nije sačuvana. Server pri oceni i dalje šalje „Dobili ste…“ (Audit F15).",
@@ -3207,13 +3207,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
    "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. Novi APK je napravljen; proveriti ekran posle prijave u emulatoru i na telefonu.",
    "funkcionalni_audit": {
@@ -3639,13 +3639,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Dokumenti nisu objavljeni: čekaju podatke operatera i pravnika.",
    "sledece": "Tvoj deo: podaci operatera i odgovori pravnika.",
    "funkcionalni_audit": {
@@ -3711,13 +3711,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu.",
    "funkcionalni_audit": {
@@ -3951,13 +3951,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
     "test": "4 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -4032,13 +4032,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
    "sledece": "Tvoj deo: rokovi čuvanja od pravnika.",
    "funkcionalni_audit": {
@@ -4176,13 +4176,13 @@
     "kod": "zeleno",
     "server": "zeleno",
     "test": "zeleno",
-    "telefon": "sivo"
+    "telefon": "zuto"
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "5 test fajl(ova)"
    },
-   "telefon_dokaz": "",
+   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -5624,100 +5624,100 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
-   "id": 35867614703,
-   "ime": "Build Android development APK",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:04Z"
-  },
-  {
-   "id": 35867612183,
+   "id": 35905199778,
    "ime": "PKG-005 Worker onboarding proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867612147,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867612131,
-   "ime": "PKG-046 media upload cancellation proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867612054,
-   "ime": "PKG-008 task photo recovery proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867612016,
-   "ime": "PKG-010 system contracts proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867612014,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867611904,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867611881,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867611855,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:03Z"
-  },
-  {
-   "id": 35867609539,
-   "ime": "Build Android development APK",
-   "sha": "e9e0ab65",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T13:31:01Z"
-  },
-  {
-   "id": 35862648333,
-   "ime": "Build Android development APK",
-   "sha": "4e864a08",
+   "sha": "c89b7223",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-09-23T12:46:42Z"
+   "vreme": "2026-09-23T18:50:06Z"
+  },
+  {
+   "id": 35905199758,
+   "ime": "PKG-003 manual task proof",
+   "sha": "c89b7223",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T18:50:06Z"
+  },
+  {
+   "id": 35905199719,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "c89b7223",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T18:50:06Z"
+  },
+  {
+   "id": 35905197821,
+   "ime": "Build Android development APK",
+   "sha": "c89b7223",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T18:50:05Z"
+  },
+  {
+   "id": 35903014528,
+   "ime": "Build Android development APK",
+   "sha": "dc8e7b02",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T18:31:04Z"
+  },
+  {
+   "id": 35900713421,
+   "ime": "PKG-045 public task column privacy proof",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T18:11:11Z"
+  },
+  {
+   "id": 35900655440,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T18:10:40Z"
+  },
+  {
+   "id": 35900655214,
+   "ime": "PKG-010 system contracts proof",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T18:10:40Z"
+  },
+  {
+   "id": 35900655197,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T18:10:40Z"
+  },
+  {
+   "id": 35900655046,
+   "ime": "PKG-005 Worker onboarding proof",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T18:10:40Z"
+  },
+  {
+   "id": 35900654417,
+   "ime": "Build Android development APK",
+   "sha": "fbea3919",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T18:10:40Z"
+  },
+  {
+   "id": 35899638909,
+   "ime": "Build Android development APK",
+   "sha": "ae274c0f",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-23T18:01:42Z"
   }
  ]
 }

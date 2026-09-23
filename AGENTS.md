@@ -33,6 +33,11 @@ in design-lead mode (memory: uskoci-design-lead-directive): toolset in docs/impl
 audit, design system, pictograms and screen order in the Claude Doc
 https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923; no screen is done before the phone screenshot loop.
 Not done: one reduced-motion hook (motion.ts and useSystemReducedMotion.ts remain), write paths on the phone.
+Step G.0 (c89b7223): the bottom bar only on the three roots (Početna, Mapa, Dogovori); 20 inner screens checked on the
+phone without it (docs/implementation/design-system/g0-phone-c89b7223/). OWNER RULE, 2026-09-23 late: V28/V41/V46 HTML
+is product documentation (functions, content, logic, data, flows), NOT design authority. For every screen ask whether a
+premium USKOČI built from zero would organise it this way; if not, recompose it from scratch. Keep function and flow,
+not the old look; key screens loop redesign → phone screenshot → critique → redesign.
 
 CURRENT PRODUCT CHECKPOINT (2026-09-22): read
 `docs/implementation/NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` first, then the current status,
