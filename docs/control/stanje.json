@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:39:53Z",
+  "osvezeno": "2026-09-23T05:43:36Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "a4d1e056",
-  "head_poruka": "device: the second party's task received a real offer from the emulator, on the owner's word",
+  "head": "159324f1",
+  "head_poruka": "device: the first two-party flow, phone and emulator, one commit",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
