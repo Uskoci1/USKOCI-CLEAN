@@ -199,6 +199,23 @@ export function pointsMissing(geography: unknown, resolved: unknown): { done: nu
  * thing, which is the only reason no screen disagreed with another — three copies that happened to
  * still match. The wording, including what is shown when there is no place, is one decision.
  */
+/**
+ * Some stored areas arrive wrapped in quotation marks (`"Vračar, Beograd"`), the same way six stored titles do,
+ * because the interview wrote them so. The stored value stays; the reader sees it without a PAIR of wrapping
+ * quotes (seen on Moje prijave, 2026-09-23). A value that quotes something inside keeps it.
+ */
+function unwrapQuotes(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  for (const [open, close] of [['"', '"'], ['„', '“'], ['“', '”'], ["'", "'"]] as const) {
+    if (text.length > 1 && text.startsWith(open) && text.endsWith(close)) return text.slice(1, -1).trim() || null;
+  }
+  return text || null;
+}
+
 export function podrucjeTekst(area: string | null | undefined, city: string | null | undefined): string {
-  return [area, city].filter(Boolean).join(', ') || 'Lokacija nije navedena';
+  const parts = [unwrapQuotes(area), unwrapQuotes(city)].filter((part): part is string => !!part);
+  // "Vračar, Beograd" as the area and "Beograd" as the city would read the city twice.
+  const unique = parts.filter((part, index) => index === 0 || !parts[0].toLocaleLowerCase('sr-Latn-RS').includes(part.toLocaleLowerCase('sr-Latn-RS')));
+  return unique.join(', ') || 'Lokacija nije navedena';
 }
