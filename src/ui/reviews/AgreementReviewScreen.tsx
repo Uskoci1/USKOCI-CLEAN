@@ -30,18 +30,27 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   const [rating, setRating] = useState(0), [tags, setTags] = useState<ReviewTag[]>([]);
   const [attempt, setAttempt] = useState<ReviewCommand | null>(null);
   const attemptRef = useRef<ReviewCommand | null>(null);
-  const activeRef = useRef(false), focusRef = useRef<object | null>(null);
+  const activeRef = useRef(true);
   const [foreground, setForeground] = useState(true), [resumeRequired, setResumeRequired] = useState(false);
-  const renderedFocus = focusRef.current;
-  useFocusEffect(useCallback(() => {
-    const focus = {}; focusRef.current = focus;
-    activeRef.current = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
-    setForeground(activeRef.current);
+  // A mount effect, not a focus effect. On 2026-09-23 every star and tag on this screen was dead on two phones
+  // and the emulator while the back arrow in the same top bar worked; the one difference was a guard that
+  // compared a focus token minted inside `useFocusEffect` with the token the render had captured, and on the
+  // device the two never met. This screen is a hidden tab reached from the root-level Dogovor, so it lives in a
+  // second Tabs instance, which none of the other screens with that guard do. Which screen is current is
+  // already owned by `useOwnedEditor` (its data is null while this screen is blurred, so nothing is editable
+  // then, and a stale save is refused by its scope); the app's foreground state belongs to a mount effect.
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
       activeRef.current = state === 'active'; setForeground(activeRef.current); setResumeRequired(true);
     });
-    return () => { subscription.remove(); activeRef.current = false; focusRef.current = null; };
-  }, []));
+    return () => { subscription.remove(); activeRef.current = false; };
+  }, []);
+  // TEMPORARY DEVICE PROBE (rs.uskoci.dev only; removed once read): counts this screen's focus-effect runs so a
+  // uiautomator dump can say whether `useFocusEffect` ran at all on the phone. It forces a redraw so the count
+  // it shows is current.
+  const focusRuns = useRef(0);
+  const [, redrawProbe] = useState(0);
+  useFocusEffect(useCallback(() => { focusRuns.current += 1; redrawProbe(value => value + 1); }, []));
   useEffect(() => {
     if (!foreground || !resumeRequired || workspace.busy) return;
     let current = true;
@@ -50,7 +59,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   }, [foreground, resumeRequired, workspace.busy, workspace.refresh]);
   const context = workspace.data, receipt = context?.review;
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.busy && !workspace.error && !workspace.uncertain;
-  const current = () => activeRef.current && focusRef.current !== null && focusRef.current === renderedFocus;
+  const current = () => activeRef.current;
   const editable = enabled && context?.eligible === true && !attempt;
   const submit = () => {
     if (!enabled || !current() || !context?.eligible || rating < 1) return;
@@ -70,6 +79,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar eyebrow="Dogovor" title="Ocena saradnje" onBack={backFromReview} />
+    <View accessible accessibilityLabel={`probe focus=${focusRuns.current} app=${AppState.currentState}`} style={s.probe} />
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <ActivityIndicator accessibilityLabel="Učitavanje ocene" color={sys.color.green} />
         : receipt ? <View style={s.card}>
@@ -147,4 +157,5 @@ const s = StyleSheet.create({
   tagSelected: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, tagDisabled: { opacity: 0.5 },
   tagText: { color: sys.color.ink }, tagTextSelected: { color: sys.color.green, fontWeight: '700' },
   errorBlock: { gap: 12 },
+  probe: { width: 1, height: 1 },
 });
