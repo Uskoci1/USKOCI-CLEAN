@@ -29,7 +29,7 @@ export function ActivitiesPresentation({ page, filter, loading, refreshing, erro
     <T accessibilityLiveRegion="polite" variant="note" tone="muted">{`${what} trenutno nisu učitani.`}</T>
     <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRefresh} />
   </View>;
-  return <SafeAreaView edges={['top']} style={s.canvas}>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <DetailTopBar title="Moje aktivnosti" onBack={onBack} />
     {/* V41: which things (underlined tabs) first, then when (the quiet pill), then the list. */}
     <View style={s.controls}>

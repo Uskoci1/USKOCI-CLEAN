@@ -162,7 +162,7 @@ export function MyApplicationsPresentation(props: Props) {
             <T style={s.stateTitle}>Tvoja sledeća prilika.</T><T variant="copy" tone="muted">Kada se prijaviš na Zadatak, ovde pratiš svoju ponudu i svaki sledeći korak.</T>
             <V2Action label="Istraži zadatke" onPress={props.onExplore} style={brandAction} /></View>}
   </View>;
-  return <SafeAreaView edges={['top']} style={s.screen}>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
     {/* V41: the sets of my applications are underlined tabs with their counts. */}
     {!props.unavailable && !props.loading ? <Segmented scroll appearance="underline" style={s.tabs} value={props.tab} onChange={props.onTab}

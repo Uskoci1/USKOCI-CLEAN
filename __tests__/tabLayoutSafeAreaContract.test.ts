@@ -83,21 +83,18 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     }
   });
 
-  it('hides the tab bar under the screens that are one task with one way out', () => {
-    // Owner decision, 2026-09-18. A tap along the bottom edge used to leave an unfinished Zadatak,
-    // and the bar was not honest either: these screens are pushed, so no tab was ever current.
+  it('shows the tab bar only on the three root screens', () => {
+    // Owner's master UI/UX directive, 2026-09-23, supersedes the lists of 2026-09-18 and 2026-09-20: a detail, a flow, a
+    // conversation or a setting is "in this job", not in the main menu, so it hides the bar. Two documented exceptions
+    // wait for their own step: prilike (a root-like copy of Mapa) and profil/razgovor (its composer gets a
+    // keyboard-aware bottom inset first).
     const { screens } = configuration();
-    const hidden = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
-      .tabBarStyle?.display === 'none').map((screen) => screen.name).sort();
-    // 2026-09-20: the four spine details join them, for the same reason stated one screen later —
-    // each already ends in its own sticky action, and on a phone that action and the tab bar stood
-    // on top of each other and cut the task description in half.
-    expect(hidden).toEqual(['fotografije-zadatka', 'mesto-zadatka', 'nova', 'potrebe/[id]/kandidati',
-      'potrebe/[id]/pregled', 'pregled-zadatka', 'prilike/[id]', 'prilike/[id]/prijava']);
-    // The three real tabs keep theirs, and so does every settings screen you can leave freely.
-    for (const name of ['index', 'mapa', 'dogovori', 'potrebe', 'moje-prijave', 'profil', 'podrska/index']) {
+    const shown = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
+      .tabBarStyle?.display !== 'none').map((screen) => screen.name).sort();
+    expect(shown).toEqual(['dogovori', 'index', 'mapa', 'prilike', 'profil/razgovor']);
+    for (const name of ['potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil', 'profil/obavestenja', 'podrska/index', 'oceni-dogovor', 'raspored']) {
       const screen = screens.find((candidate) => candidate.name === name)!;
-      expect((screen.options as { tabBarStyle?: unknown }).tabBarStyle).toBeUndefined();
+      expect((screen.options as { tabBarStyle?: { display?: string } }).tabBarStyle?.display).toBe('none');
     }
   });
 

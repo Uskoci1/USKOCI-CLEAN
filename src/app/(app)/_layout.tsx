@@ -62,6 +62,9 @@ export default function TabLayout() {
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
   return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
+    // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
+    // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). The two exceptions are
+    // `prilike`, a root-like copy of Mapa, and `profil/razgovor`, whose composer gets its keyboard-aware inset first.
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
@@ -86,38 +89,38 @@ export default function TabLayout() {
         height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: 4,
         marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
-    <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="moje-prijave" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa' }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
-    <Tabs.Screen name="profil" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/radnik" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/podaci" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/fotografija" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/blokirani" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/pravna" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="bezbednost" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="podrska/index" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="podrska/novi" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="podrska/[id]" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="podrska/operator" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/lokacija" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/dostupnost" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/izvoz" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/privatnost" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="profil/obavestenja" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="raspored" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="profil/podaci" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/fotografija" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/blokirani" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/pravna" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="bezbednost" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="podrska/index" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="podrska/novi" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="podrska/[id]" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="podrska/operator" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/lokacija" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/dostupnost" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/izvoz" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/privatnost" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/obavestenja" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="raspored" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="mesto-zadatka" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="pregled-nacrta" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="pregled-nacrta" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pregled-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="fotografije-zadatka" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="pitanja-zadatka" options={{ href: null, ...PUSHED }} />
-    <Tabs.Screen name="oceni-dogovor" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="pitanja-zadatka" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="oceni-dogovor" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="potrebe/[id]/kandidati" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike/[id]" options={{ href: null, ...FULL }} />

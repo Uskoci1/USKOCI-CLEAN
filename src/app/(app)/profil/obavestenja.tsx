@@ -27,7 +27,7 @@ export default function PushSettings() {
    || sesijaSada().user?.id !== scope.accountId || sesijaSada().accountRevision !== scope.revision) return;
   if (router.canGoBack()) router.back(); else router.replace('/profil');
  }
- return <SafeAreaView style={s.screen} edges={['top']}>
+ return <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
   <Stack.Screen options={{ headerShown: false }} />
   <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={back} />
   <View style={s.sets}><Segmented options={SETS} value={role} onChange={setRole} /></View>

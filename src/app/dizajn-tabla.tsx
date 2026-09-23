@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import type { MarketplaceItem } from '../data/marketplaceView';
 import { FactArt, type FactArtKind } from '../ui/system/FactArt';
@@ -43,7 +44,7 @@ export default function DizajnTabla() {
   const [usluga, setUsluga] = useState('selidba');
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   const toggle = (kind: string) => setVozila(list => list.includes(kind) ? list.filter(k => k !== kind) : [...list, kind]);
-  return <View style={s.screen}>
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Tabla ikonica i piktograma" onBack={() => router.back()} />
     <ScrollView contentContainerStyle={s.content}>
       <Section title="Sistemske ikonice · 20 · 24 · 32 · 40 · 48">
@@ -79,7 +80,7 @@ export default function DizajnTabla() {
         <TaskCard item={task} onOpen={() => {}} />
       </Section>
     </ScrollView>
-  </View>;
+  </SafeAreaView>;
 }
 
 const s = StyleSheet.create({

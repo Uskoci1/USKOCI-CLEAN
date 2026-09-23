@@ -155,7 +155,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
               <V2Action label="Osveži zadatke" kind="quiet" onPress={props.onRefresh} /></View>}
   </View>;
 
-  return <SafeAreaView edges={['top']} style={s.screen}>
+  return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
     <View aria-hidden={sheetShown} accessibilityElementsHidden={sheetShown} importantForAccessibility={sheetShown ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {/* Both tabs used this one presentation and both were titled Zadaci, so two different
           screens carried the same name. The discovery view is what the Mapa tab opens. */}

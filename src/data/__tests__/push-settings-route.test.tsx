@@ -15,8 +15,8 @@ let tree: Renderer.ReactTestRenderer;
 const back = () => tree.root.findByProps({ accessibilityLabel: 'Nazad na profil' }).props.onPress;
 beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
 afterEach(() => act(() => tree.unmount()));
-it('renders top safe area, actual accessible header/back and footer; parent owns bottom inset', () => {
- expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top']);
+it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), the accessible header/back and footer', () => {
+ expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top', 'bottom']);
  expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Podešavanja obaveštenja');
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('REQUESTER');
  expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o zadacima koje objavljuješ.'); expect(JSON.stringify(tree.toJSON())).not.toMatch(/Meni treba|Ja mogu/);
