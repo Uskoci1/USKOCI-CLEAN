@@ -117,6 +117,21 @@ consolidated at the owner's request on 2026-09-22. It covers engineering, push, 
 account data, moderation/support, operator/legal/charging, production and store release. Keep its order
 and completion evidence aligned with the status index. It grants no new permissions or product decisions.
 
+Design pass (2026-09-23, owner: "brže i kvalitetnije"): the forensic UI/UX analysis is a Claude Doc the owner reads
+(https://claude.ai/code/artifact/447394ea-56a9-49d8-9aba-46b49637af59; repo pointer and evidence in
+`docs/implementation/design-audit-20260923/`). Owner rules recorded there and applied: no eyebrow and no copy explaining
+where you are (inner bar = arrow + title-of-content), one orange action per screen with the reason beside a grey one,
+"stalno / ponekad / retko" placement, hold-to-talk SENDS on release (accessible mode keeps review). Landed on
+`work/pre-v3-engine-integration-20260911`: step 0 (fe97dc11: one inner bar, SettingsIntro without kicker/tagline, settings
+gap, missing price as label), voice send (d4adb0b3), `lottie-react-native` ~7.3.8 approved by "Da" with `LottieArt`
+wrapper (55b08aae/322cef0f; `expo-speech` NOT approved), AI welcome presence + FactArt card (aacff002), detail
+(42dfe993), own tasks hidden in Prilike (2d4b61ed), discovery density (0a7005e6), notification row + Serbian time in the
+offer (ce922ebb), grey offer button says why (f2703baa), finished Dogovor read-only line (4afd2ef3), unrated finished
+Dogovor stays active with "Čeka tvoju ocenu" (7443432b). Emulator verified up to aacff002 (screens in design-audit
+folders); the phone APK for aacff002 is downloaded, not installed. Awaited from the owner: HTML references, V28 Lottie
+files, "oceni" for the emulator rating, the phone. Not done: seconds in `needScheduleText` (cdl-a03 fixtures), tab-bar
+section highlight, the filter contract (PG02), fifth attention reason (server), notification text with names (server).
+
 PKG-050a (2026-09-23, proven and **applied** on the owner's "Primeni pkg050a"): reading a Dogovor's conversation settles its
 "Nova poruka" notifications (D03 / P01). Canonical DEV ledger is now **201 = 147 + 54 dev_alpha**, function-only, certificate
 `cc248ff1…` unchanged and asserted before/after. `public.rpc_mark_agreement_messages_read(uuid)`, authenticated only, parties
