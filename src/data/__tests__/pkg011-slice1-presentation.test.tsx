@@ -41,18 +41,19 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 function Marketplace({ owned, rows, loading = false }: { owned: boolean; rows: MarketplaceItem[]; loading?: boolean }) {
   const [view, setView] = useState<MarketplaceView>(initialMarketplaceView);
   return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={false} scopeKey="a:1" view={view} onView={setView}
-    onOpen={() => {}} onRefresh={() => {}} onSwitch={() => {}} onProfile={() => {}} onNew={owned ? () => {} : undefined} />;
+    onOpen={() => {}} onRefresh={() => {}} onProfile={() => {}} onNew={owned ? () => {} : undefined} />;
 }
 test('the header says what the list is in the two names the product uses and never an app mode; the title is a header and the list/map switch is a real tab list', async () => {
   await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} />); });
   // Both tabs used this presentation and both were titled Zadaci, so two different screens
-  // carried one name. Discovery has its own title ("Pronađi zadatak" since the one shell): "Mapa" was the tab label, the screen title
-  // and one of the two segments at the same time, so the word identified nothing. The invariant
-  // is unchanged: the title is a header, and the owned view below is still Zadaci.
+  // carried one name. "Mapa" was the tab label, the screen title and one of the two segments at the same time, so the
+  // word identified nothing. The invariant is unchanged: the title is a header, and it is never an app mode.
   // V41 (2026-09-23): the tab header draws the mark, not the section name; the name reaches a screen reader as the
-  // header's label, and it is never an app mode.
+  // header's label. Since the owner's information architecture of 2026-09-23 discovery IS the Zadaci tab, so the header
+  // is read as the tab is named ("Pronađi zadatak" before), and my own tasks below are "Moji zadaci".
   expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
-  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Pronađi zadatak')).length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI, Zadaci').length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pronađi zadatak'))).toHaveLength(0);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(false);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
   expect(roleOf('Lista').accessibilityRole).toBe('tab'); expect(roleOf('Lista').accessibilityState).toEqual({ selected: true });

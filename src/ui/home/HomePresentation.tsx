@@ -12,7 +12,7 @@ import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys, card, cardCompact } from '../system/tokens';
-import { plural } from '../system/plural';
+import { plural, prijava } from '../system/plural';
 import { HomeIllustration } from './HomeIllustration';
 
 /**
@@ -102,22 +102,27 @@ const Skeleton = () => <View accessibilityLabel="Učitavanje" style={s.skeletonB
   {[0, 1].map(index => <View key={index} style={s.skeletonRow} />)}
 </View>;
 
-/** "2 aktivna · 1 čeka izbor · 1 nacrt" — the sets of "Moji zadaci", counted by the list's own filter. */
+// The two doors count what their lists hold, never what waits: that is said once, under "Čeka te", from the server's
+// own attention list (PKG-042: no inference fallback). A door that also said "1 čeka izbor" contradicted a known empty
+// "Čeka te", and stood in for it when that list could not be read.
+/** "2 aktivna · 1 nacrt" — the sets of "Moji zadaci", counted by the list's own filter. */
 function tasksLine(section: HomeSection<OwnedTaskCounts>): string {
   if (section.kind === 'unavailable') return 'Trenutno nisu učitani';
   const c = section.value;
   const parts = [c.active ? plural(c.active, 'aktivan', 'aktivna', 'aktivnih') : null,
-    c.waiting ? plural(c.waiting, 'čeka izbor', 'čekaju izbor', 'čeka izbor') : null,
     c.drafts ? plural(c.drafts, 'nacrt', 'nacrta', 'nacrta') : null].filter(Boolean);
-  return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih zadataka' : 'Još nemaš zadatak';
+  return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak';
 }
-/** "3 aktivne · 1 čeka te" — the sets of "Moje prijave", counted by the list's own tabs. */
+/**
+ * "3 aktivne" — the "Aktivne" set of "Moje prijave", counted by the list's own tabs. An application that waits for me
+ * sits in the list's own "Čeka te" set, not in "Aktivne", so a door with nothing active that is not all finished names
+ * how many applications there are instead of saying "Nema aktivnih prijava" over one that waits.
+ */
 function applicationsLine(section: HomeSection<ApplicationCounts>): string {
   if (section.kind === 'unavailable') return 'Trenutno nisu učitane';
   const c = section.value;
-  const parts = [c.active ? plural(c.active, 'aktivna', 'aktivne', 'aktivnih') : null,
-    c.attention ? plural(c.attention, 'čeka te', 'čekaju te', 'čeka te') : null].filter(Boolean);
-  return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih prijava' : 'Još nemaš prijavu';
+  if (c.active) return plural(c.active, 'aktivna', 'aktivne', 'aktivnih');
+  return !c.total ? 'Još nemaš prijavu' : c.finished === c.total ? 'Nema aktivnih prijava' : prijava(c.total);
 }
 
 export function HomePresentation(p: HomePresentationProps) {
@@ -141,11 +146,7 @@ export function HomePresentation(p: HomePresentationProps) {
     <ScreenHeader title="Početna" onProfile={p.onProfile} />
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-      {/* The greeting belongs to a first visit; once something exists, the first thing on screen is what to do. */}
-      {home?.firstRun ? <View style={s.hero}>
-        <T accessibilityRole="header" variant="display" style={s.heroCopy}>{'Šta rešavamo\ndanas?'}</T>
-        {!expanded ? <HomeIllustration size={width < 375 ? 88 : 109} /> : null}
-      </View> : null}
+      {/* The tiles are the first thing on screen and never move: nothing above them waits for a read. */}
       <View style={[s.actions, expanded && s.actionsStacked]}>
         <StartTile label="Objavi zadatak" hint="Opiši šta ti treba" publish stacked={expanded} onPress={p.onPublish} />
         <StartTile label="Uskoči i zaradi" hint="Pronađi posao blizu" stacked={expanded} onPress={p.onEarn} />
@@ -153,6 +154,12 @@ export function HomePresentation(p: HomePresentationProps) {
 
       {p.loading && !home ? <Skeleton /> : null}
       {p.error && !home ? <View style={s.section}><Unavailable what="Tvoji zadaci, prijave i Dogovori" onRefresh={p.onRefresh} /></View> : null}
+      {/* The greeting belongs to a first visit, and a first visit is known only once every read has answered. Above
+          the tiles it pushed them down under the finger at the first impression; here it takes the loading's place. */}
+      {home?.firstRun ? <View style={s.hero}>
+        <T accessibilityRole="header" variant="display" style={s.heroCopy}>{'Šta rešavamo\ndanas?'}</T>
+        {!expanded ? <HomeIllustration size={width < 375 ? 88 : 109} /> : null}
+      </View> : null}
 
       {home && waitingShown ? <Section title="Čeka te"
         count={home.attention.length > 0 && (home.attentionState === 'known' || !home.partial) ? home.attention.length + home.attentionMore : undefined}>
@@ -202,12 +209,12 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xl, width: '100%', maxWidth: 640, alignSelf: 'center' },
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted }, onOrange: { color: sys.color.onOrange },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 108, marginBottom: sys.space.base },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 108, marginTop: sys.space.xl },
   heroCopy: { flex: 1, minWidth: 0 },
   actions: { flexDirection: 'row', alignItems: 'stretch', gap: sys.space.md },
   actionsStacked: { flexDirection: 'column' },
   // Lower than before (120 → 96) and without the arrow: the tile is the button, its picture says where it goes.
-  action: { ...card, flex: 1, minWidth: 0, minHeight: 96, padding: 14, gap: sys.space.sm, justifyContent: 'space-between' },
+  action: { ...card, flex: 1, minWidth: 0, minHeight: 96, padding: sys.space.base, gap: sys.space.sm, justifyContent: 'space-between' },
   actionStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   publish: { backgroundColor: sys.color.orange, borderColor: sys.color.orange },
   actionTop: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },

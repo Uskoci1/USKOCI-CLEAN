@@ -23,10 +23,10 @@ jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 const row = (id: string, patch = {}): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat', 'Iskustvo', 'Prevoz'], statusTekst: 'Otvoren', rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 }, ...patch } as MarketplaceItem);
 let rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })], owned = false, loading = false, error = false;
-let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), switchView = jest.fn(), newTask = jest.fn(); let allowNew = true;
+let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(); let allowNew = true;
 let relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
 let withBack = false; const back = jest.fn();
-function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onSwitch={switchView} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onBack={withBack ? back : undefined} relations={relations} />; }
+function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onBack={withBack ? back : undefined} relations={relations} />; }
 let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
@@ -155,6 +155,8 @@ test('my own tasks carry no floating creation action and no eyebrow; an empty li
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
  expect(texts()).toContain('Moji zadaci'); expect(texts()).not.toContain('Moje aktivnosti');
  await act(async () => tree.unmount()); rows = []; await render();
+ // The same words as Početna's "Moji zadaci" door for an account with no task: "Zadatak" is the product's noun.
+ expect(texts()).toContain('Još nemaš Zadatak');
  await click('Napravi prvi Zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {

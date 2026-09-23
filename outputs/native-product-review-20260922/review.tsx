@@ -70,7 +70,7 @@ function Review() {
     agreement={{ ...agreement, problemOtvoren: scenario === 'problem' }} worker={screen === 'done-worker'}
     confirm={() => setScreen('agreement')} back={() => setScreen('agreement')} />;
   if (screen === 'list') return <MarketplacePresentation owned={false} items={scenario === 'empty' ? [] : [opportunity, { ...opportunity, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
-    scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onSwitch={noop} onProfile={noop} onNew={noop} />;
+    scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onProfile={noop} onNew={noop} />;
   if (screen === 'my-applications') return <MyApplicationsPresentation rows={scenario === 'empty' ? [] : myApplications} loading={scenario === 'loading'} unavailable={scenario === 'error'}
     message={scenario === 'error' ? 'Proveri vezu i pokušaj ponovo.' : null} notice={null} tab={applicationTab} onTab={setApplicationTab} expanded={null} draft={null}
     focusId="preview-own-offer" requestedId="preview-own-offer" busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}

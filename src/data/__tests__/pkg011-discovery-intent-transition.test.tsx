@@ -27,9 +27,12 @@ test.each(['narucilac', 'uskocer'] as const)('"+" opens a new task directly and 
   expect(mockNavigate).toHaveBeenCalledWith('/nova'); expect(mockNavigate).toHaveBeenCalledTimes(1);
   expect(mockReplace).not.toHaveBeenCalled(); expect(mockSwitch).not.toHaveBeenCalled();
 });
-test.each(['narucilac', 'uskocer'] as const)('"Moji" opens my own tasks directly and touches no mode (%s)', async last => {
-  mockIntent = last; await render(); await act(async () => market().onSwitch());
-  expect(mockNavigate).toHaveBeenCalledWith('/potrebe'); expect(mockReplace).not.toHaveBeenCalled(); expect(mockSwitch).not.toHaveBeenCalled();
+// "Moji" was a callback the discovery screen never drew. Since the owner's information architecture of 2026-09-23 my
+// own tasks are the "Moji zadaci" door on Početna, so Zadaci hands down no such switch and still touches no mode.
+test.each(['narucilac', 'uskocer'] as const)('Zadaci carries no "Moji" switch and touches no mode (%s)', async last => {
+  mockIntent = last; await render();
+  expect(market().onSwitch).toBeUndefined();
+  expect(mockNavigate).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled(); expect(mockSwitch).not.toHaveBeenCalled();
 });
 test('no sheet is ever mounted, so there is nothing to confirm after the account or the focus changes', async () => {
   await render(); expect(tree.root.findAllByType('Transition' as React.ElementType)).toHaveLength(0);

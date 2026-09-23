@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let mockSession = { user: { id: A }, accountRevision: 1 };
@@ -79,8 +79,8 @@ it('a row only navigates, and to the exact place: a waiting choice opens its can
   expect(text()).toContain('Čeka te');
   await act(async () => row('2 prijave').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: 'orman' } });
-  // The door counts by the list's own rule: the task is active and it waits for a choice.
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 čeka izbor');
+  // The door counts by the list's own rule; that the task waits for a choice is said once, under "Čeka te".
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
   await act(async () => tree.unmount()); await render();
   await act(async () => row('Moji zadaci').onPress());
   expect(mockRouter.navigate).toHaveBeenLastCalledWith('/potrebe');
@@ -148,6 +148,26 @@ it('one failed side says it is not loaded while the other is counted', async () 
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
 });
 
+// Serbian counts take three shapes by the last two digits (plural.ts): a final 1 but not 11, a final 2–4 but not
+// 12–14, and everything else. 1 is covered above; 2, 5, 11 and 21 are the other edges.
+it.each([
+  [2, 'Moji zadaci. 2 aktivna · 2 nacrta', 'Moje prijave. 2 aktivne', 'Moje prijave. 2 prijave'],
+  [5, 'Moji zadaci. 5 aktivnih · 5 nacrta', 'Moje prijave. 5 aktivnih', 'Moje prijave. 5 prijava'],
+  [11, 'Moji zadaci. 11 aktivnih · 11 nacrta', 'Moje prijave. 11 aktivnih', 'Moje prijave. 11 prijava'],
+  [21, 'Moji zadaci. 21 aktivan · 21 nacrt', 'Moje prijave. 21 aktivna', 'Moje prijave. 21 prijava'],
+])('the two doors write %i in its Serbian form', async (count, tasks, applications, waiting) => {
+  const many = <Row,>(make: (index: number) => Row) => Array.from({ length: count }, (_, index) => make(index));
+  mockSource.mojePotrebe.mockResolvedValue([...many(index => need(`a${index}`)), ...many(index => need(`d${index}`, { stanje: 'NACRT' }))]);
+  mockSource.mojePrijave.mockResolvedValue(many(index => application(`p${index}`)));
+  await render();
+  expect(row('Moji zadaci').accessibilityLabel).toBe(tasks);
+  expect(row('Moje prijave').accessibilityLabel).toBe(applications);
+  // Applications that all wait for me are named by their number, never as "Nema aktivnih prijava".
+  mockSource.mojePrijave.mockResolvedValue(many(index => ({ ...application(`w${index}`), traziPaznju: true })));
+  await act(async () => tree.unmount()); await render();
+  expect(row('Moje prijave').accessibilityLabel).toBe(waiting);
+});
+
 it('PKG-042: server attention remains visible with its full total when all three preview reads fail', async () => {
   for (const read of [mockSource.mojePotrebe, mockSource.mojePrijave, mockSource.mojiDogovori]) read.mockRejectedValue(new Error('READ_FAILED'));
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:server:stale', title: 'Zadatak je izmenjen',
@@ -166,17 +186,24 @@ it('PKG-042: attention failure is explicit and never replaced with conclusions f
   await render();
   expect(text()).toContain('Podaci o obavezama trenutno nisu učitani.');
   expect(text()).not.toContain('čeka tvoj izbor'); expect(text()).not.toContain('PRIVATE_BACKEND_ERROR');
-  // "Čeka te" stays unavailable; the door's count is the /potrebe list's own count, not an inference put in its place.
-  expect(text()).toContain('1 aktivan · 1 čeka izbor');
+  // "Čeka te" stays unavailable, and the door does not stand in for it: it counts the list, never what waits.
+  expect(text()).not.toContain('čeka izbor');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
   await act(async () => action('Pokušaj ponovo').onPress());
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
 });
 
 it('PKG-042: a known empty aggregate suppresses obsolete locally inferred attention', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 7, brojPrijavaZaIzbor: 2 })]);
+  mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), traziPaznju: true }]);
   await render();
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(1);
   expect(text()).not.toContain('Čeka te'); expect(text()).toContain('1 aktivan');
+  // Neither door contradicts the known empty list with a count of its own of what waits.
+  expect(text()).not.toContain('čeka izbor'); expect(text()).not.toContain('čeka te');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
+  // The application is in the list's own "Čeka te" set, not in "Aktivne": the door names it without calling it inactive.
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. 1 prijava');
 });
 
 it('PKG-042: a late private attention result from the previous account cannot appear after switching accounts', async () => {
@@ -192,7 +219,19 @@ it('PKG-042: a late private attention result from the previous account cannot ap
 it('an empty account is greeted once, and its two doors say there is nothing yet, without zero statistics', async () => {
   await render();
   expect(text()).toContain('Šta rešavamo'); expect(text()).not.toContain('0');
-  expect(text()).toContain('Još nemaš zadatak'); expect(text()).toContain('Još nemaš prijavu');
+  // "Zadatak" is the product's noun, in the same words as the empty "Moji zadaci" list the door opens.
+  expect(text()).toContain('Još nemaš Zadatak'); expect(text()).toContain('Još nemaš prijavu');
+});
+
+it('the first-run greeting stands under the tiles, so nothing above them moves when the reads answer', async () => {
+  const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
+  await render();
+  // The first thing in the scroll view holds the two tiles, before the reads answer and after.
+  const tilesFirst = () => (tree.root.findByType('ScrollView' as React.ElementType).children[0] as ReactTestInstance)
+    .findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Objavi zadatak').length === 1;
+  expect(text()).not.toContain('Šta rešavamo'); expect(tilesFirst()).toBe(true);
+  await act(async () => wait.resolve([]));
+  expect(text()).toContain('Šta rešavamo'); expect(tilesFirst()).toBe(true);
 });
 
 it('the greeting belongs to a first run only: once something exists, the tiles come first', async () => {

@@ -65,6 +65,25 @@ function withoutRetired<State>(state: State): State {
 }
 
 /**
+ * This tab router's own REPLACE drops the history entry at the position of the new route's index in `routes`, not the
+ * entry of the route being left. Zadaci is second in that list, so a replace onto Zadaci dropped Početna: the sign-in
+ * shortcut "Uskoči i zaradi" lands on Početna and is replaced with Zadaci (src/app/_layout.tsx), and Back from Zadaci
+ * then left the app. A replace that leaves a retired route or lands on Zadaci is therefore taken as the jump it is,
+ * and the route being left is then dropped, as a replace means — except Početna, which stays behind Zadaci so Back
+ * returns home (proved on the real router, retired-discovery-routes.test). Navigation state only.
+ */
+function replacedAsJump(state: { index: number; routes: readonly { name: string }[] }, action: { type: string; payload?: object }): boolean {
+  if (action.type !== 'REPLACE') return false;
+  return RETIRED.has(state.routes[state.index]?.name ?? '') || (action.payload as { name?: unknown } | undefined)?.name === 'zadaci';
+}
+function withoutLeft<State>(state: State, left: { name: string; key?: string } | undefined): State {
+  const tabs = state as unknown as TabHistory | null;
+  if (!tabs || !left?.key || left.name === 'index' || !Array.isArray(tabs.history) || tabs.routes[tabs.index]?.key === left.key) return state;
+  const history = tabs.history.filter(entry => entry.type !== 'route' || entry.key !== left.key);
+  return history.length === tabs.history.length ? state : { ...tabs, history } as unknown as State;
+}
+
+/**
  * A full screen has no tab bar (owner decision, 2026-09-18). The conversation, the review before
  * publishing and the map point are one task each with one way out, the back arrow. Leaving the tab
  * bar under them made a tap anywhere along the bottom edge an exit from an unfinished Zadatak, and
@@ -86,11 +105,11 @@ export default function TabLayout() {
   const REDIRECT = { ...FULL, animation: 'none' as const };
   return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     UNSTABLE_router={original => ({
-      // The redirect leaves a retired route by REPLACE. This tab router's own REPLACE drops the history entry at the
-      // position of the new route's index in `routes`, not the entry of the route being left (with Zadaci second, it
-      // dropped Početna), so leaving a retired route is taken as the jump it is and the retired entry pruned.
-      getStateForAction: (state, action, options) => withoutRetired(original.getStateForAction(state,
-        action.type === 'REPLACE' && RETIRED.has(state.routes[state.index]?.name ?? '') ? { ...action, type: 'JUMP_TO' } : action, options)),
+      // The redirect leaves a retired route by REPLACE, and the sign-in shortcut replaces Početna with Zadaci; both
+      // are taken as a jump (see `replacedAsJump`), and a retired entry never stays in the history.
+      getStateForAction: (state, action, options) => withoutRetired(replacedAsJump(state, action)
+        ? withoutLeft(original.getStateForAction(state, { ...action, type: 'JUMP_TO' }, options), state.routes[state.index])
+        : original.getStateForAction(state, action, options)),
       getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}
     // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
     // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). The one exception is

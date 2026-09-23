@@ -89,3 +89,27 @@ test('a retired address never stays in the Back history, whether reached from Po
   // Nothing behind Zadaci: the system Back leaves the app instead of redirecting into Zadaci again.
   expect(tabHistory()).toEqual(['zadaci']); expect(router.canGoBack()).toBe(false);
 });
+
+// After signing in through "Uskoči i zaradi" the app lands on Početna and the root layout replaces it with Zadaci
+// (src/app/_layout.tsx). Zadaci is second in the tab list, and this tab router's own replace dropped the history entry
+// before that position — Početna — so Back from Zadaci left the app.
+test('the sign-in shortcut replaces Početna with Zadaci and Back still returns to Početna', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.replace('/zadaci')); await settle();
+  expect([...new Set(selectedTabs())]).toEqual(['Zadaci']);
+  expect(tabHistory()).toEqual(['index', 'zadaci']);
+  await act(async () => router.back()); await settle();
+  expect([...new Set(selectedTabs())]).toEqual(['Početna']);
+});
+
+// A task opened cold with nothing behind it replaces itself with Zadaci on its back arrow (prilike/[id].tsx). It must
+// not stay behind Zadaci, or Back from Zadaci would open the task again and its arrow would send you back to Zadaci.
+test('a task opened cold and replaced by Zadaci does not stay in the Back history', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/prilike/task-1" />); });
+  await settle();
+  expect(shown()).toContain('screen:zadatak');
+  await act(async () => router.replace('/zadaci')); await settle();
+  expect([...new Set(selectedTabs())]).toEqual(['Zadaci']);
+  expect(tabHistory()).toEqual(['zadaci']);
+});

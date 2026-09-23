@@ -60,6 +60,6 @@ function Discovery() {
   return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined}
       onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
-      onSwitch={() => navigate(() => router.navigate('/potrebe'))} onProfile={() => navigate(() => router.navigate('/profil'))}
+      onProfile={() => navigate(() => router.navigate('/profil'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;
 }

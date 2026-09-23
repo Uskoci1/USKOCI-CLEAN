@@ -22,7 +22,7 @@ import { V2Action } from './V2Action';
 
 export type MarketplacePresentationProps = { owned: boolean; items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
-  onOpen: (item: MarketplaceItem) => void; onSwitch: () => void; onProfile: () => void; onNew?: () => void;
+  onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
   /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
   onBack?: () => void;
   /** In discovery: which of the shown tasks are mine and which I have applied to. Labels only. */
@@ -83,7 +83,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, owned)
       .filter(item => showMine || owned || !relations?.owned.has(item.id)).length,
   [items, view, priceDraft, attentionDraft, owned, loading, error, showMine, relations]);
-  // The same count Početna's "Moji zadaci" row shows as "čeka izbor".
+  // How many active tasks wait for my choice, the badge on "Aktivni". Početna does not repeat it: there what waits is
+  // said once, under "Čeka te", from the server's own attention list.
   const attentionCount = useMemo(() => owned ? ownedTaskCounts(items).waiting : 0, [items, owned]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
   const selected = shown.find(item => item.id === view.selectedId && publicPoint(item)) ?? null;
@@ -96,8 +97,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setAttentionDraft(view.attention); setFilterOpen(true); };
   // What the list is, in the two words the product uses for its two sides. It used to name the
   // global mode the app was in; there is no such mode any more. No eyebrow above it (owner, 2026-09-23): "Moje
-  // aktivnosti" over "Moji zadaci" only said where you are, and that destination is retired.
-  const title = owned ? 'Moji zadaci' : 'Pronađi zadatak';
+  // aktivnosti" over "Moji zadaci" only said where you are, and that destination is retired. Discovery is the Zadaci
+  // tab, so its header reads "USKOČI, Zadaci" to a screen reader, the same name the tab says.
+  const title = owned ? 'Moji zadaci' : 'Zadaci';
   const sectionTitle = owned ? SECTION_TITLES[view.section] : 'Otvoreni zadaci';
   const count = loading || error ? null : shown.length;
   // On a phone the orange "+" sat on top of a task pin near Belgrade. A map is the content a person

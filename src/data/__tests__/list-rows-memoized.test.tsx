@@ -55,7 +55,7 @@ const field = (label: string) => tree.root.findByProps({ accessibilityLabel: lab
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); (Press as jest.Mock).mockClear(); (T as unknown as jest.Mock).mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-describe('Pronađi zadatak', () => {
+describe('Zadaci', () => {
   const task = (id: string): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat'], statusTekst: 'Otvoren',
     rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 } } as MarketplaceItem);
   let rows: MarketplaceItem[]; const open = jest.fn(); let snapshot: MarketplaceView;
@@ -63,7 +63,7 @@ describe('Pronađi zadatak', () => {
     const [view, setView] = useState(initialMarketplaceView); snapshot = view;
     // Fresh closures every render, exactly as the route hands them down.
     return <MarketplacePresentation owned={false} items={rows} loading={false} error={false} scopeKey="a:1" view={view} onView={setView} refreshing={pass > 1}
-      onOpen={item => open(item)} onRefresh={() => {}} onSwitch={() => {}} onProfile={() => {}} onNew={() => {}} />;
+      onOpen={item => open(item)} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
   }
   beforeEach(() => { rows = [task('one'), task('two'), task('three')]; open.mockClear(); });
 
