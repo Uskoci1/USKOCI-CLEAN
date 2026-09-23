@@ -53,11 +53,19 @@
       "who": "Claude/emulator",
       "what": "the MESSAGE_RECEIVED notification opened the Dogovor directly on its Poruke tab with the message on screen (F14 landing, committed 28a48b78 tonight)",
       "flow": ".maestro/message-landing.yaml, all steps COMPLETED"
+    },
+    {
+      "n": 7,
+      "who": "Claude/emulator",
+      "what": "sent one message in the Dogovor on the owner's \"Da\" (2026-09-23): typed into \"Napiši poruku\", pressed \"Pošalji poruku\"; the composer cleared and the bubble came back as \"Poruka: Ja\" with the server time 07:49:24",
+      "server": "agreement_messages a5e60fa9… by msljivic031 05:49:24Z; MESSAGE_RECEIVED → requester (uskocibusiness), 2 deliveries queued, unread at the time of writing",
+      "flow": ".maestro/send-message.yaml, all steps COMPLETED",
+      "harnessNote": "The stored text reads \"Ok, Vidimo se sutra u 12. Javi ako se Nesto Promeni.\" — the emulator keyboard capitalised words while Maestro typed; the flow sent lowercase. That is the emulator IME, not the app. The purple pill on the left of 03-poslato is the emulator keyboard toolbar."
     }
   ],
   "stillOpen": [
+    "The requester has not yet seen the worker's message on the phone; its MESSAGE_RECEIVED is unread on the server.",
     "\"Završio sam\" not pressed; completion, confirmation and both ratings remain.",
-    "No message sent from the worker side yet.",
     "The requester-side screens (Prijave, candidate profile, selection) were the owner's and are not photographed here; the phone was not connected.",
     "Push delivery of any of these events is untested; the transport is off."
   ],
@@ -70,6 +78,9 @@
     "06-dogovori-aktivni.png",
     "08-dogovor-pregled.png",
     "09-dogovor-radnje.png",
-    "11-dogovor-poruke.png"
+    "11-dogovor-poruke.png",
+    "poruka-01-poruke-pre.png",
+    "poruka-02-nacrt.png",
+    "poruka-03-poslato.png"
   ]
 }

@@ -1023,7 +1023,7 @@
    ],
    "telefon": {
     "stanje": "DELIMIČNO",
-    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: poruka „Cao“ poslata sa telefona (naručilac) viđena u prepisci na emulatoru (izvođač); obaveštenje „Nova poruka“ otvara pravo karticu Poruke. Slanje sa strane izvođača nije rađeno."
+    "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: poruke u oba smera — „Cao“ sa telefona (naručilac) viđena na emulatoru; odgovor izvođača poslat sa emulatora (na vlasnikovo „Da“), server ga ima, obaveštenje MESSAGE_RECEIVED upisano naručiocu. Naručilac ga još nije video na telefonu; slika telefona nedostaje."
    },
    "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
    "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
