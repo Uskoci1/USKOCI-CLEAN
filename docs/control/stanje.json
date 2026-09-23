@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:15:34Z",
+  "osvezeno": "2026-09-23T05:16:54Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "4661ba70",
-  "head_poruka": "device: the same three flows pass on a second device",
+  "head": "7f4ed1e0",
+  "head_poruka": "device: the second account published a real task from the phone; one AI defect seen",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
