@@ -2,16 +2,17 @@ import { memo, useCallback, useMemo, useRef } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CalendarBlank, Check, Clock, MapPin } from 'phosphor-react-native';
+import { ArrowRight, CalendarBlank, CaretRight, Check } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Appear, useAppear } from '../system/Appear';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { dogovora, osoba } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { agreementStateText } from './AgreementPresentation';
 import { V2Action } from './V2Action';
@@ -36,61 +37,99 @@ const keyOf = (item: DogovorProjekcija) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 
+type Attention = { art: FactArtKind; title: string; line: string };
 /**
- * One Agreement as a scan block: a status line only when it asks for something or
- * closes the story, the title, where and when, then the agreed price and people,
- * and the other person in the foot.
+ * What this Dogovor is waiting for from ME, if anything, in the order the Dogovor itself leads with: a change
+ * the other side proposed blocks both completions, so answering it comes first. A change I proposed, or a
+ * completion the other side has to confirm, waits for someone else and is not drawn as my task.
+ */
+function attentionOf(item: DogovorProjekcija): Attention | null {
+  if (item.izmenaCeka && !item.izmenaCeka.mojPredlog) return { art: 'clock', title: 'Odgovori na predlog izmene', line: 'Prihvaćeni uslovi važe dok ne odgovoriš.' };
+  if (!item.izmenaCeka && awaitsMyConfirmation(item)) return { art: 'clock', title: 'Potvrdi završetak', line: 'Druga strana je označila da je posao završen.' };
+  // The only route to rating a finished collaboration was: open the agreement, find the action. The card
+  // that is already in front of the person says it instead.
+  if (awaitsMyRating(item)) return { art: 'agreements', title: 'Oceni saradnju', line: 'Čeka tvoju ocenu' };
+  return null;
+}
+
+/**
+ * "21. sep 2026 · 17:00 – 19:00" is the day, with the time under it (V41 splits its term the same way). The
+ * text is the accepted term exactly as the Dogovor states it, in Serbian time; a term that is missing is a
+ * sentence with no " · " and stays one line, so it reads as missing rather than as a date.
+ */
+function termParts(text: string): { day: string; time: string | null } {
+  const at = text.indexOf(' · ');
+  return at > 0 ? { day: text.slice(0, at), time: text.slice(at + 3) } : { day: text, time: null };
+}
+
+/**
+ * One Dogovor, in the V41 anatomy (owner, 2026-09-23): the other person first, then the task, then the
+ * accepted term beside the agreed price, then where and how many. When the Dogovor waits for me, a warm strip
+ * across the bottom says what it waits for; otherwise the card ends with its facts. The whole card is one press
+ * that opens the Dogovor, where that action lives. Nothing is drawn that the list does not carry: no last
+ * message, no rating, no date heading built from the task's own start.
  */
 function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () => void }) {
-  const other = item.ucesnici.find(person => !person.viSte), mine = item.ucesnici.find(person => person.viSte);
-  const attention = awaitsMyConfirmation(item), settled = !isActive(item);
+  const other = item.ucesnici.find(person => !person.viSte);
+  const settled = !isActive(item), attention = attentionOf(item);
   const status = settled || item.stanje === 'AWAITING_REQUESTER' ? agreementStateText(item.stanje) : null;
   const tone = item.stanje === 'CANCELLED' ? sys.color.muted : item.stanje === 'AWAITING_REQUESTER' ? sys.color.warn : sys.color.green;
   const dot = item.stanje === 'CANCELLED' ? sys.color.lineStrong : item.stanje === 'AWAITING_REQUESTER' ? sys.color.orange : sys.color.green;
-  // What I am to this Dogovor is read from this Dogovor's own participants (owner's wording,
-  // 2026-09-19). One list holds both sides of one account; nothing about the app says which.
-  //
-  // On a phone this row read "Milos SLJIVIC   Uskočio si": the other person's name, and then a
-  // sentence about me, with nothing between them to say the subject had changed. Početna avoids it
-  // by putting the relation first — "Uskočio si · Milos" — but here the avatar and the name come
-  // first and cannot move. So the row says what the OTHER side did, third person, exactly as the
-  // Dogovor itself already does in AgreementPeople. First person for my own acts, third for theirs.
-  const relation = other?.uloga === 'narucilac' ? 'Objavio zadatak' : other?.uloga === 'uskocer' ? 'Uskočio' : '';
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${readableTitle(item.naslov)}`} onPress={onOpen}
-    haptic="select" scaleTo={0.986} style={[card, attention && s.attentionCard, settled && s.settledCard]}>
-    {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
-      <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
-    <T style={s.title}>{readableTitle(item.naslov)}</T>
-    <View style={s.facts}>
-      <View style={s.fact}><MapPin size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst}</T></View>
-      <View style={s.fact}><Clock size={17} color={sys.color.green} /><T variant="note" tone="muted" style={s.factText}>{item.vremeTekst}</T></View>
-    </View>
-    <View style={s.foot}>
-      <T style={s.price}>{item.cena.prikaz}</T>
-      <T variant="meta" style={s.people}>{osoba(item.pokrivenost.popunjeno)}</T>
-    </View>
-    {/* The only route to rating a finished collaboration was: open the agreement, find the action.
-        Nothing anywhere asked for it, and the person who confirmed the completion is not even sent
-        an event. The card that is already in front of them says it instead. */}
-    {awaitsMyRating(item) ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: sys.color.orange }]} />
-      <T variant="label" style={[s.status, { color: sys.color.warn }]}>Čeka tvoju ocenu</T></View> : null}
-    {/* Name over relation, not beside it: "Objavio zadatak" is longer than the "Uskočio si" it
-        replaced, and on a real phone it pushed "Milos SLJIVIC" onto two lines. This is also the
-        shape every other person row in the app already uses. */}
-    <View style={s.person}>
-      {other?.profilId
-        ? <ProfilePhoto profileId={other.profilId} size={32} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{other.inicijali}</T></View>} />
-        : <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>}
-      <View style={s.personCopy}>
-        <T variant="bodyStrong" style={s.personName} numberOfLines={1}>{other?.ime ?? 'Druga strana'}</T>
-        {relation ? <T variant="meta" tone="muted">{relation}</T> : null}
+  // What the OTHER person is to me, third person, from this Dogovor's own participants (owner, 2026-09-19):
+  // their name comes first, so a sentence about me beside it ("Uskočio si") read as if it were about them.
+  // The same words the Dogovor itself uses in AgreementPeople, with V41's "na tvoj zadatak" saying whose task.
+  const relation = other?.uloga === 'narucilac' ? 'Objavio zadatak' : other?.uloga === 'uskocer' ? 'Uskočio na tvoj zadatak' : '';
+  const term = termParts(item.vremeTekst), remote = item.rezim === 'DALJINSKI';
+  const initials = <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>;
+  return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${readableTitle(item.naslov)}`}
+    accessibilityHint={attention ? `${attention.title}. ${attention.line}` : undefined} onPress={onOpen}
+    haptic="select" scaleTo={0.986} style={[s.card, attention && s.cardAttention]}>
+    <View style={s.main}>
+      <View style={s.person}>
+        {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={44} fallback={initials} /> : initials}
+        <View style={s.personCopy}>
+          <T variant="bodyStrong" style={s.personName} numberOfLines={1}>{other?.ime ?? 'Druga strana'}</T>
+          {relation ? <T variant="meta" tone="muted" numberOfLines={1}>{relation}</T> : null}
+        </View>
+        <CaretRight size={18} color={sys.color.muted} />
       </View>
+      {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
+        <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
+      <T style={s.title}>{readableTitle(item.naslov)}</T>
+      <View style={s.accepted}>
+        <View style={s.when}>
+          <FactArt kind="calendar" size={22} />
+          <View style={s.whenCopy}>
+            <T style={s.day}>{term.day}</T>
+            {term.time ? <T style={s.time}>{term.time}</T> : null}
+          </View>
+        </View>
+        {/* A missing amount is said in words and never wears the amount's green. */}
+        <View style={s.money}>
+          {item.cena.prikaz ? <><T style={s.price}>{item.cena.prikaz}</T><T style={s.priceNote}>dogovoreno ukupno</T></>
+            : <T style={s.noPrice}>Iznos nije sačuvan</T>}
+        </View>
+      </View>
+      <View style={s.minor}>
+        <View style={s.place}>
+          <FactArt kind={remote ? 'remote' : 'pin'} size={18} />
+          <T style={s.minorText}>{remote ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno'}</T>
+        </View>
+        <View style={s.people}><FactArt kind="users" size={18} /><T style={s.minorText}>{osoba(item.pokrivenost.popunjeno)}</T></View>
+      </View>
+      {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
+      {item.izmenaCeka?.mojPredlog ? <View style={s.note}><FactArt kind="clock" size={18} muted />
+        <T variant="meta" tone="muted" style={s.noteText}>Tvoja izmena čeka odgovor</T></View> : null}
+      {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledaj Dogovor</T></View> : null}
     </View>
-    {item.problemOtvoren ? <View style={s.problem}><T variant="meta" style={s.problemText}>Prijavljen je problem · pogledaj Dogovor</T></View> : null}
-    {/* Until PKG-023a the list could not know that a change was waiting: a person saw it only after
-        opening the Dogovor. The one who proposed it is waiting for an answer, not for themselves. */}
-    {item.izmenaCeka ? <View style={s.pending}><T variant="meta" style={s.pendingText}>
-      {item.izmenaCeka.mojPredlog ? 'Tvoja izmena čeka odgovor' : 'Izmena čeka tvoj odgovor'}</T></View> : null}
+    {attention ? <View style={s.strip}>
+      <FactArt kind={attention.art} size={22} />
+      <View style={s.stripCopy}>
+        <T style={s.stripTitle}>{attention.title}</T>
+        <T style={s.stripLine}>{attention.line}</T>
+      </View>
+      <ArrowRight size={18} color={sys.color.warn} />
+    </View> : null}
   </Press>;
 }
 /**
@@ -123,8 +162,16 @@ export function AgreementCollectionPresentation(props: Props) {
     }).map(row => row.item);
   }, [items, section, confirmationOnly]);
   const waiting = useMemo(() => items.filter(awaitsMyConfirmation).length, [items]);
-  const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && waiting ? { ...option, badge: waiting } : option), [waiting]);
-  const count = loading || error ? null : visible.length;
+  const settledRead = !loading && !error;
+  // Each set says how many Dogovori it holds, as the V41 tab bar does, and only once the read has settled.
+  // An empty set shows no number: a zero on a badge reads as news. What waits for me is on the cards and the chip.
+  const sections = useMemo(() => {
+    if (!settledRead) return SECTIONS;
+    const active = items.filter(isActive).length;
+    const counts: Record<AgreementCollectionSection, number> = { active, history: items.length - active, all: items.length };
+    return SECTIONS.map(option => counts[option.key] ? { ...option, badge: counts[option.key] } : option);
+  }, [items, settledRead]);
+  const count = settledRead ? visible.length : null;
   const appear = useAppear();
   appear.settle(visible.map(keyOf));
   // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
@@ -143,54 +190,73 @@ export function AgreementCollectionPresentation(props: Props) {
           : <View style={s.state}><T style={s.stateTitle}>Još nemaš Dogovor</T><T style={s.stateBody}>Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde.</T>
             <V2Action label="Idi na Početnu" onPress={props.onHome} style={brandAction} /></View>}
   </View>;
+  const chip = waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
+    onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
+    {confirmationOnly ? <Check size={14} weight="bold" color={sys.color.green} /> : null}
+    <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka moju potvrdu</T>
+  </Press> : null;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    {/* The heading that used to sit here said "Aktivni dogovori" beside a segment already reading
-        "Aktivni", over an empty state that says it better still. The count belongs with what it
-        counts. The segment keeps this row to itself so no section is ever cut through the middle. */}
-    <ScreenHeader eyebrow="Tvoje saradnje" title="Dogovori" onProfile={props.onProfile}
+    <ScreenHeader title="Dogovori" onProfile={props.onProfile}
       right={<HeaderIconButton label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />} />
+    {/* V41: an underlined tab bar that spans the screen, then one quiet row with what is counted on the left
+        and the one filter on the right. The count belongs with what it counts; no heading repeats the tab. */}
     <View style={s.controls}>
-      <Segmented options={sections} value={section} onChange={props.onSection} />
-      {waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka moju potvrdu" accessibilityState={{ checked: confirmationOnly }}
-        onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select" style={[s.chip, confirmationOnly && s.chipOn]}>
-        {confirmationOnly ? <Check size={14} weight="bold" color={sys.color.green} /> : null}
-        <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka moju potvrdu</T>
-      </Press> : null}
+      <Segmented options={sections} value={section} onChange={props.onSection} appearance="underline" />
+      {count || chip ? <View style={s.toolbar}>
+        {count ? <T variant="note" tone="muted" style={s.count}>{dogovora(count)}</T> : <View />}
+        {chip}
+      </View> : null}
     </View>
     <FlatList<DogovorProjekcija> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
       onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.
       initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
-      ItemSeparatorComponent={Separator} renderItem={renderItem}
-      ListHeaderComponent={count ? <View style={s.countRow}><T variant="note" tone="muted">{dogovora(count)}</T></View> : null} />
+      ItemSeparatorComponent={Separator} renderItem={renderItem} />
   </SafeAreaView>;
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  controls: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6, gap: 8, alignItems: 'flex-start' },
-  countRow: { paddingBottom: 8 },
-  count: { color: sys.color.muted, fontWeight: '500', fontVariant: ['tabular-nums'] },
+  screen: { flex: 1, backgroundColor: sys.color.ground },
+  controls: { paddingHorizontal: 20, paddingTop: 4 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44, paddingTop: 8, paddingBottom: 4 },
+  count: { fontVariant: ['tabular-nums'] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.chip, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
-  list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
+  list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, gap: 16, flex: 1 }, center: { textAlign: 'center' },
   state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
   stateTitle: { ...sys.type.title, color: sys.color.ink }, stateBody: { ...sys.type.copy, color: sys.color.muted, marginBottom: 6 },
-  attentionCard: { borderColor: sys.color.orange }, settledCard: { backgroundColor: sys.color.wash },
+  // V41 card: white, a hairline edge, a 20px corner and no shadow to speak of. The strip below the facts is
+  // clipped to the corner, so the card stays one shape.
+  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.cardCompact, borderWidth: 1, borderColor: sys.color.cardLine, overflow: 'hidden' },
+  cardAttention: { borderColor: sys.color.orangeHalo },
+  main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  avatar: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line,
+    alignItems: 'center', justifyContent: 'center' },
+  initials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
+  personCopy: { flex: 1, minWidth: 0 }, personName: { color: sys.color.ink, fontWeight: '700' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0.3 },
   title: { ...sys.type.cardTitle, color: sys.color.ink },
-  facts: { gap: 6, marginTop: 9 }, fact: { flexDirection: 'row', alignItems: 'center', gap: 8 }, factText: { flex: 1 },
-  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderTopColor: sys.color.line },
-  price: { ...sys.type.price, color: sys.color.money, flexShrink: 1 },
-  people: { color: sys.color.ink, fontWeight: '600' },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  avatar: { width: 32, height: 32, borderRadius: sys.radius.chip, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  initials: { color: sys.color.green, letterSpacing: 0 },
-  personCopy: { flex: 1, minWidth: 0, gap: 1 }, personName: { color: sys.color.ink },
+  accepted: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginTop: 14 },
+  when: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  whenCopy: { flex: 1, minWidth: 0 },
+  day: { ...sys.type.note, fontWeight: '600', color: sys.color.ink },
+  time: { ...sys.type.note, fontWeight: '600', color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  money: { alignItems: 'flex-end', flexShrink: 0, maxWidth: '55%' },
+  price: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'right' },
+  priceNote: { fontSize: 12, lineHeight: 16, color: sys.color.muted, textAlign: 'right' },
+  noPrice: { ...sys.type.note, fontWeight: '600', color: sys.color.muted, textAlign: 'right' },
+  minor: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginTop: 14 },
+  place: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  people: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
+  minorText: { fontSize: 13, lineHeight: 18, color: sys.color.muted, flexShrink: 1 },
+  note: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }, noteText: { flexShrink: 1 },
   problem: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
-  // A change waiting for an answer is a task, not a fault: the warm tone, not the red one.
-  pending: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
-  pendingText: { color: sys.color.warn, fontWeight: '600' },
+  // A Dogovor that waits for me is a task, not a fault: the warm tone across the card's foot, not the red one.
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: sys.color.orangeSoft },
+  stripCopy: { flex: 1, minWidth: 0, gap: 1 },
+  stripTitle: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: sys.color.warn },
+  stripLine: { fontSize: 12, lineHeight: 17, color: sys.color.muted },
 });

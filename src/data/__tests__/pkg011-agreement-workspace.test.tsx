@@ -224,6 +224,24 @@ test('a refused settlement leaves the conversation exactly as it was', async () 
   expect(tree.root.findAll(node => String(node.type) === 'AgreementChat')).toHaveLength(1);
 });
 
+// V41 (owner, 2026-09-23): the top bar names the person the Dogovor is with, the same on both tabs, with the state under it.
+const headers = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
+test('the top bar names the other person with the state on both tabs, and its arrow still goes back', async () => {
+  await render(base());
+  expect(headers()).toContain('Marko'); expect(headers()).not.toContain('Dogovor'); expect(texts()).toContain('Dogovoreno');
+  // No rating is invented for a person the Dogovor carries none for.
+  expect(texts()).not.toContain('Još nema ocena');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruke' }).props.onPress());
+  expect(headers()).toContain('Marko'); expect(headers()).not.toContain('Poruke');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
+  expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+test('a Dogovor that does not name the other side keeps the word Dogovor and its state', async () => {
+  const lone = base({ stanje: 'AWAITING_REQUESTER' }, 'uskocer') as { ucesnici: { viSte: boolean }[] };
+  await render({ ...lone, ucesnici: lone.ucesnici.filter(person => person.viSte) });
+  expect(headers()).toContain('Dogovor'); expect(texts()).toContain('Čeka se potvrda završetka');
+});
+
 // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble carries that name.
 test('a bubble from the other person carries their name from the workspace, not the adapter label', async () => {
   mockParams = { id: mockAgreementId, tab: 'poruke' };

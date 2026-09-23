@@ -8,7 +8,7 @@ import { T } from '../../ui/Text';
 import { sys } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
@@ -315,8 +315,10 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ProductHeader back={backToAgreements}
-        subtitle={tab === 'poruke' ? other?.ime ?? 'Razgovor o Dogovoru' : agreementStateText(dogovor.stanje)} title={tab === 'poruke' ? 'Poruke' : 'Dogovor'} />
+      {/* V41: the bar names the person this Dogovor is with, on both tabs, and says its state under the name.
+          Only a Dogovor that does not name the other side keeps the word "Dogovor" and its state. */}
+      {other ? <AgreementPersonBar person={other} state={dogovor.stanje} back={backToAgreements} />
+        : <ProductHeader back={backToAgreements} subtitle={agreementStateText(dogovor.stanje)} title="Dogovor" />}
       <View style={s.tabs}>
         {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
         <AgreementTabs tab={tab} onChange={setTab} />

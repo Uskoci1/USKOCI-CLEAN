@@ -1,14 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { StyleSheet, View } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
-import type { DogovorProjekcija } from '../../contracts/projections';
+import { ArrowLeft, CaretRight } from 'phosphor-react-native';
+import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { ProductFact, ProductFacts, ProductTitle } from '../product/ProductDetails';
+import { innerBar } from '../system/DetailTopBar';
 import { FactArt } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
-import { card, sys } from '../system/tokens';
+import { card, iconButton, sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { T } from '../Text';
 
@@ -25,6 +26,29 @@ const states: Record<DogovorProjekcija['stanje'], string> = {
 export const agreementStateText = (state: DogovorProjekcija['stanje']) => states[state];
 
 /**
+ * The top bar of a Dogovor (V41, owner 2026-09-23): the arrow back, then the person on the other side, their
+ * face or initials and their name, with the Dogovor's state under it. It is the same on Pregled and Poruke, so a
+ * tab never changes whom the screen is about. The arrow is ProductHeader's own, press for press. No rating is
+ * drawn: the Dogovor does not carry one, and "Još nema ocena" would be a claim about someone who may have many.
+ */
+export function AgreementPersonBar({ person, state, back }: {
+  person: UcesnikProjekcija; state: DogovorProjekcija['stanje']; back: () => void;
+}) {
+  const initials = <View style={s.barAvatar}><T variant="label" style={s.barInitials}>{person.inicijali}</T></View>;
+  return <View style={s.bar}>
+    <Press accessibilityRole="button" accessibilityLabel="Nazad" accessibilityState={{ disabled: false }}
+      disabled={false} onPress={back} haptic="select" style={iconButton}>
+      <ArrowLeft size={22} color={sys.color.ink} />
+    </Press>
+    {person.profilId ? <ProfilePhoto profileId={person.profilId} size={44} fallback={initials} /> : initials}
+    <View style={s.barCopy}>
+      <T accessibilityRole="header" variant="heading" style={s.ink} numberOfLines={1}>{person.ime}</T>
+      <T variant="meta" tone="muted" numberOfLines={1}>{states[state]}</T>
+    </View>
+  </View>;
+}
+
+/**
  * Accepted terms, never copied from the current Task. Compact form above Poruke leads back to
  * the overview. The state itself is spoken by the top bar and the next-step card.
  */
@@ -35,7 +59,8 @@ export function AgreementHero({ agreement: a, compact = false, onOpen }: {
     <FactArt kind="agreements" size={32} />
     <View style={s.grow}>
       <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(a.naslov)}</T>
-      <T variant="note" tone="muted">{a.cena.prikaz} · {osoba(a.pokrivenost.popunjeno)} · {states[a.stanje]}</T>
+      {/* The state is in the top bar right above; said here too, it was said twice on one screen. */}
+      <T variant="note" tone="muted">{a.cena.prikaz} · {osoba(a.pokrivenost.popunjeno)}</T>
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
@@ -85,6 +110,11 @@ export function AgreementSection({ label, summary, children }: { label: string; 
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
+  bar: innerBar,
+  barCopy: { flex: 1, minWidth: 0 },
+  barAvatar: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line,
+    alignItems: 'center', justifyContent: 'center' },
+  barInitials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
   hero: { gap: 12 },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   people: { paddingVertical: 4 },
