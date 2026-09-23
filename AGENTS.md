@@ -18,6 +18,19 @@ bell), warm strips, underlined tabs with quiet counts, person-first Dogovori car
 Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
 green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
 
+AUTONOMOUS PERFECTION DIRECTIVE (owner, 2026-09-23 late night; memory: uskoci-autonomous-perfection-directive). Act as the
+whole senior product team and decide everything except: real payments, prices, payment provider, Google Maps/API billing,
+external accounts or keys, legal/privacy decisions, a permission with serious privacy consequences, destructive production
+migrations or data deletion, the core business model, a store/production release. QA device is the Android EMULATOR
+(AVD USKOCI_V5_TEST, build target `emulator`), not the phone. Every screen: implement → types/tests → build → emulator
+screenshot → separate UX and VISUAL critique → fix → screenshot, until finished. LOCKED IA (plan in the Claude Doc tab
+"Plan ekrana (23. sep)" of https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923; sketches
+https://claude.ai/artifact/B2YMSAQVPz7iuq6TXHgZLf): tabs Početna (overview: tiles, Čeka te, next Dogovor, Moji zadaci and
+Moje prijave rows) | Zadaci (other people's tasks: map and list as ONE screen with a draggable list sheet) | Dogovori;
+Moje aktivnosti retired; /mapa and /prilike redirect to /zadaci. The AI chat's reference look is the Gemini app (pill
+composer, voice mode; memory: uskoci-ai-chat-reference-gemini). CI proofs that start the full local Supabase retry the start
+on registry throttling (25dc016a).
+
 SYSTEM PASS (2026-09-23 night, owner: "ovaj sistem ikona … kroz ceo app … izgled kartice isti", and of the orange
 "Oceni saradnju" on his phone: "nije ove boje … loš fazon"). The PRIMARY ACTION IS NOW GREEN with a white label (V28 and
 V41 both draw it so; `brandAction` + `sys.color.onGreen`); orange stays an accent only (Home publish tile, what waits,
