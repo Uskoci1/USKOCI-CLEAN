@@ -62,7 +62,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
     style={[s.track, underline && s.underlineTrack, style]} contentContainerStyle={s.scrollRow}>{items}</ScrollView>;
   return <View accessibilityRole="tablist" style={[s.track, underline && s.underlineTrack, style]}>
     {target ? <Animated.View pointerEvents="none" importantForAccessibility="no-hide-descendants"
-      style={[s.selected, s.indicator, { width: target.width, transform: [{ translateX }] }]} /> : null}
+      style={[s.indicator, { width: target.width, transform: [{ translateX }] }]} /> : null}
     {items}
   </View>;
 }
@@ -73,8 +73,12 @@ const s = StyleSheet.create({
   segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   selected: { backgroundColor: sys.color.surface, shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  // Measured x is inside the track's padding box, so the pill starts at the track's left edge.
-  indicator: { position: 'absolute', top: 4, bottom: 4, left: 0, borderRadius: nested(sys.radius.control, 4) },
+  // Measured x is inside the track's padding box, so the pill starts at the track's left edge. No elevation: on
+  // Android an elevated view is drawn above its non-elevated siblings, so the pill would cover the chosen label.
+  // A hairline gives it the edge the shadow gives it on iOS.
+  indicator: { position: 'absolute', top: 4, bottom: 4, left: 0, borderRadius: nested(sys.radius.control, 4),
+    backgroundColor: sys.color.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line,
+    shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 } },
   underlineTrack: { padding: 0, gap: 20, borderRadius: 0, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   underlineSegment: { flexGrow: 0, flexBasis: 'auto', minHeight: 48, paddingHorizontal: 4, borderRadius: 0, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   underlineSelected: { borderBottomColor: sys.color.green },
