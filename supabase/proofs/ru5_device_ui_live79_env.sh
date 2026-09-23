@@ -41,7 +41,21 @@ comment on function public.rpc_ai_correct_fact(uuid,text) is 'AUTHENTICATED_RUNT
 comment on function public.rpc_ai_apply_interview_turn_service(uuid,uuid,text,text,text,jsonb) is 'SERVICE_RUNTIME_PROVEN: repeated canonical keys preserve one-live-fact invariant by superseding before insert; replacement proof rolled back with zero residue.';
 SQL
 
-supabase start
+# The Supabase CLI pulls about twelve images at once from ghcr.io and gives each one retry. Since
+# 2026-09-23 the registry answers bursts with "toomanyrequests" (retry-after in microseconds), which
+# failed every proof at this line before any USKOCI code ran. Images already pulled stay in the local
+# cache, so each further attempt asks for fewer at once. Nothing the proof checks is changed.
+start_supabase_with_registry_retry() {
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    if supabase start; then return 0; fi
+    echo "supabase start failed on attempt $attempt; pausing before retrying the image pulls" >&2
+    supabase stop --no-backup >/dev/null 2>&1 || true
+    sleep $((attempt * 30))
+  done
+  supabase start
+}
+start_supabase_with_registry_retry
 supabase db reset --local
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "delete from supabase_migrations.schema_migrations where version='20260825000000';" >/dev/null
 
