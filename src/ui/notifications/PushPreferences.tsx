@@ -142,20 +142,20 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
  const locked = busy || error;
  return <View style={styles.stack}>
   <T style={{ ...sys.type.title, color: sys.color.ink }}>Kanali obaveštenja</T>
-  <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne uključuje push dozvolu na telefonu.</T>
-  {busy && <ActivityIndicator accessibilityLabel="Provera push obaveštenja" color={sys.color.green} />}
+  <T tone="muted">Podešavanja važe samo za ovu ulogu. Promena kategorije ne menja dozvolu za obaveštenja na telefonu.</T>
+  {busy && <ActivityIndicator accessibilityLabel="Provera obaveštenja na telefonu" color={sys.color.green} />}
   {error && <View accessibilityLiveRegion="polite" style={styles.stack}><T>Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T><Button label="Proveri stanje" kind="secondary" onPress={refresh} disabled={busy} /></View>}
   {snapshot && settings && <View style={busy ? styles.working : undefined}>
-   <SettingSwitch label="Obaveštenja u aplikaciji" help="Kontroliše in-app isporuku. Istorija događaja u Inbox-u ostaje odvojena." value={settings.in_app_enabled}
+   <SettingSwitch label="Obaveštenja u aplikaciji" help="Obaveštenja unutar aplikacije. Spisak obaveštenja ostaje sačuvan." value={settings.in_app_enabled}
     disabled={locked} onChange={value => edit('in_app_enabled', value)} />
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Kategorije</T>
-   <T tone="muted">Isključena kategorija se ne isporučuje ni kao in-app ni kao push za ovu ulogu.</T>
+   <T tone="muted">Isključena kategorija ne stiže ni u aplikaciju ni na telefon.</T>
    {CATEGORY_ROWS.map(row => <SettingSwitch key={row.key} label={row.label} help={row.help} value={settings[row.key]}
     disabled={locked} onChange={value => edit(row.key, value)} />)}
    <View style={styles.divider} />
    <T style={{ ...sys.type.title, color: sys.color.ink }}>Tihi sati</T>
-   <SettingSwitch label="Uključi tihe sate" help="Push se utišava u zadatom intervalu. Interval može da prelazi preko ponoći." value={settings.quiet_hours_enabled}
+   <SettingSwitch label="Uključi tihe sate" help="Telefon ćuti u tom periodu. Period može da prelazi preko ponoći." value={settings.quiet_hours_enabled}
     disabled={locked} onChange={value => edit('quiet_hours_enabled', value)} />
    <View style={styles.timeRow}>
     <View style={styles.timeField}><T variant="meta" tone="muted">Početak</T><TextInput accessibilityLabel="Početak tihih sati" value={settings.quiet_start ?? ''}
@@ -173,19 +173,19 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
      {settings.quiet_timezone !== deviceZone() && deviceZone()
        ? <Button label={`Koristi zonu telefona (${zoneLabel(deviceZone()!)})`} kind="quiet" disabled={locked}
          onPress={() => edit('quiet_timezone', deviceZone()!)} /> : null}</View>
-   <SettingSwitch label="HITNO može preko tihih sati" help="Važi samo za HITNO događaj i samo kada je ovo posebno uključeno." value={settings.urgent_overrides_quiet_hours}
+   <SettingSwitch label="Hitno može i tokom tihih sati" help="Važi samo za hitne događaje i samo kada je ovo posebno uključeno." value={settings.urgent_overrides_quiet_hours}
     disabled={locked || !settings.quiet_hours_enabled} onChange={value => edit('urgent_overrides_quiet_hours', value)} />
    {validation ? <T accessibilityRole="alert" tone="danger">{validation}</T> : null}
    <Button label="Sačuvaj podešavanja" onPress={saveSettings} disabled={locked || !dirty} />
    {!dirty && !locked ? <T variant="meta" tone="muted">Dugme se uključuje kad promeniš neko podešavanje.</T> : null}
    <View style={styles.divider} />
-   <T style={{ ...sys.type.title, color: sys.color.ink }}>Push obaveštenja</T>
+   <T style={{ ...sys.type.title, color: sys.color.ink }}>Obaveštenja na telefonu</T>
    <T tone="muted">Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.</T>
-   <T variant="bodyStrong">{enabled ? 'Push je uključen za ovu ulogu.' : 'Push je isključen za ovu ulogu.'}</T>
-   <T tone="muted">{registered ? 'Ovaj uređaj je povezan sa trenutnom prijavom.' : snapshot.native.kind === 'DENIED' ? 'Dozvoli obaveštenja u podešavanjima telefona.'
-    : snapshot.native.kind === 'UNSUPPORTED' ? 'Push obaveštenja zahtevaju podržan fizički telefon.' : snapshot.native.kind === 'UNCONFIGURED' ? 'Push još nije dostupan u ovoj verziji aplikacije.' : 'Ovaj uređaj još nije povezan za push obaveštenja.'}</T>
+   <T variant="bodyStrong">{enabled ? 'Obaveštenja na telefon su uključena za ovu ulogu.' : 'Obaveštenja na telefon su isključena za ovu ulogu.'}</T>
+   <T tone="muted">{registered ? 'Ovaj telefon je povezan sa tvojim nalogom.' : snapshot.native.kind === 'DENIED' ? 'Dozvoli obaveštenja u podešavanjima telefona.'
+    : snapshot.native.kind === 'UNSUPPORTED' ? 'Obaveštenja na telefon rade samo na pravom telefonu.' : snapshot.native.kind === 'UNCONFIGURED' ? 'Obaveštenja na telefon još nisu dostupna u ovoj verziji aplikacije.' : 'Ovaj telefon još nije povezan za obaveštenja.'}</T>
    <View style={styles.stack}><T variant="bodyStrong">Poslednja provera slanja</T>
-    <T tone="muted">{snapshot.readiness?.state === 'OPERATIONAL' ? 'Server je pri proveri uspešno obrađivao slanje obaveštenja.'
+    <T tone="muted">{snapshot.readiness?.state === 'OPERATIONAL' ? 'Pri poslednjoj proveri slanje obaveštenja je radilo.'
      : snapshot.readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
       : snapshot.readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na telefon još nije uključeno.'
        : 'Još ne možemo da potvrdimo da slanje obaveštenja radi.'}</T>
@@ -194,11 +194,11 @@ export function PushPreferences({ role }: { role: NotificationRole }) {
    </View>
    {snapshot.native.kind === 'DENIED' && <Button label="Podešavanja telefona" kind="secondary" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />}
    {snapshot.native.kind !== 'UNSUPPORTED' && snapshot.native.kind !== 'UNCONFIGURED' && snapshot.native.kind !== 'DENIED' && (!registered || !enabled)
-    && <Button label="Uključi push za ovu ulogu" onPress={enable} disabled={locked || dirty} />}
-   {enabled && <Button label="Isključi push za ovu ulogu" kind="secondary" onPress={disable} disabled={locked || dirty} />}
+    && <Button label="Uključi obaveštenja na telefonu" onPress={enable} disabled={locked || dirty} />}
+   {enabled && <Button label="Isključi obaveštenja na telefonu" kind="secondary" onPress={disable} disabled={locked || dirty} />}
    <Button label="Osveži stanje" kind="secondary" onPress={refresh} disabled={locked || dirty} />
-   {dirty ? <T variant="meta" tone="muted">Sačuvaj izmene kategorija i tihih sati pre promene push registracije ili osvežavanja.</T> : null}
-   <T variant="meta" tone="muted">Povezan uređaj ne znači da je pojedinačno obaveštenje isporučeno.</T>
+   {dirty ? <T variant="meta" tone="muted">Prvo sačuvaj izmene kategorija i tihih sati.</T> : null}
+   <T variant="meta" tone="muted">Povezan telefon ne znači da je svako obaveštenje stiglo.</T>
   </View>}
  </View>;
 }
@@ -207,7 +207,8 @@ const deviceZone = (): string | null => {
  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
 };
 /** The city, not the database identifier. */
-const zoneLabel = (zone: string): string => zone.split('/').pop()?.replace(/_/g, ' ') ?? zone;
+// Serbian time is named the way the rest of the app names it; any other zone keeps its city.
+const zoneLabel = (zone: string): string => zone === 'Europe/Belgrade' ? 'Vreme u Srbiji' : zone.split('/').pop()?.replace(/_/g, ' ') ?? zone;
 
 function SettingSwitch({ label, help, value, disabled, onChange }: { label: string; help: string; value: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
  // Nine of these, each togglable only by hitting the switch itself — a 51x31 target at the right

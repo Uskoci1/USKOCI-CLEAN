@@ -40,7 +40,7 @@ it('a failed initial read can be retried without prompting or writing preference
  await act(async () => { button('Proveri stanje').props.onPress(); await flush(); });
  expect(mockRead).toHaveBeenCalledTimes(2);
  expect(button('Proveri stanje')).toBeUndefined();
- expect(button('Uključi push za ovu ulogu').props.disabled).toBe(false);
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(false);
  expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function));
  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
@@ -49,7 +49,7 @@ it('after an uncertain save only readback is available, and repeated retry taps 
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
- expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  expect(control('Početak tihih sati').props.editable).toBe(false);
  expect(button('Proveri stanje').props.disabled).toBe(false);
  let done!: (value: unknown) => void;
@@ -61,67 +61,67 @@ it('after an uncertain save only readback is available, and repeated retry taps 
  await act(async () => { done({ ...preferences, revision: 3, settings: { ...settings, dogovor_enabled: false } }); await flush(); });
  expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
- expect(button('Uključi push za ovu ulogu').props.disabled).toBe(false);
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(false);
  expect(mockSave).toHaveBeenCalledTimes(1); expect(mockSet).not.toHaveBeenCalled();
 });
 it('explicit enable preserves category/quiet fields, registers once and writes role-scoped consent', async () => {
- await mount(); const onPress = button('Uključi push za ovu ulogu').props.onPress;
+ await mount(); const onPress = button('Uključi obaveštenja na telefonu').props.onPress;
  await act(async () => { onPress(); onPress(); await flush(); });
  expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).toHaveBeenCalledTimes(1);
  expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: true }, 2);
  expect(mockNative).toHaveBeenCalledWith(true, expect.any(Function));
 });
-it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi push za ovu ulogu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
+it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
 it('unknown registration clears action and requires readback; retained callback cannot resend', async () => {
- await mount(); const old = button('Uključi push za ovu ulogu').props.onPress; mockSet.mockResolvedValue({ ok: false });
+ await mount(); const old = button('Uključi obaveštenja na telefonu').props.onPress; mockSet.mockResolvedValue({ ok: false });
  // The settings are no longer wiped off the screen by an unconfirmed outcome, so the control is
  // still there — locked until the state is read back, which is what it was protecting.
  await act(async () => { old(); await flush(); }); expect(button('Proveri stanje')).toBeDefined();
- expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  await act(async () => { old(); await flush(); }); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
 });
 it('blur during permission/registration prevents later preference opt-in', async () => {
  await mount(); let done!: (value: unknown) => void; mockSet.mockReturnValue(new Promise(r => { done = r; }));
- await act(async () => { button('Uključi push za ovu ulogu').props.onPress(); await flush(); });
+ await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); });
  act(() => mockBlur?.()); done({ ok: true, podatak: {} }); await act(flush); expect(mockSave).not.toHaveBeenCalled();
 });
 it('account ABA while registration is pending cannot write preferences or expose old device state', async () => {
  await mount(); let done!: (value: unknown) => void; mockSet.mockReturnValue(new Promise(r => { done = r; }));
- await act(async () => { button('Uključi push za ovu ulogu').props.onPress(); await flush(); });
+ await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); });
  mockAccount = { user: { id: preferences.userId }, accountRevision: 3 }; await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
  done({ ok: true, podatak: {} }); await act(flush); expect(mockSave).not.toHaveBeenCalled();
 });
 it('role switch makes retained old action inert', async () => {
- await mount(); const old = button('Uključi push za ovu ulogu').props.onPress;
+ await mount(); const old = button('Uključi obaveštenja na telefonu').props.onPress;
  act(() => { tree.update(<PushPreferences role="WORKER" />); }); await act(flush);
  await act(async () => { old(); await flush(); }); expect(mockSet).not.toHaveBeenCalled();
 });
 it('disable uses displayed revision and preserves all other settings', async () => {
  mockRead.mockResolvedValue({ ...preferences, settings: { ...preferences.settings, push_enabled: true } }); await mount();
- await act(async () => { button('Isključi push za ovu ulogu').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
+ await act(async () => { button('Isključi obaveštenja na telefonu').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
 });
 const screenText = () => tree.root.findAllByType('Text' as never).map(x => x.props.children).flat().join(' ');
 it('reads actual transport evidence independently and never turns a healthy tick into device delivery', async () => {
  mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
- await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Server je pri proveri uspešno');
+ await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Pri poslednjoj proveri slanje obaveštenja je radilo');
  expect(screenText()).toContain('a ne potvrda da je obaveštenje stiglo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 it('transport failure preserves available device controls with honest missing evidence', async () => {
  mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Još ne možemo da potvrdimo da slanje obaveštenja radi');
- expect(button('Uključi push za ovu ulogu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
+ expect(button('Uključi obaveštenja na telefonu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
 });
 it('late transport result cannot replace a new account snapshot', async () => {
  let done!: (value: unknown) => void; mockReadiness.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
  await mount(); mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
  await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
  await act(async () => { done({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } }); await flush(); });
- expect(screenText()).not.toContain('Server je pri proveri uspešno'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ expect(screenText()).not.toContain('Pri poslednjoj proveri slanje obaveštenja je radilo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 
 it('exposes category controls and saves an explicit opt-out without silently enabling push', async () => {
  await mount();
  act(() => control('Nove prilike').props.onPress());
- expect(button('Uključi push za ovu ulogu').props.disabled).toBe(true);
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
  expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...settings, opportunities_enabled: false }, 2);
@@ -134,7 +134,7 @@ it('saves overnight quiet hours, timezone and explicit HITNO override through th
  act(() => control('Kraj tihih sati').props.onChangeText('06:45'));
  // The zone is no longer typed by hand; the saved value is the one that was read back, and the
  // only way to change it is the explicit "use the phone's zone" action.
- act(() => control('HITNO može preko tihih sati').props.onPress());
+ act(() => control('Hitno može i tokom tihih sati').props.onPress());
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', {
   ...settings, quiet_start: '23:15', quiet_end: '06:45', urgent_overrides_quiet_hours: true,
