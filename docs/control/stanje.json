@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T00:59:58Z",
+  "osvezeno": "2026-09-23T01:16:26Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "28a48b78",
-  "head_poruka": "inbox: a notification lands on the part of the thing the person came for (F14)",
+  "head": "f0d7fb7b",
+  "head_poruka": "proofs: follow the server's own rule for what a profile is, instead of writing its status",
   "server": {
    "snimljeno": "2026-09-22T22:05:13Z",
    "migracije": 198,
@@ -2259,7 +2259,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Server ne vraća ID zadatka/prijave iz kojih je Dogovor nastao. Trenutni prikaz istorije ima samo kreiranje, bez stvarnog dolaska/ETA.",
-   "sledece": "Posle odobrenja funkcionalne analize: koraci samo iz dokazanih stanja; mali serverski predlog za izvorne veze. Audit F12.",
+   "sledece": "PKG-048 napisan 23.09: serverski dokument Dogovora dobija dva ključa — needId i applicationId — pa ekran može da otvori zadatak iz kog je Dogovor nastao i prijavu koja je izabrana. Ništa novo se ne otkriva: funkcija ionako odgovara samo dvema stranama, a svaka strana već poseduje svoj kraj. Telo se ne prekucava: transakcija menja živu definiciju zamenom jednog sidra koje se mora pojaviti tačno jednom, pa ostaje doslovno isto. Ne pomera sertifikat. Dokaz pravi pravi Dogovor (objavljen zadatak, prava ponuda, pravi izbor) i proverava da je sve ostalo u dokumentu isto do bajta. Prikaz koraka napretka (stvarna stanja, bez izmišljenog dolaska) ostaje zaseban posao — vidi D13.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5629,6 +5629,46 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35805442425,
+   "ime": "PKG-048 agreement source links proof",
+   "sha": "f0d7fb7b",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T01:13:58Z"
+  },
+  {
+   "id": 35805442368,
+   "ime": "PKG-047 safety target proof",
+   "sha": "f0d7fb7b",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T01:13:58Z"
+  },
+  {
+   "id": 35805133806,
+   "ime": "PKG-048 agreement source links proof",
+   "sha": "cbe048b9",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T01:09:34Z"
+  },
+  {
+   "id": 35804869897,
+   "ime": "PKG-047 safety target proof",
+   "sha": "2c430346",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T01:05:43Z"
+  },
+  {
+   "id": 35804451368,
+   "ime": "PKG-047 safety target proof",
+   "sha": "2a17e3ce",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T01:00:03Z"
+  },
+  {
    "id": 35803858495,
    "ime": "PKG-047 safety target proof",
    "sha": "455b7ac3",
@@ -5640,8 +5680,8 @@
    "id": 35803858437,
    "ime": "PKG-010 system contracts proof",
    "sha": "455b7ac3",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "failure",
    "vreme": "2026-09-23T00:51:32Z"
   },
   {
@@ -5683,46 +5723,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-09-22T21:25:04Z"
-  },
-  {
-   "id": 35785488912,
-   "ime": "PKG-008 task photo recovery proof",
-   "sha": "0bb28f8b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-22T21:15:16Z"
-  },
-  {
-   "id": 35785488747,
-   "ime": "PKG-046 media upload cancellation proof",
-   "sha": "0bb28f8b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-22T21:15:16Z"
-  },
-  {
-   "id": 35776482855,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "0a88e8bd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T19:51:33Z"
-  },
-  {
-   "id": 35776482660,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "0a88e8bd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T19:51:33Z"
-  },
-  {
-   "id": 35775426480,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "9286fdeb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-22T19:41:43Z"
   }
  ]
 }

@@ -973,7 +973,7 @@
    ],
    "telefon": null,
    "problem": "Server ne vraća ID zadatka/prijave iz kojih je Dogovor nastao. Trenutni prikaz istorije ima samo kreiranje, bez stvarnog dolaska/ETA.",
-   "sledece": "Posle odobrenja funkcionalne analize: koraci samo iz dokazanih stanja; mali serverski predlog za izvorne veze. Audit F12.",
+   "sledece": "PKG-048 napisan 23.09: serverski dokument Dogovora dobija dva ključa — needId i applicationId — pa ekran može da otvori zadatak iz kog je Dogovor nastao i prijavu koja je izabrana. Ništa novo se ne otkriva: funkcija ionako odgovara samo dvema stranama, a svaka strana već poseduje svoj kraj. Telo se ne prekucava: transakcija menja živu definiciju zamenom jednog sidra koje se mora pojaviti tačno jednom, pa ostaje doslovno isto. Ne pomera sertifikat. Dokaz pravi pravi Dogovor (objavljen zadatak, prava ponuda, pravi izbor) i proverava da je sve ostalo u dokumentu isto do bajta. Prikaz koraka napretka (stvarna stanja, bez izmišljenog dolaska) ostaje zaseban posao — vidi D13.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
