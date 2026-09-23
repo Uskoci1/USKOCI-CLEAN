@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T05:16:54Z",
+  "osvezeno": "2026-09-23T05:22:57Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "7f4ed1e0",
-  "head_poruka": "device: the second account published a real task from the phone; one AI defect seen",
+  "head": "ac867229",
+  "head_poruka": "control: recompute at the commit the published page carries",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "NA TELEFONU NIJE PROVERENO": 44,
-  "PROBLEM": 18
+  "NA TELEFONU NIJE PROVERENO": 43,
+  "PROBLEM": 19
  },
  "redovi": [
   {
@@ -1905,8 +1905,8 @@
     "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
-   "problem": "",
-   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena.",
+   "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server.",
+   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena. PREDLOG PKG-049: na zadatku u režimu MY_PRICE server odbija (ili prepisuje na zadatu cenu) svaki drugi iznos; funkcija-samo, ne pomera sertifikat; dokaz na jednokratnoj bazi; tvoje odobrenje pre primene.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1915,7 +1915,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Mapa/Lista",
     "nivo": 2,

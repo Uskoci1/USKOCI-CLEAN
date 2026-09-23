@@ -825,8 +825,8 @@
     "stanje": "DELIMIČNO",
     "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233."
    },
-   "problem": "",
-   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena.",
+   "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server.",
+   "sledece": "PRVO PRAVO SLANJE PONUDE SA TELEFONA je prošlo 23.09: pregled pre slanja, upis prijave i obaveštenje drugoj strani. OSTAJE: druga strana (izbor prijave) — za to treba nalog te osobe, pa onda prepiska, završetak i ocena. PREDLOG PKG-049: na zadatku u režimu MY_PRICE server odbija (ili prepisuje na zadatu cenu) svaki drugi iznos; funkcija-samo, ne pomera sertifikat; dokaz na jednokratnoj bazi; tvoje odobrenje pre primene.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
