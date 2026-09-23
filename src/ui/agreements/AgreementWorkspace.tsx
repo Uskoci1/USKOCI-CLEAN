@@ -3,7 +3,6 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
-import { type EyebrowTone } from '../system/DetailTopBar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { brandAction, sys, inset } from '../system/tokens';
 import { T } from '../Text';
@@ -19,7 +18,7 @@ import { V2Action } from '../v2/V2Action';
  * so it uses only Press/T/icons/V2Action.
  */
 
-export type WorkspaceTone = EyebrowTone;
+export type WorkspaceTone = 'green' | 'warn' | 'muted' | 'danger';
 const toneColor: Record<WorkspaceTone, string> = { green: sys.color.green, warn: sys.color.warn, muted: sys.color.muted, danger: sys.color.danger };
 const toneSoft: Record<WorkspaceTone, string> = { green: sys.color.greenSoft, warn: sys.color.warnSoft, muted: sys.color.wash, danger: sys.color.dangerSoft };
 

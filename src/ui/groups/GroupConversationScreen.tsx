@@ -50,7 +50,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
  const appear=useAppear();
  appear.settle(state.messages.map(message=>message.messageId));
  return <SafeAreaView edges={['top','bottom']} style={s.screen}>
-  <DetailTopBar eyebrow="Dogovor" title="Grupni razgovor" backLabel="Nazad na Dogovor" onBack={()=>openAgreement(agreementId)}/>
+  <DetailTopBar title="Grupni razgovor" backLabel="Nazad na Dogovor" onBack={()=>openAgreement(agreementId)}/>
   <KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
   <FlatList key={generation} data={state.messages} keyExtractor={item=>item.messageId} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled"
    onViewableItemsChanged={onVisible} viewabilityConfig={viewability} refreshing={state.phase==='LOADING'} onRefresh={()=>invoke('refresh')}

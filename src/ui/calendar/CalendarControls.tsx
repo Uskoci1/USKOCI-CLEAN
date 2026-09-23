@@ -43,13 +43,13 @@ export function CalendarAction({ kind = 'primary', full: _full, style, ...props 
 }
 const Button = CalendarAction;
 
-export function CalendarScreen({ title, eyebrow, back, children, loading = false, scroll = true, footer }: {
-  title: string; eyebrow?: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
+export function CalendarScreen({ title, back, children, loading = false, scroll = true, footer }: {
+  title: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
 }) {
   const body = loading ? <View style={calendarStyles.note} accessibilityLabel="Učitavanje dostupnosti" accessibilityRole="progressbar">
     <ActivityIndicator color={sys.color.green} /><T>Učitavamo sačuvanu dostupnost…</T></View> : children;
   return <SafeAreaView edges={['top', 'bottom']} style={calendarStyles.screen}>
-    <DetailTopBar eyebrow={eyebrow} title={title} onBack={back} />
+    <DetailTopBar title={title} onBack={back} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {scroll || loading ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={calendarStyles.content}>{body}</ScrollView> : <View style={{ flex: 1 }}>{body}</View>}
       {!loading && footer ? <View style={calendarStyles.footer}>{footer}</View> : null}

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ArrowLeft, CaretRight, type Icon } from 'phosphor-react-native';
-import { Press } from '../Press';
+import type { Icon } from 'phosphor-react-native';
 import { T } from '../Text';
-import { card, iconButton, sys } from './tokens';
+import { card, sys } from './tokens';
+import { Disclosure } from './Disclosure';
 import { FactArt, type FactArtKind } from './FactArt';
 
 /**
@@ -14,8 +14,8 @@ import { FactArt, type FactArtKind } from './FactArt';
  */
 
 /** Back well + the screen name. The real title is the hero below, so this one stays small. */
-// The detail screens had their own copy of the top bar, without the eyebrow the screen anatomy
-// asks for. It is the same bar; it is re-exported here so these screens' imports stay one line.
+// The detail screens had their own copy of the top bar. It is the one chrome's detail bar now; it is
+// re-exported here so these screens' imports stay one line.
 export { DetailTopBar } from './DetailTopBar';
 
 /** One line that says what happens next, with a quiet sentence under it. */
@@ -49,7 +49,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <T accessibilityRole="header" variant="heading" style={s.section}>{children}</T>;
 }
 
-/** Rows that open more detail in place; the state is spoken through `expanded`. */
+/** Rows that open more detail in place, inside one card; each row is the one `Disclosure`, and `expanded` is spoken. */
 export function DisclosureGroup({ children }: { children: ReactNode }) {
   return <View style={s.group}>{children}</View>;
 }
@@ -57,13 +57,7 @@ export function DisclosureGroup({ children }: { children: ReactNode }) {
 export function DisclosureRow({ label, detail, expanded, onPress, first = false, children }: {
   label: string; detail?: string; expanded: boolean; onPress: () => void; first?: boolean; children?: ReactNode;
 }) {
-  return <View style={!first && s.divider}>
-    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded }} onPress={onPress} haptic="select" scaleTo={0.99} style={s.row}>
-      <View style={s.grow}><T variant="bodyStrong" style={s.ink}>{label}</T>{detail ? <T variant="note" tone="muted">{detail}</T> : null}</View>
-      <View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted} /></View>
-    </Press>
-    {expanded ? <View style={s.rowBody}>{children}</View> : null}
-  </View>;
+  return <Disclosure label={label} hint={detail} expanded={expanded} onToggle={onPress} divider={!first} inset>{children}</Disclosure>;
 }
 
 /** Label / value pairs inside an expanded row. */
@@ -80,7 +74,6 @@ export function QuietNote({ children }: { children: ReactNode }) {
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 },
   strip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: '#E1EBE3' },
   stripTitle: { fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: sys.color.line },
@@ -91,9 +84,6 @@ const s = StyleSheet.create({
   factMoney: { ...sys.type.priceLarge, color: sys.color.money },
   section: { color: sys.color.ink, marginTop: 6 },
   group: { ...card, padding: 0, overflow: 'hidden' },
-  divider: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  row: { minHeight: 60, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowBody: { paddingHorizontal: 18, paddingBottom: 16, gap: 10 },
   pairs: { gap: 10 }, pair: { gap: 2 },
   note: { borderRadius: sys.radius.control, backgroundColor: sys.color.wash, paddingVertical: 12, paddingHorizontal: 14 },
 });

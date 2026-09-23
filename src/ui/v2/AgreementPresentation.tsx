@@ -1,15 +1,16 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { StyleSheet, View } from 'react-native';
-import { ArrowLeft, CaretRight } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { DetailFact, DetailFacts, ProductTitle } from '../product/ProductDetails';
-import { innerBar } from '../system/DetailTopBar';
+import { ScreenChrome } from '../system/ScreenChrome';
+import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
-import { iconButton, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
@@ -29,24 +30,16 @@ export const agreementStateText = (state: DogovorProjekcija['stanje']) => states
 /**
  * The top bar of a Dogovor (V41, owner 2026-09-23): the arrow back, then the person on the other side, their
  * face or initials and their name, with the Dogovor's state under it. It is the same on Pregled and Poruke, so a
- * tab never changes whom the screen is about. The arrow is ProductHeader's own, press for press. No rating is
- * drawn: the Dogovor does not carry one, and "Još nema ocena" would be a claim about someone who may have many.
+ * tab never changes whom the screen is about. It is the one chrome's detail bar with the face as its lead, so the
+ * arrow, the height and the name's style are every other screen's. No rating is drawn: the Dogovor does not carry
+ * one, and "Još nema ocena" would be a claim about someone who may have many.
  */
 export function AgreementPersonBar({ person, state, back }: {
   person: UcesnikProjekcija; state: DogovorProjekcija['stanje']; back: () => void;
 }) {
   const initials = <View style={s.barAvatar}><T variant="label" style={s.barInitials}>{person.inicijali}</T></View>;
-  return <View style={s.bar}>
-    <Press accessibilityRole="button" accessibilityLabel="Nazad" accessibilityState={{ disabled: false }}
-      disabled={false} onPress={back} haptic="select" style={iconButton}>
-      <ArrowLeft size={22} color={sys.color.ink} />
-    </Press>
-    {person.profilId ? <ProfilePhoto profileId={person.profilId} size={44} fallback={initials} /> : initials}
-    <View style={s.barCopy}>
-      <T accessibilityRole="header" variant="heading" style={s.ink} numberOfLines={1}>{person.ime}</T>
-      <T variant="meta" tone="muted" numberOfLines={1}>{states[state]}</T>
-    </View>
-  </View>;
+  return <ScreenChrome variant="detail" onBack={back} title={person.ime} subtitle={states[state]}
+    lead={person.profilId ? <ProfilePhoto profileId={person.profilId} size={44} fallback={initials} /> : initials} />;
 }
 
 /**
@@ -98,25 +91,13 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
   </View>;
 }
 
-/** A row that opens in place under its hairline; `expanded` is spoken. */
+/** A row that opens in place under its hairline: the one `Disclosure`, closed until pressed; `expanded` is spoken. */
 export function AgreementSection({ label, summary, art, children }: { label: string; summary?: string; art?: FactArtKind; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return <View style={s.section}>
-    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} haptic="select"
-      onPress={() => setOpen(value => !value)} style={s.sectionRow}>
-      {art ? <View style={s.sectionArt}><FactArt kind={art} size={26} /></View> : null}
-      <View style={s.grow}><T variant="bodyStrong" style={s.ink}>{label}</T>
-        {summary ? <T variant="note" tone="muted">{summary}</T> : null}</View>
-      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><CaretRight size={20} color={sys.color.muted} /></View>
-    </Press>
-    {open ? <View style={s.sectionBody}>{children}</View> : null}
-  </View>;
+  return <Disclosure label={label} hint={summary} art={art} divider>{children}</Disclosure>;
 }
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  bar: innerBar,
-  barCopy: { flex: 1, minWidth: 0 },
   barAvatar: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line,
     alignItems: 'center', justifyContent: 'center' },
   barInitials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
@@ -127,8 +108,4 @@ const s = StyleSheet.create({
   personDivider: {},
   avatar: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
   initials: { color: sys.color.green, letterSpacing: 0, fontSize: 17, lineHeight: 22 },
-  section: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  sectionRow: { minHeight: 60, paddingVertical: 12, gap: 14, flexDirection: 'row', alignItems: 'center' },
-  sectionArt: { width: 32, alignItems: 'center' },
-  sectionBody: { paddingBottom: 16, paddingLeft: 46, gap: 12 },
 });

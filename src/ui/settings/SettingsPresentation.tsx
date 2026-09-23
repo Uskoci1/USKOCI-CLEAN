@@ -24,8 +24,8 @@ export function SettingsText({ variant = 'body', tone = 'ink', style, ...props }
 }
 
 export function SettingsScreen({ title, onBack, disabled = false, children, footer }: {
-  /** `eyebrow` is kept for callers and not drawn: the bar names the screen, nothing explains where you are. */
-  title: string; eyebrow?: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
+  /** The bar names the screen; nothing explains where you are (no eyebrow, owner 2026-09-23). */
+  title: string; onBack: () => void; disabled?: boolean; children: ReactNode; footer?: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
     <ProductHeader title={title} back={onBack} disabled={disabled} />

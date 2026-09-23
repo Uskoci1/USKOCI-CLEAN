@@ -1,34 +1,27 @@
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ArrowLeft, ArrowRight, CaretRight } from 'phosphor-react-native';
+import { ArrowRight, CaretRight } from 'phosphor-react-native';
 import { needPriceBasisNote, needPriceText } from '../../data/needDetailPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { brandAction, iconButton, sys } from '../system/tokens';
-import { innerBar } from '../system/DetailTopBar';
+import { brandAction, sys } from '../system/tokens';
+import { ScreenChrome } from '../system/ScreenChrome';
 import { T } from '../Text';
 import { Press } from '../Press';
 
 /**
  * Visual composition only. All data, permissions and callbacks belong to the caller.
  *
- * Same anatomy as DetailTopBar: the arrow, the screen's name when it has one that is not already
- * the content's own title, an optional line under it, one action on the right. A task screen passes
- * no title — the task's name is the title, drawn large by ProductTitle below (owner, 2026-09-23).
+ * `ScreenChrome`'s detail bar, as DetailTopBar is: the arrow, the screen's name when it has one that
+ * is not already the content's own title, an optional line under it, one action on the right. A task
+ * screen passes no title — the task's name is the title, drawn large by ProductTitle below (owner,
+ * 2026-09-23). `titleVisible` lets such a screen bring its name into the bar once the large title
+ * has scrolled away (`useChromeTitleOnScroll`).
  */
-export function ProductHeader({ title, subtitle, back, backLabel = 'Nazad', disabled = false, right }: {
-  title?: string; subtitle?: string; back: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode;
+export function ProductHeader({ title, subtitle, back, backLabel = 'Nazad', disabled = false, right, titleVisible }: {
+  title?: string; subtitle?: string; back: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode; titleVisible?: boolean;
 }) {
-  return <View style={s.header}>
-    <Press accessibilityRole="button" accessibilityLabel={backLabel} accessibilityState={{ disabled }}
-      disabled={disabled} onPress={back} haptic="select" style={iconButton}>
-      <ArrowLeft size={22} color={sys.color.ink} />
-    </Press>
-    <View style={s.factCopy}>
-      {title ? <T accessibilityRole="header" variant="title" style={s.headerTitle}>{title}</T> : null}
-      {subtitle ? <T variant="meta" tone="muted">{subtitle}</T> : null}
-    </View>
-    {right}
-  </View>;
+  return <ScreenChrome variant="detail" title={title} subtitle={subtitle} onBack={back} backLabel={backLabel} disabled={disabled}
+    right={right} titleVisible={titleVisible} />;
 }
 
 export function ProductTitle({ children }: { children: ReactNode }) {
@@ -238,8 +231,6 @@ export function ProductPerson({ name, caption, overline, photo, initial, onPress
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  header: innerBar,
-  headerTitle: { minWidth: 0, color: sys.color.ink },
   title: { ...sys.type.hero, color: sys.color.green, letterSpacing: -0.8 },
   facts: { gap: 4 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },

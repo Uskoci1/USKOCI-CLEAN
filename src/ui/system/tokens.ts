@@ -102,6 +102,10 @@ export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 
  */
 export const brandAction: ViewStyle = { backgroundColor: sys.color.green, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
-/** 44px icon control in a quiet well (V5 head icon button). */
-export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
+/**
+ * 48px icon control in a quiet well (V5 head icon button). The screen chrome's arrow, X, profile, bell and "···" are all
+ * this size (master design plan, 2026-09-24): an important command is never under 48, and one size keeps every bar the
+ * same height.
+ */
+export const iconButton: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
 

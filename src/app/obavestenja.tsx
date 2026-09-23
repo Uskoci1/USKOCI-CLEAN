@@ -11,6 +11,7 @@ import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
 import { Appear, useAppear } from '../ui/system/Appear';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
+import { ChromeIconButton } from '../ui/system/ScreenChrome';
 import { sys, cardCompact, inset } from '../ui/system/tokens';
 import { spojInboxArt } from '../ui/v2/spojInboxArt';
 import { neprocitanih } from '../ui/system/plural';
@@ -70,11 +71,9 @@ export default function Obavestenja() {
   }
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
-    <DetailTopBar eyebrow="Poruke i važne promene" title="Obaveštenja"
+    <DetailTopBar title="Obaveštenja"
       onBack={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}
-      right={<Press accessibilityRole="button" accessibilityLabel="Podesi obaveštenja" style={styles.iconButton} onPress={settings}>
-        <GearSix size={22} color={sys.color.ink}/>
-      </Press>} />
+      right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
     <FlatList data={state.page?.items??[]} keyExtractor={item=>item.id}
       contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
       refreshing={state.loading && !!state.page} onRefresh={()=>void model.refresh()}
@@ -161,7 +160,6 @@ const styles=StyleSheet.create({
   title:{...sys.type.title,color:sys.color.ink}, body:{fontSize:15,lineHeight:22.5,color:sys.color.muted},
   strong:{fontSize:15,lineHeight:22.5,fontWeight:'700',color:sys.color.ink}, meta:{...sys.type.meta,color:sys.color.muted},
   filterText:{fontSize:13,lineHeight:19,fontWeight:'600',color:sys.color.ink},
-  iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:13},
   content:{paddingHorizontal:20,paddingTop:6,paddingBottom:28,gap:12,flexGrow:1,width:'100%',maxWidth:640,alignSelf:'center'},
   summary:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
   readAll:{minHeight:44,flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:4},

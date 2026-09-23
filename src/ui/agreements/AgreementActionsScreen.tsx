@@ -128,9 +128,9 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
   else if (review?.kind === 'RESPOND' || review?.kind === 'WITHDRAW') proposed = review.proposal.terms;
   return <SafeAreaView edges={['top','bottom']} style={s.screen}><KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {/* The screen drew its own top: a green "Nazad" word beside a heading, while every other
-        pushed screen in the app opens with a back arrow, an eyebrow and a title. The eyebrow says
-        what this belongs to, so the title no longer has to repeat the word Dogovor. */}
-    <DetailTopBar eyebrow="Dogovor" title="Izmene i otkazivanje"
+        pushed screen in the app opens with the one back arrow and a title. No eyebrow says what
+        this belongs to (owner, 2026-09-23): the person came here from their Dogovor. */}
+    <DetailTopBar title="Izmene i otkazivanje"
       onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } }} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       {busy ? <T accessibilityLiveRegion="polite" style={s.copy}>{state.phase === 'SENDING' ? 'Šaljem pregledanu radnju…' : 'Učitavamo važeće uslove i potvrdu…'}</T> : null}

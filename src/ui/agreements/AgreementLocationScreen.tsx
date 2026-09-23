@@ -36,7 +36,7 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
   const run=(action:'refresh'|'acknowledge'|'cancelUnknown'|'stopCapture')=>{if(current())void controller?.[action]();};
   const point=state.context?.point,ready=state.phase==='READY';
   return <SafeAreaView edges={['top','bottom']} style={s.screen}>
-    <DetailTopBar eyebrow="Dogovor" title="Trenutna lokacija"
+    <DetailTopBar title="Trenutna lokacija"
       onBack={()=>{if(current()){if(router.canGoBack())router.back();else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});}}}/>
     <ScrollView contentContainerStyle={s.content}>
     <T style={s.copy}>Jedna tačka, podeljena dobrovoljno u ovom Dogovoru. Prikaz se ne pomera i ne prati putovanje.</T>

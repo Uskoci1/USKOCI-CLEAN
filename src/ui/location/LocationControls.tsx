@@ -113,11 +113,11 @@ export function PrivateLocationNote() {
   </View>;
 }
 
-export function LocationScreen({ title, eyebrow, onBack, loading, error, onRetry, children }: {
-  title: string; eyebrow?: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
+export function LocationScreen({ title, onBack, loading, error, onRetry, children }: {
+  title: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
 }) {
   return <SafeAreaView style={locationStyles.screen} edges={['top', 'bottom']}>
-    <DetailTopBar eyebrow={eyebrow} title={title} onBack={onBack} />
+    <DetailTopBar title={title} onBack={onBack} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>
         {loading ? <View style={locationStyles.notice} accessibilityRole="progressbar" accessibilityLabel="Učitavanje lokacije">
