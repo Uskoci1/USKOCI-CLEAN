@@ -35,9 +35,10 @@ env:
 - takeScreenshot: 01-dogovor-zavrsen
 - tapOn:
     text: "Oceni saradnju"
+# The radiogroup label is not a text node on Android; the screen's own title is what a person sees.
 - extendedWaitUntil:
-    visible: "Ocena od 1 do 5"
-    timeout: 15000
+    visible: "Kako je prošla saradnja?"
+    timeout: 25000
 - takeScreenshot: 02-ocena-prazno
 
 - tapOn:

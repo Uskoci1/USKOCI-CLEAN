@@ -22,11 +22,13 @@ export function HeaderIconButton({ label, hint, icon: IconComponent, active = fa
  * Tab identity, screen context, inbox and the one profile for both intents.
  * `right` remains available to callers; marketplace view controls have their own compact row.
  */
-export function ScreenHeader({ eyebrow, title, onProfile, right }: { eyebrow: string; title: string; onProfile: () => void; right?: ReactNode }) {
+export function ScreenHeader({ title, onProfile, right }: {
+  /** Kept for callers; not drawn. The tab bar already says which part of the app this is (owner, 2026-09-23). */
+  eyebrow?: string; title: string; onProfile: () => void; right?: ReactNode;
+}) {
   return <View style={s.header}>
     <View accessible accessibilityRole="image" accessibilityLabel="USKOČI"><BrandMark size={38} /></View>
     <View style={s.copy}>
-      <T variant="label" style={s.eyebrow}>{eyebrow}</T>
       <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
     </View>
     {right}
@@ -38,9 +40,8 @@ export function ScreenHeader({ eyebrow, title, onProfile, right }: { eyebrow: st
 }
 
 const s = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 56, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
   copy: { flex: 1, minWidth: 0 },
-  eyebrow: { color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
   title: { color: sys.color.green },
   profile: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft },
   active: { backgroundColor: sys.color.greenSoft },

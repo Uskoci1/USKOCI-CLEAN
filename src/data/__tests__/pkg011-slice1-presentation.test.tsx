@@ -46,7 +46,7 @@ test('the header says what the list is in the two names the product uses and nev
   // carried one name. Discovery has its own title ("Pronađi zadatak" since the one shell): "Mapa" was the tab label, the screen title
   // and one of the two segments at the same time, so the word identified nothing. The invariant
   // is unchanged: the title is a header, and the owned view below is still Zadaci.
-  expect(texts()).toContain('Uskoči i zaradi'); expect(texts()).toContain('Pronađi zadatak'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
+  expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).toContain('Pronađi zadatak'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Pronađi zadatak'))).toBe(true);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(false);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
@@ -86,14 +86,14 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   const rows = [agreement('a', 'CONFIRMED'), agreement('b', 'AWAITING_REQUESTER')]; rows[1].problemOtvoren = true;
   await act(async () => { tree = create(<Agreements rows={rows} />); });
   const copy = texts();
-  expect(copy).toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('Dogovori'); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
+  expect(copy).not.toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('Dogovori'); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
   expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
   expect(copy).toContain('Mila'); expect(copy).toContain('Uskočio'); expect(copy).not.toContain('Objavio si');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Kalendar obaveza');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements rows={rows} />); });
-  expect(texts()).toContain('Tvoje saradnje'); expect(labels()).toContain('Kalendar obaveza');
+  expect(texts()).not.toContain('Tvoje saradnje'); expect(labels()).toContain('Kalendar obaveza');
 });
 test('agreements loading shows placeholders and a spoken status without private rows', async () => {
   await act(async () => { tree = create(<Agreements rows={[agreement('a', 'CONFIRMED')]} loading />); });
