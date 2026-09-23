@@ -373,6 +373,8 @@ it('prepares a new immutable review for an explicit deadline without publishing 
   await act(async () => tree.root.findByType('DeadlineEditor' as React.ElementType).props.apply(deadline));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
   expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
+  // A deadline is a term other people read: Serbian time, said so on a phone in another zone (jest runs in UTC).
+  expect(text()).toContain('Rok: 12.10. 12:15 (po vremenu u Srbiji)');
   expect(publish().disabled).toBe(false); expect(mockAccept).not.toHaveBeenCalled();
   await act(async () => publish().onPress());
   expect(mockAccept.mock.calls[0][0].review).toMatchObject({ reviewId: OTHER, responseDeadline: deadline });
@@ -584,6 +586,9 @@ it('saves the reviewed task as a private draft without asking for publication, t
   expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
   // Publishing it later is the stored command's resume, which the ACCEPTED restore test above covers.
   expect(action('Objavi ovaj nacrt').disabled).toBe(false);
+  // Nothing was published, so the check is not called a check of the publication.
+  expect(tree.root.findAllByProps({ label: 'Proveri objavu' })).toHaveLength(0);
+  expect(action('Proveri stanje nacrta').disabled).toBe(false);
   await act(async () => action('Otvori moje zadatke').onPress()); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
 });
 it('does not offer a draft while the review cannot be accepted, or when it edits a task that already exists', async () => {

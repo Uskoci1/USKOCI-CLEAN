@@ -178,6 +178,22 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
     </View> : null}
     <Button kind="primary" label={busy ? 'Pripremam mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
       disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
-    <T variant="meta" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.' : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T>
+    {/* A grey button says why it is grey, in the line where its explanation used to stand (owner rule,
+        2026-09-23). The pending point has its own block above; a run in progress is the label itself. */}
+    <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{saveBlockReason({ busy, uncertain, editable: review.editable, pendingPoint,
+      confirmed: reviewOnly || confirmed, countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) })
+      ?? (reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.' : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.')}</T>
   </View>;
+}
+
+/** Why the one save is grey, or null when it is live (or when the label / a block above already says). */
+export function saveBlockReason(state: { busy: boolean; uncertain: boolean; editable: boolean; pendingPoint: boolean;
+  confirmed: boolean; countryChosen: boolean; countrySelectable: boolean }): string | null {
+  if (state.busy || state.pendingPoint) return null;
+  if (!state.editable) return 'Ovaj pregled više nije dostupan za izmene.';
+  if (state.uncertain) return 'Prethodna radnja nije potvrđena. Učitaj sačuvano stanje pre novog pokušaja.';
+  if (!state.countryChosen) return 'Izaberi državu u „Država i način rada" da bi sačuvao mesto.';
+  if (!state.countrySelectable) return 'Izabrana država još nije dostupna. Izaberi dostupnu u „Država i način rada".';
+  if (!state.confirmed) return 'Označi potvrdu iznad da bi sačuvao mesto.';
+  return null;
 }

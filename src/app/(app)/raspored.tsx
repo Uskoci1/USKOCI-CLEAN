@@ -25,49 +25,48 @@ export default function Raspored() {
   const dayRange = localDayRange(selected);
   const visible = events.filter(event => overlapsInterval(event.startsAt, event.endsAt, dayRange.from, dayRange.to));
   const refresh = () => { void calendar.refresh(); void agreements.refresh(); };
+  const today = deviceDate(new Date());
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar eyebrow="Kako mogu da uskočim" title="Kalendar obaveza"
+    <DetailTopBar title="Kalendar obaveza"
       onBack={() => router.canGoBack() ? router.back() : router.replace('/dogovori')} />
     <ScrollView contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={calendar.loading} onRefresh={refresh} tintColor={sys.color.green} />}>
-      <View style={{ gap: 14 }}>
-        <View style={s.row}><View style={{ flex: 1, minWidth: 160, gap: 4 }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
+      {/* Two rows of controls, then the day (owner rule, 2026-09-23): the week with its arrows and
+          "Danas" in one row, the seven days in the next. What used to stand between them and the
+          agenda — a third control row, the availability entry and a paragraph — now follows the agenda. */}
+      <View style={{ gap: sys.space.md }}>
+        <View style={s.row}><View style={{ flex: 1, minWidth: sys.space.huge * 3, gap: sys.space.xs }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T>
           <T variant="meta" tone="muted">Potvrđeni termini poslova u koje si uskočio</T></View>
-          <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
+          {days.includes(today) ? null : <Button label="Danas" kind="quiet" compact onPress={() => setSelected(today)} />}
+          <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={sys.color.ink} /></Press>
-          <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
+          <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
             onPress={() => setSelected(shiftDate(selected, 7))}><ArrowRight size={20} color={sys.color.ink} /></Press>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5, flexGrow: 1 }}>{days.map((day, index) => {
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: sys.space.xs, flexGrow: 1 }}>{days.map((day, index) => {
           const range = localDayRange(day), hasEvents = events.some(event => overlapsInterval(event.startsAt, event.endsAt, range.from, range.to));
-          return <Press key={day} accessibilityRole="button" accessibilityLabel={`${weekdays[index].name}, ${displayDate(day)}${hasEvents ? ', ima Dogovor' : ''}`}
-            accessibilityState={{ selected: selected === day }} onPress={() => setSelected(day)} style={{ flexGrow: 1, minWidth: 44, minHeight: 71,
-              paddingHorizontal: 8, paddingVertical: 10, gap: 5, alignItems: 'center', borderRadius: sys.radius.control, backgroundColor: selected === day ? sys.color.green : sys.color.greenSoft }}>
-            <T variant="meta" tone={selected === day ? 'onDark' : 'muted'}>{weekdays[index].short}</T>
-            <T variant="heading" tone={selected === day ? 'onDark' : 'ink'}>{Number(day.slice(-2))}</T>
-            <View style={{ width: 5, height: 5, borderRadius: sys.radius.pill, backgroundColor: hasEvents ? sys.color.orange : 'transparent' }} />
+          const chosen = selected === day;
+          return <Press key={day} accessibilityRole="button" accessibilityLabel={`${weekdays[index].name}, ${displayDate(day)}${day === today ? ', danas' : ''}${hasEvents ? ', ima Dogovor' : ''}`}
+            accessibilityState={{ selected: chosen }} haptic="select" onPress={() => setSelected(day)} style={{ flexGrow: 1, minWidth: sys.touch.min,
+              paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm, gap: sys.space.xs, alignItems: 'center', borderRadius: sys.radius.control,
+              backgroundColor: chosen ? sys.color.green : sys.color.greenSoft, borderWidth: 1, borderColor: day === today && !chosen ? sys.color.green : 'transparent' }}>
+            <T variant="meta" tone={chosen ? 'onDark' : 'muted'}>{weekdays[index].short}</T>
+            <T variant="heading" tone={chosen ? 'onDark' : 'ink'}>{Number(day.slice(-2))}</T>
+            <View style={{ width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: hasEvents ? sys.color.orange : 'transparent' }} />
           </Press>;
         })}</ScrollView>
-        <Button label="Danas" kind="quiet" onPress={() => setSelected(deviceDate(new Date()))} style={{ alignSelf: 'flex-start' }} />
       </View>
-      <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
-        <Clock size={22} color={sys.color.green} /><View style={{ flex: 1, gap: 4 }}><T variant="bodyStrong">Moja dostupnost za rad</T>
-          <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={sys.color.ink} />
-      </Press>
-      {/* The engine blocks a person only by the work they agreed to do (owner decision 6). What they
-          asked others to do is theirs to see in Dogovori, and is said here rather than hidden. */}
-      <T variant="meta" tone="muted">Ovde su termini u kojima ti radiš. Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.</T>
-      <View style={{ gap: 16 }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
+      <View style={{ gap: sys.space.base }}><T variant="heading" accessibilityRole="header">Dogovoreno za {displayDate(selected)}</T>
         {calendar.loading ? <ActivityIndicator accessibilityLabel="Učitavanje rasporeda" color={sys.color.green} /> : null}
         {error ? <View style={s.note}><T accessibilityRole="alert" tone="danger">{error}</T><Button label="Pokušaj ponovo" onPress={refresh} /></View> : null}
-        {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: 12 }]}><Clock size={28} color={sys.color.green} />
+        {!calendar.loading && !error && !visible.length ? <View style={[s.note, { gap: sys.space.md }]}><Clock size={28} color={sys.color.green} />
           <T variant="heading">Nema potvrđenih tačnih termina</T><T tone="muted">Za ovaj dan nema Dogovora sa potvrđenim početkom i krajem. Fleksibilni termini stoje u Dogovorima.</T></View> : null}
         {!error && visible.map(event => {
           const detail = agreements.data?.find(item => item.id === event.agreementId && item.verzija === event.agreementVersion && item.stanje === 'CONFIRMED');
           const fromTime = displayTime(event.startsAt), toTime = displayTime(event.endsAt);
           const rail = fontScale <= 1.3 && fromTime.length <= 8 && toTime.length <= 8;
-          return <View key={event.eventId} style={{ flexDirection: rail ? 'row' : 'column', gap: 12, alignItems: 'stretch' }}>
-            {rail ? <View style={{ width: 54, gap: 4, paddingTop: 12 }}><T variant="meta" style={{ fontWeight: '700' }}>{fromTime}</T>
-              <T variant="meta" tone="muted">{toTime}</T><View style={{ width: 1, flex: 1, backgroundColor: sys.color.line, marginTop: 8, marginLeft: 4 }} /></View> : null}
+          return <View key={event.eventId} style={{ flexDirection: rail ? 'row' : 'column', gap: sys.space.md, alignItems: 'stretch' }}>
+            {rail ? <View style={{ width: sys.space.huge + sys.space.sm, gap: sys.space.xs, paddingTop: sys.space.md }}><T variant="meta" style={{ fontWeight: '700' }}>{fromTime}</T>
+              <T variant="meta" tone="muted">{toTime}</T><View style={{ width: 1, flex: 1, backgroundColor: sys.color.line, marginTop: sys.space.sm, marginLeft: sys.space.xs }} /></View> : null}
             <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${detail?.naslov || 'sa potvrđenim terminom'}`}
               onPress={() => router.navigate({ pathname: '/dogovor/[id]', params: { id: event.agreementId } })}
               style={[s.card, { flex: 1, minWidth: 0, backgroundColor: sys.color.greenSoft }]}>
@@ -82,6 +81,15 @@ export default function Raspored() {
       </View>
       {agreements.error ? <T variant="meta" tone="muted">Detalji Dogovora nisu učitani. Tačni termini iz radnog rasporeda ostaju dostupni.</T> : null}
       <Button label="Otvori sve Dogovore" kind="secondary" onPress={() => router.navigate('/dogovori')} full />
+      {/* Set once in a while, read every time: the availability editor and the note about what this
+          calendar holds stand under the day, not before it. */}
+      <Press accessibilityRole="button" accessibilityLabel="Uredi dostupnost za rad" haptic="select" onPress={() => router.navigate('/profil/dostupnost')} style={[s.note, s.row]}>
+        <Clock size={22} color={sys.color.green} /><View style={{ flex: 1, gap: sys.space.xs }}><T variant="bodyStrong">Moja dostupnost za rad</T>
+          <T variant="meta" tone="muted">Redovna nedelja i posebni datumi</T></View><CaretRight size={20} color={sys.color.ink} />
+      </Press>
+      {/* The engine blocks a person only by the work they agreed to do (owner decision 6). What they
+          asked others to do is theirs to see in Dogovori, and is said here rather than hidden. */}
+      <T variant="meta" tone="muted">Ovde su termini u kojima ti radiš. Dogovore za svoje zadatke vidiš u Dogovorima; oni te ovde ne blokiraju.</T>
     </ScrollView>
   </SafeAreaView>;
 }

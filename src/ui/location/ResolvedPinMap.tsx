@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { radius, space } from '../../theme/tokens';
 import { sys } from '../system/tokens';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { displayedPinPosition, RESOLVED_PIN_MAP_STYLE, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';

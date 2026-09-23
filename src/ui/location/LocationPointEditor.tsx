@@ -185,7 +185,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button
       key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={`${lookupMode === 'reverse' ? 'Koristi privatnu adresu' : 'Izaberi predlog'}: ${candidate.label}`}
       kind="quiet" disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
-    {selectedLabel ? <T variant="meta">Predlog za proveru: {selectedLabel}</T> : null}
+    {/* The address the person is about to confirm is content, not a caption: body size, readable. */}
+    {selectedLabel ? <T variant="body">Predlog za proveru: <T variant="bodyStrong">{selectedLabel}</T></T> : null}
     {/* After a suggestion is applied there is no search in flight, so "Otkaži pretragu" was really
         "delete the pin I just chose", under a name that promised the opposite. */}
     {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
@@ -204,8 +205,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       onChangeText={value => { if (owns()) { retireSearch(true); setNotes(value); invalidate(); } }} />
     </LocationDetails>
     {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
+    {/* The line beside the confirm button says why it is grey while there is no point to confirm. */}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>
-      {point && !pending ? 'Tačka je potvrđena u ovom obrascu.' : pending ? 'Izmena tačke još nije potvrđena.' : 'Tačka još nije potvrđena.'}
+      {point && !pending ? 'Tačka je potvrđena u ovom obrascu.'
+        : pending ? `Izmena tačke još nije potvrđena.${position ? '' : ' Izaberi tačku na mapi ili predlog iz pretrage.'}`
+          : position ? 'Tačka još nije potvrđena.' : 'Izaberi tačku na mapi ili predlog iz pretrage, pa je potvrdi.'}
     </T>
     <Button label={`Potvrdi tačku: ${title}`} kind="primary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;

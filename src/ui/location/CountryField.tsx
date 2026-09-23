@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { marketClientService } from '../../data/marketClientService';
 import type { MarketConfig } from '../../contracts/market';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { Button } from '../Button';
+import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { LocationChoice, locationStyles as s } from './LocationControls';
 

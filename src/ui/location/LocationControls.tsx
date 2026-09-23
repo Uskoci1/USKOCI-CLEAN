@@ -3,6 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, S
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, Check, LockKey } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { useReducedMotion } from '../system/motion';
 import { card, sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
@@ -55,6 +56,9 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
   disabled: boolean; onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // The sheet arriving is the choice opening — feedback, like the calendar's date sheet — and it
+  // stands still for a person who asked the system for less motion.
+  const reduced = useReducedMotion();
   const selected = options.find(option => option.value === value);
   return <View style={{ gap: 6 }}>
     <T variant="meta" tone="muted">{label}</T>
@@ -63,7 +67,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
       style={[locationStyles.input, locationStyles.row, disabled && { backgroundColor: sys.color.wash }]}>
       <T variant="body" style={{ flex: 1, color: selected ? sys.color.ink : sys.color.muted }}>{selected?.label ?? 'Izaberi'}</T><CaretDown size={18} color={sys.color.green} />
     </Press>
-    <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
+    <Modal visible={open} transparent animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim }}>
         <Press accessibilityRole="button" accessibilityLabel="Zatvori izbor" onPress={() => setOpen(false)}
           style={{ flex: 1, minHeight: 44 }} />

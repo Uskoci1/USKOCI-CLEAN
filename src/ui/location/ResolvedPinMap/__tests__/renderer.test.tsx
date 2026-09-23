@@ -27,7 +27,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('../../../Text', () => ({ T: 'T' }));
-jest.mock('../../../Button', () => ({ Button: 'Button' }));
+jest.mock('../../../v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../LocationControls', () => ({ locationStyles: { notice: {} } }));
 
 let tree: ReactTestRenderer;

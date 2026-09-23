@@ -107,6 +107,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={{ ...historical, value: { ...historical.value, taskCountryCode: null } }} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByProps({ accessibilityLabel: 'Država Zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
     await check(); await save(); expect(onSave).not.toHaveBeenCalled();
+    expect(text()).toContain('Izaberi državu u „Država i način rada"');
     await chooseMode('Srbija'); await check(); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ taskCountryCode: 'RS' }));
   });
@@ -116,10 +117,14 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     expect(confirm().props.accessibilityState.checked).toBe(false);
     expect(saveButton().props.disabled).toBe(true);
+    // The grey save says why it is grey (owner rule, 2026-09-23).
+    expect(text()).toContain('Označi potvrdu iznad da bi sačuvao mesto.');
     await save();
     expect(onSave).not.toHaveBeenCalled();
     await check();
     expect(saveButton().props.disabled).toBe(false);
+    expect(text()).not.toContain('Označi potvrdu iznad');
+    expect(text()).toContain('Čuva se mesto u istom pregledu.');
     await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
       exactAddress: 'Privatna ulica 17, stan 2', accessNotes: 'Privatna šifra ulaza 1234' }));

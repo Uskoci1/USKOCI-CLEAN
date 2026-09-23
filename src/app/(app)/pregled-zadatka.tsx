@@ -22,8 +22,9 @@ import { Press } from '../../ui/Press';
 import { V2Action } from '../../ui/v2/V2Action';
 import { aiFirst as a } from '../../ui/aiFirst/tokens';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
-import { sys } from '../../ui/system/tokens';
+import { brandAction, sys } from '../../ui/system/tokens';
 import { type } from '../../theme/tokens';
+import { DOGOVORENA_ZONA, dogovorenoVreme } from '../../lib/dogovorenoVreme';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
@@ -31,6 +32,7 @@ import type { NeedLocationInput, NeedLocationReview } from '../../contracts/loca
 import { FactListEditor, FactTimestampEditor } from '../../ui/aiFirst/FactValueEditors';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { AuthorizedPhoto, mediaAssetId } from '../../ui/media/AuthorizedPhoto';
+import { SuccessMark } from '../../ui/system/SuccessMark';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean };
 /** `text` is always what `correctionFromText` reads; a picker or a list field only writes it. */
@@ -61,7 +63,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const [showEmpty, setShowEmpty] = useState(false);
   const [deadlineEditor, setDeadlineEditor] = useState(false);
   const deadlineProposal = useRef<string | null | undefined>(undefined);
-  const [deadlineTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  // The deadline is a term other people read, so it is set and shown in Serbian time like every
+  // agreed time (owner rule 8.27); the facts above it already read in that zone.
+  const deadlineTimezone = DOGOVORENA_ZONA;
   const locationProposal = useRef<{ expectedRevision: string; value: NeedLocationInput } | null>(null);
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
   useFocusEffect(useCallback(() => { const scope = {}; focus.current = scope; navigating.current = false;
@@ -313,8 +317,6 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <DetailTopBar backLabel="Nazad u razgovor" onBack={back}
-        eyebrow={published ? 'Spremno za prijave'
-          : revising ? 'Izmena postojećeg zadatka' : 'Ti odlučuješ šta objavljuješ'}
         title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled zadatka'} />
       {editor.loading ? <ActivityIndicator accessibilityLabel="Učitavanje pregleda" color={a.color.green} style={{ padding: 30 }} /> : null}
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
@@ -352,24 +354,32 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
           <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Fotografije zadatka</T>
             {(() => {
               const paths = review.publicProjection.find(fact => fact.key === 'need.public_photo_paths')?.value;
-              return Array.isArray(paths) && paths.length ? paths.map((path, i) => {
-                const assetId = typeof path === 'string' ? mediaAssetId(path) : null;
-                return assetId ? <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`} /> : null;
-              }) : <T style={s.meta}>Fotografije nisu dodate.</T>;
+              const assets = Array.isArray(paths) ? paths.map(path => typeof path === 'string' ? mediaAssetId(path) : null) : [];
+              const shown = assets.filter((assetId): assetId is string => !!assetId);
+              // The same square tiles the photo editor draws, so the review and the editor read as one
+              // thing; a full-width 4:3 stack made six photos six screens.
+              return shown.length ? <View style={s.photoGrid}>
+                {shown.map((assetId, i) => <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`}
+                  contentFit="cover" style={s.photoTile} />)}
+              </View> : <T style={s.meta}>Fotografije nisu dodate.</T>;
             })()}
-            {!command ? <V2Action label="Uredi fotografije" kind="quiet" disabled={disabled || !!edit || !!locationEditor || deadlineEditor}
+            {!command ? <V2Action label={review.publicProjection.some(fact => fact.key === 'need.public_photo_paths'
+              && Array.isArray(fact.value) && fact.value.length) ? 'Uredi fotografije' : 'Dodaj fotografije'} kind="quiet"
+              disabled={disabled || !!edit || !!locationEditor || deadlineEditor}
               onPress={() => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
                 navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); }} /> : null}
           </View>
           <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>Prijave na zadatak</T>
             {deadlineEditor ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
               apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : <>
-              <T style={s.body}>{review.responseDeadline ? `Rok: ${new Date(review.responseDeadline).toLocaleString('sr-Latn-RS', { timeZone: deadlineTimezone })} (${deadlineTimezone})`
+              <T style={s.body}>{review.responseDeadline ? `Rok: ${dogovorenoVreme(review.responseDeadline)}`
                 : 'Bez posebnog roka — do popune ili dok ne zaustaviš potragu. Zadatak sa tačnim terminom se zatvara kad termin prođe.'}</T>
               {!command ? <V2Action label="Uredi rok za prijave" kind="quiet" disabled={disabled || !!edit || !!locationEditor}
                 onPress={() => { if (canAct()) setDeadlineEditor(true); }} /> : null}
             </>}</View>
-          {resultCopy ? <View style={s.notice}><T accessibilityLiveRegion="polite" style={s.body}>{resultCopy}</T></View> : null}
+          {/* A published Zadatak confirms itself once: one spring and a success haptic, then stillness. */}
+          {resultCopy ? <View style={[s.notice, published && s.noticeDone]}>{published ? <SuccessMark fresh size={48} /> : null}
+            <T accessibilityLiveRegion="polite" style={[s.body, published && s.grow]}>{resultCopy}</T></View> : null}
           {command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
             reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Zatraži pregled podrške"
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
@@ -380,16 +390,19 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       <View style={s.footer}>
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
         {editor.uncertain || editor.error || !review ? <V2Action label="Učitaj pregled i proveri ishod" disabled={editor.busy || editor.loading} onPress={refresh} /> : null}
-        {published && command ? <V2Action label="Otvori zadatak" kind="primary" onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
+        {/* After the tap there is one way forward at a time — open the published task, publish the
+            saved draft, or go and change it — and that one wears the brand orange; the check of the
+            outcome stands beside it in grey. */}
+        {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
           : command ? <>
-            <V2Action label="Proveri objavu" disabled={editor.busy || editor.loading} onPress={refresh} />
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?
-              <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi istu objavu'} disabled={disabled} onPress={resume} /> : null}
-            {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
-              onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : null}
+              <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi istu objavu'} style={brandAction} disabled={disabled} onPress={resume} /> : null}
             {((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW')))
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
-              ? <V2Action label="Izmeni zadatak" disabled={disabled} onPress={revisePublishedDraft} /> : null}
+              ? <V2Action label="Izmeni zadatak" style={brandAction} disabled={disabled} onPress={revisePublishedDraft} /> : null}
+            <V2Action label={command.state === 'ACCEPTED' ? 'Proveri stanje nacrta' : 'Proveri objavu'} disabled={editor.busy || editor.loading} onPress={refresh} />
+            {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
+              onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : null}
           </> : review ? <>
             <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
               accessibilityState={{ disabled: disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
@@ -417,8 +430,12 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, editButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'flex-end' },
   editLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green }, private: { padding: 16, borderRadius: sys.radius.cardCompact, backgroundColor: a.color.wash },
   input: { ...a.text.body, padding: 12, borderWidth: 1, borderColor: a.color.green, borderRadius: sys.radius.control, minHeight: 56, color: a.color.ink },
-  notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: a.color.warm, gap: 12 }, error: { ...a.text.meta, color: a.color.danger },
-  footer: { padding: 20, borderTopWidth: 1, borderTopColor: a.color.line, gap: 10 },
-  publish: { minHeight: 54, borderRadius: sys.radius.primary, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center', padding: 14 },
+  notice: { padding: 16, borderRadius: sys.radius.control, backgroundColor: a.color.warm, gap: 12 },
+  noticeDone: { flexDirection: 'row', alignItems: 'center', backgroundColor: sys.color.greenSoft }, grow: { flex: 1 }, error: { ...a.text.meta, color: a.color.danger },
+  footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: a.color.line, gap: sys.space.sm },
+  /** The one brand action of the screen, on the system's shape. */
+  publish: { ...brandAction, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
   publishLabel: { ...a.text.body, fontWeight: '700', color: sys.color.onOrange },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  photoTile: { width: '48%', aspectRatio: 1 },
 });

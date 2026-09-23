@@ -9,9 +9,13 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { uuid } from '../../data/serverReceipt';
 import { AuthorizedPhoto } from '../../ui/media/AuthorizedPhoto';
 import { PermissionRecovery } from '../../ui/system/PermissionRecovery';
+import { plural } from '../../ui/system/plural';
+import { sys } from '../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../../ui/settings/SettingsPresentation';
 
 type Pending = { id: string; photo?: PreparedPhoto };
+const MAX_PHOTOS = 6;
+const fotografija = (count: number) => plural(count, 'fotografija', 'fotografije', 'fotografija');
 export default function TaskPhotosRoute() {
   const params = useLocalSearchParams<{ conversationId?: string }>(), { user, accountRevision } = useSesija();
   const id = typeof params.conversationId === 'string' && uuid(params.conversationId) ? params.conversationId : null;
@@ -97,7 +101,7 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     await read(current);
   };
   const pick = async (source: PhotoSource) => {
-    if (!recovered || !photos || photos.photos.length >= 6 || pending.current || !key || !begin()) return;
+    if (!recovered || !photos || photos.photos.length >= MAX_PHOTOS || pending.current || !key || !begin()) return;
     try {
       setMessage(null); setPermissionDenied(false);
       const photo = await pickPreparedPhoto(source, current, () => { if (current()) setMessage('Pripremam fotografiju…'); });
@@ -143,27 +147,35 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
       else { setRecovered(false); setMessage(result.poruka); }
     } finally { finish(); }
   };
+  // With no screen behind it (a cold start from a link), the arrow returns to the conversation these
+  // photos belong to, not to a blank new one.
   const back = () => { if (!current()) return; navigateOnce.current = true;
-    if (router.canGoBack()) router.back(); else router.replace('/nova'); };
+    if (router.canGoBack()) router.back();
+    else router.replace(conversationId ? { pathname: '/nova', params: { conversationId } } : '/nova'); };
+  const full = (photos?.photos.length ?? MAX_PHOTOS) >= MAX_PHOTOS;
+  const addDisabled = busy || unconfirmed || !recovered || full;
   return <SettingsScreen title="Fotografije zadatka" onBack={back}>
-    <T tone="muted">Do 6 fotografija, do 10 MB po slici. Uklanjamo metapodatke i smanjujemo slike. Nacrt vidiš samo ti; fotografije postaju dostupne uz objavljen zadatak.</T>
+    <T tone="muted">{`Do ${MAX_PHOTOS} fotografija, do 10 MB po slici. Uklanjamo metapodatke i smanjujemo slike. Nacrt vidiš samo ti; fotografije postaju dostupne uz objavljen zadatak.`}</T>
     <T tone="muted">Izabrane fotografije šaljemo Google Gemini servisu radi provere sadržaja pre objave. Obrada može biti van Evrope i uključuje privremene bezbednosne zapise kod Google-a.</T>
     {message && permissionDenied ? <PermissionRecovery message={message} alternative="Izaberi iz galerije" onAlternative={() => { void pick('LIBRARY'); }} />
       : message ? <T accessibilityLiveRegion="polite">{message}</T> : null}
     {busy ? <T>Radnja je u toku…</T> : null}
-    {photos ? <T>{photos.photos.length} / 6 fotografija</T> : null}
+    {photos?.photos.length ? <T>{`${fotografija(photos.photos.length)} od ${MAX_PHOTOS}`}</T> : null}
     {/* A grid, two square tiles to a row, each with its small remove control (owner, 2026-09-23). It used to be a
         card and a full-width button per photo — six photos were six screens of buttons. */}
-    {photos?.photos.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-      {photos.photos.map((photo, i) => <View key={photo.assetId} style={{ width: '48%', gap: 6 }}>
+    {photos?.photos.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm }}>
+      {photos.photos.map((photo, i) => <View key={photo.assetId} style={{ width: '48%', gap: sys.space.xs }}>
         {photo.state === 'READY' ? <AuthorizedPhoto assetId={photo.assetId} label={`Fotografija zadatka ${i + 1}`} contentFit="cover" style={{ aspectRatio: 1 }} />
           : <SettingsPanel soft style={{ aspectRatio: 1, marginTop: 0, marginBottom: 0, justifyContent: 'center' }}><T variant="meta" tone="muted">{photo.state === 'FAILED' ? 'Fotografija nije obrađena.' : 'Fotografija se obrađuje.'}</T></SettingsPanel>}
         <SettingsAction label={`Ukloni fotografiju ${i + 1}`} kind="destructive" compact disabled={busy || unconfirmed || !recovered}
           onPress={() => { void remove(photo.assetId); }} />
       </View>)}
     </View> : null}
-    <SettingsAction label="Izaberi iz galerije" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('LIBRARY'); }} />
-    <SettingsAction label="Fotografiši" kind="secondary" disabled={busy || unconfirmed || !recovered || (photos?.photos.length ?? 6) >= 6} onPress={() => { void pick('CAMERA'); }} />
+    {/* The two grey add buttons say why they are grey; the other reasons (a run in progress, an
+        unconfirmed upload, a failed read) are already the message above them. */}
+    {full && recovered && !busy && !unconfirmed ? <T tone="muted">Dodato je najviše fotografija. Ukloni jednu da bi dodao drugu.</T> : null}
+    <SettingsAction label="Izaberi iz galerije" disabled={addDisabled} onPress={() => { void pick('LIBRARY'); }} />
+    <SettingsAction label="Fotografiši" kind="secondary" disabled={addDisabled} onPress={() => { void pick('CAMERA'); }} />
     <SettingsAction label="Osveži i proveri fotografije" kind="quiet" disabled={busy} onPress={() => { void refresh(); }} />
     {unconfirmed && canRetry ? <SettingsAction label="Nastavi slanje iste fotografije" kind="secondary" disabled={busy} onPress={() => { void retry(); }} /> : null}
     {unconfirmed ? <SettingsAction label="Odustani od nepotvrđenog slanja" kind="quiet" disabled={busy} onPress={() => { void cancel(); }} /> : null}

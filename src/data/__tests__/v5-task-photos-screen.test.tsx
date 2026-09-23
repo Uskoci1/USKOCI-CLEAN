@@ -5,6 +5,7 @@ const REQUEST = '33333333-3333-4333-8333-333333333333';
 let mockSession = { user: { id: OWNER }, accountRevision: 1 }, mockFocused = true, mockParams: { conversationId?: string } = { conversationId: CID };
 const mockGet = jest.fn(), mockSet = jest.fn(), mockRemoveJournal = jest.fn(), mockPick = jest.fn();
 const mockRead = jest.fn(), mockReceipt = jest.fn(), mockUpload = jest.fn(), mockRemove = jest.fn(), mockBack = jest.fn(), mockCancel = jest.fn();
+const mockReplace = jest.fn(), mockCanGoBack = jest.fn(() => true);
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
   getItem: (...a: unknown[]) => mockGet(...a), setItem: (...a: unknown[]) => mockSet(...a), removeItem: (...a: unknown[]) => mockRemoveJournal(...a) } }));
 jest.mock('../mediaClientService', () => ({ mediaClientService: {
@@ -13,7 +14,7 @@ jest.mock('../mediaClientService', () => ({ mediaClientService: {
   cancelUploadCommand: (...a: unknown[]) => mockCancel(...a) } }));
 jest.mock('../../features/media/nativePhotoPicker', () => ({ pickPreparedPhoto: (...a: unknown[]) => mockPick(...a), photoSelectionMessage: () => 'Nije pripremljeno.' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
-  router: { canGoBack: () => true, back: () => mockBack(), replace: () => mockBack() },
+  router: { canGoBack: () => mockCanGoBack(), back: () => mockBack(), replace: (...a: unknown[]) => mockReplace(...a) },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
@@ -33,6 +34,7 @@ const action = (label: string) => tree.root.findByProps({ label }).props;
 beforeEach(() => {
   jest.clearAllMocks(); for (const m of [mockRead, mockReceipt, mockUpload, mockGet, mockSet, mockPick, mockCancel]) m.mockReset();
   mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockFocused = true; mockParams = { conversationId: CID };
+  mockCanGoBack.mockReturnValue(true);
   mockGet.mockResolvedValue(null); mockSet.mockResolvedValue(undefined); mockRead.mockResolvedValue(ok(listing()));
   mockReceipt.mockResolvedValue(absent()); mockPick.mockResolvedValue(photo); mockUpload.mockResolvedValue({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
   mockCancel.mockResolvedValue({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
@@ -88,6 +90,22 @@ it('does not start upload after account revision changes while the identity is b
   mockSession = { user: { id: OWNER }, accountRevision: 3 };
   await act(async () => { tree.update(<Route />); stored.resolve(undefined); });
   expect(mockUpload).not.toHaveBeenCalled();
+});
+// Opened from a link on a cold start, the arrow used to replace to a blank new conversation.
+it('the arrow with no screen behind it returns to this conversation; with one, it goes back', async () => {
+  await render();
+  const arrow = () => tree.root.findByType('Screen' as React.ElementType).props.onBack;
+  mockCanGoBack.mockReturnValue(false); await act(async () => arrow()());
+  expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CID } });
+  await act(async () => tree.unmount()); mockCanGoBack.mockReturnValue(true); await render(); await act(async () => arrow()());
+  expect(mockBack).toHaveBeenCalledTimes(1); expect(mockReplace).toHaveBeenCalledTimes(1);
+});
+it('says why adding is grey once six photos are in the draft', async () => {
+  const six = Array.from({ length: 6 }, (_, i) => ({ assetId: `6666666${i}-6666-4666-8666-666666666666`, state: 'READY' }));
+  mockRead.mockResolvedValue(ok({ ...listing(), photos: six })); await render();
+  expect(action('Izaberi iz galerije').disabled).toBe(true); expect(action('Fotografiši').disabled).toBe(true);
+  expect(JSON.stringify(tree.toJSON())).toContain('Dodato je najviše fotografija');
+  expect(JSON.stringify(tree.toJSON())).toContain('6 fotografija od 6');
 });
 it('invalid conversation routes cause no photo reads, picker, or writes', async () => {
   mockParams = { conversationId: 'invalid' }; await render();
