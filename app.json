@@ -12,7 +12,7 @@
     "orientation": "portrait",
     "icon": "./assets/brand/app-icon/icon.png",
     "scheme": "uskociapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
     },
