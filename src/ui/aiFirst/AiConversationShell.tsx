@@ -122,22 +122,22 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {draft ? <View style={s.composer}>
           <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.composerWell}
             onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
-            <Microphone size={20} color={sys.color.ink} /></Press>
+            <Microphone size={23} color={sys.color.green} weight="bold" /></Press>
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
             placeholder="Napiši šta ti treba ili šta da promenim…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
           <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
-            <PaperPlaneTilt size={20} weight="fill" color={a.color.surface} /></Press>
+            <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press>
         </View> : null}
         {p.voice && !draft ? <View testID="ai-composer-bar" style={s.bar}>
           <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
             onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
-            <KeyboardIcon size={22} color={sys.color.ink} /></Press>
+            <KeyboardIcon size={23} color={sys.color.ink} /></Press>
           <View style={s.barCentre}>{p.voice}</View>
           <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.barWell}
             onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
-            <Info size={22} color={sys.color.muted} /></Press>
+            <Info size={23} color={sys.color.muted} /></Press>
         </View> : null}
       </View>
     </KeyboardAvoidingView>
@@ -205,16 +205,21 @@ const s = StyleSheet.create({
     backgroundColor: a.color.greenSoft, marginLeft: 36 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: a.color.wash },
   actions: { gap: 10 },
-  footer: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: a.color.surface },
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  barCentre: { flex: 1, alignItems: 'center' },
-  barWell: { width: 46, height: 46, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
-  composerWell: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.surface },
-  // One soft field rather than a boxed form: the border was the loudest line on the screen.
-  composer: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', borderRadius: sys.radius.sheet,
-    backgroundColor: a.color.wash, paddingVertical: 6, paddingHorizontal: 6 },
-  input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 44, maxHeight: 116, paddingHorizontal: 8, paddingVertical: 10, textAlignVertical: 'top' },
-  send: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center' },
+  footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12, gap: 8, backgroundColor: a.color.surface },
+  // Text and voice are two states of the same floating composer family. The shell keeps one clear
+  // bottom object instead of stacking a text box and a separate microphone stage.
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    minHeight: 64, paddingVertical: 6, paddingHorizontal: 7, borderRadius: 32, backgroundColor: a.color.surface,
+    borderWidth: 1, borderColor: a.color.cardLine, shadowColor: a.color.ink, shadowOpacity: 0.08,
+    shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
+  barCentre: { flex: 1, minWidth: 0, alignItems: 'center' },
+  barWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
+  composerWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
+  composer: { flexDirection: 'row', gap: 6, alignItems: 'flex-end', minHeight: 64, borderRadius: 32,
+    borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.surface, paddingVertical: 6, paddingHorizontal: 7,
+    shadowColor: a.color.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
+  input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 50, maxHeight: 116, paddingHorizontal: 10, paddingVertical: 12, textAlignVertical: 'top' },
+  send: { width: 50, height: 50, borderRadius: sys.radius.pill, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.4 },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
   sending: { opacity: 0.6 },
