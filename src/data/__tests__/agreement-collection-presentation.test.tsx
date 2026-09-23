@@ -70,3 +70,11 @@ test('empty history still offers a real task route, with no invented review or u
   await act(async () => tree.root.findByProps({ label: 'Idi na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
 });
+
+// Owner, 2026-09-23: right after a completion the default tab said "Nema Dogovora u ovom prikazu" while the
+// Dogovor waited for the person's rating one tab away.
+test('a finished Dogovor that still waits for my rating stays among the active ones and says so; a rated one is history', async () => {
+  rows = [{ ...agreement('done-unrated', 'COMPLETED'), ocenaMoguca: true }, agreement('done', 'COMPLETED')];
+  await render(); expect(titles()).toEqual(['Otvori Dogovor Posao done-unrated']); expect(texts()).toContain('Čeka tvoju ocenu');
+  await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']); expect(texts()).not.toContain('Čeka tvoju ocenu');
+});

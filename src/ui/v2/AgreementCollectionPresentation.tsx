@@ -25,7 +25,10 @@ type Props = {
   onCalendar: () => void; onProfile: () => void; onHome: () => void;
 };
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }, { key: 'all', label: 'Svi' }] as const;
-const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER';
+// A finished Dogovor that still waits for my rating is not history yet (owner, 2026-09-23: it was invisible
+// on the default tab right after completion). It stays among the active ones until the rating is given.
+const awaitsMyRating = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' && item.ocenaMoguca;
+const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER' || awaitsMyRating(item);
 const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
 const Separator = () => <View style={{ height: 12 }} />;
@@ -67,8 +70,8 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
     {/* The only route to rating a finished collaboration was: open the agreement, find the action.
         Nothing anywhere asked for it, and the person who confirmed the completion is not even sent
         an event. The card that is already in front of them says it instead. */}
-    {item.stanje === 'COMPLETED' ? <View style={s.statusRow}>
-      <T variant="meta" tone="muted">Saradnja je završena — ocena pomaže drugima da izaberu.</T></View> : null}
+    {awaitsMyRating(item) ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: sys.color.orange }]} />
+      <T variant="label" style={[s.status, { color: sys.color.warn }]}>Čeka tvoju ocenu</T></View> : null}
     {/* Name over relation, not beside it: "Objavio zadatak" is longer than the "Uskočio si" it
         replaced, and on a real phone it pushed "Milos SLJIVIC" onto two lines. This is also the
         shape every other person row in the app already uses. */}
