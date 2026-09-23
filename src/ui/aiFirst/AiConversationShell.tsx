@@ -8,7 +8,7 @@ import { ProductHeader } from '../product/ProductDetails';
 import { BrandMark } from '../entry/BrandAssets';
 import { iconButton, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { aiFirst as a } from './tokens';
 
@@ -153,7 +153,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
  * conversation, so it may carry this; purpose: state indication, "somebody is here and listening".
  * Under reduced motion it holds still. Decoration beside the title, so a screen reader skips it.
  */
-function AssistantPresence({ reduced }: { reduced: boolean }) {
+function AssistantPresence({ reduced: live }: { reduced: boolean }) {
+  // The startup snapshot AND the live system value: the welcome is drawn before the live value has
+  // been read, and a person who asked for less motion must not see the first breath either.
+  const reduced = useReducedMotion() || live;
   const breath = useSharedValue(0);
   useEffect(() => {
     if (reduced) { cancelAnimation(breath); breath.set(0); return; }
