@@ -26,14 +26,15 @@ export function LottieArt({ source, size, loop = true, autoPlay = true, speed = 
 }) {
   const reduced = useSystemReducedMotion();
   const still = reduced || !autoPlay;
+  const spoken = label
+    ? { accessible: true, accessibilityLabel: label, importantForAccessibility: 'yes' as const }
+    : { accessible: false, importantForAccessibility: 'no-hide-descendants' as const };
   return <LottieView
     source={source}
     autoPlay={!still}
     loop={!still && loop}
     speed={speed}
-    {...(still ? { progress: 0 } : {})}
-    accessible={!!label}
-    accessibilityLabel={label}
-    importantForAccessibility={label ? 'yes' : 'no-hide-descendants'}
+    progress={still ? 0 : undefined}
+    {...spoken}
     style={[size ? { width: size, height: size } : null, style]} />;
 }
