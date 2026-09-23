@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T19:20:28Z",
+  "osvezeno": "2026-09-23T21:03:49Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "721be0c1",
-  "head_poruka": "evidence: the icon and pictogram board on the owner's phone (step E)",
+  "head": "91eb4bbd",
+  "head_poruka": "fix: a photo that cannot be read shows initials; no group line on a one-person Dogovor",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -639,7 +639,7 @@
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
+   "telefon_dokaz": "2026-09-23: novi raspored detalja mog zadatka viđen na telefonu (build 165ab4fa, docs/implementation/design-system/g3-task-detail/G3_RECEIPT.json), samo čitanje. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -1548,7 +1548,7 @@
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "10 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
+   "telefon_dokaz": "2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
    "sledece": "Pretraga i jasnije Lista/Mapa kontrole su u proverenim APK-ovima 6d3c7ead. Emulator je instaliran i otvoren do ulaza; provera mape sa nalogom, telefon i Claude pregled čekaju. Serversko filtriranje ostaje poseban korak F06/F07. DISCOVERY_SEARCH_RECEIPT.json. Razlike za sledeći serverski ugovor opisane u DISCOVERY_SEARCH.md (analiza sačuvanog snimka, bez nove promene baze).",
    "funkcionalni_audit": {
@@ -1691,7 +1691,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "2 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
+   "telefon_dokaz": "2026-09-23: novi raspored detalja tuđeg zadatka viđen na telefonu (build 165ab4fa, g3-task-detail/G3_RECEIPT.json), samo čitanje; prijava nije poslata. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
    "sledece": "",
    "funkcionalni_audit": {
@@ -2256,7 +2256,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "17 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor.",
+   "telefon_dokaz": "2026-09-23: novi pregled Dogovora viđen na telefonu (build 077fd648, docs/implementation/design-system/g7-dogovor/G7_RECEIPT.json), samo Pregled; Poruke nisu otvarane. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor.",
    "problem": "23.09.: završen ili otkazan Dogovor više ne nudi „Izmene i otkazivanje“ (red je vodio na ekran bez moguće radnje); Početna imenuje Dogovore koji čekaju ocenu.",
    "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
    "funkcionalni_audit": {
@@ -5624,100 +5624,100 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
-   "id": 35905199778,
-   "ime": "PKG-005 Worker onboarding proof",
-   "sha": "c89b7223",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T18:50:06Z"
-  },
-  {
-   "id": 35905199758,
-   "ime": "PKG-003 manual task proof",
-   "sha": "c89b7223",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T18:50:06Z"
-  },
-  {
-   "id": 35905199719,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "c89b7223",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T18:50:06Z"
-  },
-  {
-   "id": 35905197821,
-   "ime": "Build Android development APK",
-   "sha": "c89b7223",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T18:50:05Z"
-  },
-  {
-   "id": 35903014528,
-   "ime": "Build Android development APK",
-   "sha": "dc8e7b02",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T18:31:04Z"
-  },
-  {
-   "id": 35900713421,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "fbea3919",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T18:11:11Z"
-  },
-  {
-   "id": 35900655440,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "fbea3919",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T18:10:40Z"
-  },
-  {
-   "id": 35900655214,
-   "ime": "PKG-010 system contracts proof",
-   "sha": "fbea3919",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T18:10:40Z"
-  },
-  {
-   "id": 35900655197,
+   "id": 35919881681,
    "ime": "PKG-007 agreement completion proof",
-   "sha": "fbea3919",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T18:10:40Z"
+   "sha": "91eb4bbd",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T21:02:15Z"
   },
   {
-   "id": 35900655046,
-   "ime": "PKG-005 Worker onboarding proof",
-   "sha": "fbea3919",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T18:10:40Z"
+   "id": 35919881549,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "91eb4bbd",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T21:02:15Z"
   },
   {
-   "id": 35900654417,
+   "id": 35918197496,
+   "ime": "PKG-045 public task column privacy proof",
+   "sha": "077fd648",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:46:33Z"
+  },
+  {
+   "id": 35917755080,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "077fd648",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:42:31Z"
+  },
+  {
+   "id": 35917306227,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "077fd648",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:38:29Z"
+  },
+  {
+   "id": 35917181097,
    "ime": "Build Android development APK",
-   "sha": "fbea3919",
+   "sha": "077fd648",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-09-23T18:10:40Z"
+   "vreme": "2026-09-23T20:37:20Z"
   },
   {
-   "id": 35899638909,
-   "ime": "Build Android development APK",
-   "sha": "ae274c0f",
+   "id": 35917180793,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "077fd648",
    "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-23T18:01:42Z"
+   "ishod": "success",
+   "vreme": "2026-09-23T20:37:20Z"
+  },
+  {
+   "id": 35917180687,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "077fd648",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:37:20Z"
+  },
+  {
+   "id": 35916858611,
+   "ime": "PKG-003 manual task proof",
+   "sha": "25dc016a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:34:26Z"
+  },
+  {
+   "id": 35916588600,
+   "ime": "Build Android development APK",
+   "sha": "25dc016a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:32:02Z"
+  },
+  {
+   "id": 35916382989,
+   "ime": "PKG-010 system contracts proof",
+   "sha": "25dc016a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:30:15Z"
+  },
+  {
+   "id": 35914765868,
+   "ime": "Build Android development APK",
+   "sha": "af3a11df",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T20:15:52Z"
   }
  ]
 }
