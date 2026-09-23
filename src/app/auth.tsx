@@ -430,7 +430,7 @@ export default function AuthScreen() {
 
             {faza === 'PHONE' && methods?.phoneOtp ? (
               <View style={formStyle}>
-                <Pressable disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
+                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
                   <ArrowLeft size={16} color={authColors.muted} />
                   <Text style={styles.backText}>Nazad na prijavu</Text>
                 </Pressable>
@@ -450,7 +450,7 @@ export default function AuthScreen() {
 
             {faza === 'OTP' && methods?.phoneOtp ? (
               <View style={formStyle}>
-                <Pressable disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
+                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
                   <ArrowLeft size={16} color={authColors.muted} />
                   <Text style={styles.backText}>Promeni broj</Text>
                 </Pressable>
@@ -467,7 +467,7 @@ export default function AuthScreen() {
                   icon={<LockKey size={21} color={authColors.muted} />}
                 />
                 <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />
-                <Pressable disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
+                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
                   <Text style={styles.linkText}>Pošalji novi kod</Text>
                 </Pressable>
               </View>
@@ -513,7 +513,7 @@ export default function AuthScreen() {
                   ? 'Ako je registracija prihvaćena, dobićeš poruku sa daljim uputstvom. Posle potvrde emaila vrati se na prijavu.'
                   : 'Nalog još nije prijavljen. Vrati se na prijavu. Ako ti je stigla poruka za potvrdu emaila, prvo prati njeno uputstvo.'}</Text>
                 <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
-                <Pressable disabled={radi} onPress={() => commands.changeForm(() => {
+                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => commands.changeForm(() => {
                   setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
                 })} style={styles.linkButton}>
                   <Text style={styles.linkText}>Izmeni email</Text>
