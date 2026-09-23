@@ -6,7 +6,7 @@ on:
       - 'supabase/candidates/pkg050*.sql'
       - 'supabase/proofs/pkg050/**'
       - 'src/data/supabaseIzvor.ts'
-      - 'src/app/dogovor/[[]id[]].tsx'
+      - 'src/app/dogovor/**'
       - '.github/workflows/pkg050-agreement-messages-read-proof.yml'
   workflow_dispatch:
 permissions:
