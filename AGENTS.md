@@ -61,6 +61,10 @@ Green titles are explicitly welcomed; the preceding dark-title instruction was w
 screen at a time, show it with one sentence of rationale, prove types/tests, build and verify on the phone.
 Claude's independent screen review is required, not presumed complete.
 Only @gorhom/bottom-sheet5.2.14 is newly approved; no blanket package or backend-change approval.
+Package approval 2026-09-23 (owner "Da" to the explicit ask): `lottie-react-native` ~7.3.8, installed with `expo install`, for
+characters and moments only (AI assistant states, "Dogovoreno!", empty states), never buttons or facts; wrapper
+`src/ui/system/LottieArt.tsx` enforces reduced motion (first frame) and spoken-or-silent accessibility. `expo-speech`
+(a narrator) was asked for separately and is NOT approved. The owner's Lottie files (V28) are awaited; none is bundled yet.
 
 Native connected design slice20260922: ProductDetails now frames task details, applications,
 Agreement overview, AI intake and settings; compact underlined views, larger real-profile identities,
