@@ -1,7 +1,10 @@
 # PKG-047 — the safety target of a public profile (F05 / B08 / N06 / N07 / PG01)
 
-Status 2026-09-22: **candidate and client written, proof workflow added, not applied.** The package is
-function-only and must NOT move the closure certificate; the candidate asserts that on both sides.
+Status 2026-09-23: **proven on a disposable database, not applied.** Run `35805442368`, source `f0d7fb7b`,
+all **10 checks PASS**, receipt `PROOF_35805442368.json`. The surface diff is exactly one added object —
+`rpc_read_safety_target(p_profile_id uuid)`, body `4f4e88c2…`, security definer, `search_path=pg_catalog`,
+ACL `{postgres, authenticated}` — and the certificate is byte-identical before and after. Application still
+needs the owner's word.
 
 ## The defect
 
@@ -76,8 +79,10 @@ No existing service, guard or recovery path changed, and the shipped `/bezbednos
    the certificate untouched;
 4. applied once, a second run refuses, exactly one object is added and **the certificate does not move**;
 5. the target is the account behind the profile and agrees with `rpc_get_account_block`;
-6. it resolves exactly what the public profile shows, and never the caller's own account (self and an inactive
-   profile are checked explicitly);
+6. it resolves exactly what the public profile shows, and never the caller's own account. Every account is born
+   with two faces — the auth trigger makes a REQUESTER profile, active at once, and a WORKER profile that stays
+   a draft until its owner completes it — so the proof checks both: the published face resolves to the person,
+   the unpublished one resolves to nobody and is not publicly visible either;
 7. blocking through the resolved target hides both the profile and the target; the other side learns nothing;
    unblocking returns the target with the revision the next block needs;
 8. the report the entry exists for is accepted with that target and stays private to its author;
@@ -86,8 +91,9 @@ No existing service, guard or recovery path changed, and the shipped `/bezbednos
 
 ## What it does not establish
 
-No phone. No new APK is built here. The proof uses the fixture accounts of the disposable stack, so it does not
-establish how a real person experiences the entry, and it does not test the moderation that follows a report —
+No phone. No new APK is built here. The proof creates two real accounts and drives them through Auth and
+PostgREST, but that is still not a person on a device, and it does not test the moderation that follows a
+report —
 `rpc_get_my_safety_report` remains an unused read with different semantics from a moderation outcome.
 
 ## Application
