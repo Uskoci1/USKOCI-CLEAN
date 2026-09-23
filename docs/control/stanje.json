@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:18:08Z",
+  "osvezeno": "2026-09-23T06:28:17Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "35260a9c",
-  "head_poruka": "control: D03 and P01 carry PKG-050, written and unproven",
+  "head": "94380b57",
+  "head_poruka": "PKG-050 proven 35826370830 (7/7); the task-detail suite no longer loads the safety client",
   "server": {
    "snimljeno": "2026-09-23T01:28:20Z",
    "migracije": 200,
@@ -3144,7 +3144,7 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu.",
-   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz na CI teče; NIJE primenjeno na DEV.",
+   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz prošao (CI 35826370830, 7/7, potvrda pkg050/PROOF_35826370830.json); čeka vlasnikovo „primeni pkg050a“, NIJE primenjeno na DEV.",
    "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -5629,6 +5629,78 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35826894324,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "94380b57",
+   "stanje": "queued",
+   "ishod": "",
+   "vreme": "2026-09-23T06:28:15Z"
+  },
+  {
+   "id": 35826892389,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "94380b57",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-23T06:28:14Z"
+  },
+  {
+   "id": 35826892184,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "94380b57",
+   "stanje": "queued",
+   "ishod": "",
+   "vreme": "2026-09-23T06:28:14Z"
+  },
+  {
+   "id": 35826370830,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "893b8d26",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:21:26Z"
+  },
+  {
+   "id": 35826368389,
+   "ime": "PKG-045 public task column privacy proof",
+   "sha": "893b8d26",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T06:21:24Z"
+  },
+  {
+   "id": 35826366234,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "893b8d26",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:21:22Z"
+  },
+  {
+   "id": 35826363950,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "893b8d26",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:21:20Z"
+  },
+  {
+   "id": 35826244291,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "aea979a0",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:19:48Z"
+  },
+  {
+   "id": 35826125166,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "619ffb33",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-23T06:18:13Z"
+  },
+  {
    "id": 35826119132,
    "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
    "sha": "35260a9c",
@@ -5640,89 +5712,17 @@
    "id": 35826113935,
    "ime": "PKG-007 agreement completion proof",
    "sha": "ecc5daaa",
-   "stanje": "queued",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "failure",
    "vreme": "2026-09-23T06:18:04Z"
   },
   {
    "id": 35826113862,
    "ime": "PKG-045 public task column privacy proof",
    "sha": "ecc5daaa",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "failure",
    "vreme": "2026-09-23T06:18:04Z"
-  },
-  {
-   "id": 35826113861,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "ecc5daaa",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-23T06:18:04Z"
-  },
-  {
-   "id": 35826112784,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "ecc5daaa",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:18:03Z"
-  },
-  {
-   "id": 35817831835,
-   "ime": "Build Android development APK",
-   "sha": "3e6450f4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T04:18:58Z"
-  },
-  {
-   "id": 35807138233,
-   "ime": "Build Android development APK",
-   "sha": "332d285f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T01:38:39Z"
-  },
-  {
-   "id": 35807114663,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "332d285f",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:38:18Z"
-  },
-  {
-   "id": 35807114661,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "332d285f",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T01:38:18Z"
-  },
-  {
-   "id": 35806537854,
-   "ime": "PKG-027 owner-approved fixes proof",
-   "sha": "c57f2331",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T01:30:08Z"
-  },
-  {
-   "id": 35806537850,
-   "ime": "PKG-023f closure source re-certification proof",
-   "sha": "c57f2331",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T01:30:08Z"
-  },
-  {
-   "id": 35805788358,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "48bc8155",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T01:19:02Z"
   }
  ]
 }
