@@ -75,12 +75,23 @@ beforeEach(() => { for (const mock of [open, close, apply, ownTask, ownApplicati
 test('the public Task leads with status, title, price and people, offers the requester profile, and has exactly one brand action while applications are open', async () => {
   await act(async () => { tree = create(<Detail />); });
   const copy = texts();
-  expect(copy).toContain('Traži ponude'); expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('Popunjeno 0 od 2 mesta');
+  // V41 (2026-09-23): Potrebno shows "0 / 2 popunjeno" and is heard as words, not as a slash.
+  expect(copy).toContain('Traži ponude'); expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0 / 2 popunjeno');
+  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, popunjeno 0 od 2 mesta')).not.toHaveLength(0);
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
+  expect(copy).toContain('Objavio zadatak');
   expect(brand()).toEqual(['Sastavi prijavu']);
   await act(async () => byLabel('Pogledaj javni profil').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
   expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
+});
+test('an open price is a word addressed to the person applying, never the amount\'s dress', async () => {
+  await act(async () => { tree = create(<PublicNeedPresentation need={{ ...need, rezimCene: 'OFFERS', ponudjenaCena: undefined }} loading={false} error={false}
+    missing={false} stale={false} busy={false} canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
+    back={noop} retry={noop} apply={apply} />); });
+  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
+  expect(JSON.stringify(price.props.style)).not.toContain(sys.color.money);
+  expect(texts()).toContain('Ukupan iznos predlažeš u prijavi.');
 });
 test('closed applications remove the brand action and say so; the requester profile sheet shows loading, then only server facts, and closes', async () => {
   await act(async () => { tree = create(<Detail canApply={false} profile={{ loading: true, data: null }} />); });

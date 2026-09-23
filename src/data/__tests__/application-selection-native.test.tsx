@@ -5,7 +5,7 @@ const mockViewed = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, podnesiPrijavu: mockSubmit,
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockLinkQuery = jest.fn();
-const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
+const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), navigate: jest.fn(), canGoBack: jest.fn(() => true) };
 let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true;
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 jest.mock('react-native', () => {
@@ -281,7 +281,13 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   ]);
   await render(Candidates);
   // PKG-035: the total names every application ever sent; the ones still open to choose are counted apart.
-  expect(text()).toContain('2 prijave · 1 za izbor · još 3 mesta');
+  // V41 (2026-09-23): the free places moved to the task row at the top, the counts stand above the cards.
+  expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('3 od 3 mesta je slobodno');
+  // The card that cannot be chosen says why on its own bottom line, and the list says once what that means.
+  const stale = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Ranija ponuda')[0];
+  expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Potrebna nova provera')).toHaveLength(1);
+  expect(stale.props.accessibilityHint).toContain('Potrebna nova provera.');
+  expect(text()).toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
   expect(press('Pogledaj ponudu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj ponudu: Milan')).toBeDefined();
   await tap('Pogledaj ponudu: Ranija ponuda'); expect(text()).toContain('Potrebna nova provera');
   expect(press('Pregledaj povezivanje')).toBeUndefined(); expect(press('Izaberi ovu Prijavu')).toBeUndefined();
@@ -403,4 +409,30 @@ it.each(['application', 'candidates'] as const)('bounds %s context read at 15 se
     expect(text()).not.toContain('Zakasneli stari pregled'); expect(text()).toContain('Aktuelan pregled');
     expect(mockSubmit).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
   } finally { jest.useRealTimers(); }
+});
+// V41 (2026-09-23): the list can be ordered by the lowest total. The rows carry no time of sending, so the
+// other order is the server's own (earliest first), named as such and never as "newest".
+it('orders the loaded offers by the lowest total without a new read, keeps ties in arrival order, and keeps the order after opening an offer', async () => {
+  const priced = (n: number, ime: string, iznos: number) => ({ ...k(), prijavaId: `10000000-0000-4000-8000-00000000001${n}`, ime,
+    cena: { iznos, valuta: 'RSD', prikaz: `${iznos} RSD` } });
+  mockCandidates.mockResolvedValue([priced(1, 'Prva', 6000), priced(2, 'Druga', 3000), priced(3, 'Treća', 3000)]);
+  await render(Candidates);
+  const order = () => tree!.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Pogledaj ponudu: '))
+    .map(node => String(node.props.accessibilityLabel).slice('Pogledaj ponudu: '.length));
+  expect(order()).toEqual(['Prva', 'Druga', 'Treća']);
+  const reads = mockCandidates.mock.calls.length;
+  await tap('Redosled prijava: Redom pristizanja'); await tap('Najniža cena');
+  expect(order()).toEqual(['Druga', 'Treća', 'Prva']);
+  expect(mockCandidates).toHaveBeenCalledTimes(reads); expect(mockViewed).not.toHaveBeenCalled();
+  await tap('Pogledaj ponudu: Prva'); await tap('Nazad na zadatak');
+  expect(order()).toEqual(['Druga', 'Treća', 'Prva']); expect(press('Redosled prijava: Najniža cena')).toBeDefined();
+  await tap('Redosled prijava: Najniža cena'); await tap('Redom pristizanja');
+  expect(order()).toEqual(['Prva', 'Druga', 'Treća']);
+});
+it('the task row at the top opens the Task itself, once', async () => {
+  await render(Candidates);
+  const open = press('Otvori zadatak: Unos ormara'); expect(open).toBeDefined();
+  await act(async () => { open(); open(); });
+  expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/potrebe/[id]/pregled', params: { id: mockId } }]]);
+  expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
 });

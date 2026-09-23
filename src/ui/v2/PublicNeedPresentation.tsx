@@ -2,12 +2,12 @@ import type { TaskRelation } from '../../data/taskRelation';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PaperPlaneTilt } from 'phosphor-react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
-import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { osoba } from '../system/plural';
 import { DetailPairs, DisclosureGroup, DisclosureRow, NextStrip, SectionTitle } from '../system/Detail';
-import { ProductFact, ProductFacts, ProductHeader, ProductPerson, ProductRequirements, ProductTitle } from '../product/ProductDetails';
+import { ProductDivider, ProductFactPair, ProductFooterAction, ProductHeader, ProductLabeledFact, ProductPeopleFact, ProductPerson,
+  ProductPrice, ProductRequirements, ProductTitle, ProductWhenFact, productPriceParts } from '../product/ProductDetails';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
@@ -16,10 +16,10 @@ import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /**
- * Public Task: status, green title, full-width facts and visible requirements,
- * description, photos, approximate map, Q&A and the publisher's public profile. One
- * brand action, "Sastavi prijavu", only while the server accepts applications.
- * Presentation only; the route owns reads, deadline and guards.
+ * Public Task, as the owner's V41 reference sets it (2026-09-23): the green title, its state, the
+ * place, Termin beside Potrebno, the price large, then the description, requirements, photos, the
+ * approximate map, Q&A and the person who posted it. One brand action, "Sastavi prijavu", only while
+ * the server accepts applications. Presentation only; the route owns reads, deadline and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
   onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety }: {
@@ -42,7 +42,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
   // The detail has the room, so a per-person price also says what the whole task comes to.
-  const price = need ? needPriceText(need, { withTotal: true }) : '';
+  const price = need ? productPriceParts(need, 'Ukupan iznos predlažeš u prijavi.') : null;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ProductHeader back={back} backLabel="Nazad na Zadatke" disabled={busy} />
     <ScrollView contentContainerStyle={s.content}>
@@ -54,24 +54,30 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {stale ? <T variant="note" tone="muted">Poslednji učitani podaci. Osveži zadatak pre nastavka.</T> : null}
       </View> : null}
       {need ? <>
-        <NextStrip art="offers" title={need.statusTekst} detail={canApply ? 'Prijave su otvorene. Ponudu sastavljaš ispod.' : undefined} tone={canApply ? 'green' : 'muted'} />
         <View style={s.hero}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>
         </View>
-        <ProductFacts>
-          <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
-          <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`Popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent prominentAs={need.rezimCene === 'OFFERS' || !/\d/.test(price) ? 'label' : 'amount'} />
-        </ProductFacts>
+        {/* The title leads, as in V41; the state follows it. Where the application is composed is not said:
+            the one orange action at the foot of the screen is that place (owner: no copy explaining where you are). */}
+        <NextStrip art="offers" title={need.statusTekst} detail={canApply ? 'Prijave su otvorene.' : undefined} tone={canApply ? 'green' : 'muted'} />
+        <View style={s.facts}>
+          <ProductLabeledFact art={remote ? 'remote' : 'pin'} label={remote ? 'Način rada' : 'Lokacija'} value={remote ? 'Na daljinu' : need.podrucjeTekst} />
+          <ProductFactPair>
+            <ProductWhenFact text={need.vremeTekst} exactWindow={need.schedule?.kind === 'FIXED_WINDOW'} />
+            <ProductPeopleFact value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+              spokenNote={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
+          </ProductFactPair>
+          {price ? <ProductPrice value={price.value} note={price.note} isAmount={price.isAmount} /> : null}
+        </View>
+        <ProductDivider />
+        {need.opis ? <T variant="body" style={s.description}>{need.opis}</T> : null}
         <ProductRequirements rows={needRequirementRows(need)} />
-        {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {ready && !stale ? photos : null}
         {/* The place was four words of text — "Centar, Beograd" — on the screen where a person
             decides whether the job is near enough to take. The point is approximate by design and
             the exact address is only ever shared inside a Dogovor. */}
-        {!remote && map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{map}
+        {!remote && map ? <View style={s.section}><SectionTitle>Mesto zadatka</SectionTitle>{map}
           <T variant="note" tone="muted">Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
         <DisclosureGroup>
           <DisclosureRow first label="Mesto izvršenja" detail={remote ? 'Bez fizičke lokacije' : 'Približno područje'} expanded={expanded} onPress={() => setExpanded(value => !value)}>
@@ -80,17 +86,14 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           </DisclosureRow>
         </DisclosureGroup>
         {ready && !stale ? qa : null}
-        <View style={s.section}>
-          <SectionTitle>Ko objavljuje</SectionTitle>
-          {/* The person who posted the task was a letter in a circle, while the people who answer
-              it are shown by their photograph two screens away. The whole block is the press that
-              opens their public profile, instead of a green line of text beneath it. */}
-          <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'}
-            initial={(need.narucilacIme || '?').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}
-            // A missing rating is said to be missing, as it is for a candidate; a blank line would hide the fact.
-            caption={need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna'}
-            photo={publicPhoto?.(need.narucilacProfilId, 72)} onPress={onRequesterProfile} disabled={busy} />
-        </View>
+        {/* The person who posted the task was a letter in a circle, while the people who answer it are
+            shown by their photograph two screens away. V41 closes the task with them as one flat row;
+            the whole row is the press that opens their public profile. */}
+        <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'}
+          initial={(need.narucilacIme || '?').slice(0, 1).toLocaleUpperCase('sr-Latn-RS')}
+          // A missing rating is said to be missing, as it is for a candidate; a blank line would hide the fact.
+          caption={`Objavio zadatak · ${need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna'}`}
+          photo={publicPhoto?.(need.narucilacProfilId, 48)} onPress={onRequesterProfile} disabled={busy} />
       </> : null}
     </ScrollView>
     {ready ? <View style={s.footer}>
@@ -98,14 +101,14 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           in, and an open task told a person in the other mode to go and change it in Profil. */}
       {relation.kind === 'OWNER' ? <>
         <T variant="note" tone="muted" style={s.center}>Ovo je tvoj zadatak. Ovako ga vide drugi.</T>
-        <V2Action label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} style={brandAction} /></>
+        <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></>
         : relation.kind === 'APPLIED' ? <>
           <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Već si se prijavio na ovaj zadatak.'}</T>
-          <V2Action label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} style={brandAction} /></>
+          <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></>
           : relation.kind === 'UNKNOWN' ? <>
             <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili si se već prijavio.</T>
             <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></>
-            : canApply ? <V2Action label="Sastavi prijavu" onPress={apply} disabled={busy} style={brandAction} />
+            : canApply ? <ProductFooterAction label="Sastavi prijavu" onPress={apply} disabled={busy} />
               : <T variant="note" tone="muted" style={s.center}>Nove prijave trenutno nisu dostupne za ovaj zadatak.</T>}
     </View> : null}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
@@ -116,11 +119,12 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 },
-  content: { padding: 20, paddingTop: 16, gap: 20, paddingBottom: 32 },
+  content: { padding: 20, paddingTop: 12, gap: 20, paddingBottom: 32 },
   state: { gap: 12 },
   hero: { gap: 8, marginTop: 4 },
   badgeRow: { flexDirection: 'row' },
   section: { gap: 8 },
+  facts: { gap: 18 },
   description: { color: sys.color.ink, lineHeight: 26 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
 });

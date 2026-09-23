@@ -8,7 +8,7 @@ import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
-import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../../../../ui/v2/ApplicationSelectionPresentation';
+import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
 import { useSafetyEntry } from '../../../../ui/safety/useSafetyEntry';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -22,6 +22,10 @@ export default function Kandidati() {
   const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [opened, setOpened] = useState<{ data: Loaded; candidate: KandidatProjekcija } | null>(null);
+  // The order chosen on the list outlives opening one offer and coming back; it belongs to this Task and
+  // this account only, and it is a view of rows already read, never a new request.
+  const sortScope = `${id ?? ''}:${user?.id ?? ''}:${accountRevision}`;
+  const [sorted, setSorted] = useState<{ scope: string; sort: CandidateSort } | null>(null);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -98,9 +102,15 @@ export default function Kandidati() {
       if (current() && session.viewed.get(k.prijavaId) === attempt) render(value => value + 1);
     })();
   };
+  // The row at the top of the list opens the Task itself, whichever screen the list was opened from.
+  const openTask = () => {
+    if (!current() || session.navigated || !id) return;
+    session.navigated = true; router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id } });
+  };
   if (!data) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   if (!candidate) return <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
-    open={openOffer} />;
+    open={openOffer} openTask={openTask} sort={sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL'}
+    onSort={sort => setSorted({ scope: sortScope, sort })} />;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
     publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />} safety={safety}

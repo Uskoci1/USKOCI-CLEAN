@@ -221,7 +221,7 @@ describe('V2 saved Need presentation', () => {
     while (parent) { expect(parent.type).not.toBe('ScrollView'); parent = parent.parent; }
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ label: 'Pogledaj prijave' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);
     expect(texts()).not.toContain('HITNO'); expect(texts()).toContain('Otvori pitanja i odgovore');
   });
   it('does not display a raw transport secret attached outside the public projection', async () => {
@@ -233,7 +233,12 @@ describe('V2 saved Need presentation', () => {
   it('provides the real candidates route after publication and no duplicate publication action', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'OBJAVLJENA'), brojPrijava: 3 }); await render();
     expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    await tap('Pogledaj prijave');
+    // The read carries no selectable count here, so the footer counts the total and says that it is the total.
+    expect(button('Pregledaj prijave').props.count).toBe(3);
+    expect(texts()).toContain('Pregledaj prijave · 3');
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType
+      && node.props.accessibilityLabel === 'Pregledaj prijave, ukupno 3 prijave')).toHaveLength(1);
+    await tap('Pregledaj prijave');
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
   });
   it('opens Task-scoped questions with the loaded identity and rejects a callback after blur', async () => {

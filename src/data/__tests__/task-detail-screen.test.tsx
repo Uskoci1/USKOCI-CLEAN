@@ -99,7 +99,8 @@ describe('W04 actual screen and focused read lifecycle', () => {
     // belongs to the Dogovor, so `coarse` must stay on and the pin must not be draggable.
     mockLoad.mockResolvedValue({ ...detail(), priblizno: { lat: 45.2671, lng: 19.8335 } });
     await render();
-    expect(text()).toContain('Gde je');
+    // V41 names the section "Mesto zadatka" (2026-09-23); it was "Gde je".
+    expect(text()).toContain('Mesto zadatka');
     expect(text()).toContain('Približno područje. Tačna adresa se deli tek u Dogovoru.');
     const map = tree!.root.findByProps({ coarse: true });
     expect(map.props.position).toEqual({ latitude: 45.2671, longitude: 19.8335 });
@@ -108,7 +109,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await act(async () => { tree!.unmount(); }); tree = undefined;
     mockLoad.mockResolvedValue(detail());
     await render();
-    expect(text()).not.toContain('Gde je');
+    expect(text()).not.toContain('Mesto zadatka');
     expect(tree!.root.findAllByProps({ coarse: true })).toHaveLength(0);
   });
 

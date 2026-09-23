@@ -1,8 +1,8 @@
-import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, PaperPlaneTilt, Star } from 'phosphor-react-native';
+import { CaretDown, CaretRight, Check, CheckCircle, Info, PaperPlaneTilt, Star } from 'phosphor-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -16,9 +16,9 @@ import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '.
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
-import { dolaziOsoba, osoba, prijava, plural } from '../system/plural';
+import { dolaziOsoba, osoba, prijava } from '../system/plural';
 import { SkeletonList } from '../system/Skeleton';
-import { brandAction, card, sys } from '../system/tokens';
+import { brandAction, card, cardCompact, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 
@@ -40,12 +40,14 @@ const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys
   : k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? sys.color.warn : sys.color.muted;
 
 /** Shared identity, keyboard-safe body and one next action. */
-function SelectionFrame({ title, back, children, footer, scroll = true, backLabel = 'Nazad na zadatak' }: {
+function SelectionFrame({ title, back, children, footer, scroll = true, backLabel = 'Nazad na zadatak', right }: {
   title: string; back: () => void; children: ReactNode; footer?: ReactNode; scroll?: boolean; backLabel?: string;
+  /** One quiet control at the end of the top bar, for a list's own view switch. */
+  right?: ReactNode;
 }) {
   const reduced = useReducedMotion();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader backLabel={backLabel} title={title} back={back} />
+    <ProductHeader backLabel={backLabel} title={title} back={back} right={right} />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       {scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} style={s.stack}>{children}</Animated.View>
@@ -246,36 +248,43 @@ function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatPr
       <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
     </View></View>;
 }
-/** Price, offered capacity and proposed time are visible before opening an offer. */
+/**
+ * One offer as the owner's V41 reference sets it (2026-09-23): the person and their record on the left,
+ * the total and the people it covers on the right, the message in two lines, and one bottom line — the
+ * proposed time when the offer can be chosen, or the server's reason when it cannot.
+ */
 const CandidateRow = memo(function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
   const time = applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst;
   const message = k.napomena?.trim() ?? '';
   const messagePreview = Array.from(message).slice(0, 180).join('');
+  const selectable = k.stanje === 'SELECTABLE', tone = candidateTone(k);
   // This card is one accessible button: its explicit name replaces child text, so expose the
-  // same offer facts and a bounded message before opening the offer marks it viewed.
+  // same offer facts and a bounded message before opening the offer marks it viewed. An offer that
+  // cannot be chosen also says why, which the card now shows only in its bottom line.
   const hint = `Ukupno ${k.cena.prikaz}; ${osoba(k.pokrivaMesta)}; termin ${time}.${message
-    ? ` Poruka: „${messagePreview}${messagePreview.length < message.length ? '…' : ''}“. Otvori ponudu za celu poruku.` : ''}`;
+    ? ` Poruka: „${messagePreview}${messagePreview.length < message.length ? '…' : ''}“. Otvori ponudu za celu poruku.` : ''}${selectable ? '' : ` ${candidateState(k)}.`}`;
   return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} haptic="select" scaleTo={0.985}
-    accessibilityHint={hint} onPress={open} style={s.candidate}>
-    <View style={s.candidateHead}>
-      <ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
-      <View style={s.grow}>
-        <T style={s.candidateName}>{k.ime}</T>
+    accessibilityHint={hint} onPress={open} style={[s.candidate, k.stanje === 'SELECTED' && s.candidateChosen]}>
+    <View style={s.candidateTop}>
+      <ProfilePhoto profileId={k.radnikProfilId} size={44} initial={k.inicijali} />
+      <View style={s.candidateId}>
+        <T style={s.candidateListName}>{k.ime}</T>
         {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">{candidateTrustText(k)}</T>
           : <View style={s.inline}><Star size={13} weight="fill" color={sys.color.orange} />
-            <T variant="meta" tone="muted">{candidateTrustText(k)}</T></View>}
+            <T variant="meta" tone="muted" style={s.shrink}>{candidateTrustText(k)}</T></View>}
       </View>
-      <CaretRight size={20} color={sys.color.muted} />
+      <View style={s.candidateOffer}>
+        <T style={s.candidatePrice}>{k.cena.prikaz}</T>
+        <T variant="meta" tone="muted" style={s.alignEnd}>{`ukupno · ${osoba(k.pokrivaMesta)}`}</T>
+      </View>
     </View>
-    <View style={s.candidateFoot}>
-      <View style={s.offerTotal}><T style={s.price}>{k.cena.prikaz}</T><T variant="meta" tone="muted">Ukupno</T></View>
-      <View style={s.inline}><FactArt kind="users" size={26} /><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
+    <T variant="note" tone={message ? 'ink' : 'muted'} numberOfLines={2} ellipsizeMode="tail">{message || 'Nema dodatne poruke.'}</T>
+    <View style={s.candidateBottom}>
+      {selectable ? <FactArt kind="calendar" size={22} />
+        : k.stanje === 'SELECTED' ? <CheckCircle size={18} weight="fill" color={tone} /> : <Info size={18} color={tone} />}
+      <T variant="meta" tone="muted" style={[s.grow, !selectable && { color: tone, fontWeight: '600' }]}>{selectable ? time : candidateState(k)}</T>
+      <CaretRight size={18} color={sys.color.muted} />
     </View>
-    <View style={s.inline}><FactArt kind="calendar" size={24} /><T variant="meta" tone="muted" style={s.grow}>
-      {time}</T></View>
-    {message ? <View style={s.messagePreview}><T variant="note" style={s.ink} numberOfLines={2} ellipsizeMode="tail">{message}</T></View> : null}
-    {k.stanje === 'SELECTABLE' ? null
-      : <View style={s.stateBand}><T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T></View>}
   </Press>;
 });
 
@@ -314,11 +323,45 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
   </Appear>;
 });
 
+/**
+ * How the loaded offers are ordered, on the phone and without a new request. The rows carry no time of
+ * sending, so there is no "newest" to promise: the first order is the server's own, which
+ * `rpc_list_need_candidates` sends by `submitted_at asc` (earliest first), and the other is by the
+ * total asked. Both are stable, so offers that tie keep their order of arrival.
+ */
+export type CandidateSort = 'ARRIVAL' | 'PRICE';
+const SORTS: readonly CandidateSort[] = ['ARRIVAL', 'PRICE'];
+const SORT_LABEL: Record<CandidateSort, string> = { ARRIVAL: 'Redom pristizanja', PRICE: 'Najniža cena' };
+export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: CandidateSort): readonly KandidatProjekcija[] {
+  // The server's order is the list exactly as read: the same array, so the default draws what it always drew.
+  if (sort === 'ARRIVAL') return candidates;
+  return candidates.map((k, at) => ({ k, at })).sort((a, b) => a.k.cena.iznos - b.k.cena.iznos || a.at - b.at).map(({ k }) => k);
+}
+
+/** The Task these offers answer, as one row that opens it: its title and how many places are still free. */
+function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void }) {
+  const title = readableTitle(need.naslov), { preostalo, ukupno } = need.pokrivenost;
+  const places = preostalo > 0 ? `${preostalo} od ${ukupno} mesta je slobodno` : 'Sva mesta su popunjena';
+  const body = <><FactArt kind="tasks" size={28} />
+    <View style={s.briefCopy}><T variant="bodyStrong" style={s.ink} numberOfLines={2}>{title}</T><T variant="meta" tone="muted">{places}</T></View>
+    {open ? <CaretRight size={18} color={sys.color.muted} /> : null}</>;
+  return open ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityHint={places}
+    haptic="select" scaleTo={0.99} onPress={open} style={s.brief}>{body}</Press>
+    : <View accessible accessibilityLabel={`${title}. ${places}`} style={s.brief}>{body}</View>;
+}
+
 /** Candidates of one Task: offers as cards, or side by side for a fast decision (owner decision 3, TARG-034). */
-export function CandidateListPresentation({ need, candidates, open, back, refresh }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
+  /** The row at the top opens the Task these offers answer. */
+  openTask?: () => void;
+  /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
+  sort?: CandidateSort; onSort?: (sort: CandidateSort) => void;
 }) {
   const [compare, setCompare] = useState(false);
+  const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
+  const [sorting, setSorting] = useState(false);
+  const sort = chosenSort ?? ownSort;
   const { width, fontScale } = useWindowDimensions();
   const columns = compare && width >= 360 && fontScale < 1.3 ? 2 : 1;
   // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
@@ -334,21 +377,39 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
     <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columns={columns} open={openCandidate} />,
   [need, compare, columns, openCandidate]);
+  // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
+  const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
+  const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
   // PKG-035: the list keeps every application, historical ones included; the ones that can still be
   // chosen are a different number and are named as such, never mixed into the total.
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
-  const counts = `${prijava(candidates.length)}${candidates.length && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`
-    + ` · još ${plural(need.pokrivenost.preostalo, 'mesto', 'mesta', 'mesta')}`;
-  return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}>
-    <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={candidates} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
+  const counts = `${prijava(candidates.length)}${selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
+  // An offer that can be read but not chosen says why on its own card; this says once what that means.
+  const unavailable = candidates.some(k => k.stanje !== 'SELECTABLE' && k.stanje !== 'SELECTED');
+  return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}
+    right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(v => !v)} /> : undefined}>
+    <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator}
-      ListHeaderComponent={<View style={s.listHeader}><TaskContext need={need} />
-        <View style={s.row}><T variant="body" tone="muted" style={s.grow}>{counts}</T>
-          {candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind={compare ? 'quiet' : 'secondary'} onPress={() => setCompare(v => !v)} /> : null}</View>
+      ListHeaderComponent={<View style={s.listHeader}><TaskBrief need={need} open={openTask} />
+        {candidates.length ? <View style={s.toolbar}><T variant="meta" tone="muted" style={s.grow}>{counts}</T>
+          {candidates.length > 1 ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}
+            accessibilityHint="Otvara izbor redosleda" accessibilityState={{ expanded: sorting }} haptic="select"
+            onPress={() => setSorting(value => !value)} style={s.sortButton}>
+            <T variant="meta" style={s.sortText}>{SORT_LABEL[sort]}</T><CaretDown size={16} color={sys.color.ink} />
+          </Press> : null}</View> : null}
+        {sorting && candidates.length > 1 ? <View accessibilityRole="radiogroup" style={s.sortMenu}>{SORTS.map((option, at) =>
+          <Press key={option} accessibilityRole="radio" accessibilityLabel={SORT_LABEL[option]} accessibilityState={{ checked: sort === option }}
+            haptic="select" scaleTo={0.99} onPress={() => choose(option)} style={[s.sortOption, at > 0 && s.sortDivider]}>
+            <T variant="body" style={[s.grow, s.ink]}>{SORT_LABEL[option]}</T>{sort === option ? <Check size={18} weight="bold" color={sys.color.green} /> : null}
+          </Press>)}</View> : null}
       </View>}
       ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
       renderItem={renderItem}
-      ListFooterComponent={<V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />} />
+      ListFooterComponent={<View style={s.listFooter}>
+        {unavailable ? <View style={s.footnote}><Info size={18} color={sys.color.muted} />
+          <T variant="note" tone="muted" style={s.grow}>Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš. Razlog piše na njenoj kartici.</T></View> : null}
+        <V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />
+      </View>} />
   </SelectionFrame>;
 }
 function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ dogovorId: string | null }>>; open: (id: string) => void }) {
@@ -454,19 +515,35 @@ const s = StyleSheet.create({
   center: { textAlign: 'center' },
   loading: { gap: 16 },
   blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
-  listHeader: { gap: 14, marginBottom: 14 },
-  candidate: { ...card, gap: 12, padding: 18 },
-  candidateHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  listHeader: { gap: 4, marginBottom: 12 },
+  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: sys.touch.min, paddingTop: 4, paddingBottom: 14,
+    borderBottomWidth: 1, borderColor: sys.color.line },
+  briefCopy: { flex: 1, minWidth: 0, gap: 2 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 },
+  sortButton: { minHeight: sys.touch.min, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
+  sortText: { color: sys.color.ink, fontWeight: '600' },
+  sortMenu: { ...cardCompact, padding: 0, marginBottom: 8, overflow: 'hidden' },
+  sortOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  sortDivider: { borderTopWidth: 1, borderColor: sys.color.line },
+  // V41's offer card: the compact 20px corner, a hairline edge, the same soft shadow as every card.
+  candidate: { ...cardCompact, gap: 12 },
+  candidateChosen: { borderColor: sys.color.lineStrong, backgroundColor: sys.color.greenSoft },
+  candidateTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  candidateId: { flex: 1, minWidth: 0, gap: 2 },
   candidateName: { ...sys.type.cardTitle, color: sys.color.ink },
-  candidateFoot: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  offerTotal: { flexGrow: 1, flexBasis: 160, maxWidth: '100%' },
-  messagePreview: { borderLeftWidth: 2, borderColor: sys.color.lineStrong, paddingLeft: 12, paddingVertical: 2 },
+  candidateListName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
+  candidateOffer: { alignItems: 'flex-end', gap: 2, maxWidth: '48%' },
+  candidatePrice: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'right' },
+  alignEnd: { textAlign: 'right' },
+  candidateBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: sys.color.line },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  shrink: { flexShrink: 1 },
   stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
-  price: { ...sys.type.price, color: sys.color.money },
   comparison: { ...card, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
   comparisonColumn: { flex: 1, minWidth: 0 },
   compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
   comparePrice: { ...sys.type.priceSmall, color: sys.color.money },
+  listFooter: { gap: 4, paddingTop: 12 },
+  footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8 },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 }, footerAction: { alignSelf: 'center', marginTop: 8 },
 });

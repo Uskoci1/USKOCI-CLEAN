@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, PaperPlaneTilt } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
-import { needGeographyRows, needPriceText, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
+import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { Press } from '../Press';
 import { DetailPairs, DisclosureGroup, DisclosureRow, NextStrip, QuietNote, SectionTitle } from '../system/Detail';
-import { ProductFact, ProductFacts, ProductHeader, ProductRequirements, ProductTitle } from '../product/ProductDetails';
+import { ProductDivider, ProductFactPair, ProductFooterAction, ProductHeader, ProductLabeledFact, ProductPeopleFact, ProductPrice,
+  ProductRequirements, ProductTitle, ProductWhenFact, productPriceParts } from '../product/ProductDetails';
 import { FactArt } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, sys } from '../system/tokens';
@@ -52,9 +53,23 @@ function nextStep(need: PotrebaProjekcija, remainingClosed: boolean, blocked?: {
 }
 
 /**
- * The owner's Task: next step, title, readable facts and requirements, description,
- * photos, approximate map, applications and lifecycle. One footer action: review for a draft,
- * applications for a published Task. Only existing controller callbacks act.
+ * What the one orange action says about the applications, with the same number the screen already
+ * shows (PKG-035): the ones that can be chosen when the server says, the total only when it does not.
+ * A known zero is not drawn as "· 0"; the spoken label says which number it is either way.
+ */
+function applicationsAction(need: PotrebaProjekcija): { count: number | null; spoken: string } {
+  const selectable = need.brojPrijavaZaIzbor;
+  if (typeof selectable === 'number') return selectable > 0
+    ? { count: selectable, spoken: `Pregledaj prijave, ${prijave(selectable)} za izbor` }
+    : { count: null, spoken: `Pregledaj prijave, trenutno nema prijava za izbor, ukupno ${prijave(need.brojPrijava)}` };
+  return { count: need.brojPrijava > 0 ? need.brojPrijava : null, spoken: `Pregledaj prijave, ukupno ${prijave(need.brojPrijava)}` };
+}
+
+/**
+ * The owner's Task, as the owner's V41 reference sets it (2026-09-23): the title, its state, the place,
+ * Termin beside Potrebno, the price large, then the description, requirements, photos, applications,
+ * the approximate map and lifecycle. One footer action: review for a draft, applications for a
+ * published Task. Only existing controller callbacks act.
  */
 export function NeedPresentation(props: NeedPresentationProps) {
   const { need, loading, error, busy, remainingClosed } = props;
@@ -69,12 +84,15 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const blocked = draft ? readinessCopy(props.readiness ?? { kind: 'UNKNOWN' }) : null;
   // `busy` is true while anything on the screen is loading, including the first read, so the one
   // action announced work in progress before anything had been asked for.
-  const primaryLabel = busy && !loading ? 'Radnja je u toku…'
-    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pogledaj prijave';
+  const working = busy && !loading;
+  const applications = need && !working && !blocked && !draft ? applicationsAction(need) : null;
+  const primaryLabel = working ? 'Radnja je u toku…'
+    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pregledaj prijave';
   const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
-  // The owner's own task shows the same sentence a stranger sees, totals included.
-  const price = need ? needPriceText(need, { withTotal: true }) : '';
+  // The owner's own task shows the same price a stranger sees, totals included; only the line under an
+  // open price speaks to the owner instead of to the person applying.
+  const price = need ? productPriceParts(need, 'Svako u prijavi predlaže ukupan iznos.') : null;
   const step = need ? nextStep(need, remainingClosed, blocked) : null;
   const forSelection = need?.brojPrijavaZaIzbor;
   const hasSelection = (forSelection ?? 0) > 0;
@@ -90,26 +108,29 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View>
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {step ? <NextStrip art="offers" title={step.title} detail={step.detail} tone={step.tone} /> : null}
         <View style={s.hero}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>
         </View>
-        <ProductFacts>
-          <ProductFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <ProductFact art="calendar" label="Termin" value={need.vremeTekst} />
-          <ProductFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)} note={`${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} dogovoreno`} />
-          <ProductFact art={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} label="Budžet" value={price} prominent prominentAs={need.rezimCene === 'OFFERS' || !/\d/.test(price) ? 'label' : 'amount'} />
-        </ProductFacts>
+        {/* The title leads, as in V41; the state and the next step follow it instead of standing above it. */}
+        {step ? <NextStrip art="offers" title={step.title} detail={step.detail} tone={step.tone} /> : null}
+        <View style={s.facts}>
+          <ProductLabeledFact art={remote ? 'remote' : 'pin'} label={remote ? 'Način rada' : 'Lokacija'} value={remote ? 'Na daljinu' : need.podrucjeTekst} />
+          <ProductFactPair>
+            <ProductWhenFact text={need.vremeTekst} exactWindow={need.schedule?.kind === 'FIXED_WINDOW'} />
+            {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
+            <ProductPeopleFact value={osoba(need.pokrivenost.ukupno)}
+              note={draft ? undefined : `${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+              spokenNote={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
+          </ProductFactPair>
+          {price ? <ProductPrice value={price.value} note={price.note} isAmount={price.isAmount} /> : null}
+        </View>
+        <ProductDivider />
+        {need.opis ? <T variant="body" style={s.description}>{need.opis}</T> : null}
         <ProductRequirements rows={requirements} />
-        {need.opis ? <View style={s.section}><SectionTitle>Šta treba uraditi</SectionTitle><T variant="body" style={s.description}>{need.opis}</T></View> : null}
         {props.photos}
-        {/* A stranger saw this Task on a map before its owner did: the public projection carried the
-            point and the owner's own read never asked for it. Same coarse pair, same map. */}
-        {!remote && props.map ? <View style={s.section}><SectionTitle>Gde je</SectionTitle>{props.map}
-          <T variant="note" tone="muted">Ovako drugi vide mesto. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
-        {/* The strip at the top already carries the blocking reason; this card repeated it word for
+        {/* The strip under the title already carries the blocking reason; this card repeated it word for
             word further down, so a blocked draft stated its one problem twice in two boxes. It is
             now only what it was for: what to do with a draft that is not blocked. */}
         {draft && !blocked ? <View style={[card, s.draftCard]}>
@@ -128,6 +149,10 @@ export function NeedPresentation(props: NeedPresentationProps) {
           </Press>
           {need.pokrivenost.popunjeno === 0 && !remainingClosed && need.stanje !== 'ZATVORENA' ? <View style={s.rowDivider}><V2Action label="Izmeni Zadatak" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.rowAction} /></View> : null}
         </DisclosureGroup> : null}
+        {/* A stranger saw this Task on a map before its owner did: the public projection carried the
+            point and the owner's own read never asked for it. Same coarse pair, same map. */}
+        {!remote && props.map ? <View style={s.section}><SectionTitle>Mesto zadatka</SectionTitle>{props.map}
+          <T variant="note" tone="muted">Ovako drugi vide mesto. Tačna adresa se deli tek u Dogovoru.</T></View> : null}
         <DisclosureGroup>
           <DisclosureRow first label="Mesto izvršenja" detail={need.detalji?.geografija ? rows[0]?.value : 'Približno područje'} expanded={expanded} onPress={() => setExpanded(current => !current)}>
             {!need.detalji?.geografija ? <T variant="note" tone="muted">Javna struktura lokacije nije dostupna. Prikazano je približno područje.</T> : null}
@@ -142,11 +167,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {props.lifecycleActions}
         {props.qaAction}
       </ScrollView>}
-    {/* A published Zadatak nobody has applied to yet has no next step for its owner: the orange "Pogledaj prijave"
-        opened an empty list (phone, 2026-09-23). The strip at the top already says applications arrive here, and the
-        row above still opens the list, so the footer waits for the first application. */}
+    {/* A published Zadatak nobody has applied to yet has no next step for its owner: the orange "Pregledaj prijave"
+        opened an empty list (phone, 2026-09-23). The strip under the title already says applications arrive here, and
+        the applications row still opens the list, so the footer waits for the first application. */}
     {usable && (draft || blocked || busy || need!.brojPrijava > 0) ? <View style={s.footer}>
-      <V2Action label={primaryLabel} disabled={busy} onPress={primaryAction} style={brandAction} />
+      <ProductFooterAction label={primaryLabel} count={applications?.count} accessibilityLabel={applications?.spoken}
+        disabled={busy} arrow={!working} onPress={primaryAction} />
     </View> : null}
   </SafeAreaView>;
 }
@@ -154,10 +180,11 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 },
   state: { padding: 20, gap: 16 },
-  content: { padding: 20, paddingTop: 16, paddingBottom: 28, gap: 20 },
+  content: { padding: 20, paddingTop: 12, paddingBottom: 28, gap: 20 },
   hero: { gap: 8, marginTop: 4 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   section: { gap: 8 },
+  facts: { gap: 18 },
   description: { color: sys.color.ink, lineHeight: 26 },
   // Orange is the one action and the one mark of attention. This box is neither: the strip at the
   // top already says the Task is a draft, and the footer already carries the step in orange. Tinting

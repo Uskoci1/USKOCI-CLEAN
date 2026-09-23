@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
+import { ArrowRight } from 'phosphor-react-native';
 import { NeedPresentation } from '../../ui/v2/NeedPresentation';
 
 let tree: ReactTestRenderer;
@@ -30,6 +31,14 @@ test('PKG-035: task detail retains history without promising an unavailable sele
   expect(texts()).toContain('Ukupno 7 prijava');
   expect(texts()).not.toContain('Sledeće: izbor.');
   expect(labels()).toContain('Otvori prijave, ukupno 7');
+  // The footer counts what the screen counts: a known zero is not drawn as "· 0", and the total is said, not shown as choosable.
+  expect(texts()).not.toContain('Pregledaj prijave · ');
+  expect(brand()).toEqual(['Pregledaj prijave, trenutno nema prijava za izbor, ukupno 7 prijava']);
+});
+test('PKG-035: when the server has not said how many can be chosen, the footer counts the total and says so', async () => {
+  await act(async () => { tree = create(<Screen value={need({ brojPrijava: 5 })} />); });
+  expect(texts()).toContain('Pregledaj prijave · 5');
+  expect(brand()).toEqual(['Pregledaj prijave, ukupno 5 prijava']);
 });
 function Screen({ value, loading = false, error = null, remainingClosed = false }: {
   value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean;
@@ -52,10 +61,52 @@ test('a published Task leads with its state, price and people, shows the applica
   expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
   expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
-  expect(brand()).toEqual(['Pogledaj prijave']);
+  // V41 (2026-09-23): the one orange action carries the count of the applications that can be chosen.
+  expect(copy).toContain('Pregledaj prijave · 3');
+  expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
   expect(byLabel('Mesto izvršenja').props.accessibilityState).toEqual({ expanded: false });
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
+  // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
+  expect(copy).toContain('0 / 2 popunjeno');
+  expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
+});
+test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {
+  const fixed = need({ vremeTekst: '20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)', rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON',
+    ponudjenaCena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' },
+    schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T16:00:00Z', endsAt: '2026-09-20T17:00:00Z' } });
+  await act(async () => { tree = create(<Screen value={fixed} />); });
+  const spoken = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel);
+  // The saved sentence is only split where it is exactly a day and its hours; nothing is reworded, and it is still heard whole.
+  expect(texts()).toContain('20. sep 2026 18:00 – 19:00 (po vremenu u Srbiji)');
+  expect(spoken).toContain('Termin: 20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
+  expect(spoken).toContain('Lokacija: Novi Sad, Liman');
+  expect(spoken).toContain('Potrebno: 2 osobe, popunjeno 0 od 2 mesta');
+  // The figure stays large and what it covers goes quietly beside it, in the words the rest of the app uses.
+  expect(texts()).toContain('3.000 RSD Po osobi · ukupno 6.000 RSD');
+  expect(spoken).toContain('Budžet: 3.000 RSD, Po osobi · ukupno 6.000 RSD');
+  await act(async () => tree.unmount());
+  // A flexible range is never split into a day and an hour it does not have.
+  await act(async () => { tree = create(<Screen value={need({ vremeTekst: 'Fleksibilan raspon · 13. sep 2026 – 14. sep 2026',
+    schedule: { kind: 'FLEXIBLE', startsAt: '2026-09-12T22:00:00Z', endsAt: '2026-09-14T22:00:00Z' } })} />); });
+  expect(texts()).toContain('Fleksibilan raspon · 13. sep 2026 – 14. sep 2026');
+});
+test('an open price is a word, not an amount, and the owner is told who names it; a draft has no places to fill yet', async () => {
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0, rezimCene: 'OFFERS', ponudjenaCena: undefined })} />); });
+  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
+  expect(JSON.stringify(price.props.style)).not.toContain(sys.color.money);
+  expect(texts()).toContain('Svako u prijavi predlaže ukupan iznos.');
+  expect(texts()).not.toContain('popunjeno');
+});
+test('the footer leads somewhere with an arrow; while an action runs it says so, is disabled and points nowhere', async () => {
+  await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
+  expect(byLabel('Pregledaj prijave, 3 prijave za izbor').findAllByType(ArrowRight)).toHaveLength(1);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<NeedPresentation need={need()} loading={false} error={null} busy remainingClosed={false}
+    onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />); });
+  const footer = byLabel('Radnja je u toku…');
+  expect(footer.props.disabled).toBe(true);
+  expect(footer.findAllByType(ArrowRight)).toHaveLength(0);
 });
 test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
