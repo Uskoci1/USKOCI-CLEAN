@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:51:49Z",
+  "osvezeno": "2026-09-23T13:31:37Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "503af254",
-  "head_poruka": "PKG-050a applied to canonical DEV on the owner's word: ledger 201 = 147 + 54, certificate unchanged",
+  "head": "e9e0ab65",
+  "head_poruka": "pokret: the white pill slides to the chosen segment; the arrival helper is one stable object",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "NA TELEFONU NIJE PROVERENO": 43,
-  "PROBLEM": 19
+  "NA TELEFONU NIJE PROVERENO": 42,
+  "PROBLEM": 20
  },
  "redovi": [
   {
@@ -1546,7 +1546,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
@@ -1623,7 +1623,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
@@ -2257,7 +2257,7 @@
     "test": "17 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor.",
-   "problem": "",
+   "problem": "23.09.: završen ili otkazan Dogovor više ne nudi „Izmene i otkazivanje“ (red je vodio na ekran bez moguće radnje); Početna imenuje Dogovore koji čekaju ocenu.",
    "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -2267,7 +2267,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Dogovori",
     "nivo": 2,
@@ -3015,11 +3015,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "2 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Ocene rade u kodu i postoje na serveru; server pri oceni i dalje šalje „Dobili ste…“. Nije tačno da je sav tekst prebačen na „ti“.",
-   "sledece": "Posle odobrenja funkcionalne analize: zadržati postojeće ocenjivanje; zaseban predlog izmene serverskog teksta. Audit F15.",
+   "problem": "Ekran ocene je na uređaju bio mrtav (zvezde i oznake nisu reagovale; RATING-DEAD-STARS-01). Uzrok: čuvar je poredio token fokusa kovan posle crtanja. Popravljeno 23.09. (4e864a08, 5e415f1a): na emulatoru zvezda, oznaka i „Sačuvaj ocenu“ rade na prvi dodir; ocena nije sačuvana. Server pri oceni i dalje šalje „Dobili ste…“ (Audit F15).",
+   "sledece": "Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3804,7 +3804,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -3876,7 +3876,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -4246,7 +4246,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "99 test fajl(ova)"
+    "test": "101 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -5624,100 +5624,100 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
-   "id": 35827171686,
+   "id": 35867614703,
+   "ime": "Build Android development APK",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:04Z"
+  },
+  {
+   "id": 35867612183,
+   "ime": "PKG-005 Worker onboarding proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867612147,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867612131,
+   "ime": "PKG-046 media upload cancellation proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867612054,
+   "ime": "PKG-008 task photo recovery proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867612016,
+   "ime": "PKG-010 system contracts proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867612014,
    "ime": "PKG-004 need lifecycle proof",
-   "sha": "52ce4cc0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T06:31:45Z"
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
   },
   {
-   "id": 35827171637,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "52ce4cc0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T06:31:45Z"
+   "id": 35867611904,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
   },
   {
-   "id": 35827171627,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "52ce4cc0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T06:31:45Z"
-  },
-  {
-   "id": 35827171604,
+   "id": 35867611881,
    "ime": "PKG-007 agreement completion proof",
-   "sha": "52ce4cc0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T06:31:45Z"
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
   },
   {
-   "id": 35826894324,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "94380b57",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-23T06:28:15Z"
-  },
-  {
-   "id": 35826892389,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "94380b57",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-23T06:28:14Z"
-  },
-  {
-   "id": 35826892184,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "94380b57",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-23T06:28:14Z"
-  },
-  {
-   "id": 35826370830,
+   "id": 35867611855,
    "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "893b8d26",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:03Z"
+  },
+  {
+   "id": 35867609539,
+   "ime": "Build Android development APK",
+   "sha": "e9e0ab65",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-23T13:31:01Z"
+  },
+  {
+   "id": 35862648333,
+   "ime": "Build Android development APK",
+   "sha": "4e864a08",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-09-23T06:21:26Z"
-  },
-  {
-   "id": 35826368389,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "893b8d26",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T06:21:24Z"
-  },
-  {
-   "id": 35826366234,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "893b8d26",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:21:22Z"
-  },
-  {
-   "id": 35826363950,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "893b8d26",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:21:20Z"
-  },
-  {
-   "id": 35826244291,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "aea979a0",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-23T06:19:48Z"
+   "vreme": "2026-09-23T12:46:42Z"
   }
  ]
 }
