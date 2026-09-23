@@ -11,6 +11,13 @@ e9e0ab65 found four copy/logic defects, fixed in 815bedfc
 SuccessMark, sliding segments, memoised lists and `userInterfaceStyle: light` are in. No server, guard contract,
 migration or dependency changed tonight; no phone finger test was possible (phone not connected).
 
+V41 DIRECTION (2026-09-23 late evening). The owner: V41 HTML is the direction for the look, not a new layout ("velika
+dugmad ostaju, ovo su samo usmerenja"); the forensic UI/UX analysis doc is the rulebook. Početna keeps its two big tiles;
+one ORANGE primary per screen, every other action white with a green label. Transferred: one tab header (profile · mark ·
+bell), warm strips, underlined tabs with quiet counts, person-first Dogovori cards and Dogovor bar, V41 task detail and
+Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
+green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
+
 CURRENT PRODUCT CHECKPOINT (2026-09-22): read
 `docs/implementation/NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` first, then the current status,
 integrated finishing plan, owner design direction/UX blueprint and control README. The paragraphs
