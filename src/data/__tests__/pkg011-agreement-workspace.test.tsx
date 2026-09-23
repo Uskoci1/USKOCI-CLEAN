@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { sys } from '../../ui/system/tokens';
 const mockAccount = '10000000-0000-4000-8000-000000000001', mockOther = '10000000-0000-4000-8000-000000000002', mockAgreementId = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn() };
+const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '40000000-0000-4000-8000-000000000001';
 const mockRead = jest.fn(), mockMessages = jest.fn();
 let mockReducedMotion = false;
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn() };
@@ -39,7 +40,8 @@ const base = (patch: Record<string, unknown> = {}, mine: 'narucilac' | 'uskocer'
     { id: mockOther, ime: 'Marko', inicijali: 'MA', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', mesta: mine === 'narucilac' ? 1 : null, viSte: false }],
   hronologija: [{ vremeTekst: 'juče', tekst: 'Dogovor je potvrđen' }], kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: false },
   chatDostupan: true, vremeTekst: 'Fleksibilno', putanjaTekst: 'Beograd', problemOtvoren: false, rokPotvrdeIso: null, rezim: 'FIZICKI',
-  radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null }, ...patch });
+  radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null },
+  izvor: { zadatakId: mockNeedId, prijavaId: mockApplicationId }, ...patch });
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const presses = () => tree.root.findAll(node => String(node.type) === 'Press');
@@ -152,4 +154,31 @@ test('my own pending proposal is shown as mine and does not take the brand actio
 test('a pending change whose content cannot be read still says it exists and leads to Izmene, inventing nothing', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: null } }));
   expect(texts()).toContain('Predlog izmene čeka odgovor'); expect(labels()).toContain('Pogledaj predlog'); expect(brand()).toEqual(['Otvori poruke']);
+});
+
+// PKG-048 (F12 / D02): a Dogovor is the end of one lived flow, so it says where it came from. Each side
+// opens its own end, and a server that does not carry the ids offers no row at all.
+test('the requester reaches the Zadatak this Dogovor grew out of, and is offered no Prijava of their own', async () => {
+  await render(base());
+  expect(labels()).toContain('Zadatak iz kog je nastao Dogovor');
+  expect(labels()).not.toContain('Ponuda koju si poslao');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak iz kog je nastao Dogovor' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: mockNeedId } });
+});
+test('the worker reaches the Prilika and the offer they sent', async () => {
+  await render(base({}, 'uskocer'));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak iz kog je nastao Dogovor' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: mockNeedId } });
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ponuda koju si poslao' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: mockApplicationId } });
+});
+test.each([
+  ['a reader that does not carry the links', { izvor: { zadatakId: null, prijavaId: null } }],
+  ['a projection saved before the links existed', { izvor: undefined }],
+])('%s offers no source row instead of one that leads nowhere', async (_label, patch) => {
+  await render(base(patch, 'uskocer'));
+  expect(labels()).not.toContain('Zadatak iz kog je nastao Dogovor');
+  expect(labels()).not.toContain('Ponuda koju si poslao');
+  // The rest of the screen is unaffected.
+  expect(labels()).toContain('Izmene i otkazivanje Dogovora');
 });

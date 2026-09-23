@@ -27,7 +27,7 @@ const agreement = (id: string, state: DogovorProjekcija['stanje']): DogovorProje
   pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 }, rezim: 'FIZICKI',
   ucesnici: [{ id: 'me', profilId: null, ime: 'Ja', inicijali: 'JA', uloga: 'narucilac', mesta: null, viSte: true, telefon: null }, { id: 'o', profilId: null, ime: 'Mila', inicijali: 'MI', uloga: 'uskocer', mesta: 1, viSte: false, telefon: null }],
   kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: false, tacnaLokacija: null, emailNijeDeljen: true },
-  chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null,
+  chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null, izvor: { zadatakId: null, prijavaId: null },
 });
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');

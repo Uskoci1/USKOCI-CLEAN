@@ -331,6 +331,17 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           <AgreementPeople agreement={dogovor} />
           {me && enabled ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <WorkspaceRows>
+            {/* PKG-048: where this Dogovor came from. The server says so only since 2026-09-23, so a reader
+                that does not carry the ids offers nothing here rather than a row that leads nowhere. Each
+                side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava. */}
+            {dogovor.izvor?.zadatakId ? <WorkspaceRow label="Zadatak iz kog je nastao Dogovor"
+              hint={requester ? 'Tvoj zadatak: opis, prijave i izmene' : 'Objava na koju si poslao ponudu'} disabled={!enabled}
+              onPress={() => { const needId = dogovor.izvor?.zadatakId; if (!needId || !formCurrent()) return;
+                router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
+                  : { pathname: '/prilike/[id]', params: { id: needId } }); }} /> : null}
+            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow label="Ponuda koju si poslao" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
+              onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
+                router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
             {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);
                 there is nothing left behind this row for them, so it is not offered. */}
             {requester && dogovor.stanje === 'AWAITING_REQUESTER' ? null

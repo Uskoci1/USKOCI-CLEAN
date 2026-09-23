@@ -285,6 +285,8 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     ],
     pocinje: null,
     izmenaCeka: null,
+    // PKG-048: the double's Dogovor also comes from a Zadatak and a Prijava, so the source rows appear here too.
+    izvor: { zadatakId: 'ormar', prijavaId: a.prijavaId },
   };
 }
 

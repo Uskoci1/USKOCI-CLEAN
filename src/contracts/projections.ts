@@ -375,6 +375,11 @@ export type DogovorProjekcija = {
   pocinje: string | null;
   /** PKG-023a: predlog izmene koji čeka odgovor; `null` kad nijedan ne čeka. */
   izmenaCeka: { predlogId: string; mojPredlog: boolean } | null;
+  /**
+   * PKG-048: Zadatak i Prijava iz kojih je Dogovor nastao. `null` kada server još ne vraća vezu —
+   * stariji odgovor ne sme da napravi dugme koje ne vodi nigde.
+   */
+  izvor: { zadatakId: string | null; prijavaId: string | null };
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */

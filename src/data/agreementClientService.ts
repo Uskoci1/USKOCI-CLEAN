@@ -115,6 +115,12 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     pocinje: typeof raw.startsAt === 'string' ? raw.startsAt : null,
     izmenaCeka: raw.pendingChange && typeof raw.pendingChange.id === 'string'
       ? { predlogId: raw.pendingChange.id, mojPredlog: raw.pendingChange.proposedByMe === true } : null,
+    // PKG-048: the Zadatak and the Prijava this Dogovor grew out of. A server that does not say
+    // leaves both null, and the screen then offers nothing rather than a row that leads nowhere.
+    izvor: {
+      zadatakId: uuid(raw.needId) ? String(raw.needId) : null,
+      prijavaId: uuid(raw.applicationId) ? String(raw.applicationId) : null,
+    },
   };
 }
 
