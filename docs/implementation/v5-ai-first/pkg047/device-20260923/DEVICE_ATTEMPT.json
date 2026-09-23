@@ -1,0 +1,31 @@
+{
+  "package": "PKG-047a",
+  "date": "2026-09-23",
+  "result": "NOT_SHOWN_ON_DEVICE_FOR_LACK_OF_A_SECOND_PERSON",
+  "apk": {
+    "workflowRun": 35807138233,
+    "sourceCommit": "332d285f",
+    "sha256": "174009cbc6b6e2b7fadb4019e6d83807f319c6181dbd3f8cba4734d8d0922888",
+    "installed": true
+  },
+  "device": {
+    "model": "VKP-NX9",
+    "android": "16"
+  },
+  "whatWasTried": [
+    "Mapa → Lista → the first opportunity card: it was the owner's own Zadatak (\"Tvoj zadatak\", \"Ovako ga vide drugi\"), which offers no public profile of another person.",
+    "Početna → the owner's own task: Home reports \"još nema prijava\", so no candidate profile exists to open either."
+  ],
+  "whyItCouldNotBeShown": "The entry resolves the person behind a public profile. PKG-047 answers null for the caller's own account by design, and this account currently sees only its own tasks and has no applications on them. There is no second person on this phone to report or block.",
+  "notADefect": true,
+  "whatWouldShowIt": [
+    "The two-phone test: a second account posts a Zadatak, this phone opens it and its poster's profile.",
+    "Or one application from another account on one of the owner's tasks, which makes a candidate profile reachable."
+  ],
+  "proven": "The server side is applied and proven (run 35805442368, 10/10), and the client entry is covered by four focused checks. What is missing is exactly one thing: a stranger.",
+  "screenshots": [
+    "01-pocetna-nema-druge-strane.png",
+    "02-lista-samo-tvoji-zadaci.png",
+    "03-tvoj-zadatak-kako-ga-vide-drugi.png"
+  ]
+}
