@@ -1,6 +1,6 @@
 # PKG-050 — reading the conversation settles its "Nova poruka" notifications
 
-**Status: PROVEN, not applied.** Disposable proof run [35826370830](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35826370830) on source 893b8d26, 7/7 checks, receipt PROOF_35826370830.json; candidate sha256 (trimmed) 502cfcfbaa1cbdf239fdcb69c5a81aec9c524f92b6f39fc51d8537ff009c26c8, body md5 725de3a6132fba68b98a09fb2b66ae7a. DEV application waits for the owner's "primeni pkg050a". Control rows D03 and P01. Owner decision 2026-09-23.
+**Status: APPLIED to canonical DEV** on 2026-09-23 as `20260923064815_dev_alpha_pkg050a_agreement_messages_read` (ledger 201 = 147 + 54 dev_alpha; stored text sha256 = the proof's candidate sha; certificate `cc248ff1…` unchanged; receipt `supabase/operations/dev-alpha/ledger/20260923_pkg050a_application.receipt.json`). The client half needs the next APK. Disposable proof run [35826370830](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/35826370830) on source 893b8d26, 7/7 checks, receipt PROOF_35826370830.json; candidate sha256 (trimmed) 502cfcfbaa1cbdf239fdcb69c5a81aec9c524f92b6f39fc51d8537ff009c26c8, body md5 725de3a6132fba68b98a09fb2b66ae7a. Control rows D03 and P01. Owner decision 2026-09-23.
 
 ## What was seen
 

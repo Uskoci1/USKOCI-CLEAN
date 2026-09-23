@@ -113,6 +113,18 @@ consolidated at the owner's request on 2026-09-22. It covers engineering, push, 
 account data, moderation/support, operator/legal/charging, production and store release. Keep its order
 and completion evidence aligned with the status index. It grants no new permissions or product decisions.
 
+PKG-050a (2026-09-23, proven and **applied** on the owner's "Primeni pkg050a"): reading a Dogovor's conversation settles its
+"Nova poruka" notifications (D03 / P01). Canonical DEV ledger is now **201 = 147 + 54 dev_alpha**, function-only, certificate
+`cc248ff1…` unchanged and asserted before/after. `public.rpc_mark_agreement_messages_read(uuid)`, authenticated only, parties
+only, marks read the caller's own unread MESSAGE_RECEIVED events about that one Agreement with the same in-app visibility rule
+as `rpc_mark_activity_event_read`; nothing of the other party's and no other event kind. The app calls it through
+`Izvor.oznaciPorukeProcitanim` whenever the Poruke tab shows a freshly loaded list (best effort). Proof `35826370830` 7/7,
+re-proven `35827171627`; receipt `supabase/operations/dev-alpha/ledger/20260923_pkg050a_application.receipt.json`; contract
+`docs/implementation/v5-ai-first/pkg050/PKG050_AGREEMENT_MESSAGES_READ.md`. **The installed builds do not call it yet.**
+Same day: the two-party flow on phone + emulator reached COMPLETED (receipt in
+`functional-audit-20260922/device-20260923/dve-strane/`); the tracked `outputs/…/review.tsx` fixture and the task-detail
+suite were repaired after they had failed every proof workflow since 332d285f; all four proof workflows are green on 52ce4cc0.
+
 PKG-047 and PKG-048 (2026-09-23, proven and **applied** on the owner's "primeni pkg047a i primeni pkg048a").
 Canonical DEV ledger is now **200 = 147 + 53 dev_alpha**; both are function-only and the certified closure digest
 stays `cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7`, ready, which each candidate asserts

@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T06:42:42Z",
+  "osvezeno": "2026-09-23T06:51:44Z",
   "grana": "work/pre-v3-engine-integration-20260911",
-  "head": "eefddd1c",
-  "head_poruka": "device: the requester completed the Dogovor from the phone; the worker side saw it on the emulator",
+  "head": "4c09ed05",
+  "head_poruka": "maestro: the rating flow, written and not yet run",
   "server": {
-   "snimljeno": "2026-09-23T01:28:20Z",
-   "migracije": 200,
-   "dev_alpha": 53,
-   "poslednja": "dev_alpha_pkg048a_agreement_source_links",
+   "snimljeno": "2026-09-23T06:51:11Z",
+   "migracije": 201,
+   "dev_alpha": 54,
+   "poslednja": "dev_alpha_pkg050a_agreement_messages_read",
    "sertifikat_ok": true,
    "cron": [
     {
@@ -1540,12 +1540,11 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "crveno",
+    "server": "zeleno",
     "test": "zeleno",
     "telefon": "zuto"
    },
    "note": {
-    "server": "Aplikacija poziva, a na serveru nema: rpc_mark_agreement_messages_read",
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "9 test fajl(ova)"
    },
@@ -2335,7 +2334,7 @@
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
     "test": "3 test fajl(ova)"
    },
-   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. Čeka vlasnikovo „primeni pkg050a“; NIJE primenjeno na DEV, nije u APK-u.",
+   "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om.",
    "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
    "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
    "funkcionalni_audit": {
@@ -3144,7 +3143,7 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka.",
-   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz prošao (CI 35826370830, 7/7, potvrda pkg050/PROOF_35826370830.json); čeka vlasnikovo „primeni pkg050a“, NIJE primenjeno na DEV.",
+   "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz prošao (CI 35826370830, 7/7, potvrda pkg050/PROOF_35826370830.json); PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om.",
    "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -4514,9 +4513,7 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [
-  "rpc_mark_agreement_messages_read"
- ],
+ "aplikacija_zove_a_server_nema": [],
  "tokovi": {
   "stavke": [
    {
@@ -5220,9 +5217,7 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [
-   "rpc_mark_agreement_messages_read"
-  ],
+  "novo_slomljeno": [],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [
