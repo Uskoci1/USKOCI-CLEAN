@@ -8,12 +8,17 @@ import { RESOLVED_PIN_MAP_STYLE } from './ResolvedPinMap.types';
  * The OpenFreeMap positron style labels a place with both of its scripts where it has a non-Latin name, so a Serbian
  * town read "Beograd Београд" on every map in the app. The style is read once, every symbol layer whose label is a
  * place name is rewritten to prefer `name:sr-Latn`, then `name:latin`, then `name` (the layer's own expression stays
- * behind them as the last fallback), and the rewritten object is handed to the map. Road numbers and other labels that
+ * behind them as the last fallback), and the rewritten style is handed to the map. Road numbers and other labels that
  * are not names are left as they are.
  *
  * Nothing about the person enters this request: it is the same public style address the maps loaded by themselves
  * before. When the style cannot be read (offline, slow, a changed format) the maps get the address as before, and the
  * next map tries again a minute later.
+ *
+ * The maps get the rewritten style as its JSON text, made once (review r3 item 12). MapLibre's `Map` turns a style
+ * object into that same text itself, but inside a memo keyed on all of its props, which change on every render of the
+ * map: a whole style stringified again on every pan and every pill. Both platforms read a JSON string as a style and
+ * any other string as its address, exactly as they do for the text MapLibre would have made.
  */
 export type MapStyle = ComponentProps<typeof Map>['mapStyle'];
 type StyleObject = Exclude<MapStyle, string>;
@@ -80,7 +85,8 @@ const network = (): Fetcher | null => inTests || typeof fetch !== 'function' ? n
 export const MAP_STYLE_DEADLINE_MS = 4_000;
 export const MAP_STYLE_RETRY_MS = 60_000;
 
-let ready: StyleObject | null = null;
+/** The Latin style as JSON text, made once for the whole app. */
+let ready: string | null = null;
 let pending: Promise<MapStyle> | null = null;
 let failedAt: number | null = null;
 
@@ -106,7 +112,7 @@ export function loadMapStyle(fetcher: Fetcher | null = network()): Promise<MapSt
       .then(response => response.ok ? response.json() : Promise.reject(new Error('MAP_STYLE_UNAVAILABLE')))
       .then(json => {
         if (!usable(json)) { fail(); return; }
-        ready = latinLabels(json); failedAt = null;
+        ready = JSON.stringify(latinLabels(json)); failedAt = null;
         answer(ready);
       })
       .catch(fail);

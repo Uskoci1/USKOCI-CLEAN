@@ -19,8 +19,10 @@ import { DiscoveryMap } from '../../v2/DiscoveryMap';
 /**
  * Both maps draw place names in Serbian Latin (2026-09-24): each hands MapLibre the rewritten style once it is known,
  * and until then shows its own loading state rather than a map that would have to reload its style under the person.
+ * Since review r3 item 12 the style is its JSON text, made once (useMapStyle returns it so), and the maps pass that very
+ * string through: this pinned an object before.
  */
-const LATIN = { version: 8, sources: {}, layers: [{ id: 'label_city', type: 'symbol', layout: { 'text-field': ['coalesce', ['get', 'name:sr-Latn']] } }] };
+const LATIN = JSON.stringify({ version: 8, sources: {}, layers: [{ id: 'label_city', type: 'symbol', layout: { 'text-field': ['coalesce', ['get', 'name:sr-Latn']] } }] });
 const rows = [{ id: 'one', naslov: 'Posao', priblizno: { lat: 44.81, lng: 20.46 } } as unknown as MarketplaceItem];
 const maps: [string, () => React.ReactElement][] = [
   ['ResolvedPinMap', () => <ResolvedPinMap position={{ latitude: 44.81, longitude: 20.46 }} onChoose={() => {}} scopeKey="a:1" coarse disabled />],
@@ -31,7 +33,7 @@ let tree: ReactTestRenderer;
 beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); mockStyle = null; });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it.each(maps)('%s waits for the style, then hands MapLibre the Latin style object', async (_name, element) => {
+it.each(maps)('%s waits for the style, then hands MapLibre the Latin style text', async (_name, element) => {
   await act(async () => { tree = create(element()); });
   expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0);
   expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Učitavamo mapu…'))).not.toHaveLength(0);

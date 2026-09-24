@@ -13,5 +13,15 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   toolsBottom?: number;
   /** How much of the map's bottom a chosen pin's card covers, so the camera brings the pin into the clear band. */
   focusBottom?: number;
+  /**
+   * How much of the map's bottom the list sheet covers where it starts, so the first fit of the pins keeps them above
+   * it (a sheet that starts half open would otherwise hide the pins it was opened for). Without it the fit keeps 56.
+   */
+  fitBottom?: number;
+  /**
+   * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The
+   * zoom and the credits ride above it instead of lying under it.
+   */
+  coverBottom?: number;
   /** The list is being read again: "Pretraži ovu oblast" waits for it. */
   busy?: boolean };

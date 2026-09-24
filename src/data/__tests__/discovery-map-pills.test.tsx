@@ -17,6 +17,12 @@ jest.mock('@maplibre/maplibre-react-native', () => {
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } }); });
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
+// The shared Jest stand-in for Reanimated, with one change: an animated style is worked out on every render and a shared
+// value keeps its value, so where the zoom and the credits ride can be read. Nothing else in this suite passes a sheet.
+jest.mock('react-native-reanimated', () => {
+  const React = require('react'), shared = jest.requireActual('../../../__mocks__/react-native-reanimated');
+  return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value }).current, useAnimatedStyle: (updater: () => object) => updater() };
+});
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
@@ -91,6 +97,19 @@ test('a word about money never wears the money colour or weight; the amount does
   expect(flat(chosen.root.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.onGreen);
 });
 
+// Review r3 item 8: the native side keys annotations by id. An id that stayed `pill-<point>` while the content changed let
+// an insert-before-remove in one commit leave a dead pill; the id now changes with what the pill says, as its key does.
+test('a pill\'s native id changes with what it says, as its key does', async () => {
+  await render(); await ready();
+  const ids = () => annotations().map(node => String(node.props.id));
+  expect(ids()).toContain('pill-44.81,20.46-6.000 RSD-false');
+  expect(ids()).toContain('pill-44.80,20.50-6.000 RSD-true');
+  rows = rows.map(item => item.id === 'money' ? { ...item, ponudjenaCena: { iznos: 7000, valuta: 'RSD', prikaz: '7.000 RSD' } } as MarketplaceItem : item);
+  await update(); await act(async () => { jest.advanceTimersByTime(400); });
+  expect(ids()).toContain('pill-44.81,20.46-7.000 RSD-false'); expect(ids()).not.toContain('pill-44.81,20.46-6.000 RSD-false');
+  expect(new Set(ids()).size).toBe(ids().length);
+});
+
 test('pressing a pill chooses its task, and a pill several tasks share chooses the place', async () => {
   await render(); await ready();
   const byText = (text: string) => annotations().find(node => node.findByType(PricePill).props.content.text === text)!;
@@ -104,7 +123,8 @@ test('the chosen task or place is one green pill of its own at the canonical poi
   const chosen = annotations().filter(node => node.props.id === 'selected-need');
   expect(chosen).toHaveLength(1); expect(chosen[0].props.lngLat).toEqual([20.46, 44.81]);
   expect(chosen[0].findByType(PricePill).props).toMatchObject({ selected: true, content: { text: '6.000 RSD', tone: 'money' } });
-  expect(annotations().filter(node => node.props.id === 'pill-44.81,20.46')).toHaveLength(0);
+  // Since review r3 item 8 a pill's native id carries its content, as its React key does; the chosen point has none.
+  expect(annotations().filter(node => String(node.props.id).startsWith('pill-44.81,20.46'))).toHaveLength(0);
   selectedId = null; selectedPlace = '44.79,20.45'; await update();
   const place = annotations().find(node => node.props.id === 'selected-place')!;
   expect(place.findByType(PricePill).props).toMatchObject({ selected: true, content: { text: '2 zadatka', tone: 'count' } });
@@ -135,6 +155,38 @@ test('a newly chosen pin is eased into the clear band between the tools and its 
   await act(async () => tree.unmount());
   mockReduced = true; selectedId = null; mockEase.mockReset(); await render(); await ready(); selectedId = 'offer'; await update();
   expect(mockJump).toHaveBeenCalledWith({ center: [20.41, 44.83] }); expect(mockEase).not.toHaveBeenCalled();
+});
+
+// Review r3 item 3: the first fit used a fixed 80 at the bottom, so a sheet that starts half open covered the pins.
+test('the first fit keeps the pins between the tools and where the list sheet starts', async () => {
+  await render();
+  const padding = () => tree.root.findByType('Camera' as React.ElementType).props.initialViewState.padding;
+  expect(padding()).toEqual({ top: 75, right: 50, bottom: 80, left: 50 });
+  await act(async () => tree.unmount());
+  extra = { toolsBottom: 60, fitBottom: 412 }; await render();
+  expect(padding()).toEqual({ top: 135, right: 50, bottom: 24 + 412, left: 50 });
+});
+
+// Review r3 item 11: a chosen pin's card rests on the sheet's top line, where the zoom and the credits ride.
+test('the zoom and the credits ride on the sheet, step up above a chosen pin\'s card, and leave when it leaves no room', async () => {
+  extra = { sheetTop: { value: 600 }, toolsBottom: 60 };
+  await render();
+  const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
+  await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
+  await ready();
+  const ride = () => flat(tree.root.find(node => String(node.type) === 'View' && node.props.pointerEvents === 'box-none' && flat(node)?.height === 800));
+  // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
+  // worked out on a render, so one more render reads it.
+  const settle = async () => { await update(); await update(); };
+  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).not.toHaveLength(0);
+  extra = { ...extra, coverBottom: 250 }; await settle();
+  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 250 - 800 }], opacity: 1 });
+  // A card so tall that no room is left under the tools: they step out of the screen rather than sit over the tools.
+  extra = { ...extra, coverBottom: 500 }; await settle();
+  expect(ride().opacity).toBe(0);
+  extra = { ...extra, coverBottom: 0 }; await settle();
+  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
 });
 
 test('many pins stay a bounded number of pills; the rest remain dots', async () => {

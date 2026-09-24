@@ -26,7 +26,13 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
   /** Which of the shown tasks are mine (never listed here) and which I have applied to (labelled). */
-  relations?: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } };
+  relations?: { owned: ReadonlySet<string>; applied: ReadonlySet<string> };
+  /**
+   * The relations above are still being read for this list. Until they land the list cannot yet leave my own tasks out,
+   * so it says no count (a count that drops from 5 to 3 a moment later is a count that was wrong) and does not yet decide
+   * where the sheet starts. A failed read is not pending: the list then counts what it shows.
+   */
+  relationsPending?: boolean };
 
 const TOOLS_TOP = sys.space.md, GAP = sys.space.md;
 /** The sheet's top line before it has been measured: the grab bar and one line of count. */
@@ -37,8 +43,12 @@ const keyOf = (item: MarketplaceItem) => item.id;
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
 
-/** "Dodaj zadatak" is the chrome's one icon button with an orange glyph on white: an accent, never an orange fill (B12). */
-const AddGlyph: Icon = ({ size }) => <Plus size={size} weight="bold" color={sys.color.orangeEdge} />;
+/**
+ * "Dodaj zadatak" is the chrome's one icon button with an orange glyph on white: an accent, never an orange fill (B12).
+ * The glyph is the only thing that says what the control is, so it is the orange that reads (`orangeInk`, 5.3:1 on
+ * white), not the action orange's edge (2.97:1, under the 3:1 a control needs; review r3 item 2).
+ */
+const AddGlyph: Icon = ({ size }) => <Plus size={size} weight="bold" color={sys.color.orangeInk} />;
 
 const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied, onOpen }: {
   item: MarketplaceItem; index: number; animate: boolean; applied: boolean; onOpen: (item: MarketplaceItem) => void;
@@ -88,16 +98,22 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }, [bodyHeight, toolsBottom, peek]);
   const position = useSharedValue(0);
   const [sheetIndex, setSheetIndex] = useState<number>(SNAP.half);
-  // Where the sheet starts is decided once, when the first read lands, from how many tasks the map can show.
+  // Where the sheet starts is decided once, when the first read lands (and with it what is mine, so my own tasks do not
+  // tip the choice), from how many tasks the map can show.
+  const pending = !!props.relationsPending;
   const started = useRef(false);
   useEffect(() => {
-    if (started.current || loading || error) return;
+    if (started.current || loading || error || pending) return;
     started.current = true;
     setSheetIndex(INDEX[discoveryStartSnap(shown.length, withoutPin)]);
-  }, [loading, error, shown.length, withoutPin]);
-  // An empty result must be seen: a sheet resting at its top line rises to show why nothing is listed.
-  useEffect(() => { if (started.current && !loading && !shown.length && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half); },
-    [loading, shown.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, error, pending, shown.length, withoutPin]);
+  // What is listed must be seen. A sheet resting at its top line rises to show why nothing is listed; and when nothing
+  // listed has a point on the map (a filter left only "Na daljinu"), it takes the screen, over a map with nothing on it.
+  useEffect(() => {
+    if (!started.current || loading || sheetIndex !== SNAP.peek) return;
+    if (!shown.length) setSheetIndex(SNAP.half);
+    else if (withoutPin === shown.length) setSheetIndex(SNAP.full);
+  }, [loading, shown.length, withoutPin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A chosen pin: one task, or a place several tasks share. The map follows the list, so a choice the list no longer
   // holds simply has no card.
@@ -140,6 +156,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
   const mapShown = !loading && !error && (shown.length - withoutPin > 0 || !!view.viewport);
   const expanded = sheetIndex === SNAP.full;
+  // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
+  const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
+  const fitBottom = (discoveryStartSnap(shown.length, withoutPin) === 'peek' ? peek : halfSheet) + GAP;
+  // A chosen pin's card: the map's zoom and credits step up above it (review r3 item 11).
+  const peekShown = mapShown && (!!chosen || placeTasks.length > 1) && !filterOpen;
+  const [cardHeight, setCardHeight] = useState(0);
 
   const appear = useAppear();
   appear.settle(shown.map(keyOf));
@@ -169,12 +191,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     ...(view.price !== 'all' ? [{ key: 'price', label: PRICE.find(([key]) => key === view.price)![1], clear: { price: 'all' as const } }] : []),
     ...((view.places ?? 'any') !== 'any' ? [{ key: 'places', label: `${PLACES.find(([key]) => key === view.places)![1]} mesta`, clear: { places: 'any' as const } }] : []),
   ];
+  // The count says what is listed, so it waits until the list knows which tasks are mine (review r3 item 9).
+  const counted = !loading && !error && !pending && shown.length > 0;
   const header = <View style={s.header} onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
     <View style={s.grab} />
     <View style={s.headerRow}>
       <T variant="bodyStrong" numberOfLines={2} style={s.count}>
-        {!loading && !error && shown.length ? zadataka(shown.length) : ''}
-        {!loading && !error && shown.length && withoutPin ? <T variant="note" tone="muted">{` · ${withoutPin} bez tačke na mapi`}</T> : null}
+        {counted ? zadataka(shown.length) : ''}
+        {counted && withoutPin ? <T variant="note" tone="muted">{` · ${withoutPin} bez tačke na mapi`}</T> : null}
       </T>
       {!expanded || mapShown ? <Press accessibilityRole="button" accessibilityLabel={expanded ? 'Prikaži mapu' : 'Prikaži listu'} haptic="select"
         onPress={() => { Keyboard.dismiss(); setSheetIndex(expanded ? SNAP.peek : SNAP.full); if (!expanded) clearSelection(); }} style={s.toggle}>
@@ -195,7 +219,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         {mapShown ? <DiscoveryMap items={shown} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace}
           onViewport={viewport => change({ viewport })} onSearchArea={area => change({ area, selectedId: null, selectedPlace: null })}
-          onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom}
+          onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          coverBottom={peekShown && cardHeight ? cardHeight + GAP : 0}
           focusBottom={peek + GAP + Math.min(360, Math.round(windowHeight / 2))} busy={loading || !!props.refreshing} />
           : <View style={s.ground} />}
       </View>
@@ -213,11 +238,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             {filtered ? <View style={s.filterDot} /> : null}
           </ChromeIconButton>
         </View>
+        {/* A deliberate deviation from master plan step 4, which puts the "+" "u zaglavlju liste" (in the list's header;
+            review r3 item 14): it stays here, in the floating tools row, which B12 allows, because this row is on screen
+            at every height of the sheet, while the list's header is only a top line at its lowest height. */}
         {props.onNew ? <View style={s.tool}><View style={s.lift} />
           <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={() => { Keyboard.dismiss(); props.onNew?.(); }} />
         </View> : null}
       </View>
       <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={header}>
+        {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
+            refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
+            a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
+            the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
         <BottomSheetFlatList<MarketplaceItem> data={shown} keyExtractor={keyOf} renderItem={renderItem}
           refreshing={!!props.refreshing && !loading} onRefresh={props.onRefresh}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
@@ -226,9 +258,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
           ItemSeparatorComponent={Separator} ListEmptyComponent={empty} />
       </DiscoveryListSheet>
-      {mapShown && (chosen || placeTasks.length > 1) && !filterOpen ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
+      {peekShown ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
         item={chosen} place={placeTasks} applied={applied} active={focused} bottomInset={peek + GAP} reduced={reduced}
-        onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection} /> : null}
+        onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
+        onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
     </View>
     {filterOpen ? <DiscoveryFilterSheet items={items} view={view} mine={relations?.owned} now={now} onApply={apply} onClose={() => setFilterOpen(false)} /> : null}
   </SafeAreaView>;
@@ -246,18 +279,20 @@ const s = StyleSheet.create({
   clear: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   tool: { width: 48, height: 48 },
   lift: { position: 'absolute', top: 2, left: 2, width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, ...floating },
-  filterDot: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange,
+  // Green, not orange: the "+" beside it is the screen's one orange accent (review r3 item 6). The dot repeats the
+  // filled glyph and "Filteri, aktivni" for a glance.
+  filterDot: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.green,
     borderWidth: 2, borderColor: sys.color.surface },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: 8, marginBottom: 4, backgroundColor: sys.color.lineStrong },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48 },
   count: { flex: 1, minWidth: 0, color: sys.color.ink },
   toggle: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
-  toggleText: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: sys.color.green },
+  toggleText: { ...sys.type.copy, fontWeight: '600', color: sys.color.green },
   applied: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, paddingBottom: sys.space.xs },
   appliedChip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.greenSoft },
-  appliedText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: sys.color.green },
+  appliedText: { ...sys.type.meta, fontWeight: '600', color: sys.color.green },
   list: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl, flexGrow: 1 },
   empty: { flex: 1, paddingVertical: sys.space.sm },
 });

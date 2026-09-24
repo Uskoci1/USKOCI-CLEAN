@@ -1,6 +1,5 @@
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../contracts/projections';
 import { calendarInstant } from '../lib/calendarTime';
-import { iznos } from '../lib/novac';
 import { shiftDate, zonedParts } from '../ui/calendar/calendarPresentation';
 export type MarketplaceItem = PotrebaProjekcija | PrilikaProjekcija;
 export type PublicBounds = [west: number, south: number, east: number, north: number];
@@ -199,16 +198,15 @@ export function pinPlaces(items: readonly MarketplaceItem[]): Map<string, PinPla
 }
 
 /**
- * What a pin says. An amount is money ("6.000 RSD"; the number alone when the whole would not fit a pin); a task that
- * asks for offers says so in a quiet word that never wears the money colour or weight; a missing price says nothing
- * on the pin and says why to a screen reader. Never an invented amount.
+ * What a pin says. An amount is money exactly as the read formatted it ("6.000 RSD", "120.000 RSD"): an amount never
+ * loses its currency, whatever its length (the `Novac` contract: `prikaz` is already formatted and never a bare number);
+ * the pill is as wide as its words. A task that asks for offers says so in a quiet word that never wears the money
+ * colour or weight; a missing price says nothing on the pin and says why to a screen reader. Never an invented amount.
  */
 export type PinLabel = { text: string; tone: 'money' | 'offer' | 'none'; spoken: string };
-export const PIN_TEXT_MAX = 10;
 export function pinLabel(item: MarketplaceItem): PinLabel {
   if (item.rezimCene === 'OFFERS') return { text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' };
   const price = item.ponudjenaCena, full = typeof price?.prikaz === 'string' ? price.prikaz.trim() : '';
   if (!price || !full) return { text: '', tone: 'none', spoken: 'Cena nije navedena' };
-  const compact = full.length > PIN_TEXT_MAX && price.valuta === 'RSD' && Number.isFinite(price.iznos) ? iznos(price.iznos) : '';
-  return { text: compact || full, tone: 'money', spoken: full };
+  return { text: full, tone: 'money', spoken: full };
 }

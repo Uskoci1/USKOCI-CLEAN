@@ -45,6 +45,9 @@ function Discovery() {
   const visible = (resource.data ?? []).map(row => row.id).join(',');
   const loadRelations = useCallback(() => source.odnosiPremaZadacima(visible ? visible.split(',') : []), [source, visible]);
   const relations = useFocusedResource(loadRelations);
+  // Until that read lands the list cannot yet leave my own tasks out, so the screen holds its count back; a failed read
+  // is not pending (review r3 item 9). Labels only: nothing here gates a read, a guard or a command.
+  const relationsPending = relations.loading;
   const latestResource = useRef(resource); latestResource.current = resource;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
@@ -58,7 +61,7 @@ function Discovery() {
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
   return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-      scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined}
+      scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;

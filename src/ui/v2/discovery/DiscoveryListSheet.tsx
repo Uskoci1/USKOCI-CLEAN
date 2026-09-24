@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import BottomSheet, { type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
 import type { SharedValue } from 'react-native-reanimated';
 import { SHEET_SPRING } from '../../product/ProductSheet';
@@ -33,10 +33,17 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, onInd
   </BottomSheet>;
 }
 
+/**
+ * The sheet's lift, in the same form as `floating` and the PeekSheet (review r3 item 5): one `boxShadow` in the shadow
+ * ink of the system, cast upwards because the sheet rises from the bottom; elevation only where `boxShadow` is missing
+ * (Android before 9).
+ */
+const lift = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
+  ? { elevation: 6 } : { boxShadow: '0px -2px 12px rgba(23, 59, 39, 0.08)' };
+
 const s = StyleSheet.create({
   // It floats over the map: the sheet corner, the hairline along its top, a soft lift.
   background: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
-    borderWidth: 1, borderBottomWidth: 0, borderColor: sys.color.line,
-    shadowColor: sys.color.ink, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -2 }, elevation: 6 },
+    borderWidth: 1, borderBottomWidth: 0, borderColor: sys.color.line, ...lift },
   content: { flex: 1 },
 });

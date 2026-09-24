@@ -55,13 +55,17 @@ describe('loadMapStyle', () => {
     expect(currentMapStyle()).toBe(MAP_STYLE_URL);
     await expect(loadMapStyle()).resolves.toBe(MAP_STYLE_URL);
   });
-  it('reads the public style once for the whole app and hands every later map the same Latin object', async () => {
+  // Review r3 item 12 (2026-09-24): the Latin style is handed over as its JSON text, made once, instead of an object that
+  // MapLibre's Map stringified again on every render. These two tests pinned the object; what they guard is unchanged:
+  // one read for the whole app, the same style for every later map, and place names in Serbian Latin.
+  it('reads the public style once for the whole app and hands every later map the same Latin style, as text made once', async () => {
     const fetcher = ok(fixture());
     expect(currentMapStyle(Date.now(), fetcher)).toBeNull();
     const [first, second] = await Promise.all([loadMapStyle(fetcher), loadMapStyle(fetcher)]);
     expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher).toHaveBeenCalledWith(MAP_STYLE_URL);
-    expect(first).toBe(second);
-    expect(field(first as { layers: unknown[] }, 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
+    expect(first).toBe(second); expect(typeof first).toBe('string');
+    expect(JSON.parse(first as string)).toEqual(latinLabels(fixture()));
+    expect(field(JSON.parse(first as string), 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
     expect(await loadMapStyle(fetcher)).toBe(first); expect(currentMapStyle(Date.now(), fetcher)).toBe(first);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
@@ -88,7 +92,7 @@ describe('loadMapStyle', () => {
     answer({ ok: true, json: async () => fixture() });
     await jest.runAllTimersAsync();
     const next = currentMapStyle(Date.now(), fetcher);
-    expect(typeof next).toBe('object');
-    expect(field(next as { layers: unknown[] }, 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
+    expect(next).not.toBe(MAP_STYLE_URL); expect(typeof next).toBe('string');
+    expect(field(JSON.parse(next as string), 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
   });
 });

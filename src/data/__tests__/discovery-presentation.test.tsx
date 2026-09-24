@@ -27,6 +27,7 @@ jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
+import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { sys } from '../../ui/system/tokens';
 
 /**
@@ -42,12 +43,13 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
   ...patch } as unknown as MarketplaceItem);
 const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
 let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
+let relationsPending = false;
 let snapshot: MarketplaceView, initial: MarketplaceView;
 const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey="a:1" view={view} onView={setView}
-    onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} />;
+    onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} />;
 }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
@@ -64,11 +66,13 @@ const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const sheets = () => tree.root.findAllByType(BottomSheet);
 const listSheet = () => sheets().find(node => node.props.accessibilityLabel === 'Lista zadataka')!;
 const peek = () => sheets().find(node => node.props.detached);
-const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))
+// The cards in the list (TaskCard says "Otvori priliku"). Since review r3 item 7 a place's rows say "Pogledaj zadatak",
+// as the single card's action does, so this reads the list sheet alone and never counts a pin card's rows.
+const cards = () => listSheet().findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))
   .map(node => String(node.props.accessibilityLabel).replace('Otvori priliku Pomoć ', ''));
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = false; mockFocused = true; relations = undefined;
+  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = false; mockFocused = true; relations = undefined;
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile]) fn.mockReset();
 });
@@ -123,9 +127,13 @@ test('while reading, the sheet is half open over breathing placeholders; the sta
 
 test('"Prikaži listu" and "Prikaži mapu" move the sheet, so nothing is reached by a gesture only', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
+  // Its words are the system's quiet copy in the action green (review r3 item 5), not a size of their own.
+  expect(StyleSheet.flatten(press('Prikaži listu').findByType('T' as React.ElementType).props.style))
+    .toEqual({ ...sys.type.copy, fontWeight: '600', color: sys.color.green });
   await tap('Prikaži listu'); expect(listSheet().props.index).toBe(2);
   await tap('Prikaži mapu'); expect(listSheet().props.index).toBe(0);
-  // The map's own "Pogledaj listu" (when it cannot load) opens the list too.
+  // The map's `onList` still opens the whole list. The map draws no "Pogledaj listu" of its own here (with `sheetTop`
+  // passed, the sheet's top line already offers the list), so this is the prop's contract, not a second button.
   await act(async () => map().props.onList()); expect(listSheet().props.index).toBe(2);
 });
 
@@ -153,8 +161,10 @@ test('tasks on one public point are one place: its card says how many and each r
   expect(map().props.selectedPlace).toBe('44.79,20.45');
   expect(peek()!.props.accessibilityLabel).toBe('Zadaci na ovom mestu');
   expect(texts(peek()!)).toContain('2 zadatka na ovom mestu');
-  const inPeek = peek()!.findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''));
-  expect(inPeek.map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć s1', 'Otvori priliku Pomoć s2']);
+  // One verb for one action: each row says what the single card's action says (review r3 item 7).
+  const inPeek = peek()!.findAll(node => String(node.type) === 'Press' && /^Pogledaj zadatak /.test(node.props.accessibilityLabel ?? ''));
+  expect(inPeek.map(node => node.props.accessibilityLabel)).toEqual(['Pogledaj zadatak Pomoć s1', 'Pogledaj zadatak Pomoć s2']);
+  expect(peek()!.findAll(node => /^Otvori priliku /.test(String(node.props.accessibilityLabel ?? '')))).toHaveLength(0);
   await act(async () => inPeek[1].props.onPress()); expect(open).toHaveBeenCalledWith(rows[1]);
   // The map's own place press lands on the same place; a place of one is just that task.
   await act(async () => map().props.onSelectPlace('44.90,20.50')); expect(snapshot).toMatchObject({ selectedId: 'other', selectedPlace: null });
@@ -192,6 +202,9 @@ describe('Filteri', () => {
     expect(snapshot).toMatchObject({ when: 'tomorrow', price: 'OFFERS' }); expect(cards()).toEqual(['ponude']);
     expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
     expect(press('Filteri, aktivni')).toBeTruthy();
+    // Its dot is green: the "+" beside it is the screen's one orange accent (review r3 item 6).
+    const dots = press('Filteri, aktivni').findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.width === 10);
+    expect(dots).toHaveLength(1); expect(StyleSheet.flatten(dots[0].props.style).backgroundColor).toBe(sys.color.green);
     // Each filter that is on says itself under the count and removes itself.
     await tap('Ukloni filter: Sutra'); expect(snapshot.when).toBe('any');
     await tap('Ukloni filter: Tražim ponude'); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
@@ -223,7 +236,9 @@ describe('Filteri', () => {
 test('"Dodaj zadatak" is the chrome\'s icon button with an orange glyph on white, and keeps its route command', async () => {
   await render();
   const add = press('Dodaj zadatak');
-  expect(add.findByType('Plus' as React.ElementType).props.color).toBe(sys.color.orangeEdge);
+  // Review r3 item 2: this pinned `orangeEdge` (2.97:1 on white, under the 3:1 a control's only glyph needs); the glyph
+  // is now the orange that reads, `orangeInk`. Still an orange glyph on white, never an orange fill.
+  expect(add.findByType('Plus' as React.ElementType).props.color).toBe(sys.color.orangeInk);
   expect(StyleSheet.flatten(add.findByProps({ testID: 'chrome-circle' }).props.style).backgroundColor).toBe(sys.color.surface);
   await act(async () => add.props.onPress()); expect(newTask).toHaveBeenCalledTimes(1);
 });
@@ -251,4 +266,56 @@ test('pull to refresh is the list\'s own; "Pretraži ovu oblast" applies the are
   expect(map().props.busy).toBe(true);
   await act(async () => map().props.onSearchArea([20, 44, 21, 45])); expect(snapshot.area).toEqual([20, 44, 21, 45]);
   expect(press('Ukloni filter: Oblast sa mape')).toBeTruthy();
+});
+
+// Review r3 item 4: a list whose tasks all lack a pin must be seen, not left under a top line over an empty map.
+test('when a search or filter leaves only tasks without a point on the map, the list rises to the whole screen', async () => {
+  rows = [...Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))), row('prevod', { priblizno: null })];
+  await render();
+  expect(listSheet().props.index).toBe(0);
+  await act(async () => press('Pretraži zadatke').props.onChangeText('prevod'));
+  expect(cards()).toEqual(['prevod']);
+  expect(listSheet().props.index).toBe(2);
+  // A sheet the person has placed elsewhere is left where it is.
+  await act(async () => press('Pretraži zadatke').props.onChangeText('')); await act(async () => listSheet().props.onChange(1));
+  await act(async () => press('Pretraži zadatke').props.onChangeText('prevod')); expect(listSheet().props.index).toBe(1);
+});
+
+// Review r3 item 9: until the list knows which tasks are mine it cannot leave them out, so it says no count yet.
+test('while it is still read which tasks are mine, the list says no count and does not yet choose where the sheet starts', async () => {
+  rows = Array.from({ length: 5 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); relationsPending = true;
+  await render();
+  expect(texts()).not.toMatch(/\d+ zadat|bez tačke/); expect(listSheet().props.index).toBe(1);
+  // Two of the five were mine: three are listed, and three or fewer start half open (five would have started at the top line).
+  relations = { owned: new Set(['t0', 't1']), applied: new Set() }; relationsPending = false; await update();
+  expect(texts()).toContain('3 zadatka'); expect(listSheet().props.index).toBe(1);
+  // A failed read is not pending: the list counts what it shows.
+  await act(async () => tree.unmount()); relations = undefined; await render();
+  expect(texts()).toContain('5 zadataka');
+});
+
+// Review r3 item 3: the first fit of the pins keeps them above where the sheet starts.
+test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
+  const layOut = async () => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md);
+  await act(async () => tree.unmount());
+  rows = rows.slice(0, 3); await render(); await layOut();
+  expect(listSheet().props.index).toBe(1);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
+  expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md);
+});
+
+// Review r3 item 11: a chosen pin's card rests where the zoom and the credits ride, so they step up above it.
+test('a chosen pin\'s card tells the map how much it covers, and closing it gives that back', async () => {
+  await render();
+  expect(map().props.coverBottom).toBe(0);
+  await act(async () => map().props.onSelect('bb'));
+  const card = tree.root.findByType(DiscoveryPeek);
+  // The card measures its content; the PeekSheet's 20 px handle and `base` padding are added to it.
+  const content = card.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function' && node.props.onLayout.name === 'measure');
+  expect(content).toHaveLength(1);
+  await act(async () => content[0].props.onLayout({ nativeEvent: { layout: { height: 200 } } }));
+  expect(map().props.coverBottom).toBe(20 + sys.space.base + 200 + sys.space.md);
+  await tap('Zatvori pregled'); expect(peek()).toBeUndefined(); expect(map().props.coverBottom).toBe(0);
 });

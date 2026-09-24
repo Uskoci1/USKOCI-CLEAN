@@ -99,10 +99,12 @@ describe('the Zadaci list and its sheet', () => {
 });
 
 describe('what a pin says', () => {
-  it('an amount is money; a long one keeps only the grouped number on the pin and the whole to a screen reader', () => {
+  // Review r3 item 1 (2026-09-24): this pinned a long RSD amount shortened to its bare number ("120.000"), which broke
+  // the `Novac` contract (never a number without its currency). Every amount now keeps its currency, whatever its length.
+  it('an amount is money, exactly as the read formatted it, and never loses its currency however long it is', () => {
     expect(pinLabel(item('a'))).toEqual({ text: '6.000 RSD', tone: 'money', spoken: '6.000 RSD' });
-    expect(pinLabel(item('b', { ponudjenaCena: { iznos: 120000, valuta: 'RSD', prikaz: '120.000 RSD' } }))).toEqual({ text: '120.000', tone: 'money', spoken: '120.000 RSD' });
-    // Another currency is never relabelled as a bare number.
+    expect(pinLabel(item('b', { ponudjenaCena: { iznos: 120000, valuta: 'RSD', prikaz: '120.000 RSD' } }))).toEqual({ text: '120.000 RSD', tone: 'money', spoken: '120.000 RSD' });
+    // Another currency is never relabelled as a bare number either.
     expect(pinLabel(item('c', { ponudjenaCena: { iznos: 1200000, valuta: 'EUR', prikaz: '1.200.000 EUR' } })).text).toBe('1.200.000 EUR');
   });
   it('a task that asks for offers says so quietly and never wears the money tone, even with a stale amount on it', () => {

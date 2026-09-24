@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { Minus, Plus } from 'phosphor-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
@@ -11,7 +11,7 @@ import { useMapStyle, type MapStyle } from '../location/mapStyle';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
-import { sys } from '../system/tokens';
+import { floating, sys } from '../system/tokens';
 import { zadataka } from '../system/plural';
 import { useReducedMotion } from '../system/motion';
 import { displaysUrgent } from '../../lib/needUrgency';
@@ -50,8 +50,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
   const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
+  // The first fit keeps the pins between the tools and where the list sheet starts: a sheet that starts half open (few
+  // tasks, or many without a pin) would otherwise cover the very pins it was opened beside (review r3 item 3).
   const initial = useRef(props.viewport ? { center: props.viewport.center, zoom: props.viewport.zoom }
-    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 80, left: 50 } }
+    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 24 + (props.fitBottom ?? 56), left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
     mounted.current = true;
@@ -177,10 +179,17 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // The zoom and the credits ride on the list sheet's top edge when the screen has one. When the sheet leaves them no
   // room under the tools they step out of the screen entirely, so an unseen control can never take a touch.
   const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + ZOOM_CAPSULE.height + 2 * GAP;
+  // A chosen pin's card rests on the sheet's top line, exactly where they ride; they step up above it (review r3 item
+  // 11), at the sheet's pace or at once under reduced motion, so zoom stays a tap away and the credits stay in sight.
+  const cover = useSharedValue(props.coverBottom ?? 0);
+  useEffect(() => {
+    const next = Math.max(0, props.coverBottom ?? 0);
+    cover.value = reduced ? next : withSpring(next, sys.motion.springSheet);
+  }, [props.coverBottom, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
   const ride = useAnimatedStyle(() => {
-    const top = sheetTop ? sheetTop.value : height;
+    const top = (sheetTop ? sheetTop.value : height) - cover.value;
     return top < roomTop ? { transform: [{ translateY: -2 * height }], opacity: 0 } : { transform: [{ translateY: Math.min(0, top - height) }], opacity: 1 };
-  }, [height, roomTop, sheetTop]);
+  }, [height, roomTop, sheetTop, cover]);
   const controls = <>
     {status === 'ready' ? <View style={s.zoom}>
       {([['Uvećaj mapu', Plus, 1], ['Umanji mapu', Minus, -1]] as const).map(([label, Glyph, delta], index) => <View key={label}>
@@ -227,7 +236,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       </GeoJSONSource>
       {pills.filter(place => place.key !== chosenKey).map(place => {
         const content = contentOf(place), urgent = urgentPlace(place);
-        return <ViewAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}`} lngLat={[place.point.lng, place.point.lat]} anchor="center"
+        // The native side keys its annotations by `id`: an id that changes with the content, as the React key does, keeps
+        // an insert-before-remove in one commit from leaving a dead pill behind (review r3 item 8).
+        return <ViewAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} lngLat={[place.point.lng, place.point.lat]} anchor="center"
           onPress={() => { if (!owns() || load.current !== 'ready') return;
             if (place.ids.length > 1 && latest.current.props.onSelectPlace) latest.current.props.onSelectPlace(place.key);
             else latest.current.props.onSelect(place.ids[0]); }}>
@@ -277,13 +288,14 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
   // An auto-width pill centred under the tools: a quiet offer, never the screen's primary (critique B8).
   areaRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  // Both float over the map, so both wear the one `floating` lift (review r3 item 5), never a shadow of their own.
   areaPill: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, shadowColor: sys.color.ink, shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  areaText: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: sys.color.green },
+    borderWidth: 1, borderColor: sys.color.line, ...floating },
+  areaText: { ...sys.type.copy, fontWeight: '600', color: sys.color.green },
   ride: { position: 'absolute', left: 0, right: 0, top: 0 },
   // One capsule with a hairline between its halves (critique B11), bottom-right above the sheet.
   zoom: { position: 'absolute', right: sys.space.base, bottom: GAP, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, shadowColor: sys.color.ink, shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+    borderWidth: 1, borderColor: sys.color.line, ...floating },
   zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },

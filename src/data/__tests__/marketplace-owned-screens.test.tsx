@@ -76,6 +76,21 @@ test('discovery labels my own task and the one I applied to, asks only about the
  mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); await render();
  expect(props().items).toHaveLength(3); expect(props().relations).toBeUndefined();
 });
+// Review r3 item 9 (2026-09-24): until the list knows which tasks are mine it cannot leave them out, so the screen is told
+// that read is still running and holds its count back. A failed read is not pending, and nothing else waits for it.
+test('discovery says while the labels for the tasks on screen are still being read, and a failed read is not pending', async () => {
+ let answer!: (index: unknown) => void;
+ mockPublic.mockResolvedValue([{ id: 'mine' }, { id: 'other' }]);
+ mockRelations.mockImplementation(async (ids: readonly string[]) => ids.length ? new Promise(done => { answer = done; }) : taskRelationIndex([], ids));
+ await render();
+ expect(props().items).toHaveLength(2); expect(props().relationsPending).toBe(true); expect(props().relations).toBeUndefined();
+ await act(async () => props().onOpen(props().items[1])); expect(mockNavigate).toHaveBeenCalledTimes(1); // opening never waits for labels
+ await act(async () => answer(taskRelationIndex([{ needId: 'mine', relation: 'OWNER', applicationId: null, applicationState: null, agreementId: null }], ['mine', 'other'])));
+ expect(props().relationsPending).toBe(false); expect([...props().relations.owned]).toEqual(['mine']);
+ await act(async () => tree.unmount());
+ mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); await render();
+ expect(props().relationsPending).toBe(false); expect(props().relations).toBeUndefined();
+});
 test.each(['narucilac', 'uskocer'])('central map opens actual public pins whatever the app last was (%s) and retains its camera across detail focus', async intent => {
  Component = SharedMap; mockIntent = intent; await render();
  expect(props().view.mode).toBe('map'); expect(mockPublic).toHaveBeenCalledTimes(1);
