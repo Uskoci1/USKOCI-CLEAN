@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
-import { Microphone, StopCircle } from 'phosphor-react-native';
+import { Microphone, StopCircle, Waveform } from 'phosphor-react-native';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { VOICE_ERROR_COPY, type HoldToTalkController, type VoiceSnapshot } from '../../features/voice/holdToTalk';
@@ -64,9 +64,13 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
           style={{ width: 3, height: 6 + i * 4, borderRadius: sys.radius.pill, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : a.color.lineStrong }} />)}
       </View> : null}
       {active ? <V2Action kind="quiet" compact label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
-      {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact style={s.modeToggle}
-        label={accessibleMode ? 'Držanje' : 'Bez držanja'}
-        onPress={() => setAccessibleMode(value => !value)} /> : null}
+      {!active && !reader && p.state.phase === 'IDLE' ? <Pressable accessibilityRole="button"
+        accessibilityLabel={accessibleMode ? 'Vrati držanje mikrofona' : 'Govor bez držanja'}
+        accessibilityHint={accessibleMode ? 'Mikrofon ponovo radi dok ga držiš.' : 'Jedan dodir pokreće govor, sledeći ga zaustavlja.'}
+        onPress={() => setAccessibleMode(value => !value)}
+        style={[s.modeToggle, accessibleMode && s.modeToggleOn]}>
+        <Waveform size={21} weight={accessibleMode ? 'fill' : 'regular'} color={accessibleMode ? a.color.ink : a.color.green} />
+      </Pressable> : null}
     </View>
     {active && explicit ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
       Zaustavi, pregledaj tekst i izaberi Pošalji.
@@ -87,10 +91,11 @@ const s = StyleSheet.create({
   // itself was 66. Together they took half the screen on a real phone. The halo now
   // appears only while listening, when it actually says something.
   ringActive: { padding: 3, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: a.color.orangeHalo },
-  mic: { width: 52, height: 52, borderRadius: sys.radius.pill, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
+  mic: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: a.color.green, borderWidth: 1, borderColor: a.color.greenEdge, alignItems: 'center', justifyContent: 'center',
     shadowColor: a.color.ink, shadowOpacity: 0.10, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  micListening: { backgroundColor: a.color.orange, borderColor: a.color.orangeEdge },
-  modeToggle: { minHeight: 40, paddingHorizontal: 4, paddingVertical: 2 },
+  micListening: { width: 52, height: 52, backgroundColor: a.color.orange, borderColor: a.color.orangeEdge },
+  modeToggle: { width: 38, height: 38, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.iconWell },
+  modeToggleOn: { backgroundColor: a.color.orangeSoft, borderWidth: 1, borderColor: a.color.orangeHalo },
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
