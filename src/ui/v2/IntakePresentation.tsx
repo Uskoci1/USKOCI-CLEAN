@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
-import { ArrowRight, CaretRight, ChatCircle, Clock, MapPin, Users } from 'phosphor-react-native';
+import { ArrowRight, CaretRight, ChatCircle, Clock, ImageSquare, MapPin, Users } from 'phosphor-react-native';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
@@ -110,7 +110,7 @@ const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko se
 
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
-  const [panel, setPanel] = useState<'options' | 'points' | null>(null);
+  const [panel, setPanel] = useState<'options' | 'points' | 'add' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [pointAskHidden, setPointAskHidden] = useState(false);
   const reduced = useReducedMotion();
@@ -160,6 +160,9 @@ export function IntakePresentation(props: Props) {
     openings={OPENINGS}
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
+    onAdd={conversation.conversationId && conversation.status === 'OPEN' ? () => { Keyboard.dismiss(); setPanel('add'); } : undefined}
+    addDisabled={busy || pending}
+    addLabel="Dodaj fotografiju ili mesto"
     // Nothing is pinned until the conversation has said or taken something: an empty card at the
     // top of a fresh screen states a draft that does not exist yet and buries the invitation.
     card={compact => !conversation.facts.length && !messages.length ? null : <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
@@ -217,6 +220,23 @@ export function IntakePresentation(props: Props) {
       </> : null}
       {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
+    {panel === 'add' ? <Panel title="Dodaj u zadatak" close={close} reduced={reduced}>
+      <T variant="copy" tone="muted">Dodaj ono što pomaže da se zadatak razume bez ponavljanja u poruci.</T>
+      {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Dodaj fotografije zadatka"
+        accessibilityState={{ disabled: !!props.photosDisabled }} disabled={!!props.photosDisabled}
+        onPress={() => { close(); props.onPhotos?.(); }} haptic={props.photosDisabled ? 'none' : 'select'} style={s.addRow}>
+        <View style={s.addIcon}><ImageSquare size={23} color={sys.color.green} /></View>
+        <View style={s.grow}><T variant="bodyStrong">Fotografije</T><T variant="note" tone="muted">Pokaži šta treba preneti, popraviti ili srediti.</T></View>
+        <CaretRight size={18} color={sys.color.muted} />
+      </Press> : null}
+      {gap.total > 0 ? <Press accessibilityRole="button" accessibilityLabel={needsPoint ? 'Dodaj mesto na mapi' : 'Izmeni mesto na mapi'}
+        onPress={() => { close(); setPointAskHidden(false); setPanel(gap.done < gap.total ? null : 'points'); }} haptic="select" style={s.addRow}>
+        <View style={s.addIcon}><MapPin size={23} color={sys.color.green} /></View>
+        <View style={s.grow}><T variant="bodyStrong">{needsPoint ? 'Mesto na mapi' : 'Izmeni mesto'}</T>
+          <T variant="note" tone="muted">{needsPoint ? 'Potvrdi gde treba doći.' : 'Pomeri ili proveri sačuvanu tačku.'}</T></View>
+        <CaretRight size={18} color={sys.color.muted} />
+      </Press> : null}
+    </Panel> : null}
     {panel === 'points' ? <Panel title="Mesto zadatka" close={close} reduced={reduced}>
       <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaram mapu…</T>}>
         <ConversationPointAsk conversationId={conversation.conversationId}
@@ -257,7 +277,8 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // A bordered panel over the thread made the conversation look like a form with a header. It is
   // a quiet summary on the app's own wash now, and the shadow and outline are gone.
-  taskCard: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, paddingVertical: 14, paddingHorizontal: 16, gap: 8, overflow: 'hidden' },
+  taskCard: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, paddingVertical: 15, paddingHorizontal: 16, gap: 8,
+    borderWidth: 1, borderColor: sys.color.cardLine, overflow: 'hidden', ...sys.elevation.soft },
   // Before the conversation has said anything the card is a label, not a panel.
   taskCardEmpty: { paddingVertical: 10, gap: 4 },
   taskCardCompact: { borderRadius: sys.radius.cardCompact, paddingVertical: 10, paddingHorizontal: 14, gap: 4 },
@@ -279,6 +300,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 24, paddingTop: 10, backgroundColor: sys.color.surface },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong, marginBottom: 10 },
   sheetContent: { gap: 12, paddingVertical: 12, paddingBottom: 20 },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  addIcon: { width: 44, height: 44, borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft,
+    alignItems: 'center', justifyContent: 'center' },
   unavailable: { flex: 1, padding: 24, gap: 16, alignItems: 'center', justifyContent: 'center' },
   unavailableMark: { width: 60, height: 60, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
 });
