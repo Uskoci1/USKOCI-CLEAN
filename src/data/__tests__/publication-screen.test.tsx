@@ -188,7 +188,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
     // only the screen's dialog token can refuse it. It fails when `dialog.current !== confirmation ||` is removed.
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await tap('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
+    await render(); await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
     const answer = retainedAnswer();
     await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
     expect(sheets()).toHaveLength(0);
