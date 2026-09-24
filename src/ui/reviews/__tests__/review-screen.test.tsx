@@ -136,12 +136,14 @@ it('a person read that lands after the screen is gone, or after a newer read, dr
 it('the saved rating names the person, and three tags stop the rest with a reason',async()=>{
  await render();await settle();
  click('Po dogovoru');click('Pažljivo');click('Na vreme');
- expect(button('Pouzdano').props.accessibilityHint).toBe('Izabrano je najviše: 3 oznake. Skini jednu da izabereš drugu.');
- expect(texts()).toContain('Izabrano je najviše: 3 oznake. Skini jednu da izabereš drugu.');
+ // r6: plain Serbian, matching the section's own "najviše 3" (it said "Izabrano je najviše: 3 oznake.").
+ expect(button('Pouzdano').props.accessibilityHint).toBe('Najviše 3 oznake. Skini jednu da izabereš drugu.');
+ expect(texts()).toContain('Najviše 3 oznake. Skini jednu da izabereš drugu.');
  await act(async()=>tree.unmount());
  mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false,review:receipt({agreementId:D,targetAccountId:B,rating:5,tags:['ON_TIME','RELIABLE'],clientRequestId:K})}});
  await render();await settle();
- expect(texts()).toContain('Ocena je sačuvana');expect(texts()).toContain('Nikola Petrović');
+ // r6: the success title is a sentence with its stop, as "Prijava je poslata." is.
+ expect(texts()).toContain('Ocena je sačuvana.');expect(texts()).toContain('Nikola Petrović');
  expect(texts()).toContain('Tvoja ocena: 5 od 5');expect(texts()).toContain('Na vreme · Pouzdano');
  expect(tree.root.findAllByProps({accessibilityRole:'checkbox'})).toHaveLength(0);
 });

@@ -239,7 +239,10 @@ it('sends one exact application after explicit interval review and duplicate tap
   await edit('Datum početka', '2026-09-20'); await edit('Početak', '12:00');
   await edit('Datum kraja', '2026-09-20'); await edit('Kraj', '13:00'); await tap('Potvrdi termin');
   expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('12:00–13:00');
-  await reviewOffer(); const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
+  await reviewOffer();
+  // r6: the review says the time is the worker's own proposal, with the task's window beside it, as the Termin row does.
+  expect(text()).toContain('Tvoj predlog · termin zadatka je 20. sep · 10:00–11:00');
+  const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, pokrivenaMesta: 2, cenaRsd: 4500,
     predlozeniPocetak: '2026-09-20T10:00:00.000Z', predlozeniKraj: '2026-09-20T11:00:00.000Z' });
@@ -266,12 +269,15 @@ it('keeps offered price total and rejects trailing garbage or overfill', async (
   const routeSubmit = async () => { await act(async () => {
     await tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation).props.submit(); }); };
   await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc');
-  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Cena mora biti ceo iznos u dinarima.');
+  // r6: the grey button's reason is the field's own sentence (it said "Cena mora biti ceo iznos u dinarima." beside it).
+  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Upiši ceo iznos u dinarima, bez tačaka i slova.');
   expect(text()).toContain('Upiši ceo iznos u dinarima, bez tačaka i slova.');
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
   await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
   await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '4');
-  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Ima mesta za još 3 osobe.');
+  // r6: the stepper's line states the count once; the button says what to do (it repeated "Ima mesta za još 3 osobe.").
+  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Smanji broj ljudi na 3 da pregledaš ponudu.');
+  expect(text().split('Ima mesta za još 3 osobe.')).toHaveLength(2);
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
   await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
@@ -580,9 +586,35 @@ describe('the composer as a checkout step', () => {
     mockNeed.mockResolvedValue(unpriced); mockTask.mockResolvedValue({ ...unpriced, primaNovePrijave: true });
     await render();
     expect(text()).toContain('Cena nije navedena'); expect(text()).not.toMatch(/\d RSD/);
+    // r6: no rule sentence claims a price that is not there ("Cena je navedena u Zadatku…" stood right under the row).
+    expect(text()).not.toContain('Cena je navedena');
     expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Zadatak nema navedenu cenu. Osveži Zadatak.');
     // The reason names a fresh read, and the way to it stands under the grey button.
     const reads = mockNeed.mock.calls.length; await tap('Osveži Zadatak'); expect(mockNeed.mock.calls.length).toBe(reads + 1);
+  });
+  // r6: a price the task names is said once, by the "Cena zadatka" row; the task face keeps only its title. "Tražim
+  // ponude" stays in the corner of a task that takes offers (the first test of this group), and no green action carries a glyph.
+  it('says a named price once and keeps the task face to its title, heard without the amount', async () => {
+    const perPerson = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } };
+    mockNeed.mockResolvedValue(perPerson); mockTask.mockResolvedValue({ ...perPerson, primaNovePrijave: true });
+    await render();
+    const amounts = () => tree!.root.findAll(node => String(node.type) === 'T' && node.props.children === '5.000 RSD');
+    expect(amounts()).toHaveLength(1); expect(text()).toContain('5.000 RSD po osobi');
+    const head = tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Unos ormara, '));
+    expect(head).toHaveLength(1); expect(head[0].props.accessibilityLabel).toBe('Unos ormara, Liman 2, Novi Sad, 20. sept · 10–11h, Traži 3 osobe');
+    expect(step('Pregledaj ponudu').props.icon).toBeUndefined();
+  });
+  it('a task that no longer takes applications locks its fields and offers the other tasks beside the reason', async () => {
+    await offer();
+    mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
+    mockFocused = false; await update(); mockFocused = true; await update();
+    expect(text()).toContain('Zadatak više ne prima prijave.'); expect(step('Pregledaj ponudu').props.disabled).toBe(true);
+    for (const label of ['Ukupna cena za ljude koje dovodiš (RSD)', 'Koliko ljudi dolazi', 'Kratka napomena']) expect(inputs(label)[0].props.editable).toBe(false);
+    expect(step('Jedna osoba više').props.disabled).toBe(true); expect(step('Termin Prijave').props.disabled).toBe(true);
+    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); expect(inputs('Ukupna cena za ljude koje dovodiš (RSD)')[0].props.value).toBe('4500');
+    const go = press('Pogledaj druge zadatke'); expect(go).toBeDefined();
+    await act(async () => { go(); go(); });
+    expect(mockRouter.replace.mock.calls).toEqual([['/zadaci']]); expect(mockSubmit).not.toHaveBeenCalled();
   });
   it('after the send, the fields give way to the success mark and the facts of what was sent, with its currency', async () => {
     await offer(); await sendOffer();

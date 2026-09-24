@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Minus, PaperPlaneTilt, Plus } from 'phosphor-react-native';
+import { CaretRight, Minus, Plus } from 'phosphor-react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPeople, fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -19,7 +19,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, inset, sys } from '../system/tokens';
 import { T } from '../Text';
-import { CardFact, CardHead, CardPlaces, placesText, taskSpoken, taskValue } from './TaskFace';
+import { CardFact, CardHead, CardPlaces, CardTitle, placesText, taskSpoken, taskValue } from './TaskFace';
 import { V2Action } from './V2Action';
 
 /**
@@ -79,12 +79,15 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
   const total = !offers && price === null && count !== null ? fixedApplicationPrice(need, count) : null;
   const tooMuch = !offers && price === null && count !== null && (total === null || total > MAX_PRICE);
   const locked = fixedApplicationPeople(need) !== null;
+  // The reason under the grey button is an instruction in the one wording the field beside it uses (r6: the price field
+  // and the button said the same error in two sentences; the stepper's count line and the button said the same count).
   const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži Zadatak.'
     : price === 'empty' ? 'Upiši svoju cenu da pregledaš ponudu.'
-    : price === 'invalid' ? 'Cena mora biti ceo iznos u dinarima.'
+    : price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.'
     : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
     // A price for the whole task covers every place, so fewer free places cannot be fixed here, only by a fresh read.
-    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži Zadatak.' : `Ima mesta za još ${osobuAkuz(need.pokrivenost.preostalo)}.`
+    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži Zadatak.'
+      : need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš ponudu.` : 'Sva mesta su popunjena. Osveži Zadatak.'
     : tooMuch ? 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
     : null;
   return { reason, price, people };
@@ -122,14 +125,21 @@ export function ComposerUnavailable({ loading, message, retry, back }: { loading
   </ComposerFrame>;
 }
 
-/** The task this application answers, as the task's own face: bare, not pressable (Back returns to it), heard once. */
+/**
+ * The task this application answers, as the task's own face: bare, not pressable (Back returns to it), heard once. A
+ * price the task names is said once, by the "Cena zadatka" row that carries its rule (r6: it stood in the corner too),
+ * so that face keeps only its title (`CardTitle`, the card system's own title-without-a-value); "Tražim ponude" stays in
+ * the corner, where it is the task's one word about money. The place may take two lines, as the time already does.
+ */
 function TaskHead({ opportunity, large }: { opportunity: PrilikaProjekcija; large: boolean }) {
   const title = readableTitle(opportunity.naslov), value = taskValue(opportunity);
   const places = placesText(opportunity.pokrivenost, 'worker');
-  return <View accessible accessibilityLabel={`${title}, ${taskSpoken({ value, place: opportunity.podrucjeTekst, schedule: opportunity.vremeTekst, places: places.spoken })}`}
-    style={s.task}>
-    <CardHead title={title} value={value} large={large} />
-    <CardFact art={<FactArt kind="pin" size={16} />} text={opportunity.podrucjeTekst} />
+  const priced = opportunity.rezimCene === 'MY_PRICE';
+  const spoken = priced ? [title, opportunity.podrucjeTekst, opportunity.vremeTekst, places.spoken].filter(part => part.trim().length > 0).join(', ')
+    : `${title}, ${taskSpoken({ value, place: opportunity.podrucjeTekst, schedule: opportunity.vremeTekst, places: places.spoken })}`;
+  return <View accessible accessibilityLabel={spoken} style={s.task}>
+    {priced ? <CardTitle title={title} lines={3} /> : <CardHead title={title} value={value} large={large} />}
+    <CardFact art={<FactArt kind="pin" size={16} />} text={opportunity.podrucjeTekst} lines={2} />
     <CardFact art={<FactArt kind="calendar" size={16} />} text={opportunity.vremeTekst} lines={2} />
     <CardPlaces places={opportunity.pokrivenost} audience="worker" large={large} />
   </View>;
@@ -140,13 +150,17 @@ function Question({ children, optional }: { children: string; optional?: boolean
   return <T variant="bodyStrong" style={s.ink}>{children}{optional ? <T variant="bodyStrong" tone="muted"> · nije obavezna</T> : null}</T>;
 }
 
-/** What was sent (or saved to be checked), as read-only facts: never a greyed form. */
-function SentFacts({ price, people, time, flexible }: { price: string | null; people: string; time: string; flexible: boolean }) {
+/**
+ * What was sent (or saved to be checked), as read-only facts: never a greyed form. A time the worker proposed says so,
+ * with the task's own window beside it (`proposed`), the same word the composer's Termin row uses; otherwise nothing.
+ */
+function SentFacts({ price, people, time, flexible, proposed }: { price: string | null; people: string; time: string; flexible: boolean; proposed: string | null }) {
   return <ProductFacts>
     <ProductFact art="money" label="Ukupna ponuda" value={price ?? 'Proveri unetu cenu'} prominent prominentAs={price ? 'amount' : 'label'}
       note={price ? 'Ukupno za sve ljude koje dovodiš' : undefined} />
     <ProductFact art="users" label="Ljudi" value={people} />
-    <ProductFact art="calendar" label="Termin" value={time} note={flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : undefined} />
+    <ProductFact art="calendar" label="Termin" value={time}
+      note={flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : undefined} />
   </ProductFacts>;
 }
 
@@ -229,7 +243,9 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     if (!review || liveReview.current !== review) return;
     closeReview(); submit();
   };
-  const disabled = busy || pending || confirmed;
+  // A task that no longer takes applications locks the fields too (r6): an offer that can never be sent is not typed into.
+  const closed = opportunity.primaNovePrijave !== true;
+  const disabled = busy || pending || confirmed || closed;
   const timezone = need.taskTimezone;
   const exact = windowText(draft.start, draft.end, timezone);
   const fixed = need.schedule?.kind === 'FIXED_WINDOW' ? windowText(need.schedule.startsAt, need.schedule.endsAt, timezone) : null;
@@ -249,14 +265,17 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const openReview = () => {
     if (!disabled && canSubmit && !reviewing && !issue.reason && !editingTime) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
   };
-  const send = <PaperPlaneTilt size={20} color={sys.color.onGreen} weight="fill" />;
+  // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
   const primary = confirmed ? <V2Action label="Otvori moje prijave" onPress={openApplications} style={brandAction} />
     : uncertain ? <V2Action label="Proveri ishod" onPress={refresh} disabled={busy} style={brandAction} />
     // A known refusal cannot be undone by repeating the same command: the one way on is a new offer on fresh terms.
-    : reset ? <V2Action label="Pregledaj uslove i uredi novu ponudu" onPress={reset} disabled={busy} style={brandAction} />
-    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} loading={busy} icon={send} style={brandAction} />
+    : reset ? <V2Action label="Sastavi novu ponudu" onPress={reset} disabled={busy} style={brandAction} />
+    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
     : <V2Action label="Pregledaj ponudu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason}
       reason={reviewAction ? reviewReason : null} style={brandAction} />;
+  // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
+  // places this application would take (a price for the whole task cannot take fewer).
+  const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && (peopleLocked || left < 1));
   const summary = shownPrice ? `${shownPrice} ukupno`
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
@@ -272,8 +291,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       <T style={s.summary}>{`${summary} · ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`}</T>
     </View> : null}
     {primary}
-    {/* A task read without its price is fixed by a fresh read, so the way to it stands under the grey button. */}
-    {reviewAction && !shownBlock && !error && issue.price === 'missing' ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} /> : null}
+    {/* A task read without its price (or its places) is fixed by a fresh read, so the way to it stands under the grey button. */}
+    {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} /> : null}
     {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review
         button the reason is the button's own line (and its spoken hint); beside the other actions it stands here. */}
     {shownBlock && (!reviewAction || !!(shownBlock.actionLabel && shownBlock.onAction)) ? <View style={s.blocked}>
@@ -281,7 +300,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       {shownBlock.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
     </View> : null}
   </>;
-  const sentFacts = <SentFacts price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed} />;
+  const sentFacts = <SentFacts price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
+    proposed={exact && exact !== fixed ? fixed ?? need.vremeTekst : null} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   return <ComposerFrame back={back} footer={footer}>
     <TaskHead opportunity={opportunity} large={large} />
@@ -294,9 +314,12 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       </View>
       {sentFacts}
     </View> : locked ? <View style={s.section}>
+      {/* The facts of the saved offer stand under their own name: hairline, air, heading, then the facts (r6: the band
+          between the task face's hairline and the price fact's own line stood empty). */}
+      <T accessibilityRole="header" variant="heading" style={s.ink}>Tvoja ponuda</T>
       {sentFacts}
       {/* After a known refusal the same offer is not repeated, so the sentence about repeating it is not said. */}
-      {!reset ? <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T> : null}
+      {!reset ? <T variant="meta" tone="muted">Termin, cena i broj ljudi ostaju isti.</T> : null}
     </View> : <>
       <View style={s.section}>
         {offers ? <>
@@ -314,7 +337,14 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       </View>
       <View style={s.section}>
         <Question>Koliko ljudi dolazi</Question>
-        {peopleLocked ? <T variant="bodyStrong" style={s.ink}>{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T> : <>
+        {/* A count the price fixes is a fact row like the Termin row (art, value, the reason under it), not a second heading. */}
+        {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo Zadatak`} style={s.term}>
+          <FactArt kind="users" size={28} />
+          <View style={s.grow}>
+            <T variant="bodyStrong" style={s.ink}>{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T>
+            <T variant="note" tone="muted">Cena važi za ceo Zadatak</T>
+          </View>
+        </View> : <>
           <View style={s.stepper}>
             <ChromeIconButton label="Jedna osoba manje" icon={Minus} disabled={disabled || count === null || count <= 1}
               onPress={() => { if (!disabled && count !== null && count > 1) step(count - 1); }} />
@@ -354,7 +384,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
     {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu ponude" backdropHint="Vraća na izmenu ponude." onClose={closeReview}
       footer={() => <>
-        <V2Action label="Pošalji ovu Prijavu" onPress={confirmReview} icon={send} style={brandAction} />
+        <V2Action label="Pošalji ovu Prijavu" onPress={confirmReview} style={brandAction} />
         <V2Action label="Izmeni ponudu" kind="quiet" onPress={closeReview} />
       </>}>
       {() => <>
@@ -381,7 +411,10 @@ function FixedPrice({ need, count }: { need: PotrebaProjekcija; count: number | 
   const amount = need.ponudjenaCena?.prikaz;
   const basis = need.osnovaCene === 'PER_PERSON' ? 'po osobi' : need.osnovaCene === 'TOTAL' ? 'ukupno' : null;
   const total = need.osnovaCene === 'PER_PERSON' && count !== null ? fixedApplicationPrice(need, count) : null;
-  const rule = need.osnovaCene === 'PER_PERSON' ? `Cena je ${amount ?? 'navedena'} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
+  // The rule speaks only of a price that is there (r6: under "Cena nije navedena" it said "Cena je navedena u Zadatku");
+  // a task read without its price has its one reason, and the fresh read, under the grey button.
+  const rule = !amount ? null
+    : need.osnovaCene === 'PER_PERSON' ? `Cena je ${amount} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
     : fixedApplicationPeople(need) !== null ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
     : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
   return <>
@@ -393,7 +426,7 @@ function FixedPrice({ need, count }: { need: PotrebaProjekcija; count: number | 
       </View> : <T variant="bodyStrong" style={s.ink}>Cena nije navedena</T>}
     </View>
     {total !== null && count !== null ? <T variant="bodyStrong" style={s.ink}>{`Ukupno za ${osobuAkuz(count)}: ${novac(total)}`}</T> : null}
-    <T variant="note" tone="muted">{rule}</T>
+    {rule ? <T variant="note" tone="muted">{rule}</T> : null}
   </>;
 }
 
@@ -418,7 +451,9 @@ const s = StyleSheet.create({
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },
   notice: { ...inset, backgroundColor: sys.color.warnSoft, gap: sys.space.xs },
   noticeAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: sys.space.xs },
+  // One anatomy in every state: the label above the value, at the left (r6: a row that wrapped put the value at the
+  // right edge or under the label depending on how long the price and the count were).
+  summaryRow: { alignItems: 'flex-start', gap: 2 },
   summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
   blocked: { alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },

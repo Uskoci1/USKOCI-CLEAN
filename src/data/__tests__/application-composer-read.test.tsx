@@ -108,12 +108,16 @@ it('recovers the actual composer from a rejected detail read without leaking err
   expect(mockTask).toHaveBeenCalledTimes(2); expect(press('Pregledaj ponudu')).toBeDefined(); expect(mockSubmit).not.toHaveBeenCalled();
 });
 it('refuses a submission when the authoritative task gate says remaining search is closed', async () => {
-  mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
+  // r6: a closed task locks the fields, so the draft is filled while the task is open and the task closes on a re-read;
+  // the route's guard is then called with that draft, so its order (price and people first, then the task) stays pinned.
   await offer();
+  mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
+  mockFocused = false; await update(); mockFocused = true; await update();
   const review = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
   expect(review.props.disabled).toBe(true);
-  // The grey button says why (owner, 2026-09-23): the reason stands under it.
-  expect(text()).toContain('Zadatak više ne prima prijave.');
+  // The grey button says why (owner, 2026-09-23): the reason stands under it, with the way on beside it.
+  expect(text()).toContain('Zadatak više ne prima prijave.'); expect(press('Pogledaj druge zadatke')).toBeDefined();
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Koliko ljudi dolazi')[0].props.editable).toBe(false);
   // Exercise the unchanged route guard directly, even though the presentation prevents entry.
   const presentation = tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation);
   await act(async () => { await presentation.props.submit(); });
@@ -153,7 +157,11 @@ it('treats the closed remaining search server rejection as a known refusal that 
   await offer(); await sendOffer();
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Zadatak više ne prima nove prijave');
   await tap('Proveri ishod');
-  expect(press('Pregledaj uslove i uredi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+  // r6: the way on is one command, "Sastavi novu ponudu" (it was "Pregledaj uslove i uredi novu ponudu"), and the
+  // refusal's own reason stands beside it after the readback instead of a sentence about repeating the request.
+  expect(press('Sastavi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(text()).toContain('Ova ponuda nije primljena. Zadatak više ne prima nove prijave.');
+  expect(text()).not.toContain('Pošalji istu ponudu'); expect(press('Ponovi istu Prijavu')).toBeUndefined();
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
@@ -185,7 +193,11 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await remount();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
-    expect(text()).toContain('Sačuvana je ista ponuda za proveru ishoda');
+    // r6: the saved offer stands under its own heading, in plain words (it said "Sačuvana je ista ponuda za proveru
+    // ishoda. Ponavljanje koristi…"); the notice says what a repeat does without claiming the send arrived or not.
+    expect(text()).toContain('Tvoja ponuda'); expect(text()).toContain('Termin, cena i broj ljudi ostaju isti.');
+    expect(text()).toContain('Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.');
+    expect(text()).not.toContain('sačuvani zahtev');
     // The saved command is shown as facts, never as greyed fields that look editable.
     expect(text()).toContain('4.500 RSD'); expect(text()).toContain('2 osobe');
     expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
@@ -244,15 +256,18 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await remount();
     mockSubmit.mockResolvedValueOnce(unconfirmed);
     await tap('Ponovi istu Prijavu');
-    expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Sastavi novu ponudu')).toBeUndefined();
     await tap('Proveri ishod');
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'NEED_REVISION_MISMATCH', poruka: 'Zadatak je promenjen.' });
     await tap('Ponovi istu Prijavu');
     expect(text()).toContain('Zadatak je promenjen'); expect(mockStorage.has(JOURNAL())).toBe(true);
     // The reset appears only after an explicit readback, exactly as for any known refusal.
-    expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    expect(press('Sastavi novu ponudu')).toBeUndefined();
     await tap('Proveri ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
-    await tap('Pregledaj uslove i uredi novu ponudu');
+    // r6: after the readback the refusal's reason stays on screen beside the one way on; nothing says to repeat.
+    expect(text()).toContain('Ova ponuda nije primljena. Zadatak je promenjen.');
+    expect(text()).not.toContain('Pošalji istu ponudu'); expect(text()).not.toContain('ostaju isti');
+    await tap('Sastavi novu ponudu');
     expect(mockStorage.size).toBe(0); expect(press('Pregledaj ponudu')).toBeDefined();
   });
   it('a malformed receipt from the retried command stays unconfirmed and keeps the journal', async () => {
@@ -262,6 +277,6 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Server nije vratio potpunu potvrdu radnje.' });
     await tap('Ponovi istu Prijavu');
     expect(text()).not.toContain('Prijava je poslata.'); expect(mockStorage.has(JOURNAL())).toBe(true);
-    expect(press('Proveri ishod')).toBeDefined(); expect(press('Pregledaj uslove i uredi novu ponudu')).toBeUndefined();
+    expect(press('Proveri ishod')).toBeDefined(); expect(press('Sastavi novu ponudu')).toBeUndefined();
   });
 });

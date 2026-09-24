@@ -39,7 +39,7 @@ const NEED = { id: 'galerija-zadatak', revizija: 3, naslov: 'Unos ormara na tre�
   rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined, taskTimezone: 'Europe/Belgrade',
   schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-26T08:00:00Z', endsAt: '2026-09-26T10:00:00Z' }, uslovi: [] } as unknown as PotrebaProjekcija;
 const task = (patch: Partial<PotrebaProjekcija> = {}) => ({ ...NEED, ...patch }) as PotrebaProjekcija;
-const opportunity = (need: PotrebaProjekcija) => ({ ...need, primaNovePrijave: true, rokZaPrijaveIso: null }) as unknown as PrilikaProjekcija;
+const opportunity = (need: PotrebaProjekcija, open = true) => ({ ...need, primaNovePrijave: open, rokZaPrijaveIso: null }) as unknown as PrilikaProjekcija;
 const PER_PERSON = task({ rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' } } as Partial<PotrebaProjekcija>);
 const TOTAL = task({ rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 18000, valuta: 'RSD', prikaz: '18.000 RSD' } } as Partial<PotrebaProjekcija>);
 const UNPRICED = task({ rezimCene: 'MY_PRICE', ponudjenaCena: undefined } as Partial<PotrebaProjekcija>);
@@ -83,8 +83,8 @@ export default function DizajnPrijava() {
   </SafeAreaView>;
 
   const composer = (need: PotrebaProjekcija, state: { busy?: boolean; pending?: boolean; uncertain?: boolean; error?: string | null; confirmed?: boolean;
-    reset?: boolean; canSubmit?: boolean; blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null; sheet?: 'review' | 'time' } = {}) =>
-    <ApplicationComposerPresentation need={need} opportunity={opportunity(need)} draft={draft}
+    reset?: boolean; canSubmit?: boolean; closed?: boolean; blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null; sheet?: 'review' | 'time' } = {}) =>
+    <ApplicationComposerPresentation need={need} opportunity={opportunity(need, !state.closed)} draft={draft}
       // The per-person total follows the people, as the route's own rule does; nothing leaves the phone.
       change={next => setDraft(need.osnovaCene === 'PER_PERSON' && /^\d+$/.test(next.people) ? { ...next, price: String(2500 * Number(next.people)) } : next)}
       submit={noop} back={toList} busy={!!state.busy} pending={!!state.pending} uncertain={!!state.uncertain} refresh={noop} error={state.error ?? null}
@@ -105,13 +105,14 @@ export default function DizajnPrijava() {
     : scene === 'bez-cene' ? composer(UNPRICED)
     : scene === 'profil' ? composer(NEED, { canSubmit: false, blocked: { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.',
       actionLabel: 'Dopuni radni profil', onAction: noop } })
-    : scene === 'zatvoren' ? composer(NEED, { canSubmit: false, blocked: { reason: 'Zadatak više ne prima prijave.' } })
+    : scene === 'zatvoren' ? composer(NEED, { canSubmit: false, closed: true, blocked: { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke', onAction: noop } })
     : scene === 'pregled' ? composer(NEED, { sheet: 'review' })
     : scene === 'termin' ? composer(NEED, { sheet: 'time' })
     : scene === 'slanje' ? composer(NEED, { busy: true, pending: true })
-    : scene === 'ishod' ? composer(NEED, { pending: true, uncertain: true, error: 'Ishod slanja nije potvrđen. Proveri stanje.' })
-    : scene === 'ponovi' ? composer(NEED, { pending: true, error: 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' })
-    : scene === 'odbijeno' ? composer(NEED, { pending: true, reset: true, error: 'Zadatak je promenjen. Osveži Zadatak.' })
+    // The three notices are the route's own words (`prilike/[id]/prijava.tsx`), so the gallery shows what it produces.
+    : scene === 'ishod' ? composer(NEED, { pending: true, uncertain: true, error: 'Ishod slanja nije potvrđen. Proveri ishod.' })
+    : scene === 'ponovi' ? composer(NEED, { pending: true, error: 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.' })
+    : scene === 'odbijeno' ? composer(NEED, { pending: true, reset: true, error: 'Ova ponuda nije primljena. Zadatak je promenjen. Pregledaj aktuelne uslove pre nove prijave.' })
     : scene === 'poslato' ? composer(NEED, { confirmed: true })
     : scene === 'ucitavanje' ? <ComposerUnavailable loading message="" back={toList} />
     : scene === 'greska' ? <ComposerUnavailable loading={false} message="Podatke za prijavu trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo." retry={noop} back={toList} />

@@ -82,7 +82,8 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
         : view.kind === 'saved' ? <View style={s.saved}>
           {/* Settles in with one spring and a success haptic only right after saving; reopened later it is still. */}
           <SuccessMark fresh={view.fresh} size={64} />
-          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana</T>
+          {/* A sentence-form event title ends with a stop, as "Prijava je poslata." and "Dogovor je sklopljen." do. */}
+          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana.</T>
           {person ? <View style={s.savedPerson}>{face(40)}<T variant="bodyStrong" style={[s.ink, s.grow]} numberOfLines={2}>{person.name}</T></View> : null}
           <View style={s.starRow} accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             {[1, 2, 3, 4, 5].map(value => <Star key={value} size={28} weight={value <= view.rating ? 'fill' : 'regular'}
@@ -140,7 +141,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
 
 /** Why the other tags stopped taking a press once the most are chosen. */
 function fullHint(max: number): string {
-  return `Izabrano je najviše: ${plural(max, 'oznaka', 'oznake', 'oznaka')}. Skini jednu da izabereš drugu.`;
+  return `Najviše ${plural(max, 'oznaka', 'oznake', 'oznaka')}. Skini jednu da izabereš drugu.`;
 }
 /** "Ocenu trenutno nije moguće učitati. Proveri vezu." → the first sentence and the rest. */
 function firstSentence(message: string): [string, string | null] {

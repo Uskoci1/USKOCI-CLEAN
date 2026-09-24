@@ -131,7 +131,8 @@ export default function Prijava() {
       pending.inFlight = true; pending.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.podnesiPrijavu(pending.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri stanje.' }; }
+      // The notice names the button under it, "Proveri ishod" (r6: it said "Proveri stanje").
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri ishod.' }; }
       finally { pending.inFlight = false; }
       pending.result = result;
       // Only this command's own authoritative receipt retires the durable identity.
@@ -155,14 +156,23 @@ export default function Prijava() {
   return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
-    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
+    // After the readback: a known refusal carries its own reason beside the one way on (a new offer); an unknown outcome
+    // says in plain words what "Ponovi istu Prijavu" does. The repeat sends the same client_request_id with the same
+    // payload, which the server answers with the stored result (idempotent replay), never a second application.
+    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain
+      ? reset && pending.result && !pending.result.ok ? `Ova ponuda nije primljena. ${pending.result.poruka}`
+        : 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
+      : null)}
     refreshHelps={validation !== NOT_SAVED_ON_DEVICE}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
     blocked={data.profile.stanje !== 'ACTIVE'
       ? { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil',
         onAction: () => { if (current()) router.push('/profil/radnik'); } }
-      : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.' } : null}
+      // A task that closed under the draft is a dead end without a way on (r6): the other tasks are it. Back stays the
+      // header's arrow, so the way on is not "Nazad na zadatak" a second time.
+      : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
+        onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
     submit={submit} back={back} refresh={refresh} reset={reset}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId } }); }} />;
