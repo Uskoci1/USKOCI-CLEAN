@@ -498,9 +498,10 @@ it('keeps the options sheet focused after attachments move to the composer plus'
   await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });
 
-it('respects reduced motion for screen entry and the options panel', async () => {
+it('respects reduced motion for chat transitions and the options panel', async () => {
   mockReduced = true; await render();
-  expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
+  const animated = tree.root.findAllByType('AnimatedView' as React.ElementType);
+  expect(animated.every(node => node.props.entering === undefined)).toBe(true);
   await options(); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
 });
 
