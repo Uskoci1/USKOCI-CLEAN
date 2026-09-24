@@ -13,7 +13,7 @@ jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ rpc: mockRpc }
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: '10000000-0000-4000-8000-000000000001' }, accountRevision: 1 }) }));
 
 const snapshot: AgreementChangeSnapshot = {
-  agreementId: ID, agreementVersion: 1, agreementStatus: 'CONFIRMED', requesterAccountId: A, workerAccountId: B,
+  agreementId: ID, agreementVersion: 1, agreementStatus: 'CONFIRMED', requesterAccountId: A, workerAccountId: B, counterpartName: null,
   terms: { priceRsd: 5000, currency: 'RSD', scopeNote: null, startsAt: null, endsAt: null }, proposals: [],
   actions: { agreementId: ID, agreementVersion: 1, accountId: A, authoritative: true, canProposeChange: true,
     canRespondChange: false, canWithdrawChange: false, canMarkWorkDone: false, canConfirmCompletion: true, canCancel: true },

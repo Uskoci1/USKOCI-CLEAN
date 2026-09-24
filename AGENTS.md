@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+R6 RECOVERY (2026-09-25): Codex recovered the four interrupted local fix commits through `25dd5d13`, integrated
+`r6fix-pinmap` and the uncommitted `r6fix-izmene`, and connected all six pending Skeleton callers. Read
+`docs/implementation/design-system/r6-integration-20260925/REPORT.md` for scope, evidence and open work. Types clean;
+305 suites / 5,921 tests passed (worker teardown warning). The report separates source, CI and emulator acceptance.
+The original Claude checkout is intact; this package changes no DEV/Edge, payments, migrations or dependencies.
+
 SHIP PASS (2026-09-23 evening, owner: "večeras šaljem app na Google Play", ship mode). Read
 `docs/implementation/RELEASE_CHECKLIST_GOOGLE_PLAY_20260923.md` first: only an internal-testing upload is realistic
 tonight, and its remaining steps are the owner's (package name, which is permanent in Play Console; EAS `production`
@@ -44,7 +50,11 @@ every Agreement; P1–P12 stay open. Proof `36053060680` 17/17 on `0db57f50`; re
 `supabase/operations/dev-alpha/ledger/20260924_pkg051a_application.receipt.json`; contract with the owner's 3-step
 Serbian how-to `docs/implementation/v5-ai-first/pkg051/PKG051_PLATFORM_PRICE_LIST.md`. Same day: the owner's Codex app was
 found running `npm ci` inside this session's worktree (`.claude/worktrees/uskoci-kompletan-audit-2e715e`), which gutted
-`node_modules` mid-Jest; one agent per checkout.
+`node_modules` mid-Jest; one agent per checkout. Late evening: build b4531ef4 was checked on the emulator (Zadaci
+tab + the three round-6 galleries, 80 scenes; 113 confirmed findings in
+`docs/implementation/design-system/r6-emulator-b4531ef/`), four fix groups were integrated (97653c2d, b1f394e6,
+94a550d7, 25dd5d13), and the owner handed the rest to Codex: read the section "Handoff to Codex — 2026-09-24, 23:55"
+at the end of `docs/implementation/design-system/cloud-handoff/README.md`.
 
 CLOUD HANDOFF (2026-09-24, owner: continue in the cloud to use the cloud session credits): read
 `docs/implementation/design-system/cloud-handoff/README.md` first. It carries the working rules copied from the local

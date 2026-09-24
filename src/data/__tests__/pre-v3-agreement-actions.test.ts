@@ -26,6 +26,16 @@ it('keeps unavailable historic terms unavailable without fabricating price or sc
   ...actionState.pendingChanges[0],proposedTerms:{...terms,price_rsd:'3500'}}]}}));
  expect(await agreementChangeService.read(ID,account)).toMatchObject({ok:true,podatak:{terms:null,proposals:[{termsAvailable:false,terms:null}]}});
 });
+it.each([[A,'Marko'],[B,'Ana']])('names only the other participant in the changes workspace for %s',async(viewer,name)=>{
+ mockAccount=viewer;
+ mockRpc.mockResolvedValue(ok({...workspace,requesterName:' Ana ',workerName:' Marko ',actionState:{...actionState,accountId:viewer}}));
+ expect(await agreementChangeService.read(ID,{accountId:viewer,accountRevision:1})).toMatchObject({ok:true,podatak:{counterpartName:name}});
+ expect(mockRpc).toHaveBeenCalledTimes(1);
+});
+it.each([undefined,null,'  ',42])('keeps an absent or malformed counterpart name unavailable: %j',async workerName=>{
+ mockRpc.mockResolvedValue(ok({...workspace,requesterName:'Ana',workerName}));
+ expect(await agreementChangeService.read(ID,account)).toMatchObject({ok:true,podatak:{counterpartName:null}});
+});
 it('preserves a real null historic scope and absent currency without fabricating new terms',async()=>{
  mockRpc.mockResolvedValue(ok({...workspace,terms:{price_rsd:1,scope_note:null}}));
  expect(await agreementChangeService.read(ID,account)).toMatchObject({ok:true,podatak:{terms:{priceRsd:1,scopeNote:null,currency:'RSD'}}});

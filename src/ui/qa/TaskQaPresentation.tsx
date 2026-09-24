@@ -69,7 +69,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
       <ScreenChrome variant="detail" onBack={p.onBack} title="Pitanja o zadatku" subtitle={p.title??undefined}
         right={<ChromeIconButton label="Osveži pitanja i ishod radnje" icon={ArrowClockwise} disabled={p.busy} onPress={p.onRefresh}/>}/>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-        {!p.loaded&&p.busy?<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{count:3,rows:2}}/>
+        {!p.loaded&&p.busy?<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{count:3,rows:2,variant:'thread'}}/>
           :trouble?<StateView kind="error" art="chat" title="Pitanja nisu učitana" body={p.message}
             primary={p.canRetryRead?{label:'Pokušaj ponovo',onPress:p.onRefresh}:undefined}/>:null}
         {p.loaded||p.recovery?<>
@@ -82,7 +82,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
           {p.receipt?<T accessibilityLiveRegion="polite">{p.receipt}</T>:null}
           {p.material?<V2Action label="Nazad na zadatak radi izmene" onPress={p.onEditTask} disabled={p.busy}/>:null}
           {p.recovery?<View style={s.notice}><T variant="bodyStrong">Provera prethodnog slanja</T>
-            <T>Nismo dobili potvrdu da je prethodno slanje stiglo. Ako izađeš odavde, ništa se ne šalje ponovo i ništa što je već u toku se ne poništava.</T>
+            <T>Konačan ishod prethodnog slanja još nije potvrđen. Ako izađeš odavde, ništa se ne šalje ponovo i ništa što je već u toku se ne poništava.</T>
             {p.recovery.kind==='TEXT'?<><T>Za ponavljanje upiši potpuno isti tekst — nije sačuvan na telefonu.</T>
               <View style={s.fieldBlock}><T variant="label" tone="muted">Isti tekst kao ranije</T>
                 <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napiši isti tekst…" placeholderTextColor={sys.color.muted}

@@ -120,7 +120,7 @@ function ComposerFrame({ back, children, footer }: { back: () => void; children:
 export function ComposerUnavailable({ loading, message, retry, back }: { loading: boolean; message: string; retry?: () => void; back: () => void }) {
   const [title, body] = splitFirstSentence(message);
   return <ComposerFrame back={back}>
-    {loading ? <StateView kind="loading" title="Učitavamo aktuelne podatke…" skeleton={{ count: 1, rows: 4, variant: 'task' }} />
+    {loading ? <StateView kind="loading" title="Učitavamo aktuelne podatke…" skeleton={{ count: 1, rows: 4, variant: 'face' }} />
       : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
   </ComposerFrame>;
 }

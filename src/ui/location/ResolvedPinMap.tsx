@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
+import { Press } from '../Press';
 import { T } from '../Text';
 import { displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
@@ -17,10 +18,26 @@ type PinDrag = { token: object; start: Pixel; origin: Promise<Pixel | null>; can
 const pixel = (value: unknown): Pixel | null => Array.isArray(value) && value.length === 2
   && value.every(item => typeof item === 'number' && Number.isFinite(item)) ? [value[0], value[1]] : null;
 
+/**
+ * The one attribution (r6 rows 8 and 15, 2026-09-24). MapLibre's own "i" button is a foreign glyph with an English
+ * spoken name that opens an English dialog, so the map no longer shows it; these three links are the whole credit
+ * OpenFreeMap asks for (its tiles, © OpenMapTiles, data from © OpenStreetMap), in a wrapping row below the map.
+ */
+const CREDITS = [
+  { text: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
+  { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
+  { text: 'OpenFreeMap', url: 'https://openfreemap.org/' },
+] as const;
+/** The public approximate area: a soft disc, no tail, so the picture promises no more than the two-decimal point does. */
+const AREA = 56;
+
 /** MapLibre rendering and lifetime pattern adapted from PR67; no provider or save authority. */
 function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; retry: () => void }) {
   const { position, coarse = false, disabled = false } = props;
   const pin = displayedPinPosition(position, coarse);
+  // The public approximate view (a Task's place before a Dogovor) draws an area; every editable map and the exact
+  // private point keep the pin.
+  const area = coarse && disabled;
   const [status, setStatus] = useState<MapStatus>('loading');
   const load = useRef<MapStatus>('loading');
   const active = useRef(true);
@@ -135,12 +152,18 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   // Place names in Serbian Latin (2026-09-24): the map mounts once the style is known, and meanwhile shows the same
   // loading state it shows while its tiles arrive.
   const mapStyle = useMapStyle();
+  // Read-only: the point no longer prints under the map, so the frame carries it for a screen reader instead of losing
+  // it. The native map under it is then hidden from the reader: on the emulator it spoke a second time, as a proposal
+  // ("Mapa predložene lokacije") over a point that was shared or fixed.
+  const spokenByFrame = disabled && !!pin;
+  const mapName = area ? 'Mapa približnog područja' : disabled ? 'Mapa prikazane tačke'
+    : coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije';
   return <View style={styles.container}>
+    {/* Credits stay outside the accessible frame and do not cover the map on narrow screens. */}
+    <View>
     <View style={[styles.frame, props.height ? { height: props.height } : null]}
-      // Read-only: the point no longer prints under the map, so the frame carries it for a screen
-      // reader instead of losing it.
-      accessible={disabled && !!pin} accessibilityRole={disabled && pin ? 'image' : undefined}
-      accessibilityLabel={disabled && pin ? `${coarse ? 'Približna tačka na mapi' : 'Tačka na mapi'}. ${coordinateText}` : undefined}
+      accessible={spokenByFrame} accessibilityRole={spokenByFrame ? 'image' : undefined}
+      accessibilityLabel={spokenByFrame ? `${area ? 'Približno područje na mapi' : 'Tačka na mapi'}. ${coordinateText}` : undefined}
       onLayout={event => {
       if (!owns()) return;
       const size = pixel([event.nativeEvent.layout.width, event.nativeEvent.layout.height]);
@@ -152,14 +175,20 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       }
     }}>
       {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="texture" dragPan={!offset}
-        attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
-        touchPitch={false} touchRotate={false} accessibilityLabel={coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije'}
+        attribution={false} compass={false} logo={false}
+        touchPitch={false} touchRotate={false} accessibilityLabel={mapName}
+        importantForAccessibility={spokenByFrame ? 'no-hide-descendants' : 'auto'}
         onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
         onRegionWillChange={() => { if (owns()) { idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null); } }}
         onRegionDidChange={event => observeCenter(event.nativeEvent)}
         onPress={event => { if (!drag.current) choose(event.nativeEvent.lngLat); }}>
         <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 13 : 18} />
-        {pin ? <Marker id="location-proposal" lngLat={[pin.longitude, pin.latitude]} anchor="bottom">
+        {pin && area ? <Marker id="location-area" lngLat={[pin.longitude, pin.latitude]} anchor="center">
+          {/* A translucent green disc with a hairline and no tail: the words under it promise an area, so does the
+              picture, and the city name reads through it. Nothing here is dragged, decoded or chosen. */}
+          <View collapsable={false} accessible accessibilityRole="image" accessibilityLabel="Približno područje na mapi"
+            pointerEvents="none" style={styles.area}><View style={styles.areaFill} /></View>
+        </Marker> : pin ? <Marker id="location-proposal" lngLat={[pin.longitude, pin.latitude]} anchor="bottom">
           {/* Marker uses a real Android view on the native map projection.
               Image decode is readiness only; screenshots verify visible pixels. */}
           <View collapsable={false} accessible accessibilityRole="image" accessibilityLabel="Oznaka izabrane tačke na mapi"
@@ -181,6 +210,16 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
     </View>
+    {/* Real 48 dp targets: hitSlop alone is clipped by a smaller parent. Wrapping also keeps all credits available
+        at 320 dp and with large text, without reducing the map's usable area. */}
+    {status === 'ready' ? <View style={styles.creditBand}>
+        {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0}
+          style={styles.creditLink}
+          onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}>
+          <T variant="label" tone="muted" style={styles.credit}>{credit.text}</T>
+        </Press>)}
+    </View> : null}
+    </View>
     {/* Everything below is the picker talking to the person choosing a point: the live coordinate
         readout, whether the marker is centred, what to do next. A read-only map chooses nothing, and
         on the public Task these three lines printed as a strip of instrument output under the map —
@@ -197,10 +236,6 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       : <T variant="meta" tone="muted">{coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
           : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
     {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}
-    <View style={styles.attribution}>
-      <T variant="meta" tone="muted" accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
-      <T variant="meta" tone="muted" accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
-    </View>
   </View>;
 }
 
@@ -229,6 +264,10 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
     gap: sys.space.md, backgroundColor: sys.color.surface },
-  attribution: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.md, paddingTop: sys.space.xs },
+  creditBand: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
+  creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
+  credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
+  area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge, overflow: 'hidden' },
+  areaFill: { ...StyleSheet.absoluteFill, backgroundColor: sys.color.green, opacity: 0.16 },
 });
