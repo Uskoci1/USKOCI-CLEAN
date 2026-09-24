@@ -22,6 +22,14 @@ const presses = () => tree.root.findAllByType('Press' as React.ElementType);
 const labels = () => presses().map(node => node.props.accessibilityLabel);
 const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 const byLabel = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
+// Owner step 5b (2026-09-24): what changes the task is rare, so it moved from the end of the screen into the bar's "···".
+// These read the menu the way a person does: open it, then read its rows. No "···" at all means nothing rare to do.
+const menuLabels = async (): Promise<string[]> => {
+  const more = presses().find(node => node.props.accessibilityLabel === 'Više radnji');
+  if (!more) return [];
+  await act(async () => more.props.onPress());
+  return presses().filter(node => node.props.accessibilityRole === 'menuitem').map(node => node.props.accessibilityLabel);
+};
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ id: 'need', revizija: 3, naslov: 'Prenos ormara', opis: 'Ormar sa trećeg sprata.', stanje: 'OBJAVLJENA',
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, vremeTekst: 'Sutra', podrucjeTekst: 'Novi Sad, Liman', uslovi: ['Trake'], brojPrijava: 3, rezimCene: 'MY_PRICE',
@@ -56,16 +64,19 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
   // whole app. The screen is the view of the owner, read through the owner-only read, so it simply acts.
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
   expect(texts()).not.toMatch(/Ovo radiš kao|JA MOGU|MENI TREBA|iz Profila/);
-  expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(labels()).toContain('Izmeni nacrt');
+  expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(await menuLabels()).toContain('Izmeni nacrt');
 });
 test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
   await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
   expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
-  expect(labels()).toContain('Otvori prijave, ukupno 3'); expect(labels()).toContain('Izmeni Zadatak');
+  expect(labels()).toContain('Otvori prijave, ukupno 3');
   // V41 (2026-09-23): the one orange action carries the count of the applications that can be chosen.
   expect(copy).toContain('Pregledaj prijave · 3');
+  expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
+  // The edit is behind "···" now, and opening the menu adds no second brand action.
+  expect(await menuLabels()).toContain('Izmeni Zadatak');
   expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
   // Recomposed from zero (2026-09-23): the place is one section, never a disclosure that repeats it.
   expect(labels()).not.toContain('Mesto izvršenja');
@@ -116,13 +127,17 @@ test('a private draft explains the next step and leads with the review; a closed
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
   // The state is one line under the title; the footer is the next step, so no card describes it as well.
   expect(texts()).toContain('Privatan nacrt'); expect(texts()).not.toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
-  expect(labels()).toContain('Izmeni nacrt'); expect(labels()).not.toContain('Izmeni Zadatak');
+  const draftMenu = await menuLabels();
+  expect(draftMenu).toContain('Izmeni nacrt'); expect(draftMenu).not.toContain('Izmeni Zadatak');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} remainingClosed />); });
-  expect(texts()).toContain('Preostala potraga je zatvorena'); expect(labels()).not.toContain('Ne traži više nikoga'); expect(labels()).not.toContain('Izmeni Zadatak');
+  // Owner step 5b (2026-09-24): the closed search is said once, in the state line under the title, not in a note at the end.
+  expect(texts()).toContain('preostala potraga je zatvorena'); expect(texts()).not.toContain('Originalni Zadatak');
+  const closedMenu = await menuLabels();
+  expect(closedMenu).not.toContain('Ne traži više nikoga'); expect(closedMenu).not.toContain('Izmeni Zadatak');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} />); });
-  expect(labels()).toContain('Ne traži više nikoga');
+  expect(await menuLabels()).toContain('Ne traži više nikoga');
 });
 test('loading shows placeholder geometry with a spoken status; an error keeps one retry', async () => {
   await act(async () => { tree = create(<Screen value={null} loading />); });

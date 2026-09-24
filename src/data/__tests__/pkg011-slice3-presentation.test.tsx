@@ -89,7 +89,10 @@ test('the public Task leads with its title and four facts, offers the requester 
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
   expect(copy).toContain('Traži pomoć');
   expect(brand()).toEqual(['Sastavi prijavu']);
-  await act(async () => byLabel('Pogledaj javni profil').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
+  // Owner step 5b (2026-09-24): the poster row is heard as the person it is ("Ana, Traži pomoć, Ocena 4,8") and says
+  // what a press does as its hint; it was heard as "Pogledaj javni profil" alone, without the name.
+  expect(byLabel('Ana, Traži pomoć, Ocena 4,8').props.accessibilityHint).toBe('Otvara javni profil');
+  await act(async () => byLabel('Ana, Traži pomoć, Ocena 4,8').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
   // The place is said once in the facts and once as the map section; no disclosure repeats it a third time.
   expect(labels()).not.toContain('Mesto izvršenja'); expect(copy).not.toContain('Mesto izvršenja');
@@ -125,7 +128,8 @@ test('an open price is a word addressed to the person applying, never the amount
 });
 test('closed applications remove the brand action and say so; the requester profile sheet shows loading, then only server facts, and closes', async () => {
   await act(async () => { tree = create(<Detail canApply={false} profile={{ loading: true, data: null }} />); });
-  expect(brand()).toEqual([]); expect(texts()).toContain('Nove prijave trenutno nisu dostupne za ovaj zadatak.'); expect(texts()).toContain('Učitavamo javni profil…');
+  // Owner step 5b (2026-09-24): the reason is one short line beside the way on ("Drugi zadaci" when the route gives one).
+  expect(brand()).toEqual([]); expect(texts()).toContain('Nove prijave trenutno nisu dostupne'); expect(texts()).toContain('Učitavamo javni profil…');
   await act(async () => tree.update(<Detail canApply={false} profile={{ loading: false, data: { profilId: 'profile-1', uloga: 'narucilac', ime: 'Ana Anić', avatarPutanja: null, grad: 'Beograd', naslov: null, biografija: 'Volim red.',
     poverenje: { ocenaProsek: 4.8, brojRecenzija: 3, zavrseniBroj: 5, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false } } }} />));
   const copy = texts();

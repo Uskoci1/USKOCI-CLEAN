@@ -54,6 +54,8 @@ export default function PrilikaDetaljiEkran() {
     : typeof fresh?.rokZaPrijaveIso === 'string' ? Date.parse(fresh.rokZaPrijaveIso) : undefined;
   const [deadlineTick, setDeadlineTick] = useState(0);
   const deadlineOpen = () => deadlineAt === null || (typeof deadlineAt === 'number' && deadlineAt > Date.now());
+  // Only a real, passed server deadline is named as the reason; an unknown or unreadable one is not a deadline.
+  const deadlinePassed = typeof deadlineAt === 'number' && Number.isFinite(deadlineAt) && deadlineAt <= Date.now();
   useFocusEffect(useCallback(() => {
     if (typeof deadlineAt !== 'number' || !Number.isFinite(deadlineAt)) return;
     const remaining = deadlineAt - Date.now();
@@ -139,6 +141,9 @@ export default function PrilikaDetaljiEkran() {
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && relation.kind === 'NONE'}
+    deadlinePassed={deadlinePassed}
+    // When applying is not possible the screen says why and leads back to the other tasks, never to a dead end.
+    onOtherTasks={() => navigate(() => router.navigate('/zadaci'))}
     relation={fresh ? relation : { kind: 'UNKNOWN' }}
     onOwnTask={() => { if (fresh && relation.kind === 'OWNER') navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: fresh.id } })); }}
     onOwnApplication={() => { if (relation.kind !== 'APPLIED') return;
@@ -149,5 +154,6 @@ export default function PrilikaDetaljiEkran() {
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}
+    // The poster row asks for 32 px, the profile sheet for its large portrait.
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />} />;
 }

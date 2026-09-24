@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ArrowRight, CaretRight } from 'phosphor-react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { ArrowRight, CaretRight, DotsThree } from 'phosphor-react-native';
 import { needPriceBasisNote, needPriceText } from '../../data/needDetailPresentation';
+import { ActionSheet, type SheetAction } from '../system/ActionSheet';
+import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { brandAction, sys } from '../system/tokens';
-import { ScreenChrome } from '../system/ScreenChrome';
+import { ChromeIconButton, ScreenChrome, useChromeTitleOnScroll } from '../system/ScreenChrome';
 import { T } from '../Text';
 import { Press } from '../Press';
 
@@ -13,9 +15,9 @@ import { Press } from '../Press';
  *
  * `ScreenChrome`'s detail bar, as DetailTopBar is: the arrow, the screen's name when it has one that
  * is not already the content's own title, an optional line under it, one action on the right. A task
- * screen passes no title — the task's name is the title, drawn large by ProductTitle below (owner,
- * 2026-09-23). `titleVisible` lets such a screen bring its name into the bar once the large title
- * has scrolled away (`useChromeTitleOnScroll`).
+ * screen draws the task's name large with ProductTitle below (owner, 2026-09-23) and hands the same name
+ * here with `titleVisible`, so the bar says it only once the large title has scrolled away
+ * (`useDetailScrollTitle`). `right` holds the "···" of rare actions (`useDetailMenu`).
  */
 export function ProductHeader({ title, subtitle, back, backLabel = 'Nazad', disabled = false, right, titleVisible }: {
   title?: string; subtitle?: string; back: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode; titleVisible?: boolean;
@@ -24,8 +26,58 @@ export function ProductHeader({ title, subtitle, back, backLabel = 'Nazad', disa
     right={right} titleVisible={titleVisible} />;
 }
 
-export function ProductTitle({ children }: { children: ReactNode }) {
-  return <T accessibilityRole="header" style={s.title}>{children}</T>;
+export function ProductTitle({ children, onLayout }: { children: ReactNode; onLayout?: (event: LayoutChangeEvent) => void }) {
+  return <T accessibilityRole="header" onLayout={onLayout} style={s.title}>{children}</T>;
+}
+
+/**
+ * The task's name in the bar once its large title has gone (V46 detailChrome; owner step 5b, 2026-09-24). At the owner's
+ * large font the title is two or three lines and leaves the screen after a third of it; from there on the map, the
+ * questions and the person belonged to no named task. The line is where the large title ENDS, measured, not a guess:
+ * the bar says the name exactly when the last line of the title has passed under it. The fade itself is the chrome's
+ * (`ScreenChrome`'s one short fade, nothing under reduced motion); the name is a fact and never moves on its own.
+ *
+ * Pass `onScroll` to the ScrollView with `scrollEventThrottle={16}`, `onHeroLayout` to the block that holds the title
+ * (a direct child of the scrolled content) and `onTitleLayout` to `ProductTitle`.
+ */
+export function useDetailScrollTitle(): {
+  titleVisible: boolean; onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onHeroLayout: (event: LayoutChangeEvent) => void; onTitleLayout: (event: LayoutChangeEvent) => void;
+} {
+  const [line, setLine] = useState(DEFAULT_TITLE_LINE);
+  const hero = useRef(0), title = useRef<{ y: number; height: number } | null>(null);
+  const measure = useCallback(() => {
+    if (title.current) setLine(Math.max(1, Math.round(hero.current + title.current.y + title.current.height)));
+  }, []);
+  const onHeroLayout = useCallback((event: LayoutChangeEvent) => { hero.current = event.nativeEvent.layout.y; measure(); }, [measure]);
+  const onTitleLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout; title.current = { y, height }; measure();
+  }, [measure]);
+  const { titleVisible, onScroll } = useChromeTitleOnScroll(line);
+  return { titleVisible, onScroll, onHeroLayout, onTitleLayout };
+}
+/** Before the first layout: one line of the hero title under the content's top padding. */
+const DEFAULT_TITLE_LINE = 72;
+
+/**
+ * The detail's "···": the rare actions of the screen behind one control on the right of the bar, as an ActionSheet
+ * (owner rule "stalno / ponekad / retko", 2026-09-23: what is needed rarely does not sit in the reading flow). Nothing is
+ * drawn when there is nothing rare to do. Each action runs once the sheet has gone and keeps its own confirmation and
+ * guard; the menu only opens the door to it.
+ */
+export function useDetailMenu(actions: readonly SheetAction[], { disabled = false, label = 'Radnje zadatka' }: {
+  disabled?: boolean; /** What a screen reader calls the open menu. */ label?: string;
+} = {}): { button: ReactNode; sheet: ReactNode } {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const available = actions.length > 0;
+  // A menu whose actions all went away (the task changed under it) is closed, and does not come back by itself later.
+  useEffect(() => { if (!available) setOpen(false); }, [available]);
+  if (!available) return { button: undefined, sheet: null };
+  return {
+    button: <ChromeIconButton label="Više radnji" icon={DotsThree} disabled={disabled} onPress={() => setOpen(true)} />,
+    sheet: open ? <ActionSheet label={label} actions={actions} onClose={close} /> : null,
+  };
 }
 
 /** Full-width reading rows keep long locations, translated dates and enlarged text readable. */
@@ -51,9 +103,10 @@ export function ProductFacts({ children }: { children: ReactNode }) {
 /*
  * The task detail, recomposed from zero (owner, 2026-09-23: the HTML prototypes are documentation of
  * what a task says, not of how the screen is laid out). A task is read in one pass, top to bottom:
- * its name, then four facts as one list — where, when, how many people, how much — then the words,
- * what it needs, the place on a small map, the questions and the person behind it. Sections are
- * separated by a hairline and air, never by boxes; the one action stays at the foot of the screen.
+ * its name, then its facts as one list — where, when, how many people, how much, and who posts it —
+ * then the words, what it needs, photos, the place on a small map and the questions. Sections are
+ * separated by a hairline and air, never by boxes; the one action stays at the foot of the screen,
+ * and what is done rarely waits behind the "···" of the bar.
  */
 
 /**
@@ -209,20 +262,28 @@ export function ProductRequirements({ rows, title = 'Važno za ovaj zadatak' }: 
   </DetailSection>;
 }
 
-/** The caller supplies the photo by verified profile ID; this component never reads an account.
- *  One flat row under a hairline: who they are to this task, their name, their rating. */
-export function ProductPerson({ name, caption, overline, photo, initial, onPress, disabled = false, label = 'Pogledaj javni profil' }: {
-  name: string; caption?: string; /** What this person is to the task, above the name ("Traži pomoć"). */ overline?: string;
-  photo?: ReactNode; initial: string; onPress?: () => void;
-  disabled?: boolean; label?: string;
+/**
+ * The person behind a task, as one more row of its facts (owner step 5b, 2026-09-24: who posts a task is a trust fact and
+ * belongs beside where, when and how much, not at the end of the screen). The 32 px face sits in the facts' art column,
+ * the name reads like a fact's value, and one quiet line says what the person is to the task and their rating. The
+ * caller supplies the photo by verified profile ID; this component never reads an account. A person without a photo is
+ * the one Avatar, with the letters of their name or, without a name, a drawn person.
+ *
+ * A screen reader hears who it is, then what a press does: the name, not "Pogledaj javni profil" alone.
+ */
+export function ProductPerson({ name, caption, photo, initials, onPress, disabled = false, hint = 'Otvara javni profil' }: {
+  name: string; /** What the person is to the task and their rating, in one line ("Traži pomoć · Ocena 4,8"). */ caption?: string;
+  photo?: ReactNode; /** From `inicijali(name)`; null draws a person. */ initials: string | null; onPress?: () => void;
+  disabled?: boolean; hint?: string;
 }) {
   const unavailable = disabled || !onPress;
-  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: unavailable }}
-    disabled={unavailable} onPress={onPress} haptic="select" scaleTo={0.99} style={s.person}>
-    {photo ?? <View style={s.avatar}><T style={s.initial}>{initial}</T></View>}
-    <View style={s.personCopy}>
-      {overline ? <T variant="meta" tone="muted">{overline}</T> : null}
-      <T variant="bodyStrong" style={s.personName}>{name}</T>
+  // The dot between the parts is for the eye; a screen reader pauses at a comma instead of reading the dot.
+  const spoken = caption ? `${name}, ${caption.split(' · ').join(', ')}` : name;
+  return <Press accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint={onPress ? hint : undefined}
+    accessibilityState={{ disabled: unavailable }} disabled={unavailable} onPress={onPress} haptic="select" scaleTo={0.99} style={s.person}>
+    <View style={s.detailArt}>{photo ?? <Avatar initials={initials} size={32} />}</View>
+    <View style={s.factCopy}>
+      <T numberOfLines={2} style={s.detailValue}>{name}</T>
       {caption ? <T variant="note" tone="muted">{caption}</T> : null}
     </View>
     {onPress ? <CaretRight size={20} color={sys.color.muted} /> : null}
@@ -259,13 +320,8 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   chipText: { color: sys.color.ink, fontWeight: '500' },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: sys.touch.min, paddingTop: 20,
-    borderTopWidth: 1, borderColor: sys.color.line },
-  personCopy: { flex: 1, minWidth: 0, gap: 1 },
-  personName: { color: sys.color.ink, fontSize: 18, lineHeight: 24 },
-  avatar: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft,
-    alignItems: 'center', justifyContent: 'center' },
-  initial: { ...sys.type.title, color: sys.color.green },
+  // A row of the facts list: the same art column and gap, and a full touch height because it opens the profile.
+  person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: sys.touch.min },
   footerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm },
   footerText: { flexShrink: 1, textAlign: 'center', color: sys.color.onGreen, fontVariant: ['tabular-nums'] },

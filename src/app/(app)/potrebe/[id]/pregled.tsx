@@ -12,7 +12,8 @@ import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
 import { ResolvedPinMap } from '../../../../ui/location/ResolvedPinMap';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
-import { NeedLifecycleActions } from '../../../../ui/needs/NeedLifecycleActions';
+import { NeedLifecycleActions, needLifecycleEntries, type NeedLifecycleMenu } from '../../../../ui/needs/NeedLifecycleActions';
+import type { SheetAction } from '../../../../ui/system/ActionSheet';
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { plural } from '../../../../ui/system/plural';
@@ -179,6 +180,19 @@ function OwnedNeed({ id }: { id: string }) {
     ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
       'Nastavi', 'default', async () => openOwnedReview('/nova'));
   };
+  // Cancelling and deleting sit behind the screen's "···" (owner step 5b, 2026-09-24). The menu only knocks: each press
+  // passes this screen's fence and then the lifecycle's own guards, and the lifecycle asks, sends, persists and recovers
+  // exactly as it did inline.
+  const lifecycleMenu = useRef<NeedLifecycleMenu | null>(null);
+  const entries = needLifecycleEntries(potreba);
+  const lifecycleMenuActions: SheetAction[] = [
+    ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, hint: 'Postojeći Dogovori se otkazuju zasebno.',
+      onPress: () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } }] : []),
+    ...(entries.deleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true,
+      onPress: () => { if (canAct()) lifecycleMenu.current?.request('DELETE_DRAFT'); } }] : []),
+    ...(entries.cancel ? [{ key: 'cancel', label: 'Otkaži zadatak', icon: 'tasks' as const, destructive: true,
+      onPress: () => { if (canAct()) lifecycleMenu.current?.request('CANCEL'); } }] : []),
+  ];
 
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
@@ -188,8 +202,9 @@ function OwnedNeed({ id }: { id: string }) {
       : undefined}
     qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
       onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}
-    lifecycleActions={uuid(id) ? <NeedLifecycleActions need={potreba} needId={id}
+    lifecycleActions={uuid(id) ? <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}
       disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
+    lifecycleMenu={lifecycleMenuActions}
     error={greska} busy={akcijaUToku || terminalActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
     // Opened from a notification on a cold start there is nothing behind this screen; the arrow then

@@ -146,6 +146,24 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Nove prijave trenutno nisu dostupne');
   });
 
+  // Owner step 5b (2026-09-24): when applying is not possible the screen says why, from what this route already read, and
+  // leads back to the other tasks once, through the same navigation fence as every other press.
+  it('says why applying is not possible from the facts it read, and leads back to Zadaci once', async () => {
+    mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso: '2000-01-01T00:00:00Z' }); await render();
+    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).toMatch(/Rok za prijave je prošao 1\. jan\.? 2000/); expect(text()).not.toContain('Prijave do');
+    const other = buttons('Drugi zadaci')[0].props.onPress;
+    await act(async () => { other(); other(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/zadaci']]);
+    await act(async () => { tree?.unmount(); });
+    mockLoad.mockResolvedValue({ ...detail(), primaNovePrijave: false, pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } }); await render();
+    expect(text()).toContain('Sva mesta su popunjena'); expect(text()).not.toContain('Rok za prijave');
+    // An unreadable deadline is not named as one.
+    await act(async () => { tree?.unmount(); });
+    mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso: 'invalid' }); await render();
+    expect(text()).toContain('Nove prijave trenutno nisu dostupne'); expect(text()).not.toContain('Rok za prijave');
+  });
+
   it.each([undefined, 'invalid', '2000-01-01T00:00:00Z'])('never offers the composer for unknown/expired deadline %s', async rokZaPrijaveIso => {
     mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso }); await render();
     expect(buttons('Sastavi prijavu')).toHaveLength(0);

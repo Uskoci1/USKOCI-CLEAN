@@ -5,7 +5,8 @@ import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projectio
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { DetailDescription, DetailFact, DetailFacts, DetailLink, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
-  ProductRequirements, ProductTitle, productPriceParts } from '../product/ProductDetails';
+  ProductRequirements, ProductTitle, productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
+import type { SheetAction } from '../system/ActionSheet';
 import { FactArt } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, inset, sys } from '../system/tokens';
@@ -27,7 +28,10 @@ export type NeedPresentationProps = {
   photos?: ReactNode;
   /** Where the job is, as an approximate pin. The map owns a focus lifetime, so the route builds it. */
   map?: ReactNode;
+  /** The lifecycle's recovery (NeedLifecycleActions in its "···" placement): drawn only while it has something to say. */
   lifecycleActions?: ReactNode;
+  /** The lifecycle's own ways in (cancel, delete a draft, the Dogovori), for the "···" beside the edits. */
+  lifecycleMenu?: readonly SheetAction[];
   qaAction?: ReactNode;
 };
 
@@ -35,17 +39,19 @@ export type NeedPresentationProps = {
  * The state of the task in one line under its name: a dot in the state's colour, the state, and only a
  * fact that belongs to it ("1 od 2 dogovoreno · potraga traje"). The sentences that explained what
  * happens next ("Sledeće: prijave stižu ovde…") are gone: the screen shows the next step instead of
- * describing it (owner, 2026-09-23: no copy explaining where you are).
+ * describing it (owner, 2026-09-23: no copy explaining where you are). A closed remaining search is said
+ * here, once (it was also a note at the end of the screen), and a task whose search was closed before
+ * every place was agreed never reads "Sva mesta su dogovorena".
  */
 function stateLine(need: PotrebaProjekcija, remainingClosed: boolean): { title: string; detail?: string; tone: 'green' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
+  const closedEarly = remainingClosed && popunjeno < ukupno ? `${popunjeno} od ${ukupno} dogovoreno · preostala potraga je zatvorena` : null;
   switch (need.stanje) {
     case 'NACRT': return { title: STATUS.NACRT, tone: 'muted' };
     case 'OBJAVLJENA': case 'CEKA_PRIJAVE': return { title: STATUS[need.stanje], tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
-      return { title: STATUS.DELIMICNO_POPUNJENA, detail: remainingClosed ? `${popunjeno} od ${ukupno} dogovoreno · preostala potraga je zatvorena`
-        : `${popunjeno} od ${ukupno} dogovoreno · potraga za ostalima traje`, tone: 'green' };
-    case 'POPUNJENA': return { title: STATUS.POPUNJENA, detail: 'Sva mesta su dogovorena', tone: 'green' };
+      return { title: STATUS.DELIMICNO_POPUNJENA, detail: closedEarly ?? `${popunjeno} od ${ukupno} dogovoreno · potraga za ostalima traje`, tone: 'green' };
+    case 'POPUNJENA': return { title: STATUS.POPUNJENA, detail: closedEarly ?? 'Sva mesta su dogovorena', tone: 'green' };
     default: return { title: STATUS.ZATVORENA, tone: 'muted' };
   }
 }
@@ -74,10 +80,12 @@ function applicationsDetail(need: PotrebaProjekcija): { text: string; attention:
 
 /**
  * The owner's own Task, recomposed from zero (owner, 2026-09-23). The owner comes here to see whether the
- * task is live, who applied and what can still be changed, so the screen reads: the name and its state,
- * the applications (the owner's next step), the same four facts a stranger sees, the words, what it
- * needs, photos, the place as others see it, the questions, and at the end everything that changes the
- * task. One footer action: review for a draft, applications once there are any. Only existing
+ * task is live and who applied, so the screen reads: the name and its state, what happened to a command
+ * they sent (only while there is something to say), the applications (the owner's next step), the same
+ * four facts a stranger sees, the words, what it needs, photos, the place as others see it and the
+ * questions. What changes the task is needed rarely, so it waits behind the bar's "···" (owner step 5b,
+ * 2026-09-24): the edit, closing the remaining search, cancelling or deleting, each with its own
+ * confirmation. One footer action: review for a draft, applications once there are any. Only existing
  * controller callbacks act.
  */
 export function NeedPresentation(props: NeedPresentationProps) {
@@ -109,22 +117,36 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const country = need?.taskCountryCode ? countryName(need.taskCountryCode) ?? need.taskCountryCode : null;
   const canEdit = !!need && need.pokrivenost.popunjeno === 0 && !remainingClosed && need.stanje !== 'ZATVORENA';
   const canCloseRemaining = !!need && !remainingClosed && need.pokrivenost.popunjeno > 0 && need.pokrivenost.preostalo > 0;
+  // "Stalno / ponekad / retko" (owner, 2026-09-23): changing the task is rare, so it waits behind "···". Every entry calls
+  // the same callback the screen's own button called, and that callback asks before it acts.
+  const rare: SheetAction[] = usable && need ? [
+    ...(draft ? [{ key: 'edit', label: 'Izmeni nacrt', icon: 'document' as const, onPress: props.onEdit }]
+      : canEdit ? [{ key: 'edit', label: 'Izmeni Zadatak', icon: 'document' as const, onPress: props.onEdit }] : []),
+    ...(canCloseRemaining ? [{ key: 'close-remaining', label: 'Ne traži više nikoga', icon: 'users' as const, destructive: true,
+      hint: `Dogovoreno je ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno}. Zatvara potragu za preostala mesta.`, onPress: props.onCloseRemaining }] : []),
+    ...(props.lifecycleMenu ?? []),
+  ] : [];
+  const menu = useDetailMenu(rare, { disabled: busy });
+  const scrollTitle = useDetailScrollTitle();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader back={props.onBack} />
+    <ProductHeader back={props.onBack} title={need && !loading ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
+      right={menu.button} />
+    {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
+        outcome shown, even while the task loads or cannot be read. */}
     {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
-        {props.lifecycleActions ? <DetailSection title="Upravljanje zadatkom">{props.lifecycleActions}</DetailSection> : null}
+        {props.lifecycleActions}
       </View>
       : error || !need ? <View style={s.state}>
         <View style={card}>
           <T accessibilityRole="header" variant="title" style={s.ink}>Zadatak nije dostupan</T><T variant="copy" tone="muted" style={s.gapTop}>{error ?? 'Pokušaj ponovo.'}</T>
           <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={[brandAction, s.gapTop]} />
         </View>
-        {props.lifecycleActions ? <DetailSection title="Upravljanje zadatkom">{props.lifecycleActions}</DetailSection> : null}
-      </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <View style={s.hero}>
+        {props.lifecycleActions}
+      </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
+        <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <ProductTitle>{readableTitle(need.naslov)}</ProductTitle>
+          <ProductTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</ProductTitle>
           {state ? <View style={s.stateRow} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
             <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
             <T variant="bodyStrong" style={{ color: state.tone === 'green' ? sys.color.green : sys.color.muted }}>{state.title}</T>
@@ -136,6 +158,10 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <T variant="bodyStrong" style={s.warnTitle}>{blocked.title}</T>
           <T variant="note" style={s.ink}>{blocked.detail}</T>
         </View> : null}
+        {/* What happened to a cancel or a delete the owner sent is said where they read first, never inside the "···"
+            they pressed: the check, the command running, its uncertain, confirmed or refused outcome. It draws nothing
+            while there is nothing to say. */}
+        {props.lifecycleActions}
         {!draft && counted ? <DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
           accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
           trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /> : null}
@@ -160,18 +186,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {route.length ? <DetailRoute rows={route} country={country} /> : null}
         </DetailSection> : null}
         {props.qaAction ? <DetailSection>{props.qaAction}</DetailSection> : null}
-        {/* Everything that changes the task, together and last: the edit, closing the remaining search and
-            the lifecycle (cancel, delete a draft), each a quiet action, none of them a card of its own. */}
-        {remainingClosed || draft || canEdit || canCloseRemaining || props.lifecycleActions ? <DetailSection title="Upravljanje zadatkom">
-          {remainingClosed ? <T variant="note" tone="muted">Preostala potraga je zatvorena. Originalni Zadatak i postojeći Dogovori ostaju nepromenjeni.</T> : null}
-          {draft ? <V2Action label="Izmeni nacrt" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.quiet} />
-            : canEdit ? <V2Action label="Izmeni Zadatak" kind="quiet" disabled={busy} onPress={props.onEdit} style={s.quiet} /> : null}
-          {canCloseRemaining ? <View style={s.closeRemaining}>
-            <T variant="note" tone="muted">{`Dogovoreno je ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno}. Ako više niko ne treba, zatvori potragu za preostala mesta.`}</T>
-            <V2Action label="Ne traži više nikoga" kind="quiet" disabled={busy} onPress={props.onCloseRemaining} style={s.quiet} />
-          </View> : null}
-          {props.lifecycleActions}
-        </DetailSection> : null}
+        {/* The "Upravljanje zadatkom" section that ended the screen is gone: its actions are behind "···", a closed
+            remaining search is said in the state line, and the lifecycle's outcomes are shown under the title. */}
       </ScrollView>}
     {/* A published Zadatak nobody has applied to yet has no next step for its owner: the "Pregledaj prijave"
         opened an empty list (phone, 2026-09-23). The applications row still opens the list, so the footer
@@ -180,6 +196,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
       <ProductFooterAction label={primaryLabel} count={applications?.count} accessibilityLabel={applications?.spoken}
         disabled={busy} arrow={!working} onPress={primaryAction} />
     </View> : null}
+    {menu.sheet}
   </SafeAreaView>;
 }
 const s = StyleSheet.create({
@@ -196,7 +213,5 @@ const s = StyleSheet.create({
   privacy: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   countPill: { minWidth: 26, height: 26, borderRadius: sys.radius.pill, paddingHorizontal: 8, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   countText: { color: sys.color.onOrange, letterSpacing: 0, lineHeight: 16 },
-  quiet: { alignSelf: 'flex-start', paddingHorizontal: 0 },
-  closeRemaining: { gap: 4 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
 });
