@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-09-24T19:30:13Z",
-  "grana": "work/uskoci-ui-unification-20260924-poazkl",
-  "head": "b4531ef4",
-  "head_poruka": "ui: one clear reset label, \"Obriši uslove\" (search panel, empty discovery list, Moji zadaci)",
+  "osvezeno": "2026-09-24T20:26:10Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "0db57f50",
+  "head_poruka": "Merge remote-tracking branch 'origin/work/uskoci-ui-unification-20260924' into work/uskoci-ui-unification-20260924",
   "server": {
-   "snimljeno": "2026-09-23T06:51:11Z",
-   "migracije": 201,
-   "dev_alpha": 54,
-   "poslednja": "dev_alpha_pkg050a_agreement_messages_read",
+   "snimljeno": "2026-09-24T20:24:30Z",
+   "migracije": 202,
+   "dev_alpha": 55,
+   "poslednja": "dev_alpha_pkg051a_platform_price_list",
    "sertifikat_ok": true,
    "cron": [
     {
@@ -914,7 +914,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac izabrao ponudu na telefonu → Dogovor f14625e8 CONFIRMED, RESPONSE_SELECTED izvođaču. Dogovor viđen sa strane izvođača na emulatoru.",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): bez veština kao oznaka u ponudi; četiri obavezne rečenice potvrde izbora nepromenjene. ",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): bez veština kao oznaka u ponudi; četiri obavezne rečenice potvrde izbora nepromenjene. 24.09. kasno (PKG-051a PRIMENJENO na DEV, ledger 202, proof 36053060680 17/17, sertifikat cc248ff1 nepomeren): serverski cenovnik za Povezivanje — CONNECTION v1 = 0 RSD, plaća REQUESTER, po osobi (HEADCOUNT), isto kao besplatna politika REQUESTER_SELECTION_V1 koju rpc_select_response i dalje jedina čita; ništa ne naplaćuje i ništa ne prikazuje; naplata isključena. Buduće cene = nove verzije, nikad izmena stare.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1192,7 +1192,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Preview i aktivacija HITNO postoje, ali trenutna politika na DEV-u je isključena i nema dozvoljenih kategorija. Nije dovoljno dodati dugme.",
-   "sledece": "Tvoja zasebna odluka o politici/kategorijama, zatim dokaz i ekran pregleda sa istekom i uslovima. Audit F09/D4.",
+   "sledece": "Tvoja zasebna odluka o politici/kategorijama, zatim dokaz i ekran pregleda sa istekom i uslovima. Audit F09/D4. 24.09. (PKG-051a PRIMENJENO na DEV, ledger 202, uz tvoju reč „primeni pkg051a“): cenovnik na serveru sada ima URGENT_BOOST v1 = 0 RSD kao zapis; naplata je isključena (prekidač fail-closed), HITNO politika i chargesFee=false nepromenjeni, ništa u aplikaciji. Nova cena = nova verzija kroz private.platform_price_add_version (samo vlasnik baze, SQL editor), uputstvo u pkg051/PKG051_PLATFORM_PRICE_LIST.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5623,5 +5623,102 @@
   ]
  ],
  "test_dva_telefona_izvrseno": {},
- "ci": null
+ "ci": [
+  {
+   "id": 36053060680,
+   "ime": "PKG-051 platform price list proof",
+   "sha": "0db57f50",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T20:10:21Z"
+  },
+  {
+   "id": 36039980994,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:15:35Z"
+  },
+  {
+   "id": 36038741182,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:47Z"
+  },
+  {
+   "id": 36038738587,
+   "ime": "PKG-046 media upload cancellation proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:46Z"
+  },
+  {
+   "id": 36038735966,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:44Z"
+  },
+  {
+   "id": 36038733191,
+   "ime": "PKG-010 system contracts proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:43Z"
+  },
+  {
+   "id": 36038730320,
+   "ime": "PKG-008 task photo recovery proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:41Z"
+  },
+  {
+   "id": 36038727516,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:40Z"
+  },
+  {
+   "id": 36038724509,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:38Z"
+  },
+  {
+   "id": 36038721320,
+   "ime": "PKG-005 Worker onboarding proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:36Z"
+  },
+  {
+   "id": 36038717500,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:35Z"
+  },
+  {
+   "id": 36038648243,
+   "ime": "Build Android development APK",
+   "sha": "b4531ef4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T18:04:00Z"
+  }
+ ]
 }

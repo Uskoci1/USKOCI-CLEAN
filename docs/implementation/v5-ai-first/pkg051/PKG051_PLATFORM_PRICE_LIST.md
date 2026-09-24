@@ -1,15 +1,18 @@
 # PKG-051 — platform price list (cenovnik) for Povezivanje and HITNO, every price 0 RSD, server only
 
-**Status: written and reviewed, proof pending, NOT applied.** Candidate
+**Status: proven and APPLIED to canonical DEV (2026-09-24).** Candidate
 `supabase/candidates/pkg051a_platform_price_list.sql` (trimmed sha256
 `a002058da58bc2b2beb7fbd2b3fef84096263fd701e1d94a9539f4a83faeabf3`, 40 118 characters, LF). Proof
-`supabase/proofs/pkg051/pkg051_proof.mjs`, run by `.github/workflows/pkg051-platform-price-list-proof.yml`; no run yet.
-Function-only plus four data rows: the certified closure digest (`cc248ff1…` on DEV) must **not** move, and the
-candidate asserts that before and after. Nothing is applied to DEV. It may be applied once the proof is green: the
-owner said **"primeni pkg051a"** on 2026-09-24, after the package was described to him in plain words (a price list at
-0 din, a new price as a new version, a lock against any price above 0), and the two package-level questions (storage
-in `private.marketplace_config`, the seed moment) are settled below as design-lead decisions, not owner gates.
-Owner request 2026-09-24. No control row exists for payments yet; HITNO is A16.
+`supabase/proofs/pkg051/pkg051_proof.mjs`, run by `.github/workflows/pkg051-platform-price-list-proof.yml`: run
+**36053060680** on `0db57f50`, **17/17** (`PROOF_36053060680.json`). Applied as
+`20260924202023 dev_alpha_pkg051a_platform_price_list`; canonical DEV ledger is now **202 = 147 + 55 dev_alpha**; the
+stored text sha256 equals the file's trimmed sha256; the certified closure digest `cc248ff1…` is unchanged in all three
+places and `retention_ai_source_ready()` is true (receipt
+`supabase/operations/dev-alpha/ledger/20260924_pkg051a_application.receipt.json`). The owner said **"primeni pkg051a"**
+on 2026-09-24, after the package was described to him in plain words (a price list at 0 din, a new price as a new
+version, a lock against any price above 0); the two package-level questions (storage in `private.marketplace_config`,
+the seed moment) were settled as design-lead decisions, not owner gates (see "Open decisions"). Owner request
+2026-09-24. No control row exists for payments yet; HITNO is A16.
 
 | Function | Body md5 |
 | --- | --- |

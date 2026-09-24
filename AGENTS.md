@@ -26,6 +26,26 @@ now, remove "Trenutna lokacija", rating comment server package, no place checkbo
 `docs/implementation/design-system/r6-sweep/FINDINGS.json`. Payments/price list (PKG-051) belong to the owner's local session.
 The owner's Serbian summary of the day: `docs/implementation/design-system/IZVESTAJ_20260924_OBLAK.md`.
 
+PKG-051a (2026-09-24, proven and **applied** on the owner's "primeni pkg051a"): a versioned platform price list
+(cenovnik) for Povezivanje (`CONNECTION`) and HITNO (`URGENT_BOOST`), every price **0 RSD**, server only. Canonical DEV
+ledger is now **202 = 147 + 55 dev_alpha** (`20260924202023 dev_alpha_pkg051a_platform_price_list`); the certified closure
+digest `cc248ff1…` is unchanged in all three places and asserted before and after. Storage: four data rows under new keys in
+`private.marketplace_config` (`platform_price:<PRODUCT>:000001`, `platform_price_head`, `platform_payments` = off) — a
+design-lead decision, because a new private table would move the certificate; the table's DDL, ACL, RLS and three existing
+rows are pinned unchanged. Five `private` functions, SECURITY INVOKER, `search_path=pg_catalog`, executable ONLY by the
+database owner (`{postgres=X/postgres}`; anon/authenticated/service_role refused, PostgREST cannot see them):
+`platform_payments_enabled()` (kill switch: on only with the exact enabled row AND an existing `private.platform_charges`,
+which no package creates), `platform_price_canonical(…)`, `platform_price_versions()` (integrity: self-hash, chain,
+times, head; fails closed with `PRICE_LIST_INTEGRITY_FAILED`), `platform_price_list_at(timestamptz)` (current/next per
+product; never serves a price above 0 while payments are off) and `platform_price_add_version(…)` (the only writer;
+append-only; refuses any amount > 0 with `PLATFORM_PAYMENTS_DISABLED` while payments are off; a 0 version can always be
+appended). **Nothing reads the list yet**: no app screen, no charge, no quote; the free Povezivanje ledger alone governs
+every Agreement; P1–P12 stay open. Proof `36053060680` 17/17 on `0db57f50`; receipt
+`supabase/operations/dev-alpha/ledger/20260924_pkg051a_application.receipt.json`; contract with the owner's 3-step
+Serbian how-to `docs/implementation/v5-ai-first/pkg051/PKG051_PLATFORM_PRICE_LIST.md`. Same day: the owner's Codex app was
+found running `npm ci` inside this session's worktree (`.claude/worktrees/uskoci-kompletan-audit-2e715e`), which gutted
+`node_modules` mid-Jest; one agent per checkout.
+
 CLOUD HANDOFF (2026-09-24, owner: continue in the cloud to use the cloud session credits): read
 `docs/implementation/design-system/cloud-handoff/README.md` first. It carries the working rules copied from the local
 agent memory (`cloud-handoff/rules/`), where rounds 1-5 stand (steps 1-11 built and emulator-checked; receipts in
