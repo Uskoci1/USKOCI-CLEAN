@@ -1,28 +1,33 @@
 import { useState, type ComponentProps, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useReducedMotion } from '../system/motion';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { StateView } from '../system/StateView';
 import { brandAction, sys, card, cardCompact, fieldBox } from '../system/tokens';
+import { ProductSheet } from '../product/ProductSheet';
 import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T as BaseText } from '../Text';
 import { civilClock, civilDay, deviceDate, deviceTime } from './calendarPresentation';
 import { FactArt } from '../system/FactArt';
 
-/** Calendar surfaces on the shared system: ground, white cards, green as orientation and as the one brand action. */
+/**
+ * Calendar surfaces on the shared system: a white ground, white cards drawn by their edge, green as orientation and as
+ * the one brand action. No tinted note boxes (critique B18): a note is a line of quiet text.
+ */
 export const calendarStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
-  icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
+  /** A 48 px icon command: every command is at least 48 (the old 44 was under it). */
+  icon: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   card: { ...card, gap: 12 }, item: { ...cardCompact, gap: 8 },
-  note: { padding: 16, gap: 8, borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
   // A choice is an option row, not a card: the same control the price filter uses.
   option: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
-  footer: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 12, gap: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
   divider: { height: 1, backgroundColor: sys.color.line },
 });
 
@@ -41,13 +46,15 @@ export function CalendarAction({ kind = 'primary', full: _full, style, ...props 
   return <V2Action {...props} kind={kind === 'primary' ? 'secondary' : kind}
     style={[kind === 'primary' && brandAction, style]} />;
 }
-const Button = CalendarAction;
 
+/**
+ * The frame of the availability screen: the top bar, the keyboard, and either the content or, on the first read with
+ * nothing yet to show, the shared loading placeholders.
+ */
 export function CalendarScreen({ title, back, children, loading = false, scroll = true, footer }: {
   title: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
 }) {
-  const body = loading ? <View style={calendarStyles.note} accessibilityLabel="Učitavanje dostupnosti" accessibilityRole="progressbar">
-    <ActivityIndicator color={sys.color.green} /><T>Učitavamo sačuvanu dostupnost…</T></View> : children;
+  const body = loading ? <StateView kind="loading" title="Učitavamo sačuvanu dostupnost…" skeleton={{ count: 3, rows: 1 }} /> : children;
   return <SafeAreaView edges={['top', 'bottom']} style={calendarStyles.screen}>
     <DetailTopBar title={title} onBack={back} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -83,9 +90,10 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
   };
   // SDK57 Material date picker returns the selected civil date at UTC midnight.
   // Its time picker returns local Calendar time; the two must not share extraction.
-  const accept = (date: Date) => { onChange(mode === 'date'
+  const civil = (date: Date) => mode === 'date'
     ? Platform.OS === 'android' ? date.toISOString().slice(0, 10) : deviceDate(date)
-    : deviceTime(date)); setOpen(false); };
+    : deviceTime(date);
+  const accept = (date: Date) => { onChange(civil(date)); setOpen(false); };
   if (Platform.OS === 'web') return <CalendarField label={label} value={value} onChange={onChange}
     disabled={disabled} placeholder={mode === 'date' ? 'GGGG-MM-DD' : 'HH:MM'} maxLength={mode === 'date' ? 10 : 15} />;
   // The stored civil value stays exact; a person reads "23. sep" and "16:00" (one time format, 2026-09-23), and the
@@ -100,22 +108,15 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
     {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour
       onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}
       positiveButton={{ label: 'Izaberi' }} negativeButton={{ label: 'Odustani' }} accentColor={sys.color.green} /> : null}
-    {open && Platform.OS === 'ios' ? <Modal visible transparent animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setOpen(false)}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim }}>
-        <SafeAreaView style={[calendarStyles.card, { borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet }]}><T variant="heading">{label}</T>
-          <DateTimePicker mode={mode} display="spinner" value={selection} locale="sr_Latn_RS"
-            onValueChange={(_, date) => setSelection(date)} accentColor={sys.color.green} />
-          <Button label="Izaberi" onPress={() => accept(selection)} full />
-          <Button label="Odustani" kind="quiet" onPress={() => setOpen(false)} full />
-        </SafeAreaView>
-      </View>
-    </Modal> : null}
+    {/* iOS: the spinner in the one sheet engine (the hand-made slide Modal was one of the nine Modals of the master
+        plan). Turning the wheel only moves the selection; "Izaberi" accepts it, anything else leaves the value as it was. */}
+    {open && Platform.OS === 'ios' ? <ProductSheet title={label} closeButton={false} reduced={reduced} onClose={() => setOpen(false)}
+      footer={dismiss => <>
+        <V2Action label="Izaberi" style={brandAction} onPress={() => { onChange(civil(selection)); dismiss(); }} />
+        <V2Action label="Odustani" kind="quiet" onPress={dismiss} />
+      </>}>
+      {() => <DateTimePicker mode={mode} display="spinner" value={selection} locale="sr_Latn_RS"
+        onValueChange={(_, date) => setSelection(date)} accentColor={sys.color.green} />}
+    </ProductSheet> : null}
   </View>;
-}
-
-export function EditorSheet({ title, close, children, footer }: { title: string; close: () => void; children: ReactNode; footer?: ReactNode }) {
-  const reduced = useReducedMotion();
-  return <Modal visible animationType={reduced ? 'none' : 'slide'} onRequestClose={close} presentationStyle="pageSheet">
-    <CalendarScreen title={title} back={close} footer={footer}>{children}</CalendarScreen>
-  </Modal>;
 }

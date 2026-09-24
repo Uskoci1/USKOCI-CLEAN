@@ -17,6 +17,7 @@ jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReduce
 // Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReducedMotion }));
 import { CivilField } from '../../ui/calendar/CalendarControls';
+import { ProductSheet } from '../../ui/product/ProductSheet';
 
 let tree: ReactTestRenderer;
 const picker = () => tree.root.findByType('DateTimePicker' as React.ElementType);
@@ -48,7 +49,9 @@ describe('SDK57 native civil-field adapter', () => {
     const onChange = jest.fn();
     await act(async () => { tree = create(<CivilField label="Vreme" mode="time" value="09:00" onChange={onChange} />); });
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Vreme' }).props.onPress());
-    expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe(reduced ? 'none' : 'slide');
+    // The iOS spinner is in the one sheet engine since owner step 10 (2026-09-24), not a hand-made slide Modal: the sheet
+    // is told the reduced-motion setting and moves (or not) itself.
+    expect(tree.root.findByType(ProductSheet).props.reduced).toBe(reduced);
     const selected = new Date('2026-09-12T00:00:00Z'); selected.getHours = () => 17; selected.getMinutes = () => 45;
     await act(async () => picker().props.onValueChange({}, selected));
     expect(onChange).not.toHaveBeenCalled();

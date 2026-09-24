@@ -19,7 +19,9 @@ jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTi
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() } }));
+// The screen asks before unsaved changes are dropped, and hears the hardware Back while it has focus (owner step 10).
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, []) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: 'owned-account' }, accountRevision: 0 }) }));
 jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: jest.fn() } }));

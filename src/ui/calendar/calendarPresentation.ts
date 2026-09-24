@@ -90,3 +90,39 @@ export const weekdays = [
   { day: 5, short: 'Pet', name: 'Petak' }, { day: 6, short: 'Sub', name: 'Subota' },
   { day: 0, short: 'Ned', name: 'Nedelja' },
 ] as const;
+
+/** The weekday of a civil date, as the week list names it (0 = Sunday, as `weekdays` counts). */
+export function weekdayOf(day: string) {
+  const index = new Date(`${day}T12:00:00Z`).getUTCDay();
+  return weekdays.find(item => item.day === index) ?? weekdays[0];
+}
+/**
+ * The heading of one day of the calendar: "Četvrtak, 24. sep", the year only when it is not the current one
+ * ("Utorak, 5. jan 2027"). Round-1 critique A16: "Dogovoreno za 24. sep" did not say which weekday it was.
+ */
+export function dayHeading(day: string, now = new Date()): string {
+  return `${weekdayOf(day).name}, ${civilDay(day, now)}`;
+}
+/**
+ * A week as one short label: "22–28. sep" inside one month, "29. sep – 5. okt" across two, and the year only when it
+ * is not the current one ("22–28. sep 2027"); a week across the new year names both years ("28. dec 2026 – 3. jan 2027").
+ * The old "21. sep–27. sep" said the month twice and pushed the week's arrows onto a second line at 320 dp.
+ */
+export function weekLabel(days: readonly string[], now = new Date()): string {
+  const first = days[0], last = days[days.length - 1];
+  if (!first || !last) return '';
+  const current = deviceDate(now).slice(0, 4);
+  const [firstYear, lastYear] = [first.slice(0, 4), last.slice(0, 4)];
+  if (firstYear !== lastYear) return `${displayDate(first)} ${firstYear} – ${displayDate(last)} ${lastYear}`;
+  const year = lastYear === current ? '' : ` ${lastYear}`;
+  if (first.slice(0, 7) === last.slice(0, 7)) return `${Number(first.slice(8, 10))}–${displayDate(last)}${year}`;
+  return `${displayDate(first)} – ${displayDate(last)}${year}`;
+}
+/**
+ * Whether a schedule's zone needs saying (round-1 critique A19): not on a phone in Serbian time with a schedule kept in
+ * Serbian time, where "Po vremenu u Srbiji" said nothing; always when either of them is elsewhere, or the phone does
+ * not say. The phone's zone is passed in (lib/vreme's zonaTelefona), since lib/vreme already reads this file.
+ */
+export function showScheduleZone(timezone: string, phoneZone: string | undefined): boolean {
+  return timezone !== 'Europe/Belgrade' || phoneZone !== 'Europe/Belgrade';
+}

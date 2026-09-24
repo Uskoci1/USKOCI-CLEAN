@@ -1,13 +1,15 @@
-import { useCallback } from 'react';
-import { View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { BackHandler, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { workerAvailabilityClientService } from '../../../data/workerAvailabilityClientService';
 import { ownProfileClientService } from '../../../data/ownProfileClientService';
 import { useSesija } from '../../../store/sesija';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
-import { CalendarAction as Button, CalendarText as T, CalendarScreen, calendarStyles } from '../../../ui/calendar/CalendarControls';
+import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
+import { StateView } from '../../../ui/system/StateView';
 
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
 function OwnedAvailability() {
@@ -24,19 +26,41 @@ function OwnedAvailability() {
   // A refresh keeps the loaded week on screen under the pull spinner instead of swapping the whole form for a
   // loading card; only the first read, with nothing yet to show, is a loading screen.
   const refreshing = editor.loading && !!editor.data;
-  return <CalendarScreen title="Dostupnost za rad" back={back} loading={editor.loading && !editor.data} scroll={false}>
-    {editor.error ? <View style={[calendarStyles.note, { marginHorizontal: 20, marginTop: 12 }]}><T accessibilityRole="alert" tone="danger">{editor.error}</T>
-      <Button label="Učitaj sačuvano stanje" kind="secondary" disabled={editor.busy} onPress={() => void editor.refresh()} />
-    </View> : null}
-    {editor.saved ? <T accessibilityRole="alert" tone="success" style={{ paddingHorizontal: 20, paddingVertical: 8 }}>Dostupnost je sačuvana.</T> : null}
-    {/* Pull to refresh replaced a standing "Osveži dostupnost" button under the form (plan step 0, 2026-09-23);
-        it calls the same read. */}
+  // Unsaved changes are asked about before they are dropped (critique A17): Back used to throw every edit away. While a
+  // save runs there is nothing to ask; the editor settles the write whether the screen stays or not.
+  const [dirty, setDirty] = useState(false);
+  const confirm = useConfirmSheet();
+  const leave = () => {
+    if (dirty && !editor.busy) confirm.ask({ title: 'Odbaciti izmene?', message: 'Unete izmene neće biti sačuvane.',
+      confirmLabel: 'Odbaci izmene', cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: back });
+    else back();
+  };
+  // The (app) navigator is Tabs with a history back behaviour, so a screen being removed is never announced there: the
+  // hardware Back is heard directly while this screen has focus. An open sheet's own Modal takes Back before this does.
+  const latest = useRef({ dirty, busy: editor.busy, leave }); latest.current = { dirty, busy: editor.busy, leave };
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!latest.current.dirty || latest.current.busy) return false;
+      latest.current.leave();
+      return true;
+    });
+    return () => subscription.remove();
+  }, []));
+  return <CalendarScreen title="Dostupnost za rad" back={leave} loading={editor.loading && !editor.data} scroll={false}>
     {editor.data ? <AvailabilityForm key={`${editor.data.accountId}:${editor.data.revision}`} availability={editor.data}
-      profileDraft={profileDraft} busy={editor.busy} uncertain={editor.uncertain}
+      profileDraft={profileDraft} busy={editor.busy} uncertain={editor.uncertain} problem={editor.error} saved={editor.saved}
+      onDirtyChange={setDirty} onReconcile={() => void editor.refresh()}
+      // Pull to refresh replaced a standing "Osveži dostupnost" button under the form (plan step 0, 2026-09-23); it calls
+      // the same read.
       refreshing={refreshing} onRefresh={() => { if (!editor.busy) void editor.refresh(); }} onSave={value => void editor.save(async () => {
         const result = await workerAvailabilityClientService.save({ expectedRevision: editor.data!.revision, value });
         return result.ok ? { ok: true, podatak: result.podatak.availability } : result;
-      })} /> : null}
+      })} />
+      : editor.error ? <View style={{ paddingHorizontal: 20 }}>
+        <StateView kind="error" art="clock" title="Dostupnost nije učitana." body={editor.error}
+          primary={{ label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />
+      </View> : null}
+    {confirm.sheet}
   </CalendarScreen>;
 }
 /** When a person can work is theirs to set whenever they like; it used to be reachable in one mode only. */

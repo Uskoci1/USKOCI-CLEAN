@@ -1,4 +1,4 @@
-import { civilClock, civilDay, scheduleZone } from '../calendarPresentation';
+import { civilClock, civilDay, dayHeading, scheduleZone, showScheduleZone, weekDates, weekLabel } from '../calendarPresentation';
 
 // Fixed expectations for the civil forms Dostupnost shows (review of plan step 0, 2026-09-24). The screen tests build
 // their expected text with these same functions, so a fault in them would pass there; it cannot pass here.
@@ -34,5 +34,37 @@ describe('scheduleZone', () => {
   });
   it('keeps any other zone by its name', () => {
     expect(scheduleZone('Asia/Kathmandu')).toBe('Vremenska zona: Asia/Kathmandu');
+  });
+});
+
+// Owner step 10 (2026-09-24, critique A16/A19): the day's heading names its weekday, the week says its month once, and the
+// schedule's zone is said only where it is not already Serbian time on both sides.
+describe('dayHeading', () => {
+  it('names the weekday before the day', () => {
+    expect(dayHeading('2026-09-24', now)).toBe('Četvrtak, 24. sep');
+    expect(dayHeading('2027-01-05', now)).toBe('Utorak, 5. jan 2027');
+    expect(dayHeading('2026-09-27', now)).toBe('Nedelja, 27. sep');
+  });
+});
+
+describe('weekLabel', () => {
+  it('says the month once inside one month', () => {
+    expect(weekLabel(weekDates('2026-09-24'), now)).toBe('21–27. sep');
+  });
+  it('names both months across two', () => {
+    expect(weekLabel(weekDates('2026-09-30'), now)).toBe('28. sep – 4. okt');
+  });
+  it('adds the year only when it is not the current one, and both across the new year', () => {
+    expect(weekLabel(weekDates('2027-03-10'), now)).toBe('8–14. mar 2027');
+    expect(weekLabel(weekDates('2026-12-30'), now)).toBe('28. dec 2026 – 3. jan 2027');
+  });
+});
+
+describe('showScheduleZone', () => {
+  it('stays quiet only for a Serbian schedule on a phone in Serbian time', () => {
+    expect(showScheduleZone('Europe/Belgrade', 'Europe/Belgrade')).toBe(false);
+    expect(showScheduleZone('Europe/Belgrade', 'Europe/Vienna')).toBe(true);
+    expect(showScheduleZone('Asia/Kathmandu', 'Europe/Belgrade')).toBe(true);
+    expect(showScheduleZone('Europe/Belgrade', undefined)).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
-import { civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
+import { civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates, zonedParts } from '../../ui/calendar/calendarPresentation';
 
 let mockFontScale = 1;
 jest.mock('react-native', () => {
@@ -24,10 +24,16 @@ let mockIntent = 'uskocer';
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
 jest.mock('../workerCalendarClientService', () => ({ workerCalendarClientService: { readRange: jest.fn() } }));
 jest.mock('../agreementClientService', () => ({ agreementClientService: { mojiDogovori: jest.fn() } }));
-jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: (read: () => unknown) => ({ data: read(), loading: false, error: false, refresh: jest.fn() }) }));
+// A read that throws is the resource's error state; one that answers null has not settled yet (owner step 10: the
+// calendar says a day is empty only when both of its reads have settled).
+jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: (read: () => unknown) => {
+  try { return { data: read(), loading: false, error: false, refreshing: false, refresh: jest.fn() }; }
+  catch { return { data: null, loading: false, error: true, refreshing: false, refresh: jest.fn() }; }
+} }));
 
 import { AvailabilityForm } from '../../ui/calendar/AvailabilityForm';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { sys } from '../../ui/system/tokens';
 import Raspored from '../../app/(app)/raspored';
 import { workerCalendarClientService } from '../workerCalendarClientService';
 import { agreementClientService } from '../agreementClientService';
@@ -66,14 +72,15 @@ describe('actual availability editor interactions', () => {
   it('saves Available Now only with explicit Save and preserves existing owned data', async () => {
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };
     const onSave = await render(jest.fn(), loaded);
-    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    // Updated deliberately (owner step 10, critique A17): Save exists only while something has changed, and what the
+    // status means is its hint from the start instead of a disclosure under it.
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
+    expect(button('O statusu Mogu odmah')).toBeUndefined();
+    expect(text()).toContain('Ne uključuje HITNO');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: loaded.rules, windows: [] });
-    expect(text()).not.toContain('Ne uključuje HITNO');
-    await press('O statusu Mogu odmah');
-    expect(text()).toContain('Ne uključuje HITNO');
   });
 
   it('reveals one day at a time without changing a shared weekly rule or saving', async () => {
@@ -90,7 +97,8 @@ describe('actual availability editor interactions', () => {
     expect(button('Prikaži termine — Sreda').props.accessibilityState.expanded).toBe(true);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00' })).toHaveLength(0);
     expect(button('Uredi Sreda 09:00')).toBeTruthy();
-    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    // Opening days changes nothing, so there is nothing to save (owner step 10: no footer on a clean form).
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(onSave).not.toHaveBeenCalled();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await press('Sačuvaj dostupnost');
@@ -125,7 +133,10 @@ describe('actual availability editor interactions', () => {
   it('splits explicit overnight input into adjacent canonical rules with shifted dates', async () => {
     const onSave = await render();
     await press('Dodaj — Ponedeljak');
-    await edit('Početak termina', '22:00'); await edit('Kraj termina', '02:00'); await edit('Važi od', '2026-09-14');
+    // The start date is a rare setting since owner step 10: it waits behind "Više podešavanja".
+    await edit('Početak termina', '22:00'); await edit('Kraj termina', '02:00');
+    await act(async () => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Više podešavanja')[0].props.onPress());
+    await edit('Važi od', '2026-09-14');
     await press('Primeni termin');
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
@@ -140,7 +151,9 @@ describe('actual availability editor interactions', () => {
     await press('Dodaj — Ponedeljak'); await edit('Početak termina', '17:00:00'); await edit('Kraj termina', '17:00');
     await press('Primeni termin');
     expect(text()).toContain('različito vreme');
-    await press('Odustani od termina'); await press('Sačuvaj dostupnost');
+    await press('Odustani od termina');
+    // Nothing reached the draft, so there is no Save to press (owner step 10).
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -159,13 +172,15 @@ describe('actual availability editor interactions', () => {
     await edit('Početni datum izuzetka', date); await edit('Početak izuzetka', '02:30');
     await edit('Završni datum izuzetka', date); await edit('Kraj izuzetka', '04:00');
     await press('Primeni izuzetak'); expect(text()).toContain(message);
-    await press('Odustani od izuzetka'); await press('Sačuvaj dostupnost'); expect(onSave).not.toHaveBeenCalled();
+    await press('Odustani od izuzetka');
+    expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(onSave).not.toHaveBeenCalled();
   });
 
   it('keeps exact historical fractional instants when only an exception label changes', async () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: '2026-10-25T00:30:00.123456Z', endsAt: '2026-10-25T02:30:00.654321Z', state: 'UNAVAILABLE' as const, label: 'Staro' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    // The special dates are always listed since owner step 10; there is no toggle to open first.
+    await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0].windows).toEqual([{ ...loaded.windows[0], label: 'Novo' }]);
   });
 
@@ -182,7 +197,7 @@ describe('actual availability editor interactions', () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: item.startsAt, endsAt: item.endsAt,
       state: 'UNAVAILABLE' as const, label: 'Sačuvan izuzetak' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press('Prikaži posebne datume'); await press(`Uredi izuzetak ${civilDay(item.date)}`);
+    await press(`Uredi izuzetak ${civilDay(item.date)}`);
     await edit(item.field, item.time);
     await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ windows: [{ ...loaded.windows[0],
@@ -193,8 +208,15 @@ describe('actual availability editor interactions', () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await act(async () => tree.update(<AvailabilityForm availability={loaded} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    const label = state === 'busy' ? 'Čuvamo unos…' : 'Sačuvaj dostupnost';
+    // Updated deliberately (owner step 10): a saving button keeps its words and shows that it works (V2Action loading),
+    // instead of swapping its label for "Čuvamo unos…".
+    const label = 'Sačuvaj dostupnost';
     expect(button(label).props.disabled).toBe(true);
+    if (state === 'busy') {
+      expect(button(label).props.loading).toBe(true);
+      expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === label)[0]
+        .props.accessibilityState).toEqual({ disabled: true, busy: true });
+    } else expect(button(label).props.reason).toBe('Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.');
     await press(label); expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -203,16 +225,70 @@ describe('actual availability editor interactions', () => {
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
     await press('Odustani od izmena');
     expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(false);
-    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true); expect(onSave).not.toHaveBeenCalled();
+    expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(onSave).not.toHaveBeenCalled();
   });
+  // Updated deliberately (owner step 10): a change that is undone is no change now, so the old on-then-off path had nothing
+  // to save. The intent is kept: an equal receipt at the same revision ends the edit.
   it('accepted idempotent receipt clears dirty edits even if revision is unchanged', async () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(false));
     await press('Sačuvaj dostupnost');
-    await act(async () => tree.update(<AvailabilityForm availability={{ ...loaded }} busy={false} uncertain={false} onSave={onSave} />));
-    expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<AvailabilityForm availability={{ ...loaded, availableNow: true }} busy={false} uncertain={false} onSave={onSave} />));
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(text()).not.toContain('nesačuvane');
+  });
+
+  it('shows the footer only while something has changed, and takes it away when the change is undone', async () => {
+    await render();
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    expect(button('Sačuvaj dostupnost')).toBeTruthy(); expect(text()).toContain('Imaš nesačuvane izmene.');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(false));
+    expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(text()).not.toContain('Imaš nesačuvane izmene.');
+  });
+
+  it('draws the switch with a white thumb in both states (B19: not the platform teal)', async () => {
+    await render();
+    const toggle = tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' });
+    expect(toggle.props.thumbColor).toBe(sys.color.surface);
+    expect(toggle.props.trackColor).toEqual({ true: sys.color.green, false: sys.color.lineStrong });
+  });
+
+  it('tells the screen whether there are unsaved changes, and false when it goes away', async () => {
+    const onDirtyChange = jest.fn();
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} onDirtyChange={onDirtyChange} />); });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    await act(async () => tree.unmount());
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    await act(async () => { tree = create(<></>); });
+  });
+
+  it('says a confirmed save in the footer, and only when the screen says it was confirmed', async () => {
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} />); });
+    expect(text()).not.toContain('Dostupnost je sačuvana.');
+    await act(async () => tree.update(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} saved />));
+    expect(text()).toContain('Dostupnost je sačuvana.');
+  });
+
+  it('after an unconfirmed outcome offers only reading the saved state, with the reason', async () => {
+    const onReconcile = jest.fn(), onSave = jest.fn();
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain onSave={onSave}
+      problem="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." onReconcile={onReconcile} />); });
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
+    expect(text()).toContain('Čuvanje nije potvrđeno.');
+    await press('Učitaj sačuvano stanje');
+    expect(onReconcile).toHaveBeenCalledTimes(1); expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('shows a failed read above the form as one line, and keeps the form', async () => {
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()}
+      problem="Podaci nisu učitani. Proveri vezu i pokušaj ponovo." />); });
+    const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert');
+    expect(alert.map(node => node.props.children)).toContain('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' })).toBeTruthy();
   });
 });
 
@@ -226,10 +302,11 @@ describe('actual agenda screen', () => {
     await act(async () => { tree = create(<Raspored />); });
     const [from, to] = (workerCalendarClientService.readRange as jest.Mock).mock.calls[0];
     expect(Date.parse(to)).toBeGreaterThan(Date.parse(from));
-    expect(text()).toContain('Nema potvrđenih tačnih termina');
-    // Updated deliberately (review of plan step 0, 2026-09-24): the empty day says its scope, since this screen lists
-    // only the work I do, and still points to Dogovori for my own tasks and for flexible terms.
-    expect(text()).toContain('Dogovori za tvoje zadatke i fleksibilni termini su u Dogovorima.');
+    // Updated deliberately (owner step 10, critique A15/B18): the calendar places both sides now, so an empty day is one
+    // quiet line; the scope disclaimer and the button that repeated Back are gone.
+    expect(text()).toContain('Nema zakazanih Dogovora.');
+    expect(text()).not.toContain('Dogovori za tvoje zadatke i fleksibilni termini su u Dogovorima.');
+    expect(button('Otvori sve Dogovore')).toBeUndefined();
     // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The editor used to
     // be withheld from a person standing in the other app mode.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(1);
@@ -238,7 +315,7 @@ describe('actual agenda screen', () => {
     (workerCalendarClientService.readRange as jest.Mock).mockReturnValue({ ok: false, poruka: 'Kalendar nije učitan.' });
     await act(async () => { tree = create(<Raspored />); });
     expect(text()).toContain('Kalendar nije učitan.');
-    expect(text()).not.toContain('Nema potvrđenih tačnih termina');
+    expect(text()).not.toContain('Nema zakazanih Dogovora');
     expect(button('Pokušaj ponovo')).toBeTruthy();
   });
   it.each([{ scale: 2, fraction: '.000', layout: 'column' }, { scale: 1, fraction: '.123456', layout: 'row' }])('writes the window to the minute, with the rail only at a normal font (scale $scale, precision $fraction)', async ({ scale, fraction, layout }) => {
@@ -250,7 +327,12 @@ describe('actual agenda screen', () => {
       eventId: 'event-1', agreementId: 'agreement-1', agreementVersion: 2, startsAt, endsAt, agreementStatus: 'CONFIRMED', source: 'AGREEMENT',
     }] } }));
     await act(async () => { tree = create(<Raspored />); });
-    expect(text().replace(/\s+/g, ' ')).toContain(`${displayDate(day)} · ${displayTime(startsAt)}–${displayTime(endsAt)}`);
+    // Updated deliberately (owner step 10): an agreed term reads in Serbian time everywhere (rule 8.27), and the heading
+    // already names the day, so the row carries the clocks alone.
+    const serbian = (instant: string) => zonedParts(new Date(instant), 'Europe/Belgrade').time.slice(0, 5);
+    expect(text()).toContain(serbian(startsAt)); expect(text()).toContain(serbian(endsAt));
+    if (layout === 'column') expect(text()).toContain(`${serbian(startsAt)}–${serbian(endsAt)}`);
+    expect(text()).not.toContain(`${displayDate(day)} · ${displayTime(startsAt)}`);
     expect(text()).not.toContain('.123456');
     expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBe(layout);
   });
@@ -263,7 +345,8 @@ describe('actual agenda screen', () => {
     }] } }));
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([{ id: 'agreement-1', verzija: 1, stanje: 'CONFIRMED', naslov: 'Stari naslov', cena: { prikaz: '999 RSD' } }]);
     await act(async () => { tree = create(<Raspored />); });
-    expect(text()).toContain('09:15'); expect(text()).toContain('10:45');
+    // In Serbian time (owner rule 8.27); Jest runs in UTC, so 09:15Z reads 11:15.
+    expect(text()).toContain('11:15'); expect(text()).toContain('12:45');
     // "Potvrđena satnica" under every row is gone (2026-09-23): every row on this screen is a confirmed term.
     expect(text()).not.toContain('Potvrđena satnica'); expect(text()).toContain('Potvrđen Dogovor');
     expect(text()).not.toContain('999'); expect(text()).not.toContain('Stari naslov');
@@ -295,6 +378,92 @@ describe('actual agenda screen', () => {
     await act(async () => { tree = create(<Raspored />); });
     expect(text()).toContain('Selidba'); expect(text()).toContain('Iznos nije sačuvan'); expect(text()).not.toContain('0 RSD');
   });
+
+  // Owner step 10 (critique A15): the calendar missed my own tasks and every finished Dogovor. The R1 capture showed an
+  // empty 24 Sep while "Pomoć oko krečenja stana" (24. sep 12:00–19:00, finished) existed.
+  const mine = (id: string, patch: Record<string, unknown>) => ({ id, verzija: 1, stanje: 'CONFIRMED', naslov: 'Pomoć oko krečenja stana',
+    cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, putanjaTekst: 'Liman, Novi Sad', rezim: 'FIZICKI',
+    ucesnici: [{ id: 'me', viSte: true, uloga: 'narucilac', ime: 'Ti' }, { id: 'other', viSte: false, uloga: 'uskocer', ime: 'Marko' }], ...patch });
+  const span = (day: string, from: string, to: string) => ({ pocetak: new Date(`${day}T${from}:00Z`).toISOString(), kraj: new Date(`${day}T${to}:00Z`).toISOString() });
+
+  it('places a Dogovor for my own task from the list, with its role, person, amount and place', async () => {
+    const day = deviceDate(new Date());
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-2', { tacanTermin: span(day, '10:00', '15:00') })]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Pomoć oko krečenja stana'); expect(text()).toContain('Tvoj zadatak · Marko');
+    expect(text()).toContain('4.000 RSD'); expect(text()).toContain('Liman, Novi Sad');
+    expect(text()).not.toContain('Nema zakazanih Dogovora');
+    const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Otvori Dogovor Pomoć oko krečenja stana')[0];
+    expect(row.props.accessibilityValue.text).toContain('Tvoj zadatak');
+    await act(async () => row.props.onPress());
+    expect(jest.requireMock('expo-router').router.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-2' } });
+  });
+
+  it('keeps a finished Dogovor on its day, quiet and marked finished, and never a cancelled one', async () => {
+    const day = deviceDate(new Date());
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([
+      mine('agreement-3', { stanje: 'COMPLETED', tacanTermin: span(day, '10:00', '17:00') }),
+      mine('agreement-4', { stanje: 'CANCELLED', naslov: 'Otkazan posao', tacanTermin: span(day, '08:00', '09:00') }),
+    ]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Završeno'); expect(text()).toContain('Pomoć oko krečenja stana');
+    expect(text()).not.toContain('Otkazan posao');
+  });
+
+  it('marks a day with something active by a green dot, not orange', async () => {
+    const today = deviceDate(new Date()), other = weekDates(today).find(day => day !== today)!;
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-5', { tacanTermin: span(other, '10:00', '11:00') })]);
+    await act(async () => { tree = create(<Raspored />); });
+    const marked = tree.root.findAll(node => node.type === 'Press' as React.ElementType && / ima Dogovor$/.test(String(node.props.accessibilityLabel)));
+    expect(marked).toHaveLength(1);
+    expect(marked[0].findByProps({ testID: 'day-dot' }).props.style.backgroundColor).toBe(sys.color.green);
+    expect(text()).toContain('Nema zakazanih Dogovora.');
+  });
+
+  it('names the weekday in the day heading', async () => {
+    await act(async () => { tree = create(<Raspored />); });
+    const { dayHeading } = jest.requireActual('../../ui/calendar/calendarPresentation') as typeof import('../../ui/calendar/calendarPresentation');
+    expect(text()).toContain(dayHeading(deviceDate(new Date())));
+    expect(text()).not.toContain('Dogovoreno za');
+  });
+
+  it('says it shows only my work when the Dogovori did not load, and offers to read them again', async () => {
+    const day = deviceDate(new Date());
+    (agreementClientService.mojiDogovori as jest.Mock).mockImplementation(() => { throw new Error('AGREEMENT_LIST_FAILED'); });
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Nema termina u kojima uskačeš.'); expect(text()).not.toContain('Nema zakazanih Dogovora');
+    expect(button('Pokušaj ponovo')).toBeTruthy();
+    await act(async () => tree.unmount());
+    (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) => ({ ok: true, podatak: { from, to, authoritative: true, events: [{
+      eventId: 'event-1', agreementId: 'agreement-1', agreementVersion: 1, startsAt: new Date(`${day}T09:15:00Z`).toISOString(),
+      endsAt: new Date(`${day}T10:45:00Z`).toISOString(), agreementStatus: 'CONFIRMED', source: 'AGREEMENT' }] } }));
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Učitani su samo termini u kojima uskačeš.'); expect(text()).toContain('Potvrđen Dogovor');
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Bez tačnog termina' })).toHaveLength(0);
+  });
+
+  it('never calls a day empty before both reads have settled', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue(null);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).not.toContain('Nema zakazanih Dogovora'); expect(text()).toContain('Učitavamo raspored…');
+  });
+
+  it('counts the active Dogovori without an exact time in one quiet row that leads to Dogovori', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-6', { tacanTermin: null }),
+      mine('agreement-7', { stanje: 'COMPLETED', tacanTermin: null })]);
+    await act(async () => { tree = create(<Raspored />); });
+    const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Bez tačnog termina')[0];
+    expect(row.props.accessibilityValue).toEqual({ text: '1 Dogovor' });
+    await act(async () => row.props.onPress());
+    expect(jest.requireMock('expo-router').router.navigate).toHaveBeenCalledWith('/dogovori');
+  });
+
+  it('says it shows only my work while the list does not say which Dogovori have an exact time', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-8', {})]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('Nema termina u kojima uskačeš.'); expect(text()).not.toContain('Nema zakazanih Dogovora');
+    expect(button('Pokušaj ponovo')).toBeUndefined();
+  });
 });
 
 // Dostupnost on the phone (2026-09-23) read "16:00:00", "2026-09-23" and "Europe/Belgrade". The stored values stay exact;
@@ -315,8 +484,8 @@ describe('availability reads the way the rest of the app writes time', () => {
 
   it('writes a special date as one moment, in the schedule zone', async () => {
     await render(jest.fn(), loaded());
-    expect(text()).toContain('1 poseban datum');
-    await press('Prikaži posebne datume');
+    // Updated deliberately (owner step 10): the special dates are always listed, so their count line and toggle are gone.
+    expect(text()).not.toContain('1 poseban datum');
     expect(text()).toMatch(/2\. okt( 2026)? · 09:30–12:00/); expect(text()).not.toContain('2026-10-02');
     expect(button(`Uredi izuzetak ${civilDay('2026-10-02')}`)).toBeTruthy();
   });
