@@ -93,7 +93,7 @@ const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementT
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
 const openKeyboard = async () => {
   if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za AI' }).length) return;
-  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Piši umesto da govoriš' }).props;
+  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Napiši poruku' }).props;
   await act(async () => keyboard.onPress());
 };
 const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
