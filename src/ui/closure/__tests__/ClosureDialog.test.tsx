@@ -102,3 +102,16 @@ it('a read that fails before anything is known says so, with the check as its on
  expect(text()).toContain('Stanje zatvaranja nije učitano');expect(text()).toContain('Pregled trenutno nije dostupan.');
  await act(async()=>button('Proveri stanje zahteva').props.onPress());expect(mockReview).toHaveBeenCalledTimes(2);
 });
+// Round 5c review: the caught "not confirmed" words wait only while a saved start or preparation is there to check.
+it('a command that could not be read waits while its saved request remains, and is a failure without one',async()=>{
+ const note=()=>tree.root.findAllByType(InlineNote).find(n=>n.props.alert);
+ const caught='Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.';
+ mockLoad.mockResolvedValue(pending());await render();
+ mockRead.mockRejectedValue(new Error('lost'));
+ await act(async()=>button('Ponovi isti zahtev za zatvaranje').props.onPress());
+ expect(note()?.props).toMatchObject({tone:'warn',children:caught});expect(mockStart).not.toHaveBeenCalled();
+ await act(async()=>tree.unmount());
+ mockLoad.mockResolvedValue(null);mockSave.mockRejectedValue(new Error('unavailable'));await render();await askStart();
+ await act(async()=>confirmButton().props.onPress());
+ expect(note()?.props).toMatchObject({tone:'danger',children:caught});expect(mockStart).not.toHaveBeenCalled();
+});

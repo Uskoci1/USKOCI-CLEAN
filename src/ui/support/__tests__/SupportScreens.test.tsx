@@ -282,7 +282,7 @@ it('the topics are one radio group: the chosen one is said as checked, never by 
   expect(action('Drugo').selected).toBe(true); expect(action('Tehnička pomoć').selected).toBe(false);
   expect(text()).not.toContain('Izabrano:');
 });
-it('an inbox row says what the request is about, its state and news in words, and shows its number beside the time', async () => {
+it('an inbox row says what the request is about, its state and news in words, and shows its number before the time', async () => {
   screen = 'INBOX';
   mockService.inbox.mockResolvedValue(ok({ accountId: A, mode: 'OWN', operatorAvailable: false, authoritative: true, nextBeforeCaseNumber: null,
     cases: [{ id: C, caseNumber: '71', channel: 'SERVICE', topic: 'TECHNICAL', status: 'WAITING_FOR_AUTHOR', revision: 2, lastSequence: '9',
@@ -294,7 +294,8 @@ it('an inbox row says what the request is about, its state and news in words, an
   expect(press.props.accessibilityLabel).toMatch(/^Tehnička pomoć, Čeka tvoju dopunu, novo, .+, zahtev #71$/);
   // Round 5 review: the number is shown again (it pinned the old look, number only spoken). Two requests on one topic
   // differ by it, and it is the number the confirmation and the request's own screen name.
-  expect(text()).toContain('Čeka tvoju dopunu'); expect(text()).toMatch(/ · #71/);
+  // Round 5c: the number leads, so the time's own " · " does not make three parts of one line.
+  expect(text()).toContain('Čeka tvoju dopunu'); expect(text()).toMatch(/#71 · \S/); expect(text()).not.toMatch(/ · #71/);
   await act(async () => press.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/podrska/[id]', params: { id: C } });
 });
@@ -420,4 +421,74 @@ it('a reload closes the decision sheet, so it does not come back by itself when 
   await act(async () => action('Zatraži ponovni pregled').onPress()); expect(actions('Pošalji zahtev za ponovni pregled')).toHaveLength(1);
   await act(async () => action('Osveži predmet').onPress());
   expect(mockService.detail).toHaveBeenCalledTimes(2); expect(actions('Pošalji zahtev za ponovni pregled')).toHaveLength(0);
+});
+// Round 5c review (privatnost-verify-iskustvo / -zastite).
+it('stopping an unconfirmed send spins the stop, never the send, and the send says why it waits', async () => {
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  const held = deferred(); mockService.cancel.mockReturnValueOnce(held.promise);
+  await act(async () => action('Zaustavi prethodno slanje').onPress());
+  expect(action('Zaustavi prethodno slanje')).toMatchObject({ loading: true, disabled: true });
+  expect(action('Proveri ishod').loading).toBe(false);
+  expect(action('Pošalji privatni zahtev')).toMatchObject({ loading: false, disabled: true, reason: 'Najpre proveri prethodno slanje.' });
+  await act(async () => held.resolve(unknown));
+  expect(action('Zaustavi prethodno slanje').loading).toBe(false);
+});
+it('a replay spins its own button, and the absent confirmation is said once, by the panel', async () => {
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  await act(async () => action('Proveri ishod').onPress());
+  expect(text()).toContain('Potvrda još nije pronađena.'); expect(text()).not.toContain('Potvrda prethodne radnje još nije pronađena.');
+  expect(notes().filter(note => note.tone === 'warn')).toHaveLength(1);
+  const held = deferred(); mockService.submit.mockReturnValueOnce(held.promise);
+  await act(async () => action('Ponovi isto slanje').onPress());
+  expect(action('Ponovi isto slanje')).toMatchObject({ loading: true, disabled: true });
+  expect(action('Pošalji privatni zahtev').loading).toBe(false); expect(action('Zaustavi prethodno slanje').loading).toBe(false);
+  await act(async () => held.resolve(unknown));
+});
+it('the check of an unconfirmed send spins its own button while it reads', async () => {
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  const held = deferred(); mockService.recover.mockReturnValueOnce(held.promise);
+  await act(async () => action('Proveri ishod').onPress());
+  expect(action('Proveri ishod')).toMatchObject({ loading: true, disabled: true });
+  expect(action('Zaustavi prethodno slanje').loading).toBe(false); expect(action('Pošalji privatni zahtev').loading).toBe(false);
+  await act(async () => held.resolve(absent()));
+});
+it('"Odbaci" still leaves when the read it was asked during settles while the question is open', async () => {
+  mockService.prepare.mockImplementationOnce(() => { throw new Error('lost'); });
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Nesačuvan tekst');
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  const held = deferred(); mockService.capabilities.mockReturnValueOnce(held.promise);
+  await act(async () => action('Proveri dostupnost').onPress());
+  await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(1);
+  await act(async () => held.resolve(ok({ accountId: A, operatorAvailable: false, canCreate: true, authoritative: true })));
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+});
+it('stopping an unconfirmed reply does not spin the reply\'s send', async () => {
+  screen = 'DETAIL'; await render(); await type('Tekst poruke', 'Uneta dopuna');
+  await act(async () => field('Pošalji poruku').onPress());
+  const held = deferred(); mockService.cancel.mockReturnValueOnce(held.promise);
+  await act(async () => action('Zaustavi prethodno slanje').onPress());
+  expect(action('Zaustavi prethodno slanje').loading).toBe(true);
+  expect(field('Pošalji poruku').accessibilityState.busy).toBe(false);
+  await act(async () => held.resolve(unknown));
+});
+it('a failed mark while a reply is unconfirmed is drawn as failed, and the reply\'s words wait', async () => {
+  screen = 'DETAIL'; mockService.markRead.mockResolvedValue({ ok: false, poruka: 'Označavanje nije potvrđeno.' }); await render();
+  await type('Tekst poruke', 'Uneta dopuna'); await act(async () => field('Pošalji poruku').onPress());
+  const waiting = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Sačekaj proveru.');
+  expect(waiting).toHaveLength(1); expect(waiting[0].props.tone).toBe('ink');
+  await act(async () => action('Označi prikazane događaje kao pročitane').onPress());
+  const line = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Označavanje nije potvrđeno.');
+  expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'danger', accessibilityRole: 'alert' });
+});
+it('a locked, empty reply field waiting on an unconfirmed reply says to check it, not to type', async () => {
+  screen = 'DETAIL'; mockService.loadPending.mockResolvedValue(journal('AUTHOR_REPLY')); await render();
+  expect(field('Tekst poruke')).toMatchObject({ value: '', editable: false });
+  expect(field('Pošalji poruku')).toMatchObject({ disabled: true, accessibilityHint: 'Najpre proveri prethodno slanje.' });
+  // The absent confirmation is the recovery panel's own words; the composer does not repeat them.
+  expect(text()).not.toContain('Potvrda prethodne radnje još nije pronađena.');
 });

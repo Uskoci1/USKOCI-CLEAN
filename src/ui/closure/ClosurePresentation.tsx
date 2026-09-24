@@ -18,12 +18,15 @@ export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400
   : n % 3600 === 0 ? plural(n / 3600, 'sat', 'sata', 'sati') : plural(n, 'sekunda', 'sekunde', 'sekundi');
 
 /**
- * The two messages that mean "not confirmed yet, the same request waits" (the owner's closure copy, word for word). They
+ * The messages that mean "not confirmed yet, the same request waits" (the owner's closure copy, word for word). They
  * wait for the person, so they are drawn as waiting; every other message of the flow is a failed read or command.
+ * `CAUGHT` is the flow's word for a command whose outcome could not be read: it waits only while a saved start or
+ * preparation is there to check (round 5c review); without one it is a failure.
  */
 export const closureUnconfirmedCopy = {
   START: 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.',
   PREPARE: 'Priprema još nema potvrdu. Možeš ponoviti isti zahtev.',
+  CAUGHT: 'Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.',
 } as const;
 
 /** Where a blocker can be resolved. A blocker with no place of its own is a plain line. */
@@ -101,9 +104,10 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       : state ? 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'
         : 'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}</T>
   </View>;
-  // One look for "failed" (round 5 review): the two "not confirmed yet" messages wait for the person; every other
-  // message here is a read or a command that failed.
-  const waiting = message === closureUnconfirmedCopy.START || message === closureUnconfirmedCopy.PREPARE;
+  // One look for "failed" (round 5 review): the "not confirmed yet" messages wait for the person (the caught one only
+  // while a saved start or preparation waits for its check); every other message here is a read or a command that failed.
+  const waiting = message === closureUnconfirmedCopy.START || message === closureUnconfirmedCopy.PREPARE
+    || (!!intent && message === closureUnconfirmedCopy.CAUGHT);
   const note = message ? <InlineNote tone={waiting ? 'warn' : 'danger'} alert>{message}</InlineNote> : null;
   const retention = retained.length ? <SettingsGroup title="Rokovi čuvanja">
     {retained.map((d, index) => <SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last={index === retained.length - 1}>

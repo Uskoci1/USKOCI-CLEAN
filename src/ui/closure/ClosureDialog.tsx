@@ -80,7 +80,7 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
   async function run(work: (token: object) => Promise<void>, doing: Working = null) {
     const token = focus.current; if (!live(token) || locked.current) return;
     locked.current = true; setBusy(true); setWorking(doing); setMessage('');
-    try { await work(token!); } catch { if (live(token)) setMessage('Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.'); }
+    try { await work(token!); } catch { if (live(token)) setMessage(closureUnconfirmedCopy.CAUGHT); }
     finally { if (live(token)) { locked.current = false; setBusy(false); setWorking(null); } }
   }
   useFocusEffect(useCallback(() => {

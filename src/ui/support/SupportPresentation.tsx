@@ -93,8 +93,10 @@ export function SupportField({ label, value, onChange, maximum, disabled = false
     </T> : null}
   </View>;
 }
-export function SupportRecovery({ busy, absent, onRead, onCancel, onReplay }: {
-  busy: boolean; absent: boolean; onRead: () => void; onCancel: () => void; onReplay?: () => void;
+/** Which of the three recovery commands runs now, so only its own button shows the spinner (round 5c review). */
+export type SupportRecoveryWorking = 'read' | 'cancel' | 'replay' | null;
+export function SupportRecovery({ busy, absent, working = null, onRead, onCancel, onReplay }: {
+  busy: boolean; absent: boolean; working?: SupportRecoveryWorking; onRead: () => void; onCancel: () => void; onReplay?: () => void;
 }) {
   return <View style={supportStyles.recovery}>
     <InlineNote tone="warn" alert>
@@ -104,9 +106,10 @@ export function SupportRecovery({ busy, absent, onRead, onCancel, onReplay }: {
       <T variant="note" tone="muted">Provera ne šalje ponovo tekst. Zaustavljanje važi samo za ovu radnju; ne briše ranije primljen predmet.</T>
     </InlineNote>
     <View style={supportStyles.recoveryActions}>
-      <SettingsAction kind="secondary" label="Proveri ishod" disabled={busy} onPress={onRead} />
-      <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} onPress={onCancel} />
-      {onReplay ? <SettingsAction label="Ponovi isto slanje" kind="quiet" disabled={busy} onPress={onReplay} /> : null}
+      <SettingsAction kind="secondary" label="Proveri ishod" disabled={busy} loading={working === 'read'} onPress={onRead} />
+      <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
+      {onReplay || working === 'replay' ? <SettingsAction label="Ponovi isto slanje" kind="quiet" disabled={busy || !onReplay}
+        loading={working === 'replay'} onPress={onReplay ?? (() => {})} /> : null}
     </View>
   </View>;
 }
@@ -130,7 +133,7 @@ export function SupportStatusChip({ status }: { status: SupportStatus }) {
 const channelArt: Record<SupportChannel, FactArtKind> = { SERVICE: 'chat', TASK: 'agreements', LEGAL_PRIVACY: 'shield', SAFETY: 'lock' };
 /**
  * One request in the list: what it is about (the name), its state, when it last moved and its number. The number is
- * shown beside the time (round 5 review): two requests on the same topic differ by it, and it is the number the
+ * shown before the time (round 5 review): two requests on the same topic differ by it, and it is the number the
  * confirmation ("Potvrđen zahtev #12") and the request's own screen ("Zahtev #12") name. News is an orange dot, a shape
  * that is there or not (never a colour change alone); a screen reader hears it as the word "novo".
  */
@@ -146,7 +149,8 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
       <T variant="bodyStrong" numberOfLines={2}>{topic}</T>
       <View style={supportStyles.caseMeta}>
         <SupportStatusChip status={status} />
-        <T variant="meta" tone="muted" style={supportStyles.tabular}>{`${time} · #${caseNumber}`}</T>
+        {/* The number first: the time already holds a " · " of its own, so "#71 · 24. sep · 12:00" reads as two parts. */}
+        <T variant="meta" tone="muted" style={supportStyles.tabular}>{`#${caseNumber} · ${time}`}</T>
       </View>
     </View>
     <View style={supportStyles.caseEnd}>
@@ -225,7 +229,8 @@ export function SupportComposer({ value, onChange, placeholder, editable, canSen
   /** Why a written text cannot be sent now, spoken as the send area's hint. */ reason?: string | null; maxLength?: number;
 }) {
   const empty = !value.trim();
-  const why = sending || canSend ? undefined : empty ? 'Unesi tekst pre slanja.' : reason ?? undefined;
+  // The caller's reason wins: a locked, empty field (an unconfirmed reply) is not told to type (round 5c review).
+  const why = sending || canSend ? undefined : reason ?? (empty ? 'Unesi tekst pre slanja.' : undefined);
   return <View style={supportStyles.pill}>
     <TextInput accessibilityLabel="Tekst poruke" placeholder={placeholder} placeholderTextColor={sys.color.muted} value={value}
       onChangeText={onChange} editable={editable} multiline textAlignVertical="center" maxLength={maxLength} style={supportStyles.pillInput} />

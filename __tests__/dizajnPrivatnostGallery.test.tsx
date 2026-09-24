@@ -50,6 +50,19 @@ it('Android Back inside a scene returns to the list, as "Nazad" does, and leaves
   expect(mockBack).not.toHaveBeenCalled();
 });
 
+it('the support scenes\' own arrow returns to the list and reaches no route', async () => {
+  await act(async () => { tree = create(<Gallery />); });
+  for (const label of ['Podrška: Lista zahteva', 'Novi zahtev: Forma', 'Zahtev: Razgovor i odluka']) {
+    await act(async () => tree.root.findAll(node => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')[0].props.onPress());
+    const arrows = tree.root.findAll(node => node.props.accessibilityLabel === 'Nazad' && typeof node.props.onPress === 'function');
+    // The first "Nazad" is the scene's own arrow; the last is the gallery's strip.
+    expect(arrows.length).toBeGreaterThan(1);
+    await act(async () => arrows[0].props.onPress());
+    expect(scenes()).toContain(label);
+  }
+  expect(mockBack).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
+});
+
 it('the closure start in the gallery asks its real question and starts nothing', async () => {
   await act(async () => { tree = create(<Gallery />); });
   await act(async () => tree.root.findAll(node => node.props.accessibilityLabel === 'Zatvaranje: Pregled spreman' && typeof node.props.onPress === 'function')[0].props.onPress());

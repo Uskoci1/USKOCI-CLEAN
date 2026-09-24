@@ -31,8 +31,9 @@ import { T } from '../ui/Text';
  * Privatnost, podaci, pravila, zatvaranje naloga i podrška (owner step 11b) on the emulator, in every state the lead
  * photographs. Reached only by its address (uskociapp://dizajn-privatnost) in the internal build; the store package shows
  * nothing. The real presentation components draw fixture data: nothing here reads or writes anything. Every command is a
- * local stand-in (the support screens get a controller that is absent, so every command is a no-op; the closure start
- * asks its real question and does nothing when confirmed). The fixture words marked "Primer" are placeholders, never the
+ * local stand-in (the support screens get a controller that is absent, so every command is a no-op, and every way out of
+ * a support scene, its arrow included, returns to this list; the closure start asks its real question and does nothing
+ * when confirmed). The fixture words marked "Primer" are placeholders, never the
  * owner's published legal text.
  */
 type Scene = { key: string; group: string; label: string };
@@ -114,9 +115,11 @@ const CLOSED: ClosureExecutionState = { accountId: 'galerija', requestId: 'galer
 
 // Podrška
 const OWNER = { id: 1, accountId: 'galerija', accountRevision: 1, identity: 'GALERIJA' };
-const model = (patch: Partial<SupportState>) => ({ state: { ...initialSupportState, phase: 'READY', ...patch } as SupportState, controller: null,
-  current: () => true, navigate: noop, accountId: 'galerija', accountRevision: 1, incarnation: OWNER, incarnationId: 1, focused: true,
-}) as unknown as ReturnType<typeof useSupportController>;
+// `leave` is where every way out of a support scene goes (the arrow, a row, a link): back to the scene list, never a
+// route (round 5c review: the arrow was a dead button).
+const supportModel = (leave: () => void) => (patch: Partial<SupportState>) => ({ state: { ...initialSupportState, phase: 'READY', ...patch } as SupportState,
+  controller: null, current: () => true, navigate: () => leave(), accountId: 'galerija', accountRevision: 1, incarnation: OWNER, incarnationId: 1,
+  focused: true }) as unknown as ReturnType<typeof useSupportController>;
 const CAPS = { accountId: 'galerija', operatorAvailable: false, canCreate: true, authoritative: true } as const;
 const row = (id: string, topic: SupportInbox['cases'][number]['topic'], status: SupportInbox['cases'][number]['status'], channel: SupportInbox['cases'][number]['channel'],
   unread: boolean, age: number) => ({ id, caseNumber: String(70 + Number(id.slice(-1))), channel, topic, status, revision: 1, lastSequence: '3',
@@ -130,7 +133,7 @@ const CASE = '00000000-0000-4000-8000-0000000000aa', DECISION = '00000000-0000-4
 const detail = (patch: Partial<SupportDetail> = {}, status: SupportDetail['case']['status'] = 'IN_REVIEW'): SupportDetail => ({ accountId: 'galerija',
   viewerRole: 'AUTHOR', operatorAvailable: false, allowedActions: ['AUTHOR_REPLY', 'APPEAL'], authoritative: true, nextAfterSequence: null,
   // Fixture words without grammatical gender (owner rule): these screenshots go to the owner.
-  case: { id: CASE, caseNumber: '71', authorAccountId: 'galerija', title: 'Niko se nije pojavio u dogovoreni termin, a Dogovor i dalje stoji kao aktivan',
+  case: { id: CASE, caseNumber: '71', authorAccountId: 'galerija', title: 'Niko se nije pojavio u dogovorenom terminu, a Dogovor i dalje stoji kao aktivan',
     desiredOutcome: 'Da se Dogovor zatvori bez ocene.', channel: 'TASK', topic: 'NO_SHOW', status, revision: 3, lastSequence: '6',
     createdAt: iso(-30 * hour), updatedAt: iso(-hour), context: {} },
   events: [
@@ -165,6 +168,7 @@ export default function DizajnPrivatnost() {
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   const toList = () => { confirm.close(); setExpanded(null); setScene(null); };
+  const model = supportModel(toList);
   if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScrollView contentContainerStyle={s.list}>
       <T variant="title" accessibilityRole="header">Galerija: privatnost i podrška</T>
@@ -214,7 +218,7 @@ export default function DizajnPrivatnost() {
     // READY with no verified copy: the last step is stopped and the footer offers a new copy.
     : scene === 'izvoz-kopija-nedostupna' ? exportView(exportStatus('READY'), { primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
     : scene === 'izvoz-u-toku' ? exportView(exportStatus('READY', 20 * hour), { busy: true,
-      primary: <SettingsAction label="Preuzimanje i čuvanje…" loading disabled onPress={noop} /> })
+      primary: <SettingsAction label="Preuzmi i sačuvaj" loading disabled onPress={noop} /> })
     : scene === 'izvoz-isteklo' ? exportView(exportStatus('READY', -hour), { primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
     : scene === 'izvoz-otkazano' ? exportView(exportStatus('CANCELLED'), { notice: { text: 'Zahtev je otkazan.', tone: 'success' },
       primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
@@ -277,8 +281,8 @@ export default function DizajnPrivatnost() {
   return <View style={s.screen}>
     <View style={s.grow}>{body}</View>
     {confirm.sheet}
-    {/* The arrow of the privacy, export, legal and closure scenes returns here; in the support scenes every command,
-        the arrow included, is a no-op stand-in. This bar says which scene is shown and is always one tap back. */}
+    {/* Every scene's arrow returns here (in the support scenes every way out does; their other commands are no-op
+        stand-ins). This bar says which scene is shown and is always one tap back. */}
     <SafeAreaView edges={['bottom']} style={s.strip}>
       <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={toList} style={s.back}>
         <T variant="action" style={s.backText}>Nazad</T>

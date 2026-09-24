@@ -31,7 +31,9 @@ function OwnedExport() {
   // The words are the screen's own; the tone says whether it went through (green), failed (danger) or only happened (ink).
   const setNotice = (text: string | null, tone: NoticeTone = 'ink') => setNoticeState(text === null ? null : { text, tone });
   // Which of the footer's own writes is in flight, so that button shows it is working while every other one waits grey.
-  const [working, setWorking] = useState<'request' | 'prepare' | null>(null);
+  // A request that repeats a retained key is 'replay': its button keeps "Ponovi isti zahtev" while it runs, the first
+  // request keeps its own words (the key is retained before the write, so the label cannot be read from it then).
+  const [working, setWorking] = useState<'request' | 'replay' | 'prepare' | null>(null);
   const [fileReadbackRequired, setFileReadbackRequired] = useState(false);
   const fileReadback = useRef(false);
   const requireFileReadback = (value: boolean) => { fileReadback.current = value; setFileReadbackRequired(value); };
@@ -85,12 +87,13 @@ function OwnedExport() {
   };
   const requestExport = async () => {
     if (!canAct() || (request && ['REQUESTED', 'PROCESSING'].includes(request.status))) return;
+    const replay = pendingKey.current !== null;
     const key = pendingKey.current ?? noviZahtevId('izvoz'); pendingKey.current = key;
     // Marked only once the editor has taken the write, so a refused second press never clears the first one's spinner.
     let started = false;
     try {
       await editor.save(async () => {
-        started = true; setWorking('request');
+        started = true; setWorking(replay ? 'replay' : 'request');
         const result = await exports.requestExport(key);
         if (!current()) return changed(); if (!result.ok) return result;
         if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
@@ -162,17 +165,18 @@ function OwnedExport() {
   };
   const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
   const primary = readyView ? available
-    // The button whose own write is in flight shows it is working (spinner, its green kept); the others wait grey.
-    ? <Button label={savingFile ? 'Preuzimanje i čuvanje…' : 'Preuzmi i sačuvaj'} disabled={busy} loading={savingFile}
+    // The button whose own write is in flight keeps its words and shows a spinner (its green kept); the others wait grey
+    // with theirs (round 5 review: the words no longer change while it works).
+    ? <Button label="Preuzmi i sačuvaj" disabled={busy} loading={savingFile}
       icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
-      ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} loading={editor.busy && working === 'prepare'}
+      ? <Button label="Pripremi kopiju" disabled={busy} loading={editor.busy && working === 'prepare'}
         onPress={() => { void prepare(); }} />
-      // While the request is on its way it says so: the retained key is set before the write, so the label read
-      // "Ponovi isti zahtev" beside the spinner of the very first request.
-      : <Button label={editor.busy && working === 'request' ? 'Slanje zahteva…' : pendingKey.current ? 'Ponovi isti zahtev'
-          : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
-        loading={editor.busy && working === 'request'} onPress={() => { void requestExport(); }} />
+      // The retained key is set before the write, so while a first request runs its label is taken from `working`, not
+      // from the key: the very first request never reads "Ponovi isti zahtev" beside its spinner.
+      : <Button label={editor.busy && working === 'request' ? request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'
+          : pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
+        loading={editor.busy && (working === 'request' || working === 'replay')} onPress={() => { void requestExport(); }} />
     : null;
   const failed = editor.error || !status || fileReadbackRequired;
   return <><ExportScreenView onBack={back} loading={editor.loading} status={status ?? null} preparation={editor.data?.preparation ?? null}

@@ -14,7 +14,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { sys } from '../system/tokens';
 import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
-import { supportMessageTone } from './supportCopy';
+import { supportMessageShown, supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
 
 type CreateTopic = SupportPayloads['CREATE']['topic'];
@@ -108,11 +108,13 @@ function NewContents({ model, initialReference, readAgreements, back }: {
     && (topic !== 'PUBLICATION_REVIEW' || context?.kind === 'TASK_REVIEW');
   // The send button is grey until the form is complete, and a grey button always says why (round 5 review): first what
   // holds the whole screen (an unconfirmed send, a read in progress or failed), then what the form still lacks. While it
-  // sends it is not grey: it keeps its words with a spinner.
+  // sends it is not grey: it keeps its words with a spinner. Only its own send spins it: a stop or a replay of an
+  // unconfirmed send spins its own button in the panel above, and this one waits grey with its reason (round 5c review).
+  const sending = state.phase === 'SENDING' && state.command === 'SEND';
   const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
     : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o Zadatku.'
       : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
-  const missing = state.phase === 'SENDING' || (!disabled && valid) ? null
+  const missing = sending || (!disabled && valid) ? null
     : state.pending ? 'Najpre proveri prethodno slanje.'
       : state.phase === 'LOADING' ? 'Učitavamo sačuvano stanje…'
         : state.phase === 'ERROR' ? 'Stanje zahteva nije učitano.'
@@ -139,7 +141,10 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: go });
     else go();
   };
-  const leave = () => discard(back);
+  // The question may outlive the render that asked it (a reload that settles while it is open), so its answer leaves
+  // through the latest render's exits, not the ones it was asked with, which would be fenced out (round 5c review).
+  const exits = useRef({ back, navigate }); exits.current = { back, navigate };
+  const leave = () => discard(() => exits.current.back());
   // The (app) navigator is Tabs with a history back behaviour, so a screen being removed is never announced there: the
   // hardware Back (and Android's back gesture) is heard directly while this screen has focus, as on Dostupnost. The
   // question's own sheet takes Back before this does.
@@ -165,11 +170,11 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const contextNote = !requiresAgreement && !!context;
   const showContext = contextNote && !sameAsEvidence;
   const page = choices?.slice(choicePage * PAGE, (choicePage + 1) * PAGE) ?? [];
-  // A refused or failed command is drawn as failed; a confirmation still to find, or any word about a send whose outcome
-  // is unconfirmed, as waiting (round 5 review).
+  // A refused or failed command is drawn as failed; a word about a send whose outcome is unconfirmed as waiting (round 5
+  // review). The absent-confirmation words are the recovery panel's own, so they are not said twice (round 5c review).
   const messageTone = supportMessageTone(state);
   return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
-    : <SettingsAction label="Pošalji privatni zahtev" loading={state.phase === 'SENDING'} disabled={disabled || !valid} reason={missing} onPress={send} />}>
+    : <SettingsAction label="Pošalji privatni zahtev" loading={sending} disabled={disabled || !valid} reason={missing} onPress={send} />}>
     <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
     <SupportRecoveryPanel model={model} receipt={false} />
     {state.phase === 'LOADING' && hideForm ? <SupportLoading />
@@ -178,7 +183,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       : state.phase === 'ERROR' ? <>
         {state.message ? <SupportNote tone="danger">{state.message}</SupportNote> : null}
         <SettingsAction label="Proveri dostupnost" kind="quiet" onPress={() => { if (model.current()) void controller?.load(); }} />
-      </> : state.message ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
+      </> : supportMessageShown(state) ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     <View style={hideForm ? s.hidden : s.form}>
       <SupportPrivacy />
       <SettingsGroup title="Tema zahteva"><View accessibilityRole="radiogroup" accessibilityLabel="Tema zahteva">
@@ -222,7 +227,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
         <SupportNote>Ovde možeš da pošalješ zahtev u vezi sa svojim pravima. Slobodna poruka ne izvršava izvoz ili zatvaranje naloga.</SupportNote>
         {/* This screen starts empty on its next focus, so leaving it here with typed words asks first, as Back does. */}
         <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled}
-          onPress={() => discard(() => navigate(() => router.push('/profil/privatnost')))} />
+          onPress={() => discard(() => exits.current.navigate(() => router.push('/profil/privatnost')))} />
       </View> : null}
       <SupportField label="Kratak naslov" value={title} onChange={value => { if (current() && !disabled) setTitle(value); }} maximum={200} disabled={disabled} />
       <SupportField label="Opis zahteva" value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />

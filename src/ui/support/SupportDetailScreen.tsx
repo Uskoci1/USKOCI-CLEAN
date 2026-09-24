@@ -10,7 +10,7 @@ import { supportActionAllowed } from './SupportController';
 import { SupportBubble, SupportChoiceRow, SupportComposer, SupportDecisionBlock, SupportField, SupportLoading, SupportPrivacy, SupportStatusChip,
   SupportSystemLine, SupportThreadFrame, supportLabel, supportStyles, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
-import { supportMessageTone } from './supportCopy';
+import { supportMessageShown, supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
 import { SupportReferenceView, supportReferenceNames } from './SupportReferenceView';
 
@@ -81,7 +81,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
     if (replyKind === 'AUTHOR_REPLY') void controller?.submit('AUTHOR_REPLY', { body: replyText, evidence: [] }, state);
     else void controller?.submit('OPERATOR_REPLY', { body: replyText }, state);
   };
-  // One look for "failed": a refused reply or a failed mark is danger, as a failed read is (round 5 review).
+  // One look for "failed": a failed mark or read is danger; a word about a reply still unconfirmed waits (round 5 review).
   const tone = supportMessageTone(state), messageTone = tone === 'success' ? 'success' : tone === 'danger' ? 'danger' : 'ink';
   // The grey send area says why a written reply cannot go now.
   const replyReason = replyTooLong ? 'Skrati tekst pre slanja.' : state.pending ? 'Najpre proveri prethodno slanje.' : null;
@@ -128,13 +128,14 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
 
   const composer = <>
     <SupportRecoveryPanel model={model} caseId={caseId} />
-    {state.message && !(state.phase === 'ERROR' && !detail) ? <T variant="note" tone={messageTone === 'success' ? 'success' : messageTone === 'danger' ? 'danger' : 'ink'}
+    {supportMessageShown(state) && !(state.phase === 'ERROR' && !detail) ? <T variant="note" tone={messageTone === 'success' ? 'success' : messageTone === 'danger' ? 'danger' : 'ink'}
       accessibilityRole={messageTone === 'danger' ? 'alert' : undefined} accessibilityLiveRegion="polite">{state.message}</T> : null}
     {detail && canReply ? <>
       {replyTooLong ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{`${Array.from(replyText).length} / ${REPLY_LIMIT} · Skrati tekst pre slanja.`}</T> : null}
-      {/* The spinner is this reply's own: marking as read, a claim or a close run without it. */}
+      {/* The spinner is this reply's own: marking as read, a claim, a close, or a stop or replay of an unconfirmed reply
+          run without it (round 5c review). */}
       <SupportComposer value={replyText} placeholder={author ? 'Napiši dopunu…' : 'Napiši odgovor…'} editable={!actionsDisabled}
-        canSend={canSend} sending={state.phase === 'SENDING' && state.pending?.kind === replyKind} onSend={send}
+        canSend={canSend} sending={state.phase === 'SENDING' && state.command === 'SEND' && state.pending?.kind === replyKind} onSend={send}
         reason={replyReason} maxLength={REPLY_LIMIT * 2}
         onChange={value => { if (current() && !actionsDisabled) setReply({ key: replyKey, text: value }); }} />
     </> : detail ? <T variant="meta" tone="muted" style={supportStyles.center}>{detail.case.status === 'CLOSED' ? 'Predmet je zatvoren.'
@@ -230,7 +231,7 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
   return <ProductSheet title={action === 'APPEAL' ? 'Razlog za ponovni pregled' : deciding ? 'Obrazložena odluka' : 'Poruka u predmetu'}
     dirty={!!body || !!reason} dismissible={state.phase !== 'SENDING'} onClose={onClose}
     footer={() => <SettingsAction label={action === 'APPEAL' ? 'Pošalji zahtev za ponovni pregled' : deciding ? 'Sačuvaj odluku' : 'Pošalji poruku'}
-      loading={state.phase === 'SENDING'} disabled={disabled || !valid} reason={why} onPress={submit} />}>
+      loading={state.phase === 'SENDING' && state.command === 'SEND' && state.pending?.kind === action} disabled={disabled || !valid} reason={why} onPress={submit} />}>
     {() => <View style={s.sheet}>
       {action === 'APPEAL' ? <T variant="note" tone="muted">Žalba se odnosi na izabranu stvarnu odluku. Ovo je ponovni pregled podrške; ne predstavlja nezavisan žalbeni organ.</T> : null}
       {deciding ? <>

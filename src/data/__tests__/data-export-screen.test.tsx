@@ -76,15 +76,39 @@ it('serializes request double taps and reads back the accepted request', async (
   expect(texts()).toContain('Zahtev za izvoz je zabeležen'); expect(button('Pripremi kopiju')).toBeTruthy(); expect(mockPrepare).not.toHaveBeenCalled();
 });
 // Round 2c (verifier va, item 7): the retained key is set before the write, so the very first request read "Ponovi isti
-// zahtev" beside its spinner, as if it were a retry.
-it('says the first request is on its way while it runs, not that it repeats one', async () => {
+// zahtev" beside its spinner, as if it were a retry. Round 5c: the button keeps its own words with the spinner.
+it('keeps the first request\'s own words with a spinner while it runs, never that it repeats one', async () => {
   const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise); await render();
   await act(async () => { void button('Zatraži izvoz').props.onPress(); });
-  expect(button('Slanje zahteva…').props).toMatchObject({ loading: true, disabled: true });
+  expect(button('Zatraži izvoz').props).toMatchObject({ loading: true, disabled: true });
   expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Slanje zahteva…' })).toHaveLength(0);
   const key = mockRequest.mock.calls[0][0]; mockStatus.mockResolvedValue(ok(status('REQUESTED', null, key)));
   await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
-  expect(tree.root.findAllByProps({ label: 'Slanje zahteva…' })).toHaveLength(0);
+  expect(button('Pripremi kopiju').props.loading).toBe(false);
+});
+it('a repeated request keeps "Ponovi isti zahtev" with its spinner while it runs', async () => {
+  mockRequest.mockRejectedValueOnce(new Error('lost')); await render(); await tap('Zatraži izvoz'); await tap('Osveži stanje');
+  const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise);
+  await act(async () => { void button('Ponovi isti zahtev').props.onPress(); });
+  expect(button('Ponovi isti zahtev').props).toMatchObject({ loading: true, disabled: true });
+  const key = mockRequest.mock.calls[1][0]; mockStatus.mockResolvedValue(ok(status('REQUESTED', null, key)));
+  await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
+});
+it('preparing and saving keep their words with a spinner while they run', async () => {
+  const prepared = deferred(); mockPrepare.mockReturnValueOnce(prepared.promise);
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render();
+  await act(async () => { void button('Pripremi kopiju').props.onPress(); });
+  expect(button('Pripremi kopiju').props).toMatchObject({ loading: true, disabled: true });
+  expect(tree.root.findAllByProps({ label: 'Radnja je u toku…' })).toHaveLength(0);
+  await act(async () => prepared.resolve(ok({ receiptId: ID, kind: 'NOT_READY', code: 'POLICY_NOT_READY' })));
+  await act(async () => tree.unmount());
+  const downloaded = deferred(); mockDownload.mockReturnValueOnce(downloaded.promise);
+  mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
+  await act(async () => { void button('Preuzmi i sačuvaj').props.onPress(); });
+  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ loading: true, disabled: true });
+  expect(tree.root.findAllByProps({ label: 'Preuzimanje i čuvanje…' })).toHaveLength(0);
+  await act(async () => downloaded.resolve(ok(file())));
 });
 it('retains the same request key after unknown outcome and requires readback', async () => {
   mockRequest.mockRejectedValueOnce(new Error('private SQL detail')); await render(); await tap('Zatraži izvoz'); const key = mockRequest.mock.calls[0][0];

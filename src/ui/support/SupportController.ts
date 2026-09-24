@@ -4,13 +4,20 @@ import type { PreparedSupportCommand, SupportCapabilities, SupportCommand, Suppo
 import { supportCopy } from './supportCopy';
 
 export type SupportTarget = { type: 'NEW' } | { type: 'INBOX'; mode: SupportMode } | { type: 'DETAIL'; caseId: string };
+/**
+ * Which command runs now, or ran last (its words are the `message`): READ a full load with its check of an unconfirmed
+ * send, SEND a first send, REPLAY the same send again, CANCEL a stop of the unconfirmed send, MARK events marked as read.
+ * Presentation only: it lets each button show its own spinner and each message its own look (round 5c review).
+ */
+export type SupportCommandKind = 'READ' | 'SEND' | 'REPLAY' | 'CANCEL' | 'MARK';
 export type SupportState = {
   phase: 'LOADING' | 'READY' | 'SENDING' | 'ERROR'; capabilities: SupportCapabilities | null;
   inbox: SupportInbox | null; detail: SupportDetail | null; pending: SupportIntent | null;
   absent: boolean; canReplay: boolean; message: string | null; receipt: SupportReceipt | null;
+  command: SupportCommandKind | null;
 };
 export const initialSupportState: SupportState = { phase: 'LOADING', capabilities: null, inbox: null, detail: null,
-  pending: null, absent: false, canReplay: false, message: null, receipt: null };
+  pending: null, absent: false, canReplay: false, message: null, receipt: null, command: null };
 const operatorActions = new Set<SupportKind>(['CLAIM', 'CLOSE', 'OPERATOR_REPLY', 'REQUEST_INFO', 'DECIDE', 'CLAIM_APPEAL', 'DECIDE_APPEAL']);
 export function supportActionAllowed(detail: SupportDetail, kind: SupportKind): boolean {
   if (kind === 'CREATE') return false;
@@ -76,7 +83,7 @@ export class SupportController {
     } else this.update({ phase: 'READY' });
   }
   load = () => this.run(async () => {
-    this.update({ phase: 'LOADING', capabilities: null, inbox: null, detail: null, message: null });
+    this.update({ phase: 'LOADING', capabilities: null, inbox: null, detail: null, message: null, command: 'READ' });
     const saved = await this.service.loadPending(this.deps.scope);
     if (!this.current()) return;
     this.update({ pending: saved ?? this.state.pending, absent: false, canReplay: false });
@@ -89,7 +96,7 @@ export class SupportController {
   });
   page = (cursor: string | null, rendered: SupportState) => this.run(async () => {
     if (this.state !== rendered || this.state.phase !== 'READY') return;
-    this.cursor = cursor; this.update({ phase: 'LOADING', detail: null, inbox: null }); await this.readData();
+    this.cursor = cursor; this.update({ phase: 'LOADING', detail: null, inbox: null, command: null }); await this.readData();
   });
   submit = <K extends SupportKind>(kind: K, payload: SupportPayloads[K], rendered: SupportState) => this.run(async () => {
     if (this.state !== rendered || this.state.phase !== 'READY' || this.state.pending) return;
@@ -100,7 +107,7 @@ export class SupportController {
       kind === 'CREATE' ? null : detail!.case.revision, payload, this.deps.scope);
     if (!this.current()) return;
     this.prepared = prepared;
-    this.update({ phase: 'SENDING', pending: prepared.intent, absent: false, canReplay: false, receipt: null, message: null });
+    this.update({ phase: 'SENDING', pending: prepared.intent, absent: false, canReplay: false, receipt: null, message: null, command: 'SEND' });
     const result = await this.service.submit(prepared, this.deps.scope);
     if (!this.current()) return;
     if (result.ok) this.consume(result.podatak);
@@ -110,7 +117,7 @@ export class SupportController {
   replay = (rendered: SupportState) => this.run(async () => {
     if (this.state !== rendered || this.state.phase !== 'READY' || !this.state.absent || !this.prepared
       || this.state.pending?.clientRequestId !== this.prepared.intent.clientRequestId) return;
-    this.update({ phase: 'SENDING', absent: false, canReplay: false, message: null });
+    this.update({ phase: 'SENDING', absent: false, canReplay: false, message: null, command: 'REPLAY' });
     const result = await this.service.submit(this.prepared, this.deps.scope);
     if (!this.current()) return;
     if (result.ok) this.consume(result.podatak); else this.update({ message: result.poruka });
@@ -119,7 +126,7 @@ export class SupportController {
   cancel = (rendered: SupportState) => this.run(async () => {
     if (this.state !== rendered || !this.state.pending) return;
     const intent = this.state.pending;
-    this.update({ phase: 'SENDING', absent: false, canReplay: false, message: null });
+    this.update({ phase: 'SENDING', absent: false, canReplay: false, message: null, command: 'CANCEL' });
     const result = await this.service.cancel(intent, this.deps.scope);
     if (!this.current()) return;
     if (result.ok) this.consume(result.podatak); else this.update({ message: result.poruka });
@@ -129,7 +136,7 @@ export class SupportController {
     const detail = this.state.detail;
     if (this.state !== rendered || this.state.phase !== 'READY' || !detail || !detail.events.length) return;
     const sequence = detail.events[detail.events.length - 1].sequence;
-    this.update({ phase: 'SENDING', message: null });
+    this.update({ phase: 'SENDING', message: null, command: 'MARK' });
     const result = await this.service.markRead(detail.case.id, sequence, this.deps.scope);
     if (!this.current()) return;
     this.update({ phase: 'READY', message: result.ok ? supportCopy.markedRead : result.poruka });

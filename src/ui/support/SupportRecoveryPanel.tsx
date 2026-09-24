@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { InlineNote } from '../privacy/InlineNote';
 import { SettingsAction, SettingsText as T } from '../settings/SettingsPresentation';
-import { SupportRecovery, supportTime } from './SupportPresentation';
+import { SupportRecovery, supportTime, type SupportRecoveryWorking } from './SupportPresentation';
 import type { useSupportController } from './useSupportController';
 
 /**
@@ -16,8 +16,13 @@ export function SupportRecoveryPanel({ model, caseId, receipt = true }: {
 }) {
   const { state, controller, current, navigate } = model;
   const busy = state.phase === 'LOADING' || state.phase === 'SENDING';
+  // Each recovery command spins its own button while it runs (round 5c review): the check is a full load, the stop and
+  // the replay are sends of their own. A first send, a page or a mark leaves all three grey.
+  const working: SupportRecoveryWorking = state.phase === 'LOADING' && state.command === 'READ' ? 'read'
+    : state.phase === 'SENDING' && state.command === 'CANCEL' ? 'cancel'
+      : state.phase === 'SENDING' && state.command === 'REPLAY' ? 'replay' : null;
   return <>
-    {state.pending ? <SupportRecovery busy={busy} absent={state.absent}
+    {state.pending ? <SupportRecovery busy={busy} absent={state.absent} working={working}
       onRead={() => { if (current()) void controller?.load(); }}
       onCancel={() => { if (current()) void controller?.cancel(state); }}
       onReplay={state.canReplay && state.absent ? () => { if (current()) void controller?.replay(state); } : undefined} /> : null}
