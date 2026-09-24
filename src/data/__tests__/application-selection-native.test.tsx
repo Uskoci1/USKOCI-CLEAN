@@ -44,6 +44,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
 import { sys } from '../../ui/system/tokens';
+import { SuccessMark } from '../../ui/system/SuccessMark';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
   stanje: 'CEKA_PRIJAVE', pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade',
   schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T08:00:00.123456Z', endsAt: '2026-09-20T09:00:00.654321Z' } });
@@ -82,7 +83,7 @@ async function reviewOffer() {
   expect(press('Pošalji ovu Prijavu')).toBeDefined();
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
-async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
+async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
 // Step 7 (2026-09-24): an offer opens as a sheet over the list and its one green action, "Izaberi ovu ponudu", asks in an
 // in-app confirmation. It was a page with "Pregledaj povezivanje" and a review page behind it; these helpers pinned that
 // look. Android Back on the sheet (its Modal's request) is how an offer is closed now, where the offer page had its own
@@ -165,11 +166,17 @@ it('invalidates a review when the task revision changes and asks for a fresh rev
   await tap('Pregledaj ponudu'); expect(text()).toContain('Promenjen zadatak');
   await tap('Pošalji ovu Prijavu'); expect(mockSubmit.mock.calls[0][0].potrebaRevizija).toBe(4);
 });
+// Round 6 (unit prijava): an empty price no longer opens a review that says "Proveri unetu cenu"; the green button is grey
+// with the reason under it, and the footer says the missing price in words, never as an amount.
 it('reviews flexible time without making up an exact interval and keeps missing price as text', async () => {
   const flexible = { ...need(), vremeTekst: 'Fleksibilno', schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } };
   mockNeed.mockResolvedValue(flexible); mockTask.mockResolvedValue({ ...flexible, primaNovePrijave: true });
-  await render(); await tap('Pregledaj ponudu');
-  expect(text()).toContain('Proveri unetu cenu');
+  await render();
+  const review = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
+  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Upiši svoju cenu da pregledaš ponudu.');
+  expect(text()).toContain('Cena još nije upisana'); expect(text()).not.toMatch(/\d RSD/);
+  await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await tap('Pregledaj ponudu');
   expect(text()).toContain('Tačan početak i kraj još nisu dogovoreni.');
   expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
@@ -254,17 +261,28 @@ it.each(['blur', 'account'])('a confirmed application link cannot navigate after
 });
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
   await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toMatch(/ukupno\s+·/);
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc'); await sendOffer();
-  expect(mockSubmit).not.toHaveBeenCalled();
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '4'); await sendOffer();
-  expect(mockSubmit).not.toHaveBeenCalled();
+  const review = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
+  // The route's own guard stays authoritative: it is called directly with each bad draft, past the grey button.
+  const routeSubmit = async () => { await act(async () => {
+    await tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation).props.submit(); }); };
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc');
+  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Cena mora biti ceo iznos u dinarima.');
+  expect(text()).toContain('Upiši ceo iznos u dinarima, bez tačaka i slova.');
+  await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
+  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '4');
+  expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Ima mesta za još 3 osobe.');
+  await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
+  await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
 it('unknown submit requires readback; absence never unlocks changed fields and exact original request retries', async () => {
   mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
   await offer(); await reviewOffer(); const oldSend = press('Pošalji ovu Prijavu'); await sendOffer();
   await act(async () => { oldSend(); }); expect(mockSubmit).toHaveBeenCalledTimes(1);
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999');
+  // What was sent is shown as facts while its outcome is unknown: there is no field left to change it with.
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0); expect(text()).toContain('4.500 RSD');
   mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proveri ishod');
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   expect(mockApplications).toHaveBeenCalledTimes(2); expect(mockSubmit).toHaveBeenCalledTimes(1);
   await tap('Ponovi istu Prijavu'); expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
   expect(mockSubmit.mock.calls[1][0].cenaRsd).toBe(4500); expect(mockSubmit.mock.calls[1][0].potrebaRevizija).toBe(3);
@@ -390,7 +408,11 @@ it('same-row callback retained before an explicit refresh cannot select its old 
 it('binds displayed fixed price to the same Need revision and prevents editing that price', async () => {
   mockNeed.mockResolvedValue({ ...need(), rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } });
-  await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); await sendOffer();
+  await render();
+  // A price the task names is a fact, not a field: nothing to type it into, and it is the Need's own amount.
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Ukupna cena za ljude koje dovodiš (RSD)')).toHaveLength(0);
+  expect(text()).toContain('6.000 RSD'); expect(text()).not.toContain('4.500 RSD');
+  await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, potrebaRevizija: 3, predlozeniPocetak: null, predlozeniKraj: null });
 });
 // Deep read 8.10: rpc_submit_response prices a PER_PERSON application as amount × people and a TOTAL one
@@ -399,11 +421,11 @@ it('prices a per-person task by the people this application brings', async () =>
   const perPerson = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } };
   mockNeed.mockResolvedValue(perPerson); mockTask.mockResolvedValue({ ...perPerson, primaNovePrijave: true });
   await render();
-  const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
+  const priceFields = () => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Ukupna cena za ljude koje dovodiš (RSD)');
   expect(text()).toContain('5.000 RSD po osobi'); expect(text()).toContain('računa po broju ljudi');
-  expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').editable).toBe(false);
-  await edit('Ljudi', '2'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '5000'); expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('10000');
+  expect(priceFields()).toHaveLength(0); expect(text()).toContain('Ukupno za 1 osobu: 5.000 RSD');
+  await tap('Jedna osoba više'); expect(text()).toContain('10.000 RSD'); expect(text()).toContain('Ukupno za 2 osobe: 10.000 RSD');
+  expect(priceFields()).toHaveLength(0);
   await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 10000, pokrivenaMesta: 2, potrebaRevizija: 3 });
 });
@@ -411,9 +433,9 @@ it('covers every place on a task whose price is for the whole task', async () =>
   const total = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 18000, valuta: 'RSD', prikaz: '18.000 RSD' } };
   mockNeed.mockResolvedValue(total); mockTask.mockResolvedValue({ ...total, primaNovePrijave: true });
   await render();
-  const field = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0].props;
   expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('pokriva sva mesta: 3 osobe');
-  expect(field('Ljudi').value).toBe('3'); expect(field('Ljudi').editable).toBe(false);
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Koliko ljudi dolazi')).toHaveLength(0);
+  expect(text()).toContain('Dolaze 3 osobe'); expect(press('Jedna osoba više')).toBeUndefined();
   await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 18000, pokrivenaMesta: 3 });
 });
@@ -510,4 +532,48 @@ it('the task row at the top opens the Task itself, once', async () => {
   await act(async () => { open(); open(); });
   expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/potrebe/[id]/pregled', params: { id: mockId } }]]);
   expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
+});
+
+// Round 6 (unit prijava, 2026-09-24): the composer reads as a checkout step.
+describe('the composer as a checkout step', () => {
+  const inputs = (label: string) => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label);
+  const step = (label: string) => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
+  it('shows the task as its own face, with the places a worker asks about and never the owner\'s progress', async () => {
+    await render();
+    expect(text()).toContain('Unos ormara'); expect(text()).toContain('Tražim ponude'); expect(text()).toContain('Traži 3 osobe');
+    expect(text()).not.toContain('0 / 3'); expect(text()).not.toContain('popunjeno');
+    expect(tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Unos ormara, Tražim ponude'))).not.toHaveLength(0);
+  });
+  it('steps the people between one and the places left, and says so when the typed number is too many', async () => {
+    await render();
+    expect(step('Jedna osoba manje').props.disabled).toBe(true); expect(step('Jedna osoba više').props.disabled).toBe(false);
+    await tap('Jedna osoba više'); await tap('Jedna osoba više');
+    expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('3');
+    expect(step('Jedna osoba više').props.disabled).toBe(true); expect(step('Jedna osoba manje').props.disabled).toBe(false);
+    await tap('Jedna osoba više'); expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('3');
+    await tap('Jedna osoba manje'); expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('2');
+    await edit('Koliko ljudi dolazi', '');
+    const review = step('Pregledaj ponudu');
+    expect(review.props.disabled).toBe(true); expect(review.props.accessibilityHint).toBe('Upiši svoju cenu da pregledaš ponudu.');
+    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500');
+    expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Upiši koliko ljudi dolazi.'); expect(text()).toContain('broj ljudi nije upisan');
+    await edit('Koliko ljudi dolazi', '0'); expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Upiši koliko ljudi dolazi.');
+    await edit('Koliko ljudi dolazi', '2'); expect(step('Pregledaj ponudu').props.disabled).toBe(false);
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+  it('a task without its named price says so in words and cannot be reviewed', async () => {
+    const unpriced = { ...need(), rezimCene: 'MY_PRICE', ponudjenaCena: undefined };
+    mockNeed.mockResolvedValue(unpriced); mockTask.mockResolvedValue({ ...unpriced, primaNovePrijave: true });
+    await render();
+    expect(text()).toContain('Cena nije navedena'); expect(text()).not.toMatch(/\d RSD/);
+    expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Zadatak nema navedenu cenu. Osveži zadatak.');
+  });
+  it('after the send, the fields give way to the success mark and the facts of what was sent, with its currency', async () => {
+    await offer(); await sendOffer();
+    expect(text()).toContain('Prijava je poslata.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(1);
+    expect(tree!.root.findAll(node => node.type === SuccessMark)[0].props.fresh).toBe(true);
+    expect(text()).toContain('4.500 RSD'); expect(text()).toContain('2 osobe');
+    expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+    expect(press('Otvori moje prijave')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
+  });
 });

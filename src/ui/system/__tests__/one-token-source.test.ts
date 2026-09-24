@@ -23,12 +23,14 @@ const TOKEN_SCOPE = [
 const MOTION_SCOPE = [
   'src/ui/Press.tsx', 'src/ui/v2/DiscoveryMap.tsx', 'src/ui/v2/MarketplacePresentation.tsx', 'src/ui/v2/IntakePresentation.tsx',
   'src/ui/calendar/CalendarControls.tsx', 'src/ui/v2/ApplicationSelectionPresentation.tsx', 'src/ui/system/Appear.tsx',
-  'src/hooks/useSystemReducedMotion.ts', 'src/ui/system/motion.ts',
+  'src/hooks/useSystemReducedMotion.ts', 'src/ui/system/motion.ts', 'src/ui/v2/ApplicationComposerPresentation.tsx',
+  'src/ui/reviews/AgreementReviewScreen.tsx', 'src/ui/reviews/AgreementReviewPresentation.tsx',
 ];
 /** Held hand-written colours until 2026-09-24. */
 const COLOUR_SCOPE = [
   'src/ui/home/HomePresentation.tsx', 'src/ui/home/HomeIllustration.tsx', 'src/ui/system/Detail.tsx', 'src/ui/Text.tsx',
-  'src/ui/v2/TaskCard.tsx',
+  'src/ui/v2/TaskCard.tsx', 'src/ui/v2/ApplicationComposerPresentation.tsx', 'src/ui/reviews/AgreementReviewScreen.tsx',
+  'src/ui/reviews/AgreementReviewPresentation.tsx', 'src/app/dizajn-prijava.tsx',
 ];
 const EVERY_SCOPED_FILE = [...new Set([...COLOUR_SCOPE, ...TOKEN_SCOPE, ...MOTION_SCOPE])];
 

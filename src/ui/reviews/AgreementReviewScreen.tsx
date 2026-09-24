@@ -1,36 +1,40 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 import { router } from 'expo-router';
-import { Star } from 'phosphor-react-native';
+import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
+import { readableTitle } from '../../data/needDetailPresentation';
 import { reviewsClientService, type ReviewCommand, type ReviewTag } from '../../data/reviewsClientService';
 import { failure } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
-import { Press } from '../Press';
-import { DetailTopBar } from '../system/DetailTopBar';
-import { SuccessMark } from '../system/SuccessMark';
-import { SkeletonList } from '../system/Skeleton';
-import { brandAction, sys, card } from '../system/tokens';
-import { T } from '../Text';
-import { V2Action } from '../v2/V2Action';
+import { agreementRole } from '../v2/AgreementPresentation';
+import { AgreementReviewPresentation, type ReviewView } from './AgreementReviewPresentation';
 
-const tagLabels: Record<ReviewTag, string> = {
-  AS_AGREED: 'Po dogovoru', CAREFUL: 'Pažljivo', CLEAR_COMMUNICATION: 'Jasna komunikacija',
-  ON_TIME: 'Na vreme', RELIABLE: 'Pouzdano', RESPECTFUL: 'Uz poštovanje',
-};
-const ratingLabels = ['Izaberi ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
+export { AgreementReviewPresentation, type ReviewPerson, type ReviewView } from './AgreementReviewPresentation';
+
 export function backFromReview() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
 /** The rating opened from Početna: Back returns there, and with no history it lands there too. */
 export function backFromReviewToHome() { if (router.canGoBack()) router.back(); else router.replace('/'); }
 
-/** One rating, up to N tags, one save. The saved receipt is final and shown as such. */
-export function AgreementReviewScreen({ agreementId, accountId, accountRevision, backLabel = 'Nazad na Dogovor', onBack = backFromReview }: {
+/**
+ * One rating, up to N tags, one save. The saved receipt is final and shown as such.
+ *
+ * One calm screen (round 6, unit `prijava`, 2026-09-24): the person being rated first (their picture, name, what they are
+ * to me and the task), five large stars, the optional tags, and ONE green save pinned at the foot. The stars are the
+ * screen's one orange accent. The person comes from a second read of the Dogovor; it never blocks or delays the rating,
+ * and when it fails or does not match the person the server names, no person is drawn (nothing is invented).
+ */
+export function AgreementReviewScreen({ agreementId, accountId, accountRevision, backLabel = 'Nazad na Dogovor', onBack = backFromReview,
+  readAgreement, photo }: {
   agreementId: string; accountId: string; accountRevision: number;
   /** What the way back is called: the screen the rating was opened from ("Nazad na Početnu" from Početna's strip). */
   backLabel?: string;
   /** The way back, for the top bar's arrow and for the button that names it. */
   onBack?: () => void;
+  /** Reads the Dogovor, only to show whom the rating is about. */
+  readAgreement?: () => Promise<DogovorProjekcija | null>;
+  /** The person's photo at 56, drawn by the route; `fallback` (their letters) when there is none. */
+  photo?: (profileId: string, fallback: ReactNode) => ReactNode;
 }) {
   const read = useCallback(() => reviewsClientService.context(agreementId, { accountId, accountRevision }),
     [agreementId, accountId, accountRevision]);
@@ -61,6 +65,23 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
     return () => { current = false; };
   }, [foreground, resumeRequired, workspace.busy, workspace.refresh]);
   const context = workspace.data, receipt = context?.review;
+  // Whom the rating is about: the Dogovor's own participant with the account the server named, and never me.
+  const target = context?.targetAccountId ?? null;
+  const [person, setPerson] = useState<{ who: UcesnikProjekcija; task: string } | null>(null);
+  const personRequest = useRef(0);
+  useEffect(() => {
+    if (!readAgreement || !target) return;
+    const request = ++personRequest.current;
+    readAgreement().then(agreement => {
+      if (request !== personRequest.current) return;
+      const who = agreement?.ucesnici.find(p => p.id === target && !p.viSte);
+      setPerson(who && agreement ? { who, task: readableTitle(agreement.naslov) } : null);
+    }).catch(() => { if (request === personRequest.current) setPerson(null); });
+    return () => { personRequest.current++; };
+  }, [readAgreement, target]);
+  // "Ponovi istu ocenu" only once a save has come back unconfirmed; the first save keeps its own words while it runs.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => { if (attempt && !workspace.busy) setSettled(true); }, [attempt, workspace.busy]);
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.busy && !workspace.error && !workspace.uncertain;
   const current = () => activeRef.current;
   const editable = enabled && context?.eligible === true && !attempt;
@@ -80,83 +101,21 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
       return checked;
     });
   };
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar title="Ocena saradnje" onBack={onBack} />
-    <ScrollView contentContainerStyle={s.content}>
-      {workspace.loading || !foreground || resumeRequired ? <View accessible accessibilityLabel="Učitavanje ocene"><SkeletonList count={1} rows={3} /></View>
-        : receipt ? <View style={s.card}>
-          {/* Settles in with one spring and a success haptic only right after saving; reopened later it is still. */}
-          <SuccessMark fresh={workspace.saved} tone="orange"><Star size={32} weight="fill" color={sys.color.orange} /></SuccessMark>
-          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena je sačuvana</T>
-          <T variant="body" style={s.ink}>Tvoja ocena: {receipt.rating} od 5</T>
-          {receipt.tags.length ? <View style={s.tags}>{receipt.tags.map(tag => <View key={tag} style={[s.tag, s.tagSelected]}><T variant="meta" style={s.tagTextSelected}>{tagLabels[tag]}</T></View>)}</View> : null}
-          <T variant="meta" tone="muted">Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
-          <V2Action label={backLabel} onPress={onBack} style={brandAction} />
-        </View> : context?.eligible ? <>
-          <View style={s.intro}>
-            <T accessibilityRole="header" variant="display" style={s.ink}>Kako je prošla saradnja?</T>
-            <T variant="body" tone="muted">Oceni drugu stranu završenog Dogovora.</T>
-          </View>
-          <View style={s.card}>
-            <View style={s.stars}>
-              <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={s.starRow}>
-                {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
-                  accessibilityState={{ checked: rating === value, disabled: !editable }} disabled={!editable} haptic="select"
-                  onPress={() => { if (editable && current() && !attemptRef.current) setRating(value); }} style={s.star}>
-                  <Star size={38} weight={value <= rating ? 'fill' : 'regular'} color={value <= rating ? sys.color.orange : sys.color.lineStrong} />
-                </Press>)}
-              </View>
-              <T accessibilityLiveRegion="polite" variant="bodyStrong" style={s.ink}>{ratingLabels[rating]}</T>
-            </View>
-            <View style={s.divider} />
-            <T variant="bodyStrong" style={s.ink}>Šta je obeležilo saradnju?</T>
-            <T variant="meta" tone="muted">Opciono · najviše {context.tagCatalog.maxTags} oznake</T>
-            <View style={s.tags}>
-              {context.tagCatalog.tags.map(tag => {
-                const selected = tags.includes(tag), disabled = !editable || (!selected && tags.length >= context.tagCatalog.maxTags);
-                return <Press key={tag} accessibilityRole="checkbox" accessibilityLabel={tagLabels[tag]}
-                  accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic="select"
-                  onPress={() => { if (!disabled && current() && !attemptRef.current) setTags(values => values.includes(tag)
-                    ? values.filter(value => value !== tag) : values.length < context.tagCatalog.maxTags ? [...values, tag] : values); }}
-                  style={[s.tag, selected && s.tagSelected, disabled && !selected && s.tagDisabled]}>
-                  <T variant="meta" style={selected ? s.tagTextSelected : s.tagText}>{tagLabels[tag]}</T>
-                </Press>;
-              })}
-            </View>
-          </View>
-          {attempt ? <T variant="meta" tone="muted">Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.</T> : null}
-          <View style={s.grow} />
-          <V2Action label={workspace.busy ? 'Čuvamo ocenu…' : attempt ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu'}
-            disabled={!enabled || rating < 1} onPress={submit} style={brandAction} />
-          {/* A grey button with nothing saying why is a dead end. It waits on one thing. */}
-          {enabled && rating < 1 ? <T variant="meta" tone="muted" style={{ textAlign: 'center' }}>Izaberi ocenu od 1 do 5 pre slanja.</T> : null}
-        </> : context ? <View style={s.card}>
-          <T accessibilityRole="header" variant="title" style={s.ink}>Ocena još nije dostupna</T>
-          <T variant="body" tone="muted">Možeš oceniti drugu stranu kada Dogovor bude završen.</T>
-          <V2Action label={backLabel} onPress={onBack} />
-        </View> : null}
-      {workspace.error ? <View style={s.errorBlock}>
-        <T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>
-        <V2Action label={attempt ? 'Proveri sačuvanu ocenu' : 'Ponovo učitaj ocenu'} disabled={workspace.busy || !foreground}
-          onPress={() => { if (current()) void workspace.refresh(); }} />
-      </View> : null}
-    </ScrollView>
-  </SafeAreaView>;
+  const loading = workspace.loading || !foreground || resumeRequired;
+  const retry = { label: attempt ? 'Proveri sačuvanu ocenu' : 'Ponovo učitaj ocenu', disabled: workspace.busy || !foreground,
+    onPress: () => { if (current()) void workspace.refresh(); } };
+  const view: ReviewView = loading ? { kind: 'loading' }
+    : !context && workspace.error ? { kind: 'error', message: workspace.error }
+    : receipt ? { kind: 'saved', rating: receipt.rating, tags: receipt.tags, fresh: workspace.saved }
+    : context?.eligible ? { kind: 'eligible', catalog: context.tagCatalog, rating, tags, editable, attempt: !!attempt,
+      onRate: value => { if (editable && current() && !attemptRef.current) setRating(value); },
+      onToggleTag: tag => { if (editable && current() && !attemptRef.current) setTags(values => values.includes(tag)
+        ? values.filter(value => value !== tag) : values.length < context.tagCatalog.maxTags ? [...values, tag] : values); },
+      save: { label: settled ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu', loading: workspace.busy, disabled: !enabled || rating < 1,
+        reason: enabled && rating < 1 ? 'Izaberi ocenu od 1 do 5 pre slanja.' : null, onPress: submit } }
+    : context ? { kind: 'unavailable' } : { kind: 'none' };
+  return <AgreementReviewPresentation backLabel={backLabel} onBack={onBack} view={view} retry={retry}
+    notice={!loading && workspace.error && context ? workspace.error : null}
+    person={person ? { name: person.who.ime, initials: person.who.inicijali, profileId: person.who.profilId, role: agreementRole(person.who), task: person.task } : null}
+    photo={photo} />;
 }
-
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground },
-  ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, grow: { flex: 1 },
-  content: { padding: 20, gap: 16, flexGrow: 1 },
-  intro: { gap: 8, paddingHorizontal: 2 },
-  card: { ...card, gap: 12 },
-  stars: { gap: 10, alignItems: 'center', paddingVertical: 6 },
-  starRow: { flexDirection: 'row', gap: 6 },
-  star: { width: 48, height: 52, alignItems: 'center', justifyContent: 'center' },
-  divider: { height: 1, backgroundColor: sys.color.line, marginVertical: 4 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 11, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
-  tagSelected: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, tagDisabled: { opacity: 0.5 },
-  tagText: { color: sys.color.ink }, tagTextSelected: { color: sys.color.green, fontWeight: '700' },
-  errorBlock: { gap: 12 },
-});
