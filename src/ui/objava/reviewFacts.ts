@@ -26,7 +26,7 @@ export function reviewRowValue(fact: AiNeedV2Fact): string {
     const stationary = location.geography.mode === 'STATIONARY';
     // One point needs no name; several say which one each detail belongs to.
     const named = (slot: typeof points[number]['slot'], text: string) => total > 1 ? `${slotLabel(slot, stationary)} · ${text}` : text;
-    return [`${points.length} od ${total} tačaka potvrđeno`, ...points.flatMap(point => [
+    return [`Potvrđeno tačaka: ${points.length} od ${total}`, ...points.flatMap(point => [
       ...(point.address ? [named(point.slot, `Adresa tačke: ${point.address}`)] : []),
       ...(point.accessNotes ? [named(point.slot, `Pristup: ${point.accessNotes}`)] : []),
     ])].join('\n');
@@ -61,8 +61,8 @@ export type ReviewTodo = { key: string; text: string;
  * place on the map, then what the server would refuse about the facts themselves. The unavailable identity condition is
  * its own block with its own action, not a row here.
  */
-export function reviewTodos(review: { safety: string; missingRequired: readonly NeedFactV2Key[]; location: unknown },
-  factProblem: string | null): ReviewTodo[] {
+export function reviewTodos(review: { safety: string; missingRequired: readonly NeedFactV2Key[]; location: unknown; canAccept?: boolean },
+  factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
   if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Sadržaj ne može da se objavi u ovom obliku.', target: 'conversation' });
   const missing = review.missingRequired.filter(key => key !== 'need.category');
@@ -72,5 +72,8 @@ export function reviewTodos(review: { safety: string; missingRequired: readonly 
   if (factProblem) todos.push({ key: 'fact', text: factProblem, target: factProblem === REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED
     ? 'need.price_rsd' : factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED || factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED
       ? 'need.starts_at' : null });
+  // A refusal the rows above do not name still says where it is fixed, so a grey publish never stands without a reason.
+  if (review.canAccept === false && !todos.length && !identityBlock)
+    todos.push({ key: 'other', text: 'Zadatku je potrebna dopuna u razgovoru.', target: 'conversation' });
   return todos;
 }

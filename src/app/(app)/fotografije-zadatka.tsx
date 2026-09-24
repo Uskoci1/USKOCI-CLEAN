@@ -174,7 +174,8 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
     confirmLabel: 'Ukloni', tone: 'danger', onConfirm: () => remove(assetId) });
   const removeDisabled = busy || unconfirmed || !recovered;
   return <SettingsScreen title="Fotografije zadatka" onBack={back} footer={<>
-    <SettingsAction label="Izaberi iz galerije" loading={working === 'LIBRARY'} disabled={addDisabled} reason={addReason}
+    {/* One reason for both add actions, said once under the last of them. */}
+    <SettingsAction label="Izaberi iz galerije" loading={working === 'LIBRARY'} disabled={addDisabled}
       onPress={() => { void pick('LIBRARY'); }} />
     <SettingsAction label="Fotografiši" kind="secondary" loading={working === 'CAMERA'} disabled={addDisabled} reason={addReason}
       onPress={() => { void pick('CAMERA'); }} />

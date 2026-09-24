@@ -16,7 +16,7 @@ import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { FactArt } from '../ui/system/FactArt';
 import { StateView } from '../ui/system/StateView';
 import { useConfirmSheet } from '../ui/system/ConfirmSheet';
-import { brandAction, sys } from '../ui/system/tokens';
+import { brandAction, inset, sys } from '../ui/system/tokens';
 import type { Summary } from '../ui/v2/draftSummary';
 import { V2Action } from '../ui/v2/V2Action';
 import { Press } from '../ui/Press';
@@ -147,11 +147,12 @@ export default function DizajnObjava() {
       </>;
     return <SafeAreaView edges={['top', 'bottom']} style={reviewStyles.canvas}>
       <DetailTopBar backLabel="Nazad" onBack={toList} title={options.status?.published ? 'Objavljeno' : 'Pregled zadatka'} />
-      <ScrollView contentContainerStyle={reviewStyles.content}><View style={{ gap: 24 }}>{body}</View></ScrollView>
+      <ScrollView contentContainerStyle={reviewStyles.content}><View style={reviewStyles.stack}>{body}</View></ScrollView>
       {options.loading || options.failure ? null : <View style={reviewStyles.footer}>
         {options.error ? <T accessibilityRole="alert" style={reviewStyles.error}>{options.error}</T> : null}
         {options.command ?? <>
-          <PublishButton label="Objavi zadatak" blocked={blocked} working={!!options.working} onPress={noop} />
+          <PublishButton label="Objavi zadatak" blocked={blocked} working={!!options.working}
+            reason={options.todos?.length ? 'Prvo reši ono što još treba.' : null} onPress={noop} />
           <T style={reviewStyles.caption}>{options.todos?.length ? 'Prvo reši ono što još treba.' : 'Ovim prihvataš prikazanu verziju i tražiš objavu.'}</T>
           {options.todos?.length ? null : <V2Action label="Sačuvaj nacrt" kind="quiet" disabled={!!options.working} onPress={noop} />}
         </>}
@@ -169,7 +170,7 @@ export default function DizajnObjava() {
     <LocationScreen title="Mesto zadatka" onBack={toList} loading={!!options.loading} onRetry={noop} scroll={false}>
       {options.saved ? <View style={s.saved}>
         <T accessibilityRole="alert" variant="body">Lokacija je sačuvana u pregledu Zadatka.</T>
-        <V2Action label="Nazad na pregled" style={brandAction} onPress={toList} />
+        <V2Action label="Nazad na pregled" kind="secondary" onPress={toList} />
       </View> : null}
       <NeedLocationForm layout="screen" reviewOnly={!options.saved} review={value} busy={false} uncertain={false} onSave={noop}
         resolver={RESOLVER} countries={COUNTRIES} />
@@ -252,6 +253,5 @@ const s = StyleSheet.create({
   row: { minHeight: 56, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
   picture: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control, alignItems: 'center', justifyContent: 'center' },
   fill: { width: '100%', height: '100%' },
-  saved: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.control, padding: 14, gap: sys.space.md, marginHorizontal: sys.space.lg,
-    marginTop: sys.space.base },
+  saved: { ...inset, backgroundColor: sys.color.greenSoft, gap: sys.space.md, marginHorizontal: sys.space.lg, marginTop: sys.space.base },
 });

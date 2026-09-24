@@ -22,7 +22,7 @@ export const locationStyles = StyleSheet.create({
   input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notice: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, padding: 16, gap: 10 },
-  failure: { paddingHorizontal: 20, paddingTop: 16 },
+  failure: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base },
 });
 
 /** Keep secondary fields available without competing with the current place or pin. */
@@ -74,7 +74,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
     </Press>
     {/* The shared sheet (master plan: the hand-made Modals become ProductSheet). A choice that is not available yet
         says so in words, and stays readable instead of fading. */}
-    {open ? <ProductSheet title={label} reduced={reduced} onClose={() => setOpen(false)}>{dismiss => <View style={{ gap: sys.space.sm }}>
+    {open ? <ProductSheet title={label} reduced={reduced} onClose={() => setOpen(false)}>{dismiss => <View accessibilityRole="radiogroup" style={{ gap: sys.space.sm }}>
       {options.map(option => <Press key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
         accessibilityHint={option.disabled ? 'Još nije dostupno.' : undefined}
         accessibilityState={{ selected: option.value === value, disabled: !!option.disabled }} disabled={option.disabled} haptic="select"

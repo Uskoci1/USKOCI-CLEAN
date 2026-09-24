@@ -5,6 +5,7 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
+import { useTextScale } from '../system/textScale';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 
 /**
@@ -27,7 +28,9 @@ export function PhotoStatus({ text, tone }: { text: string; tone: PhotoTone }) {
 /** Two square tiles to a row, filling the width exactly (a percentage width wrapped at 320 dp). */
 export function PhotoGrid({ children }: { children: (tile: number) => ReactNode }) {
   const [width, setWidth] = useState(0);
-  const tile = width ? Math.floor((width - sys.space.sm) / 2) : 0;
+  // At large text a tile's words need the whole width: one tile to a row.
+  const large = useTextScale() >= 1.3;
+  const tile = !width ? 0 : large ? width : Math.floor((width - sys.space.sm) / 2);
   return <View style={s.grid} onLayout={event => setWidth(event.nativeEvent.layout.width)}>{tile ? children(tile) : null}</View>;
 }
 
@@ -57,7 +60,7 @@ export function PhotoTile({ state, index, size, removeDisabled, onRemove, pictur
   return <View style={[frame, s.placeholder, pending && s.pending]}>
     {state.kind === 'PROCESSING' || state.kind === 'SENDING' ? <ActivityIndicator size="small" color={sys.color.green} />
       : <FactArt kind={state.kind === 'FAILED' ? 'photo' : 'info'} size={28} muted />}
-    <T variant="note" tone="muted" numberOfLines={3} style={s.center}>{state.kind === 'PROCESSING' ? 'Fotografija se obrađuje.'
+    <T variant="note" tone="muted" numberOfLines={2} style={s.center}>{state.kind === 'PROCESSING' ? 'Fotografija se obrađuje.'
       : state.kind === 'FAILED' ? 'Fotografija nije obrađena.' : state.kind === 'SENDING' ? 'Šalje se…' : 'Slanje nije potvrđeno'}</T>
     {remove}
   </View>;
@@ -92,7 +95,7 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   fill: { width: '100%', height: '100%', aspectRatio: undefined },
   placeholder: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, alignItems: 'center', justifyContent: 'center',
-    gap: sys.space.sm, padding: sys.space.sm },
+    gap: sys.space.sm, padding: sys.space.sm, overflow: 'hidden' },
   pending: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: sys.color.lineStrong },
   removeTarget: { position: 'absolute', top: 0, right: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   removeCircle: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1,

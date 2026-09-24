@@ -6,7 +6,7 @@ import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { SuccessMark } from '../system/SuccessMark';
 import { TurningCaret } from '../system/Disclosure';
-import { brandAction, cardCompact, inset, sys } from '../system/tokens';
+import { brandAction, cardCompact, field, inset, sys } from '../system/tokens';
 import { CardFact, CardTitle, CardValue, WaitingDot, valueSpoken, type TaskValue } from '../v2/TaskFace';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
@@ -37,12 +37,16 @@ export function ReviewStatus({ published, fresh, text }: { published: boolean; f
  * bare on one compact card. Not a target; it is heard once as a whole. The description and the photos are not repeated
  * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24).
  */
-export function ReviewPreview({ summary, unpriced, large }: { summary: Summary; unpriced: boolean; large: boolean }) {
+export function ReviewPreview({ summary, unpriced, large, action }: { summary: Summary; unpriced: boolean; large: boolean;
+  /** One quiet correction beside the caption ("Izmeni naslov"). */ action?: ReactNode }) {
   const value: TaskValue | null = summary.value ?? (unpriced ? { kind: 'unpriced' } : null);
   const spoken = [summary.title, value ? valueSpoken(value) : null, summary.zone || null, summary.schedule ?? null, summary.people]
     .filter(Boolean).join(', ');
   return <View style={s.section}>
-    <T variant="meta" tone="muted">Ovako će drugi videti zadatak</T>
+    <View style={s.sectionHead}>
+      <T variant="meta" tone="muted" style={s.grow}>Ovako će drugi videti zadatak</T>
+      {action}
+    </View>
     <View style={s.card} accessible accessibilityLabel={spoken || 'Zadatak još nema javnih podataka'}>
       {summary.title || value ? <View style={large ? s.headStacked : s.head}>
         {summary.title ? <CardTitle title={summary.title} lines={3} style={!large && s.titleSide} /> : null}
@@ -93,7 +97,7 @@ export function PlaceGroup({ kind, children }: { kind: 'public' | 'private'; chi
   return <View style={[s.group, kind === 'private' && s.groupDivided]}>
     <View style={s.groupHead}>
       <FactArt kind={kind === 'public' ? 'eye' : 'lock'} size={18} />
-      <T variant="bodyStrong" style={s.ink}>{kind === 'public' ? 'Vide svi' : 'Privatni podaci'}</T>
+      <T variant="bodyStrong" accessibilityRole="header" style={s.ink}>{kind === 'public' ? 'Vide svi' : 'Privatni podaci'}</T>
     </View>
     {children}
   </View>;
@@ -129,15 +133,19 @@ export function ReviewPhotos({ assetIds, picture }: { assetIds: readonly string[
   const tile = width ? Math.floor((width - 2 * sys.space.sm) / 3) : 0;
   return assetIds.length ? <View style={s.photoGrid} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
     {tile ? assetIds.map((assetId, i) => picture ? <View key={assetId}>{picture(i, tile)}</View>
-      : <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`} contentFit="cover" style={{ width: tile, aspectRatio: 1 }} />) : null}
+      : <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`} contentFit="cover" style={{ width: tile, aspectRatio: 1 }}
+        // A small tile has no room for the sentence: the muted picture alone, and the sentence for a screen reader.
+        unavailable={<View accessible accessibilityLabel="Fotografija trenutno nije dostupna." style={s.photoMissing}>
+          <FactArt kind="photo" size={24} muted /></View>} />) : null}
   </View> : <T variant="note" tone="muted">Fotografije nisu dodate.</T>;
 }
 
 /** When applications close: the deadline in Serbian time, or the rule when there is none. */
 export function ReviewDeadline({ text }: { text: string | null }) {
+  // The rule for a task with a fixed time belongs to "no deadline"; with a deadline set, the deadline says it.
   return <>
     <T variant="body">{text ? `Rok: ${text}` : 'Bez posebnog roka — do popune ili dok ne zaustaviš potragu.'}</T>
-    <T variant="note" tone="muted">Zadatak sa tačnim terminom se zatvara kad termin prođe.</T>
+    {text ? null : <T variant="note" tone="muted">Zadatak sa tačnim terminom se zatvara kad termin prođe.</T>}
   </>;
 }
 
@@ -162,7 +170,7 @@ export function ReviewFactRow({ label, value, large, system, edit, editDisabled,
 
 /** The facts with nothing in them, named in one line that opens them. */
 export function ReviewEmptyFacts({ labels, onOpen }: { labels: readonly string[]; onOpen: () => void }) {
-  return <Press accessibilityRole="button" style={[s.field, s.row]}
+  return <Press accessibilityRole="button" accessibilityState={{ expanded: false }} style={[s.field, s.row]}
     accessibilityLabel={`Prikaži šta nije navedeno: ${labels.join(', ')}`} onPress={onOpen}>
     <T style={[s.meta, s.grow]}>Nije navedeno: {labels.join(' · ')}</T>
     <TurningCaret open={false} />
@@ -173,9 +181,10 @@ export function ReviewEmptyFacts({ labels, onOpen }: { labels: readonly string[]
  * The one brand action of the review. Its states are the V2Action states: at work it keeps its green and its words with
  * a spinner before them; unavailable it is the quiet wash with muted words, never a faded copy of the live button.
  */
-export function PublishButton({ label, blocked, working, onPress }: { label: string; blocked: boolean; working: boolean; onPress: () => void }) {
+export function PublishButton({ label, blocked, working, reason, onPress }: { label: string; blocked: boolean; working: boolean;
+  /** Why it is grey: spoken as its hint (the same line is drawn under it by the caller). */ reason?: string | null; onPress: () => void }) {
   const resting = blocked && !working;
-  return <Press accessibilityRole="button" accessibilityLabel={label} disabled={blocked}
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={resting && reason ? reason : undefined} disabled={blocked}
     accessibilityState={working ? { disabled: true, busy: true } : { disabled: blocked }} onPress={onPress}
     style={[s.publish, resting && s.publishResting]}>
     {working ? <ActivityIndicator color={sys.color.onGreen} /> : null}
@@ -189,11 +198,13 @@ export const reviewStyles = StyleSheet.create({
   footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line, gap: sys.space.sm, backgroundColor: sys.color.surface },
   caption: { ...sys.type.meta, color: sys.color.muted, textAlign: 'center' },
   error: { ...sys.type.meta, color: sys.color.danger },
-  input: { ...sys.type.body, padding: 12, borderWidth: 1, borderColor: sys.color.green, borderRadius: sys.radius.control, minHeight: 56, color: sys.color.ink },
+  input: { ...field, borderColor: sys.color.green, minHeight: 56, paddingVertical: sys.space.md },
   warn: { ...inset, backgroundColor: sys.color.warnSoft },
   warnText: { ...sys.type.note, color: sys.color.warn },
   danger: { ...inset, backgroundColor: sys.color.dangerSoft, gap: sys.space.sm },
   identity: { gap: sys.space.sm, paddingTop: sys.space.sm },
+  stack: { gap: sys.space.xl },
+  placeAlert: { marginHorizontal: sys.space.lg, marginTop: sys.space.sm },
 });
 
 const s = StyleSheet.create({
@@ -214,6 +225,7 @@ const s = StyleSheet.create({
   groupDivided: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  photoMissing: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   meta: { ...sys.type.meta, color: sys.color.muted }, body: { ...sys.type.body, color: sys.color.ink },
   inlineValue: { flexShrink: 1, textAlign: 'right' },
   field: { borderBottomWidth: 1, borderBottomColor: sys.color.line, paddingVertical: sys.space.md, gap: sys.space.xs, minHeight: 56 },

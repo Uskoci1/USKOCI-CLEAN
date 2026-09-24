@@ -9,6 +9,7 @@ import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
+import { brandAction, sys } from '../system/tokens';
 import { LocationDetails, LocationField } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
 
@@ -19,6 +20,9 @@ type Props = {
    *  standing on it instead of asking the person to search for what they just said. Opt-in: a
    *  lookup marks the point pending, which the long form treats as an unsaved change. */
   autoLocate?: boolean;
+  /** Confirming the point is the green action where nothing else saves (the conversation's point sheet); in the long
+   *  form the footer's save is, so there the confirmation is white. */
+  confirmAsPrimary?: boolean;
   onInvalidate: () => void; onConfirm: (point: ConfirmedLocationPoint) => void;
 };
 /** One visible point proposal. Only the explicit confirmation emits a saved value. */
@@ -27,7 +31,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
   const [position, setPosition] = useState<ResolvedPinPosition | null>(point
@@ -167,7 +171,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   // No box of its own: the point sits in the form's "Samo u Dogovoru" group, and the conversation's sheet is already a
   // surface (a card here was a card in a card).
-  return <View style={{ gap: 12 }}>
+  return <View style={{ gap: sys.space.md }}>
     <T variant="bodyStrong">{title} na mapi</T>
     <T variant="meta" tone="muted">Izaberi tačno mesto i potvrdi ga. Tačka i detalji ispod ostaju privatni.</T>
     <LocationField label={`${title} — pronađi mesto`} value={searchText} maxLength={1000} editable={!disabled && focused} onChangeText={changeSearch} />
@@ -221,7 +225,6 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         : pending ? `Izmena tačke još nije potvrđena.${position ? '' : ' Izaberi tačku na mapi ili predlog iz pretrage.'}`
           : position ? 'Tačka još nije potvrđena.' : 'Izaberi tačku na mapi ili predlog iz pretrage, pa je potvrdi.'}
     </T>
-    {/* The step's own confirmation, white with a green label: the screen's one green action is its save. */}
-    <Button label={`Potvrdi tačku: ${title}`} kind="secondary" disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
+    <Button label={`Potvrdi tačku: ${title}`} kind="secondary" style={confirmAsPrimary ? brandAction : undefined} disabled={disabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;
 }

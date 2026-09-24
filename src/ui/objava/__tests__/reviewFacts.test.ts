@@ -25,7 +25,7 @@ describe('reviewRowValue', () => {
     const geography = { mode: 'POINT_TO_POINT' as const, start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
     const value = reviewRowValue(fact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress: null },
       points: [{ slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' }, address: 'Bulevar 1', accessNotes: 'Zvono 3' }] }));
-    expect(value.split('\n')[0]).toBe('1 od 2 tačaka potvrđeno');
+    expect(value.split('\n')[0]).toBe('Potvrđeno tačaka: 1 od 2');
     expect(value).toContain('Adresa tačke: Bulevar 1'); expect(value).toContain('Pristup: Zvono 3');
     expect(value).not.toMatch(/45\.25|19\.83|\bRS\b/);
   });
@@ -72,5 +72,9 @@ describe('reviewTodos', () => {
       .toEqual(['conversation', 'location', 'need.price_rsd']);
     expect(reviewTodos(base, REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED)[0].target).toBe('need.starts_at');
     expect(reviewTodos(base, null)).toEqual([]);
+  });
+  it('gives a refusal no row names its own row back to the conversation, unless the identity block explains it', () => {
+    expect(reviewTodos({ ...base, canAccept: false }, null)).toEqual([{ key: 'other', text: 'Zadatku je potrebna dopuna u razgovoru.', target: 'conversation' }]);
+    expect(reviewTodos({ ...base, canAccept: false }, null, true)).toEqual([]);
   });
 });
