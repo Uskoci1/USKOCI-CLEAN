@@ -95,7 +95,8 @@ const windowAt = (n: number, days: number, from: string, to: string, state: Avai
 const EMPTY: WorkerAvailabilityInput = { timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] };
 const WEEK: WorkerAvailabilityInput = { timezone: 'Europe/Belgrade', availableNow: true,
   rules: [rule(1, [1, 2, 3, 4, 5], '09:00:00', '17:00:00', { label: 'Radno vreme' }), rule(2, [6], '10:00:00', '14:00:00', { active: false }),
-    rule(3, [5], '22:00:00', '24:00:00'), rule(4, [6], '00:00:00', '02:00:00')],
+    // Friday 22:00–02:00 as the Termin sheet saves it: the night, and its part after midnight dated one day later.
+    rule(3, [5], '22:00:00', '24:00:00'), rule(4, [6], '00:00:00', '02:00:00', { startsOn: '2026-09-02' })],
   windows: [windowAt(5, 3, '08:00', '20:00', 'UNAVAILABLE', 'Slava'), windowAt(6, 10, '09:00', '13:00', 'AVAILABLE'),
     windowAt(7, -20, '08:00', '12:00', 'UNAVAILABLE', 'Pregled kod lekara')] };
 

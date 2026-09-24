@@ -19,15 +19,18 @@ import { FactArt } from '../system/FactArt';
  */
 export const calendarStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
+  // Insets and gaps are steps of sys.space (review of owner step 10: 14 and 28 were off the 4/8 rhythm); the 48 and 52
+  // below are touch heights. Two exceptions stay as they are, since other screens draw them: the option keeps the price
+  // filter's own 14/10 inset (MarketplacePresentation), and the field labels' 6 is CivilField's and CalendarField's.
+  content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl, gap: sys.space.md },
   /** A 48 px icon command: every command is at least 48 (the old 44 was under it). */
   icon: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
-  card: { ...card, gap: 12 }, item: { ...cardCompact, gap: 8 },
+  card: { ...card, gap: sys.space.md }, item: { ...cardCompact, gap: sys.space.sm },
   // A choice is an option row, not a card: the same control the price filter uses.
   option: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexWrap: 'wrap' },
   input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
+  footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
   divider: { height: 1, backgroundColor: sys.color.line },
 });
 

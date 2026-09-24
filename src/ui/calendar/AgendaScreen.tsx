@@ -97,7 +97,7 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
         </View>
       </View>
       {narrow && toToday ? <View style={s.todayLine}>{toToday}</View> : null}
-      {/* Seven equal columns that always fit (the seventh day was cut off by a sideways scroll on the phone): about 38 dp
+      {/* Seven equal columns that always fit (the seventh day was cut off by a sideways scroll on the phone): about 36 dp
           wide at 320 and 56 tall, an accepted exception to the 48 rule with the full name spoken. At a very large text
           the weekday shrinks to its letter. Unselected days are not filled (B18); today wears a green ring. */}
       <View style={s.strip}>{days.map(date => {
@@ -155,9 +155,9 @@ const s = StyleSheet.create({
   weekLabel: { flex: 1, minWidth: 0 },
   arrows: { flexDirection: 'row', gap: sys.space.xs },
   todayLine: { flexDirection: 'row' },
-  // Half the smallest step, on purpose: seven columns must fit at 320 dp, and every dp between them is taken from a day
-  // (about 38 dp wide there; with a 4 dp gap, 36.6). The only spacing here that is off the scale.
-  strip: { flexDirection: 'row', gap: sys.space.xs / 2, marginTop: sys.space.md },
+  // The smallest step of the scale (theme/tokens: no value off the 4/8 rhythm). Seven columns still fit at 320 dp, each
+  // about 36 dp wide, with the weekday at 13 px and the date shrinking to fit.
+  strip: { flexDirection: 'row', gap: sys.space.xs, marginTop: sys.space.md },
   heading: { marginTop: sys.space.xl, gap: sys.space.xs },
   day: { marginTop: sys.space.sm },
   list: { gap: sys.space.md },
