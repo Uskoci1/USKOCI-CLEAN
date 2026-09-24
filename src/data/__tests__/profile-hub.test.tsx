@@ -10,12 +10,14 @@ const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), c
 const mockRefresh = jest.fn();
 type Row = { ime: string | null; grad: string | null; profileId?: string; stanje?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null };
 const identity: Row = { ime: 'Ana Petrović', grad: 'Novi Sad' };
+let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 let mockResource = { data: { identity, capability: null } as { identity: Row | null; capability: Row | null } | null,
   loading: false, error: false, refresh: mockRefresh };
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
+    if (key === 'useWindowDimensions') return () => mockWindow;
     return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -36,12 +38,15 @@ let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<Profil />); }); }
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props.onPress();
 const logout = () => tree.root.findByProps({ label: 'Odjavi se' }).props.onPress();
+/** The pin beside the place under the name (18 px); the rows draw theirs at 26. */
+const placePins = () => tree.root.findAll(node => node.props?.kind === 'pin' && node.props?.size === 18);
 const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac';
   mockResource = { data: { identity, capability: null }, loading: false, error: false, refresh: mockRefresh };
+  mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockRouter.canGoBack.mockReturnValue(true);
   mockSignOut.mockResolvedValue(undefined);
 });
@@ -124,7 +129,7 @@ describe('real profile hub', () => {
   it('says in every state whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
     // The not-set-up copy lost its grammatical gender ("nisi podesio", 2026-09-23); what it says is unchanged.
     await render(); expect(visibleText()).toContain('Radni profil još nije podešen.'); expect(visibleText()).not.toContain('podesio');
-    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Ime, grad i veštine'], ['SUSPENDED', 'Profil je obustavljen']] as const) {
+    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Profil je aktivan'], ['SUSPENDED', 'Profil je obustavljen']] as const) {
       mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
       await act(async () => tree.update(<Profil />)); expect(visibleText()).toContain(copy);
     }
@@ -190,6 +195,43 @@ describe('real profile hub', () => {
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  // 2026-09-24: the "Uredi" pill opened the same screen as the "Ime na profilu" row; one control per job.
+  it('edits the name through its one row, with no second edit control beside it', async () => {
+    await render();
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi ime na profilu' })).toHaveLength(0);
+    await act(async () => tree.root.findByProps({ label: 'Ime na profilu' }).props.onPress());
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podaci']]);
+  });
+
+  // Nothing in the app sets the requester city, so the place falls back to the work area and is never an invitation.
+  it('shows the work-area city when the requester row has none, and no place line when neither has one', async () => {
+    mockResource.data = { identity: { ime: 'Ana', grad: null }, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE' } };
+    await render();
+    expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('Grad još nije unet'); expect(placePins().length).toBeGreaterThan(0);
+    mockResource = { ...mockResource, data: { identity: { ime: 'Ana', grad: null }, capability: { ime: 'Ana', grad: null, stanje: 'ACTIVE' } } };
+    await act(async () => tree.update(<Profil />));
+    expect(visibleText()).not.toContain('Novi Sad'); expect(visibleText()).not.toContain('Grad još nije unet');
+    expect(placePins()).toHaveLength(0);
+  });
+
+  it.each([
+    ['a phone of 390 dp', 390, 1, 'row'],
+    ['a phone of 320 dp', 320, 1, 'column'],
+    ['Android Large text (1.2999999523)', 390, 1.2999999523, 'column'],
+  ])('lays the identity out for %s', async (_name, width, fontScale, direction) => {
+    mockWindow = { width, height: 844, scale: 3, fontScale };
+    await render();
+    const { StyleSheet } = jest.requireActual('react-native');
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection).toBe(direction);
+  });
+
+  it('keeps the rating out of a failed profile and never draws anything for data that is not a reputation', async () => {
+    // useFocusedResource is mocked for every caller here, so the reputation receives the profile object: it must draw nothing.
+    await render();
+    expect(visibleText()).not.toMatch(/undefined|ocena/);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži ocene' })).toHaveLength(0);
   });
 
   it('ignores a late logout failure after batched A→B→A and admits a fresh current action', async () => {

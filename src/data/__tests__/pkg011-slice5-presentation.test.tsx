@@ -25,26 +25,34 @@ beforeEach(() => { change.mockClear(); navigate.mockClear(); });
 function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDraft; status?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; disabled?: boolean }) {
   return <WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={value} change={change} disabled={disabled} status={status} navigate={navigate} /></WorkerProfileFrame>;
 }
-test('the frame says what the screen is for and names no app mode; the form leads with who you are, keeps every field label as its spoken name and puts tools behind a row', async () => {
+// Recomposed 2026-09-24 (owner step 9): no hero repeating the hub's identity, the activation state first, tools and
+// vehicles always visible with their pictures behind "Brzi izbor", and the area and availability as rows to their editors.
+test('the frame says what the screen is for and names no app mode; the form leads with the activation state, keeps every field label as its spoken name and offers pictures behind a row', async () => {
   await act(async () => { tree = create(<Screen value={draft()} />); });
   const copy = texts();
-  expect(copy).toContain('Veštine, alat i tim'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('MM'); expect(copy).toContain('Marko Marić');
+  expect(copy).toContain('Veštine, alat i tim'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
+  expect(tree.root.findAll(node => node.props && 'initials' in node.props)).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Ime na radnom profilu' }).props.value).toBe('Marko Marić');
   expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
-  expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge', 'Grad ili mesto rada', 'Radijus rada (km)']));
-  expect(inputs()).not.toContain('Nova stavka: Alat i oprema');
-  expect(byLabel('Alat i vozila').props.accessibilityState).toEqual({ expanded: false }); expect(copy).toContain('1 stavka alata · 0 vozila');
-  await act(async () => byLabel('Alat i vozila').props.onPress());
-  expect(inputs()).toContain('Nova stavka: Alat i oprema'); expect(labels()).toContain('Ukloni alat i oprema: Kolica');
+  expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge',
+    'Nova stavka: Alat i oprema', 'Nova stavka: Vozila']));
+  expect(inputs()).not.toContain('Grad ili mesto rada'); expect(inputs()).not.toContain('Radijus rada (km)');
+  expect(labels()).toContain('Ukloni alat i oprema: Kolica');
+  expect(byLabel('Brzi izbor alata').props.accessibilityState).toEqual({ expanded: false });
+  expect(tree.root.findAllByProps({ accessibilityRole: 'checkbox', accessibilityLabel: 'Transportna kolica' })).toHaveLength(0);
+  await act(async () => byLabel('Brzi izbor alata').props.onPress());
+  expect(tree.root.findAll(node => node.props?.accessibilityRole === 'checkbox' && node.props?.accessibilityLabel === 'Transportna kolica').length).toBeGreaterThan(0);
   await act(async () => byLabel('Ukloni veštine i usluge: Selidbe').props.onPress()); expect(change).toHaveBeenCalledWith(expect.objectContaining({ vestine: ['Montaža'] }));
-  await act(async () => byLabel('Redovna dostupnost').props.onPress()); expect(navigate).toHaveBeenCalledWith('/profil/dostupnost');
+  await act(async () => byLabel('Dostupnost').props.onPress()); expect(navigate).toHaveBeenCalledWith('/profil/dostupnost');
 });
-test('status tone follows the server state and the availability switch stays read-only', async () => {
+test('status follows the server state and availability is a read-only summary, never a switch', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Uključeno · sačuvano stanje');
-  const toggle = tree.root.findAllByType('Switch' as React.ElementType)[0]; expect(toggle.props.disabled).toBe(true); expect(toggle.props.accessibilityLabel).toBe('Mogu odmah'); // was the gendered "Dostupan sam" (one voice, 2026-09-23)
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Status „Mogu odmah“ je uključen');
+  expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
   expect(texts()).toContain('Profil je trenutno suspendovan');
+  await act(async () => byLabel('Piši podršci').props.onPress()); expect(navigate).toHaveBeenCalledWith('/podrska');
 });
 test('status block: loading is spoken, an error keeps the one reload action', async () => {
   const retry = jest.fn();

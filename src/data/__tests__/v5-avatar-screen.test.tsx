@@ -3,6 +3,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const OWNER = '11111111-1111-4111-8111-111111111111', PROFILE = '22222222-2222-4222-8222-222222222222';
 const REQUEST = '33333333-3333-4333-8333-333333333333', ASSET = '44444444-4444-4444-8444-444444444444';
 let mockSession = { user: { id: OWNER }, accountRevision: 1 }, mockFocused = true;
+const mockPermission = 'Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije.';
+let mockSelectionMessage = 'Nije pripremljeno.';
 const mockJournal = new Map<string, string>(), mockSet = jest.fn(), mockPick = jest.fn(), mockRead = jest.fn();
 const mockReceipt = jest.fn(), mockUpload = jest.fn(), mockApply = jest.fn(), mockClear = jest.fn(), mockDiscard = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
@@ -12,7 +14,8 @@ jest.mock('../mediaClientService', () => ({ mediaClientService: {
   readProfileAvatar: (...a: unknown[]) => mockRead(...a), readUploadCommand: (...a: unknown[]) => mockReceipt(...a),
   uploadAvatar: (...a: unknown[]) => mockUpload(...a), applyAvatar: (...a: unknown[]) => mockApply(...a),
   clearAvatar: (...a: unknown[]) => mockClear(...a), discardAvatar: (...a: unknown[]) => mockDiscard(...a) } }));
-jest.mock('../../features/media/nativePhotoPicker', () => ({ pickPreparedPhoto: (...a: unknown[]) => mockPick(...a), photoSelectionMessage: () => 'Nije pripremljeno.' }));
+jest.mock('../../features/media/nativePhotoPicker', () => ({ pickPreparedPhoto: (...a: unknown[]) => mockPick(...a), photoSelectionMessage: () => mockSelectionMessage,
+  get PHOTO_PERMISSION_MESSAGE() { return mockPermission; } }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({ profileId: '22222222-2222-4222-8222-222222222222' }),
   router: { canGoBack: () => true, back: jest.fn(), replace: jest.fn() },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -21,6 +24,7 @@ jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Photo', mediaAssetId: (value: string) => value.split('/')[2] }));
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsAction: 'Action' }));
 import Route from '../../app/(app)/profil/fotografija';
+import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 const journalKey = `uskoci:media-upload:${OWNER}:AVATAR:${PROFILE}`;
 const ok = (podatak: unknown) => ({ ok: true, podatak }), unknown = () => ({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
 const photo = { bytes: new Uint8Array([1, 2, 3]).buffer, contentType: 'image/jpeg', width: 1, height: 1 };
@@ -34,7 +38,7 @@ const action = (label: string) => tree.root.findByProps({ label }).props;
 beforeEach(() => {
   jest.clearAllMocks(); mockJournal.clear();
   for (const m of [mockRead, mockReceipt, mockUpload, mockSet, mockPick, mockApply, mockDiscard]) m.mockReset();
-  mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockFocused = true;
+  mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockFocused = true; mockSelectionMessage = 'Nije pripremljeno.'; mockClear.mockReset();
   mockSet.mockImplementation(async (key: string, value: string) => { mockJournal.set(key, value); });
   mockRead.mockResolvedValue(ok(profile())); mockReceipt.mockResolvedValue(ok(asset()));
   mockUpload.mockResolvedValue(ok(asset())); mockPick.mockResolvedValue(photo); mockApply.mockResolvedValue(unknown());
@@ -84,4 +88,33 @@ it('clears a completed apply intent but renders newer current state without repl
   await render(); await act(async () => action('Ponovi istu promenu').onPress());
   expect(mockJournal.size).toBe(0); expect(mockApply).toHaveBeenCalledTimes(1); expect(mockUpload).not.toHaveBeenCalled();
   expect(action('Izaberi iz galerije').disabled).toBe(false);
+});
+
+// 2026-09-24: removing the public photo asks first, in the app's own sheet; clear() keeps every guard and runs at confirm time.
+it('asks before removing the profile photo and removes it only on the confirm', async () => {
+  mockRead.mockResolvedValue(ok(profile(ref))); mockClear.mockResolvedValue(unknown()); await render();
+  await act(async () => action('Ukloni fotografiju profila').onPress());
+  expect(mockClear).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled();
+  await act(async () => { tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress(); });
+  expect(mockClear).toHaveBeenCalledTimes(1); expect(mockClear).toHaveBeenCalledWith({ profileId: PROFILE, expectedAvatarPath: ref });
+});
+it('a cancelled removal writes nothing', async () => {
+  mockRead.mockResolvedValue(ok(profile(ref))); await render();
+  await act(async () => action('Ukloni fotografiju profila').onPress());
+  await act(async () => { tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+  expect(mockClear).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled(); expect(mockJournal.size).toBe(0);
+});
+it('a denied camera leads to the phone settings instead of a red line alone', async () => {
+  mockPick.mockRejectedValueOnce(new Error('denied')); mockSelectionMessage = mockPermission; await render();
+  await act(async () => action('Fotografiši').onPress());
+  expect(tree.root.findAllByProps({ label: 'Podešavanja telefona' }).length).toBeGreaterThan(0);
+  expect(mockUpload).not.toHaveBeenCalled();
+});
+it('while a change is unresolved nothing new can be picked and the retry is the one filled action', async () => {
+  mockJournal.set(journalKey, JSON.stringify({ phase: 'APPLY', requestId: REQUEST, assetId: ASSET, expectedPath: null }));
+  await render();
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Fotografiši' })).toHaveLength(0);
+  const filled = tree.root.findAll(node => String(node.type) === 'Action' && (node.props.kind ?? 'primary') === 'primary').map(node => node.props.label);
+  expect(filled).toEqual(['Ponovi istu promenu']);
 });

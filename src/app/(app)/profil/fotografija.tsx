@@ -2,14 +2,18 @@ import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mediaClientService, type MediaAsset, type ProfileAvatar } from '../../../data/mediaClientService';
-import { pickPreparedPhoto, photoSelectionMessage, type PreparedPhoto, type PhotoSource } from '../../../features/media/nativePhotoPicker';
+import { PHOTO_PERMISSION_MESSAGE, pickPreparedPhoto, photoSelectionMessage, type PreparedPhoto, type PhotoSource } from '../../../features/media/nativePhotoPicker';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { failure, record, uuid } from '../../../data/serverReceipt';
 import type { Ishod } from '../../../data/ports';
-import { AuthorizedPhoto, mediaAssetId } from '../../../ui/media/AuthorizedPhoto';
-import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../../../ui/settings/SettingsPresentation';
+import { mediaAssetId } from '../../../ui/media/AuthorizedPhoto';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
+import { ProfilePhotoEditor, type ProfilePhotoMode, type ProfilePhotoRunning, type ProfilePhotoStage } from '../../../ui/profile/ProfilePhotoPresentation';
+
+/** Which command this screen started, only so its own button can show that it runs. No guard ever reads it. */
+type Running = ProfilePhotoRunning;
 
 type Intent = { phase: 'UPLOAD' | 'APPLY' | 'CLEAR' | 'DISCARD'; requestId: string | null; assetId: string | null; expectedPath: string | null };
 type Snapshot = { profile: ProfileAvatar; asset: MediaAsset | null; intent: Intent | null };
@@ -34,6 +38,9 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   const focus = useRef<object | null>(null), bytes = useRef<PreparedPhoto | null>(null), abort = useRef<AbortController | null>(null);
   const intent = useRef<Intent | null>(null), readAttempted = useRef(false), navigating = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Presentation only: which button shows its spinner. A newer command owns it, so an older one finishing late cannot clear it.
+  const [running, setRunning] = useState<Running>(null), runSeq = useRef(0);
+  const confirm = useConfirmSheet();
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision,
     [accountId, accountRevision]);
   useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false;
@@ -79,6 +86,10 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     await AsyncStorage.setItem(key, JSON.stringify(next));
     if (!current()) return false; intent.current = next; readAttempted.current = false; return true;
   };
+  const track = async (kind: Exclude<Running, null>, command: () => Promise<void>) => {
+    const run = ++runSeq.current; setRunning(kind);
+    try { await command(); } finally { if (runSeq.current === run) setRunning(null); }
+  };
   const finishCommand = async (): Promise<Ishod<Snapshot>> => {
     if (!key || !current()) return changed();
     await AsyncStorage.removeItem(key);
@@ -96,47 +107,47 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   };
   const pick = async (source: PhotoSource) => {
     if (!canAct() || !snapshot || intent.current) return;
-    await editor.save(async () => {
+    await track(source, () => editor.save(async () => {
       try {
         setNotice(null); const photo = await pickPreparedPhoto(source, current);
         if (!current()) return changed(); if (!photo) return { ok: true, podatak: snapshot };
         bytes.current = photo; readAttempted.current = false;
         return upload({ phase: 'UPLOAD', requestId: noviUuidZahtevId(), assetId: null, expectedPath: null }, photo);
       } catch (error) { return failure('MEDIA_PREPARE_FAILED', photoSelectionMessage(error)); }
-    });
+    }));
   };
   const apply = async () => {
     if (!canAct() || !profileId || candidate?.state !== 'READY' || snapshot?.intent?.phase !== 'UPLOAD'
       || intent.current?.phase !== 'UPLOAD' || intent.current.requestId !== candidate.clientRequestId) return;
     const next: Intent = { phase: 'APPLY', requestId: candidate.clientRequestId, assetId: candidate.assetId, expectedPath: snapshot.profile.avatarPath };
-    await editor.save(async () => {
+    await track('APPLY', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
       const result = await mediaClientService.applyAvatar({ profileId, assetId: candidate.assetId, expectedAvatarPath: next.expectedPath });
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
-    });
+    }));
   };
   const clear = async () => {
     if (!canAct() || !profileId || !snapshot?.profile.avatarPath || intent.current) return;
     const next: Intent = { phase: 'CLEAR', requestId: null, assetId: null, expectedPath: snapshot.profile.avatarPath };
-    await editor.save(async () => {
+    await track('CLEAR', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
       const result = await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: next.expectedPath });
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
-    });
+    }));
   };
   const discard = async () => {
     if (!canAct() || !candidate || candidate.state !== 'READY' || intent.current?.phase !== 'UPLOAD') return;
     const next: Intent = { phase: 'DISCARD', requestId: candidate.clientRequestId, assetId: candidate.assetId, expectedPath: null };
-    await editor.save(async () => {
+    await track('DISCARD', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
       const result = await mediaClientService.discardAvatar(candidate.assetId);
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
-    });
+    }));
   };
   const retry = async () => {
     if (!current() || !profileId || editor.loading || editor.busy || !intent.current || !readAttempted.current) return;
     const command = intent.current;
-    await editor.save(async () => {
+    await track('RETRY', () => editor.save(async () => {
       if (command.phase === 'UPLOAD') return bytes.current && readAttempted.current ? upload(command, bytes.current) : read();
       const result = command.phase === 'APPLY' && command.assetId
         ? await mediaClientService.applyAvatar({ profileId, assetId: command.assetId, expectedAvatarPath: command.expectedPath })
@@ -148,27 +159,27 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
         setNotice('Profil je promenjen. Pregledaj sadašnju fotografiju pre novog izbora.'); return read();
       }
       return result.ok ? finishCommand() : result;
-    });
+    }));
   };
   const existing = snapshot?.profile.avatarPath ? mediaAssetId(snapshot.profile.avatarPath) : null;
-  return <SettingsScreen title="Fotografija profila" onBack={() => { if (!current()) return; navigating.current = true;
-    if (router.canGoBack()) router.back(); else router.replace('/profil'); }}>
-    <T tone="muted">Jedna fotografija ovog profila, do 10 MB. Uklanjamo metapodatke i smanjujemo sliku. Nova fotografija se prikazuje drugima tek kada izabereš „Sačuvaj fotografiju“.</T>
-    {existing ? <AuthorizedPhoto assetId={existing} label="Sadašnja fotografija profila" /> : <T>Profil još nema fotografiju.</T>}
-    {candidate?.state === 'READY' && snapshot?.intent?.phase === 'UPLOAD' ? <SettingsPanel>
-      <T>Izabrana fotografija</T><AuthorizedPhoto assetId={candidate.assetId} label="Izabrana fotografija profila" />
-      <SettingsAction label="Sačuvaj fotografiju" disabled={!canAct()} onPress={() => { void apply(); }} />
-      <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" disabled={!canAct()} onPress={() => { void discard(); }} />
-    </SettingsPanel> : null}
-    {notice ? <T accessibilityLiveRegion="polite">{notice}</T> : null}
-    {editor.error ? <T accessibilityRole="alert" tone="danger">{editor.error}</T> : null}
-    {editor.busy || editor.loading ? <T tone="muted">Radnja je u toku…</T> : null}
-    {intent.current && candidate?.state !== 'READY' ? <T>Slanje ili promena još nisu potvrđeni. Proveri ishod pre novog izbora.</T> : null}
-    <SettingsAction label="Izaberi iz galerije" kind={candidate?.state === 'READY' ? 'secondary' : 'primary'} disabled={!canAct() || !!intent.current} onPress={() => { void pick('LIBRARY'); }} />
-    <SettingsAction label="Fotografiši" kind="secondary" disabled={!canAct() || !!intent.current} onPress={() => { void pick('CAMERA'); }} />
-    {snapshot?.profile.avatarPath ? <SettingsAction label="Ukloni fotografiju profila" kind="destructive" disabled={!canAct() || !!intent.current} onPress={() => { void clear(); }} /> : null}
-    <SettingsAction label="Proveri sačuvanu fotografiju" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { if (current()) void editor.refresh(); }} />
-    {intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || bytes.current) ?
-      <SettingsAction label="Ponovi istu promenu" kind="secondary" disabled={editor.busy || editor.loading} onPress={() => { void retry(); }} /> : null}
-  </SettingsScreen>;
+  const staged = candidate?.state === 'READY' && snapshot?.intent?.phase === 'UPLOAD' ? candidate : null;
+  const waiting = editor.busy || editor.loading, trouble = !!editor.error || editor.uncertain;
+  // One set of actions at a time, the ones that can work now (2026-09-24). An unconfirmed change is read first; after a
+  // refusal the editor requires a read before any new command, so the read is the one action then.
+  const mode: ProfilePhotoMode = !profileId ? 'none' : intent.current && (trouble || !staged) ? 'unresolved'
+    : trouble ? 'reconcile' : staged ? 'staged' : 'pick';
+  const stage: ProfilePhotoStage | null = !profileId ? null : !snapshot ? { kind: editor.loading ? 'loading' : 'unavailable' }
+    : staged ? { kind: 'photo', assetId: staged.assetId, staged: true }
+      : existing ? { kind: 'photo', assetId: existing, staged: false } : { kind: 'none' };
+  return <ProfilePhotoEditor stage={stage} notice={notice} error={editor.error} permissionDenied={editor.error === PHOTO_PERMISSION_MESSAGE}
+    mode={mode} retryable={!trouble && !!intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || !!bytes.current)}
+    running={running} canAct={canAct()} waiting={waiting} hasPhoto={!!snapshot?.profile.avatarPath}
+    onBack={() => { if (!current()) return; navigating.current = true;
+      if (router.canGoBack()) router.back(); else router.replace('/profil'); }}
+    onLibrary={() => { void pick('LIBRARY'); }} onCamera={() => { void pick('CAMERA'); }}
+    // Removing the public photo asks first; clear() keeps all its guards, which run when the answer is given.
+    onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izabereš novu.',
+      confirmLabel: 'Ukloni fotografiju', tone: 'danger', onConfirm: () => { void clear(); } })}
+    onApply={() => { void apply(); }} onDiscard={() => { void discard(); }} onRetry={() => { void retry(); }}
+    onCheck={() => { if (current()) void editor.refresh(); }} sheet={confirm.sheet} />;
 }

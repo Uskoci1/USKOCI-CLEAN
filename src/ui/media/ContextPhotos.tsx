@@ -8,6 +8,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { FactArt } from '../system/FactArt';
 import { DetailSection } from '../product/ProductDetails';
+import { inicijali } from '../../lib/inicijali';
 
 /**
  * `owned` is the owner looking at their own task: for them an absence is something they can still
@@ -53,7 +54,8 @@ export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId
   const editor = useOwnedEditor(read), photo = editor.data?.photo;
   const box = size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
     : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 };
-  const letter = (initial ?? '').trim().slice(0, 1).toLocaleUpperCase('sr-Latn-RS');
+  // The one way to take letters from a name (lib/inicijali, critique A4): no name, no letters, and the person is drawn.
+  const letter = inicijali(initial);
   // What stands for the person when there is no photograph, or when it cannot be read right now.
   const standIn = fallback ? <>{fallback}</> : <View accessibilityLabel={letter ? `Bez fotografije: ${letter}` : 'Bez fotografije'}
     style={[box, { backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' }]}>

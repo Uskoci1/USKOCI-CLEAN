@@ -280,4 +280,27 @@ describe('actual native Worker location form', () => {
     expect(onSave).not.toHaveBeenCalled();
     expect(text()).toContain('ceo broj od 1 do 200');
   });
+
+  // 2026-09-24: five common distances, one tap each. A tap runs what typing runs, so a new distance needs a fresh check.
+  it('a radius pill fills the field like typing and asks for a fresh confirmation', async () => {
+    const onSave = jest.fn();
+    await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
+    await check(); expect(confirm().props.accessibilityState.checked).toBe(true);
+    const pill = () => tree.root.findByProps({ accessibilityLabel: '20 km' });
+    expect(pill().props.accessibilityRole).toBe('radio'); expect(pill().props.accessibilityState.checked).toBe(false);
+    await act(async () => pill().props.onPress());
+    expect(tree.root.findByProps({ accessibilityLabel: 'Radijus rada u kilometrima' }).props.value).toBe('20');
+    expect(confirm().props.accessibilityState.checked).toBe(false); expect(pill().props.accessibilityState.checked).toBe(true);
+    await save('Sačuvaj područje rada'); expect(onSave).not.toHaveBeenCalled();
+    await check(); await save('Sačuvaj područje rada');
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ radiusKm: 20 }));
+  });
+
+  it('a busy form keeps its pills still', async () => {
+    await act(async () => { tree = create(<WorkerLocationForm location={location()} busy uncertain={false} onSave={jest.fn()} />); });
+    const pill = tree.root.findByProps({ accessibilityLabel: '50 km' });
+    expect(pill.props.accessibilityState).toEqual({ checked: false, disabled: true });
+    await act(async () => pill.props.onPress());
+    expect(tree.root.findByProps({ accessibilityLabel: 'Radijus rada u kilometrima' }).props.value).toBe('25');
+  });
 });

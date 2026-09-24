@@ -1,9 +1,15 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Pictogram, pictogramCatalog } from '../Pictogram';
-import { PickerTile } from '../PickerTile';
+import { StyleSheet } from 'react-native';
+import { PickerGrid, PickerTile } from '../PickerTile';
 
 jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.fn(), ImpactFeedbackStyle: {} }));
+let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  return new Proxy(native, { get: (target, key) => key === 'useWindowDimensions' ? () => mockWindow : Reflect.get(target, key) });
+});
 
 /**
  * The picker level of the icon language (owner's master directive, step E, 2026-09-23): every pictogram draws, a
@@ -64,5 +70,39 @@ describe('a picker tile', () => {
     expect(press().props.accessibilityLabel).toBe('Kamion. Treba vozačka C');
     expect(press().props.accessibilityState).toEqual({ checked: false, disabled: true });
     expect(press().props.disabled).toBe(true);
+  });
+});
+
+// The medium tile and the one-column list (2026-09-24, the worker profile's quick picks): a step smaller for a grid of
+// sixteen, and a 64 px row at 320 dp or large text, where two columns would break a label mid-word.
+describe('a picker grid', () => {
+  let tree: ReactTestRenderer;
+  afterEach(async () => { await act(async () => tree?.unmount()); mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 }; });
+  const press = () => tree.root.findAll(node => node.props?.accessibilityRole === 'checkbox')[0];
+  const grid = (size: 'large' | 'medium' = 'medium') => <PickerGrid>
+    <PickerTile kind="kombi" label="Kombi" size={size} selected onPress={() => {}} />
+    <PickerTile kind="kamion" label="Kamion" size={size} selected={false} disabled reason="Najviše 50 stavki" onPress={() => {}} />
+  </PickerGrid>;
+
+  it('a medium tile keeps its role, label and state, and sits in two columns on a 390 dp phone', async () => {
+    await act(async () => { tree = create(grid()); });
+    expect(press().props.accessibilityLabel).toBe('Kombi');
+    expect(press().props.accessibilityState).toEqual({ checked: true, disabled: false });
+    expect(StyleSheet.flatten(press().props.style).flexDirection).toBeUndefined();
+    const disabled = tree.root.findAll(node => node.props?.accessibilityLabel === 'Kamion. Najviše 50 stavki')[0];
+    expect(disabled.props.accessibilityState).toEqual({ checked: false, disabled: true });
+  });
+
+  it.each([['320 dp', 320, 1], ['Android Large text', 390, 1.2999999523]])('turns every tile into a row at %s', async (_name, width, fontScale) => {
+    mockWindow = { width, height: 844, scale: 3, fontScale };
+    await act(async () => { tree = create(grid()); });
+    expect(StyleSheet.flatten(press().props.style).flexDirection).toBe('row');
+    expect(press().props.accessibilityState).toEqual({ checked: true, disabled: false });
+  });
+
+  it('a tile outside a grid keeps the large look it always had', async () => {
+    mockWindow = { width: 320, height: 844, scale: 3, fontScale: 1 };
+    await act(async () => { tree = create(<PickerTile kind="kombi" label="Kombi" selected onPress={() => {}} />); });
+    expect(StyleSheet.flatten(press().props.style)).toMatchObject({ minHeight: 140 });
   });
 });

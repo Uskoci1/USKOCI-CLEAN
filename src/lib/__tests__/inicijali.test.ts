@@ -39,7 +39,9 @@ it('the data services no longer spell initials of their own', () => {
   for (const path of ['src/data/agreementClientService.ts', 'src/data/candidateClientService.ts', 'src/app/(app)/profil.tsx',
     'src/ui/workerProfile/WorkerProfilePresentation.tsx']) {
     const source = readFileSync(join(__dirname, '../../..', path), 'utf8');
-    expect([path, source]).toEqual([path, expect.stringContaining('inicijali')]);
+    // The worker profile lost its hero on 2026-09-24 and draws no stand-in at all: it must not start drawing one of its own.
+    if (path.endsWith('WorkerProfilePresentation.tsx')) expect([path, /<Avatar/.test(source)]).toEqual([path, false]);
+    else expect([path, source]).toEqual([path, expect.stringContaining('inicijali')]);
     expect([path, /\.slice\(0,\s*2\)\.(?:map|toUpperCase)/.test(source)]).toEqual([path, false]);
     expect([path, /'(?:TI|DS|JA)'/.test(source)]).toEqual([path, false]);
   }

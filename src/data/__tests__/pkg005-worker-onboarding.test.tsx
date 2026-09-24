@@ -34,6 +34,8 @@ jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({
   WorkerProfileFrame: ({ children, footer }: { children: unknown; footer?: unknown }) => require('react').createElement('Frame', null, children, footer),
   WorkerProfileStatus: (props: Record<string, unknown>) => require('react').createElement('Status', props),
   WorkerProfileForm: (props: Record<string, unknown>) => require('react').createElement('WorkerProfileForm', props),
+  // The save status stands above the footer actions since 2026-09-24; its actions are the route's own, drawn as they are.
+  WorkerProfileFooter: ({ children }: { children?: unknown }) => children,
 }));
 
 import Profile from '../../app/(app)/profil/radnik';

@@ -6,10 +6,9 @@ import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
-import { T } from '../../../ui/Text';
-import { brandAction, sys } from '../../../ui/system/tokens';
+import { brandAction } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
-import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
+import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
@@ -119,7 +118,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || transportRef.current || !editor.data || !pendingRef.current || editor.data.read <= pendingRef.current.afterRead) return;
     pendingRef.current = null; setPending(null); setMessage(null); setValidation(null); draftGeneration.current++;
   };
-  const navigate = (path: '/profil/lokacija' | '/profil/dostupnost' | '/raspored') => {
+  const navigate = (path: '/profil/lokacija' | '/profil/dostupnost' | '/podrska') => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
       setValidation('Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
@@ -153,30 +152,26 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!capacityReady) return { label: 'Unesi kapacitet tima', run: () => guide('capacity', 'Unesi kapacitet od 1 do 50 ljudi.') };
     return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); } };
   })();
-  return <WorkerProfileFrame back={back} footer={visible ? <>
-    {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} />
+  // The other way to fill this in, not the first thing on it: a row near the end of the form, behind the same guards.
+  const openConversation = () => {
+    if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+    if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
+      setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
+    }
+    router.push('/profil/razgovor');
+  };
+  // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
+  return <WorkerProfileFrame back={back} footer={visible ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
+    held={!!pending && !transportBusy}>
+    {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
       : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
-        disabled={!enabled} onPress={() => { if (pending) void save(false); else primary.run(); }}
+        disabled={!enabled} loading={transportBusy} success={!!message} onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
     {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
-  </> : undefined}>
-    {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} /> : <>
-      {message ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.green }}>{message}</T> : null}
-      {validation || editor.error ? <T accessibilityRole="alert" variant="body" style={{ color: sys.color.danger }}>{validation ?? editor.error}</T> : null}
-      {pending && !transportBusy ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.</T> : null}
-      <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
-        unmet={[...(!basicsReady ? ['ime i bar jedna veština'] : []), ...(!locationReady ? ['područje rada'] : []),
-          ...(!capacityReady ? ['kapacitet tima'] : [])]} />
-      {/* The other way to fill this in, not the first thing on it. It used to sit above the name,
-          so the screen opened by offering to leave itself. */}
-      <V2Action label="Uredi profil kroz razgovor" disabled={!enabled || !!pending} onPress={() => {
-        if (!enabled || !current() || transportRef.current || pendingRef.current) return;
-        if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
-          setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
-        }
-        router.push('/profil/razgovor');
-      }} />
-    </>}
+  </WorkerProfileFooter> : undefined}>
+    {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
+      : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
+        checks={{ basics: basicsReady, area: locationReady, capacity: capacityReady }} openConversation={openConversation} />}
   </WorkerProfileFrame>;
 }
