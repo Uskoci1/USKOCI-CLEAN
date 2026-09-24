@@ -26,6 +26,7 @@ jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 import Screen from '../../app/(app)/profil/razgovor';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { ActionSheet } from '../../ui/system/ActionSheet';
 const intent=()=>({accountId:A,conversationId:C,clientRequestId:K});
 const turn=(state='PROCESSING',id=K)=>({turnId:B,conversationId:C,clientRequestId:id,attemptId:A,state,retryAllowed:false,authoritative:true});
 const recovery=(state:string|null=null,extras={})=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,conversationStatus:'OPEN',clientRequestId:K,turn:state?turn(state):null,providerDispatched:false,cancelled:false,canCancel:true,retryAllowed:state===null,authoritative:true,...extras});
@@ -34,6 +35,11 @@ const ok=(podatak:unknown)=>({ok:true,podatak});let tree:ReactTestRenderer;
 const shell=()=>tree.root.findByType('Shell' as any),action=(label:string)=>tree.root.findByProps({label});
 const visibleText=()=>tree.root.findAllByType('T' as any).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
 const flush=async()=>{await act(async()=>{});};
+// Editing by hand and the week moved behind "···" (an ActionSheet, 2026-09-24); a test opens the menu, reads the row and
+// closes the menu without a choice, as Back does.
+const manualDisabled=async()=>{await act(async()=>{shell().props.onOptions();});
+ const [row]=tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel==='Ručno uredi podatke');
+ const disabled=row.props.accessibilityState.disabled;await act(async()=>{tree.root.findByType(ActionSheet).props.onClose();});return disabled;};
 const render=async()=>{await act(async()=>{tree=create(<Screen/>);});};
 const click=async(label:string)=>{await act(async()=>{action(label).props.onPress();});};
 // "Novi razgovor" is asked in an in-app ConfirmSheet (it was Alert.alert); a test presses its buttons.
@@ -45,10 +51,10 @@ beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=tr
  mockApi.send.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen'});mockApi.cancelTurn.mockImplementation(async()=>{mockApi.recoverTurn.mockResolvedValue(ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false})));return ok(recovery('FAILED',{cancelled:true,canCancel:false,retryAllowed:false}));});
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());});
-it('speech appends an editable profile message without dispatch; explicit Send uses the edited body',async()=>{
+it('accessible speech appends an editable profile message without dispatch; explicit Send uses the edited body',async()=>{
  await render();act(()=>shell().props.onChange('Već ukucano.'));
  const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
- await act(async()=>expect(receive({text:'Radim vikendom.',isCurrent:()=>true})).toBe(true));
+ await act(async()=>expect(receive({text:'Radim vikendom.',isCurrent:()=>true,session:{mode:'accessible'}})).toBe(true));
  expect(shell().props.value).toBe('Već ukucano.\nRadim vikendom.');expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
  act(()=>shell().props.onChange('Radim subotom od 10.'));await act(async()=>shell().props.onSend());
  expect(mockApi.send).toHaveBeenCalledTimes(1);expect(mockApi.send.mock.calls[0][1]).toBe('Radim subotom od 10.');
@@ -56,7 +62,7 @@ it('speech appends an editable profile message without dispatch; explicit Send u
 it('speech cannot overfill or overwrite a profile draft',async()=>{
  await render();act(()=>shell().props.onChange('a'.repeat(3999)));
  const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
- await act(async()=>expect(receive({text:'Još.',isCurrent:()=>true})).toBe(false));
+ await act(async()=>expect(receive({text:'Još.',isCurrent:()=>true,session:{mode:'accessible'}})).toBe(false));
  expect(shell().props.value).toBe('a'.repeat(3999));expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
 });
 it.each(['stale-capture','blur-refocus','account-ABA'] as const)('late profile speech from %s cannot fill a new composer',async reason=>{
@@ -65,13 +71,45 @@ it.each(['stale-capture','blur-refocus','account-ABA'] as const)('late profile s
  if(reason==='blur-refocus'){await act(async()=>{mockFocused=false;tree.update(<Screen/>);});await act(async()=>{mockFocused=true;tree.update(<Screen/>);});}
  if(reason==='account-ABA'){await act(async()=>{mockRevision=3;tree.update(<Screen/>);});}
  const before=shell().props.value;
- await act(async()=>expect(receive({text:'stari privatni govor',isCurrent:()=>reason!=='stale-capture'})).toBe(false));
+ for(const mode of ['accessible','hold'])await act(async()=>expect(receive({text:'stari privatni govor',isCurrent:()=>reason!=='stale-capture',session:{mode}})).toBe(false));
  expect(shell().props.value).toBe(before);expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+});
+// Owner, 2026-09-23: what is said while the microphone is held is the message. It goes out through the same send as the
+// button (journal first, then one provider call with its own key), and the typed draft stays where it is.
+it('held speech is sent as its own profile message on release, through the journal and the send path',async()=>{
+ await render();act(()=>shell().props.onChange('Već ukucano.'));
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:' Radim vikendom. ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(true));
+ expect(mockJournal.save).toHaveBeenCalledTimes(1);expect(mockApi.send).toHaveBeenCalledTimes(1);
+ expect(mockJournal.save.mock.invocationCallOrder[0]).toBeLessThan(mockApi.send.mock.invocationCallOrder[0]);
+ expect(mockApi.send.mock.calls[0][1]).toBe('Radim vikendom.');expect(mockApi.send.mock.calls[0][2]).toBe(mockJournal.save.mock.calls[0][0].clientRequestId);
+ expect(shell().props.value).toBe('Već ukucano.');
+ // The attempt is unconfirmed: more held speech is refused rather than starting a second provider call.
+ const again=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(again({text:'Još nešto.',isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));
+ expect(mockApi.send).toHaveBeenCalledTimes(1);
+});
+it('held speech that is empty or over the limit is refused without a send',async()=>{
+ await render();const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:'   ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));
+ await act(async()=>expect(receive({text:'a'.repeat(4001),isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));
+ expect(mockJournal.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('keeps editing by hand and the week behind "···", and offers no menu when the proposal cannot be changed',async()=>{
+ await render();expect(tree.root.findAllByProps({label:'Ručno uredi podatke'})).toHaveLength(0);
+ await act(async()=>{shell().props.onOptions();});
+ const row=(label:string)=>tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel===label)[0];
+ expect(row('Ručno uredi podatke').props.accessibilityState.disabled).toBe(false);
+ expect(row('Uredi nedelju i posebne datume')).toBeDefined();
+ await act(async()=>{row('Ručno uredi podatke').props.onPress();});
+ expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);expect(tree.root.findAllByType('Manual' as never)).toHaveLength(1);
+ await act(async()=>tree.unmount());mockApi.read.mockResolvedValue(ok({...snapshot(),stale:true}));await render();
+ expect(shell().props.onOptions).toBeUndefined();
 });
 it('restores opaque pending key before any open or provider request and exposes safe cancel',async()=>{
  mockStored=intent();mockParams={};await render();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,K);expect(mockRouter.setParams).toHaveBeenCalledWith({conversationId:C});
- expect(shell().props.canSend).toBe(false);expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ expect(shell().props.canSend).toBe(false);expect(await manualDisabled()).toBe(true);
  expect(action('Otkaži prethodno slanje').props.disabled).toBe(false);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
  await click('Otkaži prethodno slanje');expect(mockApi.cancelTurn).toHaveBeenCalledWith(C,K);expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
 });
@@ -79,12 +117,12 @@ it('lost preclaim response keeps typed body in memory and retries only the same 
  await render();act(()=>shell().props.onChange('Sačuvan samo u memoriji'));await act(async()=>{shell().props.onSend();});
  const key=mockApi.send.mock.calls[0][2];expect(mockJournal.save).toHaveBeenCalledWith({accountId:A,conversationId:C,clientRequestId:key});
  expect(JSON.stringify(mockJournal.save.mock.calls)).not.toContain('Sačuvan');expect(mockApi.send).toHaveBeenCalledTimes(1);
- expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(await manualDisabled()).toBe(true);
  await click('Ponovi isto slanje');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
 });
 it('a server without dispatched-exit capability cannot enable retry, cancellation or manual save',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
- await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(action('Ručno uredi podatke').props.disabled).toBe(true);
+ await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await manualDisabled()).toBe(true);
  expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
  await click('Proveri stanje razgovora');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
 });

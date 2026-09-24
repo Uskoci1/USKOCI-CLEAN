@@ -13,7 +13,6 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
-import { VoiceComposer } from '../../ui/aiFirst/VoiceComposer';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
@@ -283,8 +282,10 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       if (!canAct() || !razgovorId || !writable || request.current || voiceBusy) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId: razgovorId } }));
     } : undefined}
-    voice={stanje.status === 'OPEN' ? <VoiceComposer controller={voice.controller} state={voice.state} disabled={!canSubmit || !!request.current}
-      onKeepText={keepTranscript} /> : undefined}
+    // The shell draws the microphone, its notice and voice mode from this one controller; every transcript still comes
+    // back through `onTranscript` above, so each guard on sending stays here.
+    voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
+      onKeepText: keepTranscript } : undefined}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
     showReadback={!!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}

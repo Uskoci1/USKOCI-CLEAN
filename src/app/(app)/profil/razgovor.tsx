@@ -11,8 +11,8 @@ import { workerAvailabilityPatch } from '../../../lib/workerAiAvailabilityPatch'
 import { sesijaSada, useSesija } from '../../../store/sesija';
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
-import { VoiceComposer } from '../../../ui/aiFirst/VoiceComposer';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
+import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
@@ -37,6 +37,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
+  const [menu,setMenu]=useState(false);
   const draftText=useRef(input);draftText.current=input;
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
@@ -122,7 +123,18 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     draftText.current=next;setInput(next);return true;
   };
   const voice=useHoldToTalk({conversationId:writable&&data?data.conversationId:null,
-    onTranscript:payload=>payload.isCurrent()&&keepTranscript(payload.text)});
+    onTranscript:payload=>{
+      if(!payload.isCurrent())return false;
+      // Held microphone: what was said is the message, sent through `send` (the same journal, key and guards as the
+      // send button) the moment the finger lifts, as in the task conversation (owner, 2026-09-23). The typed draft stays.
+      // The accessible start/stop mode keeps the review: its text lands in the draft, and only Send writes the turn.
+      if(payload.session?.mode!=='accessible'){
+        const spoken=payload.text.trim();
+        if(!spoken||spoken.length>4000||!canAct()||!writable||awaiting||pending.current)return false;
+        void send(spoken);return true;
+      }
+      return keepTranscript(payload.text);
+    }});
   const voiceBusy=voice.state.phase!=='IDLE';
   const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
   const back=()=>{if(!current()||editor.busy)return;if(panel!=='chat'){setPanel('chat');return;}router.canGoBack()?router.back():router.replace('/profil/radnik');};
@@ -197,19 +209,26 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         <V2Action label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={()=>setPanel('chat')}/></>:null}
     </WorkerProfileFrame>;
   }
-  return <><AiConversationShell title="Tvoj radni profil" subtitle="Reci šta možeš da preuzmeš"
+  // Editing by hand and the week are "sometimes" actions: they live behind "···", not at the end of every conversation.
+  const unavailableNow=enabled?undefined:'Dostupno kad razgovor ne čeka odgovor.';
+  return <><AiConversationShell title="Tvoj radni profil"
     card={compact=><WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome="Čime se baviš?" welcomeDetail="Opiši veštine, opremu, područje i vreme kada možeš da radiš. Sve ćemo složiti u jedan pregled."
+    placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(enabled&&writable)setInput(value);}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
-    onSend={()=>{if(!voiceBusy)void send(input.trim());}} onBack={back} onOptions={()=>{if(enabled&&writable)setPanel('manual');}}
-    status={<>{statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
-      {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>}
-    voice={writable?<VoiceComposer controller={voice.controller} state={voice.state} disabled={!enabled||!!pending.current}
-      onKeepText={keepTranscript}/>:undefined}
-    actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
-      <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
+    onSend={()=>{if(!voiceBusy)void send(input.trim());}} onBack={back} onOptions={writable?()=>setMenu(true):undefined}
+    // The tab bar is still drawn under this screen (`_layout`), and it owns the bottom inset.
+    ownsBottomInset={false}
+    // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
+    // when there is something to say.
+    status={statusCopy||editor.error?<>{statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
+      {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>:undefined}
+    // The shell draws the microphone, its notice and voice mode from this one controller; every transcript comes back
+    // through `onTranscript` above.
+    voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
+    actions={<>
       {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
       {pending.current&&recovery?.canCancel?<>
         <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, taj pokušaj se ipak računa.</T>
@@ -219,5 +238,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {pending.current?.text&&recovery?.retryAllowed?<V2Action label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>{if(current())router.replace('/profil/radnik');}}/>:null}
       {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
-    </>}/>{confirmSheet.sheet}</>;
+    </>}/>{confirmSheet.sheet}
+    {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
+      {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
+        onPress:()=>{if(enabled&&writable)setPanel('manual');}},
+      {key:'week',label:'Uredi nedelju i posebne datume',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
+        onPress:()=>{if(enabled&&writable)setPanel('availability');}},
+    ]}/>:null}</>;
 }

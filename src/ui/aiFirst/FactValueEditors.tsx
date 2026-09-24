@@ -4,8 +4,7 @@ import { X } from 'phosphor-react-native';
 import { CivilField } from '../calendar/CalendarControls';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { sys } from '../system/tokens';
-import { aiFirst as a } from './tokens';
+import { field, sys } from '../system/tokens';
 
 /**
  * A moment, corrected with the pickers the app already has. The zone is said in words because the
@@ -24,6 +23,7 @@ export function FactTimestampEditor({ label, date, time, disabled, onChange }: {
 /**
  * A list, corrected item by item. What is typed and not yet added is reported upward as well, so
  * saving with a word still in the box keeps that word instead of dropping it without a sign.
+ * The field is the app's one text field (`field`, 2026-09-24): its green outline was the loudest line on the review.
  */
 export function FactListEditor({ label, items, disabled, onChange }: {
   label: string; items: readonly string[]; disabled: boolean; onChange: (items: string[], typed: string) => void;
@@ -34,21 +34,22 @@ export function FactListEditor({ label, items, disabled, onChange }: {
     setTyped('');
     onChange(value && !items.includes(value) ? [...items, value] : [...items], '');
   };
+  const addOff = disabled || !typed.trim();
   return <View style={s.stack}>
     {items.length ? <View style={s.items}>{items.map(item => <View key={item} style={s.item}>
       <T style={s.itemText}>{item}</T>
       <Press accessibilityRole="button" accessibilityLabel={`Ukloni: ${item}`} disabled={disabled} style={s.remove}
         onPress={() => onChange(items.filter(other => other !== item), typed)}>
-        <X size={18} color={a.color.muted} />
+        <X size={18} color={sys.color.muted} />
       </Press>
     </View>)}</View> : <T style={s.note}>Još nema stavki.</T>}
     <View style={s.addRow}>
       <TextInput accessibilityLabel={`Nova stavka: ${label}`} value={typed} editable={!disabled} maxLength={500}
-        placeholder="Dodaj stavku" placeholderTextColor={a.color.muted} returnKeyType="done" onSubmitEditing={add}
+        placeholder="Dodaj stavku" placeholderTextColor={sys.color.muted} returnKeyType="done" onSubmitEditing={add}
         onChangeText={value => { setTyped(value); onChange([...items], value); }} style={s.input} />
-      <Press accessibilityRole="button" accessibilityLabel={`Dodaj stavku: ${label}`} disabled={disabled || !typed.trim()}
-        style={[s.add, (disabled || !typed.trim()) && s.addOff]} onPress={add}>
-        <T style={s.addLabel}>Dodaj</T>
+      <Press accessibilityRole="button" accessibilityLabel={`Dodaj stavku: ${label}`} accessibilityState={{ disabled: addOff }}
+        disabled={addOff} style={[s.add, addOff && s.addOff]} onPress={add}>
+        <T style={[s.addLabel, addOff && s.addLabelOff]}>Dodaj</T>
       </Press>
     </View>
   </View>;
@@ -56,17 +57,19 @@ export function FactListEditor({ label, items, disabled, onChange }: {
 
 const s = StyleSheet.create({
   stack: { gap: 10 },
-  note: { ...a.text.meta, color: a.color.muted },
+  note: { ...sys.type.meta, color: sys.color.muted },
   items: { gap: 6 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, borderRadius: sys.radius.control,
-    backgroundColor: a.color.wash },
-  itemText: { ...a.text.body, color: a.color.ink, flex: 1, minWidth: 0, paddingVertical: 10 },
+    backgroundColor: sys.color.wash },
+  itemText: { ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, paddingVertical: 10 },
   remove: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { ...a.text.body, flex: 1, minWidth: 0, padding: 12, borderWidth: 1, borderColor: a.color.green,
-    borderRadius: sys.radius.control, minHeight: 56, color: a.color.ink },
-  add: { minHeight: 56, minWidth: 72, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
-    borderRadius: sys.radius.control, backgroundColor: sys.color.greenSoft },
-  addOff: { opacity: 0.5 },
-  addLabel: { ...a.text.meta, fontWeight: '600', color: a.color.green },
+  input: { ...field, flex: 1, minWidth: 0 },
+  // An action that is not the screen's primary: white with the green label, the field's height beside it.
+  add: { minHeight: field.minHeight, minWidth: 72, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
+    borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+  // Disabled is the quiet wash with muted words, never a faded ghost of the live control.
+  addOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
+  addLabel: { ...sys.type.meta, fontWeight: '600', color: sys.color.green },
+  addLabelOff: { color: sys.color.muted },
 });

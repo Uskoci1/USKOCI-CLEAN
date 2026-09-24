@@ -40,7 +40,10 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
   if (mockRealVoice) return jest.requireActual('../../features/voice/useHoldToTalk').useHoldToTalk(options);
   return { controller: { cancel: mockVoiceCancel, getSnapshot: () => ({ phase: mockVoicePhase }) },
     state: { phase: mockVoicePhase } }; } }));
-jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
+// The voice module has three parts since 2026-09-24 (the composer's microphone, its notice line and voice mode); the
+// harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.
+jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice', VoiceMode: 'VoiceMode',
+  HOLD_HINT: 'Drži mikrofon dok govoriš, pa pusti da pošalješ.' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
     mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
@@ -67,9 +70,31 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', Circle: 'SvgCircle', Ellipse: 'SvgEllipse', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
+// The point editor reaches the native map; the stand-in keeps its one contract that matters here: before confirmed
+// points are thrown away it asks its own question (a ConfirmSheet it renders itself), and only the answer closes it.
+jest.mock('../../ui/location/ConversationPointAsk', () => {
+  const React = require('react');
+  const { useConfirmSheet } = require('../../ui/system/ConfirmSheet');
+  function PointAskStub(props: { conversationId: string; onClose: () => void }) {
+    const confirmation = useConfirmSheet();
+    return React.createElement(React.Fragment, null,
+      React.createElement('PointAsk', { conversationId: props.conversationId }),
+      React.createElement('Press', { accessibilityLabel: 'Kasnije', onPress: () => confirmation.ask({ title: 'Potvrđena tačka nije sačuvana',
+        message: 'Ako sad izađeš, ova tačka se gubi.', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger',
+        onConfirm: props.onClose }) }),
+      confirmation.sheet);
+  }
+  return { __esModule: true, default: PointAskStub, ConversationPointAsk: PointAskStub };
+});
+// The conversation loads the point editor with React.lazy (a dynamic import, which Jest runs only with
+// --experimental-vm-modules). It is the only lazy part of this screen, so the harness hands lazy the stand-in above.
+jest.mock('react', () => ({ ...jest.requireActual('react'), lazy: () => require('../../ui/location/ConversationPointAsk').default }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Intake from '../../app/(app)/nova';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { ActionSheet } from '../../ui/system/ActionSheet';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { ProductSheet } from '../../ui/product/ProductSheet';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
@@ -120,6 +145,11 @@ const leaveSheet = () => tree.root.findByType(ConfirmSheet);
 const leaveSheets = () => tree.root.findAllByType(ConfirmSheet);
 const answer = (testID: 'confirm-sheet-confirm' | 'confirm-sheet-cancel') => leaveSheet().findByProps({ testID }).props.onPress();
 const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
+// The options panel became the app's "···" menu (ActionSheet, 2026-09-24): its rows are menu items, not V2Actions, and it
+// closes without a choice the way a menu does (Back, a tap outside), which is its own onClose.
+const menuItems = (label: string) => tree.root.findAll(node => node.props.accessibilityRole === 'menuitem' && node.props.accessibilityLabel === label);
+const menuItem = (label: string) => { const [item] = menuItems(label); if (!item) throw new Error(`No menu item ${label}`); return item.props; };
+const closeMenu = async () => { await act(async () => tree.root.findByType(ActionSheet).props.onClose()); };
 beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
@@ -388,7 +418,7 @@ it('does not read or navigate from a late send result after account change', asy
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('retires a confirmation callback after blur/refocus and never abandons on Back', async () => {
-  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
   expect(leaveSheet().props).toMatchObject({ title: 'Napustiti razgovor?', cancelLabel: 'Nastavi razgovor', confirmLabel: 'Napusti razgovor', tone: 'danger' });
   const confirm = leaveSheet().props.onConfirm; await blur(); expect(leaveSheets()).toHaveLength(0); await focus();
   await act(async () => confirm()); expect(mockAbandon).not.toHaveBeenCalled();
@@ -396,12 +426,12 @@ it('retires a confirmation callback after blur/refocus and never abandons on Bac
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('cancelling the leave question keeps the conversation open and sends nothing', async () => {
-  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
   await act(async () => answer('confirm-sheet-cancel'));
   expect(leaveSheets()).toHaveLength(0); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockVoiceCancel).not.toHaveBeenCalled();
 });
 it('explicit abandonment uses the actual authority and becomes closed only after readback', async () => {
-  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
+  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
@@ -409,7 +439,7 @@ it('explicit abandonment uses the actual authority and becomes closed only after
 it('keeps the leave question open with a busy confirm while abandonment runs, and closes it once that settles', async () => {
   // The screen returns its command to the sheet; a `void` there would close the question before the command is sent.
   const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise);
-  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledTimes(1); expect(leaveSheets()).toHaveLength(1);
@@ -420,7 +450,7 @@ it('keeps the leave question open with a busy confirm while abandonment runs, an
 it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBe(id);
-  await options(); await act(async () => button('Napusti razgovor').onPress());
+  await options(); await act(async () => menuItem('Napusti razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   mockAbandon.mockImplementation(async () => {
     expect(mockVoiceCancel).toHaveBeenCalledWith('navigation');
@@ -440,11 +470,11 @@ it.each(['COMPLETED', 'ABANDONED', 'BLOCK'])('does not retain a microphone scope
 });
 it.each(['COMPLETED', 'ABANDONED'] as const)('keeps actual %s conversations read-only', async status => {
   mockLoad.mockResolvedValue(conversation({ status })); await resume(); expect(input().editable).toBe(false); await options();
-  expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
+  expect(menuItems('Napusti razgovor')).toHaveLength(0);
 });
 it('does not expose abandonment for an edit conversation bound to a Zadatak', async () => {
   const data = conversation(); data.review.boundNeedId = other; mockLoad.mockResolvedValue(data); await resume(); await options();
-  expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
+  expect(menuItems('Napusti razgovor')).toHaveLength(0);
 });
 
 it('keeps the complete conversation in its own scroll area beneath the pinned card', async () => {
@@ -495,14 +525,14 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(text()).toContain('Unos ormara'); expect(text()).toContain('nacrt');
+  expect(text()).toContain('Unos ormara'); expect(text()).toContain('Nacrt');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
   expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
   // The review destination moved into the options panel with the other commands; there
   // is still exactly one of it.
   await options(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj zadatak' })).toHaveLength(1);
-  await act(async () => button('Zatvori').onPress());
+  await closeMenu();
   await act(async () => { card.props.onPress(); card.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
@@ -540,25 +570,58 @@ it('names the first few missing things and counts the rest instead of a wall tha
 it('offers the owned photo route and options without automatic abandonment', async () => {
   // Photos belong to a conversation, so before the first word there is nothing to attach them to
   // and the entry is not offered.
-  await render(); await options();
+  // Before the first word there is no conversation, so there is no "···" either (2026-09-24): a menu of nothing to do.
+  await render();
   const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
     .map(node => node.props.accessibilityLabel).join(' ');
   expect(optionLabels()).not.toContain('Fotografije zadatka');
-  await act(async () => button('Zatvori').onPress());
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Opcije' })).toHaveLength(0);
 
   await act(async () => tree.unmount());
-  await resume(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
-  await options();
+  await resume(); expect(menuItems('Napusti razgovor')).toHaveLength(0);
+  // Photos are the composer's "+" now (the attach entry of the owner's Gemini reference), still only with a conversation.
   expect(optionLabels()).toContain('Fotografije zadatka');
+  await options();
+  expect(menuItems('Fotografije zadatka')).toHaveLength(0);
   expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
-  await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(leaveSheets()).toHaveLength(0);
+  await closeMenu(); expect(mockAbandon).not.toHaveBeenCalled(); expect(leaveSheets()).toHaveLength(0);
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Fotografije zadatka' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
+});
+
+it('changes a placed point in a sheet after the menu has gone; the editor\u2019s own question opens inside it, and only its answer closes it', async () => {
+  const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Liman' } });
+  const placed = { ...publicFact('need.resolved_location', { points: [{ slot: 'start' }] }), privacyClass: 'PRIVATE' as const };
+  const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, placed], messages: said })); await resume();
+  const pointSheets = () => tree.root.findAll(node => node.type === ProductSheet && node.props.label === 'Mesto zadatka');
+  await options();
+  await act(async () => menuItem('Izmeni mesto na mapi').onPress());
+  await act(async () => { await Promise.resolve(); });
+  // One window at a time: the menu is gone before the sheet opens.
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  expect(pointSheets()).toHaveLength(1);
+  const later = () => pointSheets()[0].findByProps({ accessibilityLabel: 'Kasnije' });
+  await act(async () => later().props.onPress());
+  // The question stands over the sheet, inside it, so Back answers the question first.
+  expect(pointSheets()[0].findAllByType(ConfirmSheet)).toHaveLength(1);
+  await act(async () => answer('confirm-sheet-cancel'));
+  expect(leaveSheets()).toHaveLength(0); expect(pointSheets()).toHaveLength(1);
+  await act(async () => later().props.onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(pointSheets()).toHaveLength(0); expect(leaveSheets()).toHaveLength(0);
+  expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
 it('respects reduced motion for screen entry and the options panel', async () => {
   mockReduced = true; await render();
   expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
-  await options(); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
+  await act(async () => tree.unmount());
+  // The options panel is the sheet engine since 2026-09-24: under reduced motion it opens without its settle.
+  await resume(); await options();
+  expect(tree.root.findByType(BottomSheet).props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
 });
 
 it('shows actual typed fixed dates and times in the existing explicit Belgrade display zone', async () => {
@@ -582,7 +645,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
   const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
   mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await resume();
   await options();
-  const start = button('Novi Zadatak').onPress;
+  const start = menuItem('Novi Zadatak').onPress;
   await act(async () => { start(); start(); }); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   const destination = mockRouter.replace.mock.calls[0][0];
   expect(destination.pathname).toBe('/nova'); expect(destination.params.conversationId).toBeUndefined();
@@ -603,7 +666,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
 it('retains the new owned-open request after an unknown second-Task open outcome', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
   await options();
-  await act(async () => button('Novi Zadatak').onPress());
+  await act(async () => menuItem('Novi Zadatak').onPress());
   mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
   await update();
   mockLoad.mockResolvedValue(conversation());
@@ -616,13 +679,13 @@ it('retains the new owned-open request after an unknown second-Task open outcome
 });
 it('cannot use a retained new-Task action after losing its account or focus', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
-  await options(); const old = button('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
+  await options(); const old = menuItem('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
   expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('does not advertise a new-Task bypass for an open safety-blocked conversation', async () => {
-  mockLoad.mockResolvedValue(conversation({ safety: 'BLOCK' })); await render();
-  expect(tree.root.findAllByProps({ label: 'Novi Zadatak' })).toHaveLength(0);
-  await options(); expect(tree.root.findAllByProps({ label: 'Novi Zadatak' })).toHaveLength(0);
+  mockLoad.mockResolvedValue(conversation({ safety: 'BLOCK' })); await resume();
+  expect(menuItems('Novi Zadatak')).toHaveLength(0);
+  await options(); expect(menuItems('Novi Zadatak')).toHaveLength(0);
 });
 it.each(['invalid', [id]])('rejects malformed new-entry key %s without creating a conversation', async entryKey => {
   mockParams = { entryKey }; await render(); expect(mockOpen).not.toHaveBeenCalled();
