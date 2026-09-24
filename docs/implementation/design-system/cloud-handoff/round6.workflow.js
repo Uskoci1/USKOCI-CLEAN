@@ -85,7 +85,7 @@ const FINDING_SCHEMA = { type: 'object', properties: { findings: { type: 'array'
   file: { type: 'string' }, line: { type: 'number' }, rule: { type: 'string' }, problem: { type: 'string' }, fix: { type: 'string' },
   severity: { type: 'string', enum: ['blocker', 'major', 'minor', 'polish'] } }, required: ['file', 'line', 'rule', 'problem', 'fix', 'severity'] } } }, required: ['findings'] }
 
-const FIND = (f) => `You sweep the WHOLE USKOČI app for one class of defects. READ-ONLY from ${WT} at ${BASE}: do not edit, commit or build. Scope: src/app/** and src/ui/** and src/lib/** (skip __tests__, the internal dizajn-* gallery routes, and the locked entry/auth files: src/app/auth.tsx, src/app/oporavak.tsx, src/ui/auth/*, src/ui/entry/*, src/ui/referenceEntry/*). NOTE: three areas are being rebuilt right now and their current code will be replaced — src/app/(app)/prilike/[id]/prijava.tsx and the composer in src/ui/v2/ApplicationSelectionPresentation.tsx, src/app/(app)/oceni-dogovor.tsx and src/ui/reviews/AgreementReviewScreen.tsx, src/app/(app)/pregled-zadatka.tsx, src/app/(app)/pregled-nacrta.tsx, src/app/(app)/mesto-zadatka.tsx, src/ui/location/NeedLocationForm.tsx, LocationPointEditor.tsx, LocationControls.tsx, CountryField.tsx, src/app/(app)/fotografije-zadatka.tsx, src/ui/qa/TaskQaScreen.tsx, src/ui/agreements/AgreementActionsScreen.tsx, AgreementLocationScreen.tsx, src/ui/AgreementPrivateLocation.tsx, src/ui/groups/GroupConversationScreen.tsx, src/ui/media/AgreementPhotoComposer.tsx — skip those files.
+const FIND = (f) => `You sweep the WHOLE USKOČI app for one class of defects. READ-ONLY from ${WT} at ${BASE}: do not edit, commit or build. Scope: src/app/** and src/ui/** and src/lib/** (skip __tests__, the internal dizajn-* gallery routes, and the locked entry/auth files: src/app/auth.tsx, src/app/oporavak.tsx, src/ui/auth/*, src/ui/entry/*, src/ui/referenceEntry/*). NOTE: three areas are being rebuilt right now and their current code will be replaced — src/app/(app)/prilike/[id]/prijava.tsx and the composer in src/ui/v2/ApplicationSelectionPresentation.tsx, src/app/(app)/oceni-dogovor.tsx and src/ui/reviews/AgreementReviewScreen.tsx, src/app/(app)/pregled-zadatka.tsx, src/app/(app)/pregled-nacrta.tsx, src/app/(app)/mesto-zadatka.tsx, src/ui/location/NeedLocationForm.tsx, LocationPointEditor.tsx, LocationControls.tsx, CountryField.tsx, src/app/(app)/fotografije-zadatka.tsx, src/ui/qa/TaskQaScreen.tsx, src/ui/agreements/AgreementActionsScreen.tsx, AgreementLocationScreen.tsx, src/ui/AgreementPrivateLocation.tsx, src/ui/groups/GroupConversationScreen.tsx, src/ui/media/AgreementPhotoComposer.tsx — skip those files. The discovery screen is being rebuilt too (src/app/(app)/zadaci.tsx, src/ui/v2/DiscoveryPresentation.tsx, src/ui/v2/DiscoveryMap.tsx, src/ui/v2/discovery/*, src/data/marketplaceView.ts) — skip those as well.
 ${RULES}
 Your angle: ${f.angle}
 Search systematically (grep and read), not by sampling. Report only real, verifiable defects with the exact file and line, the rule it breaks, the problem and the exact fix. No duplicates, no style opinions without a rule behind them. At most 60 findings, most severe first.`
@@ -97,8 +97,23 @@ Read the file around the line (and whatever it depends on). Is it real, in scope
 
 const VERDICT_SCHEMA = { type: 'object', properties: { refuted: { type: 'boolean' }, evidence: { type: 'string' }, fix: { type: 'string' } }, required: ['refuted', 'evidence'] }
 
+// Cloud machines run few agents at once (the cap follows the CPU count), so the sweep checks each blocker/major finding
+// alone and the minor/polish ones in groups per file (at most 10 per group). Nothing is dropped: every finding is judged.
+const GROUP_SKEPTIC = (file, items) => `You are a skeptic checking SEVERAL reported defects in ONE file of the USKOCI app. READ-ONLY from ${WT} at ${BASE}. Default to refuted=true for any item you cannot confirm from the code.
+File: ${file}
+Reported (judge each by its index):
+${items.map((x, i) => `[${i}] ${JSON.stringify(x)}`).join('\n')}
+${RULES}
+Read the file around each line (and whatever it depends on). For each item: is it real, in scope (not a locked entry/auth file, not a test, not an internal gallery), and does the proposed fix respect the owner rules without breaking a guard or a test's intent? Return one verdict per index: refuted (true/false), one sentence of evidence with file:line, and the corrected fix if the proposed one is wrong.`
+
+const GROUP_VERDICT_SCHEMA = { type: 'object', properties: { verdicts: { type: 'array', items: { type: 'object', properties: {
+  index: { type: 'number' }, refuted: { type: 'boolean' }, evidence: { type: 'string' }, fix: { type: 'string' } },
+  required: ['index', 'refuted', 'evidence'] } } }, required: ['verdicts'] }
+
+// args.only === 'sweep' runs the whole-app sweep alone (the lead session runs the three units in parallel cloud sessions).
+const SELECTED = (args && args.only === 'sweep') ? [] : AREAS
 const [areas, sweep] = await parallel([
-  () => pipeline(AREAS,
+  () => pipeline(SELECTED,
     (a) => agent(AUDIT(a), { label: 'plan:' + a.key, phase: 'Plan', schema: AUDIT_SCHEMA }),
     (spec, a) => spec ? agent(IMPL(a, spec), { label: 'izrada:' + a.key, phase: 'Izrada', isolation: 'worktree' }).then(report => ({ spec, report })) : null,
     (built, a) => built && built.report ? parallel(LENSES.map(lens => () => agent(REVIEW(a, lens, built.report), { label: 'pregled:' + a.key + ':' + lens.key, phase: 'Pregled' })))
@@ -110,10 +125,23 @@ const [areas, sweep] = await parallel([
     const seen = new Set(), unique = []
     for (const x of found) { const k = x.file + ':' + x.line + ':' + x.rule; if (!seen.has(k)) { seen.add(k); unique.push(x) } }
     log(`sweep: ${found.length} findings, ${unique.length} after dedupe`)
-    const judged = await parallel(unique.map((x, i) => () => agent(SKEPTIC(x), { label: 'potvrda:' + x.finder + ':' + i, phase: 'Potvrda', schema: VERDICT_SCHEMA }).then(v => ({ ...x, verdict: v }))))
-    const confirmed = judged.filter(Boolean).filter(x => x.verdict && x.verdict.refuted === false)
+    const serious = unique.filter(x => x.severity === 'blocker' || x.severity === 'major')
+    const byFile = {}
+    for (const x of unique) if (!(x.severity === 'blocker' || x.severity === 'major')) (byFile[x.file] = byFile[x.file] || []).push(x)
+    const groups = []
+    for (const file of Object.keys(byFile)) for (let i = 0; i < byFile[file].length; i += 10) groups.push({ file, items: byFile[file].slice(i, i + 10) })
+    log(`sweep: ${serious.length} blocker/major judged one by one, ${unique.length - serious.length} minor/polish judged in ${groups.length} per-file groups`)
+    const judged = await parallel([
+      ...serious.map((x, i) => () => agent(SKEPTIC(x), { label: 'potvrda:' + x.finder + ':' + i, phase: 'Potvrda', schema: VERDICT_SCHEMA }).then(v => [{ ...x, verdict: v }])),
+      ...groups.map((g, gi) => () => agent(GROUP_SKEPTIC(g.file, g.items), { label: 'potvrda-grupa:' + gi, phase: 'Potvrda', schema: GROUP_VERDICT_SCHEMA })
+        .then(r => g.items.map((x, i) => ({ ...x, verdict: ((r && r.verdicts) || []).find(v => v.index === i) || null })))),
+    ])
+    const all = judged.filter(Boolean).flat()
+    const unjudged = unique.length - all.filter(x => x.verdict).length
+    if (unjudged) log(`sweep: ${unjudged} findings got no verdict (agent failed or skipped) and count as refuted`)
+    const confirmed = all.filter(x => x.verdict && x.verdict.refuted === false)
     log(`sweep: ${confirmed.length} confirmed of ${unique.length}`)
-    return { total: found.length, unique: unique.length, confirmed }
+    return { total: found.length, unique: unique.length, unjudged, confirmed }
   },
 ])
 return { areas, sweep }
