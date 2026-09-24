@@ -43,6 +43,18 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it('gives active voice the whole composer and restores an existing draft afterwards',async()=>{
+  const p=props();p.voice=<View testID="voice-control"/>;p.voiceActive=true;p.onAdd=jest.fn();
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findByProps({testID:'ai-composer-bar'})).toBeDefined();
+  expect(tree.root.findAllByProps({accessibilityLabel:'Poruka za AI'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({accessibilityLabel:'Dodaj u zadatak'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({accessibilityLabel:'O govornom unosu i privatnosti'})).toHaveLength(0);
+  const resumed={...p,voiceActive:false};
+  await act(async()=>tree.update(<AiConversationShell {...resumed}/>));
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.value).toBe('Sačuvana poruka');
+  expect(p.onSend).not.toHaveBeenCalled();
+});
 it('keeps the contextual add action inside the composer without sending anything',async()=>{
   const p=props();p.onAdd=jest.fn();p.addLabel='Dodaj fotografiju ili mesto';
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
