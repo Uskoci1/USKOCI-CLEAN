@@ -25,9 +25,10 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
 
 /**
  * The card of a chosen pin (Zadaci, 2026-09-24): a PeekSheet, so the map stays live around it, detached above the list's
- * top line. One task shows its card and the one green "Pogledaj zadatak"; several tasks on one point say how many and
- * list them as rows, each opening its own task with the same verb as the single card's action ("Pogledaj zadatak"). X,
- * a swipe down and Android Back close it. Every opening goes through the screen's own guarded `onOpen`.
+ * top line. One task shows its face (bare: the sheet is its card) and the one green "Pogledaj zadatak"; several tasks on
+ * one point say how many and list them as rows, each opening its own task with the same verb as the single card's action
+ * ("Pogledaj zadatak"). X, a swipe down and Android Back close it. Every opening goes through the screen's own guarded
+ * `onOpen`.
  */
 export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduced, onOpen, onShowPlace, onClose, onHeight }: {
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
@@ -47,7 +48,8 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
   };
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced} onClose={onClose}>
     {dismiss => item ? <View style={s.stack} onLayout={measure}>
-      <TaskCard item={item} compact onOpen={() => onOpen(item)} relation={applied(item) ? 'APPLIED' : undefined} />
+      {/* The sheet is the card: the face sits in it bare, never as a card inside a card (emulator, round 3c). */}
+      <TaskCard item={item} bare onOpen={() => onOpen(item)} relation={applied(item) ? 'APPLIED' : undefined} />
       <View style={s.actions}>
         <V2Action label="Pogledaj zadatak" accessibilityLabel={`Pogledaj zadatak ${readableTitle(item.naslov)}`} onPress={() => onOpen(item)} style={[brandAction, s.grow]} />
         <ChromeIconButton label="Zatvori pregled" icon={X} onPress={dismiss} />
@@ -81,6 +83,6 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingHorizontal: sys.space.md, paddingVertical: 10,
     borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   rowTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
-  money: { fontSize: 16, lineHeight: 21, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
+  money: { ...sys.type.priceRow, color: sys.color.money },
   word: { maxWidth: 110, textAlign: 'right' },
 });

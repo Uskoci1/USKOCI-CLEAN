@@ -43,7 +43,14 @@ function Discovery() {
   // for the tasks actually on this page, instead of my whole task list and my whole application
   // list; the server answers for those ids and says nothing about any other task.
   const visible = (resource.data ?? []).map(row => row.id).join(',');
-  const loadRelations = useCallback(() => source.odnosiPremaZadacima(visible ? visible.split(',') : []), [source, visible]);
+  // The same 15 s limit as the list read: a read that never answers is a failed read, not one still running, so it costs
+  // the labels and never the count, the sheet's start or the map (review r3b).
+  const loadRelations = useCallback(async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try { return await Promise.race([source.odnosiPremaZadacima(visible ? visible.split(',') : []), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('TASK_RELATIONS_READ_TIMEOUT')), 15_000);
+    })]); } finally { if (timer) clearTimeout(timer); }
+  }, [source, visible]);
   const relations = useFocusedResource(loadRelations);
   // Until that read lands the list cannot yet leave my own tasks out, so the screen holds its count back; a failed read
   // is not pending (review r3 item 9). Labels only: nothing here gates a read, a guard or a command.

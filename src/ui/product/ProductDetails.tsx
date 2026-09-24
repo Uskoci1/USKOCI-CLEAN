@@ -6,7 +6,7 @@ import { ActionSheet, type SheetAction } from '../system/ActionSheet';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { brandAction, sys } from '../system/tokens';
-import { ChromeIconButton, ScreenChrome, useChromeTitleOnScroll } from '../system/ScreenChrome';
+import { ChromeIconButton, ScreenChrome, chrome, useChromeTitleOnScroll } from '../system/ScreenChrome';
 import { T } from '../Text';
 import { Press } from '../Press';
 
@@ -323,8 +323,9 @@ const s = StyleSheet.create({
   // A row of the facts list: the same art column and gap, and a full touch height because it opens the profile. The face
   // sits on the first line of the name like every other fact's picture, also when a large text size wraps the name and
   // the caption (review of step 5b, 2026-09-24); the caret, which belongs to the whole row, stays centred on it. A row
-  // that opens something is a command, so it is never under 48 (it was the 44 of `sys.touch.min`).
-  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, minHeight: 48 },
+  // that opens something is a command, so it is never under 48 (it was the 44 of `sys.touch.min`): the command height
+  // of the chrome, `chrome.control`.
+  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, minHeight: chrome.control },
   personCaret: { alignSelf: 'center' },
   footerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm },

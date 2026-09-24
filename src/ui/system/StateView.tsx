@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { FactArt, type FactArtKind } from './FactArt';
-import { SkeletonList } from './Skeleton';
+import { SkeletonList, type SkeletonVariant } from './Skeleton';
 import { brandAction, sys } from './tokens';
 
 export type StateKind = 'empty' | 'loading' | 'error' | 'offline';
@@ -30,10 +30,11 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
   /** One sentence under the title. */ body?: string;
   /** The one way forward, drawn as the screen's green action. */ primary?: StateAction;
   /** A second, quieter way. */ quiet?: StateAction;
-  /** While loading: how many placeholder cards, and lines in each. */ skeleton?: { count?: number; rows?: number };
+  /** While loading: how many placeholder cards, lines in each, and which card is coming (a task list says `task`). */
+  skeleton?: { count?: number; rows?: number; variant?: SkeletonVariant };
 }) {
   if (kind === 'loading') return <View style={s.loading} accessibilityLiveRegion="polite">
-    <SkeletonList count={skeleton?.count ?? 3} rows={skeleton?.rows} />
+    <SkeletonList count={skeleton?.count ?? 3} rows={skeleton?.rows} variant={skeleton?.variant} />
     <T variant="meta" tone="muted" style={s.center}>{title}</T>
   </View>;
   const trouble = kind === 'error' || kind === 'offline';

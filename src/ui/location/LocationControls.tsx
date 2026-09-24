@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, Check } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { useReducedMotion } from '../system/motion';
-import { card, sys, fieldBox, nested } from '../system/tokens';
+import { card, sys, fieldBox } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -99,7 +99,7 @@ export function LocationConfirmation({ checked, disabled, onChange, children }: 
     accessibilityState={{ checked, disabled }} disabled={disabled} haptic="select" onPress={() => onChange(!checked)}
     style={[locationStyles.notice, locationStyles.row, { minHeight: 50 }]}>
     {/* A checkbox is a rounded square: the 12 badge corner turned this 24 px box into a circle, which reads as a radio. */}
-    <View style={{ width: 24, height: 24, borderRadius: nested(sys.radius.control, 6), borderWidth: 1.5, borderColor: sys.color.green,
+    <View style={{ width: 24, height: 24, borderRadius: sys.radius.check, borderWidth: 1.5, borderColor: sys.color.green,
       alignItems: 'center', justifyContent: 'center', backgroundColor: checked ? sys.color.green : sys.color.surface }}>
       {checked ? <Check size={16} color={sys.color.surface} weight="bold" /> : null}
     </View>

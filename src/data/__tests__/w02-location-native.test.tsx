@@ -32,7 +32,7 @@ jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'Resolved
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
 import { StyleSheet } from 'react-native';
-import { nested, sys } from '../../ui/system/tokens';
+import { sys } from '../../ui/system/tokens';
 
 const review = (): NeedLocationReview => ({ accountId: 'account-a', conversationId: 'conversation-a', editable: true,
   confirmed: true, revision: 'revision-a', value: { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
@@ -81,7 +81,9 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={jest.fn()} />); });
     const box = confirm().findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.width === 24)[0];
     const radius = StyleSheet.flatten(box.props.style).borderRadius;
-    expect(radius).toBe(nested(sys.radius.control, 6)); expect(radius).toBeLessThan(24 / 2);
+    // Verifier r3b (vc, fix 2): this pinned the magic nested control corner (the control corner less 6); the checkbox
+    // corner now has its one name, `sys.radius.check` (the same 6).
+    expect(radius).toBe(sys.radius.check); expect(radius).toBeLessThan(24 / 2);
   });
 
   it('requires point confirmation before saving and does not publish the precise point in geography', async () => {

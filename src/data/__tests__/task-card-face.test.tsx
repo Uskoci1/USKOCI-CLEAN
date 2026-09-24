@@ -298,6 +298,26 @@ describe('the card', () => {
     for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity']) expect(style(frame())).not.toHaveProperty(key);
     expect(presses()).toHaveLength(1);
   });
+
+  // Emulator, round 3c: inside a pin's card on the map the task card was a card inside a card. Bare, the face keeps
+  // everything it says and its one press, and draws no edge, corner or padding across of its own.
+  it('bare, it draws the face without its own frame and keeps its one press, its words and what it says', async () => {
+    const onOpen = jest.fn();
+    await render(<TaskCard item={task()} onOpen={onOpen} />);
+    const framed = { label: presses()[0].props.accessibilityLabel, value: presses()[0].props.accessibilityValue, texts: texts() };
+    await act(async () => tree.update(<TaskCard item={task()} onOpen={onOpen} bare />));
+    expect(style(frame())).toMatchObject({ borderWidth: 0, borderRadius: 0 });
+    expect(style(presses()[0])).toMatchObject({ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 });
+    expect(presses()).toHaveLength(1);
+    expect(presses()[0].props.accessibilityLabel).toBe('Otvori priliku Farbanje dnevne sobe');
+    expect({ label: presses()[0].props.accessibilityLabel, value: presses()[0].props.accessibilityValue, texts: texts() }).toEqual(framed);
+    await act(async () => presses()[0].props.onPress()); expect(onOpen).toHaveBeenCalledTimes(1);
+    // My own task's waiting foot inside another card is a flat tint at the control corner, not a card's bottom strip.
+    await act(async () => tree.update(<TaskCard item={mine()} onOpen={onOpen} onApplications={jest.fn()} bare />));
+    expect(presses()).toHaveLength(2);
+    expect(style(presses()[1])).toMatchObject({ borderTopWidth: 0, borderRadius: sys.radius.control,
+      borderBottomLeftRadius: sys.radius.control, borderBottomRightRadius: sys.radius.control });
+  });
 });
 
 describe('review r3', () => {

@@ -26,7 +26,8 @@ const consequence = (action: Action) => action === 'DELETE_DRAFT'
 export const LIFECYCLE_CHECK_NOTICE_MS = 400;
 
 /**
- * Which ways into the lifecycle a Need offers right now: the one rule for the screen's "···" and for `request` itself.
+ * Which ways into the lifecycle a Need offers right now: the rule for the screen's "···". `request` does not call it;
+ * it checks the same conditions in its own `eligible` (nothing agreed yet, not closed, and a draft for "Obriši nacrt").
  * Places already agreed are cancelled through their Dogovori; a closed task offers nothing; a draft can also be deleted.
  */
 export function needLifecycleEntries(need: PotrebaProjekcija | null): { deleteDraft: boolean; cancel: boolean; agreements: boolean } {

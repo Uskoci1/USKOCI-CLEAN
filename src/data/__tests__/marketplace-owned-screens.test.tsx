@@ -91,6 +91,18 @@ test('discovery says while the labels for the tasks on screen are still being re
  mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); await render();
  expect(props().relationsPending).toBe(false); expect(props().relations).toBeUndefined();
 });
+// Review r3b: the labels read has the list read's 15 s limit. A read that never answers would otherwise stay pending for
+// good, and the count, the sheet's start and the map would wait for it forever.
+test('a labels read that never answers fails at the same bounded deadline and is then not pending; the list stays', async () => {
+ mockPublic.mockResolvedValue([{ id: 'mine' }, { id: 'other' }]);
+ mockRelations.mockImplementation(async (ids: readonly string[]) => ids.length ? new Promise(() => undefined) : taskRelationIndex([], ids));
+ await render();
+ expect(props().items).toHaveLength(2); expect(props().relationsPending).toBe(true);
+ await act(async () => jest.advanceTimersByTime(14_999)); expect(props().relationsPending).toBe(true);
+ await act(async () => jest.advanceTimersByTime(1)); await act(async () => undefined);
+ expect(props().relationsPending).toBe(false); expect(props().relations).toBeUndefined();
+ expect(props().items).toHaveLength(2); expect(props().error).toBe(false);
+});
 test.each(['narucilac', 'uskocer'])('central map opens actual public pins whatever the app last was (%s) and retains its camera across detail focus', async intent => {
  Component = SharedMap; mockIntent = intent; await render();
  expect(props().view.mode).toBe('map'); expect(mockPublic).toHaveBeenCalledTimes(1);

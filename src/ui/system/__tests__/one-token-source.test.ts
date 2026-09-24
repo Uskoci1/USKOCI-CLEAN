@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Platform } from 'react-native';
-import { brandAction, card, cardCompact, fieldBox, floating, sys } from '../tokens';
+import { brandAction, card, cardCompact, fieldBox, floating, sheetLift, sys } from '../tokens';
 import { palette } from '../../../theme/tokens';
 
 /**
@@ -82,9 +82,37 @@ it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary actio
   const { check, ...scale } = sys.radius;
   expect(new Set(Object.values(scale))).toEqual(new Set([12, 24, 28, 999]));
   expect(check).toBe(6);
-  // The checkbox is its only reader.
+  // Only checkboxes read it: the filter's 22 px box and the location confirmation's 24 px box (verifier r3b vc, fix 2).
   expect(read('src/ui/v2/MarketplacePresentation.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
+  expect(read('src/ui/location/LocationControls.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
   expect(brandAction.borderRadius).toBe(fieldBox.borderRadius);
+});
+
+// Verifier r3b vc, fix 2: the checkbox corner has one name. The magic `nested(sys.radius.control, 6)` it replaced must
+// not come back anywhere under src.
+it('no file under src still spells the checkbox corner as a nested control corner', () => {
+  const offenders: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(join(repo, dir), { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(path);
+      else if (/\.(?:ts|tsx)$/.test(entry.name) && !path.endsWith('one-token-source.test.ts')
+        && read(path).includes('nested(sys.radius.control, 6)')) offenders.push(path);
+    }
+  };
+  walk('src');
+  expect(offenders).toEqual([]);
+});
+
+// Review r3b (Zadaci, low): a sheet's lift is the system's, not a shadow each sheet spells for itself.
+it('the list sheet and the PeekSheet take their lift from sheetLift and spell no shadow colour', () => {
+  expect(sheetLift.docked).toEqual(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 6 } : { boxShadow: expect.stringMatching(/^0px -/) });
+  expect(sheetLift.detached).toEqual(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 6 } : { boxShadow: expect.any(String) });
+  for (const [path, form] of [['src/ui/v2/discovery/DiscoveryListSheet.tsx', 'docked'], ['src/ui/system/PeekSheet.tsx', 'detached']]) {
+    const source = read(path);
+    expect(source).toMatch(new RegExp(`\\.\\.\\.sheetLift\\.${form}\\b`));
+    expect(source).not.toMatch(/rgba\(|boxShadow|elevation:/);
+  }
 });
 
 // Emulator critique B5 (2026-09-24): a list card wore a border and a shadow. A card lying on the white screen is drawn

@@ -36,11 +36,18 @@ const NOTHING_TO_CHOOSE = 'Još nema prijava za izbor';
  * nothing moves. The card is heard once: its command name, then everything it shows (`taskSpoken`), with no stop per
  * fact (item 4).
  */
-function TaskCardBase({ item, onOpen, onApplications, compact = false, disabled = false, relation, sectionSays }: {
+function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = false, disabled = false, relation, sectionSays }: {
   item: MarketplaceItem; onOpen: () => void;
   /** My own task only: opens the applications that wait for my choice. Without it the count is still said, as words. */
   onApplications?: () => void;
-  compact?: boolean; disabled?: boolean;
+  compact?: boolean;
+  /**
+   * The face without the card's own frame: no hairline, no corner and no padding across, for a face that already sits
+   * inside a card (a pin's card on the map, whose sheet is the card and gives the padding). A card is never drawn inside
+   * a card. The one press, its words and everything it says stay exactly as on the card.
+   */
+  bare?: boolean;
+  disabled?: boolean;
   /** What this account is to a task found in discovery, from its own tasks and applications. Absent = nothing known. */
   relation?: 'OWNED' | 'APPLIED';
   /** The state the list's own section is named for (Nacrti, Istorija), which the card then does not repeat. */
@@ -77,10 +84,10 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, disabled 
   // Put back at once under reduced motion, even if the setting changed mid-press.
   const settle = () => { scale.set(reduced ? 1 : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System })); };
 
-  return <Animated.View style={[s.card, disabled && s.disabled, lift]}>
+  return <Animated.View style={[s.card, bare && s.bare, disabled && s.disabled, lift]}>
     <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
-      style={[s.body, compact && s.bodyCompact]}>
+      style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
       <CardHead title={title} value={value} large={large} />
       <View style={s.facts}>
@@ -97,7 +104,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, disabled 
     {/* No hit slop: the hairline is the border between the two targets, and a touch just above it opens the task. */}
     {waitingFoot ? <Press accessibilityRole="button" accessibilityLabel={`${waitingFoot.text}, ${title}`} accessibilityHint="Otvara prijave za izbor."
       accessibilityState={{ disabled }} disabled={disabled} onPress={onApplications} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
-      hitSlop={0} style={[faceStyles.ownerFoot, compact && s.footCompact]}>
+      hitSlop={0} style={[faceStyles.ownerFoot, compact && s.footCompact, bare && s.footBare]}>
       <WaitingDot />
       <T style={faceStyles.ownerFootText} numberOfLines={2}>{waitingFoot.text}</T>
       <CaretRight size={18} weight="bold" color={sys.color.warn} />
@@ -115,4 +122,11 @@ const s = StyleSheet.create({
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
   facts: { gap: 4 },
   footCompact: { paddingHorizontal: 14 },
+  // Bare: the card that holds the face draws the edge, the corner and the padding across; the face adds none of them.
+  bare: { borderWidth: 0, borderRadius: 0 },
+  bodyBare: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0 },
+  // Inside another card the waiting foot is a flat tint at the control corner, never a card's bottom strip.
+  // (Its own lower corners are named, so they are named again here: a named corner wins over `borderRadius`.)
+  footBare: { borderTopWidth: 0, borderRadius: sys.radius.control, borderBottomLeftRadius: sys.radius.control,
+    borderBottomRightRadius: sys.radius.control },
 });

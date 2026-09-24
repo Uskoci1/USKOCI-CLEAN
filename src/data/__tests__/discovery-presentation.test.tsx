@@ -28,7 +28,10 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
+import { TaskCard } from '../../ui/v2/TaskCard';
 import { sys } from '../../ui/system/tokens';
+/** TaskCard is memoised; the test renderer holds the function it wraps. */
+const CARD = (TaskCard as unknown as { type: React.ElementType }).type;
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24; round-1 critique A5–A7, B8, B12). The map is under a list sheet; the
@@ -151,6 +154,24 @@ test('a chosen pin rests the list at its top line and opens its card with one gr
   // Pulling the list up is looking at the list: the card does not stay over it.
   await act(async () => map().props.onSelect('a')); expect(peek()).toBeDefined();
   await act(async () => listSheet().props.onChange(1)); expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
+});
+
+// Emulator, round 3c: the pin's card showed the task card INSIDE the sheet with its own edge and corner, a card inside a
+// card. The sheet is the card; the task's face sits in it bare, and keeps its one press and what it says.
+test('a chosen pin\'s card is the sheet itself: the task\'s face sits in it bare, with its one press and its words', async () => {
+  await render();
+  await act(async () => map().props.onSelect('bb'));
+  const face = peek()!.findByType(CARD);
+  expect(face.props.bare).toBe(true);
+  const edged = face.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
+  expect(edged).toHaveLength(0);
+  const opens = peek()!.findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''));
+  expect(opens.map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć bb']);
+  expect(opens[0].props.accessibilityValue.text).toContain('2.000 RSD');
+  await act(async () => opens[0].props.onPress()); expect(open).toHaveBeenCalledWith(rows[1]);
+  // The list's cards keep their frame.
+  const listed = listSheet().findAllByType(CARD);
+  expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => !node.props.bare)).toBe(true);
 });
 
 test('tasks on one public point are one place: its card says how many and each row opens its own task', async () => {
@@ -304,6 +325,24 @@ test('the map is told where the sheet starts, so the first fit keeps the pins ab
   expect(listSheet().props.index).toBe(1);
   expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
   expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md);
+});
+
+// Review r3b: the map fits its pins once, when it mounts. A mount before the labels land would fit my own tasks for a
+// sheet start the sheet then does not take, so its first mount waits exactly as the sheet's start does.
+test('the map\'s first mount waits for what is mine, then fits only what is listed above where the sheet starts', async () => {
+  rows = Array.from({ length: 5 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); relationsPending = true;
+  await render();
+  const body = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
+    && JSON.stringify(StyleSheet.flatten(node.props.style)) === JSON.stringify({ flex: 1 }))[0];
+  await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
+  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
+  relations = { owned: new Set(['t0', 't1']), applied: new Set() }; relationsPending = false; await update();
+  expect(map().props.items).toHaveLength(3);
+  expect(listSheet().props.index).toBe(1);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
+  // A later read of the labels (a new list) does not take the map away again.
+  relationsPending = true; await update();
+  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
 });
 
 // Review r3 item 11: a chosen pin's card rests where the zoom and the credits ride, so they step up above it.

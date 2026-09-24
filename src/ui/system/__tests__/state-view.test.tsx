@@ -7,7 +7,7 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
   ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
 
 import { StateView } from '../StateView';
-import { SkeletonList } from '../Skeleton';
+import { SkeletonCard, SkeletonList } from '../Skeleton';
 import { V2Action } from '../../v2/V2Action';
 import { brandAction } from '../tokens';
 
@@ -74,4 +74,19 @@ it('while reading shows the placeholders in the shape of what is coming and one 
   expect(texts()).toEqual(['Učitavamo Dogovore…']);
   expect(actions()).toHaveLength(0);
   expect(pictures()).toHaveLength(0);
+});
+
+// Verifier r3b vc, nit 4: only a task list waits in the task card's shape, with the person's 32 px picture in its foot.
+// Every other card (a Prijava, a Dogovor, a detail, legal documents, the export) waits in the plain shape, with no person.
+it('waits in the task card\'s shape only where a task list says so; every other card waits plain, with no person', async () => {
+  const avatars = () => tree.root.findAll(node => typeof node.type === 'string' && flat(node).width === 32 && flat(node).height === 32);
+  await render(<SkeletonCard />);
+  expect(avatars()).toHaveLength(0);
+  await act(async () => tree.update(<SkeletonCard variant="task" />));
+  expect(avatars()).toHaveLength(1);
+  await act(async () => tree.update(<StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />));
+  expect(tree.root.findByType(SkeletonList).props).toMatchObject({ count: 3, variant: 'task' });
+  expect(avatars()).toHaveLength(3);
+  await act(async () => tree.update(<StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 2, rows: 2 }} />));
+  expect(avatars()).toHaveLength(0);
 });

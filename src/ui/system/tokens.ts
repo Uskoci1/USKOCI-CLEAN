@@ -101,8 +101,8 @@ export const sys = {
    * One scale, defined once in `theme/tokens`: 12 for what is touched or sits in a row (control, chip, badge and the
    * primary action alike), 24 for a card, 28 for a sheet. A circle or capsule is `pill`, never half of its own width.
    *
-   * `check` (6) is the one corner below that scale, named for its one use: a 22 px checkbox is a square box, and the
-   * row corner (12) on it drew a circle, which reads as a radio (card review r3 item 8). Nothing else may borrow it.
+   * `check` (6) is the one corner below that scale: the corner of a checkbox box (22–24 px); nothing but a checkbox uses
+   * it. The row corner (12) on a box that small drew a circle, which reads as a radio (card review r3 item 8).
    */
   radius: { ...radius, check: 6 },
   space,
@@ -117,6 +117,8 @@ export const sys = {
     priceLarge: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
     /** Money inside a row that is compared with other rows. */
     priceSmall: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] } as TextStyle,
+    /** Money on one line with a compact title (`cardTitleCompact`), as in a place's rows on the map: the same size. */
+    priceRow: { fontSize: 16, lineHeight: 21, fontWeight: '700', fontVariant: ['tabular-nums'] } as TextStyle,
     /** The letter standing in for a photo, on a 96px avatar. */
     monogram: { fontSize: 30, lineHeight: 36, fontWeight: '700' } as TextStyle,
   },
@@ -169,10 +171,21 @@ export const sys = {
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
   borderColor: sys.color.cardLine, padding: 20 };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
+/** boxShadow needs Android 9+; minSdk is 24, so the phones before it get an elevation instead. */
+const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28;
 /** The lift of a layer that floats over the screen (V28's measured two-layer shadow). Never on a card in a list. */
-export const floating: ViewStyle = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
-  ? { elevation: 1 } // boxShadow needs Android 9+; minSdk is 24.
+export const floating: ViewStyle = NO_BOX_SHADOW ? { elevation: 1 }
   : { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
+/**
+ * The lift of a sheet over the map, in the system's shadow ink (review r3b: it was spelled in each sheet). A `docked`
+ * sheet rises from the bottom edge (the Zadaci list), so its shadow falls upwards; a `detached` one floats free above
+ * it (the PeekSheet with a pin's card), so its shadow falls below, deeper than `floating` because it covers more.
+ */
+export const sheetLift = {
+  docked: (NO_BOX_SHADOW ? { elevation: 6 } : { boxShadow: '0px -2px 12px rgba(23, 59, 39, 0.08)' }) as ViewStyle,
+  detached: (NO_BOX_SHADOW ? { elevation: 6 }
+    : { boxShadow: '0px 10px 28px rgba(23, 59, 39, 0.14), 0px 2px 6px rgba(23, 59, 39, 0.06)' }) as ViewStyle,
+} as const;
 /** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
 export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
   paddingHorizontal: 14, paddingVertical: 12, backgroundColor: sys.color.surface } satisfies ViewStyle;

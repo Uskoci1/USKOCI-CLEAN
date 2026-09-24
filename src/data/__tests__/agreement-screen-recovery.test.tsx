@@ -637,7 +637,9 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(mockRead).toHaveBeenCalledTimes(2);
-    expect(texts()).toContain('Završetak nije potvrđen');
+    // Review r3b: this pinned "Završetak nije potvrđen", which read like the normal wait for the other side. The line now
+    // says what did not get written; the requester's is the confirmation.
+    expect(texts()).toContain('Potvrda završetka nije upisana. Osveži status Dogovora.');
     expect(texts()).not.toContain('Dogovor je završen');
     expect(button('Potvrdi završetak').props.disabled).toBe(true);
     await act(async () => button('Potvrdi završetak').props.onPress());
@@ -656,7 +658,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await render();
     await confirmCompletion();
     expect(texts()).toContain('Dogovor je završen');
-    expect(texts()).not.toContain('Završetak nije potvrđen');
+    expect(texts()).not.toContain('Potvrda završetka nije upisana');
     expect(button('Oceni saradnju')).toBeTruthy();
     absent('Potvrdi završetak');
   });
@@ -680,7 +682,8 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await render();
     await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
-    expect(texts()).toContain('Završetak nije potvrđen');
+    // Review r3b: the worker's line names the mark that did not get written ("Završetak nije potvrđen" before).
+    expect(texts()).toContain('Oznaka da je posao gotov nije upisana. Osveži status Dogovora.');
     expect(button('Posao je gotov').props.disabled).toBe(true);
     mockRead.mockResolvedValue({ ...asWorker, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', radnje: none });
     await act(async () => button('Osveži status Dogovora').props.onPress());

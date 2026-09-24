@@ -20,7 +20,8 @@ export type SheetAction = {
   /**
    * One quiet line under the label, for what a sighted person needs before choosing and the label cannot say ("Postojeći
    * Dogovori se otkazuju zasebno." beside a task that can no longer be cancelled as a whole). A screen reader hears it as
-   * the hint when there is no hint of its own. Not for decoration: most rows have none.
+   * the hint, followed by the row's own hint when it has one, so what is on screen is never left unsaid. Not for
+   * decoration: most rows have none.
    */
   subtitle?: string;
 };
@@ -53,7 +54,7 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
     {dismiss => <View accessibilityRole="menu" accessibilityLabel={title ? undefined : label} style={s.list}>
       {ordered.map((action, index) => <View key={action.key}>
         {index > 0 && index === firstDestructive ? <View style={s.rule} /> : null}
-        <Press accessibilityRole="menuitem" accessibilityLabel={action.label} accessibilityHint={action.hint ?? action.subtitle}
+        <Press accessibilityRole="menuitem" accessibilityLabel={action.label} accessibilityHint={[action.subtitle, action.hint].filter(Boolean).join(' ') || undefined}
           accessibilityState={{ disabled: !!action.disabled }} disabled={action.disabled}
           haptic={action.disabled ? 'none' : action.destructive ? 'medium' : 'select'}
           onPress={() => { if (action.disabled || chosen.current) return; chosen.current = action; dismiss(); }}

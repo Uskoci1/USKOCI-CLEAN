@@ -121,6 +121,8 @@ export default function PrilikaDetaljiEkran() {
     const scope = currentScope();
     if (!scope || !fresh || resource.data?.request !== readRequest.current || requesterProfile?.loading) return;
     const request = ++profileRequest.current, profileId = fresh.narucilacProfilId;
+    // An error from the "···" attempt belongs to the task: the profile opens without it, before anything is pressed there.
+    setSafetyError(null);
     setRequesterProfile({ loading: true, data: null });
     void izvor.javniProfil(profileId)
       .then(value => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: value?.profilId === profileId ? value : null }); })
@@ -128,12 +130,18 @@ export default function PrilikaDetaljiEkran() {
   }
   // F05: the poster is a person, not a profile; the server resolves the target before bezbednost opens.
   const safetyEntry = useSafetyEntry(fresh?.narucilacProfilId, { needId: fresh?.id ?? null });
-  // The entry keeps its last error until the next press. The screen says it once, after an attempt has settled, and lets
-  // it go when the person moves on: when the profile sheet closes (the sheet said it itself) and when the screen comes
-  // back into focus. A new attempt that fails the same way is said again.
+  // The entry keeps its last error until the next press. The screen takes it only when an attempt finishes (busy goes from
+  // true to false; the hook sets both in one callback, so they arrive in one render) and lets it go when the person moves
+  // on: when the profile opens or closes (the sheet says its own) and when the screen comes back into focus. An entry that
+  // comes back with its old error after the task was read again from empty is not an attempt, so it says nothing (review
+  // r3b). A new attempt that fails the same way is said again.
   const [safetyError, setSafetyError] = useState<string | null>(null);
-  const safetySettled = !!safetyEntry && !safetyEntry.busy, safetyAnswer = safetyEntry?.error ?? null;
-  useEffect(() => { if (safetySettled) setSafetyError(safetyAnswer); }, [safetySettled, safetyAnswer]);
+  const safetyWasBusy = useRef(false);
+  useEffect(() => {
+    const busyNow = !!safetyEntry?.busy;
+    if (safetyWasBusy.current && !busyNow) setSafetyError(safetyEntry?.error ?? null);
+    safetyWasBusy.current = busyNow;
+  }, [safetyEntry?.busy, safetyEntry?.error]);
   useFocusEffect(useCallback(() => { setSafetyError(null); }, []));
   const safety = safetyEntry ? { ...safetyEntry, error: safetyError } : undefined;
   function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); setSafetyError(null); }
@@ -166,8 +174,9 @@ export default function PrilikaDetaljiEkran() {
     safety={safety}
     // The poster row asks for 32 px, the profile sheet for its large portrait. Without a photo, or while it cannot be
     // read, the row shows the one Avatar with the poster's letters (a drawn person when there is no name), as every
-    // other person row does; ProfilePhoto's own stand-in drew a 15 px glyph there.
+    // other person row does; ProfilePhoto's own stand-in drew a 15 px glyph there. The letters come from the copy on
+    // screen, so the last loaded copy shown during a reload or after a failed read keeps them beside the name (review r3b).
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null}
       fallback={size === 32 ? <Avatar size={32}
-        initials={fresh && profileId === fresh.narucilacProfilId ? inicijali(fresh.narucilacIme) : null} /> : undefined} />} />;
+        initials={prilika && profileId === prilika.narucilacProfilId ? inicijali(prilika.narucilacIme) : null} /> : undefined} />} />;
 }

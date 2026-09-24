@@ -154,7 +154,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const reset = () => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport });
 
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
-  const mapShown = !loading && !error && (shown.length - withoutPin > 0 || !!view.viewport);
+  // Its first mount also waits for what is mine, exactly as the sheet's start does: the map fits its pins once, when it
+  // mounts, so a mount before that would fit my own tasks for a sheet height the sheet then does not take (review r3b).
+  // A later read of the labels does not take the map away again.
+  const mapShown = !loading && !error && !(pending && !started.current) && (shown.length - withoutPin > 0 || !!view.viewport);
   const expanded = sheetIndex === SNAP.full;
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
@@ -171,7 +174,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
   const empty = <View style={s.empty}>
-    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" />
+    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
       : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."

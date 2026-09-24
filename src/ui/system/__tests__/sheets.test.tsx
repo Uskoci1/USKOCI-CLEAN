@@ -412,7 +412,7 @@ describe('ActionSheet', () => {
 
   // Review of step 5b (2026-09-24): "Postojeći Dogovori se otkazuju zasebno." had become a hint only a screen reader heard,
   // and a sighted owner of a partly agreed task saw no "Otkaži zadatak" and no reason why.
-  it('draws a subtitle as one quiet line under the label, and a screen reader hears it when the row has no hint', async () => {
+  it('draws a subtitle as one quiet line under the label, and a screen reader hears it, before the row\'s own hint', async () => {
     const rows: SheetAction[] = [
       { key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements', subtitle: 'Postojeći Dogovori se otkazuju zasebno.', onPress: jest.fn() },
       { key: 'both', label: 'Ne traži više nikoga', icon: 'users', destructive: true, subtitle: 'Zatvara preostala mesta.', hint: 'Dogovoreno je 1 od 2.', onPress: jest.fn() },
@@ -424,8 +424,10 @@ describe('ActionSheet', () => {
     expect(lines('Otvori moje Dogovore').map(line => line.props.children)).toEqual(['Otvori moje Dogovore', 'Postojeći Dogovori se otkazuju zasebno.']);
     expect(lines('Otvori moje Dogovore')[1].props).toMatchObject({ variant: 'note', tone: 'muted' });
     expect(row('Otvori moje Dogovore').props.accessibilityHint).toBe('Postojeći Dogovori se otkazuju zasebno.');
-    // A row's own hint wins; the label of a destructive row keeps the danger colour above its quiet line.
-    expect(row('Ne traži više nikoga').props.accessibilityHint).toBe('Dogovoreno je 1 od 2.');
+    // Review r3b (vd, should fix 6): this pinned the row's own hint alone, so the visible subtitle was never spoken. A row
+    // with both says the subtitle and then its hint. The label of a destructive row keeps the danger colour above its
+    // quiet line.
+    expect(row('Ne traži više nikoga').props.accessibilityHint).toBe('Zatvara preostala mesta. Dogovoreno je 1 od 2.');
     expect(flat(lines('Ne traži više nikoga')[0].props.style).color).toBe(sys.color.danger);
     // A row without one is drawn exactly as before: one label, nothing under it.
     expect(lines('Izmeni Zadatak').map(line => line.props.children)).toEqual(['Izmeni Zadatak']);

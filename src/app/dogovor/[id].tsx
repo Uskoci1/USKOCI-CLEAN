@@ -247,7 +247,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
       const state = next.podatak?.stanje;
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
-      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Završetak nije potvrđen. Osveži status Dogovora.' };
+      // Said as what did not get written, never as the normal wait for the other side ("čeka potvrdu"; review r3b).
+      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
+        ? 'Oznaka da je posao gotov nije upisana. Osveži status Dogovora.' : 'Potvrda završetka nije upisana. Osveži status Dogovora.' };
       return next;
     });
   };

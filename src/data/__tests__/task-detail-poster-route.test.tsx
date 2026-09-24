@@ -84,6 +84,17 @@ describe('the poster without a photo', () => {
     await render();
     expect(photos(32)[0].props.fallback.props).toEqual({ size: 32, initials: null });
   });
+
+  // Review r3b (vd, should fix 4): the letters come from the copy on screen, so the last loaded copy shown after a failed
+  // read keeps them beside the poster's own name instead of a drawn person.
+  it('keeps the poster\'s letters on the last loaded copy while a read again fails', async () => {
+    await render();
+    mockLoad.mockRejectedValue(new Error('TASK_READ_FAILED'));
+    await act(async () => { presentation().props.retry(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(presentation().props).toMatchObject({ stale: true, error: true, missing: true });
+    expect(photos(32)[0].props.fallback.props).toEqual({ size: 32, initials: 'AA' });
+  });
 });
 
 describe('a failed report or block from the task', () => {
@@ -111,5 +122,32 @@ describe('a failed report or block from the task', () => {
     expect(shownUnderPoster()).toBe(true);
     mockFocused = false; await update(); mockFocused = true; await update();
     expect(shownUnderPoster()).toBe(false);
+  });
+
+  // Review r3b (vd, fix first 1): the entry keeps its last error, and it is gone while no task is loaded (a return after
+  // five minutes, the app back from the background, "Pokušaj ponovo"). When it comes back with that old error, nothing
+  // was attempted, so nothing is said.
+  it('does not come back by itself when the task is read again from empty', async () => {
+    mockSafety = { onPress: jest.fn(), busy: false, error: null };
+    await render(); await settle(true, null); await settle(false, failure);
+    expect(shownUnderPoster()).toBe(true);
+    mockFocused = false; await update(); mockFocused = true; await update();
+    expect(shownUnderPoster()).toBe(false);
+    mockSafety = undefined; await update();
+    await settle(false, failure);
+    expect(shownUnderPoster()).toBe(false);
+    // A real new attempt is still said.
+    await settle(true, null); await settle(false, failure);
+    expect(shownUnderPoster()).toBe(true);
+  });
+
+  // Review r3b (vd, fix first 1): an error from the "···" attempt is the task's; the profile opens without it, so the sheet
+  // does not raise it as its own alert before anything is pressed there.
+  it('is not carried into the profile when the profile opens', async () => {
+    mockSafety = { onPress: jest.fn(), busy: false, error: null };
+    await render(); await settle(true, null); await settle(false, failure);
+    expect(presentation().props.safety.error).toBe(failure);
+    await act(async () => { presentation().props.onRequesterProfile(); });
+    expect(presentation().props.safety.error).toBeNull();
   });
 });

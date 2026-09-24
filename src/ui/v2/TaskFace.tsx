@@ -156,8 +156,9 @@ export function ownerNext(item: PotrebaProjekcija): OwnerNext {
 }
 
 /**
- * Everything the card shows, as one sentence after its command name, in the order it is drawn: status, HITNO, the value,
- * where, when, the requirement, the places, the person and what comes next. Empty parts are left out.
+ * Everything the card shows, as one sentence after its command name, in this order: HITNO, status, the value, where,
+ * when, the requirement, the places, the person and what comes next. It is the order the card is drawn in, except that
+ * HITNO, drawn after the status on the first line, is said before it. Empty parts are left out.
  */
 export function taskSpoken(parts: { status?: string | null; urgent?: boolean; value: TaskValue; place: string; schedule: string;
   requirement?: TaskRequirement | null; places?: string | null; person?: string | null; next?: string | null }): string {

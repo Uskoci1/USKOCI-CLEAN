@@ -104,7 +104,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
-    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" />
+    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
       : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."
