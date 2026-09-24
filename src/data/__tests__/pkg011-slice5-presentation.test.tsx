@@ -62,3 +62,27 @@ test('status block: loading is spoken, an error keeps the one reload action', as
   await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileStatus loading={false} error="Profil nije učitan." retry={retry} /></WorkerProfileFrame>); });
   expect(texts()).toContain('Profil nije učitan.'); await act(async () => byLabel('Ponovo učitaj profil').props.onPress()); expect(retry).toHaveBeenCalledTimes(1);
 });
+// Review of step 9 (2026-09-24): on a 320 × 640 phone the sticky footer rose with the keyboard and left under 100 dp for the
+// field being typed. It steps aside while the keyboard is up, stays mounted (a button keeps its state), and comes back.
+test('the sticky footer steps aside while the keyboard is up and comes back when it closes', async () => {
+  const { Keyboard, StyleSheet } = jest.requireActual('react-native');
+  const events: Record<string, () => void> = {}, remove = jest.fn();
+  const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation(((name: string, callback: () => void) => {
+    events[name] = callback; return { remove }; }) as never);
+  try {
+    await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} footer={React.createElement('T', null, 'Sačuvaj izmene')}>
+      <WorkerProfileForm draft={draft()} change={change} disabled={false} status="ACTIVE" navigate={navigate} /></WorkerProfileFrame>); });
+    const footer = () => tree.root.findByProps({ testID: 'worker-profile-footer' });
+    const aside = () => StyleSheet.flatten(footer().props.style).display === 'none';
+    const event = (suffix: RegExp) => events[Object.keys(events).find(name => suffix.test(name))!];
+    expect(aside()).toBe(false); expect(footer().props.importantForAccessibility).toBe('auto');
+    await act(async () => event(/Show$/)());
+    expect(aside()).toBe(true); expect(footer().props.accessibilityElementsHidden).toBe(true);
+    expect(footer().props.importantForAccessibility).toBe('no-hide-descendants'); expect(texts()).toContain('Sačuvaj izmene');
+    await act(async () => event(/Hide$/)());
+    expect(aside()).toBe(false); expect(footer().props.accessibilityElementsHidden).toBe(false);
+    await act(async () => tree.unmount());
+    expect(remove).toHaveBeenCalledTimes(2);
+    tree = undefined as unknown as ReactTestRenderer;
+  } finally { spy.mockRestore(); }
+});

@@ -1,6 +1,6 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Minus, Plus, X } from 'phosphor-react-native';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
@@ -22,17 +22,40 @@ import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
  * Frame of the worker profile: back, title, keyboard-safe body, sticky footer. `/profil/razgovor` and `/profil/lokacija`
  * draw it too, so the title can be theirs; the back says only "Nazad", because the screen is also opened from an
  * application (prijava) and Back returns there, not to the profile.
+ *
+ * While the software keyboard is up the sticky footer steps aside (review of step 9, 2026-09-24): on a 320 × 640 phone
+ * the footer (status lines, a 54 dp primary, a quiet action or the area confirmation) rose with the keyboard and left
+ * under 100 dp for the field being typed. It is hidden, not removed, so a button keeps its state and nothing is announced
+ * again; it comes back as soon as the keyboard closes (Back, the return key, or a tap outside the field). The body keeps
+ * what the person needs while typing: the activation checklist and every field's own hint.
  */
 export function WorkerProfileFrame({ back, children, footer, title = 'Veštine, alat i tim', backLabel = 'Nazad' }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
 }) {
+  const typing = useKeyboardShown();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar backLabel={backLabel} title={title} onBack={back} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
-      {footer ? <View style={s.footer}>{footer}</View> : null}
+      {footer ? <View testID="worker-profile-footer" style={[s.footer, typing && s.footerAside]} accessibilityElementsHidden={typing}
+        importantForAccessibility={typing ? 'no-hide-descendants' : 'auto'}>{footer}</View> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
+}
+
+/**
+ * Whether the software keyboard is up, from the keyboard's own events (iOS says it before the animation, Android after).
+ * It starts false: a footer is never hidden without an event saying the keyboard is there.
+ */
+function useKeyboardShown() {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setShown(true));
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setShown(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return shown;
 }
 
 /** Reading the profile, or why it could not be read: the one state look (StateView). No draft is built from defaults. */
@@ -255,6 +278,7 @@ const s = StyleSheet.create({
   start: { alignSelf: 'flex-start' },
   content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  footerAside: { display: 'none' },
   form: { gap: sys.space.xxl },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
