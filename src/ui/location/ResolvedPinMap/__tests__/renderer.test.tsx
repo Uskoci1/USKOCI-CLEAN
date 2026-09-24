@@ -1,8 +1,10 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { Linking } from 'react-native';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { ResolvedPinMap } from '../../ResolvedPinMap';
 import { ResolvedPinMap as WebPinMap } from '../../ResolvedPinMap.web';
 import type { ResolvedPinMapProps } from '../../ResolvedPinMap.types';
+import { sys } from '../../../system/tokens';
 
 let mockFocused = true;
 const mockJump = jest.fn();
@@ -27,6 +29,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('../../../Text', () => ({ T: 'T' }));
+jest.mock('../../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../../v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../LocationControls', () => ({ locationStyles: { notice: {} } }));
 
@@ -54,14 +57,81 @@ async function dragReady(center = [19, 45], zoom = 15) {
 beforeEach(() => { mockFocused = true; jest.clearAllMocks(); jest.useFakeTimers(); mockProject.mockResolvedValue([170, 160]); mockUnproject.mockResolvedValue([20.123456, 44.654321]); });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
+const links = () => tree.root.findAllByType('Press' as React.ElementType);
+
 it('shows a neutral real map with no pin or selection when position is absent', async () => {
   await render();
   expect(map().props.mapStyle).toBe('https://tiles.openfreemap.org/styles/positron');
-  expect(map().props.attribution).toBe(true);
   expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);
   await ready();
   expect(text()).toContain('Tačka nije izabrana');
   expect(onChoose).not.toHaveBeenCalled();
+});
+
+// r6 rows 8 and 15 (2026-09-24): one attribution, the app's own. MapLibre's "i" (English name, English dialog, the
+// library's blue) is off, and so is every other ornament that could wear that blue; the credits are three Serbian-chrome
+// links that carry the whole OpenFreeMap credit, appear with the tiles, sit outside the accessible frame node so a
+// screen reader still reaches them on a read-only map, and each has a 48 dp touch box.
+it('credits the map once, through the app\x27s own links, with no SDK ornament', async () => {
+  const openURL = jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve(true));
+  await render();
+  expect(map().props).toMatchObject({ attribution: false, compass: false, logo: false });
+  expect(map().props.attributionPosition).toBeUndefined();
+  expect(links()).toHaveLength(0); // Nothing to credit while the map is still loading.
+  await ready();
+  expect(links().map(link => [link.props.accessibilityRole, link.props.accessibilityLabel])).toEqual([
+    ['link', '© OpenStreetMap'], ['link', '© OpenMapTiles'], ['link', 'OpenFreeMap']]);
+  expect(frame().findAllByType('Press' as React.ElementType)).toHaveLength(0);
+  const band = links()[0].parent!.parent!;
+  expect(band.props).toMatchObject({ pointerEvents: 'box-none', style: expect.objectContaining({ position: 'absolute', height: 56 }) });
+  for (const link of links()) {
+    expect(link.props.hitSlop).toMatchObject({ top: 16, bottom: 16 });
+    await act(async () => link.props.onPress());
+  }
+  expect(openURL.mock.calls.map(([url]) => url)).toEqual(['https://www.openstreetmap.org/copyright', 'https://www.openmaptiles.org/', 'https://openfreemap.org/']);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+// r6 row 8 (2026-09-24): under "Na javnoj mapi prikazuje se približno područje" the map drew the same orange pin with a
+// tail as the private picker, over the city name. The public approximate view now draws a translucent green disc with a
+// hairline and no tail, speaks once as an area, and still never carries the private precision.
+it('draws the public approximate point as an area, not a pin, and speaks it once', async () => {
+  await render({ position: { latitude: 45.123456, longitude: 19.654321 }, coarse: true, disabled: true }); await ready();
+  expect(annotation().props).toMatchObject({ id: 'location-area', lngLat: [19.65, 45.12], anchor: 'center' });
+  expect(tree.root.findAllByType('Image' as React.ElementType)).toHaveLength(0);
+  const disc = annotation().findByProps({ accessibilityLabel: 'Približno područje na mapi' });
+  expect(disc.props).toMatchObject({ accessible: true, accessibilityRole: 'image', pointerEvents: 'none' });
+  expect(disc.props.style).toMatchObject({ width: 56, height: 56, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge });
+  expect(disc.props.onStartShouldSetResponder).toBeUndefined();
+  const fill = disc.children[0] as ReactTestInstance;
+  expect(fill.props.style).toMatchObject({ backgroundColor: sys.color.green, opacity: 0.16 });
+  expect(frame().props).toMatchObject({ accessible: true, accessibilityRole: 'image',
+    accessibilityLabel: 'Približno područje na mapi. Geografska širina 45.12; geografska dužina 19.65.' });
+  expect(map().props).toMatchObject({ accessibilityLabel: 'Mapa približnog područja', importantForAccessibility: 'no-hide-descendants' });
+  expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('19.654321');
+  expect(text()).not.toContain('Dodirni mapu'); expect(text()).not.toContain('Geografska');
+  await act(async () => map().props.onPress(tap(20.12, 44.65)));
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+// The map's spoken name follows its mode, and the orange pin stays wherever a point is exact or can be moved: the
+// private Dogovor point, the picker, and the worker's coarse base (profil/lokacija drags it).
+it.each([
+  [{}, 'Mapa predložene lokacije', 'auto'],
+  [{ coarse: true }, 'Mapa približnog područja rada', 'auto'],
+  [{ disabled: true }, 'Mapa prikazane tačke', 'no-hide-descendants'],
+] as const)('names the map by its mode %j and keeps the pin for an exact or editable point', async (mode, name, importance) => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 }, ...mode }); await ready();
+  expect(map().props).toMatchObject({ accessibilityLabel: name, importantForAccessibility: importance });
+  expect(annotation().props).toMatchObject({ id: 'location-proposal', anchor: 'bottom' });
+  expect(markerImage().props.style).toEqual({ width: 44, height: 48 });
+  expect(handle().props.accessibilityLabel).toBe('Oznaka izabrane tačke na mapi');
+  if ('disabled' in mode) {
+    expect(frame().props.accessibilityLabel).toBe('Tačka na mapi. Geografska širina 45.250000; geografska dužina 19.830000.');
+  } else {
+    expect(frame().props.accessible).toBe(false);
+  }
 });
 
 it('renders only the two-decimal coarse position and emits only a user-selected coarse proposal', async () => {
