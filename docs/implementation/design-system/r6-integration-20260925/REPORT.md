@@ -48,9 +48,9 @@ also preserved. No unrelated agent checkout, old AI branch, scratch folder or fr
 - `git diff --check`: clean. Frozen SQL inventory: 147 files, unchanged. No files under Supabase, workflows or
   dependency manifests changed relative to the remote baseline.
 - Final settled-source Jest: **305 suites / 5,921 tests passed**, exit 0, 106.834 seconds. The worker teardown warning
-  repeated; no suite or assertion failed. This package does not claim to resolve pre-existing test timer cleanup.
-- Build, matched CI proofs and exact-build emulator evidence: pending at integration commit; see `RECEIPT.json`
-  and the completion update below when available. Gallery fixtures do not prove real task/Agreement writes.
+  repeated; no suite or assertion failed. Its origin was not isolated; this package does not claim clean timer teardown.
+- Build, all five matched CI proofs and bounded exact-build emulator verification completed; see `RECEIPT.json`
+  and the completion update below. Gallery fixtures do not prove real task/Agreement writes.
 
 ## Still separate work
 
@@ -58,3 +58,46 @@ The remaining publication review/place/photo/discovery findings, removal of plac
 sharing, Nearby with approved expo-location, and the rating-comment candidate are not implemented by this recovery.
 The whole-app sweep remains an open worklist, not a list of completed fixes. Payments remain with the other session.
 Device acceptance, TalkBack and real end-to-end write journeys are separate from unit tests and gallery screenshots.
+
+## Completion evidence
+
+App source is `b9aed1850fa096a21c629407075dfdda754f0008`, pushed to the working branch. Later commits in this
+package contain evidence/control documentation only and do not create a different app build.
+
+- [APK run 36065599150](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36065599150): successful.
+  Recovery and launcher-icon attestations passed and bind the APK to that source commit.
+- Matched proofs passed on the same commit: PKG004 `36065603432`, PKG006 `36065607281`, PKG007 `36065611427`,
+  PKG008 `36065615010`, PKG048 `36065619683`.
+- APK SHA256: `d99219d82a25b999a2e315a16ac0546c112dd54ab721515396f328b8eb887cb7`.
+  Installed with `adb install -r` on `emulator-5554` successfully; app/account storage was preserved.
+- Baseline and 320/360/~390/~430 dp with font scale 1.3 were inspected. Agreement change CTA stays visible;
+  map credits wrap with measured 48 dp targets; the complete privacy text is reachable by scrolling.
+  Offer review has a one-row heading/close control, scrolling message and fixed footer at 320 dp. Closing it
+  returns to the form. This used no real submission.
+- Independent review found no confirmed residual blocking defect in the inspected captures. The 390/430 map
+  captures include an in-test map pan, so are not marker-centering evidence. The full numeric keyboard
+  was not established (floating input toolbar appeared); keyboard, TalkBack and real journeys remain open.
+- Density override was removed and font scale restored to 1.0. The owner's phone was not changed.
+- Control rows preserve their open problems and phone status. Local state is regenerated. External dashboard
+  upload is pending: the browser is authenticated, but the supported file chooser timed out three times.
+
+| Baseline comparison | Before | After |
+| --- | --- | --- |
+| Agreement change form | [before](screens/before-agreement-form.png) | [after](screens/after-agreement-form.png) |
+| Public approximate map | [before](screens/before-map-preview.png) | [after](screens/after-map-preview.png) |
+| Q&A recovery | [before](screens/before-qa-recovery.png) | [after](screens/after-qa-recovery.png) |
+| Offer review | [before](screens/before-offer-sheet.png) | [after](screens/after-offer-sheet.png) |
+
+The frozen screenshots and XML bounds are hashed in `RECEIPT.json`. The earlier screenshots are the prior emulator
+build b4531ef4, not this source. The additional bottom Back strip on Agreement scenes belongs to the gallery.
+
+## Next bounded package
+
+1. Remove the redundant place confirmation checkbox in task/remote/worker-area forms while keeping pending-pin
+   validation and `confirmed: true` at the save boundary.
+2. Remove the current-location-sharing route and entries from Agreement; retain exact task address and all server data.
+3. Add owner-approved expo-location for explicit-tap Nearby centering, with no persistence or server transmission.
+4. Continue verified major R6 findings. Prepare rating-comment SQL/proof/contract separately; do not apply to DEV.
+
+Payments and price-list implementation remain with the other session. None of these follow-up items is claimed
+complete by the recovery, and this evidence is not a store-release approval.

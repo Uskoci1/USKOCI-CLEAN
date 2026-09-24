@@ -208,3 +208,9 @@ warning. Report and exact-build verification status:
 Work is in a separate Codex worktree, pushed to the same working branch; the original Claude checkout is intact.
 Remaining owner decisions a–d, other R6 findings and release gates remain open. No DEV/Edge, payment, key, frozen
 migration or dependency change was made in this integration.
+
+Completion of this bounded recovery: source `b9aed185`, APK `36065599150` and all five matched proofs passed.
+The APK is installed on the emulator and the selected gallery/large-text checks are documented in
+`../r6-integration-20260925/RECEIPT.json`. Phone, full keyboard, TalkBack and live write journeys are not accepted.
+The control state is regenerated; external artifact upload remains pending because filechooser automation timed out.
+Continue with the report's Next bounded package, not another import of the recovered agents.
