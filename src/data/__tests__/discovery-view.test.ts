@@ -1,5 +1,7 @@
-import { discoveryFiltered, discoveryItems, discoveryStartSnap, happensIn, initialMarketplaceView, marketplaceItems, pinLabel, pinPlaces,
-  pointKey, publicFeatures, saysWorkMode, workMode, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
+import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryItems, discoveryStartSnap, happensBetween, happensIn,
+  initialMarketplaceView, marketplaceItems, pinLabel, pinPlaces, placeSuggestions, pointKey, publicArea, publicFeatures, saysWhen,
+  saysWorkMode, serbianToday, undatedCount, workMode, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
+import { conditionsWords, datesWords, placesWords, whenWords, whereWords } from '../../ui/v2/discovery/discoveryWords';
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24): the pure rules under it. The four filter sections read only facts the
@@ -62,16 +64,27 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
     expect(ids(marketplaceItems([remote, onsite, unsaid], view({ where: 'onsite' }), false, NOW))).toEqual(['onsite']);
     expect(saysWorkMode([unsaid])).toBe(false); expect(saysWorkMode([unsaid, remote])).toBe(true);
   });
-  it('"2 ili više" keeps tasks with at least two open places', () => {
+  // Discovery V47: "Koliko vas dolazi" is a count of people, at least n open places; the old "2 ili više" is n = 2.
+  it('"Koliko vas dolazi" keeps tasks with at least that many open places; 1 is every open task', () => {
     const rows = [item('one', { pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 0.66 } }), item('two'), item('five', { pokrivenost: { ukupno: 5, popunjeno: 0, preostalo: 5, udeo: 0 } })];
-    expect(ids(marketplaceItems(rows, view({ places: 'two' }), false, NOW))).toEqual(['two', 'five']);
+    expect(ids(marketplaceItems(rows, view({ places: 2 }), false, NOW))).toEqual(['two', 'five']);
+    expect(ids(marketplaceItems(rows, view({ places: 3 }), false, NOW))).toEqual(['five']);
+    expect(ids(marketplaceItems(rows, view({ places: 1 }), false, NOW))).toEqual(['one', 'two', 'five']);
+    // Anything that is not a whole count from 1 is every open task, and the count never passes its ceiling.
+    for (const odd of [0, -2, 1.5, Number.NaN, '2', undefined]) expect(atLeast(odd)).toBe(1);
+    expect(atLeast(99)).toBe(10);
   });
   it('the price filter is the existing one, and the filters combine', () => {
     const rows = [item('price'), item('offers', { rezimCene: 'OFFERS', ponudjenaCena: undefined, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] })];
     expect(ids(marketplaceItems(rows, view({ price: 'OFFERS' }), false, NOW))).toEqual(['offers']);
     expect(ids(marketplaceItems(rows, view({ price: 'OFFERS', where: 'onsite' }), false, NOW))).toEqual([]);
     expect(discoveryFiltered(view())).toBe(false);
-    for (const patch of [{ price: 'MY_PRICE' as const }, { when: 'week' as const }, { where: 'remote' as const }, { places: 'two' as const }]) expect(discoveryFiltered(view(patch))).toBe(true);
+    for (const patch of [{ price: 'MY_PRICE' as const }, { when: 'week' as const }, { where: 'remote' as const }, { places: 2 }, { dates: { from: '2026-09-25', to: '2026-09-26' } }])
+      expect(discoveryFiltered(view(patch))).toBe(true);
+    // "Uslovi pretrage" counts the conditions that are on; a place, searched words and the map's area are "Gde", not conditions.
+    expect(discoveryConditions(view({ when: 'today', where: 'remote', places: 3, price: 'OFFERS' }))).toBe(4);
+    expect(discoveryConditions(view({ dates: { from: '2026-09-25', to: '2026-09-26' }, when: 'any' }))).toBe(1);
+    expect(discoveryConditions(view({ place: 'Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe(0);
   });
   it('defaults change nothing: a view written before the filters existed filters exactly as the new defaults do', () => {
     const rows = [item('a', window('2020-01-01T00:00:00Z')), item('b', { pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } }), item('c', { detalji: null as never })];
@@ -130,5 +143,97 @@ describe('tasks on one public point', () => {
     expect(pointKey({ lat: 0, lng: 0 })).toBe('0.00,0.00');
     // The native source is unchanged by the grouping: one feature per task, IDs and rounded points only.
     expect(publicFeatures(rows).features.map(feature => feature.properties)).toEqual([{ needId: 'a' }, { needId: 'b' }, { needId: 'c' }]);
+  });
+});
+
+/**
+ * Discovery V47: the search panel's choices, as pure rules. Kada has two more flexible words and a range of dates; "Gde"
+ * offers only the areas the loaded tasks name; a time choice never hides a task without a date silently.
+ */
+describe('Discovery V47: Kada', () => {
+  const flexible = (id: string, kind: 'TODAY_FLEXIBLE' | 'TOMORROW_FLEXIBLE' | 'WEEK_FLEXIBLE' | 'FLEXIBLE') => item(id, { schedule: { kind, startsAt: null, endsAt: null } });
+  const on = (id: string, day: string) => item(id, window(`${day}T10:00:00+02:00`, `${day}T12:00:00+02:00`));
+  const days = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', '2026-09-28', '2026-09-30', '2026-10-01'];
+  const rows = days.map(day => on(day, day));
+  it('"Ovaj vikend" is the coming Saturday and Sunday; on a weekend day, what is left of it', () => {
+    expect(ids(marketplaceItems(rows, view({ when: 'weekend' }), false, NOW))).toEqual(['2026-09-26', '2026-09-27']);
+    const saturday = new Date('2026-09-26T08:00:00Z'), sunday = new Date('2026-09-27T08:00:00Z');
+    expect(ids(marketplaceItems(rows, view({ when: 'weekend' }), false, saturday))).toEqual(['2026-09-26', '2026-09-27']);
+    expect(ids(marketplaceItems(rows, view({ when: 'weekend' }), false, sunday))).toEqual(['2026-09-27']);
+  });
+  it('"Narednih 7 dana" is today and the six days after it', () => {
+    expect(ids(marketplaceItems(rows, view({ when: 'next7' }), false, NOW))).toEqual(['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', '2026-09-28', '2026-09-30']);
+  });
+  it('a range of dates keeps the tasks whose work days touch it; a flexible task is read by what its words mean', () => {
+    const range = { from: '2026-09-26', to: '2026-09-28' };
+    expect(ids(marketplaceItems(rows, view({ dates: range }), false, NOW))).toEqual(['2026-09-26', '2026-09-27', '2026-09-28']);
+    // A range wins over a stale flexible word: the two are one choice.
+    expect(ids(marketplaceItems(rows, view({ dates: range, when: 'today' }), false, NOW))).toEqual(['2026-09-26', '2026-09-27', '2026-09-28']);
+    const week = flexible('ove-nedelje', 'WEEK_FLEXIBLE'), anytime = flexible('bilo-kad', 'FLEXIBLE'), today = flexible('danas', 'TODAY_FLEXIBLE');
+    expect(happensBetween(week, range, NOW)).toBe(true);
+    expect(happensBetween(anytime, range, NOW)).toBe(true);
+    expect(happensBetween(today, range, NOW)).toBe(false);
+    // A task whose schedule names no day matches no range.
+    expect(happensBetween(item('bez-rasporeda'), range, NOW)).toBe(false);
+  });
+  it('only a real range of real days is read; anything else is no range at all', () => {
+    expect(dateRange({ from: '2026-09-26', to: '2026-09-28' })).toEqual({ from: '2026-09-26', to: '2026-09-28' });
+    for (const odd of [{ from: '2026-09-28', to: '2026-09-26' }, { from: '2026-02-30', to: '2026-03-01' }, { from: '26.9.', to: '28.9.' }, null, 'x'])
+      expect(dateRange(odd)).toBeNull();
+    expect(ids(marketplaceItems(rows, view({ dates: { from: '2026-09-28', to: '2026-09-26' } }), false, NOW))).toEqual(ids(rows));
+  });
+  it('a time choice says how many tasks it leaves out only because they name no day; with no time choice it says nothing', () => {
+    const list = [...rows, item('bez-rasporeda'), item('nepotpun', window(null, '2026-09-24T12:00:00+02:00')), item('moj-bez-rasporeda')];
+    expect(undatedCount(list, view(), undefined, NOW)).toBe(0);
+    expect(undatedCount(list, view({ when: 'weekend' }), new Set(['moj-bez-rasporeda']), NOW)).toBe(2);
+    expect(undatedCount(list, view({ dates: { from: '2026-09-26', to: '2026-09-26' } }), undefined, NOW)).toBe(3);
+    // It counts only what the other filters leave: a search that finds none of them leaves none out.
+    expect(undatedCount(list, view({ when: 'weekend', query: 'Pomoć 2026' }), undefined, NOW)).toBe(0);
+    expect(saysWhen([item('bez-rasporeda')], NOW)).toBe(false); expect(saysWhen(list, NOW)).toBe(true);
+  });
+  it('today in Serbian time is the day the grid starts from, whatever the phone\'s zone', () => {
+    expect(serbianToday(new Date('2026-09-24T21:30:00Z'))).toBe('2026-09-24');
+    expect(serbianToday(new Date('2026-09-24T22:30:00Z'))).toBe('2026-09-25');
+  });
+});
+
+describe('Discovery V47: Gde', () => {
+  const at = (id: string, podrucjeTekst: string, patch: Record<string, unknown> = {}) => item(id, { podrucjeTekst, ...patch });
+  const rows = [at('a', 'Liman, Novi Sad'), at('b', 'Liman,  Novi Sad'), at('c', 'Vračar, Beograd', { rezimCene: 'OFFERS', ponudjenaCena: undefined }),
+    at('d', 'Na daljinu', { detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'], priblizno: null }),
+    at('e', 'Lokacija nije navedena', { priblizno: null }), at('mine', 'Zemun, Beograd')];
+  it('a place is the public area a task names: never a remote task\'s words or the words for no area', () => {
+    expect(rows.map(publicArea)).toEqual(['Liman, Novi Sad', 'Liman, Novi Sad', 'Vračar, Beograd', null, null, 'Zemun, Beograd']);
+  });
+  it('the suggestions are only the areas the loaded tasks that are not mine name, each with its count under the other conditions', () => {
+    expect(placeSuggestions(rows, view(), new Set(['mine']), NOW)).toEqual([{ text: 'Liman, Novi Sad', count: 2 }, { text: 'Vračar, Beograd', count: 1 }]);
+    // Counted under the other conditions: a price choice leaves one place; the searched words and the map's area do not count.
+    expect(placeSuggestions(rows, view({ price: 'OFFERS', query: 'nema', area: [0, 0, 1, 1] }), new Set(['mine']), NOW))
+      .toEqual([{ text: 'Vračar, Beograd', count: 1 }]);
+  });
+  it('choosing a place keeps the tasks that name it, however the spacing or the case', () => {
+    expect(ids(marketplaceItems(rows, view({ place: 'liman, novi sad' }), false, NOW))).toEqual(['a', 'b']);
+    expect(ids(marketplaceItems(rows, view({ place: 'Nigde' }), false, NOW))).toEqual([]);
+    expect(ids(marketplaceItems(rows, view({ place: null }), false, NOW))).toEqual(ids(rows));
+  });
+});
+
+describe('Discovery V47: the words of the search', () => {
+  it('the pill says where, then when and the conditions, or invites to add them', () => {
+    expect(whereWords(view())).toBe('Svi zadaci');
+    expect(whereWords(view({ area: [19, 45, 20, 46] }))).toBe('Oblast sa mape');
+    expect(whereWords(view({ query: ' farbanje ' }))).toBe('„farbanje“');
+    expect(whereWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('Liman, Novi Sad · „selidba“');
+    expect(conditionsWords(view(), NOW)).toBe('Bilo kada · Dodaj uslove');
+    expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · 2+ mesta');
+    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Onlajn · Ponude');
+    expect(placesWords(1)).toBe('Bilo koliko'); expect(placesWords(4)).toBe('4+ mesta');
+  });
+  it('a range of days is written once, the month once when it can be', () => {
+    expect(datesWords({ from: '2026-09-26', to: '2026-09-26' }, NOW)).toBe('26. sep');
+    expect(datesWords({ from: '2026-09-26', to: '2026-09-28' }, NOW)).toBe('26–28. sep');
+    expect(datesWords({ from: '2026-09-30', to: '2026-10-02' }, NOW)).toBe('30. sep – 2. okt');
+    expect(whenWords({ when: 'any', dates: { from: '2026-09-26', to: '2026-09-28' } }, NOW)).toBe('26–28. sep');
+    expect(whenWords({ when: 'next7', dates: null }, NOW)).toBe('Narednih 7 dana');
   });
 });

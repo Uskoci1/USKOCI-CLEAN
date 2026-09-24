@@ -1,23 +1,62 @@
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../contracts/projections';
 import { calendarInstant } from '../lib/calendarTime';
+import { podrucjeTekst } from '../lib/location';
 import { shiftDate, zonedParts } from '../ui/calendar/calendarPresentation';
 export type MarketplaceItem = PotrebaProjekcija | PrilikaProjekcija;
 export type PublicBounds = [west: number, south: number, east: number, north: number];
 export type PublicViewport = { center: [number, number]; zoom: number; bounds: PublicBounds };
-/** Kada: the day the work can be done, read from the task's own schedule in the task's own zone. */
-export type WhenFilter = 'any' | 'today' | 'tomorrow' | 'week';
+/**
+ * Kada: the day the work can be done, read from the task's own schedule in the task's own zone. "Ovaj vikend" is the
+ * coming Saturday and Sunday (the rest of it on a weekend day); "Narednih 7 dana" is today and the six days after it.
+ */
+export type WhenFilter = 'any' | 'today' | 'tomorrow' | 'week' | 'weekend' | 'next7';
+/** Kada by dates: an inclusive range of civil days ("2026-09-26" to "2026-09-28"), chosen on the month grid. */
+export type DateRange = { from: string; to: string };
 /** Gde se radi: on the spot or remotely, from the task's own location mode. */
 export type WhereFilter = 'any' | 'onsite' | 'remote';
-/** Slobodna mesta: any, or at least two places still open. */
-export type PlacesFilter = 'any' | 'two';
+/** Koliko vas dolazi: at least this many places still open. 1 is every open task (Discovery V47: it was 'any' | 'two'). */
+export type PlacesFilter = number;
+/** The most people "Koliko vas dolazi" counts up to. */
+export const PLACES_MAX = 10;
+/** Where the Zadaci list sheet rests: its top line only, half the map, or the whole list under the tools. */
+export type DiscoverySnap = 'peek' | 'half' | 'full';
 export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'history' | 'all'; attention: boolean;
   price: 'all' | 'MY_PRICE' | 'OFFERS'; mode: 'list' | 'map'; area: PublicBounds | null; viewport: PublicViewport | null; selectedId: string | null;
   /** Zadaci filters (2026-09-24). Absent means 'any': a view written before them filters exactly as it did. */
   when?: WhenFilter; where?: WhereFilter; places?: PlacesFilter;
+  /**
+   * Gde (Discovery V47): one public area text of the loaded tasks (`podrucjeTekst`), exactly as the read wrote it; null
+   * is anywhere. Only a place some loaded task names can be chosen, never a typed or geocoded one.
+   */
+  place?: string | null;
+  /** Kada by dates (Discovery V47). While it is set, `when` is 'any': the two are one choice. */
+  dates?: DateRange | null;
   /** A chosen place on the map where several tasks share one public point (its `pointKey`); null when none. */
-  selectedPlace?: string | null };
+  selectedPlace?: string | null;
+  /**
+   * Zadaci only, in memory (Discovery V47): where the list sheet rests and how far its list is scrolled, kept with the
+   * camera (`viewport`) in the route's view so a return to the tab finds all three where they were.
+   */
+  sheet?: DiscoverySnap; listOffset?: number };
 export const initialMarketplaceView = (): MarketplaceView => ({ query: '', section: 'active', attention: false,
-  price: 'all', mode: 'list', area: null, viewport: null, selectedId: null, when: 'any', where: 'any', places: 'any', selectedPlace: null });
+  price: 'all', mode: 'list', area: null, viewport: null, selectedId: null, when: 'any', where: 'any', places: 1, selectedPlace: null,
+  place: null, dates: null });
+/** "At least n places": a whole number from 1 to `PLACES_MAX`; anything else is 1, every open task. */
+export function atLeast(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? Math.min(value, PLACES_MAX) : 1;
+}
+/** A civil date written as the calendar writes one ("2026-09-24"), and a real day of that calendar. */
+export function civilDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T12:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+/** A date range the filter can read: two real civil days, the first not after the second; anything else is none. */
+export function dateRange(value: unknown): DateRange | null {
+  if (!value || typeof value !== 'object') return null;
+  const { from, to } = value as Partial<DateRange>;
+  return civilDate(from) && civilDate(to) && from <= to ? { from, to } : null;
+}
 export const isOwnedNeed = (item: MarketplaceItem): item is PotrebaProjekcija => 'stanje' in item;
 /** Only the existing public approximation is admitted. This never reads private pins or asks for GPS. */
 export function publicPoint(item: MarketplaceItem): { lat: number; lng: number } | null {
@@ -51,11 +90,14 @@ export function hasNeedAttention(item: PotrebaProjekcija): boolean {
  */
 export function marketplaceItems(items: readonly MarketplaceItem[], view: MarketplaceView, owned: boolean, now: Date = new Date()): MarketplaceItem[] {
   const query = view.query.trim().toLocaleLowerCase('sr-Latn-RS');
-  const when = view.when ?? 'any', where = view.where ?? 'any', places = view.places ?? 'any';
+  const when = view.when ?? 'any', where = view.where ?? 'any', places = atLeast(view.places), dates = dateRange(view.dates);
+  const place = typeof view.place === 'string' && view.place.trim() ? placeKey(view.place) : null;
   return items.filter(item => {
-    if (when !== 'any' && !happensIn(item, when, now)) return false;
+    // Dates and the flexible words are one choice; a range wins over a stale word.
+    if (dates ? !happensBetween(item, dates, now) : when !== 'any' && !happensIn(item, when, now)) return false;
     if (where !== 'any' && workMode(item) !== where) return false;
-    if (places === 'two' && !((item.pokrivenost?.preostalo ?? 0) >= 2)) return false;
+    if (places > 1 && !((item.pokrivenost?.preostalo ?? 0) >= places)) return false;
+    if (place !== null) { const area = publicArea(item); if (area === null || placeKey(area) !== place) return false; }
     if (owned) {
       if (!isOwnedNeed(item)) return false;
       if (view.section === 'drafts' && item.stanje !== 'NACRT' || view.section === 'history' && item.stanje !== 'ZATVORENA'
@@ -65,12 +107,14 @@ export function marketplaceItems(items: readonly MarketplaceItem[], view: Market
     if (view.price !== 'all' && item.rezimCene !== view.price) return false;
     if (query && ![item.naslov, item.podrucjeTekst, ...item.uslovi].join(' ').toLocaleLowerCase('sr-Latn-RS').includes(query)) return false;
     if (view.area) {
-      const point = publicPoint(item); if (!point) return false;
-      const [west, south, east, north] = view.area;
-      if (point.lat < south || point.lat > north || (west <= east ? point.lng < west || point.lng > east : point.lng < west && point.lng > east)) return false;
+      const point = publicPoint(item); if (!point || !inBounds(point, view.area)) return false;
     }
     return true;
   });
+}
+/** Whether a public point lies inside bounds, including bounds that cross the antimeridian (west > east). */
+export function inBounds(point: { lat: number; lng: number }, [west, south, east, north]: PublicBounds): boolean {
+  return point.lat >= south && point.lat <= north && (west <= east ? point.lng >= west && point.lng <= east : point.lng >= west || point.lng <= east);
 }
 /**
  * How many of my own tasks each set of "Moji zadaci" holds, and how many of the active ones wait for my choice among
@@ -146,6 +190,23 @@ function weekEnd(day: string): string {
   const weekday = new Date(`${day}T12:00:00Z`).getUTCDay();
   return shiftDate(day, (7 - weekday) % 7);
 }
+/** "Ovaj vikend": the coming Saturday and Sunday; on a Saturday the two days left, on a Sunday that day alone. */
+function weekendOf(day: string): [string, string] {
+  const weekday = new Date(`${day}T12:00:00Z`).getUTCDay();
+  if (weekday === 0) return [day, day];
+  const saturday = shiftDate(day, 6 - weekday);
+  return [saturday, shiftDate(saturday, 1)];
+}
+/** The civil days a flexible choice stands for, counted from `today`. */
+function whenDays(when: Exclude<WhenFilter, 'any'>, today: string): [string, string] {
+  switch (when) {
+    case 'today': return [today, today];
+    case 'tomorrow': return [shiftDate(today, 1), shiftDate(today, 1)];
+    case 'week': return [today, weekEnd(today)];
+    case 'weekend': return weekendOf(today);
+    case 'next7': return [today, shiftDate(today, 6)];
+  }
+}
 /** Whether the task can be done on the chosen day(s), each read in the task's own zone. */
 export function happensIn(item: MarketplaceItem, when: WhenFilter, now: Date = new Date()): boolean {
   if (when === 'any') return true;
@@ -153,9 +214,36 @@ export function happensIn(item: MarketplaceItem, when: WhenFilter, now: Date = n
   if (!days) return false;
   let today: string;
   try { today = zonedParts(now, item.taskTimezone ?? 'UTC').date; } catch { return false; }
-  const [from, to] = when === 'today' ? [today, today] : when === 'tomorrow' ? [shiftDate(today, 1), shiftDate(today, 1)] : [today, weekEnd(today)];
+  const [from, to] = whenDays(when, today);
   return days[0] <= to && days[1] >= from;
 }
+/**
+ * Whether the task can be done on a day of a chosen range: its own work days (in its own zone) overlap the range. A task
+ * whose schedule names no day matches no range; `undatedCount` says how many were left out that way.
+ */
+export function happensBetween(item: MarketplaceItem, range: DateRange, now: Date = new Date()): boolean {
+  const days = workDays(item, now);
+  return !!days && days[0] <= range.to && days[1] >= range.from;
+}
+/** Whether any of these tasks says on which days it can be done, so a Kada choice has something to read. */
+export const saysWhen = (items: readonly MarketplaceItem[], now: Date = new Date()) => items.some(item => workDays(item, now) !== null);
+/** Today's civil date in Serbian time: the day the Kada grid starts from and the days before it that are past. */
+export function serbianToday(now: Date = new Date()): string {
+  try { return zonedParts(now, 'Europe/Belgrade').date; } catch { return now.toISOString().slice(0, 10); }
+}
+
+/**
+ * The public area a task names, as the read wrote it, when it names one: never a remote task's "Na daljinu" and never
+ * the "Lokacija nije navedena" the read writes for a task without an area. The one source of "Gde" places.
+ */
+const NO_AREA = podrucjeTekst(null, null);
+export function publicArea(item: MarketplaceItem): string | null {
+  if (workMode(item) === 'remote' || typeof item.podrucjeTekst !== 'string') return null;
+  const text = item.podrucjeTekst.trim().replace(/\s+/g, ' ');
+  return text && text !== NO_AREA ? text : null;
+}
+/** Two spellings of one place ("Novi  Sad", "novi sad") are one place. */
+export const placeKey = (text: string) => text.trim().replace(/\s+/g, ' ').toLocaleLowerCase('sr-Latn-RS');
 
 /** The Zadaci list: the filtered subset, without the tasks that are mine (they live under Početna, "Moji zadaci"). */
 export function discoveryItems(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
@@ -163,14 +251,46 @@ export function discoveryItems(items: readonly MarketplaceItem[], view: Marketpl
   const shown = marketplaceItems(items, view, false, now);
   return mine?.size ? shown.filter(item => !mine.has(item.id)) : shown;
 }
-/** Whether the Zadaci filters (price and the three sections of the filter sheet) differ from "everything". */
+/** How many of the conditions (Kada, Kako se radi, Koliko vas dolazi, Cena) are on: the count on "Uslovi pretrage". */
+export function discoveryConditions(view: MarketplaceView): number {
+  return Number((view.when ?? 'any') !== 'any' || !!dateRange(view.dates)) + Number((view.where ?? 'any') !== 'any')
+    + Number(atLeast(view.places) > 1) + Number(view.price !== 'all');
+}
+/** Whether the Zadaci conditions (price and the time, work-mode and places choices) differ from "everything". */
 export function discoveryFiltered(view: MarketplaceView): boolean {
-  return view.price !== 'all' || (view.when ?? 'any') !== 'any' || (view.where ?? 'any') !== 'any' || (view.places ?? 'any') !== 'any';
+  return discoveryConditions(view) > 0;
+}
+/**
+ * How many tasks a time choice leaves out only because their schedule names no day. They are not hidden silently: the
+ * Kada step and the list say how many. 0 when no time choice is on.
+ */
+export function undatedCount(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
+  now: Date = new Date()): number {
+  if ((view.when ?? 'any') === 'any' && !dateRange(view.dates)) return 0;
+  return discoveryItems(items, { ...view, when: 'any', dates: null }, mine, now).filter(item => workDays(item, now) === null).length;
 }
 
-/** Where the list sheet starts: the map when most tasks are on it, the list when many are not or there are few. */
-export type DiscoverySnap = 'peek' | 'half' | 'full';
+/** A "Gde" suggestion: a public area some loaded task names, and how many tasks there the other conditions leave. */
+export type PlaceSuggestion = { text: string; count: number };
 /**
+ * The places "Gde?" offers, built only from the loaded open tasks that are not mine: each distinct public area text,
+ * counted under the other conditions (Kada, Kako se radi, Koliko vas dolazi, Cena), most tasks first. A place the other
+ * conditions leave empty is not offered. No geocoder and no device location: a place nobody's task names cannot be chosen.
+ */
+export function placeSuggestions(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
+  now: Date = new Date()): PlaceSuggestion[] {
+  const places = new Map<string, PlaceSuggestion>();
+  for (const item of discoveryItems(items, { ...view, query: '', place: null, area: null }, mine, now)) {
+    const text = publicArea(item);
+    if (text === null) continue;
+    const key = placeKey(text), known = places.get(key);
+    if (known) known.count++; else places.set(key, { text, count: 1 });
+  }
+  return [...places.values()].sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, 'sr-Latn-RS'));
+}
+
+/**
+ * Where the list sheet starts: the map when most tasks are on it, the list when many are not or there are few.
  * Half when at least half of the shown tasks have no pin, or when three or fewer are shown; otherwise peek. When none
  * of them has a pin the map has nothing to show at all, so the list takes the screen (the same rule taken to its end).
  */

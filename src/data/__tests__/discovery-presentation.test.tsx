@@ -73,6 +73,15 @@ const peek = () => sheets().find(node => node.props.detached);
 // as the single card's action does, so this reads the list sheet alone and never counts a pin card's rows.
 const cards = () => listSheet().findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))
   .map(node => String(node.props.accessibilityLabel).replace('Otvori priliku Pomoć ', ''));
+// Discovery V47: the search is a panel opened from the pill over the map. Its words are a draft that "Prikaži N zadataka"
+// applies; the one green action is found by its label, which says the count (or that nothing is left).
+const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
+const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
+const search = async (words: string) => {
+  await tap('Pretraži zadatke');
+  await act(async () => press('Pretraži mesta i zadatke').props.onChangeText(words));
+  await act(async () => showAction().props.onPress());
+};
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = false; mockFocused = true; relations = undefined;
@@ -88,10 +97,14 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
   expect(listSheet().props).toMatchObject({ enablePanDownToClose: false, enableDynamicSizing: false });
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
-  // Search stays over the map; clearing it keeps everything else.
-  await act(async () => press('Pretraži zadatke').props.onChangeText('bb'));
-  expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']);
-  await tap('Obriši pretragu'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  // Discovery V47: the search over the map is one pill that says the search in two lines and opens the panel; the words
+  // searched there narrow the list, and the chip under the count takes them away again, keeping everything else.
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Bilo kada · Dodaj uslove' });
+  expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
+  await search('bb');
+  expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada · Dodaj uslove' });
+  await tap('Ukloni filter: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
 });
 
 test('my own tasks are simply not listed, nothing says they are hidden, and a task I applied to says so', async () => {
@@ -203,54 +216,93 @@ test('a crowded place offers the whole set in the list instead of a scroll insid
   await tap('Ukloni filter: Oblast sa mape'); expect(snapshot.area).toBeNull(); expect(cards()).toHaveLength(5);
 });
 
-describe('Filteri', () => {
+describe('Pretraga i uslovi (Discovery V47)', () => {
   const flexible = (kind: string) => ({ schedule: { kind, startsAt: null, endsAt: null } });
   beforeEach(() => { rows = [row('danas', flexible('TODAY_FLEXIBLE')), row('sutra', flexible('TOMORROW_FLEXIBLE')),
     row('ponude', { rezimCene: 'OFFERS', ponudjenaCena: undefined, ...flexible('TOMORROW_FLEXIBLE') })]; });
   const radio = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === label)[0];
   const choose = async (label: string) => act(async () => radio(label).props.onPress());
-  const show = () => action(/^Prikaži \d+ zadat/);
+  const chip = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
+    && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
 
   test('a draft applied at once with "Prikaži N zadataka", which counts what the list will show', async () => {
-    await render(); await tap('Filteri');
-    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(1);
-    expect(show().props.label).toBe('Prikaži 3 zadatka');
-    await choose('Sutra'); expect(show().props.label).toBe('Prikaži 2 zadatka');
-    await choose('Tražim ponude'); expect(show().props.label).toBe('Prikaži 1 zadatak');
-    expect(radio('Sutra').props.accessibilityState).toEqual({ checked: true });
+    await render(); await tap('Uslovi pretrage');
+    expect(panel()).toHaveLength(1);
+    expect(showAction().props.label).toBe('Prikaži 3 zadatka');
+    await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
+    await tap('Cena'); await choose('Ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    expect(radio('Ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
-    await act(async () => show().props.onPress());
+    await act(async () => showAction().props.onPress());
     expect(snapshot).toMatchObject({ when: 'tomorrow', price: 'OFFERS' }); expect(cards()).toEqual(['ponude']);
-    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
-    expect(press('Filteri, aktivni')).toBeTruthy();
-    // Its dot is green: the "+" beside it is the screen's one orange accent (review r3 item 6).
-    const dots = press('Filteri, aktivni').findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.width === 10);
-    expect(dots).toHaveLength(1); expect(StyleSheet.flatten(dots[0].props.style).backgroundColor).toBe(sys.color.green);
-    // Each filter that is on says itself under the count and removes itself.
-    await tap('Ukloni filter: Sutra'); expect(snapshot.when).toBe('any');
-    await tap('Ukloni filter: Tražim ponude'); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
+    expect(panel()).toHaveLength(0);
+    // "Uslovi pretrage" counts what is on, in green: the "+" beside it is the screen's one orange accent (review r3 item 6).
+    expect(press('Uslovi pretrage, 2 aktivna')).toBeTruthy();
+    const badge = press('Uslovi pretrage, 2 aktivna').findByProps({ testID: 'conditions-badge' });
+    expect(StyleSheet.flatten(badge.props.style).backgroundColor).toBe(sys.color.green);
+    expect(texts(badge)).toBe('2');
+    // The pill says them, and each one that is on is a chosen quick chip that takes itself away.
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Sutra · Ponude' });
+    expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true });
+    await act(async () => chip('Sutra').props.onPress()); expect(snapshot.when).toBe('any');
+    await act(async () => chip('Ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
+    expect(press('Uslovi pretrage')).toBeTruthy();
   });
-  test('closing the sheet any other way leaves the list exactly as it was; "Poništi" empties the draft', async () => {
-    await render(); await tap('Filteri');
-    await choose('Danas'); await choose('2 ili više');
-    await tap('Zatvori filtere');
-    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
-    expect(snapshot).toMatchObject({ when: 'any', places: 'any', price: 'all' });
-    await tap('Filteri');
+  test('closing the panel any other way leaves the list exactly as it was; "Obriši sve" empties the draft', async () => {
+    await render(); await tap('Uslovi pretrage');
+    await choose('Danas'); await act(async () => press('Povećaj broj osoba').props.onPress());
+    await tap('Zatvori pretragu');
+    expect(panel()).toHaveLength(0);
+    expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
+    await tap('Uslovi pretrage');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
-    await choose('Danas'); await choose('Navedena cena');
-    await click('Poništi');
-    expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
-    expect(show().props.label).toBe('Prikaži 3 zadatka');
+    await choose('Danas'); await tap('Cena'); await choose('Moja cena');
+    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši sve')!.props.onPress());
+    expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
+    await tap('Kada'); expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
+    expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
-  test('"Gde se radi" is offered only when a task says how it is done', async () => {
-    await render(); await tap('Filteri');
-    expect(texts()).not.toContain('Gde se radi'); expect(texts()).toContain('Kada'); expect(texts()).toContain('Slobodna mesta');
-    await tap('Zatvori filtere'); await act(async () => tree.unmount());
+  test('"Kako se radi" is offered only when a task says how it is done, in the panel and as quick chips', async () => {
+    await render(); await tap('Uslovi pretrage');
+    expect(texts()).not.toContain('Kako se radi'); expect(texts()).toContain('Kada?'); expect(texts()).toContain('Koliko vas dolazi');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Onlajn')).toHaveLength(0);
+    await tap('Zatvori pretragu'); await act(async () => tree.unmount());
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
-    await render(); await tap('Filteri');
-    expect(texts()).toContain('Gde se radi');
-    await choose('Na daljinu'); expect(show().props.label).toBe('Prikaži 1 zadatak');
+    await render(); await tap('Uslovi pretrage');
+    expect(texts()).toContain('Kako se radi');
+    await tap('Kako se radi'); await choose('Onlajn'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await tap('Zatvori pretragu');
+    expect(chip('Onlajn').props.accessibilityState).toEqual({ selected: false });
+  });
+  // Discovery V47: the chips over the map toggle the very filters the panel sets, at once, and only those the loaded tasks
+  // can back (a task that says how it is done; a price mode some task uses; a task with two open places).
+  test('a quick chip toggles the same filter the panel sets, and only chips the tasks can back are offered', async () => {
+    await render();
+    const offered = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState && 'selected' in node.props.accessibilityState
+      && !/^Uslovi|^Dodaj/.test(node.props.accessibilityLabel)).map(node => node.props.accessibilityLabel);
+    expect(offered()).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Moja cena', 'Ponude', '2+ mesta']);
+    await act(async () => chip('Danas').props.onPress());
+    expect(snapshot.when).toBe('today'); expect(cards()).toEqual(['danas']);
+    await tap('Uslovi pretrage, 1 aktivan');
+    expect(radio('Danas').props.accessibilityState).toEqual({ checked: true });
+    // The panel's choice shows on the chip the same way.
+    await choose('Sutra'); await act(async () => showAction().props.onPress());
+    expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true }); expect(chip('Danas').props.accessibilityState).toEqual({ selected: false });
+    await act(async () => chip('2+ mesta').props.onPress()); expect(snapshot.places).toBe(2);
+    await act(async () => chip('2+ mesta').props.onPress()); expect(snapshot.places).toBe(1);
+    // The choice the panel can make beyond two people is said on the same chip, and removed by it.
+    await tap('Uslovi pretrage, 1 aktivan'); await tap('Koliko vas dolazi');
+    for (const _ of [1, 2]) await act(async () => press('Povećaj broj osoba').props.onPress());
+    await act(async () => showAction().props.onPress());
+    expect(snapshot.places).toBe(3); expect(chip('3+ mesta').props.accessibilityState).toEqual({ selected: true });
+  });
+  test('a place chosen in "Gde" is said by the pill and under the count, and taken away there', async () => {
+    rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
+    await render(); await tap('Pretraži zadatke');
+    await choose('Vračar, Beograd, 1 zadatak'); await act(async () => showAction().props.onPress());
+    expect(snapshot.place).toBe('Vračar, Beograd'); expect(cards()).toEqual(['b']);
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd, Bilo kada · Dodaj uslove' });
+    await tap('Ukloni filter: Vračar, Beograd'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
   });
 });
 
@@ -273,8 +325,12 @@ test('reading, not read and nothing in this view keep their meanings, through th
   await act(async () => tree.unmount());
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(listSheet().props.index).toBe(0);
-  await act(async () => press('Pretraži zadatke').props.onChangeText('nema takvog'));
-  // A sheet resting at its top line rises so the reason is seen.
+  // Words that find nothing: the panel's one action says so and cannot apply them; the list keeps what it had.
+  await tap('Pretraži zadatke'); await act(async () => press('Pretraži mesta i zadatke').props.onChangeText('nema takvog'));
+  expect(showAction().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
+  await tap('Zatvori pretragu'); expect(snapshot.query).toBe('');
+  // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
+  await act(async () => tree.unmount()); initial = { ...initial, query: 'nema takvog' }; await render();
   expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(listSheet().props.index).toBe(1);
   await click('Poništi filtere'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
 });
@@ -294,12 +350,12 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   rows = [...Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))), row('prevod', { priblizno: null })];
   await render();
   expect(listSheet().props.index).toBe(0);
-  await act(async () => press('Pretraži zadatke').props.onChangeText('prevod'));
+  await search('prevod');
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
   // A sheet the person has placed elsewhere is left where it is.
-  await act(async () => press('Pretraži zadatke').props.onChangeText('')); await act(async () => listSheet().props.onChange(1));
-  await act(async () => press('Pretraži zadatke').props.onChangeText('prevod')); expect(listSheet().props.index).toBe(1);
+  await tap('Ukloni filter: „prevod“'); await act(async () => listSheet().props.onChange(1));
+  await search('prevod'); expect(listSheet().props.index).toBe(1);
 });
 
 // Review r3 item 9: until the list knows which tasks are mine it cannot leave them out, so it says no count yet.

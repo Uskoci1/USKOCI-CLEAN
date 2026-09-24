@@ -63,6 +63,11 @@ export const sys = {
     money: '#087B57',
     skeleton: '#E9F0EC',
     scrim: '#183A3066',
+    /**
+     * The white veil a full-screen step panel lies on over the map (the Zadaci search, Discovery V47): the map still shows
+     * through it, the white cards on it are what is read. No blur: there is no blur package, and none is added for this.
+     */
+    veil: '#FFFFFFE6',
     /** Hairlines on a filled control, and the ring that appears only while listening. */
     greenEdge: '#226B52',
     orangeEdge: '#E57917',

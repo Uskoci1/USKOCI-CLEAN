@@ -52,6 +52,13 @@ const click = async (label: string) => act(async () => tree.root.findAllByType('
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''));
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
+// Discovery V47: the search is a panel over the map; its one green action says how many tasks it will show.
+const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
+const search = async (words: string) => {
+  await tap('Pretraži zadatke');
+  await act(async () => press('Pretraži mesta i zadatke').props.onChangeText(words));
+  await act(async () => showAction().props.onPress());
+};
 // The one primary action is the element whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -74,9 +81,11 @@ test('the header is read as the tab is named, "USKOČI, Zadaci", and never as an
 });
 
 // From marketplace-presentation: search is there at once, without the keyboard jumping up over the map on arrival.
+// Discovery V47: it is the pill over the map, one tap away, and there is no text field on the screen to take the keyboard.
 test('search is available immediately without opening the keyboard', async () => {
   await render();
-  expect(press('Pretraži zadatke').props.autoFocus).toBeFalsy();
+  expect(press('Pretraži zadatke').props.accessibilityRole).toBe('button');
+  expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
 });
 
 // From marketplace-presentation and pkg011-slice1: a read in flight or a failed read never leaves an old card or the old
@@ -91,21 +100,21 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
   }
 });
 
-// From marketplace-presentation: under reduced motion the filter sheet appears at once, and nothing offers location
-// features that are not wired.
-test('reduced motion opens the filter sheet at once; no unbound GPS, proximity or geocoding controls appear', async () => {
-  mockReduced = true; await render(); await tap('Filteri');
+// From marketplace-presentation: under reduced motion the search appears at once (Discovery V47: the panel that replaced
+// the filter sheet), and nothing offers location features that are not wired: no geocoder, no "near me".
+test('reduced motion opens the search panel at once; no unbound GPS, proximity or geocoding controls appear', async () => {
+  mockReduced = true; await render(); await tap('Uslovi pretrage');
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
-  const sheet = modal.findByType(BottomSheet);
-  expect(sheet.props.animateOnMount).toBe(false); expect(sheet.props.animationConfigs.duration).toBe(0);
-  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
+  expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
+  await tap('Gde');
+  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|U blizini|km od|geocod/i);
 });
 
-// From pkg011-slice1: in the filter sheet the one filled green action is the one that applies it.
-test('the filter sheet offers price modes as radios and its apply action is the only brand action', async () => {
-  await render(); await tap('Filteri');
-  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
+// From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.
+test('the search panel offers price modes as radios and its apply action is the only brand action', async () => {
+  await render(); await tap('Uslovi pretrage'); await tap('Cena');
+  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Ponude');
   expect(radio).toHaveLength(1);
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.label)).toEqual(['Prikaži 2 zadatka']);
@@ -126,12 +135,13 @@ test('"Poništi filtere" clears search, price and area but keeps the map and whe
 });
 
 // From marketplace-presentation (verifier r3b vc, fix 1): clearing the search takes the search away and nothing else.
-test('"Obriši pretragu" clears the search and keeps the price and the area', async () => {
+// Discovery V47: the searched words are removed by their own chip under the count ("Obriši pretragu" is the panel's field).
+test('removing the searched words keeps the price and the area', async () => {
   Object.assign(initial, { price: 'MY_PRICE', area: [19, 45, 20, 46] });
   await render();
-  await act(async () => press('Pretraži zadatke').props.onChangeText('Pomoć'));
-  expect(snapshot.query).toBe('Pomoć');
-  await tap('Obriši pretragu');
+  await search('Pomoć');
+  expect(snapshot).toMatchObject({ query: 'Pomoć', price: 'MY_PRICE', area: [19, 45, 20, 46] });
+  await tap('Ukloni filter: „Pomoć“');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: [19, 45, 20, 46] });
 });
 
@@ -142,7 +152,9 @@ test('removing the price filter keeps the search, the area, the map position and
   const area: [number, number, number, number] = [19, 45, 20, 46];
   Object.assign(initial, { price: 'OFFERS', query: 'Pomoć', area, viewport });
   await render();
-  await tap('Ukloni filter: Tražim ponude');
+  // Discovery V47: a price that is on is a chosen quick chip over the map, and the chip takes it away.
+  const chip = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Ponude' && node.props.accessibilityState?.selected)[0];
+  await act(async () => chip.props.onPress());
   expect(snapshot).toMatchObject({ price: 'all', query: 'Pomoć', area, viewport, mode: 'map' });
 });
 
@@ -154,7 +166,6 @@ test('with a search and a map area on, "Prikaži N zadataka" counts the list sho
   Object.assign(initial, { query: 'Pomoć', area: [19, 45, 20, 46] });
   await render();
   expect(cards().map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć one', 'Otvori priliku Pomoć pet']);
-  await tap('Filteri');
-  const show = tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!;
-  expect(show.props.label).toBe('Prikaži 2 zadatka');
+  await tap('Uslovi pretrage');
+  expect(showAction().props.label).toBe('Prikaži 2 zadatka');
 });

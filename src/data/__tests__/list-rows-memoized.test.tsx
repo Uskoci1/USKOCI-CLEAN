@@ -84,9 +84,16 @@ describe.each([
     await act(async () => { tree = create(<Screen pass={0} />); });
     expect(drawn(prefix)).toBe(3);
     await act(async () => tree.update(<Screen pass={1} />));
-    // Moji zadaci opens its search from the header; Zadaci keeps it over the map.
-    if (!discovery) await act(async () => field('Pretraga').props.onPress());
-    await act(async () => field('Pretraži zadatke').props.onChangeText('Pomoć'));
+    // Moji zadaci opens its search from the header. Zadaci opens its search panel from the pill over the map (Discovery
+    // V47): the words are a draft there, and the list takes them when the panel's one action applies them.
+    if (discovery) {
+      await act(async () => field('Pretraži zadatke').props.onPress());
+      await act(async () => field('Pretraži mesta i zadatke').props.onChangeText('Pomoć'));
+      await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
+    } else {
+      await act(async () => field('Pretraga').props.onPress());
+      await act(async () => field('Pretraži zadatke').props.onChangeText('Pomoć'));
+    }
     expect(snapshot.query).toBe('Pomoć');
     expect(drawn(prefix)).toBe(3);
     // The stable function still reaches the route's latest closure with the very row that was pressed.
