@@ -122,7 +122,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
             chosen and the microphone steps aside, rather than the two sharing the screen.
             A draft also opens it unprompted, because speech lands here for review before
             sending and must never end up somewhere the user cannot see it. */}
-        {draft ? <View style={[s.composer, inputFocused && s.composerFocused]}>
+        {draft ? <Animated.View key="text-composer" entering={reduced ? undefined : FadeInDown.duration(160).withInitialValues({ transform: [{ translateY: 4 }] })}
+          style={[s.composer, inputFocused && s.composerFocused]}>
           {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
             accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
             haptic={p.addDisabled ? 'none' : 'select'} style={[s.composerWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
@@ -137,8 +138,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press> : null}
-        </View> : null}
-        {p.voice && !draft ? <View testID="ai-composer-bar" style={[s.bar, p.voiceActive && s.barActive]}>
+        </Animated.View> : null}
+        {p.voice && !draft ? <Animated.View key="voice-composer" entering={reduced ? undefined : FadeInDown.duration(160).withInitialValues({ transform: [{ translateY: 4 }] })}
+          testID="ai-composer-bar" style={[s.bar, p.voiceActive && s.barActive]}>
           {!p.voiceActive ? <>
             {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
               accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
@@ -157,7 +159,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
               onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
               <Info size={21} color={sys.color.muted} /></Press>
           </View> : null}
-        </View> : null}
+        </Animated.View> : null}
       </View>
     </KeyboardAvoidingView>
     {p.children}
