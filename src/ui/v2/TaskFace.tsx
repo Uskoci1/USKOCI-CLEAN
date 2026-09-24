@@ -3,13 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import type { NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
-import type { MarketplaceItem } from '../../data/marketplaceView';
+import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceView';
 import { inicijali } from '../../lib/inicijali';
 import { Avatar } from '../system/Avatar';
-import { FactArt } from '../system/FactArt';
-import { Pictogram, pictogramCatalog, type PictogramGroup, type PictogramKind } from '../system/Pictogram';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { osobuAkuz, plural } from '../system/plural';
-import { sys } from '../system/tokens';
+import { nested, sys } from '../system/tokens';
 import { T } from '../Text';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
@@ -17,9 +16,10 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * The one face of a task in a list (owner's step 5a, 2026-09-24; emulator critique A8, A9, A10, B13, B14). A list is
  * scanned, so every card is the same fixed lines in the same order, and a line either says something or is not drawn:
  *
- *   1. status, only when it says something (HITNO, "Prijava poslata", "Tvoj zadatak", the state of my own task);
+ *   1. status, only when it says something the list does not already say (HITNO, "Prijava poslata", "Tvoj zadatak",
+ *      the state of my own task, except the state its section is named for);
  *   2. the title with the VALUE SLOT beside it, which is never empty: the amount, or a quiet word;
- *   3. where (one line); 4. when (one line);
+ *   3. where (one line); 4. when (up to two lines, so the end of a range is never cut off);
  *   5. at most one requirement a worker decides on (a condition, a vehicle, a tool; never a skill, which reads as a
  *      category);
  *   6. the foot: how many people, and who posted it.
@@ -27,7 +27,11 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  * No line wraps into the next one (no flex-wrap in the facts): the card of the phone screenshots put the poster on a
  * line of its own at one text size and beside a chip at another. At the owner's large text the value moves under the
  * title and the person under the places, as whole lines. Nothing here invents a rating, a count or a state, and a word
- * about money never wears the money colour or weight.
+ * about money never wears the money colour or weight. What never gives way to a long neighbour: an amount (the title
+ * gives way), the count of places (the name gives way) and the end of a time range.
+ *
+ * The parts are drawings only: the card is one target and says all of it once (`taskSpoken`), so a screen reader
+ * does not stop on every fact (card review r3 item 4).
  *
  * Pure helpers first (tested on their own), then the parts `TaskCard` is built from.
  */
@@ -51,6 +55,10 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
 /** The words of a value slot without an amount. They are labels, never drawn as money. */
 export const VALUE_WORDS = { offers: 'Tražim ponude', unpriced: 'Cena nije navedena' } as const;
 
+/** The value slot as it is heard: the amount with what it buys, or the word. */
+export const valueSpoken = (value: TaskValue) => value.kind === 'amount'
+  ? value.basis ? `${value.amount} ${value.basis}` : value.amount : VALUE_WORDS[value.kind];
+
 /** Where the task happens, from public data only: a route reads "start → end" from area or city, never the private label. */
 export function taskPlace(item: Pick<MarketplaceItem, 'detalji' | 'podrucjeTekst'>): { remote: boolean; text: string } {
   if (item.detalji?.rezimLokacije === 'REMOTE') return { remote: true, text: 'Na daljinu' };
@@ -68,24 +76,22 @@ const publicName = (point: NeedTaskGeographyPoint | undefined) => point?.area?.t
  * are never read and neither is `uslovi` (skills + tools + vehicles in one list): "Krečenje" under "Krečenje stana" read
  * as a category, which the owner forbids. The skills stay on the detail's requirement list.
  */
-export type TaskRequirement = { kind: 'condition' | 'vehicle' | 'tool'; text: string; spoken: string; art?: PictogramKind };
+export type TaskRequirement = { kind: 'condition' | 'vehicle' | 'tool'; text: string; spoken: string };
 export function taskRequirement(item: Pick<MarketplaceItem, 'detalji'>): TaskRequirement | null {
   const needs = item.detalji?.zahtevi;
   if (!needs) return null;
   const clean = (values: readonly string[] | null | undefined) => (values ?? []).map(value => value.trim()).filter(Boolean);
   const conditions = clean(needs.bitniUslovi), vehicles = clean(needs.vozila), tools = clean(needs.alati);
   if (conditions.length) return { kind: 'condition', text: conditions.join(' · '), spoken: `Bitni uslovi: ${conditions.join(', ')}` };
-  if (vehicles.length) return { kind: 'vehicle', text: vehicles.join(' · '), spoken: `Potrebno vozilo: ${vehicles.join(', ')}`,
-    art: matchingArt('vozila', vehicles[0], 'kombi') };
-  if (tools.length) return { kind: 'tool', text: tools.join(' · '), spoken: `Potreban alat: ${tools.join(', ')}`,
-    art: matchingArt('alat', tools[0], 'rucni-alat') };
+  if (vehicles.length) return { kind: 'vehicle', text: vehicles.join(' · '), spoken: `Potrebno vozilo: ${vehicles.join(', ')}` };
+  if (tools.length) return { kind: 'tool', text: tools.join(' · '), spoken: `Potreban alat: ${tools.join(', ')}` };
   return null;
 }
-/** The drawing of the thing named, when the picker has one by that name; otherwise the group's general drawing. */
-function matchingArt(group: PictogramGroup, name: string, fallback: PictogramKind): PictogramKind {
-  const wanted = name.toLocaleLowerCase('sr-Latn-RS');
-  return pictogramCatalog.find(entry => entry.group === group && entry.label.toLocaleLowerCase('sr-Latn-RS') === wanted)?.kind ?? fallback;
-}
+/**
+ * The fact drawing of each requirement. A vehicle and a tool are FactArt kinds of their own (card review r3 item 5): the
+ * picker's Pictogram is a scene for 32 px and above, broke its own size rule at the card's 16 and brought orange in.
+ */
+export const REQUIREMENT_ART: Record<TaskRequirement['kind'], FactArtKind> = { condition: 'info', vehicle: 'vehicle', tool: 'tool' };
 
 /**
  * How many people, said to the one reading it. A worker asks how many places are left ("Traži 2 osobe", "Još 1 od 2
@@ -111,11 +117,21 @@ export function ratingWords(rating: string | null | undefined, count: number | n
   }
   return { text: rating, star: true, spoken: `ocena ${rating}` };
 }
+/** The person as heard: the name, and the honest rating when there is one. */
+export function personSpoken(name: string, rating: string | null | undefined, count: number | null | undefined): string {
+  const trust = ratingWords(rating, count);
+  return trust ? `${name}, ${trust.spoken}` : name;
+}
 
 const OWN_STATUS: Partial<Record<StanjePotrebe, string>> = { NACRT: 'Nacrt', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
-/** The status line, only when it says something: every card in a list of open tasks is open, so that is never said. */
-export function taskStatus(item: MarketplaceItem, relation?: 'OWNED' | 'APPLIED'): { text: string; quiet: boolean } | null {
+/**
+ * The status line, only when it says something: every card in a list of open tasks is open, so that is never said, and
+ * a card in a section named for its state (every card under Nacrti is a draft, every card under Istorija is closed) does
+ * not repeat it (card review r3 item 10). `sectionSays` is the state the list's own section already names.
+ */
+export function taskStatus(item: MarketplaceItem, relation?: 'OWNED' | 'APPLIED', sectionSays?: StanjePotrebe): { text: string; quiet: boolean } | null {
   if ('stanje' in item) {
+    if (sectionSays && item.stanje === sectionSays) return null;
     const text = OWN_STATUS[item.stanje];
     return text ? { text, quiet: item.stanje === 'NACRT' || item.stanje === 'ZATVORENA' } : null;
   }
@@ -125,7 +141,9 @@ export function taskStatus(item: MarketplaceItem, relation?: 'OWNED' | 'APPLIED'
 
 /**
  * What my own task asks of me next, from the server's count of applications I can choose among. Unknown (null) draws
- * nothing, never zero; a draft continues its editing; a closed or full task asks nothing.
+ * nothing, never zero; a draft continues its editing; a closed or full task asks nothing. Whether applications wait is
+ * the list's own rule (`hasNeedAttention`), the one the "Aktivni" badge and "Treba moja radnja" count by, so the card's
+ * foot and that count can never disagree (card review r3 item 7).
  */
 export type OwnerNext = { kind: 'waiting'; count: number; text: string } | { kind: 'none' } | { kind: 'draft' } | null;
 export function ownerNext(item: PotrebaProjekcija): OwnerNext {
@@ -133,63 +151,77 @@ export function ownerNext(item: PotrebaProjekcija): OwnerNext {
   if (item.stanje === 'ZATVORENA' || item.pokrivenost.preostalo <= 0) return null;
   const count = item.brojPrijavaZaIzbor;
   if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) return null;
-  return count > 0 ? { kind: 'waiting', count, text: plural(count, 'prijava čeka izbor', 'prijave čekaju izbor', 'prijava čeka izbor') } : { kind: 'none' };
+  if (!hasNeedAttention(item)) return count === 0 ? { kind: 'none' } : null;
+  return { kind: 'waiting', count, text: plural(count, 'prijava čeka izbor', 'prijave čekaju izbor', 'prijava čeka izbor') };
+}
+
+/**
+ * Everything the card shows, as one sentence after its command name, in the order it is drawn: status, HITNO, the value,
+ * where, when, the requirement, the places, the person and what comes next. Empty parts are left out.
+ */
+export function taskSpoken(parts: { status?: string | null; urgent?: boolean; value: TaskValue; place: string; schedule: string;
+  requirement?: TaskRequirement | null; places?: string | null; person?: string | null; next?: string | null }): string {
+  return [parts.urgent ? 'HITNO' : null, parts.status, valueSpoken(parts.value), parts.place, parts.schedule, parts.requirement?.spoken,
+    parts.places, parts.person, parts.next].filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
 }
 
 /* ------------------------------------------------------------------------------------------------ the parts */
 
-/** Line 1. The HITNO badge reads the card's one clock. */
+/** Line 1. The HITNO badge reads the card's one clock; the card says HITNO itself, so the badge is not a stop of its own. */
 export function CardStatus({ status, urgency, now }: { status: { text: string; quiet: boolean } | null; urgency?: NeedUrgencyProjection; now: number }) {
   const tone = status?.quiet ? sys.color.muted : sys.color.green;
   return <View style={s.statusRow}>
     {status ? <View style={s.status}><View style={[s.dot, { backgroundColor: tone }]} />
       <T variant="label" numberOfLines={1} style={[s.statusText, { color: tone }]}>{status.text}</T></View> : <View style={s.grow} />}
-    <NeedUrgencyBadge urgency={urgency} now={now} />
+    <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={urgency} now={now} /></View>
   </View>;
 }
 
-/** Line 2: the title, and the value slot beside it (under it at large text, so the title keeps its width). */
+/**
+ * Line 2: the title, and the value slot beside it (under it at large text, so the title keeps its width). Beside an
+ * amount the title has two lines; beside a word, which can take up to 42% of the width, it keeps three, so a long title
+ * is not cut off at 320–360 dp (card review r3 item 12).
+ */
 export function CardHead({ title, value, large }: { title: string; value: TaskValue; large: boolean }) {
   return <View style={large ? s.headStacked : s.head}>
-    <T style={[s.title, !large && s.titleSide]} numberOfLines={large ? 3 : 2}>{title}</T>
+    <T style={[s.title, !large && s.titleSide]} numberOfLines={large || value.kind !== 'amount' ? 3 : 2}>{title}</T>
     <CardValue value={value} large={large} />
   </View>;
 }
 
-/** The value slot. An amount is money (colour, weight, tabular figures); a word is a quiet label and nothing else. */
+/**
+ * The value slot. An amount is money (colour, weight, tabular figures) and is never cut: it keeps its own width and the
+ * title gives way (card review r3 item 2). A word is a quiet label, capped at 42% so it cannot squeeze the title.
+ */
 export function CardValue({ value, large }: { value: TaskValue; large: boolean }) {
   if (value.kind === 'amount') {
-    return <View accessible accessibilityLabel={value.basis ? `${value.amount} ${value.basis}` : value.amount} style={large ? s.valueRow : s.valueSide}>
-      <T style={[s.amount, large && s.alignStart]} numberOfLines={1}>{value.amount}</T>
+    return <View style={large ? s.valueRow : s.amountSide}>
+      <T style={[s.amount, large && s.alignStart]}>{value.amount}</T>
       {value.basis ? <T style={[s.basis, large && s.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
     </View>;
   }
-  return <View style={large ? s.valueRow : s.valueSide}>
+  return <View style={large ? s.valueRow : s.wordSide}>
     <T style={[s.valueWord, large && s.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
   </View>;
 }
 
 /** One fact on its own line: a 16 px drawing and the words, never wrapping into the next fact. */
-export function CardFact({ art, text, lines = 1, spoken }: { art: ReactNode; text: string; lines?: number; spoken?: string }) {
-  return <View style={s.fact} accessible={!!spoken} accessibilityLabel={spoken}>
+export function CardFact({ art, text, lines = 1 }: { art: ReactNode; text: string; lines?: number }) {
+  return <View style={s.fact}>
     <View style={s.art}>{art}</View>
     <T style={s.factText} numberOfLines={lines}>{text}</T>
   </View>;
 }
 
-/**
- * Line 5. A condition draws the "info" fact; a vehicle or a tool draws the picker's own drawing of it, at fact size, so
- * the line shows what is needed rather than a generic mark.
- */
+/** Line 5: a condition draws the "info" fact, a vehicle the van and a tool the toolbox, all at fact size. */
 export function CardRequirement({ requirement }: { requirement: TaskRequirement }) {
-  const art = requirement.art ? <Pictogram kind={requirement.art} size={16} /> : <FactArt kind="info" size={16} />;
-  return <CardFact art={art} text={requirement.text} lines={2} spoken={requirement.spoken} />;
+  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={16} />} text={requirement.text} lines={2} />;
 }
 
 /** Who posted the task: the one avatar and the one initials rule of the app, the name, and the honest rating. */
 export const CardPerson = memo(function CardPerson({ name, rating, count }: { name: string; rating: string | null | undefined; count: number | null | undefined }) {
   const trust = ratingWords(rating, count);
-  return <View accessible accessibilityLabel={trust ? `${name}, ${trust.spoken}` : name} style={s.person}>
+  return <View style={s.person}>
     <Avatar initials={inicijali(name)} size={32} />
     <View style={s.personText}>
       <T style={s.personName} numberOfLines={1}>{name}</T>
@@ -209,11 +241,15 @@ export function CardFoot({ places, person, large }: { places: ReactNode; person:
   </View>;
 }
 
-export function CardPlaces({ places, audience }: { places: Pokrivenost; audience: 'worker' | 'owner' }) {
+/**
+ * The count of places. Beside the person it never shrinks, so a long name is what gives way ("Nikola Petrov…"), never
+ * "Traži 2 os…" (card review r3 item 3); on its own line at large text it may take a second line.
+ */
+export function CardPlaces({ places, audience, large = false }: { places: Pokrivenost; audience: 'worker' | 'owner'; large?: boolean }) {
   const words = placesText(places, audience);
-  return <View accessible accessibilityLabel={words.spoken} style={s.places}>
+  return <View style={large ? s.placesStacked : s.places}>
     <FactArt kind="users" size={16} />
-    <T style={s.placesText} numberOfLines={1}>{words.text}</T>
+    <T style={[s.placesText, large && s.placesTextStacked]} numberOfLines={large ? 2 : 1}>{words.text}</T>
   </View>;
 }
 
@@ -227,16 +263,27 @@ export function CardNote({ text }: { text: string }) {
   return <T style={s.note} numberOfLines={2}>{text}</T>;
 }
 
-/** The warm words of what waits for me, for a card that has nowhere to send them (no route handed over). */
+/** What waits for me, for a card that has nowhere to send it (no route handed over): the foot's dot and words, as a line. */
 export function CardWaitingLine({ text }: { text: string }) {
-  return <T style={s.waitingLine} numberOfLines={1}>{text}</T>;
+  return <View style={s.waitingRow}><WaitingDot /><T style={s.waitingLine} numberOfLines={1}>{text}</T></View>;
+}
+
+/** The orange dot that marks what waits for me: a dot, never an orange fill (R1 critique B1). */
+export function WaitingDot() {
+  return <View style={faceStyles.ownerFootDot} />;
 }
 
 export const faceStyles = StyleSheet.create({
-  /** The own-task foot: a flat warm tint at control radius inside the card, never a card in a card and no hairline over it. */
-  ownerFoot: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: sys.radius.control, backgroundColor: sys.color.orangeSoft },
-  ownerFootText: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.waitingInk },
+  /**
+   * The own-task foot (R1 critique B1, card review r3 item 6): the bottom strip of the card on the quiet wash under one
+   * hairline, with an orange dot and the words in `warn`. An orange fill on every waiting card spent the screen's one
+   * orange fill several times over in Moji zadaci. Its lower corners follow the card's, inside its 1 px edge.
+   */
+  ownerFoot: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.wash,
+    borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
+  ownerFootDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
+  ownerFootText: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
 });
 
 const s = StyleSheet.create({
@@ -249,8 +296,10 @@ const s = StyleSheet.create({
   headStacked: { gap: 4 },
   title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
-  // The amount keeps its width; a word may take two short lines rather than squeeze the title.
-  valueSide: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
+  // An amount keeps its whole width, whatever the phone and the text size: the title beside it is what gives way.
+  amountSide: { alignItems: 'flex-end', flexShrink: 0 },
+  // A word may take two short lines rather than squeeze the title.
+  wordSide: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   alignStart: { textAlign: 'left' },
   amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
@@ -261,9 +310,11 @@ const s = StyleSheet.create({
   factText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 },
   footStacked: { gap: 8, marginTop: 2 },
-  places: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  placesText: { flexShrink: 1, fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
-  personSide: { flexShrink: 1, maxWidth: '62%' },
+  places: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
+  placesStacked: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  placesText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
+  placesTextStacked: { flexShrink: 1 },
+  personSide: { flexShrink: 1, minWidth: 0, maxWidth: '62%' },
   personStacked: { alignSelf: 'flex-end', maxWidth: '100%' },
   person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   personText: { flexShrink: 1, minWidth: 0 },
@@ -273,5 +324,6 @@ const s = StyleSheet.create({
   next: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   nextText: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.green },
   note: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.muted },
-  waitingLine: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.attentionInk },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  waitingLine: { flexShrink: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
 });

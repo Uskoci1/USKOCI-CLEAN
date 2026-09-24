@@ -19,17 +19,29 @@ import { router } from 'expo-router';
  * and the icons inside a real task card, on white and on ivory. Nothing here reads or writes data.
  */
 const SYSTEM: FactArtKind[] = ['home', 'pin', 'calendar', 'clock', 'users', 'person', 'money', 'remote', 'map', 'tasks', 'agreements', 'offers',
-  'chat', 'bell', 'phone', 'star', 'check', 'info', 'shield', 'lock', 'eye', 'document', 'download', 'photo', 'support'];
+  'chat', 'bell', 'phone', 'star', 'check', 'info', 'shield', 'lock', 'eye', 'document', 'download', 'photo', 'support', 'vehicle', 'tool'];
 const SIZES = [20, 24, 32, 40, 48];
 const GROUPS: [PictogramGroup, string][] = [['vozila', 'Vozila'], ['alat', 'Oprema i alat'], ['usluge', 'Usluge'], ['ljudi', 'Ljudi i kapacitet']];
 const IVORY = '#FBF7EF';
 
+/**
+ * The card reads its one requirement line from the task's own conditions, then its vehicles, then its tools
+ * (`detalji.zahtevi`), never from `uslovi`, which also holds skills. The samples carry each of the three, so the board
+ * shows the info, vehicle and tool drawings where they are used, at 16 px (card review r3 item 11).
+ */
+const zahtevi = (patch: Partial<{ bitniUslovi: string[]; vozila: string[]; alati: string[] }>) => ({ kategorija: '', geografija: null,
+  rezimLokacije: 'STATIONARY', zahtevi: { vestine: [], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch } });
 const task = {
   id: 'tabla', naslov: 'Prenos ormana do kombija', podrucjeTekst: 'Liman, Novi Sad', vremeTekst: '24. sep · 17:00–19:00', statusTekst: 'Otvoren',
-  uslovi: ['Zgrada bez lifta', 'Orman je rasklopljen'], pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 },
+  uslovi: [], pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 },
   priblizno: { lat: 45.25, lng: 19.83 }, narucilacProfilId: 'p', rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL',
-  ponudjenaCena: { iznos: 5500, prikaz: '5.500 RSD' }, narucilacIme: 'Nikola', narucilacOcena: '4,8',
+  ponudjenaCena: { iznos: 5500, prikaz: '5.500 RSD' }, narucilacIme: 'Nikola', narucilacOcena: '4,8', narucilacBrojOcena: 12,
+  detalji: zahtevi({ bitniUslovi: ['Zgrada bez lifta', 'Orman je rasklopljen'] }),
 } as unknown as MarketplaceItem;
+const SAMPLES: MarketplaceItem[] = [task,
+  { ...task, id: 'tabla-vozilo', naslov: 'Prevoz stvari do vikendice', rezimCene: 'OFFERS', detalji: zahtevi({ vozila: ['Kombi'] }) } as unknown as MarketplaceItem,
+  { ...task, id: 'tabla-alat', naslov: 'Montaža police u hodniku', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2000, prikaz: '2.000 RSD' },
+    pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, detalji: zahtevi({ alati: ['Bušilica'] }) } as unknown as MarketplaceItem];
 
 function Section({ title, children, ground = sys.color.surface }: { title: string; children: ReactNode; ground?: string }) {
   return <View style={[s.section, { backgroundColor: ground }]}>
@@ -56,6 +68,10 @@ export default function DizajnTabla() {
       <Section title="Sistemske ikonice na slonovači" ground={IVORY}>
         <View style={s.wrap}>{SYSTEM.slice(0, 12).map(kind => <FactArt key={kind} kind={kind} size={32} />)}</View>
       </Section>
+      {/* A card's facts are drawn at 16 px, below the rows above: every kind at that size, in one wrap. */}
+      <Section title="Sistemske ikonice na kartici · 16">
+        <View style={s.wrap}>{SYSTEM.map(kind => <FactArt key={kind} kind={kind} size={16} />)}</View>
+      </Section>
       {GROUPS.map(([group, title]) => <Section key={group} title={`${title} · 32 · 40 · 48 · 64`}>
         {pictogramCatalog.filter(p => p.group === group).map(p => <View key={p.kind} style={s.iconRow}>
           <T variant="meta" tone="muted" style={s.name}>{p.label}</T>
@@ -77,7 +93,7 @@ export default function DizajnTabla() {
         </PickerGrid>
       </Section>
       <Section title="Na pravoj kartici zadatka">
-        <TaskCard item={task} onOpen={() => {}} />
+        {SAMPLES.map(sample => <TaskCard key={sample.id} item={sample} onOpen={() => {}} />)}
       </Section>
     </ScrollView>
   </SafeAreaView>;

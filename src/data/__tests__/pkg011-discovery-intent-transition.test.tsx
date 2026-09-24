@@ -9,9 +9,9 @@ jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mo
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); } }); });
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (...args: unknown[]) => mockSwitch(...args) }));
-jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
 // Zadaci renders DiscoveryPresentation since owner step 4 (2026-09-24): the same props under the same test name, so every
-// guard below is asserted exactly as before.
+// guard below is asserted exactly as before. MarketplacePresentation is now Moji zadaci only and Zadaci never imports it,
+// so it is no longer mocked here (review r3b).
 jest.mock('../../ui/v2/DiscoveryPresentation', () => ({ DiscoveryPresentation: 'Marketplace' }));
 import Public from '../../app/(app)/zadaci';
 

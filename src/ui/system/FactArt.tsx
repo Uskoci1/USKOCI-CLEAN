@@ -12,10 +12,14 @@ import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
  * and a Dogovor fact look like one family. The later kinds (person … eye) follow the same construction: a ground
  * shadow, a darker edge 1.5 units under the face, a light shine and white or ink details. Line icons stay for controls
  * only: back, caret, close, send, edit, sign out.
+ *
+ * `vehicle` and `tool` (2026-09-24, card review r3 item 5) draw the one requirement line of a task card. The picker's
+ * Pictogram is a scene meant for 32 px and above and turned to mush at the card's 16 px, and two of its fallbacks were
+ * orange; these two are fact drawings like the rest, green-led, and hold at 16.
  */
 export type FactArtKind = 'pin' | 'calendar' | 'clock' | 'users' | 'money' | 'remote' | 'bell' | 'phone' | 'map' | 'tasks'
   | 'agreements' | 'offers' | 'person' | 'star' | 'shield' | 'lock' | 'document' | 'chat' | 'check' | 'support' | 'download'
-  | 'info' | 'photo' | 'eye' | 'home';
+  | 'info' | 'photo' | 'eye' | 'home' | 'vehicle' | 'tool';
 
 type Tone = { front: string; edge: string; light: string; soft: string };
 const MUTED: Tone = { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB' };
@@ -100,6 +104,20 @@ function drawing(kind: FactArtKind, c: Tone, muted: boolean): ReactNode {
       {face('M5.2 14.4 14.3 6.8a2.6 2.6 0 0 1 3.4 0l9.1 7.6v10.3a3.4 3.4 0 0 1-3.4 3.4H8.6a3.4 3.4 0 0 1-3.4-3.4Z')}
       {line('M3.4 14.3 16 4.4l12.6 9.9', c.edge, 2.6)}{shine('M8.4 15.2 12.9 11.4')}
       <Path d="M13.3 28.1v-8.1a1.7 1.7 0 0 1 1.7-1.7h2a1.7 1.7 0 0 1 1.7 1.7v8.1Z" fill="#FFFFFF" /></>;
+    // A van seen from the side, facing right: the body lifted 1.5 units off its edge, two white windows, a white lamp and
+    // two ink wheels over the body's lower edge. Windows and wheels are the only details, so it holds at 16 px.
+    case 'vehicle': return <>{shadow}{edge('M3 12.7a3.6 3.6 0 0 1 3.6-3.6h12a3.6 3.6 0 0 1 3 1.6l3.4 5.1 2.4.8a2.7 2.7 0 0 1 1.8 2.5v3.8a2.4 2.4 0 0 1-2.4 2.4H5.4A2.4 2.4 0 0 1 3 22.9Z')}
+      {face('M3 11.2a3.6 3.6 0 0 1 3.6-3.6h12a3.6 3.6 0 0 1 3 1.6l3.4 5.1 2.4.8a2.7 2.7 0 0 1 1.8 2.5v3.8a2.4 2.4 0 0 1-2.4 2.4H5.4A2.4 2.4 0 0 1 3 21.4Z')}
+      {shine('M7.2 8.9h8.6')}<Rect x={6.2} y={10.2} width={8.2} height={5.2} rx={1.6} fill="#FFFFFF" />
+      <Path d="M16.8 10.2h2.9a1.6 1.6 0 0 1 1.3.7l2.6 3.9a.4.4 0 0 1-.3.6h-6.5Z" fill="#FFFFFF" />
+      <Rect x={26.6} y={17.2} width={2.2} height={1.8} rx={0.9} fill="#FFFFFF" />
+      <Circle cx={9.4} cy={24.2} r={3.7} fill="#35463D" /><Circle cx={9.4} cy={24.2} r={1.4} fill="#FFFFFF" />
+      <Circle cx={23.6} cy={24.2} r={3.7} fill="#35463D" /><Circle cx={23.6} cy={24.2} r={1.4} fill="#FFFFFF" /></>;
+    // A toolbox: an ink handle over a box lifted off its edge, the lid seam in the edge tone and a white latch.
+    case 'tool': return <>{shadow}{line('M11.4 10.2V7.6a2.2 2.2 0 0 1 2.2-2.2h4.8a2.2 2.2 0 0 1 2.2 2.2v2.6', '#5C6B61', 2.5)}
+      <Rect x={3} y={11.4} width={26} height={16.4} rx={4.2} fill={c.edge} /><Rect x={3} y={9.9} width={26} height={16.4} rx={4.2} fill={c.front} />
+      {shine('M6.6 12.6h4.4')}{line('M3.8 16.3h24.4', c.edge, 1.8)}
+      <Rect x={13.4} y={13.8} width={5.2} height={5} rx={1.4} fill="#FFFFFF" />{line('M16 15.5v1.6', '#35463D', 1.4)}</>;
     case 'eye': return <>{shadow}<Path d="M2.6 17.5C5.9 11.5 10.6 8.5 16 8.5s10.1 3 13.4 9c-3.3 6-8 9-13.4 9s-10.1-3-13.4-9Z" fill={c.edge}/><Path d="M2.6 16C5.9 10 10.6 7 16 7s10.1 3 13.4 9c-3.3 6-8 9-13.4 9S5.9 22 2.6 16Z" fill={c.front}/>{shine('M7.4 12.2a11.6 11.6 0 0 1 4.2-2.6')}<Circle cx={16} cy={16} r={5.4} fill="#FFFFFF"/><Circle cx={16} cy={16} r={2.7} fill="#35463D"/><Circle cx={17.2} cy={14.8} r={0.9} fill="#FFFFFF"/></>;
   }
 }

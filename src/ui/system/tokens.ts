@@ -100,8 +100,11 @@ export const sys = {
   /**
    * One scale, defined once in `theme/tokens`: 12 for what is touched or sits in a row (control, chip, badge and the
    * primary action alike), 24 for a card, 28 for a sheet. A circle or capsule is `pill`, never half of its own width.
+   *
+   * `check` (6) is the one corner below that scale, named for its one use: a 22 px checkbox is a square box, and the
+   * row corner (12) on it drew a circle, which reads as a radio (card review r3 item 8). Nothing else may borrow it.
    */
-  radius,
+  radius: { ...radius, check: 6 },
   space,
   type: {
     ...type,

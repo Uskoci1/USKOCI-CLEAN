@@ -75,9 +75,15 @@ it('every named colour in sys is a real colour value', () => {
 
 // Emulator critique B6 (2026-09-24): 16/17, 20/26 and 9/13 were corners that nearly agree, so a field and the button
 // beside it differed by a pixel. Three steps and the capsule; the role names stay and share them.
+// Card review r3 item 8 (2026-09-24): the checkbox's 6 was a magic number dressed as a nested corner. It is now the one
+// named corner below the scale, `check`, and the scale itself is unchanged.
 it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary action share one corner', () => {
-  expect(sys.radius).toEqual({ badge: 12, chip: 12, control: 12, primary: 12, cardCompact: 24, card: 24, sheet: 28, pill: 999 });
-  expect(new Set(Object.values(sys.radius))).toEqual(new Set([12, 24, 28, 999]));
+  expect(sys.radius).toEqual({ badge: 12, chip: 12, control: 12, primary: 12, cardCompact: 24, card: 24, sheet: 28, pill: 999, check: 6 });
+  const { check, ...scale } = sys.radius;
+  expect(new Set(Object.values(scale))).toEqual(new Set([12, 24, 28, 999]));
+  expect(check).toBe(6);
+  // The checkbox is its only reader.
+  expect(read('src/ui/v2/MarketplacePresentation.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
   expect(brandAction.borderRadius).toBe(fieldBox.borderRadius);
 });
 

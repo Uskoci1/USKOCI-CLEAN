@@ -51,8 +51,10 @@ function OwnedCollection() {
   const applications = (item: MarketplaceItem) => {
     if (known(item)) navigate(() => router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: item.id } }));
   };
-  return <MarketplacePresentation owned={true} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view}
+  // Moji zadaci is the whole of this presentation since Zadaci became its own map-and-sheet screen (owner step 4,
+  // 2026-09-24): there is no discovery mode to switch off and no map scope to hand down.
+  return <MarketplacePresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
     onApplications={applications}
     onProfile={() => navigate(() => router.navigate('/profil'))}

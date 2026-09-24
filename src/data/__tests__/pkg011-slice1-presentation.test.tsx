@@ -20,7 +20,6 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
-jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
@@ -38,49 +37,46 @@ const labels = () => tree.root.findAllByType('Press' as React.ElementType).map(n
 const roleOf = (label: string) => tree.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === label)!.props;
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-function Marketplace({ owned, rows, loading = false }: { owned: boolean; rows: MarketplaceItem[]; loading?: boolean }) {
+// Moji zadaci is the whole of MarketplacePresentation since owner step 4 (2026-09-24); the discovery (Zadaci) halves of
+// the cases below moved with that screen to zadaci-guards-from-marketplace, which renders DiscoveryPresentation.
+function Marketplace({ rows, loading = false }: { rows: MarketplaceItem[]; loading?: boolean }) {
   const [view, setView] = useState<MarketplaceView>(initialMarketplaceView);
-  return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={false} scopeKey="a:1" view={view} onView={setView}
-    onOpen={() => {}} onRefresh={() => {}} onProfile={() => {}} onNew={owned ? () => {} : undefined} />;
+  return <MarketplacePresentation items={rows} loading={loading} error={false} view={view} onView={setView}
+    onOpen={() => {}} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
 }
-test('the header says what the list is in the two names the product uses and never an app mode; the title is a header and the list/map switch is a real tab list', async () => {
-  await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} />); });
-  // Both tabs used this presentation and both were titled Zadaci, so two different screens
-  // carried one name. "Mapa" was the tab label, the screen title and one of the two segments at the same time, so the
-  // word identified nothing. The invariant is unchanged: the title is a header, and it is never an app mode.
-  // V41 (2026-09-23): the tab header draws the mark, not the section name; the name reaches a screen reader as the
-  // header's label. Since the owner's information architecture of 2026-09-23 discovery IS the Zadaci tab, so the header
-  // is read as the tab is named ("Pronađi zadatak" before), and my own tasks below are "Moji zadaci".
+test('the header says what the list is in the name the product uses and never an app mode; the sections are real tabs', async () => {
+  // The invariant is unchanged: the title is a header, and it is never an app mode. V41 (2026-09-23): the tab header
+  // draws the mark, not the section name; the name reaches a screen reader as the header's label.
+  await act(async () => { tree = create(<Marketplace rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} />); });
+  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Moji zadaci')).length).toBeGreaterThan(0);
   expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
-  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI, Zadaci').length).toBeGreaterThan(0);
-  expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pronađi zadatak'))).toHaveLength(0);
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(false);
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
-  expect(roleOf('Lista').accessibilityRole).toBe('tab'); expect(roleOf('Lista').accessibilityState).toEqual({ selected: true });
-  expect(roleOf('Mapa').accessibilityState).toEqual({ selected: false });
-  expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' }).length).toBeGreaterThan(0);
-  await act(async () => tree.unmount());
-  await act(async () => { tree = create(<Marketplace owned rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} />); });
-  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Moji zadaci')).length).toBeGreaterThan(0); expect(texts()).not.toMatch(/Ja mogu|Meni treba/); expect(roleOf('Aktivni').accessibilityRole).toBe('tab');
+  expect(roleOf('Aktivni').accessibilityRole).toBe('tab');
+  // The list/map switch retired with discovery here (A5): no Lista, no Mapa.
+  expect(labels()).not.toContain('Lista'); expect(labels()).not.toContain('Mapa');
 });
 test('loading shows placeholder geometry and a spoken status, never a stale card', async () => {
-  await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} loading />); });
+  await act(async () => { tree = create(<Marketplace rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} loading />); });
   expect(labels().some(label => String(label).startsWith('Otvori'))).toBe(false);
   expect(texts()).toContain('Učitavamo zadatke…');
   expect(tree.root.findAllByProps({ importantForAccessibility: 'no-hide-descendants' }).length).toBeGreaterThan(0);
 });
-test('an owner draft shows a quiet draft status and "Nastavi uređivanje", never an application count', async () => {
-  await act(async () => { tree = create(<Marketplace owned rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
+test('an owner draft continues its editing and never draws an application count; the draft word stands where the section does not say it', async () => {
+  await act(async () => { tree = create(<Marketplace rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
   await act(async () => roleOf('Nacrti').onPress());
-  // One task card (step 5a, 2026-09-24): the own-task status words are Nacrt / Delimično popunjen / Popunjen / Zatvoren,
-  // so the draft reads "Nacrt" (was "Privatan nacrt"); a draft still draws no places and no application count.
+  // One task card (step 5a, 2026-09-24): the own-task status words are Nacrt / Delimično popunjen / Popunjen / Zatvoren;
+  // a draft still draws no places and no application count.
   const copy = texts(); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2/);
-  // The whole word, not the "Nacrti" tab that contains it.
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
+  // Review r3 item 10 (was: "Nacrt" on the card under Nacrti): every card under Nacrti is a draft, so the section says it
+  // and the card does not repeat it. The whole word, not the "Nacrti" tab that contains it.
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(false);
   expect(roleOf('Otvori Zadatak Pomoć d')).toBeTruthy();
+  // Where the section does not name the state, the card still says it, quietly.
+  await act(async () => roleOf('Aktivni').onPress());
+  await act(async () => tree.root.findAll(node => node.props.label === 'Prikaži sve moje zadatke')[0].props.onPress());
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
 });
 test('the filter sheet offers price modes as radios and the primary action is the only brand action', async () => {
-  await act(async () => { tree = create(<Marketplace owned={false} rows={[row('one')]} />); });
+  await act(async () => { tree = create(<Marketplace rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} />); });
   await act(async () => roleOf('Filteri').onPress());
   expect(roleOf('Tražim ponude').accessibilityRole).toBe('radio'); expect(roleOf('Svi načini').accessibilityState).toEqual({ checked: true });
   const brand = tree.root.findAllByType('Press' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);

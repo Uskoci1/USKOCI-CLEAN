@@ -26,9 +26,6 @@ const need = { id: 'preview-task', revizija: 1, stanje: 'OBJAVLJENA',
   narucilacIme: 'Marko', narucilacProfilId: 'preview-profile', narucilacOcena: '4,8', statusTekst: 'Otvoren',
   primaNovePrijave: true, rokZaPrijaveIso: null, priblizno: null,
 } as PotrebaProjekcija & PrilikaProjekcija;
-// Public discovery must not accidentally receive the owned discriminator, which would draw an
-// owner's selection count on a public card. These remain clearly labelled local examples only.
-const { stanje: _ownedState, ...opportunity } = need;
 const candidates = [
   { prijavaId: 'preview-offer-1', radnikProfilId: 'preview-person-1', inicijali: 'N', ime: 'Nikola', cena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' }, pokrivaMesta: 2,
     verzija: 1, hash: 'preview', preostaloMesta: 2, dolazakTekst: 'Po dogovoru', prevozTekst: '', razlogPreporuke: null,
@@ -69,8 +66,11 @@ function Review() {
   if (screen === 'done-worker' || screen === 'done-requester') return <AgreementCompletionReview
     agreement={{ ...agreement, problemOtvoren: scenario === 'problem' }} worker={screen === 'done-worker'}
     confirm={() => setScreen('agreement')} back={() => setScreen('agreement')} />;
-  if (screen === 'list') return <MarketplacePresentation owned={false} items={scenario === 'empty' ? [] : [opportunity, { ...opportunity, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
-    scopeKey="preview-only" view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onProfile={noop} onNew={noop} />;
+  // Other people's tasks (Zadaci) are DiscoveryPresentation since owner step 4 (2026-09-24), a screen that needs the
+  // router's focus and the native bottom sheet, which this web preview does not have. The list preview is therefore Moji
+  // zadaci, the one list MarketplacePresentation still draws, with owned rows.
+  if (screen === 'list') return <MarketplacePresentation items={scenario === 'empty' ? [] : [need, { ...need, id: 'preview-task-2', naslov: 'Montaža dve police', rezimCene: 'OFFERS' }]} loading={scenario === 'loading'} error={scenario === 'error'}
+    view={view} onView={setView} onOpen={() => setScreen('task')} onRefresh={noop} onProfile={noop} onNew={noop} onBack={() => setScreen('task')} />;
   if (screen === 'my-applications') return <MyApplicationsPresentation rows={scenario === 'empty' ? [] : myApplications} loading={scenario === 'loading'} unavailable={scenario === 'error'}
     message={scenario === 'error' ? 'Proveri vezu i pokušaj ponovo.' : null} notice={null} tab={applicationTab} onTab={setApplicationTab} expanded={null} draft={null}
     focusId="preview-own-offer" requestedId="preview-own-offer" busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}

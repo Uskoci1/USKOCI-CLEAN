@@ -29,9 +29,11 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'View' },
-  FadeInDown: { duration: () => ({ delay: () => ({}) }) }, useReducedMotion: () => false }));
+// Reanimated is the shared Jest stand-in (__mocks__/react-native-reanimated.js): the task card's frame is an
+// Animated.View that gives under the finger (review r3 item 9) and Zadaci's list sheet reads a shared value, which the
+// hand-written partial copy this file had did not provide. It passes `entering` through, as that copy did.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
+jest.mock('expo-router', () => ({ useIsFocused: () => true }));
 // Both are counted: `Press` for a whole row, `T` for the memoised text inside a card whose shell must re-render.
 jest.mock('../../ui/Text', () => { const React = require('react'); return { T: jest.fn((props: any) => React.createElement('T', props)) }; });
 jest.mock('../../ui/Press', () => { const React = require('react'); return { Press: jest.fn((props: any) => React.createElement('Press', props)) }; });
@@ -41,6 +43,7 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
+import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 import { AgreementCollectionPresentation } from '../../ui/v2/AgreementCollectionPresentation';
 import { MyApplicationsPresentation } from '../../ui/v2/MyApplicationsPresentation';
@@ -55,27 +58,39 @@ const field = (label: string) => tree.root.findByProps({ accessibilityLabel: lab
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); (Press as jest.Mock).mockClear(); (T as unknown as jest.Mock).mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-describe('Zadaci', () => {
+// Zadaci has been DiscoveryPresentation (the map under a list sheet) since owner step 4, 2026-09-24, and Moji zadaci is
+// what MarketplacePresentation still draws. Both lists keep the same three guards, each on the screen that now has it.
+describe.each([
+  ['Zadaci', 'Otvori priliku'],
+  ['Moji zadaci', 'Otvori Zadatak'],
+] as const)('%s', (screen, prefix) => {
+  const discovery = screen === 'Zadaci';
   const task = (id: string): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat'], statusTekst: 'Otvoren',
-    rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 } } as MarketplaceItem);
+    rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 },
+    ...(discovery ? {} : { revizija: 1, opis: '', stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 }) } as MarketplaceItem);
   let rows: MarketplaceItem[]; const open = jest.fn(); let snapshot: MarketplaceView;
   function Screen({ pass }: { pass: number }) {
-    const [view, setView] = useState(initialMarketplaceView); snapshot = view;
+    const [view, setView] = useState(discovery ? () => ({ ...initialMarketplaceView(), mode: 'map' as const }) : initialMarketplaceView); snapshot = view;
     // Fresh closures every render, exactly as the route hands them down.
-    return <MarketplacePresentation owned={false} items={rows} loading={false} error={false} scopeKey="a:1" view={view} onView={setView} refreshing={pass > 1}
-      onOpen={item => open(item)} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
+    return discovery
+      ? <DiscoveryPresentation items={rows} loading={false} error={false} scopeKey="a:1" view={view} onView={setView} refreshing={pass > 1}
+        onOpen={item => open(item)} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />
+      : <MarketplacePresentation items={rows} loading={false} error={false} view={view} onView={setView} refreshing={pass > 1}
+        onOpen={item => open(item)} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
   }
   beforeEach(() => { rows = [task('one'), task('two'), task('three')]; open.mockClear(); });
 
   test('rows are drawn once and stay drawn: typing in the search, a parent render and a fresh onOpen closure touch none of them', async () => {
     await act(async () => { tree = create(<Screen pass={0} />); });
-    expect(drawn('Otvori priliku')).toBe(3);
+    expect(drawn(prefix)).toBe(3);
     await act(async () => tree.update(<Screen pass={1} />));
+    // Moji zadaci opens its search from the header; Zadaci keeps it over the map.
+    if (!discovery) await act(async () => field('Pretraga').props.onPress());
     await act(async () => field('Pretraži zadatke').props.onChangeText('Pomoć'));
     expect(snapshot.query).toBe('Pomoć');
-    expect(drawn('Otvori priliku')).toBe(3);
+    expect(drawn(prefix)).toBe(3);
     // The stable function still reaches the route's latest closure with the very row that was pressed.
-    await act(async () => field('Otvori priliku Pomoć two').props.onPress());
+    await act(async () => field(`${prefix} Pomoć two`).props.onPress());
     expect(open).toHaveBeenCalledWith(rows[1]);
   });
 
@@ -83,10 +98,10 @@ describe('Zadaci', () => {
     await act(async () => { tree = create(<Screen pass={0} />); });
     rows = [...rows, task('four')];
     await act(async () => tree.update(<Screen pass={1} />));
-    expect(drawn('Otvori priliku')).toBe(4);
+    expect(drawn(prefix)).toBe(4);
     const entering = tree.root.findAll(node => typeof node.type === 'string' && !!node.props.entering);
     expect(entering).toHaveLength(1);
-    expect(entering[0].findByProps({ accessibilityLabel: 'Otvori priliku Pomoć four' })).toBeTruthy();
+    expect(entering[0].findByProps({ accessibilityLabel: `${prefix} Pomoć four` })).toBeTruthy();
   });
 
   test('the list is virtualised for a phone screen with a stable key per task', async () => {

@@ -1,29 +1,43 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import type { NeedDetailProjection } from '../../contracts/projections';
-import type { MarketplaceItem } from '../marketplaceView';
+import { STANJA_POTREBE, type NeedDetailProjection, type PotrebaProjekcija } from '../../contracts/projections';
+import { hasNeedAttention, type MarketplaceItem } from '../marketplaceView';
 import { sys } from '../../ui/system/tokens';
 
 /**
  * One task card (owner's step 5a, 2026-09-24; emulator critique A8, A9, A10, B13, B14). The card is one face with fixed
  * lines: status when it says something, title with a value slot that is never empty, place, time, at most one
  * requirement a worker decides on (never a skill), and a foot with the places and the person. My own task's next step
- * is a target of its own beside the body, never inside it.
+ * is a target of its own beside the body, never inside it. Card review r3 (items 1–12) is pinned under "review r3".
  */
-let mockScale = 1;
+let mockScale = 1, mockReduced = false;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
 });
+// The shared Jest stand-in, with a shared value that keeps its box across renders and can be read back, so the card's
+// press can be seen to move its frame.
+const mockShared: { value: number }[] = [];
+jest.mock('react-native-reanimated', () => {
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated.js'), React = require('react');
+  return { ...base, ReduceMotion: { System: 'system' },
+    useSharedValue: (value: number) => {
+      const ref = React.useRef(null);
+      if (!ref.current) { const box = { value, get: () => box.value, set: (next: number) => { box.value = next; } }; ref.current = box; mockShared.push(box); }
+      return ref.current;
+    },
+    useAnimatedStyle: (factory: () => object) => factory() };
+});
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
-jest.mock('../../ui/system/Pictogram', () => ({ ...jest.requireActual('../../ui/system/Pictogram'), Pictogram: 'Pictogram' }));
 jest.mock('../../ui/system/textScale', () => ({ useTextScale: () => mockScale }));
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', Lightning: 'Lightning' }));
-import { TaskCard } from '../../ui/v2/TaskCard';
+import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
+import { ownerNext, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -40,6 +54,7 @@ const mine = (patch: Record<string, unknown> = {}): MarketplaceItem => ({ id: 'm
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, vremeTekst: '25. sep · 10:00', podrucjeTekst: 'Grbavica, Novi Sad', uslovi: ['Montaža'],
   brojPrijava: 4, brojPrijavaZaIzbor: 3, rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2000, valuta: 'RSD', prikaz: '2.000 RSD' },
   detalji: detail({}, { vestine: ['Montaža'] }), ...patch }) as MarketplaceItem;
+const LATER = { level: 'HITNO', expiresAt: '2099-01-01T00:00:00Z' } as const;
 
 let tree: ReactTestRenderer;
 const render = async (element: React.ReactElement) => act(async () => { tree = create(element); });
@@ -47,16 +62,16 @@ const texts = () => tree.root.findAll(node => node.type === ('T' as React.Elemen
 const textNode = (value: string) => tree.root.find(node => node.type === ('T' as React.ElementType) && node.props.children === value);
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType));
-const pictograms = () => tree.root.findAll(node => node.type === ('Pictogram' as React.ElementType)).map(node => node.props.kind);
 const facts = () => tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind);
-beforeEach(() => { mockScale = 1; });
+const frame = () => tree.root.findAll(node => node.type === ('View' as React.ElementType))[0];
+beforeEach(() => { mockScale = 1; mockReduced = false; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 describe('the requirement line', () => {
   it('never shows a skill, the category or the mixed `uslovi` list: without a condition, vehicle or tool there is no line', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     expect(texts().join(' ')).not.toMatch(/Krečenje|Valjak/);
-    expect(facts()).not.toContain('info'); expect(pictograms()).toEqual([]);
+    for (const kind of ['info', 'vehicle', 'tool']) expect(facts()).not.toContain(kind);
   });
 
   it('shows the task\'s own conditions first, as one plain line of at most two lines with the info art, and nothing else', async () => {
@@ -66,19 +81,24 @@ describe('the requirement line', () => {
     expect(line.props.numberOfLines).toBe(2);
     expect(facts()).toContain('info');
     expect(texts().join(' ')).not.toMatch(/Kombi|Bušilica|Krečenje/);
-    expect(pictograms()).toEqual([]);
+    expect(facts()).not.toContain('vehicle'); expect(facts()).not.toContain('tool');
   });
 
-  it('then the vehicles with the vehicle drawing, then the tools with the tool drawing', async () => {
+  // Review r3 item 5: a vehicle and a tool are FactArt kinds of their own, drawn at the card's 16 px; the picker's
+  // Pictogram (a 32 px-and-up scene, two of whose fallbacks were orange) is no longer drawn on a card at all.
+  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing, at 16 px', async () => {
     await render(<TaskCard item={task({ detalji: detail({}, { vestine: ['Selidbe'], vozila: ['Kombi'], alati: ['Bušilica'] }) })} onOpen={jest.fn()} />);
-    expect(texts()).toContain('Kombi'); expect(texts()).not.toContain('Bušilica'); expect(pictograms()).toEqual(['kombi']);
+    expect(texts()).toContain('Kombi'); expect(texts()).not.toContain('Bušilica'); expect(facts()).toContain('vehicle'); expect(facts()).not.toContain('tool');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { vozila: ['Automobil', 'Prikolica'] }) })} onOpen={jest.fn()} />));
-    expect(texts()).toContain('Automobil · Prikolica'); expect(pictograms()).toEqual(['automobil']);
-    // A vehicle the picker does not name still draws a vehicle, never a guessed kind of work.
+    expect(texts()).toContain('Automobil · Prikolica'); expect(facts()).toContain('vehicle');
+    // A vehicle nobody named in a picker still draws a vehicle, never a guessed kind of work.
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { vozila: ['Kamionet sa ceradom'] }) })} onOpen={jest.fn()} />));
-    expect(pictograms()).toEqual(['kombi']);
+    expect(facts()).toContain('vehicle');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { alati: ['Bušilica'] }) })} onOpen={jest.fn()} />));
-    expect(texts()).toContain('Bušilica'); expect(pictograms()).toEqual(['busilica']);
+    expect(texts()).toContain('Bušilica'); expect(facts()).toContain('tool'); expect(facts()).not.toContain('vehicle');
+    const art = tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'tool');
+    expect(art.map(node => node.props.size)).toEqual([16]);
+    expect(tree.root.findAll(node => String(node.type) === 'Pictogram')).toHaveLength(0);
   });
 });
 
@@ -156,7 +176,8 @@ describe('the places and the person', () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     expect(tree.root.findByType('Avatar' as React.ElementType).props).toMatchObject({ initials: 'NP' });
     expect(texts()).toContain('Nikola Petrović'); expect(texts()).toContain('4,8 (12)'); expect(facts()).toContain('star');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Nikola Petrović, ocena 4,8, 12 ocena')).not.toHaveLength(0);
+    // The person is heard with the card (review r3 item 4), with the count its rating stands on.
+    expect(presses()[0].props.accessibilityValue.text).toContain('Nikola Petrović, ocena 4,8, 12 ocena');
     // The person closes the foot row on the right, after the places.
     const [foot] = tree.root.findAll(node => node.type === ('View' as React.ElementType) && style(node).justifyContent === 'space-between'
       && node.findAllByType('Avatar' as React.ElementType).length > 0);
@@ -198,6 +219,9 @@ describe('the places and the person', () => {
 describe('my own task\'s next step', () => {
   const foot = (text: string) => presses().find(node => String(node.props.accessibilityLabel).startsWith(text));
 
+  // Review r3 item 6 (R1 critique B1): the foot is the card's bottom strip on the quiet wash under one hairline, with an
+  // 8 px orange dot and the words in `warn` — no longer an orangeSoft fill, which spent the screen's one orange fill on
+  // every waiting card of Moji zadaci. This replaces the earlier pins "orangeSoft" and "no hairline over the foot".
   it('goes straight to the applications through its own target, a sibling of the body and never inside it', async () => {
     const open = jest.fn(), applications = jest.fn();
     await render(<TaskCard item={mine()} onOpen={open} onApplications={applications} />);
@@ -206,9 +230,14 @@ describe('my own task\'s next step', () => {
     expect(next.props.accessibilityLabel).toBe('3 prijave čekaju izbor, Montaža dve police');
     expect(body.props.accessibilityLabel).toBe('Otvori Zadatak Montaža dve police');
     expect(body.findAll(node => node === next)).toHaveLength(0);
-    expect(style(next)).toMatchObject({ minHeight: 48, backgroundColor: sys.color.orangeSoft });
-    // No hairline over the foot.
-    expect(style(next).borderTopWidth ?? 0).toBe(0);
+    expect(style(next)).toMatchObject({ minHeight: 48, backgroundColor: sys.color.wash, borderTopWidth: 1, borderTopColor: sys.color.line });
+    const dots = next.findAll(node => node.type === ('View' as React.ElementType) && style(node).backgroundColor === sys.color.orange);
+    expect(dots).toHaveLength(1); expect(style(dots[0])).toMatchObject({ width: 8, height: 8 });
+    expect(style(textNode('3 prijave čekaju izbor'))).toMatchObject({ color: sys.color.warn });
+    // No orange fill anywhere on the card: orange is the dot only.
+    expect(tree.root.findAll(node => typeof node.type === 'string' && style(node).backgroundColor === sys.color.orangeSoft)).toHaveLength(0);
+    // The hairline is the edge between the two targets: the foot reaches no further than itself.
+    expect(next.props.hitSlop).toBe(0);
     await act(async () => next.props.onPress());
     expect(applications).toHaveBeenCalledTimes(1); expect(open).not.toHaveBeenCalled();
   });
@@ -252,9 +281,11 @@ describe('my own task\'s next step', () => {
     await status('POPUNJENA', 'Popunjen'); await status('ZATVORENA', 'Zatvoren');
   });
 
-  it('still says what waits when no route to it was handed over, inside the one body target', async () => {
+  it('still says what waits when no route to it was handed over, inside the one body target, with the same dot and words', async () => {
     await render(<TaskCard item={mine()} onOpen={jest.fn()} />);
     expect(presses()).toHaveLength(1); expect(texts()).toContain('3 prijave čekaju izbor');
+    expect(style(textNode('3 prijave čekaju izbor'))).toMatchObject({ color: sys.color.warn });
+    expect(presses()[0].findAll(node => node.type === ('View' as React.ElementType) && style(node).backgroundColor === sys.color.orange)).toHaveLength(1);
   });
 });
 
@@ -263,10 +294,115 @@ describe('the card', () => {
     mockScale = scale;
     await render(<TaskCard item={task({ detalji: detail({}, { bitniUslovi: ['Zgrada bez lifta'] }) })} onOpen={jest.fn()} />);
     for (const node of tree.root.findAll(candidate => typeof candidate.type === 'string')) expect(style(node).flexWrap).not.toBe('wrap');
-    const card = tree.root.findAll(node => node.type === ('View' as React.ElementType))[0];
-    expect(style(card)).toMatchObject({ borderWidth: 1, backgroundColor: sys.color.surface });
-    for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity']) expect(style(card)).not.toHaveProperty(key);
-    // One body press that gives a little under the finger.
-    expect(presses()).toHaveLength(1); expect(presses()[0].props.scaleTo).toBe(0.986);
+    expect(style(frame())).toMatchObject({ borderWidth: 1, backgroundColor: sys.color.surface });
+    for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity']) expect(style(frame())).not.toHaveProperty(key);
+    expect(presses()).toHaveLength(1);
+  });
+});
+
+describe('review r3', () => {
+  // Item 1: "Fleksibilan raspon · 24. sep – 30. sep" lost its end date on one line at 360 dp.
+  it.each([1, 1.3])('gives the time two lines at every text size (text scale %s)', async scale => {
+    mockScale = scale;
+    await render(<TaskCard item={task({ vremeTekst: 'Fleksibilan raspon · 24. sep – 30. sep' })} onOpen={jest.fn()} />);
+    expect(textNode('Fleksibilan raspon · 24. sep – 30. sep').props.numberOfLines).toBe(2);
+  });
+
+  // Item 2: at 320 dp "125.000 RSD" read "125.00…" inside a 42% cap. An amount keeps its whole width; the title gives way.
+  it('never cuts an amount: it has no line cap and no width cap, and a word keeps its 42% cap', async () => {
+    await render(<TaskCard item={task({ ponudjenaCena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })} onOpen={jest.fn()} />);
+    const amount = textNode('125.000 RSD');
+    expect(amount.props.numberOfLines).toBeUndefined();
+    expect(style(amount.parent!)).toMatchObject({ flexShrink: 0 }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
+    await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
+    expect(style(textNode('Tražim ponude').parent!)).toMatchObject({ maxWidth: '42%', flexShrink: 0 });
+  });
+
+  // Item 3: with a long name "Traži 2 osobe" ended in "…". The count never shrinks beside the person; the name does.
+  it('never shrinks the count of places beside the person; the name gives way', async () => {
+    await render(<TaskCard item={task({ narucilacIme: 'Aleksandra Stojanović-Petrović' })} onOpen={jest.fn()} />);
+    const count = textNode('Traži 2 osobe');
+    expect(style(count).flexShrink ?? 0).toBe(0); expect(style(count.parent!)).toMatchObject({ flexShrink: 0 });
+    const name = textNode('Aleksandra Stojanović-Petrović');
+    expect(name.props.numberOfLines).toBe(1);
+    const side = tree.root.find(node => node.type === ('View' as React.ElementType) && style(node).maxWidth === '62%');
+    expect(style(side)).toMatchObject({ flexShrink: 1, minWidth: 0 });
+    // On its own line at large text the count may take a second line instead of running off the card.
+    await act(async () => tree.unmount()); mockScale = 1.3;
+    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
+    expect(textNode('Traži 2 osobe').props.numberOfLines).toBe(2);
+  });
+
+  // Item 4: a screen reader heard only the title; the facts were unreachable on iOS and 3–5 extra stops on Android.
+  it('is heard once: the command name, then every fact it shows in order, with no stop of its own inside', async () => {
+    await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
+    const [body] = presses();
+    expect(body.props.accessibilityLabel).toBe('Otvori priliku Farbanje dnevne sobe');
+    expect(body.props.accessibilityValue).toEqual({ text: 'HITNO, Prijava poslata, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
+      + 'Potrebno vozilo: Kombi, Traži 2 osobe, Nikola Petrović, ocena 4,8, 12 ocena' });
+    // Every accessible element inside the card sits under a subtree hidden from assistive technology (the HITNO badge).
+    const hidden = (node: ReactTestInstance): boolean => node !== body && (node.props.importantForAccessibility === 'no-hide-descendants'
+      && node.props.accessibilityElementsHidden === true || !!node.parent && hidden(node.parent));
+    const stops = body.findAll(node => node !== body && (node.props.accessible === true || typeof node.props.accessibilityLabel === 'string'));
+    expect(stops.length).toBeGreaterThan(0);
+    for (const stop of stops) expect(hidden(stop)).toBe(true);
+    // My own task: the draft's next step and a waiting count with no route are heard with the card; a routed foot is its own stop.
+    await act(async () => tree.update(<TaskCard item={mine({ stanje: 'NACRT' })} onOpen={jest.fn()} />));
+    expect(presses()[0].props.accessibilityValue.text).toBe('Nacrt, 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, Nastavi uređivanje');
+    await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
+    expect(presses()[0].props.accessibilityValue.text).toBe('2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno, 3 prijave čekaju izbor');
+    await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />));
+    expect(presses()[0].props.accessibilityValue.text).not.toContain('čekaju izbor');
+    await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
+    expect(presses()[0].props.accessibilityValue.text).toMatch(/^Tražim ponude, /);
+  });
+
+  // Item 7: "waiting" is the list's own rule, so the card's foot and the Aktivni badge count can never disagree.
+  it('waits exactly when the list\'s attention rule says so, for every state, place count and application count', () => {
+    for (const stanje of STANJA_POTREBE) for (const preostalo of [0, 1]) for (const count of [null, undefined, 0, 2]) {
+      const item = mine({ stanje, brojPrijavaZaIzbor: count, pokrivenost: { ukupno: 2, popunjeno: 2 - preostalo, preostalo, udeo: 0 } }) as PotrebaProjekcija;
+      expect([stanje, preostalo, count, ownerNext(item)?.kind === 'waiting']).toEqual([stanje, preostalo, count, hasNeedAttention(item)]);
+    }
+  });
+
+  // Item 9: the content used to shrink inside a frame that stood still. The frame is what scales, border and all.
+  it('gives under the finger as one object, frame and all, from either target; under reduced motion nothing moves', async () => {
+    await render(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />);
+    expect(style(frame())).toMatchObject({ borderWidth: 1, transform: [{ scale: 1 }] });
+    const [body, next] = presses();
+    expect(body.props.scaleTo).toBe(1); expect(next.props.scaleTo).toBe(1);
+    const scale = mockShared[mockShared.length - 1];
+    for (const target of [body, next]) {
+      await act(async () => target.props.onPressIn()); expect(scale.value).toBe(CARD_PRESS_SCALE);
+      await act(async () => target.props.onPressOut()); expect(scale.value).toBe(1);
+    }
+    expect(CARD_PRESS_SCALE).toBe(0.986);
+    await act(async () => tree.unmount()); mockReduced = true;
+    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
+    const still = mockShared[mockShared.length - 1];
+    await act(async () => presses()[0].props.onPressIn()); expect(still.value).toBe(1);
+  });
+
+  // Item 10: every card under Nacrti said "Nacrt" and every card under Istorija said "Zatvoren".
+  it('does not repeat the state its section is named for, and still says any other', async () => {
+    await render(<TaskCard item={mine({ stanje: 'NACRT' })} sectionSays="NACRT" onOpen={jest.fn()} />);
+    expect(texts()).not.toContain('Nacrt'); expect(texts()).toContain('Nastavi uređivanje');
+    expect(presses()[0].props.accessibilityValue.text).not.toMatch(/^Nacrt/);
+    await act(async () => tree.update(<TaskCard item={mine({ stanje: 'ZATVORENA' })} sectionSays="ZATVORENA" onOpen={jest.fn()} />));
+    expect(texts()).not.toContain('Zatvoren');
+    await act(async () => tree.update(<TaskCard item={mine({ stanje: 'DELIMICNO_POPUNJENA', brojPrijavaZaIzbor: null })} sectionSays="ZATVORENA" onOpen={jest.fn()} />));
+    expect(texts()).toContain('Delimično popunjen');
+    // A stranger's task has no own state for a section to name.
+    expect(taskStatus(task(), 'APPLIED', 'ZATVORENA')).toEqual({ text: 'Prijava poslata', quiet: false });
+  });
+
+  // Item 12: beside a word, which can take 42% of the width, a long title was cut at two lines on 320–360 dp.
+  it('gives the title three lines beside a word and two beside an amount', async () => {
+    await render(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    await act(async () => tree.update(<TaskCard item={task({ ponudjenaCena: undefined, osnovaCene: null })} onOpen={jest.fn()} />));
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    await act(async () => tree.update(<TaskCard item={task()} onOpen={jest.fn()} />));
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(2);
   });
 });
