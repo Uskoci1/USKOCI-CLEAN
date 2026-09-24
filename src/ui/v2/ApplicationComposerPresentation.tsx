@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight, Minus, PaperPlaneTilt, Plus } from 'phosphor-react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
@@ -75,11 +75,17 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
     : fixedApplicationPrice(need, 1) === null ? 'missing' : null;
   const count = wholePeople(draft.people);
   const people = count === null ? 'invalid' : count > need.pokrivenost.preostalo ? 'over' : null;
-  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži zadatak.'
+  // A per-person total the route could not send (above its 32-bit limit) is said here too, not only after the tap.
+  const total = !offers && price === null && count !== null ? fixedApplicationPrice(need, count) : null;
+  const tooMuch = !offers && price === null && count !== null && (total === null || total > MAX_PRICE);
+  const locked = fixedApplicationPeople(need) !== null;
+  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži Zadatak.'
     : price === 'empty' ? 'Upiši svoju cenu da pregledaš ponudu.'
     : price === 'invalid' ? 'Cena mora biti ceo iznos u dinarima.'
     : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
-    : people === 'over' ? `Ima mesta za još ${osobuAkuz(need.pokrivenost.preostalo)}.`
+    // A price for the whole task covers every place, so fewer free places cannot be fixed here, only by a fresh read.
+    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži Zadatak.' : `Ima mesta za još ${osobuAkuz(need.pokrivenost.preostalo)}.`
+    : tooMuch ? 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
     : null;
   return { reason, price, people };
 }
@@ -188,12 +194,14 @@ function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
 }
 
 /** Composer of one application: what is offered, how many people come, an optional exact time, a short note, one send. */
-export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, initialSheet }: {
+export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, refreshHelps = true, initialSheet }: {
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
   /** Why the brand action is grey, said next to it, with the one place that fixes it when there is one. */
   blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null;
+  /** False when the error on screen is one a fresh read of the task cannot fix (the phone could not save the request). */
+  refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
   initialSheet?: 'review' | 'time';
 }) {
@@ -205,6 +213,14 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const large = useTextScale() >= 1.3;
   // The success mark springs only when the send was confirmed while this screen was open.
   const confirmedAtMount = useRef(confirmed).current;
+  // While the keyboard is up the footer keeps only the action and its reason: at 320 dp and Large text the summary
+  // would leave almost no room for the field being typed into.
+  const [keyboard, setKeyboard] = useState(false);
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
+    return () => { shown.remove(); hidden.remove(); };
+  }, []);
   const reviewing = !!review && review.key === reviewKey && !busy && !pending && !confirmed && canSubmit;
   const liveReview = useRef<typeof review>(null);
   liveReview.current = reviewing ? review : null;
@@ -244,16 +260,20 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const summary = shownPrice ? `${shownPrice} ukupno`
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
+  /** A count stepped by a button is said aloud: the line under the stepper does not change with it. */
+  const step = (next: number) => { change({ ...draft, people: String(next) }); AccessibilityInfo.announceForAccessibility(capitalised(dolaziOsoba(next))); };
   const footer = <>
     {error ? <View style={s.notice}>
       <T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T>
-      {!pending ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noticeAction} /> : null}
+      {!pending && refreshHelps ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noticeAction} /> : null}
     </View> : null}
-    {!locked && !busy ? <View style={s.summaryRow}>
+    {!locked && !busy && !keyboard ? <View style={s.summaryRow}>
       <T variant="meta" tone="muted">Tvoja ponuda</T>
       <T style={s.summary}>{`${summary} · ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`}</T>
     </View> : null}
     {primary}
+    {/* A task read without its price is fixed by a fresh read, so the way to it stands under the grey button. */}
+    {reviewAction && !shownBlock && !error && issue.price === 'missing' ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} /> : null}
     {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review
         button the reason is the button's own line (and its spoken hint); beside the other actions it stands here. */}
     {shownBlock && (!reviewAction || !!(shownBlock.actionLabel && shownBlock.onAction)) ? <View style={s.blocked}>
@@ -268,24 +288,27 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     {confirmed ? <View style={s.section}>
       <View style={s.outcome}>
         <SuccessMark fresh={!confirmedAtMount} size={64} />
-        <T accessibilityRole="alert" variant="title" style={s.ink}>Prijava je poslata.</T>
+        {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
+        <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} variant="title" style={s.ink}>Prijava je poslata.</T>
         <T variant="copy" tone="muted">Ako tvoja ponuda bude izabrana, odmah nastaje Dogovor. Prijavu pratiš u Mojim prijavama.</T>
       </View>
       {sentFacts}
     </View> : locked ? <View style={s.section}>
       {sentFacts}
-      <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T>
+      {/* After a known refusal the same offer is not repeated, so the sentence about repeating it is not said. */}
+      {!reset ? <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T> : null}
     </View> : <>
       <View style={s.section}>
         {offers ? <>
           <Question>Ukupna cena za ljude koje dovodiš</Question>
           <View style={[s.priceBox, issue.price === 'invalid' && s.fieldDanger]}>
             <TextInput accessibilityLabel="Ukupna cena za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
-              editable={!disabled} placeholder="0" placeholderTextColor={sys.color.muted} style={s.priceInput}
+              editable={!disabled} style={s.priceInput}
+              accessibilityHint={issue.price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.' : undefined}
               onChangeText={value => { if (!disabled) change({ ...draft, price: value }); }} />
             <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
           </View>
-          {issue.price === 'invalid' ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">Upiši ceo iznos u dinarima, bez tačaka i slova.</T> : null}
+          {issue.price === 'invalid' ? <T variant="note" tone="danger">Upiši ceo iznos u dinarima, bez tačaka i slova.</T> : null}
           <T variant="note" tone="muted">Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.</T>
         </> : <FixedPrice need={need} count={count} />}
       </View>
@@ -294,12 +317,12 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         {peopleLocked ? <T variant="bodyStrong" style={s.ink}>{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T> : <>
           <View style={s.stepper}>
             <ChromeIconButton label="Jedna osoba manje" icon={Minus} disabled={disabled || count === null || count <= 1}
-              onPress={() => { if (!disabled && count !== null && count > 1) change({ ...draft, people: String(count - 1) }); }} />
+              onPress={() => { if (!disabled && count !== null && count > 1) step(count - 1); }} />
             <TextInput accessibilityLabel="Koliko ljudi dolazi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled}
               style={[s.peopleInput, issue.people === 'over' && s.fieldDanger]}
               onChangeText={value => { if (!disabled) change({ ...draft, people: value }); }} />
             <ChromeIconButton label="Jedna osoba više" icon={Plus} disabled={disabled || (count !== null ? count >= left : left < 1)}
-              onPress={() => { const next = count === null ? 1 : count + 1; if (!disabled && next <= left) change({ ...draft, people: String(next) }); }} />
+              onPress={() => { const next = count === null ? 1 : count + 1; if (!disabled && next <= left) step(next); }} />
           </View>
           <T variant="note" tone={issue.people === 'over' ? 'danger' : 'muted'} accessibilityLiveRegion="polite">
             {left > 0 ? `Ima mesta za još ${osobuAkuz(left)}.` : 'Sva mesta su popunjena.'}</T>
@@ -308,8 +331,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       <View style={s.section}>
         <Question>Termin</Question>
         <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" accessibilityHint="Otvara izbor tačnog termina"
-          accessibilityValue={{ text: time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
-          onPress={() => { if (!disabled && !review) setEditingTime(true); }} style={s.term}>
+          accessibilityValue={{ text: time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={1}
+          onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} style={s.term}>
           <FactArt kind="calendar" size={28} />
           <View style={s.grow}>
             <T variant="bodyStrong" style={s.ink}>{time}</T>

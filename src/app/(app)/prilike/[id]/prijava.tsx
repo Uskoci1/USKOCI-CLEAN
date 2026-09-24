@@ -11,6 +11,8 @@ import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 import { ApplicationComposerPresentation, ComposerUnavailable, type ApplicationDraft } from '../../../../ui/v2/ApplicationComposerPresentation';
 
+/** The phone could not keep the request: a fresh read of the task cannot fix that, so no refresh is offered beside it. */
+const NOT_SAVED_ON_DEVICE = 'Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.';
 type Receipt = { prijavaId: string; verzija: number; hash: string };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -118,7 +120,7 @@ export default function Prijava() {
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
       try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command }, current); }
-      catch { if (current()) setValidation('Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.'); return; }
+      catch { if (current()) setValidation(NOT_SAVED_ON_DEVICE); return; }
       finally { session.journaling = false; }
       if (!current() || session.pending) return;
       session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
@@ -154,6 +156,7 @@ export default function Prijava() {
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelne Prijave su proverene. Za potvrdu ishoda ponovi isti sačuvani zahtev.' : null)}
+    refreshHelps={validation !== NOT_SAVED_ON_DEVICE}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
     blocked={data.profile.stanje !== 'ACTIVE'

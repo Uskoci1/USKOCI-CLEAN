@@ -8,6 +8,7 @@ import { Avatar } from '../system/Avatar';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
+import { plural } from '../system/plural';
 import { brandAction, inset, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -54,7 +55,15 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
   const face = (size: 40 | 56) => person ? size === 56 && person.profileId && photo
     ? photo(person.profileId, <Avatar initials={person.initials} size={56} />) : <Avatar initials={person.initials} size={size} /> : null;
   const tagsFull = view.kind === 'eligible' && view.tags.length >= view.catalog.maxTags;
-  const footer = view.kind === 'loading' || view.kind === 'error' ? null
+  // `none` (no read has answered yet) is drawn as loading: never an empty screen without a way on.
+  const loading = view.kind === 'loading' || view.kind === 'none';
+  const footer = loading || view.kind === 'error' ? null
+    // A saved rating stays saved when a later read fails: the way back stays the green action, the check beside it.
+    : notice && view.kind === 'saved' ? <>
+      <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{notice}</T></View>
+      <V2Action label={backLabel} onPress={onBack} style={brandAction} />
+      <V2Action label={retry.label} kind="quiet" disabled={retry.disabled} onPress={retry.onPress} />
+    </>
     : notice ? <>
       <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{notice}</T></View>
       <V2Action label={retry.label} disabled={retry.disabled} onPress={retry.onPress} style={brandAction} />
@@ -67,7 +76,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
     <ScrollView contentContainerStyle={s.content}>
-      {view.kind === 'loading' ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, rows: 3 }} />
+      {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, rows: 3 }} />
         : view.kind === 'error' ? <StateView kind="error" title={errorTitle} body={errorBody ?? undefined}
           primary={{ label: retry.label, onPress: retry.onPress, disabled: retry.disabled }} />
         : view.kind === 'saved' ? <View style={s.saved}>
@@ -91,13 +100,13 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
               {person.task ? <T variant="meta" tone="muted" numberOfLines={2}>{person.task}</T> : null}
             </View>
           </View> : null}
-          <T accessibilityRole="header" variant="title" style={s.ink}>Kako je prošla saradnja?</T>
+          <T accessibilityRole="header" variant={person ? 'heading' : 'title'} style={s.ink}>Kako je prošla saradnja?</T>
           <View style={s.stars}>
             <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={s.starRow}>
               {/* A star takes its colour on the press, with no scale or bounce: the rating is a fact. */}
               {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
                 accessibilityHint={ratingLabels[value]}
-                accessibilityState={{ checked: view.rating === value, disabled: !view.editable }} disabled={!view.editable} haptic="select" scaleTo={1}
+                accessibilityState={{ checked: view.rating === value, disabled: !view.editable }} disabled={!view.editable} haptic="select" scaleTo={1} hitSlop={0}
                 onPress={() => view.onRate(value)} style={[s.star, { width: star, height: star }]}>
                 <Star size={40} weight={value <= view.rating ? 'fill' : 'regular'} color={value <= view.rating ? sys.color.orange : sys.color.muted} />
               </Press>)}
@@ -112,7 +121,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
                 const selected = view.tags.includes(tag), capped = !selected && tagsFull, disabled = !view.editable || capped;
                 return <Press key={tag} accessibilityRole="checkbox" accessibilityLabel={tagLabels[tag]}
                   accessibilityHint={capped ? fullHint(view.catalog.maxTags) : undefined}
-                  accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic="select"
+                  accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic="select" hitSlop={0}
                   onPress={() => { if (!disabled) view.onToggleTag(tag); }} style={[s.tag, selected && s.tagSelected]}>
                   {selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
                   <T variant="note" style={selected ? s.tagTextSelected : capped ? s.tagTextCapped : s.ink}>{tagLabels[tag]}</T>
@@ -131,7 +140,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
 
 /** Why the other tags stopped taking a press once the most are chosen. */
 function fullHint(max: number): string {
-  return `Izabran je najveći broj oznaka (${max}). Skini jednu da izabereš drugu.`;
+  return `Izabrano je najviše: ${plural(max, 'oznaka', 'oznake', 'oznaka')}. Skini jednu da izabereš drugu.`;
 }
 /** "Ocenu trenutno nije moguće učitati. Proveri vezu." → the first sentence and the rest. */
 function firstSentence(message: string): [string, string | null] {
@@ -144,7 +153,7 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, grow: { flex: 1, minWidth: 0 },
   content: { paddingHorizontal: SIDE, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, gap: sys.space.lg },
   person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
-  personCopy: { flex: 1, minWidth: 0, gap: 2 },
+  personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   stars: { gap: sys.space.sm, alignItems: 'center' },
   starRow: { flexDirection: 'row', justifyContent: 'center' },
   star: { alignItems: 'center', justifyContent: 'center' },
@@ -156,6 +165,6 @@ const s = StyleSheet.create({
   tagTextSelected: { color: sys.color.green, fontWeight: '700' }, tagTextCapped: { color: sys.color.muted },
   saved: { gap: sys.space.md, alignItems: 'flex-start', paddingTop: sys.space.sm },
   savedPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, alignSelf: 'stretch' },
-  notice: { ...inset, backgroundColor: sys.color.dangerSoft },
+  notice: { ...inset, backgroundColor: sys.color.warnSoft },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },
 });

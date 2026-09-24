@@ -120,6 +120,31 @@ it('shows whom the rating is about, and without a matching person still rates an
  click('Ocena 4 od 5');expect(button('Ocena 4 od 5').props.accessibilityHint).toBe('Vrlo dobro');
  await act(async()=>{button('Sačuvaj ocenu').props.onPress();});expect(mockSubmit).toHaveBeenCalledTimes(1);
 });
+it('a person read that lands after the screen is gone, or after a newer read, draws nothing stale',async()=>{
+ let late!:(x:unknown)=>void;mockAgreement.mockImplementationOnce(()=>new Promise(resolve=>{late=resolve;}));
+ const errors=jest.spyOn(console,'error').mockImplementation(()=>{});
+ try{
+  await render();await act(async()=>tree.unmount());
+  await act(async()=>late({id:D,naslov:'Stari',ucesnici:[person(B,false,'Zakasnela Osoba','narucilac')]}));
+  expect(errors).not.toHaveBeenCalled();
+  mockAgreement.mockImplementationOnce(()=>new Promise(resolve=>{late=resolve;}));
+  await render();await settle();
+  await act(async()=>late({id:D,naslov:'Stari',ucesnici:[person(B,false,'Zakasnela Osoba','narucilac')]}));
+  expect(texts()).toContain('Zakasnela Osoba');
+ }finally{errors.mockRestore();}
+});
+it('the saved rating names the person, and three tags stop the rest with a reason',async()=>{
+ await render();await settle();
+ click('Po dogovoru');click('Pažljivo');click('Na vreme');
+ expect(button('Pouzdano').props.accessibilityHint).toBe('Izabrano je najviše: 3 oznake. Skini jednu da izabereš drugu.');
+ expect(texts()).toContain('Izabrano je najviše: 3 oznake. Skini jednu da izabereš drugu.');
+ await act(async()=>tree.unmount());
+ mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false,review:receipt({agreementId:D,targetAccountId:B,rating:5,tags:['ON_TIME','RELIABLE'],clientRequestId:K})}});
+ await render();await settle();
+ expect(texts()).toContain('Ocena je sačuvana');expect(texts()).toContain('Nikola Petrović');
+ expect(texts()).toContain('Tvoja ocena: 5 od 5');expect(texts()).toContain('Na vreme · Pouzdano');
+ expect(tree.root.findAllByProps({accessibilityRole:'checkbox'})).toHaveLength(0);
+});
 it('server ineligibility and already submitted receipt never expose a new submission',async()=>{
  mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false}});await render();
  expect(texts()).toContain('Ocena još nije dostupna');expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);

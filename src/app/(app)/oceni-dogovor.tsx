@@ -6,7 +6,8 @@ import { useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { uuid } from '../../data/serverReceipt';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
-import { AgreementReviewScreen, backFromReview, backFromReviewToHome } from '../../ui/reviews/AgreementReviewScreen';
+import { AgreementReviewScreen, backFromReview, backFromReviewToAgreement, backFromReviewToHome } from '../../ui/reviews/AgreementReviewScreen';
+import { agreementRole } from '../../ui/v2/AgreementPresentation';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
 import { sys } from '../../ui/system/tokens';
@@ -21,19 +22,22 @@ export default function OceniDogovor() {
   const fromHome = from === 'pocetna', fromList = from === 'dogovori';
   // The fallback below names the same way back as the screen does (verify r4c: it always said "Nazad na Dogovore").
   const backLabel = fromHome ? 'Nazad na Početnu' : fromList ? 'Nazad na Dogovore' : 'Nazad na Dogovor';
-  const onBack = fromHome ? backFromReviewToHome : backFromReview;
   const id = typeof agreementId === 'string' ? agreementId : null;
+  // "Nazad na Dogovor" lands on that Dogovor even when the rating was opened cold (no history to go back through).
+  const fallbackBack = fromHome ? backFromReviewToHome : backFromReview;
+  const onBack = fromHome || fromList || !id ? fallbackBack : () => backFromReviewToAgreement(id);
   // The Dogovor is read only to show whom the rating is about; the rating itself reads and writes through its own service.
   const readAgreement = useCallback(() => id ? izvor.dogovor(id) : Promise.resolve(null), [izvor, id]);
   const photo = useCallback((profileId: string, fallback: ReactNode) => <ProfilePhoto profileId={profileId} size={56} fallback={fallback} />, []);
   if (!uuid(agreementId) || !session.user) return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: sys.color.ground }}>
-    <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
+    {/* Without a session or a valid id there is no Dogovor to open: back through history, or to the list. */}
+    <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={fallbackBack} />
     <View style={{ paddingHorizontal: sys.space.lg }}>
       <StateView kind="error" art="star" title="Ocena nije dostupna" body="Otvori završeni Dogovor iz svog naloga."
-        primary={{ label: backLabel, onPress: onBack }} />
+        primary={{ label: backLabel, onPress: fallbackBack }} />
     </View>
   </SafeAreaView>;
   return <AgreementReviewScreen key={`${session.user.id}:${session.accountRevision}:${agreementId}`}
     agreementId={agreementId} accountId={session.user.id} accountRevision={session.accountRevision}
-    backLabel={backLabel} onBack={onBack} readAgreement={readAgreement} photo={photo} />;
+    backLabel={backLabel} onBack={onBack} readAgreement={readAgreement} photo={photo} roleOf={agreementRole} />;
 }
