@@ -200,6 +200,8 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     AsyncStorage.setItem.mockRejectedValueOnce(new Error('disk full details'));
     await offer(); await sendOffer();
     expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('nije sačuvan na uređaju'); expect(text()).not.toContain('disk full details');
+    // A fresh read of the task cannot fix a phone that could not save: no refresh is offered beside it.
+    expect(press('Osveži Zadatak')).toBeUndefined();
     expect(press('Pregledaj ponudu')).toBeDefined(); expect(field('Koliko ljudi dolazi').editable).toBe(true);
     await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');

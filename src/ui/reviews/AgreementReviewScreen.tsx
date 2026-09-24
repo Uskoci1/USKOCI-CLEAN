@@ -7,12 +7,15 @@ import { reviewsClientService, type ReviewCommand, type ReviewTag } from '../../
 import { failure } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
-import { agreementRole } from '../v2/AgreementPresentation';
 import { AgreementReviewPresentation, type ReviewView } from './AgreementReviewPresentation';
 
 export { AgreementReviewPresentation, type ReviewPerson, type ReviewView } from './AgreementReviewPresentation';
 
 export function backFromReview() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
+/** The rating opened from a Dogovor: Back returns there, and with no history (a cold link) it opens that Dogovor, as it says. */
+export function backFromReviewToAgreement(agreementId: string) {
+  if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
+}
 /** The rating opened from Početna: Back returns there, and with no history it lands there too. */
 export function backFromReviewToHome() { if (router.canGoBack()) router.back(); else router.replace('/'); }
 
@@ -25,7 +28,7 @@ export function backFromReviewToHome() { if (router.canGoBack()) router.back(); 
  * and when it fails or does not match the person the server names, no person is drawn (nothing is invented).
  */
 export function AgreementReviewScreen({ agreementId, accountId, accountRevision, backLabel = 'Nazad na Dogovor', onBack = backFromReview,
-  readAgreement, photo }: {
+  readAgreement, photo, roleOf }: {
   agreementId: string; accountId: string; accountRevision: number;
   /** What the way back is called: the screen the rating was opened from ("Nazad na Početnu" from Početna's strip). */
   backLabel?: string;
@@ -35,6 +38,8 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
   readAgreement?: () => Promise<DogovorProjekcija | null>;
   /** The person's photo at 56, drawn by the route; `fallback` (their letters) when there is none. */
   photo?: (profileId: string, fallback: ReactNode) => ReactNode;
+  /** What the person is to me, in the Dogovor's own words; the route hands it in so this screen loads no media code. */
+  roleOf?: (person: UcesnikProjekcija) => string;
 }) {
   const read = useCallback(() => reviewsClientService.context(agreementId, { accountId, accountRevision }),
     [agreementId, accountId, accountRevision]);
@@ -116,6 +121,6 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
     : context ? { kind: 'unavailable' } : { kind: 'none' };
   return <AgreementReviewPresentation backLabel={backLabel} onBack={onBack} view={view} retry={retry}
     notice={!loading && workspace.error && context ? workspace.error : null}
-    person={person ? { name: person.who.ime, initials: person.who.inicijali, profileId: person.who.profilId, role: agreementRole(person.who), task: person.task } : null}
+    person={person ? { name: person.who.ime, initials: person.who.inicijali, profileId: person.who.profilId, role: roleOf?.(person.who) ?? '', task: person.task } : null}
     photo={photo} />;
 }

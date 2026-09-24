@@ -281,6 +281,10 @@ it('unknown submit requires readback; absence never unlocks changed fields and e
   await act(async () => { oldSend(); }); expect(mockSubmit).toHaveBeenCalledTimes(1);
   // What was sent is shown as facts while its outcome is unknown: there is no field left to change it with.
   expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0); expect(text()).toContain('4.500 RSD');
+  // The route itself still refuses an edit while the command is pending, whatever the screen draws.
+  const composer = () => tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation);
+  await act(async () => composer().props.change({ ...composer().props.draft, price: '9999' }));
+  expect(composer().props.draft.price).toBe('4500'); expect(text()).not.toContain('9.999');
   mockNeed.mockResolvedValue({ ...need(), revizija: 4 }); await tap('Proveri ishod');
   expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   expect(mockApplications).toHaveBeenCalledTimes(2); expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -561,12 +565,22 @@ describe('the composer as a checkout step', () => {
     await edit('Koliko ljudi dolazi', '2'); expect(step('Pregledaj ponudu').props.disabled).toBe(false);
     expect(mockSubmit).not.toHaveBeenCalled();
   });
+  it('the stepper starts again from one when the typed count is not a number, and steps down from too many', async () => {
+    await render(); await edit('Koliko ljudi dolazi', 'abc');
+    expect(step('Jedna osoba manje').props.disabled).toBe(true);
+    await tap('Jedna osoba više'); expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('1');
+    await edit('Koliko ljudi dolazi', '7');
+    expect(step('Jedna osoba više').props.disabled).toBe(true); expect(step('Jedna osoba manje').props.disabled).toBe(false);
+    await tap('Jedna osoba manje'); expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('6');
+  });
   it('a task without its named price says so in words and cannot be reviewed', async () => {
     const unpriced = { ...need(), rezimCene: 'MY_PRICE', ponudjenaCena: undefined };
     mockNeed.mockResolvedValue(unpriced); mockTask.mockResolvedValue({ ...unpriced, primaNovePrijave: true });
     await render();
     expect(text()).toContain('Cena nije navedena'); expect(text()).not.toMatch(/\d RSD/);
-    expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Zadatak nema navedenu cenu. Osveži zadatak.');
+    expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Zadatak nema navedenu cenu. Osveži Zadatak.');
+    // The reason names a fresh read, and the way to it stands under the grey button.
+    const reads = mockNeed.mock.calls.length; await tap('Osveži Zadatak'); expect(mockNeed.mock.calls.length).toBe(reads + 1);
   });
   it('after the send, the fields give way to the success mark and the facts of what was sent, with its currency', async () => {
     await offer(); await sendOffer();

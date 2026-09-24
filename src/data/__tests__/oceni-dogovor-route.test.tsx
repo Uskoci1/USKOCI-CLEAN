@@ -5,7 +5,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 // way back as the rating screen does. It always said "Nazad na Dogovore" and always went to the Dogovori list.
 let mockParams: Record<string, string | undefined> = {};
 let mockUser: { id: string } | null = null;
-const mockBackFromReview = jest.fn(), mockBackFromReviewToHome = jest.fn();
+const mockBackFromReview = jest.fn(), mockBackFromReviewToHome = jest.fn(), mockBackFromReviewToAgreement = jest.fn();
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: mockUser, accountRevision: 1 }) }));
@@ -13,6 +13,7 @@ jest.mock('../../data/serverReceipt', () => ({ uuid: (value: unknown) => typeof 
 jest.mock('../../ui/reviews/AgreementReviewScreen', () => ({
   AgreementReviewScreen: 'AgreementReviewScreen',
   backFromReview: () => mockBackFromReview(), backFromReviewToHome: () => mockBackFromReviewToHome(),
+  backFromReviewToAgreement: (id: string) => mockBackFromReviewToAgreement(id),
 }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'V2Action' }));
@@ -34,6 +35,7 @@ describe('the fallback names the way back it takes', () => {
     ['dogovori', 'Nazad na Dogovore', mockBackFromReview],
     [undefined, 'Nazad na Dogovor', mockBackFromReview],
   ])('from %s', async (from, label, back) => {
+    // The fallback (no session here) has no Dogovor it could open, so "Nazad na Dogovor" goes back, or to the list.
     mockParams = { agreementId, from };
     await render();
     const action = tree.root.findByType('V2Action' as unknown as React.ElementType);
@@ -44,6 +46,16 @@ describe('the fallback names the way back it takes', () => {
     await act(async () => action.props.onPress());
     expect(back).toHaveBeenCalledTimes(1);
   });
+});
+
+it('from a Dogovor, the way back opens that Dogovor even without history', async () => {
+  mockUser = { id: 'account-1' }; mockParams = { agreementId };
+  await render();
+  const screen = tree.root.findByType('AgreementReviewScreen' as unknown as React.ElementType);
+  expect(screen.props.backLabel).toBe('Nazad na Dogovor');
+  screen.props.onBack();
+  expect(mockBackFromReviewToAgreement).toHaveBeenCalledWith(agreementId); expect(mockBackFromReview).not.toHaveBeenCalled();
+  expect(screen.props.roleOf({ uloga: 'narucilac' })).toBe('Traži pomoć');
 });
 
 it('hands the screen the same label and way back', async () => {
