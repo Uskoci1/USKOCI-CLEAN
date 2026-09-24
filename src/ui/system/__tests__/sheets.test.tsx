@@ -287,6 +287,26 @@ describe('ProductSheet', () => {
     expect(backdropOf().props.accessible).toBe(false);
   });
 
+  // Round 6 on the emulator (b4531ef4): the × sat alone under the green title on every titled sheet. RN's sticky header
+  // moves the sticky child's own style onto its wrapper and gives the child {flex: 1} alone, so a row direction on the
+  // sticky element is lost; the row must live one level inside it. Jest's ScrollView does not apply that wrapper, so
+  // this pins the structure, and the emulator shows the result.
+  it('keeps the title and its × on one row inside the sticky heading, not on the sticky element itself', async () => {
+    await render(<ProductSheet title="Ovo šalješ" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(tree.root.findByType('ScrollView' as unknown as React.ElementType).props.stickyHeaderIndices).toEqual([0]);
+    const title = tree.root.findByProps({ accessibilityRole: 'header' });
+    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' });
+    const row = title.parent!;
+    expect(close.parent).toBe(row);
+    expect(flat(row.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center' });
+    expect(flat(title.props.style)).toMatchObject({ flex: 1, color: sys.color.green });
+    expect(flat(close.props.style)).toMatchObject({ width: 48, height: 48 });
+    // The sticky element carries only what its wrapper may take: the white and the padding under the row.
+    const sticky = row.parent!;
+    expect(flat(sticky.props.style)).toMatchObject({ backgroundColor: sys.color.surface, paddingBottom: sys.space.md });
+    expect(flat(sticky.props.style).flexDirection).toBeUndefined();
+  });
+
   it('names a sheet without a visible title, and draws no heading for it', async () => {
     await render(<ProductSheet label="Radnje" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
     expect(sheet().props.accessibilityLabel).toBe('Radnje');

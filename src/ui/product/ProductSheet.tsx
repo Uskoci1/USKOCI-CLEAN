@@ -140,10 +140,16 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
             // The pinned actions sit over the end of the content; the content makes room for them, so the last line
             // is never hidden under a button.
             contentContainerStyle={[s.content, pinned ? { paddingBottom: footerHeight + sys.space.sm } : null]}>
-            {title ? <View style={s.heading}><T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
+            {/* The row lives one level INSIDE the sticky element (round 6 on the emulator, b4531ef4: the × sat under the
+                title on every titled sheet). RN's ScrollViewStickyHeader moves the sticky child's own style onto its
+                wrapper and re-clones the child with {flex: 1} alone, so a row direction on the sticky View is lost and
+                its children stack; the outer View carries only what the wrapper may take (the white, the padding). */}
+            {title ? <View style={s.heading}><View style={s.headingRow}>
+              <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
               {closeButton ? <Press accessibilityRole="button" accessibilityLabel={closeLabel} accessibilityState={{ disabled: !dismissible }}
                 disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
-                <X size={22} color={sys.color.ink} /></Press> : null}</View> : null}
+                <X size={22} color={sys.color.ink} /></Press> : null}
+            </View></View> : null}
             <SafeAreaView edges={pinned ? [] : ['bottom']} style={s.stack}>
               {children(dismiss)}
             </SafeAreaView>
@@ -159,7 +165,10 @@ const s = StyleSheet.create({
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong },
   content: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base }, stack: { gap: sys.space.md },
   // On the sheet's white, so what scrolls under the pinned title does not show through it; the padding is the stack's gap.
-  heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingBottom: sys.space.md, backgroundColor: sys.color.surface }, title: { flex: 1, color: sys.color.green },
+  // Nothing about direction here: this style is moved onto RN's sticky wrapper (see the heading above).
+  heading: { paddingBottom: sys.space.md, backgroundColor: sys.color.surface },
+  // One row: the title takes the width and wraps in its column; the 48 × keeps its measure at the right end.
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md }, title: { flex: 1, minWidth: 0, color: sys.color.green },
   close: { width: SHEET_TOUCH, height: SHEET_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface },
   discard: { gap: sys.space.sm }, discardTitle: { color: sys.color.ink },

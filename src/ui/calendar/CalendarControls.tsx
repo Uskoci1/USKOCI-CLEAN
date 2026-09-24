@@ -106,7 +106,8 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={shown ? { text: shown } : undefined} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
       <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
-      <FactArt kind="calendar" size={22} />
+      {/* Each fact its own picture (r6, "Tačan termin" and Izmene): a time field wears the clock, a date field the calendar. */}
+      <FactArt kind={mode === 'time' ? 'clock' : 'calendar'} size={22} />
     </Press>
     {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour
       onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}

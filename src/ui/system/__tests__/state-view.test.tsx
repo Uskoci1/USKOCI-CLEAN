@@ -9,7 +9,7 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 import { StateView } from '../StateView';
 import { SkeletonCard, SkeletonList } from '../Skeleton';
 import { V2Action } from '../../v2/V2Action';
-import { brandAction } from '../tokens';
+import { brandAction, cardCompact, sys } from '../tokens';
 
 /**
  * Empty, loading, error and offline in one look (master design plan, 2026-09-24): a picture in a soft well, one title,
@@ -38,6 +38,23 @@ it('says an empty list with its picture, a heading, one sentence and the one way
   expect(quiet.props.kind).toBe('quiet');
   await act(async () => primary.props.onPress()); await act(async () => quiet.props.onPress());
   expect(makeTask).toHaveBeenCalledTimes(1); expect(all).toHaveBeenCalledTimes(1);
+});
+
+// Round 6 on the emulator (b4531ef4): the block stood 4 dp past every host's 20 dp gutter and its green action hugged its
+// label, while the same command in every footer fills the width. The host pads the gutter; the state pads nothing
+// sideways and stretches its children, so the actions take the content width and the 80 px well keeps its own.
+it('sits on the host\'s gutter and draws its actions the full width, as every footer primary is drawn', async () => {
+  await render(<StateView kind="error" title="Podatke za prijavu trenutno nije moguće učitati." body="Proveri vezu i pokušaj ponovo."
+    primary={{ label: 'Pokušaj ponovo', onPress: () => {} }} quiet={{ label: 'Nazad', onPress: () => {} }} />);
+  // RN's Jest View is a class around its host node, so the block is found by what it draws, not by counting steps up.
+  let block = art().parent!;
+  while (flat(block).paddingVertical === undefined) block = block.parent!;
+  expect(flat(block)).toMatchObject({ alignItems: 'stretch', paddingVertical: sys.space.xxl });
+  expect(flat(block).paddingHorizontal).toBeUndefined();
+  const [primary, quiet] = actions();
+  expect(StyleSheet.flatten(primary.props.style)).toMatchObject({ backgroundColor: brandAction.backgroundColor, minHeight: brandAction.minHeight });
+  for (const action of [primary, quiet]) expect(StyleSheet.flatten(action.props.style)?.alignSelf).toBeUndefined();
+  expect(flat(art().parent!)).toMatchObject({ width: 80 });
 });
 
 it('draws the picture in a soft 80 px well', async () => {
@@ -98,4 +115,61 @@ it('waits in the task card\'s shape only where a task list says so; every other 
   expect(avatars()).toHaveLength(3);
   await act(async () => tree.update(<StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 2, rows: 2 }} />));
   expect(avatars()).toHaveLength(0);
+});
+
+// Round 6 on the emulator (b4531ef4): the Q&A thread, the Izmene terms, the composer's task face and the rating screen
+// all waited in a card with a person that never arrived. Each flat screen now waits in its own flat shape, and only the
+// publish preview keeps a card, without the foot.
+describe('the placeholders of the flat screens', () => {
+  const host = (node: ReactTestInstance) => typeof node.type === 'string';
+  const frames = () => tree.root.findAll(node => host(node) && flat(node).borderWidth === 1 && flat(node).borderColor === cardCompact.borderColor);
+  const avatars = () => tree.root.findAll(node => host(node) && flat(node).width === 32 && flat(node).height === 32);
+  const blocks = (size: number) => tree.root.findAll(node => host(node) && flat(node).width === size && flat(node).height === size);
+
+  it.each(['face', 'thread', 'facts', 'person'] as const)('%s draws no card frame and no list person', async variant => {
+    await render(<SkeletonCard variant={variant} rows={3} />);
+    expect(frames()).toHaveLength(0);
+    expect(avatars()).toHaveLength(0);
+  });
+
+  it('the preview keeps the compact card with the head and its facts, and nothing under them', async () => {
+    await render(<SkeletonCard variant="preview" rows={3} />);
+    expect(frames()).toHaveLength(1);
+    expect(blocks(16)).toHaveLength(3);
+    expect(avatars()).toHaveLength(0);
+  });
+
+  it('the face is the same head and facts, bare, over the composer\'s hairline', async () => {
+    await render(<SkeletonCard variant="face" rows={3} />);
+    const root = tree.root.findAll(host)[0];
+    expect(flat(root)).toMatchObject({ borderBottomWidth: 1, paddingBottom: 20 });
+    expect(blocks(16)).toHaveLength(3);
+  });
+
+  it('a thread item is the question, the answer behind its rule, and a hairline above; the list adds no gap of its own', async () => {
+    await render(<SkeletonList count={3} variant="thread" />);
+    const items = tree.root.findAll(node => host(node) && flat(node).borderTopWidth === StyleSheet.hairlineWidth);
+    expect(items).toHaveLength(3);
+    const rules = tree.root.findAll(node => host(node) && flat(node).borderLeftWidth === 3);
+    expect(rules).toHaveLength(3);
+    expect(flat(tree.root.findAll(host)[0]).gap).toBeUndefined();
+  });
+
+  it('the facts are 24 px drawings beside a label and a value, one row per fact', async () => {
+    await render(<SkeletonCard variant="facts" rows={3} />);
+    expect(blocks(24)).toHaveLength(3);
+  });
+
+  it('the person is a 56 px face, five star blanks and the tag pills', async () => {
+    await render(<SkeletonCard variant="person" />);
+    expect(blocks(56)).toHaveLength(1);
+    expect(blocks(40)).toHaveLength(5);
+    expect(tree.root.findAll(node => host(node) && flat(node).height === 48 && flat(node).borderRadius === sys.radius.pill)).toHaveLength(4);
+  });
+
+  it('the state view forwards the variant to the list', async () => {
+    await render(<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{ count: 3, variant: 'thread' }} />);
+    expect(tree.root.findByType(SkeletonList).props).toMatchObject({ count: 3, variant: 'thread' });
+    expect(frames()).toHaveLength(0);
+  });
 });

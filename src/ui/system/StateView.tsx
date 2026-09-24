@@ -19,7 +19,9 @@ const DEFAULT_ART: Record<Exclude<StateKind, 'loading'>, FactArtKind> = { empty:
  *
  * - empty / error / offline: the FactArt picture at 56 px in a soft well, one title, one sentence, and at most one
  *   primary action (green) and one quiet action. Error and offline draw the picture grey and are announced as alerts;
- *   an empty list's title is a heading.
+ *   an empty list's title is a heading. The block sits on the host's own gutter (it pads nothing sideways) and its
+ *   actions fill the content width, the one shape every footer gives the same command (r6 on the emulator: a 4 dp
+ *   indent that aligned with nothing, and a green action hugging its label beside full-width ones).
  * - loading: the existing breathing placeholders in the shape of the cards that are coming, and one quiet sentence a
  *   screen reader hears ("Učitavamo Dogovore…"). No action: nothing can be done while it reads.
  *
@@ -54,8 +56,10 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
 const s = StyleSheet.create({
   loading: { gap: 16 },
   center: { textAlign: 'center' },
-  state: { paddingVertical: 28, paddingHorizontal: 4, gap: 12, alignItems: 'flex-start' },
-  art: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  // Steps of sys.space (the sweep's 28/6 were off the 4/8 rhythm); stretched, so the actions take the content width
+  // while the 80 px well keeps its own width at the left and the texts stay left-aligned.
+  state: { paddingVertical: sys.space.xxl, gap: sys.space.md, alignItems: 'stretch' },
+  art: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: sys.space.xs },
   title: { color: sys.color.ink },
-  body: { marginBottom: 6 },
+  body: { marginBottom: sys.space.sm },
 });
