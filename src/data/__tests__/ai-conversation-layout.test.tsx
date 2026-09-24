@@ -43,6 +43,15 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it('shows the requested idle chat pattern: add, writing prompt, voice and privacy',async()=>{
+  const p=props();p.value='';p.voice=<View testID="voice-control"/>;p.onAdd=jest.fn();p.addLabel='Dodaj fotografiju ili mesto';
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findByProps({accessibilityLabel:'Dodaj fotografiju ili mesto'})).toBeDefined();
+  expect(tree.root.findByProps({accessibilityLabel:'Napiši poruku'})).toBeDefined();
+  expect(tree.root.findByProps({testID:'voice-control'})).toBeDefined();
+  expect(tree.root.findByProps({accessibilityLabel:'O govornom unosu i privatnosti'})).toBeDefined();
+  expect(tree.root.findAllByProps({accessibilityLabel:'Pošalji poruku'})).toHaveLength(0);
+});
 it('gives active voice the whole composer and restores an existing draft afterwards',async()=>{
   const p=props();p.voice=<View testID="voice-control"/>;p.voiceActive=true;p.onAdd=jest.fn();
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
