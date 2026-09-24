@@ -1,15 +1,20 @@
+import { useCallback, type ReactNode } from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSesija } from '../../store/sesija';
+import { useIzvor } from '../../store/uloga';
 import { uuid } from '../../data/serverReceipt';
+import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { AgreementReviewScreen, backFromReview, backFromReviewToHome } from '../../ui/reviews/AgreementReviewScreen';
+import { DetailTopBar } from '../../ui/system/DetailTopBar';
+import { StateView } from '../../ui/system/StateView';
 import { sys } from '../../ui/system/tokens';
-import { T } from '../../ui/Text';
-import { V2Action } from '../../ui/v2/V2Action';
 
 export default function OceniDogovor() {
   const { agreementId, from } = useLocalSearchParams<{ agreementId: string | string[]; from?: string | string[] }>();
   const session = useSesija();
+  const izvor = useIzvor();
   // Opened from Početna's rating strip, Back returns to Početna and its button says so; from the Dogovori list's strip it
   // returns to the list and says so (round 4 review rd item 1: it said "Nazad na Dogovor" there); from a Dogovor it says
   // Dogovor.
@@ -17,12 +22,18 @@ export default function OceniDogovor() {
   // The fallback below names the same way back as the screen does (verify r4c: it always said "Nazad na Dogovore").
   const backLabel = fromHome ? 'Nazad na Početnu' : fromList ? 'Nazad na Dogovore' : 'Nazad na Dogovor';
   const onBack = fromHome ? backFromReviewToHome : backFromReview;
-  if (!uuid(agreementId) || !session.user) return <SafeAreaView style={{ flex: 1, padding: 24, gap: 16, backgroundColor: sys.color.ground }}>
-    <T accessibilityRole="header" variant="title" style={{ color: sys.color.ink }}>Ocena nije dostupna</T>
-    <T variant="body" tone="muted">Otvori završeni Dogovor iz svog naloga.</T>
-    <V2Action label={backLabel} onPress={onBack} />
+  const id = typeof agreementId === 'string' ? agreementId : null;
+  // The Dogovor is read only to show whom the rating is about; the rating itself reads and writes through its own service.
+  const readAgreement = useCallback(() => id ? izvor.dogovor(id) : Promise.resolve(null), [izvor, id]);
+  const photo = useCallback((profileId: string, fallback: ReactNode) => <ProfilePhoto profileId={profileId} size={56} fallback={fallback} />, []);
+  if (!uuid(agreementId) || !session.user) return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: sys.color.ground }}>
+    <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
+    <View style={{ paddingHorizontal: sys.space.lg }}>
+      <StateView kind="error" art="star" title="Ocena nije dostupna" body="Otvori završeni Dogovor iz svog naloga."
+        primary={{ label: backLabel, onPress: onBack }} />
+    </View>
   </SafeAreaView>;
   return <AgreementReviewScreen key={`${session.user.id}:${session.accountRevision}:${agreementId}`}
     agreementId={agreementId} accountId={session.user.id} accountRevision={session.accountRevision}
-    backLabel={backLabel} onBack={onBack} />;
+    backLabel={backLabel} onBack={onBack} readAgreement={readAgreement} photo={photo} />;
 }

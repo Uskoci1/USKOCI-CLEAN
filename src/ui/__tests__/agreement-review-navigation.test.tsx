@@ -25,6 +25,8 @@ jest.mock('../system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../Text', () => ({ T: 'T' }));
 jest.mock('../v2/V2Action', () => ({ V2Action: 'Action' }));
+// The route reads the Dogovor only to show whom the rating is about; here there is none, and the rating works without it.
+jest.mock('../../store/uloga', () => ({ useIzvor: () => ({ dogovor: async () => null }) }));
 
 import { ExpoRoot, router, Stack } from 'expo-router';
 import { inMemoryContext } from 'expo-router/build/testing-library/context-stubs';
@@ -79,5 +81,7 @@ test.each([['dogovori', 'Nazad na Dogovore'], ['pocetna', 'Nazad na Početnu'], 
     await act(async () => { tree = create(<ExpoRoot context={routes} location={`/oceni-dogovor?${query}`} />); });
     await settle(); await act(async () => { jest.advanceTimersByTime(600); }); await settle();
     const backs = tree.root.findAll(node => typeof node.props.label === 'string' && node.props.label.startsWith('Nazad na'));
-    expect(backs.map(node => node.props.label)).toEqual([label]);
+    // The top bar's arrow now names the same place as the green button (round 6): every way back says one place.
+    const labels = backs.map(node => node.props.label);
+    expect(new Set(labels)).toEqual(new Set([label])); expect(labels.length).toBeGreaterThanOrEqual(1);
   });

@@ -1,16 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { fixedApplicationPeople, needPriceText, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
-import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
+import { readableTitle } from '../../data/needDetailPresentation';
+import { FlatList, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, Check, PaperPlaneTilt } from 'phosphor-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useReducedMotion } from '../system/motion';
-import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
-import { calendarInstant } from '../../lib/calendarTime';
-import { novac } from '../../lib/novac';
+import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
-import { CivilField } from '../calendar/CalendarControls';
-import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import type { AvatarSize } from '../system/Avatar';
@@ -19,25 +15,21 @@ import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '.
 import { DetailSection, ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
-import { dolaziOsoba, osoba, osobuAkuz, prijava } from '../system/plural';
+import { dolaziOsoba, osobuAkuz, prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
-import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
+import { brandAction, cardCompact, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { CandidateCard, CandidateCompareCard, CandidatePerson, CandidateStatusLine, UNPRICED, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
 import { ACTION_MIN_HEIGHT, V2Action } from './V2Action';
+import { splitFirstSentence } from './ApplicationComposerPresentation';
 
-export type ApplicationDraft = { price: string; people: string; note: string; start: string | null; end: string | null };
-function applicationInterval(start: string | null | undefined, end: string | null | undefined, timezone?: string): string | null {
-  const from = calendarInstant(start), to = calendarInstant(end);
-  if (from === null || to === null || from >= to) return null;
-  try {
-    const zone = timezone ?? 'UTC';
-    const a = zonedParts(new Date(Number(from / 1000n)), zone), b = zonedParts(new Date(Number(to / 1000n)), zone);
-    return `${displayDate(a.date)} · ${a.time.slice(0, 5)}–${a.date === b.date ? '' : `${displayDate(b.date)} · `}${b.time.slice(0, 5)} (${zone === 'Europe/Belgrade' ? 'po vremenu u Srbiji' : zone})`;
-  } catch { return null; }
-}
+/**
+ * The worker's application composer lives in its own module since round 6 (unit `prijava`, 2026-09-24). It is re-exported
+ * here under its old name, as the same function, so every caller and test that found it here still finds it.
+ */
+export { ApplicationComposerPresentation as ApplicationSelectionPresentation, type ApplicationDraft } from './ApplicationComposerPresentation';
 
 /** Shared identity, keyboard-safe body and one next action. */
 function SelectionFrame({ title, back, children, footer, scroll = true, backLabel = 'Nazad na zadatak', right }: {
@@ -67,23 +59,6 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
       : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
   </SelectionFrame>;
 }
-/** "Zadatak se upravo promenio. Učitaj Prijave ponovo." → the first sentence and the rest; one sentence stays whole. */
-function splitFirstSentence(message: string): [string, string | null] {
-  const match = /^(.+?[.!?])\s+(\S[\s\S]*)$/.exec(message.trim());
-  return match ? [match[1], match[2]] : [message.trim(), null];
-}
-/** The Task the offer belongs to, as a compact context card. The green title is the task; no word
- *  above it says so (owner's rule, 2026-09-23: nothing explains where you are). */
-function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) {
-  const price = needPriceText(need);
-  // "Tražim ponude" and "Cena nije navedena" are words about a price, never dressed as an amount.
-  const priceIsAmount = need.rezimCene === 'MY_PRICE' && /\d/.test(price);
-  return <View style={s.context}><T style={s.contextTitle}>{readableTitle(need.naslov)}</T>
-    <T variant="meta" tone="muted">{need.podrucjeTekst}</T><T variant="meta" tone="muted">{need.vremeTekst}</T>
-    <View style={s.row}><T style={[s.contextPrice, !priceIsAmount && s.offers]}>{price}</T>
-      <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} mesta</T></View></View>
-  </View>;
-}
 /** `loading` is this action's own write in flight: the button keeps its green and its words, with a spinner. */
 function BrandAction({ label, onPress, disabled, loading, reason, send }: {
   label: string; onPress: () => void; disabled?: boolean; loading?: boolean; reason?: string | null; send?: boolean;
@@ -94,160 +69,10 @@ function BrandAction({ label, onPress, disabled, loading, reason, send }: {
 function ErrorMessage({ error }: { error?: string | null }) {
   return error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null;
 }
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <View style={s.field}><T variant="meta" tone="muted">{label}</T>{children}</View>;
-}
-function IntervalEditor({ draft, timezone, close, accept }: {
-  draft: ApplicationDraft; timezone: string; close: () => void; accept: (start: string | null, end: string | null) => void;
-}) {
-  const reduced = useReducedMotion();
-  const [start, setStart] = useState(() => draft.start ? zonedParts(new Date(draft.start), timezone) : { date: '', time: '' });
-  const [end, setEnd] = useState(() => draft.end ? zonedParts(new Date(draft.end), timezone) : { date: '', time: '' });
-  const [dirtyStart, setDirtyStart] = useState(false), [dirtyEnd, setDirtyEnd] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const apply = () => {
-    const from = draft.start && !dirtyStart ? { value: draft.start, error: null } : civilInstant(start.date, start.time, timezone);
-    const to = draft.end && !dirtyEnd ? { value: draft.end, error: null } : civilInstant(end.date, end.time, timezone);
-    if (!from.value || !to.value) { setError(from.error ?? to.error); return; }
-    const a = calendarInstant(from.value), b = calendarInstant(to.value);
-    if (a === null || b === null || a >= b) { setError('Kraj termina mora biti posle početka.'); return; }
-    accept(from.value, to.value);
-  };
-  return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={close}>
-    <SelectionFrame title="Predlog termina" back={close} footer={<BrandAction label="Potvrdi termin" onPress={apply} />}>
-      <View style={s.card}>
-        <T accessibilityRole="header" variant="title" style={s.ink}>Ponudi tačan početak i kraj.</T>
-        <T variant="body" tone="muted">{timezone === 'Europe/Belgrade' ? 'Vreme je po vremenu u Srbiji.' : `Vremenska zona: ${timezone}.`} Ovaj predlog pripada tvojoj Prijavi.</T>
-      </View>
-      <View style={s.card}>
-        <CivilField label="Datum početka" mode="date" value={start.date} onChange={value => { setStart(v => ({ ...v, date: value })); setDirtyStart(true); }} />
-        <CivilField label="Početak" mode="time" value={start.time} onChange={value => { setStart(v => ({ ...v, time: value })); setDirtyStart(true); }} />
-        <CivilField label="Datum kraja" mode="date" value={end.date} onChange={value => { setEnd(v => ({ ...v, date: value })); setDirtyEnd(true); }} />
-        <CivilField label="Kraj" mode="time" value={end.time} onChange={value => { setEnd(v => ({ ...v, time: value })); setDirtyEnd(true); }} />
-      </View>
-      <ErrorMessage error={error} /><V2Action label="Koristi termin Zadatka" onPress={() => accept(null, null)} />
-    </SelectionFrame>
-  </Modal>;
-}
-/** Composer of one application: price for the offered scope, people, optional exact interval, short note, one send. */
-export function ApplicationSelectionPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked }: {
-  need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
-  submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
-  error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
-  /** Why the brand action is grey, said next to it, with the one place that fixes it when there is one. */
-  blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null;
-}) {
-  const [editingTime, setEditingTime] = useState(false);
-  const [review, setReview] = useState<{ key: string } | null>(null);
-  const reduced = useReducedMotion();
-  // The review only stages presentation. The route still validates, journals and sends the command.
-  // A changed draft/task cannot be sent through a retained confirmation from the previous review.
-  const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, draft]);
-  const reviewing = !!review && review.key === reviewKey && !busy && !pending && !confirmed && canSubmit;
-  const liveReview = useRef<typeof review>(null);
-  liveReview.current = reviewing ? review : null;
-  const closeReview = () => { liveReview.current = null; setReview(null); };
-  const confirmReview = () => {
-    if (!review || liveReview.current !== review) return;
-    closeReview(); submit();
-  };
-  const disabled = busy || pending || confirmed;
-  const exact = applicationInterval(draft.start, draft.end, need.taskTimezone);
-  const fixed = need.schedule?.kind === 'FIXED_WINDOW' ? applicationInterval(need.schedule.startsAt, need.schedule.endsAt, need.taskTimezone) : null;
-  const reviewPrice = /^\d+$/.test(draft.price) && Number.isSafeInteger(Number(draft.price)) && Number(draft.price) > 0 ? novac(Number(draft.price)) : null;
-  const reviewTime = exact ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, need.taskTimezone)
-    : fixed && need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
-  const priceLocked = opportunity.rezimCene === 'MY_PRICE';
-  // The rule behind the locked price is said in words, from the same Need read the price came from (8.10).
-  const peopleLocked = fixedApplicationPeople(need) !== null;
-  const priceRule = !priceLocked ? 'Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.'
-    : need.osnovaCene === 'PER_PERSON' ? `Cena je ${need.ponudjenaCena?.prikaz ?? 'navedena'} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
-    : peopleLocked ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
-    : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
-  const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
-  // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj ponudu" is the action.
-  const reviewAction = !confirmed && !uncertain && !pending && !busy;
-  return <SelectionFrame title="Tvoja prijava" back={back} footer={<>
-    <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{reviewPrice ?? 'Proveri unetu cenu'}{reviewPrice ? ' ukupno' : ''} · {/^[1-9]\d*$/.test(draft.people) ? dolaziOsoba(Number(draft.people)) : 'broj ljudi nije unet'}</T></View>
-    {confirmed ? <BrandAction label="Otvori moje prijave" onPress={openApplications} />
-      : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-      : pending || busy ? <BrandAction label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} loading={busy} send />
-      : <BrandAction label="Pregledaj ponudu" onPress={() => {
-        if (!disabled && canSubmit && !reviewing) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
-      }} disabled={!canSubmit || reviewing} reason={shownBlock && reviewAction ? shownBlock.reason : null} />}
-    {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review
-        button the reason is the button's own line (and its spoken hint); beside the other actions it stands here. */}
-    {shownBlock && (!reviewAction || !!(shownBlock.actionLabel && shownBlock.onAction)) ? <View style={s.blocked}>
-      {reviewAction ? null : <T accessibilityLiveRegion="polite" variant="meta" tone="muted" style={s.center}>{shownBlock.reason}</T>}
-      {shownBlock.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
-    </View> : null}
-  </>}>
-    <TaskContext need={opportunity} />
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja ponuda</T>
-      <View style={s.offerRow}>
-        <Field label="Ukupno (RSD)">
-          <TextInput accessibilityLabel="Ukupna cena za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
-            editable={!disabled && !priceLocked} style={[s.amountInput, priceLocked && s.inputLocked]}
-            onChangeText={price => { if (!disabled && !priceLocked) change({ ...draft, price }); }} />
-        </Field>
-        <Field label="Ljudi">
-          <TextInput accessibilityLabel="Ljudi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled && !peopleLocked}
-            style={[s.amountInput, peopleLocked && s.inputLocked]} onChangeText={people => { if (!disabled && !peopleLocked) change({ ...draft, people }); }} />
-        </Field>
-      </View>
-      <T variant="meta" tone="muted">{priceRule}</T>
-    </View>
-    {/* One card used to be called "Termin i poruka" and hold both, so the word Termin appeared
-        twice inside it and neither half was a whole thought. Two blocks, one idea each. */}
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Termin</T>
-      <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
-        onPress={() => setEditingTime(true)} style={s.term}>
-        <FactArt kind="calendar" size={32} />
-        <T variant="bodyStrong" style={[s.ink, s.grow]}>{exact ?? fixed ?? need.vremeTekst}</T>
-        <CaretRight size={20} color={sys.color.muted} />
-      </Press>
-      {!exact && !fixed ? <T variant="meta" tone="muted">Tačan termin još nije ponuđen. Fleksibilno vreme ne rezerviše tačan interval.</T> : null}
-    </View>
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Poruka uz prijavu</T>
-      <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={4000} value={draft.note} editable={!disabled} style={[s.input, s.multiline]}
-        placeholder="Ono što pomaže da se tvoja ponuda razume." placeholderTextColor={sys.color.muted}
-        onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
-    </View>
-    <ErrorMessage error={error} />
-    {error && !pending ? <V2Action label="Osveži Zadatak" onPress={refresh} disabled={busy} /> : null}
-    {pending && !confirmed ? <T variant="meta" tone="muted">Sačuvana je ista ponuda za proveru ishoda. Ponavljanje koristi njen prvobitni termin, cenu i broj ljudi.</T> : null}
-    {confirmed ? <View style={[s.card, s.cardSuccess]}><T accessibilityRole="alert" variant="title" style={s.ink}>Prijava je poslata.</T><T variant="body" tone="muted">Onaj ko je objavio zadatak može da izabere ovu konkretnu ponudu. Izbor odmah sklapa Dogovor.</T></View> : null}
-    {reset ? <V2Action label="Pregledaj uslove i uredi novu ponudu" onPress={reset} disabled={busy} /> : null}
-    {editingTime && !disabled ? <IntervalEditor draft={draft} timezone={need.taskTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
-      close={() => setEditingTime(false)} accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
-    {reviewing ? <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={closeReview}>
-      <SelectionFrame title="Pregled ponude" backLabel="Nazad na izmenu ponude" back={closeReview}
-        footer={<BrandAction label="Pošalji ovu Prijavu" onPress={confirmReview} send />}>
-        <View style={s.reviewContext}>
-          <T style={s.contextTitle}>{readableTitle(opportunity.naslov)}</T>
-          <T variant="meta" tone="muted">{opportunity.podrucjeTekst}</T></View>
-        <View style={s.card}>
-          <T variant="meta" style={s.eyebrow}>Ovo šalješ</T>
-          <ProductFacts>
-            <ProductFact art="money" label="Ukupna ponuda" prominent={reviewPrice !== null}
-              value={reviewPrice ?? 'Proveri unetu cenu'} note={reviewPrice ? 'Ukupno za sve ljude koje dovodiš' : undefined} />
-            <ProductFact art="users" label="Ljudi" value={/^[1-9]\d*$/.test(draft.people) ? osoba(Number(draft.people)) : 'Proveri broj ljudi'} />
-            <ProductFact art="calendar" label="Termin" value={reviewTime}
-              note={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : undefined} />
-          </ProductFacts>
-        </View>
-        <View style={s.card}><T variant="meta" style={s.eyebrow}>Tvoja poruka</T>
-          <T variant="body" style={s.ink}>{draft.note.trim() || 'Bez dodatne poruke.'}</T></View>
-        <T variant="meta" tone="muted">Ponuda ide uz ovaj zadatak. Ako bude izabrana, nastaje Dogovor.</T>
-        <V2Action label="Izmeni ponudu" kind="quiet" onPress={closeReview} />
-      </SelectionFrame>
-    </Modal> : null}
-  </SelectionFrame>;
-}
 /** A person's picture at the size its place asks for, handed in by the screen; the Avatar with their letters when absent. */
 export type CandidatePhoto = (candidate: KandidatProjekcija, size: AvatarSize) => ReactNode;
 
-/** The side padding of a screen body here (the list and the composer). */
+/** The side padding of a screen body here (the list). */
 const LIST_PADDING = 20;
 const candidateKey = (k: KandidatProjekcija) => k.prijavaId;
 const CandidateSeparator = () => <View style={s.separator} />;
@@ -512,28 +337,12 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
-  eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink },
+  ink: { color: sys.color.ink },
   content: { padding: LIST_PADDING, paddingTop: 16, paddingBottom: 28 },
-  card: { ...card, gap: 10 },
-  cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   warnCard: { ...inset, backgroundColor: sys.color.warnSoft, padding: 16, gap: 8 },
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
-  context: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, gap: 4 },
-  reviewContext: { gap: 4, paddingBottom: 4 },
-  contextTitle: { ...sys.type.cardTitle, color: sys.color.green, marginBottom: 4 },
-  contextPrice: { ...sys.type.priceSmall, color: sys.color.money, flex: 1 }, offers: { ...sys.type.bodyStrong, color: sys.color.ink },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  pill: { paddingVertical: 4 }, pillText: { color: sys.color.ink, fontWeight: '600' },
-  offerRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-end' }, field: { flex: 1, gap: 6 },
-  input: { ...field },
-  amountInput: { ...sys.type.price, color: sys.color.ink, borderWidth: 1, borderRadius: sys.radius.control, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface, minHeight: 54, paddingHorizontal: 12, paddingVertical: 10 },
-  inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
-  blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
   listHeader: { gap: 4, marginBottom: 12 },
   // A row that opens something is a command: never under 48.
   brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: ACTION_MIN_HEIGHT, paddingTop: 4, paddingBottom: 14,

@@ -30,6 +30,8 @@ test('the top bar names the screen by its content, with no eyebrow over it', asy
   await act(async () => { tree = create(<AgreementReviewScreen agreementId={agreementId} accountId={accountId} accountRevision={0} />); });
   const bar = tree.root.findByType('DetailTopBar' as React.ElementType);
   expect(bar.props.title).toBe('Ocena saradnje'); expect(bar.props.eyebrow).toBeUndefined();
+  // Without a way back named by the route, the arrow says the Dogovor, as the button does.
+  expect(bar.props.backLabel).toBe('Nazad na Dogovor');
 });
 
 test('a star pressed right after the screen settles is selected, and the tag too — with no further render in between', async () => {

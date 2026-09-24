@@ -78,7 +78,7 @@ async function reviewOffer() {
   expect(press('Pošalji ovu Prijavu')).toBeDefined();
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
-async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
+async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
 it('rearms read and Retry after returning to the same retained tab', async () => {
@@ -186,7 +186,9 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
     expect(text()).toContain('Sačuvana je ista ponuda za proveru ishoda');
-    expect(field('Ukupna cena za ljude koje dovodiš (RSD)').value).toBe('4500'); expect(field('Ljudi').value).toBe('2'); expect(field('Ljudi').editable).toBe(false);
+    // The saved command is shown as facts, never as greyed fields that look editable.
+    expect(text()).toContain('4.500 RSD'); expect(text()).toContain('2 osobe');
+    expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
     await tap('Ponovi istu Prijavu');
     expect(mockSubmit).toHaveBeenCalledTimes(2); expect(mockSubmit.mock.calls[1][0]).toEqual(original);
     expect(mockSubmit.mock.calls[1][0].clientRequestId).toBe(original.clientRequestId);
@@ -198,7 +200,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     AsyncStorage.setItem.mockRejectedValueOnce(new Error('disk full details'));
     await offer(); await sendOffer();
     expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('nije sačuvan na uređaju'); expect(text()).not.toContain('disk full details');
-    expect(press('Pregledaj ponudu')).toBeDefined(); expect(field('Ljudi').editable).toBe(true);
+    expect(press('Pregledaj ponudu')).toBeDefined(); expect(field('Koliko ljudi dolazi').editable).toBe(true);
     await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
   });
@@ -231,7 +233,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await render();
     expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
     expect(text()).toContain('nije čitljiv');
-    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); await sendOffer();
+    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
   });
   it('a known refusal of the retried command permits a reset that clears the journal; an unknown outcome keeps it', async () => {

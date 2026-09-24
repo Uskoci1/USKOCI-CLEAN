@@ -16,6 +16,10 @@ jest.mock('../../ui/reviews/AgreementReviewScreen', () => ({
 }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'V2Action' }));
+jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
+const mockAgreement = jest.fn(async () => null);
+jest.mock('../../store/uloga', () => ({ useIzvor: () => ({ dogovor: mockAgreement }) }));
 import OceniDogovor from '../../app/(app)/oceni-dogovor';
 
 const agreementId = '11111111-1111-4111-8111-111111111111';
@@ -34,6 +38,9 @@ describe('the fallback names the way back it takes', () => {
     await render();
     const action = tree.root.findByType('V2Action' as unknown as React.ElementType);
     expect(action.props.label).toBe(label);
+    // The fallback has the screen's own bar, whose arrow names the same way back.
+    const bar = tree.root.findByType('DetailTopBar' as unknown as React.ElementType);
+    expect(bar.props.title).toBe('Ocena saradnje'); expect(bar.props.backLabel).toBe(label);
     await act(async () => action.props.onPress());
     expect(back).toHaveBeenCalledTimes(1);
   });
@@ -44,6 +51,8 @@ it('hands the screen the same label and way back', async () => {
   await render();
   const screen = tree.root.findByType('AgreementReviewScreen' as unknown as React.ElementType);
   expect(screen.props.backLabel).toBe('Nazad na Početnu');
+  expect(typeof screen.props.readAgreement).toBe('function'); expect(typeof screen.props.photo).toBe('function');
+  await screen.props.readAgreement(); expect(mockAgreement).toHaveBeenCalledWith(agreementId);
   screen.props.onBack();
   expect(mockBackFromReviewToHome).toHaveBeenCalledTimes(1);
 });
