@@ -64,7 +64,10 @@ export default function Kandidati() {
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {
     if (!current()) return;
-    if (opened && !pending) { setOpened(null); return; }
+    // An offer still open on screen closes first. One left behind by a fresh read (the band's "Osveži prijave" brings new
+    // data, so the sheet is gone) is cleared on the way out, and this same press goes back (review r4 rk item 1): it
+    // used to take one press to clear what nobody could see.
+    if (opened && !pending) { setOpened(null); if (candidate) return; }
     if (session.navigated) return; session.navigated = true;
     if (router.canGoBack()) router.back(); else if (id) router.replace({ pathname: '/potrebe/[id]/pregled', params: { id } });
     else router.replace('/potrebe');
@@ -113,6 +116,16 @@ export default function Kandidati() {
     if (!current() || session.navigated || !id) return;
     session.navigated = true; router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id } });
   };
+  // One function per offer, read revision and account (it was a new one on every render, and the Dogovor link of an
+  // offer already chosen was read again on each, e.g. when the viewed mark came back). Every check stays inside it.
+  const needId = data?.need.id, chosenId = candidate?.prijavaId;
+  const readAgreement = useCallback(async (): Promise<Ishod<{ dogovorId: string | null }>> => {
+    if (!needId || !chosenId || !current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
+    const result = await readSelectedAgreement(needId, chosenId);
+    return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
+    // `current` reads the render's focus token and read revision and the account; those are the dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needId, chosenId, focusToken, readRevision, user?.id, accountRevision, session]);
   if (!data) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
   const list = <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
@@ -124,11 +137,7 @@ export default function Kandidati() {
     photo={photo(candidate, 56)} safety={safety}
     // The profile sheet's 96 px portrait, as the task's poster sheet draws it: the photo or its own large stand-in.
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />}
-    readAgreement={async () => {
-      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
-      const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);
-      return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
-    }} openLinkedAgreement={agreementId => {
+    readAgreement={readAgreement} openLinkedAgreement={agreementId => {
       if (!current() || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
     }}

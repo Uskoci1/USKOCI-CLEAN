@@ -34,8 +34,9 @@ jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 import { CandidateListPresentation, CandidateSelectionPresentation } from '../../ui/v2/ApplicationSelectionPresentation';
-import { candidateTrust, candidateValue } from '../../ui/v2/CandidateFace';
+import { candidateTrust, candidateValue, compareIdentityHeight } from '../../ui/v2/CandidateFace';
 import { PublicProfileSheet } from '../../ui/system/PublicProfileSheet';
+import { SuccessMark } from '../../ui/system/SuccessMark';
 
 const need = { id: 'need-1', revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sep · 10:00–11:00', stanje: 'CEKA_PRIJAVE',
   pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0, udeo: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade' } as unknown as PotrebaProjekcija;
@@ -53,6 +54,8 @@ const list = (candidates: KandidatProjekcija[]) => <CandidateListPresentation ne
 const texts = (root: ReactTestInstance = tree.root) => root.findAll(node => node.type === ('T' as unknown as React.ElementType))
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const pressNamed = (label: string) => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType) && node.props.accessibilityLabel === label)[0];
+/** The confirmation's own confirm: it shares its words with the green button that asked, so it is found by its testID. */
+const confirmButton = () => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType) && node.props.testID === 'confirm-sheet-confirm')[0];
 const flat = (style: unknown) => Object.assign({}, ...[style].flat(4).filter(Boolean));
 const stars = (root: ReactTestInstance) => root.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'star');
 
@@ -111,9 +114,20 @@ describe('the candidate row', () => {
   it('draws the empty list as the one empty state, saying what happens next without promising anyone will apply', async () => {
     await render(list([]));
     expect(texts()).toContain('Još nema prijava');
-    expect(texts()).toContain('Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde i moći ćeš da je uporediš pre izbora.');
+    // Review r4 rk item 8: comparing needs two offers, so the empty list no longer promises it ("… i moći ćeš da je
+    // uporediš pre izbora" was pinned here).
+    expect(texts()).toContain('Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde.');
+    expect(texts()).not.toContain('uporediš');
     expect(pressNamed('Osveži prijave')).toBeDefined();
   });
+});
+
+// Review r4 rk item 6: two columns hold their person part to the height of the fullest one (the 40 px picture, a
+// three-line name, a two-line rating and the gaps), at the text size in use; a fixed 132 was shorter than that.
+it('holds a comparison column’s person part to the height of a three-line name and a two-line rating', () => {
+  expect(compareIdentityHeight(1)).toBe(40 + 2 * 6 + 3 * 21 + 2 * 17);
+  expect(compareIdentityHeight(1.2)).toBe(Math.ceil(40 + 2 * 6 + (3 * 21 + 2 * 17) * 1.2));
+  expect(compareIdentityHeight(1)).toBeGreaterThan(132);
 });
 
 describe('the comparison', () => {
@@ -170,8 +184,45 @@ describe('the offer sheet', () => {
     expect(green()).toEqual(['Izaberi ovu ponudu']);
     await act(async () => pressNamed('Izaberi ovu ponudu').props.onPress());
     expect(choose).not.toHaveBeenCalled(); expect(texts()).toContain('Jedan izbor sklapa Dogovor.');
-    await act(async () => pressNamed('Izaberi ovu Prijavu').props.onPress());
+    // Review r4 rk item 5: the confirm says the button's own words (it said "Izaberi ovu Prijavu").
+    expect(confirmButton().props.accessibilityLabel).toBe('Izaberi ovu ponudu');
+    await act(async () => confirmButton().props.onPress());
     expect(choose).toHaveBeenCalledTimes(1);
+  });
+
+  // Review r4 rk item 9: a question asked about one exact offer is retired the moment that offer changes.
+  it('retires an open question when the offer changes, and the old question cannot choose', async () => {
+    const choose = jest.fn();
+    await render(offer({ choose }));
+    await act(async () => pressNamed('Izaberi ovu ponudu').props.onPress());
+    const retained = confirmButton().props.onPress;
+    await act(async () => tree.update(offer({ choose, candidate: k({ verzija: 3 }) })));
+    expect(tree.root.findAll(node => node.props.testID === 'confirm-sheet-confirm')).toHaveLength(0);
+    await act(async () => retained());
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  // Review r4 rk item 3: the name is the sheet's title — a real heading with the sheet's own × — and the row under it
+  // keeps the picture and the rating, saying the name only to a screen reader.
+  it('is titled with the person, with a visible close, and the profile row no longer repeats the name', async () => {
+    const back = jest.fn();
+    await render(offer({ back }));
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.children === 'Milan Petrović')).toHaveLength(1);
+    const person = tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType) && node.props.accessibilityHint === 'Otvara javni profil')[0];
+    expect(person.props.accessibilityLabel).toMatch(/^Milan Petrović, /);
+    expect(texts(person)).not.toContain('Milan Petrović');
+    expect(person.findAll(node => node.props.accessibilityRole === 'header')).toHaveLength(0);
+    expect(pressNamed('Zatvori ponudu')).toBeDefined();
+  });
+
+  // Review r4 rk item 2: an outcome that was already confirmed when the sheet opened stands still (no spring, no haptic).
+  it('plays the success mark only for a choice confirmed while the sheet is open', async () => {
+    await render(offer({ confirmed: true }));
+    expect(tree.root.findByType(SuccessMark).props.fresh).toBe(false);
+    await act(async () => tree.unmount());
+    await render(offer());
+    await act(async () => tree.update(offer({ confirmed: true })));
+    expect(tree.root.findByType(SuccessMark).props.fresh).toBe(true);
   });
 
   it('has no green action for an offer that cannot be chosen, and says why beside the one thing to do', async () => {

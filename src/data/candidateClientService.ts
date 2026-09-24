@@ -88,7 +88,9 @@ function mapCandidate(raw: any): KandidatProjekcija {
   const trust = profile?.trust;
   const rating = typeof trust?.ratingAverage === 'number' && Number.isFinite(trust.ratingAverage) && trust.ratingAverage >= 0 && trust.ratingAverage <= 5 ? trust.ratingAverage : null;
   const reviews = Number.isInteger(trust?.reviewCount) && trust.reviewCount >= 0 ? trust.reviewCount : null;
-  const completed = Number.isInteger(trust?.completedCount) && trust.completedCount >= 0 ? trust.completedCount : 0;
+  // A count the read did not carry is unknown, never zero (review r4 rk item 4): "0 završenih poslova" was a number the
+  // server never sent.
+  const completed = Number.isInteger(trust?.completedCount) && trust.completedCount >= 0 ? trust.completedCount : null;
   const evidence = dokaz(raw.applicationEvidence);
   const vozila = evidence.vozila;
 
@@ -104,8 +106,8 @@ function mapCandidate(raw: any): KandidatProjekcija {
     // From the published name only: "Ime nije dostupno" is our sentence, not the person's name, so it gives no letters.
     inicijali: inicijali(typeof profile?.displayName === 'string' ? profile.displayName : null) ?? '',
     ocenaTekst: rating === null ? '—' : rating.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }),
-    recenzijeTekst: reviews === null ? plural(completed, 'završen posao', 'završena posla', 'završenih poslova')
-      : plural(reviews, 'recenzija', 'recenzije', 'recenzija'),
+    recenzijeTekst: reviews !== null ? plural(reviews, 'recenzija', 'recenzije', 'recenzija')
+      : completed !== null ? plural(completed, 'završen posao', 'završena posla', 'završenih poslova') : '',
     cena: rsd(raw.priceRsd),
     pokrivaMesta: raw.coveredSlots,
     preostaloMesta: raw.remainingSlots,

@@ -94,6 +94,15 @@ it('candidate read retains exact end/start and Need revision while omitting raw 
   expect(rows[0]).toMatchObject({ potrebaRevizija: 3, predlozeniPocetak: submit().predlozeniPocetak, predlozeniKraj: submit().predlozeniKraj });
   expect(JSON.stringify(rows)).not.toContain('privatePhone');
 });
+// Review r4 rk item 4: a count the read did not carry is unknown, never "0 završenih poslova".
+it('says no count the read did not carry, and the server’s own count when it did', async () => {
+  mockRpc.mockResolvedValue({ data: [candidate()], error: null });
+  expect((await candidateClientService.prijaveZaPotrebu(need))[0]).toMatchObject({ ocenaTekst: '—', recenzijeTekst: '' });
+  mockRpc.mockResolvedValue({ data: [{ ...candidate(), publicProfile: { displayName: 'Milan', trust: { completedCount: 0 } } }], error: null });
+  expect((await candidateClientService.prijaveZaPotrebu(need))[0].recenzijeTekst).toBe('0 završenih poslova');
+  mockRpc.mockResolvedValue({ data: [{ ...candidate(), publicProfile: { displayName: 'Milan', trust: { ratingAverage: 4.8, reviewCount: 3, completedCount: 7 } } }], error: null });
+  expect((await candidateClientService.prijaveZaPotrebu(need))[0]).toMatchObject({ ocenaTekst: '4,8', recenzijeTekst: '3 recenzije' });
+});
 it('keeps canonical current Need revision on STALE snapshot and selectable rows together', async () => {
   mockRpc.mockResolvedValue({ data: [
     { ...candidate(), responseId: agreement, version: 1, state: 'STALE', canSelect: false, needRevision: 3, responseNeedRevision: 2 },

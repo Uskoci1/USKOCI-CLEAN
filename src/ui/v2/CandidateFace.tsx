@@ -8,10 +8,11 @@ import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { Avatar, type AvatarSize } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
 import { osoba } from '../system/plural';
+import { useTextScale } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { CardFact } from './TaskFace';
+import { CardFact, valueStyles } from './TaskFace';
 
 /**
  * The one face of an application in the requester's list (owner's step 7, 2026-09-24). An offer is chosen as a PERSON
@@ -138,13 +139,16 @@ export function CandidateStatusLine({ status }: { status: { text: string; tone: 
   </View>;
 }
 
-/** The value slot. An amount keeps its whole width and the name gives way; a word is quiet and never money-coloured. */
+/**
+ * The value slot, in the task card's value type (`valueStyles`). An amount keeps its whole width and the name gives way;
+ * a word is quiet and never money-coloured.
+ */
 export function CandidateValueSlot({ value, large }: { value: CandidateValue; large: boolean }) {
   if (value.kind === 'unpriced') return <View style={large ? s.valueLine : s.valueSide}>
-    <T style={[s.valueWord, large && s.alignStart]} numberOfLines={2}>{UNPRICED}</T></View>;
+    <T style={[valueStyles.valueWord, large && valueStyles.alignStart]} numberOfLines={2}>{UNPRICED}</T></View>;
   return <View style={large ? s.valueLine : s.valueSide}>
-    <T style={[s.amount, large && s.alignStart]}>{value.amount}</T>
-    <T style={[s.basis, large && s.alignStart]} numberOfLines={1}>{value.basis}</T>
+    <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
+    <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T>
   </View>;
 }
 
@@ -178,6 +182,18 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
 });
 
 /**
+ * The height of a comparison column's person part at its fullest: the 40 px picture, a three-line name and a two-line
+ * rating with the two gaps between them, the text part at the rounded text scale. Two columns side by side hold their
+ * person to it, so their cells line up whatever the names (review r4 rk item 6: a fixed 132 was shorter than a three-line
+ * name beside the picture, and the columns slipped).
+ */
+export function compareIdentityHeight(scale: number): number {
+  const text = 3 * sys.type.cardTitleCompact.lineHeight! + 2 * TRUST_LINE;
+  return Math.ceil(40 + 2 * COMPARE_IDENTITY_GAP + text * scale);
+}
+const TRUST_LINE = 17, COMPARE_IDENTITY_GAP = 6;
+
+/**
  * An offer as a comparison column: the same person on top, then the same three cells in the same order in every column —
  * the total, the people, the time — so two offers line up cell by cell. `aligned` holds the person's part to one height
  * when two columns stand side by side.
@@ -186,15 +202,18 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
   candidate: KandidatProjekcija; timezone?: string | null; fallbackTime: string; onOpen: () => void; photo?: ReactNode; aligned: boolean;
 }) {
   const status = candidateStatus(k), value = candidateValue(k), time = candidateTime(k, timezone);
+  const scale = useTextScale();
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} accessibilityHint={candidateSpoken(k, time)}
     haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.compare, k.stanje === 'SELECTED' && s.chosen]}>
-    <View style={[s.compareIdentity, aligned && s.compareAligned]}>
+    <View style={[s.compareIdentity, aligned && { minHeight: compareIdentityHeight(scale) }]}>
       <CandidateAvatar candidate={k} size={40} photo={photo} />
       <T style={s.name} numberOfLines={3}>{k.ime}</T>
       <CandidateTrustLine candidate={k} />
     </View>
     <View style={s.cell}><T variant="label" tone="muted">Ukupno</T>
-      {value.kind === 'amount' ? <T style={s.compareAmount}>{value.amount}</T> : <T style={s.valueWord}>{UNPRICED}</T>}</View>
+      {/* A column reads from its left edge: the quiet word too (review r4 rk item 7). */}
+      {value.kind === 'amount' ? <T style={s.compareAmount}>{value.amount}</T>
+        : <T style={[valueStyles.valueWord, valueStyles.alignStart]}>{UNPRICED}</T>}</View>
     <View style={s.cell}><T variant="label" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.cell}><T variant="label" tone="muted">Termin</T><T variant="meta" style={s.ink}>{time ?? fallbackTime}</T></View>
     {status ? <CandidateStatusLine status={status} /> : null}
@@ -205,15 +224,22 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
  * The person at the head of their offer: the 56 px picture, the name large and the rating under it. It opens their public
  * profile, and is heard as the person first, with what a press does as its hint (as the task's poster row is).
  */
-export function CandidatePerson({ candidate: k, photo, onPress, disabled = false }: {
+export function CandidatePerson({ candidate: k, photo, onPress, disabled = false, nameShown = true }: {
   candidate: KandidatProjekcija; photo?: ReactNode; onPress: () => void; disabled?: boolean;
+  /**
+   * False where the name already heads the view (the offer sheet's title): the row keeps the picture and the rating, and
+   * still says the name to a screen reader.
+   */
+  nameShown?: boolean;
 }) {
   const trust = candidateTrust(k);
+  // No heading role inside the press: a screen reader never reaches a heading that lives in a button (review r4 rk item
+  // 3). Where the name heads a view, the view's own title is the heading.
   return <Press accessibilityRole="button" accessibilityLabel={`${k.ime}, ${trust.spoken}`} accessibilityHint="Otvara javni profil"
     accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={onPress} style={s.person}>
     <CandidateAvatar candidate={k} size={56} photo={photo} />
     <View style={s.identity}>
-      <T accessibilityRole="header" style={s.personName} numberOfLines={3}>{k.ime}</T>
+      {nameShown ? <T style={s.personName} numberOfLines={3}>{k.ime}</T> : null}
       <CandidateTrustLine candidate={k} lines={3} />
     </View>
     <CaretRight size={20} color={sys.color.muted} />
@@ -222,28 +248,24 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  card: { ...cardCompact, gap: 10 },
+  // Type and spacing from the tokens (review r4 rk item 6): the spacing scale's 8, the compact card title, the note.
+  card: { ...cardCompact, gap: sys.space.sm },
   // Selection is green (owner, 2026-09-24): the chosen offer keeps the white card and takes the green edge.
   chosen: { borderColor: sys.color.green },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   identity: { flex: 1, minWidth: 0, gap: 2 },
-  name: { fontSize: 16, lineHeight: 21, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
+  name: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   trust: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trustText: { flexShrink: 1, fontSize: 13, lineHeight: 17, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
+  trustText: { flexShrink: 1, fontSize: 13, lineHeight: TRUST_LINE, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   // The amount keeps its whole width, whatever the phone and the text size: the name beside it is what gives way.
   valueSide: { alignItems: 'flex-end', flexShrink: 0, maxWidth: '46%' },
   valueLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 8 },
-  alignStart: { textAlign: 'left' },
-  amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  basis: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  valueWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  message: { fontSize: 14, lineHeight: 20, color: sys.color.ink },
+  message: { ...sys.type.note, color: sys.color.ink },
   compare: { ...cardCompact, flex: 1, minWidth: 0, padding: 14, gap: 8 },
-  compareIdentity: { gap: 6 },
-  compareAligned: { minHeight: 132 },
+  compareIdentity: { gap: COMPARE_IDENTITY_GAP },
   cell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line },
   compareAmount: { ...sys.type.priceRow, color: sys.color.money },
   person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64 },

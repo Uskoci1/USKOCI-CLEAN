@@ -26,7 +26,7 @@ import { useTextScale } from '../system/textScale';
 import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
 import { T } from '../Text';
 import { CandidateCard, CandidateCompareCard, CandidatePerson, CandidateStatusLine, UNPRICED, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
-import { V2Action } from './V2Action';
+import { ACTION_MIN_HEIGHT, V2Action } from './V2Action';
 
 export type ApplicationDraft = { price: string; people: string; note: string; start: string | null; end: string | null };
 function applicationInterval(start: string | null | undefined, end: string | null | undefined, timezone?: string): string | null {
@@ -368,8 +368,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           </Press>)}</View> : null}
       </View>}
       // What happens next, without promising that anyone will apply.
+      // Comparing needs two offers, so the first one promises nothing about it (review r4 rk item 8).
       ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava"
-        body="Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde i moći ćeš da je uporediš pre izbora."
+        body="Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde."
         quiet={{ label: 'Osveži prijave', onPress: refresh }} />}
       renderItem={renderItem}
       ListFooterComponent={candidates.length ? <View style={s.listFooter}>
@@ -401,6 +402,8 @@ const CHOICE_TITLE = 'Jedan izbor sklapa Dogovor.';
 const choiceTerms = (candidate: KandidatProjekcija) =>
   `Izborom prihvataš ovu ponudu: ${candidate.cena.prikaz} ukupno, ${dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.`;
 const CHOICE_NOTE = 'Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.';
+/** The one name of the choice: the offer's green button and the confirm of the question it asks. */
+const CHOOSE_LABEL = 'Izaberi ovu ponudu';
 
 /**
  * One offer in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
@@ -430,6 +433,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   photo?: ReactNode;
 }) {
   const [profile, setProfile] = useState<PublicProfileState>(null);
+  const confirmedAtMount = useRef(confirmed).current;
   const profileRequest = useRef(0);
   useEffect(() => () => { profileRequest.current++; }, []);
   const closeProfile = () => { profileRequest.current++; setProfile(null); };
@@ -448,7 +452,8 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   useEffect(() => { retireConfirmation(); }, [offerKey, retireConfirmation]);
   const askToChoose = () => {
     if (!candidate.mozeIzabrati || busy || pending || confirmed) return;
-    confirmation.ask({ title: CHOICE_TITLE, message: `${choiceTerms(candidate)} ${CHOICE_NOTE}`, confirmLabel: 'Izaberi ovu Prijavu',
+    // The confirm says the words of the button that asked (review r4 rk item 5): one command, one name.
+    confirmation.ask({ title: CHOICE_TITLE, message: `${choiceTerms(candidate)} ${CHOICE_NOTE}`, confirmLabel: CHOOSE_LABEL,
       onConfirm: () => choose() });
   };
   const value = candidateValue(candidate), time = candidateTime(candidate, need.taskTimezone), status = candidateStatus(candidate);
@@ -463,14 +468,17 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
     : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
     : pending || busy ? <BrandAction label={busy ? 'Povezivanje…' : 'Ponovi isti izbor'} onPress={() => { void choose(); }} disabled={busy} loading={busy} />
-    : candidate.mozeIzabrati ? <BrandAction label="Izaberi ovu ponudu" onPress={askToChoose} />
+    : candidate.mozeIzabrati ? <BrandAction label={CHOOSE_LABEL} onPress={askToChoose} />
     : null;
   const quiet = reset ? <V2Action label="Pregledaj aktuelne prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
-  return <ProductSheet label={`Ponuda: ${candidate.ime}`} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
+  // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
+  // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
+  // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
+  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <View style={s.sheetFooter}>{primary}{quiet}</View> : undefined}>
     {() => <>
-      <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
+      <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} nameShown={false} />
       {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
         {status ? <CandidateStatusLine status={status} /> : null}
         {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>
@@ -491,7 +499,10 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       </DetailSection>
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
         <T variant="body" style={s.ink}>{choiceTerms(candidate)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
-      {confirmed ? <View style={s.done}><SuccessMark fresh size={48} />
+      {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
+          confirmed (back from the profile's safety screen), the mark stands still and no haptic plays (review r4 rk
+          item 2; SuccessMark's own contract). */}
+      {confirmed ? <View style={s.done}><SuccessMark fresh={!confirmedAtMount} size={48} />
         <T accessibilityRole="alert" variant="title" style={[s.ink, s.grow]}>Dogovor je sklopljen.</T></View> : null}
       <ErrorMessage error={error} />
       {confirmation.sheet}
@@ -525,11 +536,11 @@ const s = StyleSheet.create({
   blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
   listHeader: { gap: 4, marginBottom: 12 },
   // A row that opens something is a command: never under 48.
-  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingTop: 4, paddingBottom: 14,
+  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: ACTION_MIN_HEIGHT, paddingTop: 4, paddingBottom: 14,
     borderBottomWidth: 1, borderColor: sys.color.line },
   briefCopy: { flex: 1, minWidth: 0, gap: 2 },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 },
-  sortButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
+  sortButton: { minHeight: ACTION_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
   sortText: { color: sys.color.ink, fontWeight: '600' },
   sortMenu: { ...cardCompact, padding: 0, marginBottom: 8, overflow: 'hidden' },
   sortOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
