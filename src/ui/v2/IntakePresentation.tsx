@@ -30,7 +30,7 @@ type Props = {
   showAbandon: boolean; abandonDisabled: boolean; abandonLabel: string;
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
-  onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; streamingText?: string;
+  onNewTask?: () => void; newTaskDisabled?: boolean; voice?: ReactNode; voiceActive?: boolean; streamingText?: string;
   onPhotos?: () => void; photosDisabled?: boolean;
   onCancelPending?: () => void; cancelPendingDisabled?: boolean; cancelPendingDispatched?: boolean;
 };
@@ -159,7 +159,7 @@ export function IntakePresentation(props: Props) {
     welcomeDetail="Piši ili drži mikrofon. Detalje slažemo usput, a ti ih potvrđuješ pre objave."
     openings={OPENINGS}
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
-    onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
+    onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice} voiceActive={props.voiceActive}
     onAdd={conversation.conversationId && conversation.status === 'OPEN' ? () => { Keyboard.dismiss(); setPanel('add'); } : undefined}
     addDisabled={busy || pending}
     addLabel="Dodaj fotografiju ili mesto"
