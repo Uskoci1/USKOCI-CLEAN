@@ -48,7 +48,7 @@ export function AgreementLocationPresentation({ state, accountId, agreementId, o
       <Fact art="pin" title="Jedna tačka, ne praćenje" body={worker ? 'Telefon uzima lokaciju samo kada pritisneš dugme.'
         : 'Druga strana sama bira da li će podeliti tačku.'} />
       <Fact art="users" title="Vide je samo učesnici ovog Dogovora" />
-      <Fact art="clock" title="Prikazuje se poslednja podeljena tačka" />
+      <Fact art="clock" title="Prikazuje se samo poslednja podeljena tačka" />
     </View> : null}
     {permission ? <PermissionRecovery message={state.message!} />
       : state.message && state.phase !== 'UNKNOWN' && state.phase !== 'CONFIRMED'

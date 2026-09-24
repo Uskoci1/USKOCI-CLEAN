@@ -101,7 +101,8 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
         onPress={p.onRetry} />}
   </View>;
   else if (p.phase === 'CONFIRMED' || p.phase === 'REJECTED') body = <View style={s.done}>
-    <SuccessMark fresh={p.phase === 'CONFIRMED'} tone={p.phase === 'CONFIRMED' ? 'green' : 'orange'} />
+    {/* Only a confirmed command earns the check; a command the Dogovor settled otherwise is told plainly, not celebrated. */}
+    {p.phase === 'CONFIRMED' ? <SuccessMark fresh /> : <View style={s.art}><FactArt kind="info" size={40} /></View>}
     <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">{p.message ?? p.error ?? ''}</T>
     <V2Action label="Prikaži aktuelni Dogovor" style={brandAction} onPress={p.onAcknowledge} />
   </View>;
@@ -187,7 +188,8 @@ function Review({ review, proposed, base, busy, sending, error, onSend }: { revi
       </>}
     {reason ? <View style={s.quote}><T variant="meta" tone="muted">Razlog</T><T variant="copy">{reason}</T></View> : null}
     {error ? <T variant="copy" tone="danger" accessibilityRole="alert">{error}</T> : null}
-    <V2Action label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'} style={ending(review) ? s.danger : brandAction}
+    <V2Action label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'}
+      style={ending(review) ? [s.danger, busy && !sending && s.dangerResting] : brandAction}
       loading={sending} disabled={busy && !sending} onPress={onSend} />
   </View>;
 }
@@ -214,4 +216,6 @@ const s = StyleSheet.create({
   unit: { color: sys.color.ink },
   // The decision that ends or refuses keeps the primary's measure, drawn in the danger colour: its edge and its words.
   danger: { minHeight: brandAction.minHeight, borderRadius: brandAction.borderRadius, borderWidth: 1, borderColor: sys.color.danger },
+  dangerResting: { borderColor: sys.color.lineStrong },
+  art: { width: 64, height: 64, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
 });

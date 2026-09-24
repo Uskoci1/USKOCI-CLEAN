@@ -95,10 +95,12 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
     return { ok: true, podatak: { ...current.podatak, revealed: value } };
   });
   const locked = editor.loading || editor.busy || editor.uncertain || !editor.data;
-  const requester = accountId === requesterId;
   // How long the access lasts, when the read says so: a grant with an end names it; one without lasts until it is
   // revoked or the Dogovor ends (this section closes then).
-  const lasts = granted ? grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.` : 'Važi dok je ne opozoveš ili dok se Dogovor ne završi.' : null;
+  const requester = accountId === requesterId;
+  const lasts = !granted ? null : grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.`
+    // Only the requester can revoke, so each side is told who can end it.
+    : requester ? 'Važi dok je ne opozoveš ili dok se Dogovor ne završi.' : 'Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.';
   // The section above carries the title ("Lokacija i pristup"); this part starts with the state of the access.
   return <View style={s.stack}>
     <View style={s.status}>

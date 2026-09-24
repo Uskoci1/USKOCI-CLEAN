@@ -45,7 +45,7 @@ const change=async(value:string)=>{await act(async()=>tree!.root.findByType('Tex
 const text=()=>tree!.toJSON()===null?'null':tree!.root.findAllByType('T' as never).map(node=>node.children.filter(child=>typeof child==='string').join('')).join(' ');
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return{promise,resolve};}
 beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService])for(const fn of Object.values(group))fn.mockReset();
- mockSession={user:{id:A},accountRevision:1};mockIntent='uskocer';mockFocused=true;mockForeground='active';entry=false;
+ mockSession={user:{id:A},accountRevision:1};mockIntent='uskocer';mockFocused=true;mockForeground='active';entry=false;mockCanGoBack=true;
  mockStorage.getItem.mockResolvedValue(null);mockStorage.setItem.mockResolvedValue(undefined);mockStorage.removeItem.mockResolvedValue(undefined);
  mockService.context.mockResolvedValue(ok(context()));mockService.messages.mockResolvedValue(ok({messages:[message],nextBeforeSequence:null,nextAfterSequence:null}));
  mockService.recover.mockResolvedValue(ok({found:false,receipt:null}));mockService.send.mockResolvedValue(unknown);mockService.markRead.mockResolvedValue(ok({markedCount:1}));
@@ -129,10 +129,17 @@ it('removes support choices when an authoritative refresh withdraws message visi
 it('back returns to the Dogovor it came from, and opens it anew only without a stack',async()=>{
  await render();await act(async()=>tree!.root.findByProps({label:'Nazad na Dogovor'}).props.onPress());expect(mockBack).toHaveBeenCalledTimes(1);expect(mockPush).not.toHaveBeenCalled();
  mockCanGoBack=false;await act(async()=>tree!.root.findByProps({label:'Nazad na Dogovor'}).props.onPress());
- expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});mockCanGoBack=true;
+ expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
 });
 it('names the sender once at the start of their turn and speaks each message with who and when',async()=>{
  mockService.messages.mockResolvedValue(ok({messages:[message,{...message,messageId:KEY,sequence:'2',body:'Ja sam tu.'}],nextBeforeSequence:null,nextAfterSequence:null}));
  await render();expect(text().split('Bojana').length-1).toBe(1);
  expect(tree!.root.findAll(node=>typeof node.type!=='string'&&String(node.props.accessibilityLabel??'').startsWith('Bojana: Ja sam tu.'))).not.toHaveLength(0);
+});
+it('offers a message to support with a plain tap, so no gesture is needed',async()=>{
+ await render();expect(tree!.root.findAllByType('SupportContextEntry' as never)).toHaveLength(0);
+ const bubble=tree!.root.findAll(node=>typeof node.type!=='string'&&String(node.props.accessibilityLabel??'').includes(message.body))[0].props;
+ expect(bubble.accessibilityRole).toBe('button');await act(async()=>bubble.onPress());
+ expect(tree!.root.findByType('SupportContextEntry' as never).props.reference).toEqual({kind:'GROUP_MESSAGE',id:M,revision:null});
+ expect(text().split('Razgovor je završen').length-1).toBe(0);expect(mockService.send).not.toHaveBeenCalled();
 });
