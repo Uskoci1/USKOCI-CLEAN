@@ -107,9 +107,10 @@ export function MyApplicationsPresentation(props: Props) {
   const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
   // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
-    {props.loading ? <StateView kind="loading" title="Učitavamo tvoje Prijave…" skeleton={{ count: 3, rows: 2 }} />
-      : props.unavailable ? <StateView kind="error" art="offers" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Proveri internet vezu i pokušaj ponovo.'}
-        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
+    {props.loading ? <StateView kind="loading" title="Učitavamo tvoje prijave…" skeleton={{ count: 3, rows: 2 }} />
+      // The fallback names no cause nobody checked (review r4 item 4); while a read runs, the retry greys out (item 3).
+      : props.unavailable ? <StateView kind="error" art="offers" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
+        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
         : props.rows.length && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
           primary={{ label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
           : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju ponudu i svaki sledeći korak."

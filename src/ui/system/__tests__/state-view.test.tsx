@@ -62,6 +62,15 @@ it('announces a read that failed as an alert, with the picture gone grey', async
   expect(actions().map(action => action.props.label)).toEqual(['Pokušaj ponovo']);
 });
 
+// Review r4 item 3: a retry the screen is already running greys out instead of looking pressable.
+it('greys out an action the screen is already at work on, and leaves the other one alone', async () => {
+  await render(<StateView kind="error" title="Prijave trenutno nisu dostupne" primary={{ label: 'Pokušaj ponovo', onPress: () => {}, disabled: true }}
+    quiet={{ label: 'Nazad', onPress: () => {} }} />);
+  const [retry, back] = actions();
+  expect(retry.props.disabled).toBe(true);
+  expect(back.props.disabled).toBeFalsy();
+});
+
 it('says "no connection" the same way, with its own quiet picture when the screen names none', async () => {
   await render(<StateView kind="offline" title="Nema internet veze" body="Kada se veza vrati, pokušaj ponovo." />);
   expect(art().props).toMatchObject({ kind: 'info', muted: true });

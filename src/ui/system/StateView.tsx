@@ -6,7 +6,9 @@ import { SkeletonList, type SkeletonVariant } from './Skeleton';
 import { brandAction, sys } from './tokens';
 
 export type StateKind = 'empty' | 'loading' | 'error' | 'offline';
-type StateAction = { label: string; onPress: () => void; accessibilityLabel?: string };
+type StateAction = { label: string; onPress: () => void; accessibilityLabel?: string;
+  /** The screen is already at work on it (a read in flight): the action greys out instead of looking pressable. */
+  disabled?: boolean };
 
 /** The picture each kind uses when the screen does not name one: its own subject for an empty list, a quiet sign otherwise. */
 const DEFAULT_ART: Record<Exclude<StateKind, 'loading'>, FactArtKind> = { empty: 'tasks', error: 'info', offline: 'info' };
@@ -42,8 +44,10 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
     <View style={s.art}><FactArt kind={art ?? DEFAULT_ART[kind]} size={56} muted={trouble} /></View>
     <T variant="title" accessibilityRole={trouble ? 'alert' : 'header'} style={s.title}>{title}</T>
     {body ? <T variant="copy" tone="muted" style={s.body}>{body}</T> : null}
-    {primary ? <V2Action label={primary.label} accessibilityLabel={primary.accessibilityLabel} onPress={primary.onPress} style={brandAction} /> : null}
-    {quiet ? <V2Action label={quiet.label} accessibilityLabel={quiet.accessibilityLabel} onPress={quiet.onPress} kind="quiet" /> : null}
+    {primary ? <V2Action label={primary.label} accessibilityLabel={primary.accessibilityLabel} onPress={primary.onPress}
+      disabled={primary.disabled} style={brandAction} /> : null}
+    {quiet ? <V2Action label={quiet.label} accessibilityLabel={quiet.accessibilityLabel} onPress={quiet.onPress}
+      disabled={quiet.disabled} kind="quiet" /> : null}
   </View>;
 }
 

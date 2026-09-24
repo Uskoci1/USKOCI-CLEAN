@@ -5,13 +5,13 @@ import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/p
 import { readableTitle } from '../../data/needDetailPresentation';
 import { FactArt } from '../system/FactArt';
 import { useReducedMotion } from '../system/motion';
-import { dolaziOsoba } from '../system/plural';
+import { dolaziOsoba, osoba } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { CARD_PRESS_SCALE } from './TaskCard';
-import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceStyles, type FootTone, type StatusTone } from './TaskFace';
+import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceStyles, valueStyles, type FootTone, type StatusTone } from './TaskFace';
 
 /**
  * The face of MY application in a list (owner's step 5c, 2026-09-24). It belongs to the task card's system (the same
@@ -24,11 +24,13 @@ import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceSty
  *   3. where (one line); 4. when (up to two lines);
  *   5. my offer: "Tvoja ponuda", and the amount in the money colour with "ukupno" under it (the task card's value slot),
  *      or the word when there is no amount;
- *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people);
+ *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people; only "2 osobe"
+ *      once the application is over, since nobody comes);
  *   7. my message to the requester, when I wrote one, in two lines at most;
  *   8. the foot: at most ONE action, the one this state allows, as a quiet row link (never a button inside the card):
- *      Izabrana → "Otvori Dogovor", Poslata (and every open state the server lets me withdraw) → "Povuci prijavu",
- *      Potrebna nova provera → "Pregledaj izmene zadatka"; nothing for a state that is over.
+ *      Izabrana → "Otvori Dogovor", Poslata (and every open state the server lets me withdraw) → "Povuci prijavu" (a
+ *      quiet ink link; the danger colour is kept for the question it opens), Potrebna nova provera → "Pregledaj izmene
+ *      zadatka" (the one orange dot of the card); nothing for a state that is over.
  *
  * The body opens the task the application belongs to, as it always did. The foot is its own press, a sibling of the body.
  *
@@ -46,7 +48,8 @@ const STATUS: Record<StanjeMojePrijave, { text: string; tone: StatusTone }> = {
   VIEWED: { text: 'Pregledana', tone: 'ink' },
   SHORTLISTED: { text: 'U užem izboru', tone: 'green' },
   SELECTED: { text: 'Izabrana', tone: 'green' },
-  STALE_REVIEW_REQUIRED: { text: 'Potrebna nova provera', tone: 'waiting' },
+  // Said once, in ink: the foot under it carries the one orange dot of a waiting card (review r4 item 6; R1 A13, B1).
+  STALE_REVIEW_REQUIRED: { text: 'Potrebna nova provera', tone: 'ink' },
   WITHDRAWN: { text: 'Povučena', tone: 'muted' },
   CLOSED: { text: 'Zatvorena', tone: 'muted' },
 };
@@ -71,8 +74,17 @@ export const OFFER_WORDS = 'Tvoja ponuda';
 /** The value as it is heard: "Tvoja ponuda 4.500 RSD ukupno", or the word. */
 export const offerSpoken = (value: ApplicationValue) => value.kind === 'amount'
   ? `${OFFER_WORDS} ${value.amount} ${value.basis}` : `${OFFER_WORDS}: ${VALUE_WORDS.unpriced}`;
-/** The people the offer brings, in the owner's words for a price read with its people (decision 2, 2026-09-19). */
-export const offerPeople = (places: number) => { const words = dolaziOsoba(places); return words.charAt(0).toUpperCase() + words.slice(1); };
+/**
+ * The people the offer brings, in the owner's words for a price read with its people (decision 2, 2026-09-19). An
+ * application that is over (withdrawn or closed) brings nobody, so it says only how many it offered ("2 osobe"), never
+ * "Dolaze 2 osobe" (review r4 item 2).
+ */
+export const offerPeople = (places: number, over = false) => {
+  const words = over ? osoba(places) : dolaziOsoba(places);
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+/** An application nobody comes for any more: withdrawn, or closed for any of the reasons CLOSED merges. */
+export const applicationOver = (state: StanjeMojePrijave) => state === 'WITHDRAWN' || state === 'CLOSED';
 
 /** The one action the foot holds, from the state alone. `null`: the state allows none, or it is already open. */
 export type ApplicationFootAction = 'agreement' | 'withdraw' | 'review';
@@ -86,8 +98,11 @@ export function applicationFoot(row: Pick<MojaPrijavaProjekcija, 'stanje' | 'dog
 }
 const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone: FootTone; caret: 'right' | 'down' | 'none'; hint?: string }> = {
   agreement: { label: 'Otvori Dogovor', spoken: 'Otvori Dogovor', tone: 'green', caret: 'right' },
-  withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'danger', caret: 'none', hint: 'Pre povlačenja te pitamo da potvrdiš.' },
-  review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene', tone: 'waiting', caret: 'down', hint: 'Otvara aktuelne uslove ispod kartice.' },
+  // Withdrawing is rare ("retko"): a quiet ink link on every open card, and the danger colour only in the question it
+  // opens (review r4 item 7).
+  withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja te pitamo da potvrdiš.' },
+  // The spoken name starts with the visible words, so voice control and a screen reader name it the same (WCAG 2.5.3).
+  review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene zadatka', tone: 'waiting', caret: 'down', hint: 'Otvara aktuelne uslove ispod kartice.' },
 };
 /** What the foot says, and what a screen reader hears ("Povuci prijavu: <naslov>"), per action. */
 export const applicationFootWords = (action: ApplicationFootAction) => FOOT[action];
@@ -97,7 +112,7 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
   const value = applicationValue(row);
   const note = row.napomena?.trim();
   return [applicationStatus(row.stanje).text, row.podrucjeTekst, row.vremeTekst, offerSpoken(value),
-    offerPeople(row.pokrivaMesta), note ? `tvoja poruka: ${note}` : null]
+    offerPeople(row.pokrivaMesta, applicationOver(row.stanje)), note ? `tvoja poruka: ${note}` : null]
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
 }
 
@@ -111,17 +126,18 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
  * how the task card already says it. A word instead of an amount is a quiet label, never the money colour or weight. At
  * large text the value moves under its words, as a whole line on that same column.
  */
-export function OfferRow({ value, places, large }: { value: ApplicationValue; places: number; large: boolean }) {
+export function OfferRow({ value, places, large, over = false }: { value: ApplicationValue; places: number; large: boolean;
+  /** The application is withdrawn or closed: nobody comes, so the people are a count, not "Dolaze". */ over?: boolean }) {
   return <View style={s.offer}>
     <View style={large ? s.valueStacked : s.valueRow}>
       <View style={!large && s.offerWords}><CardFact art={<FactArt kind="money" size={16} />} text={OFFER_WORDS} lines={2} /></View>
-      {value.kind === 'amount' ? <View style={large ? s.amountStacked : s.amountSide}>
-        <T style={[s.amount, large && s.alignStart]}>{value.amount}</T>
-        <T style={[s.basis, large && s.alignStart]} numberOfLines={1}>{value.basis}</T>
+      {value.kind === 'amount' ? <View style={large ? s.amountStacked : valueStyles.amountSide}>
+        <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
+        <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T>
       </View>
-        : <T style={[s.valueWord, large ? s.onTextColumn : s.valueWordSide]} numberOfLines={2}>{VALUE_WORDS.unpriced}</T>}
+        : <T style={[valueStyles.valueWord, large ? s.onTextColumn : s.valueWordSide]} numberOfLines={2}>{VALUE_WORDS.unpriced}</T>}
     </View>
-    <CardFact art={<FactArt kind="users" size={16} />} text={offerPeople(places)} lines={large ? 2 : 1} />
+    <CardFact art={<FactArt kind="users" size={16} />} text={offerPeople(places, over)} lines={large ? 2 : 1} />
   </View>;
 }
 
@@ -140,7 +156,7 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large 
       <CardFact art={<FactArt kind="pin" size={16} />} text={row.podrucjeTekst} />
       <CardFact art={<FactArt kind="calendar" size={16} />} text={row.vremeTekst} lines={2} />
     </View>
-    <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} />
+    <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} over={applicationOver(row.stanje)} />
     {/* The only place my message to the requester can be read again; my words, so in quotes. */}
     {note ? <CardFact art={<FactArt kind="chat" size={16} />} text={`„${note}“`} lines={2} /> : null}
   </>;
@@ -202,14 +218,9 @@ const s = StyleSheet.create({
   offerWords: { flex: 1, minWidth: 0 },
   // The text column of a fact line: its 16 px drawing and the 8 px after it.
   onTextColumn: { textAlign: 'left', marginLeft: 24 },
-  // The task card's value slot: the amount keeps its whole width, what it buys under it; at large text, beside it.
-  amountSide: { alignItems: 'flex-end', flexShrink: 0 },
+  // The task card's value slot (`valueStyles`): the amount keeps its whole width, what it buys under it; at large text,
+  // beside it on the text column.
   amountStacked: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginLeft: 24 },
-  alignStart: { textAlign: 'left' },
-  // The task card's amount: money colour and weight, tabular figures, never cut.
-  amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'],
-    textAlign: 'right' },
-  basis: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  valueWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  valueWordSide: { maxWidth: '50%' },
+  // The task card's cap for a word in the value slot, so the two faces give the word the same room.
+  valueWordSide: { maxWidth: '42%' },
 });

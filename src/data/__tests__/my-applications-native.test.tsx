@@ -64,7 +64,10 @@ const confirm = () => { const open = sheet(); expect(open.props).toMatchObject({
 const cancel = () => sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress;
 const retained = () => sheet().props.onConfirm;
 const background = async (state: string) => { await act(async () => { mockState = state; mockListeners.forEach(f => f(state)); }); };
-async function review() { mockRows = [stale()]; await render(); await tap('Pregledaj izmene: Unos ormara'); }
+// Review r4 item 1: the review foot's spoken name starts with its visible words (WCAG 2.5.3). It was
+// "Pregledaj izmene: Unos ormara"; the same foot, the same guarded command.
+const REVIEW_FOOT = 'Pregledaj izmene zadatka: Unos ormara';
+async function review() { mockRows = [stale()]; await render(); await tap(REVIEW_FOOT); }
 async function editing() { await review(); await tap('Izmeni prijavu'); }
 beforeEach(() => {
   jest.clearAllMocks(); mockFocused = true; mockState = 'active'; mockRole = 'uskocer'; mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
@@ -116,7 +119,7 @@ it('a definite price refusal leads to review after readback, without treating th
   expect(text()).toContain('Cena prijave mora da prati cenu i obračun iz zadatka');
   expect(text()).not.toContain('hidden backend detail'); expect(text()).not.toContain('Ishod radnje nije potvrđen');
   await tap('Proveri sačuvano stanje'); expect(press('Ponovi isti zahtev')).toBeUndefined();
-  await tap('Pregledaj aktuelnu prijavu'); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
+  await tap('Pregledaj aktuelnu prijavu'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
   expect(press('Sačuvaj izmenjenu prijavu')).toBeDefined();
 });
 it('filters actual attention, active and finished rows without changing their status', async () => {
@@ -185,7 +188,7 @@ it('the Dogovor foot link uses the existing guard: refused while another command
   expect(press('Otvori Dogovor: Unos ormara')).toBeUndefined();
 });
 it('requires a visible stale review, then KEEP preserves null-ignored fields and exact versions', async () => {
-  mockRows = [stale()]; await render(); expect(press('Zadrži prijavu')).toBeUndefined(); await tap('Pregledaj izmene: Unos ormara');
+  mockRows = [stale()]; await render(); expect(press('Zadrži prijavu')).toBeUndefined(); await tap(REVIEW_FOOT);
   expect(text()).toContain('Dvoje ljudi i trake.'); expect(text()).toContain('20. septembar');
   const keep = press('Zadrži prijavu'); await act(async () => { keep(); keep(); }); expect(mockResolve).toHaveBeenCalledTimes(1);
   expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'KEEP', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4, cenaRsd: null, napomena: null });
@@ -200,7 +203,7 @@ it('updates price, people and note while preserving the exact existing interval 
 it('shows an interval inside one minute as one time, with an honest unknown timezone and the existing people plural', async () => {
   mockRows = [stale()]; mockRows[0].pokrivaMesta = 12;
   mockInterval.mockResolvedValue({ ok: true, podatak: { start: '2026-09-20T10:00:00.000001Z', end: '2026-09-20T10:00:00.000009Z', pricing } });
-  await render(); await tap('Pregledaj izmene: Unos ormara'); await tap('Izmeni prijavu');
+  await render(); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
   expect(text()).toMatch(/20\. sep( 2026)? · 10:00/); expect(text()).not.toContain('10:00–10:00'); expect(text()).not.toContain('10:00:00');
   expect(text()).not.toContain('zona nije navedena'); expect(text()).toContain('12 osoba'); expect(text()).not.toContain('12 osobe');
 });
@@ -257,7 +260,7 @@ it('a flip of the retired app mode leaves an open withdrawal confirmation standi
   mockRole = 'narucilac'; await update(); await act(async () => old()); expect(mockWithdraw).toHaveBeenCalledTimes(1);
 });
 it('retires retained review actions when that review is closed and reopened', async () => {
-  await review(); const old = press('Zadrži prijavu'); await tap('Zatvori pregled izmena'); await tap('Pregledaj izmene: Unos ormara'); await act(async () => old()); expect(mockResolve).not.toHaveBeenCalled();
+  await review(); const old = press('Zadrži prijavu'); await tap('Zatvori pregled izmena'); await tap(REVIEW_FOOT); await act(async () => old()); expect(mockResolve).not.toHaveBeenCalled();
 });
 it('unknown UPDATE requires readback then retries the identical immutable payload and key', async () => {
   mockResolve.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'secret backend text' }); await editing(); await edit('Cena ponude (RSD)', '5600');
@@ -269,7 +272,7 @@ it('unknown UPDATE requires readback then retries the identical immutable payloa
 it('known stale rejection permits a new reviewed intent only after readback', async () => {
   mockResolve.mockResolvedValueOnce({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'raw data' }); await review(); await tap('Zadrži prijavu');
   expect(press('Pregledaj aktuelnu prijavu')).toBeUndefined(); await tap('Proveri sačuvano stanje'); await tap('Pregledaj aktuelnu prijavu');
-  await tap('Pregledaj izmene: Unos ormara'); await tap('Zadrži prijavu'); expect(mockResolve.mock.calls[1][0].clientRequestId).not.toBe(mockResolve.mock.calls[0][0].clientRequestId);
+  await tap(REVIEW_FOOT); await tap('Zadrži prijavu'); expect(mockResolve.mock.calls[1][0].clientRequestId).not.toBe(mockResolve.mock.calls[0][0].clientRequestId);
 });
 it('a malformed receipt cannot fabricate success or unlock a changed command', async () => {
   mockResolve.mockResolvedValue({ ok: true, podatak: { status: 'SUBMITTED', version: 2 } }); await review(); await tap('Zadrži prijavu');

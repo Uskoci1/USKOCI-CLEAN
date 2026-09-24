@@ -49,7 +49,8 @@ test('Moje prijave names no app mode, offers tabs with counts as real tabs, and 
   for (const tab of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(byLabel(tab).props.accessibilityRole).toBe('tab');
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');
-  expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene: Unos ormara c');
+  expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene zadatka: Unos ormara c');
+  // Review r4 item 1: the review foot's spoken name now starts with its visible words (WCAG 2.5.3); it was "Pregledaj izmene: …".
   // Every card is reachable as its own Task, and a list of applications spends no orange fill: the card
   // that wants you says so with its status line and its foot's orange dot (step 5c: no coloured card edge),
   // and one orange button per card would be five of them on the "Čeka te" tab. The screen's one brand
@@ -59,12 +60,70 @@ test('Moje prijave names no app mode, offers tabs with counts as real tabs, and 
 });
 test('Prijave loading shows placeholders and a spoken status; the empty state has one brand action', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED')]} loading />); });
-  expect(labels().some(label => String(label).startsWith('Povuci'))).toBe(false); expect(texts()).toContain('Učitavamo tvoje Prijave…');
+  expect(labels().some(label => String(label).startsWith('Povuci'))).toBe(false);
+  // Review r4 item 9: "prijave" is lower case in the loading line, as everywhere else on the screen.
+  expect(texts()).toContain('Učitavamo tvoje prijave…');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Applications rows={[]} />); });
   // Step 5c (2026-09-24) pinned the old first-run title "Tvoja sledeća prilika."; the empty state is now the one
   // StateView, in the words every list uses for its first run ("Još nemaš Dogovor", "Još nemaš Zadatak").
   expect(texts()).toContain('Još nemaš prijavu'); expect(brand()).toEqual(['Istraži zadatke']);
+});
+
+// Review r4 item 5: the states of Moje prijave that a later change could silently break.
+describe('Moje prijave states', () => {
+  type Overrides = Partial<React.ComponentProps<typeof MyApplicationsPresentation>>;
+  const make = (patch: Overrides = {}) => <MyApplicationsPresentation rows={[]} loading={false} unavailable={false} message={null} notice={null} tab="all"
+    onTab={noop} expanded={null} draft={null} busy={false} editingLoading={false} pending={false} canRetry={false} canReset={false}
+    onRefresh={noop} onExplore={noop} onProfile={noop} onBack={noop} onReview={noop} onClose={noop} onEdit={noop} onChange={noop} onCancelEdit={noop}
+    onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} {...patch} />;
+  const tabs = () => presses().filter(node => node.props.accessibilityRole === 'tab');
+
+  test('with no application at all there are no tabs to switch between, only the first run', async () => {
+    await act(async () => { tree = create(make()); });
+    expect(tabs()).toHaveLength(0);
+    expect(texts()).toContain('Još nemaš prijavu');
+    await act(async () => tree.update(make({ rows: [application('a', 'SUBMITTED')] })));
+    expect(tabs().map(node => node.props.accessibilityLabel)).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
+  });
+
+  test.each([
+    ['attention', application('a', 'SUBMITTED'), 'Ništa te ne čeka'],
+    ['active', application('a', 'WITHDRAWN', { mozePovuci: false }), 'Nema aktivnih prijava'],
+    ['finished', application('a', 'SUBMITTED'), 'Nema završenih prijava'],
+  ] as const)('an empty "%s" tab says so and leads back to all applications', async (tab, row, title) => {
+    const onTab = jest.fn();
+    await act(async () => { tree = create(make({ rows: [row], tab, onTab })); });
+    expect(texts()).toContain(title);
+    expect(labels().some(label => String(label).startsWith('Otvori zadatak'))).toBe(false);
+    await act(async () => byLabel('Prikaži sve prijave').props.onPress());
+    expect(onTab).toHaveBeenCalledWith('all');
+  });
+
+  test('a read that failed offers the retry and the way back, and the retry greys out while a read runs', async () => {
+    const onRefresh = jest.fn(), onBack = jest.fn();
+    await act(async () => { tree = create(make({ unavailable: true, onRefresh, onBack })); });
+    expect(texts()).toContain('Prijave trenutno nisu dostupne');
+    // The fallback names no cause nobody checked (review r4 item 4).
+    expect(texts()).toContain('Pokušaj ponovo za trenutak.'); expect(texts()).not.toMatch(/internet/);
+    expect(tabs()).toHaveLength(0);
+    await act(async () => byLabel('Pokušaj ponovo').props.onPress());
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    // The bar's arrow and the state's quiet action both say "Nazad"; the state's is the second.
+    const back = presses().filter(node => node.props.accessibilityLabel === 'Nazad');
+    expect(back).toHaveLength(2);
+    await act(async () => back[1].props.onPress());
+    expect(onBack).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(make({ unavailable: true, busy: true, onRefresh, onBack })));
+    expect(byLabel('Pokušaj ponovo').props.disabled).toBe(true);
+  });
+
+  test('a named application that has no review keeps its own foot action', async () => {
+    await act(async () => { tree = create(make({ rows: [application('a', 'SUBMITTED'), application('c', 'STALE_REVIEW_REQUIRED')], expanded: 'a' })); });
+    expect(labels()).toContain('Povuci prijavu: Unos ormara a');
+    expect(labels()).toContain('Pregledaj izmene zadatka: Unos ormara c');
+    expect(texts()).not.toContain('Aktuelni uslovi');
+  });
 });
 
 const need: PrilikaProjekcija = { id: 'need', naslov: 'Selidba stana', statusTekst: 'Traži ponude', primaNovePrijave: true, rokZaPrijaveIso: null, podrucjeTekst: 'Beograd, Vračar',

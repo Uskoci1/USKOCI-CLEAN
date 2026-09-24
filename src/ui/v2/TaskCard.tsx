@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { CaretRight } from 'phosphor-react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { isOwnedNeed } from '../../data/marketplaceView';
@@ -12,10 +11,9 @@ import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
-import { T } from '../Text';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { CardFact, CardFoot, CardHead, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
-  WaitingDot, faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue } from './TaskFace';
+import { CardFact, CardFoot, CardFootLine, CardHead, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
+  faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue } from './TaskFace';
 
 /** How far the whole card gives under the finger: a large surface gives less than a button (`sys.motion.pressScale`). */
 export const CARD_PRESS_SCALE = 0.986;
@@ -105,9 +103,8 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
     {waitingFoot ? <Press accessibilityRole="button" accessibilityLabel={`${waitingFoot.text}, ${title}`} accessibilityHint="Otvara prijave za izbor."
       accessibilityState={{ disabled }} disabled={disabled} onPress={onApplications} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       hitSlop={0} style={[faceStyles.ownerFoot, compact && s.footCompact, bare && s.footBare]}>
-      <WaitingDot />
-      <T style={faceStyles.ownerFootText} numberOfLines={2}>{waitingFoot.text}</T>
-      <CaretRight size={18} weight="bold" color={sys.color.warn} />
+      {/* The one foot line of the card system (review r4 item 8): the orange dot, the warn words, the caret. */}
+      <CardFootLine label={waitingFoot.text} tone="waiting" caret="right" />
     </Press> : null}
   </Animated.View>;
 }

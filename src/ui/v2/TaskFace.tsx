@@ -196,13 +196,13 @@ export function CardHead({ title, value, large }: { title: string; value: TaskVa
  */
 export function CardValue({ value, large }: { value: TaskValue; large: boolean }) {
   if (value.kind === 'amount') {
-    return <View style={large ? s.valueRow : s.amountSide}>
-      <T style={[s.amount, large && s.alignStart]}>{value.amount}</T>
-      {value.basis ? <T style={[s.basis, large && s.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
+    return <View style={large ? s.valueRow : valueStyles.amountSide}>
+      <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
+      {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
     </View>;
   }
-  return <View style={large ? s.valueRow : s.wordSide}>
-    <T style={[s.valueWord, large && s.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
+  return <View style={large ? s.valueRow : valueStyles.wordSide}>
+    <T style={[valueStyles.valueWord, large && valueStyles.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
   </View>;
 }
 
@@ -309,14 +309,17 @@ export function CardTitle({ title, lines = 2 }: { title: string; lines?: number 
  * card that draws it puts it in its own press, a sibling of the body, on `faceStyles.footLink` (or `ownerFoot` for what
  * waits for me), so no target sits inside another:
  * - `green`   goes somewhere (a caret to the right);
- * - `danger`  asks before it ends something (no caret: it opens a question, not a screen);
+ * - `ink`     a rare step that asks before it ends something, drawn quietly on every card that allows it (no caret: it
+ *             opens a question, not a screen; the question itself carries the danger colour);
+ * - `danger`  the same step where it must stand out;
  * - `waiting` is what waits for me: the orange dot and the `warn` words, as the own-task foot.
  * Disabled draws the words muted, never faded.
  */
-export type FootTone = 'green' | 'danger' | 'waiting';
+export type FootTone = 'green' | 'ink' | 'danger' | 'waiting';
+const FOOT_TONES: Record<FootTone, string> = { green: sys.color.green, ink: sys.color.ink, danger: sys.color.danger, waiting: sys.color.warn };
 export function CardFootLine({ label, tone, caret = 'none', disabled = false }: { label: string; tone: FootTone;
   caret?: 'right' | 'down' | 'none'; disabled?: boolean }) {
-  const color = disabled ? sys.color.muted : tone === 'green' ? sys.color.green : tone === 'danger' ? sys.color.danger : sys.color.warn;
+  const color = disabled ? sys.color.muted : FOOT_TONES[tone];
   const Caret = caret === 'down' ? CaretDown : CaretRight;
   return <>
     {tone === 'waiting' ? <WaitingDot /> : null}
@@ -324,6 +327,22 @@ export function CardFootLine({ label, tone, caret = 'none', disabled = false }: 
     {caret !== 'none' ? <Caret size={18} weight="bold" color={color} /> : null}
   </>;
 }
+
+/**
+ * The value slot's type, shared by every face that shows an amount or the word instead of one (the task card, my
+ * application's offer, a candidate's offer, the AI's live draft), so no face keeps its own copy (review r4 item 8). An
+ * amount is money (colour, weight, tabular figures) and is never cut; what it buys and a word are quiet labels.
+ */
+export const valueStyles = StyleSheet.create({
+  // An amount keeps its whole width, whatever the phone and the text size: the title beside it is what gives way.
+  amountSide: { alignItems: 'flex-end', flexShrink: 0 },
+  // A word may take two short lines rather than squeeze the title.
+  wordSide: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
+  alignStart: { textAlign: 'left' },
+  amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
+  basis: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
+  valueWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
+});
 
 export const faceStyles = StyleSheet.create({
   /**
@@ -335,9 +354,8 @@ export const faceStyles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.wash,
     borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
   ownerFootDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
-  ownerFootText: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
   /**
-   * A quiet foot link (`CardFootLine` green or danger): the own-task foot's geometry, one hairline above and 48 px of
+   * A quiet foot link (`CardFootLine` green, ink or danger): the own-task foot's geometry, one hairline above and 48 px of
    * touch, on the card's own white. The hairline is the border between the two targets, as there.
    */
   footLink: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,
@@ -354,15 +372,7 @@ const s = StyleSheet.create({
   headStacked: { gap: 4 },
   title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
-  // An amount keeps its whole width, whatever the phone and the text size: the title beside it is what gives way.
-  amountSide: { alignItems: 'flex-end', flexShrink: 0 },
-  // A word may take two short lines rather than squeeze the title.
-  wordSide: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  alignStart: { textAlign: 'left' },
-  amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  basis: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  valueWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   art: { width: 16, height: 19, alignItems: 'center', justifyContent: 'center' },
   factText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact },
