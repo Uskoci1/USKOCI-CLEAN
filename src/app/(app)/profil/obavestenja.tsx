@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { PushPreferences } from '../../../ui/notifications/PushPreferences';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { T } from '../../../ui/Text';
@@ -20,7 +20,13 @@ export default function PushSettings() {
  // The server keeps two sets of notification settings for one account: one for the tasks it
  // publishes and one for the work it applies to. Which set this screen edits used to follow the
  // mode the whole app was in; it is now chosen here, on the screen that edits it.
- const [role, setRole] = useState<SetKey>('REQUESTER');
+ // The inbox filtered to one set opens this screen on that set (`skup`); Profil names none, and anything else is ignored.
+ const { skup } = useLocalSearchParams<{ skup?: string }>();
+ const asked: SetKey | null = skup === 'REQUESTER' || skup === 'WORKER' ? skup : null;
+ const [role, setRole] = useState<SetKey>(asked ?? 'REQUESTER');
+ // This screen stays mounted between visits, so the named set is taken on every focus. Nothing unsaved is lost by it:
+ // every focus starts the settings again from what was saved.
+ useFocusEffect(useCallback(() => { if (asked) setRole(asked); }, [asked]));
  // Unsaved changes of the shown set. Switching the set or going back used to throw them away without a word.
  const [dirty, setDirty] = useState(false);
  // A save, or the phone switched on or off, is running for the shown set: the set stays until its outcome is read back.

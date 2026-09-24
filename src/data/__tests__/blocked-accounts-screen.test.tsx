@@ -78,6 +78,19 @@ it('an empty later page offers the way back to the start, and Back with no histo
   expect(mockRouter.replace).toHaveBeenCalledWith('/profil');
 });
 
+// Round-5 fix (2026-09-24): an empty page with more after it is not "nobody blocked", and an empty later page keeps its
+// way back to the start even when yet another page follows it.
+it('an empty first page with more after it says nothing about nobody; an empty later page keeps "Početak liste"', async () => {
+  mockList.mockResolvedValueOnce(ok([], C)).mockResolvedValueOnce(ok([], 'third'));
+  await render();
+  expect(text()).not.toContain('Još nema blokiranih korisnika.');
+  expect(actions('Sledeći korisnici')).toHaveLength(1); expect(actions('Početak liste')).toHaveLength(0);
+  await act(async () => action('Sledeći korisnici').onPress());
+  expect(mockList).toHaveBeenLastCalledWith(C);
+  expect(text()).toContain('Na ovoj stranici nema više korisnika.');
+  expect(actions('Početak liste')).toHaveLength(1); expect(actions('Sledeći korisnici')).toHaveLength(1);
+});
+
 // Step 11a (2026-09-24): unblocking happens on the list, asked once, through the same revisioned, idempotent command.
 it('"Odblokiraj" asks first; only the confirm sends one unblock of the shown revision, then the same page is read again', async () => {
   mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }], null)).mockResolvedValue(ok([]));

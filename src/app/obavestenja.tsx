@@ -21,7 +21,9 @@ export default function Obavestenja() {
   const navigating = useRef(false);
   useFocusEffect(useCallback(() => { navigating.current=false; return () => { navigating.current=true; }; },[model]));
   const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
-  const settings = () => navigate(() => router.push('/profil/obavestenja'));
+  // The settings open on the set the list is filtered to ("Moje prijave" opens that set); "Sve" leaves the screen's own.
+  const settings = () => navigate(() => role
+    ? router.push({pathname:'/profil/obavestenja',params:{skup:role}}) : router.push('/profil/obavestenja'));
   async function open(item: InboxItem) {
     const target = await model.open(item);
     if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;

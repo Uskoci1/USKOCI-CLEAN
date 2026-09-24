@@ -23,8 +23,9 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
   onPage: (cursor: string | null) => void;
 }) {
   const items = data?.items ?? [];
-  // A page that is empty while another follows it is not "nobody blocked": only the way to the next page is offered.
-  const empty = !loading && !error && data?.items.length === 0 && !data.nextCursor;
+  // An empty FIRST page with another after it is not "nobody blocked": only the way to the next page is offered. A later
+  // page that is empty keeps "Na ovoj stranici nema više korisnika." with its way back to the start of the list.
+  const empty = !loading && !error && data?.items.length === 0 && !(!cursor && data.nextCursor);
   const reading = busy || loading;
   // A refused or unknown outcome keeps every unblock waiting until the list is read again; the alert above says why. So
   // does a re-read that got no answer: the list stays on screen under its error, but it is not confirmed, and the

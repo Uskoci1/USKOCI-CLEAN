@@ -48,6 +48,13 @@ test('successful empty is the shared empty state with the bell, and one owned se
   const settings=press('Podesi obaveštenja');await act(async()=>{settings.props.onPress();settings.props.onPress();});
   expect(mockRouter.push.mock.calls).toEqual([['/profil/obavestenja']]);
 });
+// Round-5 review (2026-09-24): from a list filtered to one set, the gear opens that set's settings.
+test('the gear of a filtered list opens the settings on that set; "Sve" names none',async()=>{
+  await render();
+  await act(async()=>press('Moje prijave').props.onPress());
+  await act(async()=>press('Podesi obaveštenja').props.onPress());
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/profil/obavestenja',params:{skup:'WORKER'}}]]);
+});
 test('a filtered empty list names what it is empty of, without the settings shortcut',async()=>{
   await render();
   await act(async()=>press('Moji zadaci').props.onPress());

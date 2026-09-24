@@ -4,7 +4,9 @@ import { BackHandler } from 'react-native';
 import PushSettings from '../../app/(app)/profil/obavestenja';
 const mockBack = jest.fn(), mockReplace = jest.fn(), mockCanBack = jest.fn();
 let mockIntent = 'narucilac'; let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
-jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: (path: string) => mockReplace(path), canGoBack: () => mockCanBack() }, Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]) }));
+let mockParams: Record<string, string> = {};
+jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: (path: string) => mockReplace(path), canGoBack: () => mockCanBack() }, Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
+ useLocalSearchParams: () => mockParams }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: (props: unknown) => require('react').createElement('SafeArea', props) }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockOwner, sesijaSada: () => mockOwner }));
@@ -16,7 +18,7 @@ let tree: Renderer.ReactTestRenderer;
 // The arrow says "Nazad" (round-5 review, 2026-09-24): the screen also opens from the gear in Obaveštenja, where
 // "Nazad na profil" was wrong. This helper pinned the old label.
 const back = () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress;
-beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
+beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockParams = {}; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
 afterEach(() => act(() => tree.unmount()));
 it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), the accessible header/back and footer', () => {
  expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top', 'bottom']);
@@ -96,5 +98,18 @@ it('while a save of the shown set runs, the set switch waits and nothing is aske
  expect(shown().props.role).toBe('REQUESTER'); expect(confirmButton()).toBeUndefined();
  act(() => shown().props.onWritingChange(false));
  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ expect(shown().props.role).toBe('WORKER');
+});
+// Round-5 review (2026-09-24): the gear of an inbox filtered to "Moje prijave" used to open "Moji zadaci".
+it('opens on the set the inbox names, ignores anything else it is handed, and takes a new name on the next visit', () => {
+ act(() => tree.unmount());
+ mockParams = { skup: 'WORKER' }; act(() => { tree = Renderer.create(<PushSettings />); });
+ expect(shown().props.role).toBe('WORKER');
+ expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+ act(() => tree.unmount());
+ mockParams = { skup: 'ADMIN' }; act(() => { tree = Renderer.create(<PushSettings />); });
+ expect(shown().props.role).toBe('REQUESTER');
+ // The screen stays mounted between visits; the next way in that names a set shows it.
+ mockParams = { skup: 'WORKER' }; act(() => { tree.update(<PushSettings />); });
  expect(shown().props.role).toBe('WORKER');
 });
