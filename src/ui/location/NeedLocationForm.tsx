@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
 import { V2Action as Button } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
+import { FactArt } from '../system/FactArt';
 import { T } from '../Text';
 import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
-import { CountryField, countryName, selectableCountry, useCountryOptions } from './CountryField';
+import { CountryField, countryName, selectableCountry, useCountryOptions, type CountryOptions } from './CountryField';
 import { LocationPointEditor } from './LocationPointEditor';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 
@@ -16,6 +17,7 @@ const MODES: ReadonlyArray<[NeedTaskGeography['mode'], string]> = [
   ['MULTI_STOP', 'Više stanica'], ['AREA_BASED', 'Na području'], ['REMOTE', 'Na daljinu'],
 ];
 
+/** One place of the task, as fields on the page: no box of its own (a card inside the form's groups was a card in a card). */
 function PlaceFields({ title, value, disabled, onChange }: { title: string; value: NeedTaskGeographyPoint;
   disabled: boolean; onChange: (value: NeedTaskGeographyPoint) => void }) {
   const field = (key: 'city' | 'area' | 'label', text: string) => {
@@ -23,8 +25,8 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
     if (text) next[key] = text; else delete next[key];
     onChange(next);
   };
-  return <View style={s.card}>
-    <T variant="heading" style={{ color: sys.color.ink }}>{title}</T>
+  return <View style={s.section}>
+    <T variant="bodyStrong" style={{ color: sys.color.ink }}>{title}</T>
     <LocationField label={`${title} — grad ili mesto`} value={value.city ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('city', text)} />
     <LocationDetails label={`${title} — dodatni javni opis`} disabled={disabled} summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
@@ -37,14 +39,39 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
   </View>;
 }
 
-export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, reviewOnly = false }: {
+/** The head of one of the two groups: what everybody sees, and what only a Dogovor reveals. */
+function GroupHeader({ art, label }: { art: 'eye' | 'lock'; label: string }) {
+  return <View style={f.groupHeader}>
+    <FactArt kind={art} size={18} />
+    <T variant="heading" accessibilityRole="header" style={f.groupTitle}>{label}</T>
+  </View>;
+}
+
+type FormProps = {
   review: NeedLocationReview; busy: boolean; uncertain: boolean; onSave: (value: NeedLocationInput) => void;
   resolver?: ReturnType<typeof createConfiguredLocationResolver>;
   /** V5 prepares this value for the one final review; it does not confirm facts. */
   reviewOnly?: boolean;
-}) {
+  /**
+   * `inline` (default) is the form alone, for a caller that scrolls it. `screen` is a whole step: the form scrolls on its
+   * own and the one save stands in a footer under it, always in reach.
+   */
+  layout?: 'inline' | 'screen';
+  /** The countries to choose from, when the caller already holds them (the design gallery, which reads nothing). */
+  countries?: CountryOptions;
+};
+
+export function NeedLocationForm(props: FormProps) {
+  return props.countries ? <LocationFormBody {...props} options={props.countries} /> : <WithCountries {...props} />;
+}
+function WithCountries(props: FormProps) {
+  const options = useCountryOptions();
+  return <LocationFormBody {...props} options={options} />;
+}
+
+function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnly = false, layout = 'inline', options: countryOptions }:
+  FormProps & { options: CountryOptions }) {
   const current = review.value.geography;
-  const countryOptions = useCountryOptions();
   const [country, setCountry] = useState<string | null>(review.value.taskCountryCode);
   const [mode, setMode] = useState<NeedTaskGeography['mode']>(current?.mode ?? 'STATIONARY');
   const [start, setStart] = useState<NeedTaskGeographyPoint>(current?.start ?? {});
@@ -93,14 +120,14 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
     if (!value) { setInvalid(true); return; }
     onSave(value);
   }
+  const discardPending = () => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } };
+  const reason = saveBlockReason({ busy, uncertain, editable: review.editable, pendingPoint,
+    confirmed: reviewOnly || confirmed, countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) });
 
-  return <View style={{ gap: 16 }}>
-    {/* The bar already names the screen; one sentence says what to do here. */}
-    <T tone="muted">Unesi mesto gde je potrebna pomoć. GPS dozvola nije potrebna.</T>
+  const body = <>
     {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na Zadatak.</T> : null}
-    {/* Constant on the screen: the place, the map and the one save. The country and the working mode
-        are chosen once and rarely changed, so they fold into one row that says what is chosen
-        (owner's rule of place, 2026-09-23) — open from the start only while the country is unset. */}
+    {/* The country and the working mode are chosen once and rarely changed, so they fold into one row that says what is
+        chosen (owner's rule of place, 2026-09-23) — open from the start only while the country is unset. */}
     <LocationDetails label="Država i način rada" disabled={disabled} initiallyOpen={!country || !selectableCountry(countryOptions.countries, country)}
       summary={`${countryName(country) ?? 'Država nije izabrana'} · ${MODES.find(([value]) => value === mode)?.[1] ?? ''}`}>
       <CountryField label="Država Zadatka" value={country} disabled={disabled} options={countryOptions}
@@ -109,41 +136,39 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
         disabled={disabled} onChange={value => change(() => setMode(value as NeedTaskGeography['mode']))} />
     </LocationDetails>
     {mode === 'REMOTE' ? <View style={s.notice}><T>Rad na daljinu nema adresu, pin ili radijus. Čuvanjem se uklanjaju podaci o fizičkom mestu iz ovog pregleda.</T></View> : <>
-      {mode !== 'AREA_BASED' ? <PlaceFields title={mode === 'STATIONARY' ? 'Mesto rada' : 'Polazište'} value={start}
-        disabled={disabled} onChange={value => change(() => setStart(value))} /> : <PlaceFields title="Područje rada" value={area}
-        disabled={disabled} onChange={value => change(() => setArea(value))} />}
-      {mode === 'AREA_BASED' ? areaStart ? <View style={s.section}>
-        <PlaceFields title="Početna tačka" value={areaStart} disabled={disabled}
-          onChange={value => change(() => setAreaStart(value))} />
-        <Button label="Ukloni početnu tačku" kind="quiet" disabled={disabled}
-          onPress={() => { if (!disabled) change(() => setAreaStart(null)); }} />
-      </View> : <Button label="Dodaj početnu tačku (opciono)" kind="secondary" disabled={disabled}
-        onPress={() => { if (!disabled) change(() => setAreaStart({})); }} /> : null}
-      {mode === 'MULTI_STOP' ? <View style={s.section}>
-        {waypoints.map((point, index) => <View key={index} style={s.section}>
-          <PlaceFields title={`Stanica ${index + 1}`} value={point} disabled={disabled}
-            onChange={value => change(() => setWaypoints(points => points.map((old, i) => i === index ? value : old)))} />
-          <Button label={`Ukloni stanicu ${index + 1}`} kind="quiet" disabled={disabled}
-            onPress={() => change(() => setWaypoints(points => points.filter((_, i) => i !== index)))} />
-          {index > 0 ? <Button label={`Pomeri stanicu ${index + 1} ranije`} kind="quiet" disabled={disabled}
-            onPress={() => change(() => setWaypoints(old => { const next = [...old];
-              [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; }))} /> : null}
-        </View>)}
-        <Button label="Dodaj stanicu" kind="secondary" disabled={disabled || waypoints.length >= 20}
-          onPress={() => change(() => setWaypoints(points => [...points, {}]))} />
-      </View> : null}
-      {mode === 'POINT_TO_POINT' || mode === 'MULTI_STOP' ? <PlaceFields title="Odredište" value={end}
-        disabled={disabled} onChange={value => change(() => setEnd(value))} /> : null}
-      <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
-      <PrivateLocationNote />
-      <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}
-        editable={!disabled} onChangeText={text => change(() => setAddress(text))} />
-      <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline
-        editable={!disabled} onChangeText={text => change(() => setNotes(text), false)} />
-      </LocationDetails>
-      <View style={s.card}>
-        <T variant="heading" style={{ color: sys.color.ink }}>{reviewOnly ? 'Mesta na mapi' : 'Potvrdi tačke na mapi'}</T>
-        <T variant="meta" tone="muted">{reviewOnly ? 'Izaberi pravo mesto ako pretraga ponudi više rezultata. Sve podatke prihvataš zajedno tek pri objavi.' : 'Promena države, javnog mesta, redosleda stanica ili tačne adrese traži novu potvrdu tačaka.'}</T>
+      <View style={f.group}>
+        <GroupHeader art="eye" label="Vide svi" />
+        {mode !== 'AREA_BASED' ? <PlaceFields title={mode === 'STATIONARY' ? 'Mesto rada' : 'Polazište'} value={start}
+          disabled={disabled} onChange={value => change(() => setStart(value))} /> : <PlaceFields title="Područje rada" value={area}
+          disabled={disabled} onChange={value => change(() => setArea(value))} />}
+        {mode === 'AREA_BASED' ? areaStart ? <View style={s.section}>
+          <PlaceFields title="Početna tačka" value={areaStart} disabled={disabled}
+            onChange={value => change(() => setAreaStart(value))} />
+          <Button label="Ukloni početnu tačku" kind="quiet" disabled={disabled}
+            onPress={() => { if (!disabled) change(() => setAreaStart(null)); }} />
+        </View> : <Button label="Dodaj početnu tačku (opciono)" kind="secondary" disabled={disabled}
+          onPress={() => { if (!disabled) change(() => setAreaStart({})); }} /> : null}
+        {mode === 'MULTI_STOP' ? <View style={s.section}>
+          {waypoints.map((point, index) => <View key={index} style={s.section}>
+            <PlaceFields title={`Stanica ${index + 1}`} value={point} disabled={disabled}
+              onChange={value => change(() => setWaypoints(points => points.map((old, i) => i === index ? value : old)))} />
+            <View style={f.stopActions}>
+              <Button label={`Ukloni stanicu ${index + 1}`} kind="quiet" disabled={disabled}
+                onPress={() => change(() => setWaypoints(points => points.filter((_, i) => i !== index)))} />
+              {index > 0 ? <Button label={`Pomeri stanicu ${index + 1} ranije`} kind="quiet" disabled={disabled}
+                onPress={() => change(() => setWaypoints(old => { const next = [...old];
+                  [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; }))} /> : null}
+            </View>
+          </View>)}
+          <Button label="Dodaj stanicu" kind="secondary" disabled={disabled || waypoints.length >= 20}
+            onPress={() => change(() => setWaypoints(points => [...points, {}]))} />
+        </View> : null}
+        {mode === 'POINT_TO_POINT' || mode === 'MULTI_STOP' ? <PlaceFields title="Odredište" value={end}
+          disabled={disabled} onChange={value => change(() => setEnd(value))} /> : null}
+      </View>
+      <View style={[f.group, f.divided]}>
+        <GroupHeader art="lock" label="Samo u Dogovoru" />
+        <PrivateLocationNote />
         {!baseValue || !slots.length ? <T>Prvo unesi državu i javno mesto za potrebne tačke.</T> : <>
           <T variant="bodyStrong">Potvrđeno tačaka: {points.length} od {slots.length}</T>
           {slots.length > 1 ? <LocationChoice label="Tačka koju uređuješ" value={selectedSlot}
@@ -158,42 +183,58 @@ export function NeedLocationForm({ review, busy, uncertain, onSave, resolver, re
             scopeKey={`${review.accountId}:${review.conversationId}:${review.revision}:${pinEpoch}:${selectedSlot}`}
             onInvalidate={() => change(() => { setPoints(old => old.filter(point => point.slot !== selectedSlot)); setPendingPoint(true); }, false)}
             onConfirm={point => change(() => { setPoints(old => [...old.filter(item => item.slot !== selectedSlot), point]); setPendingPoint(false); }, false)} /> : null}
-          {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
-            onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} /> : null}
-          {points.length < slots.length ? <T variant="meta" tone="muted">Pregled možeš sačuvati i dopuniti kasnije. Lokacija je potpuno potvrđena tek kada proveriš sve tačke.</T> : null}
+          {points.length < slots.length ? <T variant="meta" tone="muted">Lokacija je potpuno potvrđena tek kada potvrdiš sve tačke.</T> : null}
         </>}
+        <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
+        <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}
+          editable={!disabled} onChangeText={text => change(() => setAddress(text))} />
+        <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline
+          editable={!disabled} onChangeText={text => change(() => setNotes(text), false)} />
+        </LocationDetails>
       </View>
     </>}
     {invalid ? <T accessibilityRole="alert" tone="danger">Unesi mesto za svaku potrebnu tačku. Ruta sa više stanica mora imati odredište ili bar jednu stanicu.</T> : null}
     {!reviewOnly ? <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
-      {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Proverio/la sam javno mesto i privatne podatke.'}
+      {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Javno mesto i privatni podaci su provereni.'}
     </LocationConfirmation> : null}
-    {/* Typing in the search field near the top invalidates the point, which kills this button three
-        screenfuls below — and the only explanation was a small grey line back up inside the card,
-        with the escape hatch up there too. The reason and the way out stand where the dead button is. */}
-    {pendingPoint ? <View style={{ gap: 8 }}>
-      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">Potvrdi tačku na mapi da bi sačuvao mesto.</T>
-      <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
-        onPress={() => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } }} />
-    </View> : null}
-    <Button kind="primary" label={busy ? 'Pripremamo mesto…' : reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'}
-      disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
-    {/* A grey button says why it is grey, in the line where its explanation used to stand (owner rule,
-        2026-09-23). The pending point has its own block above; a run in progress is the label itself. */}
-    <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{saveBlockReason({ busy, uncertain, editable: review.editable, pendingPoint,
-      confirmed: reviewOnly || confirmed, countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) })
-      ?? (reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.' : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.')}</T>
+  </>;
+  // The one green action of the step, with its reason under it when it is grey (owner rule, 2026-09-23); while a point
+  // waits for its confirmation, the one way to drop it stands right here, where the grey save is.
+  const save = <>
+    <Button style={brandAction} label={reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'} loading={busy}
+      disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)}
+      reason={reason} onPress={submit} />
+    {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled} onPress={discardPending} /> : null}
+    {!reviewOnly && !reason && !busy ? <T variant="note" tone="muted">Čuva se mesto u istom pregledu. Zadatak još nije objavljen.</T> : null}
+  </>;
+  if (layout === 'screen') return <View style={f.screen}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.scroll}>{body}</ScrollView>
+    <View style={f.footer}>{save}</View>
   </View>;
+  return <View style={f.inline}>{body}{save}</View>;
 }
 
-/** Why the one save is grey, or null when it is live (or when the label / a block above already says). */
+/** Why the one save is grey, or null when it is live (or while it is at work: its spinner says so). */
 export function saveBlockReason(state: { busy: boolean; uncertain: boolean; editable: boolean; pendingPoint: boolean;
   confirmed: boolean; countryChosen: boolean; countrySelectable: boolean }): string | null {
-  if (state.busy || state.pendingPoint) return null;
+  if (state.busy) return null;
   if (!state.editable) return 'Ovaj pregled više nije dostupan za izmene.';
   if (state.uncertain) return 'Prethodna radnja nije potvrđena. Učitaj sačuvano stanje pre novog pokušaja.';
-  if (!state.countryChosen) return 'Izaberi državu u „Država i način rada" da bi sačuvao mesto.';
+  if (state.pendingPoint) return 'Potvrdi tačku na mapi, pa sačuvaj mesto.';
+  if (!state.countryChosen) return 'Izaberi državu u „Država i način rada", pa sačuvaj mesto.';
   if (!state.countrySelectable) return 'Izabrana država još nije dostupna. Izaberi dostupnu u „Država i način rada".';
-  if (!state.confirmed) return 'Označi potvrdu iznad da bi sačuvao mesto.';
+  if (!state.confirmed) return 'Označi potvrdu iznad, pa sačuvaj mesto.';
   return null;
 }
+
+const f = StyleSheet.create({
+  inline: { gap: sys.space.xl },
+  screen: { flex: 1 },
+  scroll: { padding: sys.space.lg, gap: sys.space.xl, paddingBottom: sys.space.xxl },
+  footer: { padding: sys.space.lg, gap: sys.space.sm, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  group: { gap: sys.space.base },
+  divided: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.xl },
+  groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  groupTitle: { flex: 1, color: sys.color.ink },
+  stopActions: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+});

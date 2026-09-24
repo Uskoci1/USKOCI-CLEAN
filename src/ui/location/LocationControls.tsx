@@ -1,10 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, CaretRight, Check } from 'phosphor-react-native';
+import { CaretDown, Check } from 'phosphor-react-native';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { TurningCaret } from '../system/Disclosure';
 import { useReducedMotion } from '../system/motion';
+import { StateView } from '../system/StateView';
 import { card, sys, fieldBox } from '../system/tokens';
+import { ProductSheet } from '../product/ProductSheet';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -19,6 +22,7 @@ export const locationStyles = StyleSheet.create({
   input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notice: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, padding: 16, gap: 10 },
+  failure: { paddingHorizontal: 20, paddingTop: 16 },
 });
 
 /** Keep secondary fields available without competing with the current place or pin. */
@@ -31,12 +35,13 @@ export function LocationDetails({ label, summary, children, disabled = false, in
   return <View style={locationStyles.section}>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open, disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={() => { if (!disabled) setOpen(value => !value); }}
-      style={[locationStyles.row, { minHeight: sys.touch.min, paddingVertical: 8 }]}>
+      style={[locationStyles.row, { minHeight: 56, paddingVertical: sys.space.sm }]}>
       <View style={{ flex: 1, gap: 2 }}>
         <T variant="bodyStrong" style={{ color: sys.color.ink }}>{label}</T>
         {!open && summary ? <T variant="meta" tone="muted">{summary}</T> : null}
       </View>
-      <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><CaretRight size={18} color={sys.color.muted}  /></View>
+      {/* The app's one caret (Disclosure): down when closed, up when open, still under reduced motion. */}
+      <TurningCaret open={open} />
     </Press>
     {open ? children : null}
   </View>;
@@ -67,28 +72,22 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
       style={[locationStyles.input, locationStyles.row, disabled && { backgroundColor: sys.color.wash }]}>
       <T variant="body" style={{ flex: 1, color: selected ? sys.color.ink : sys.color.muted }}>{selected?.label ?? 'Izaberi'}</T><CaretDown size={18} color={sys.color.green} />
     </Press>
-    <Modal visible={open} transparent animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setOpen(false)}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: sys.color.scrim }}>
-        <Press accessibilityRole="button" accessibilityLabel="Zatvori izbor" onPress={() => setOpen(false)}
-          style={{ flex: 1, minHeight: 44 }} />
-        <SafeAreaView edges={['bottom']} accessibilityViewIsModal
-          style={{ maxHeight: '80%', borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, backgroundColor: sys.color.surface, padding: 20, paddingTop: 12, gap: 14 }}>
-          <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong }} />
-          <T variant="heading" style={{ color: sys.color.ink }}>{label}</T>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 6 }}>
-            {options.map(option => <Press key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
-              accessibilityState={{ selected: option.value === value, disabled: !!option.disabled }} disabled={option.disabled} haptic="select"
-              onPress={() => { onChange(option.value); setOpen(false); }}
-              style={[locationStyles.row, { minHeight: 50, paddingHorizontal: 14, borderRadius: sys.radius.control, borderWidth: 1, opacity: option.disabled ? 0.5 : 1,
-                borderColor: value === option.value ? sys.color.green : sys.color.line, backgroundColor: value === option.value ? sys.color.greenSoft : sys.color.surface }]}>
-              <T variant={value === option.value ? 'bodyStrong' : 'body'} style={{ flex: 1, color: sys.color.ink }}>{option.label}</T>
-              {value === option.value ? <Check size={18} color={sys.color.green} /> : null}
-            </Press>)}
-          </ScrollView>
-          <Button kind="quiet" label="Odustani" onPress={() => setOpen(false)} />
-        </SafeAreaView>
-      </View>
-    </Modal>
+    {/* The shared sheet (master plan: the hand-made Modals become ProductSheet). A choice that is not available yet
+        says so in words, and stays readable instead of fading. */}
+    {open ? <ProductSheet title={label} reduced={reduced} onClose={() => setOpen(false)}>{dismiss => <View style={{ gap: sys.space.sm }}>
+      {options.map(option => <Press key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
+        accessibilityHint={option.disabled ? 'Još nije dostupno.' : undefined}
+        accessibilityState={{ selected: option.value === value, disabled: !!option.disabled }} disabled={option.disabled} haptic="select"
+        onPress={() => { onChange(option.value); dismiss(); }}
+        style={[locationStyles.row, { minHeight: 56, paddingHorizontal: 14, paddingVertical: sys.space.sm, borderRadius: sys.radius.control, borderWidth: 1,
+          borderColor: value === option.value ? sys.color.green : sys.color.line, backgroundColor: value === option.value ? sys.color.greenSoft : sys.color.surface }]}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <T variant={value === option.value ? 'bodyStrong' : 'body'} style={{ color: option.disabled ? sys.color.muted : sys.color.ink }}>{option.label}</T>
+          {option.disabled ? <T variant="note" tone="muted">Još nije dostupno</T> : null}
+        </View>
+        {value === option.value ? <Check size={18} color={sys.color.green} /> : null}
+      </Press>)}
+    </View>}</ProductSheet> : null}
   </View>;
 }
 
@@ -114,21 +113,24 @@ export function PrivateLocationNote() {
   </View>;
 }
 
-export function LocationScreen({ title, onBack, loading, error, onRetry, children }: {
+export function LocationScreen({ title, onBack, loading, error, onRetry, children, scroll = true }: {
   title: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
+  /** False when the child is a whole step that scrolls on its own and keeps its save in a footer (`layout="screen"`). */
+  scroll?: boolean;
 }) {
+  // Loading is the app's one state view. A failure stays beside the form: under it in a scrolling screen (where the save
+  // is), above it in a step that keeps its save in a footer.
+  const failure = error ? <View style={[locationStyles.notice, { backgroundColor: sys.color.dangerSoft }]}>
+    <T accessibilityRole="alert" tone="danger">{error}</T>
+    <Button label="Učitaj sačuvano stanje" kind="secondary" onPress={onRetry} />
+  </View> : null;
   return <SafeAreaView style={locationStyles.screen} edges={['top', 'bottom']}>
     <DetailTopBar title={title} onBack={onBack} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>
-        {loading ? <View style={locationStyles.notice} accessibilityRole="progressbar" accessibilityLabel="Učitavanje lokacije">
-          <ActivityIndicator color={sys.color.green} /><T variant="body" style={{ color: sys.color.ink }}>Učitavamo sačuvanu lokaciju…</T>
-        </View> : children}
-        {error ? <View style={[locationStyles.notice, { backgroundColor: sys.color.dangerSoft }]}>
-          <T accessibilityRole="alert" tone="danger">{error}</T>
-          <Button label="Učitaj sačuvano stanje" kind="secondary" onPress={onRetry} />
-        </View> : null}
-      </ScrollView>
+      {loading ? <ScrollView contentContainerStyle={locationStyles.content}>
+        <StateView kind="loading" title="Učitavamo sačuvanu lokaciju…" skeleton={{ count: 1, rows: 4 }} />
+      </ScrollView> : scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>{children}{failure}</ScrollView>
+        : <View style={{ flex: 1 }}>{failure ? <View style={locationStyles.failure}>{failure}</View> : null}{children}</View>}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }

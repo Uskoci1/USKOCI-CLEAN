@@ -1,0 +1,49 @@
+import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
+import type { NeedTaskGeography } from '../../contracts/needFactsV2';
+import { calendarInstant } from '../../lib/calendarTime';
+import { raspon } from '../../lib/vreme';
+import { DOGOVORENA_ZONA, napomenaZone } from '../../lib/dogovorenoVreme';
+import { novac } from '../../lib/novac';
+import { osoba } from '../system/plural';
+import type { TaskValue } from './TaskFace';
+
+/**
+ * The public face of a task that is still a draft, in the words the task card draws. Pure: no service, no Supabase, so
+ * a screen suite can import it. The same rules as the conversation's live card (`IntakePresentation`), which still keeps
+ * its own copy until the /nova owner points it here (round 6 objava report).
+ */
+export const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
+  TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
+
+export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefined {
+  const start = calendarInstant(startsAt), end = calendarInstant(endsAt);
+  if (start === null || end === null || end <= start) return undefined;
+  // The app's one way to write a window (src/lib/vreme.ts: "26. sep · 17:00–19:00"), read in Serbian time as every agreed
+  // term is, and named so only on a phone set to another zone. Display only; never inferred or saved as the task's timezone.
+  const text = raspon(new Date(Number(start / 1000n)), new Date(Number(end / 1000n)), { zona: DOGOVORENA_ZONA });
+  return text ? text + napomenaZone() : undefined;
+}
+
+/** What the card shows: public facts only, each already in the words the card draws. */
+export type Summary = { title: string | null; zone: string; schedule?: string; value: TaskValue | null; people: string | null };
+type SummaryFact = Pick<AiNeedV2Fact, 'key' | 'value' | 'privacyClass' | 'status'>;
+
+export function publicSummary(facts: readonly SummaryFact[]): Summary {
+  // A compact public projection has an explicit field allowlist. Never use the
+  // private exact address, access notes, resolved points or arbitrary displayValue.
+  const value = (key: AiNeedV2Fact['key']) => facts.find(fact => fact.key === key && fact.privacyClass === 'PUBLIC' && fact.status !== 'UNKNOWN')?.value;
+  const title = value('need.title'), geography = value('need.task_geography') as NeedTaskGeography | undefined;
+  const mode = value('need.price_mode'), amount = value('need.price_rsd'), people = value('need.people_needed');
+  const basis = value('need.price_basis');
+  const schedule = value('need.schedule_kind');
+  const zone = geography?.mode === 'REMOTE' ? 'Na daljinu' : [geography?.start?.city ?? geography?.serviceArea?.city,
+    geography?.start?.area ?? geography?.serviceArea?.area].filter(item => typeof item === 'string' && item.trim()).join(' · ');
+  const money = mode === 'MY_PRICE' && typeof amount === 'number' ? novac(amount) : '';
+  return { title: typeof title === 'string' && title.trim() ? title : null, zone,
+    schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))
+      : typeof schedule === 'string' ? schedules[schedule] : undefined,
+    // An amount with what it buys, or "Tražim ponude" as a quiet word. A price not reached yet is no slot at all.
+    value: mode === 'OFFERS' ? { kind: 'offers' }
+      : money ? { kind: 'amount', amount: money, basis: basis === 'TOTAL' ? 'ukupno' : basis === 'PER_PERSON' ? 'po osobi' : null } : null,
+    people: typeof people === 'number' ? osoba(people) : null };
+}

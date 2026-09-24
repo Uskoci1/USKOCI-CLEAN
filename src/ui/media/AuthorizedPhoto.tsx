@@ -6,6 +6,7 @@ import { mediaClientService } from '../../data/mediaClientService';
 import { uuid } from '../../data/serverReceipt';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
+import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
 
 // Bounded in-memory representation; no signed URL or persistent image cache.
@@ -39,12 +40,18 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     });
     return () => { if (active.current === key) active.current = null; abort.abort(); setImage(null); };
   }, [p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId, user?.id, accountRevision]));
-  return <View style={[{ aspectRatio: 4 / 3, backgroundColor: sys.color.wash, borderRadius: sys.radius.control, overflow: 'hidden', justifyContent: 'center' }, p.style]}>
+  return <View style={[{ aspectRatio: 4 / 3, backgroundColor: sys.color.wash, borderRadius: sys.radius.control, overflow: 'hidden',
+    justifyContent: 'center', alignItems: 'center' }, p.style]}>
     {image && image.key === active.current && image.binding === binding ? <Image source={{ uri: image.uri }} accessibilityLabel={p.label}
       accessible contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={binding}
       transition={0} style={{ width: '100%', height: '100%' }} />
-      : failed ? p.unavailable ?? <T style={{ ...sys.type.meta, color: sys.color.muted, padding: 12 }}>Fotografija trenutno nije dostupna.</T>
-        : <ActivityIndicator accessibilityLabel="Učitavanje fotografije" color={sys.color.green} />}
+      // A photo that cannot be read says so quietly in its own frame: a muted picture and one short line, which still
+      // fits a small square tile. Nothing fades in or out.
+      : failed ? p.unavailable ?? <View style={{ alignItems: 'center', gap: sys.space.xs, padding: sys.space.sm }}>
+        <FactArt kind="photo" size={24} muted />
+        <T variant="note" tone="muted" numberOfLines={3} style={{ textAlign: 'center' }}>Fotografija trenutno nije dostupna.</T>
+      </View>
+        : <ActivityIndicator size="small" accessibilityLabel="Učitavanje fotografije" color={sys.color.green} />}
   </View>;
 }
 
