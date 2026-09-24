@@ -5,7 +5,8 @@ import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/mapl
 import { sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
-import { displayedPinPosition, RESOLVED_PIN_MAP_STYLE, type ResolvedPinMapProps } from './ResolvedPinMap.types';
+import { displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
+import { useMapStyle } from './mapStyle';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
 
 type FocusOwner = { active: boolean; key: string; epoch: number };
@@ -131,6 +132,9 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     finally { if (drag.current === session) cancelDrag(); }
   };
   const offset = dragOffset?.token === token ? dragOffset.delta : null;
+  // Place names in Serbian Latin (2026-09-24): the map mounts once the style is known, and meanwhile shows the same
+  // loading state it shows while its tiles arrive.
+  const mapStyle = useMapStyle();
   return <View style={styles.container}>
     <View style={[styles.frame, props.height ? { height: props.height } : null]}
       // Read-only: the point no longer prints under the map, so the frame carries it for a screen
@@ -147,7 +151,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         frameSize.current = size;
       }
     }}>
-      <Map ref={map} style={styles.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" dragPan={!offset}
+      {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="texture" dragPan={!offset}
         attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
         touchPitch={false} touchRotate={false} accessibilityLabel={coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije'}
         onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
@@ -170,7 +174,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             onError={() => { if (owns()) { setImageToken(null); mark('failed'); } }} />
           </View>
         </Marker> : null}
-      </Map>
+      </Map> : null}
       {status !== 'ready' ? <View style={styles.feedback}>
         {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proveri vezu. Uneti podaci ostaju u obrascu.</T>

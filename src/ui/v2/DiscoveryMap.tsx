@@ -1,31 +1,57 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Camera, GeoJSONSource, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef } from '@maplibre/maplibre-react-native';
-import { MapPin } from 'phosphor-react-native';
-import { publicFeatures, publicInitialBounds, publicPoint, publicViewport } from '../../data/marketplaceView';
-import { RESOLVED_PIN_MAP_STYLE } from '../location/ResolvedPinMap.types';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { Camera, GeoJSONSource, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
+import { Minus, Plus } from 'phosphor-react-native';
+import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
+  from '../../data/marketplaceView';
+import { readableTitle } from '../../data/needDetailPresentation';
+import { useMapStyle, type MapStyle } from '../location/mapStyle';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { sys } from '../system/tokens';
+import { zadataka } from '../system/plural';
 import { useReducedMotion } from '../system/motion';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
+import { PricePill, type PillContent } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
-/** Uses installed MapLibre v11 GeoJSON clustering; no map input becomes a business fact. */
-function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void }) {
-  const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null);
+/** At most this many price pills at once; past it the rest stay dots (a pill is a view, a dot is a layer). */
+export const PILL_LIMIT = 40;
+/** A changed list reaches the native source a moment later; the visible pins are read after it. */
+const PILL_SETTLE_MS = 300;
+const ZOOM_CAPSULE = { width: 44, height: 88 } as const;
+const GAP = sys.space.md;
+
+const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
+
+/**
+ * Uses installed MapLibre v11 GeoJSON clustering; no map input becomes a business fact. The native source carries
+ * only IDs and rounded public points (`publicFeatures`); what a pin says is drawn from the current read, by ID, as a
+ * price pill over the pin once the map says which pins stand on their own at this zoom. Clusters stay the native
+ * circles with their count.
+ */
+function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void; mapStyle: MapStyle }) {
+  const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [viewport, setViewport] = useState(props.viewport);
+  // "Pretraži ovu oblast" appears only once the person has moved the map away from what the list shows.
+  const [moved, setMoved] = useState(false);
+  const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
+  const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const mounted = useRef(true), load = useRef(status);
   const data = useMemo(() => publicFeatures(props.items), [props.items]);
-  const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey }); latest.current = { props, dataKey };
+  const places = useMemo(() => pinPlaces(props.items), [props.items]);
+  const byId = useMemo(() => new globalThis.Map(props.items.map(item => [item.id, item] as const)), [props.items]);
+  const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
+  const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
   const initial = useRef(props.viewport ? { center: props.viewport.center, zoom: props.viewport.zoom }
-    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 75, right: 50, bottom: 80, left: 50 } }
+    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 80, left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
     mounted.current = true;
@@ -33,6 +59,40 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     return () => { mounted.current = false; clearTimeout(timer); };
   }, []);
   const mark = (value: 'ready' | 'failed') => { if (!owns() || load.current === 'failed') return; load.current = value; setStatus(value); };
+  // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
+  // only IDs of the current read become pills. A failed read leaves the dots.
+  const query = useRef(0);
+  const readVisiblePins = async () => {
+    if (!owns() || load.current !== 'ready') return;
+    const ask = ++query.current;
+    try {
+      const features = await map.current?.queryRenderedFeatures?.({ layers: ['need-pins'] });
+      if (!owns() || ask !== query.current || !Array.isArray(features)) return;
+      setVisibleIds([...new Set(features.flatMap(feature => typeof feature?.properties?.needId === 'string' ? [feature.properties.needId as string] : []))]);
+    } catch { /* Dots remain; nothing is invented. */ }
+  };
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const timer = setTimeout(() => { void readVisiblePins(); }, PILL_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [dataKey, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  const moveCamera = (options: { center: [number, number]; zoom?: number }, duration: number) => {
+    if (reduced) camera.current?.jumpTo(options); else camera.current?.easeTo({ ...options, duration });
+  };
+  /** Several tasks on one point are one place: its cluster opens the place instead of zooming into a single spot. */
+  const stackOf = async (clusterId: number, count: number): Promise<string | null> => {
+    if (!stacked || !latest.current.props.onSelectPlace || !Number.isInteger(count) || count < 2 || count > 100) return null;
+    try {
+      const leaves = await source.current?.getClusterLeaves?.(clusterId, count, 0);
+      if (!owns() || !Array.isArray(leaves)) return null;
+      const keys = new Set(leaves.map(leaf => {
+        const item = typeof leaf?.properties?.needId === 'string' ? latest.current.byId.get(leaf.properties.needId) : undefined, point = item && publicPoint(item);
+        return point ? pointKey(point) : null;
+      }));
+      const [key] = [...keys];
+      return leaves.length === count && keys.size === 1 && typeof key === 'string' && (latest.current.places.get(key)?.ids.length ?? 0) > 1 ? key : null;
+    } catch { return null; }
+  };
   const pressFeature = async (features: GeoJSON.Feature[]) => {
     if (!owns() || load.current !== 'ready' || !Array.isArray(features)) return;
     const feature = features[0]; if (!feature || feature.geometry?.type !== 'Point') return;
@@ -40,11 +100,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
     const properties = feature.properties;
     if (properties?.cluster === true && Number.isInteger(properties.cluster_id)) {
+      const place = await stackOf(properties.cluster_id, Number(properties.point_count));
+      if (!owns() || load.current !== 'ready') return;
+      if (place) { latest.current.props.onSelectPlace?.(place); return; }
       try {
         const zoom = await source.current?.getClusterExpansionZoom(properties.cluster_id);
         if (!owns() || load.current !== 'ready' || typeof zoom !== 'number' || !Number.isFinite(zoom)) return;
-        const options = { center: [coordinates[0], coordinates[1]] as [number, number], zoom: Math.min(18, Math.max(0, zoom)) };
-        if (reduced) camera.current?.jumpTo(options); else camera.current?.easeTo({ ...options, duration: sys.motion.camera });
+        setMoved(true);
+        moveCamera({ center: [coordinates[0], coordinates[1]] as [number, number], zoom: Math.min(18, Math.max(0, zoom)) }, sys.motion.camera);
       } catch { /* Native source may retire during a refresh; no invented selection. */ }
     } else if (typeof properties?.needId === 'string') {
       const actual = latest.current.props.items.find(item => item.id === properties.needId), point = actual && publicPoint(actual);
@@ -55,8 +118,51 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     }
   };
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
+  const selectedPlace = props.selectedPlace ? places.get(props.selectedPlace) : undefined;
   const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
   const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
+  const urgentPlace = (place: PinPlace) => place.ids.some(id => displaysUrgent(byId.get(id)?.urgency, urgencyNow));
+  // The camera brings a newly chosen pin into the clear part of the map (between the tools and the card), easing at the
+  // camera's pace, or at once under reduced motion. A choice that was already there when the map mounted stays put.
+  const focus = useRef<string | null>(props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null);
+  useEffect(() => {
+    const key = props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null;
+    if (status !== 'ready' || key === focus.current) return;
+    focus.current = key;
+    const target = selectedPlace?.point ?? point;
+    if (!key || !target) return;
+    void (async () => {
+      let center: [number, number] = [target.lng, target.lat];
+      const nativeMap = map.current, size = frame, top = props.toolsBottom ?? 0, bottom = props.focusBottom ?? 0;
+      if (size && (top || bottom) && nativeMap?.project && nativeMap?.unproject) {
+        try {
+          const at = await nativeMap.project(center);
+          if (!owns() || focus.current !== key || !Array.isArray(at)) return;
+          const clear = top + Math.max(0, size.height - top - bottom) / 2;
+          const shifted = await nativeMap.unproject([at[0], at[1] + size.height / 2 - clear]);
+          if (!owns() || focus.current !== key) return;
+          if (Array.isArray(shifted) && shifted.length === 2 && shifted.every(Number.isFinite)) center = [shifted[0], shifted[1]];
+        } catch { /* The pin itself becomes the centre. */ }
+      }
+      if (owns() && focus.current === key) moveCamera({ center }, sys.motion.camera);
+    })();
+  }, [props.selectedId, props.selectedPlace, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The pins that stand on their own become pills; a point shared by several tasks is one pill that says how many.
+  const pills = useMemo(() => {
+    const seen = new Set<string>(), shown: PinPlace[] = [];
+    for (const id of visibleIds) {
+      const item = byId.get(id), at = item && publicPoint(item);
+      if (!at) continue;
+      const key = pointKey(at), place = places.get(key);
+      if (seen.has(key) || !place) continue;
+      seen.add(key); shown.push(place);
+      if (shown.length >= PILL_LIMIT) break;
+    }
+    return shown;
+  }, [visibleIds, byId, places]);
+  const chosenKey = selectedPlace?.key ?? (point ? pointKey(point) : null);
+  const contentOf = (place: PinPlace): PillContent => place.ids.length > 1
+    ? { text: zadataka(place.ids.length), tone: 'count', spoken: placeWords(place) } : pinLabel(byId.get(place.ids[0])!);
   // The zoom buttons answer a finger, so they move at the toggle pace, not the camera's flight. `viewport` only
   // updates when the camera settles, so taps inside one animation build on the target already asked for: three quick
   // taps on "+" are three levels, not one. The target is forgotten when the map reports where it settled.
@@ -65,12 +171,36 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!owns() || load.current !== 'ready' || !viewport) return;
     const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
     zoomTarget.current = next;
+    setMoved(true);
     camera.current?.zoomTo(next, { duration: reduced ? 0 : sys.motion.toggle });
   };
-  return <View style={s.container}>
-    <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
+  // The zoom and the credits ride on the list sheet's top edge when the screen has one. When the sheet leaves them no
+  // room under the tools they step out of the screen entirely, so an unseen control can never take a touch.
+  const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + ZOOM_CAPSULE.height + 2 * GAP;
+  const ride = useAnimatedStyle(() => {
+    const top = sheetTop ? sheetTop.value : height;
+    return top < roomTop ? { transform: [{ translateY: -2 * height }], opacity: 0 } : { transform: [{ translateY: Math.min(0, top - height) }], opacity: 1 };
+  }, [height, roomTop, sheetTop]);
+  const controls = <>
+    {status === 'ready' ? <View style={s.zoom}>
+      {([['Uvećaj mapu', Plus, 1], ['Umanji mapu', Minus, -1]] as const).map(([label, Glyph, delta], index) => <View key={label}>
+        {index ? <View style={s.zoomRule} /> : null}
+        <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !viewport }} disabled={!viewport}
+          // Each half is drawn 44 × 43; its touch reaches 48 × 49 outwards, never into the other half.
+          haptic="select" onPress={() => changeZoom(delta)} hitSlop={index ? { left: 2, right: 2, bottom: 6 } : { left: 2, right: 2, top: 6 }} style={s.zoomButton}>
+          <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
+      </View>)}
+    </View> : null}
+    <View style={s.attribution}>
+      <T style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
+      <T style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
+    </View>
+  </>;
+  return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
+    <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
+      attribution attributionPosition={{ top: (props.toolsBottom ?? 0) + 8, right: 8 }} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
-      onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
+      onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
       // phone that left "Pretraži ovu oblast" and both zoom buttons dead, with no reason beside
@@ -78,55 +208,87 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // comes alive as soon as the map says where it is; persisting that position upward still
       // waits for ready, so a neutral world overview never becomes the remembered viewport.
       onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
-        if (value && load.current === 'ready') latest.current.props.onViewport(value); }}>
+        if (value && load.current === 'ready') {
+          latest.current.props.onViewport(value);
+          // Only the person's own movement offers a new area; the camera's own flights (a fit, a chosen pin) do not.
+          if (event.nativeEvent?.userInteraction === true) setMoved(true);
+        }
+        void readVisiblePins(); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
-      <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}
+      <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={60} clusterMaxZoom={16}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
-        {/* Pins and clusters wear the brand green (2026-09-23); HITNO keeps the danger red, the chosen one an orange ring. */}
+        {/* Clusters wear the brand green with their count; a pin is a small dot under its price pill (HITNO red). */}
         <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': sys.color.green, 'circle-stroke-width': 3, 'circle-stroke-color': sys.color.surface }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], 23, 19], 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green],
-            'circle-stroke-width': 3, 'circle-stroke-color': ['case', ['==', ['get', 'needId'], props.selectedId ?? ''], sys.color.orange, sys.color.surface] }} />
-        <Layer id="need-pin-centers" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': 5, 'circle-color': sys.color.surface }} />
+          paint={{ 'circle-radius': 7, 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green],
+            'circle-stroke-width': 2, 'circle-stroke-color': sys.color.surface }} />
       </GeoJSONSource>
-      {point && selected ? <ViewAnnotation id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${selected.naslov}, približna lokacija`} style={[s.selectedPin, displaysUrgent(selected.urgency, urgencyNow) && { backgroundColor: sys.color.danger }]}>
-          <MapPin size={23} color={sys.color.surface} />
-        </View>
+      {pills.filter(place => place.key !== chosenKey).map(place => {
+        const content = contentOf(place), urgent = urgentPlace(place);
+        return <ViewAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}`} lngLat={[place.point.lng, place.point.lat]} anchor="center"
+          onPress={() => { if (!owns() || load.current !== 'ready') return;
+            if (place.ids.length > 1 && latest.current.props.onSelectPlace) latest.current.props.onSelectPlace(place.key);
+            else latest.current.props.onSelect(place.ids[0]); }}>
+          <View collapsable={false} accessible accessibilityRole="button"
+            accessibilityLabel={place.ids.length > 1 ? placeWords(place) : `${urgent ? 'HITNO, ' : ''}${readableTitle(byId.get(place.ids[0])?.naslov)}, ${content.spoken}`}>
+            <PricePill content={content} urgent={urgent} /></View>
+        </ViewAnnotation>;
+      })}
+      {selectedPlace ? <ViewAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" lngLat={[selectedPlace.point.lng, selectedPlace.point.lat]} anchor="center">
+        <View collapsable={false} accessible accessibilityLabel={`${placeWords(selectedPlace)}, izabrano`}>
+          <PricePill content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected /></View>
+      </ViewAnnotation> : point && selected ? <ViewAnnotation key={`selected-need:${selected.id}`} id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
+        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}>
+          <PricePill content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /></View>
       </ViewAnnotation> : null}
     </Map>
-    {status === 'ready' ? <>
-      <View style={s.area}><V2Action label="Pretraži ovu oblast" disabled={!viewport} onPress={() => { if (owns() && viewport) props.onSearchArea(viewport.bounds); }} /></View>
-      <View style={s.zoom}>{[['Uvećaj mapu', '+', 1], ['Umanji mapu', '−', -1]].map(([label, text, delta]) => <Press key={String(label)} accessibilityRole="button" accessibilityLabel={String(label)}
-        accessibilityState={{ disabled: !viewport }} disabled={!viewport} haptic="select" onPress={() => changeZoom(Number(delta))} style={s.zoomButton}><T style={s.zoomText}>{text}</T></Press>)}</View>
-    </> : <View style={s.feedback}>{status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></>
-      : <><T accessibilityRole="alert" style={sys.type.title}>Mapa nije učitana</T><T style={sys.type.body}>Proveri vezu. Zadaci i filteri ostaju u Listi.</T>
-        <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
-        <V2Action label="Pogledaj listu" onPress={props.onList} /></>}</View>}
-    <View style={s.attribution}><T style={s.credit} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
-      <T style={s.credit} accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T></View>
+    {status === 'ready' && moved && viewport && !props.busy ? <View pointerEvents="box-none" style={[s.areaRow, { top: (props.toolsBottom ?? 0) + GAP }]}>
+      <Press accessibilityRole="button" accessibilityLabel="Pretraži ovu oblast" hitSlop={{ top: 4, bottom: 4 }} haptic="select" scaleTo={0.97}
+        onPress={() => { if (owns() && viewport) { props.onSearchArea(viewport.bounds); setMoved(false); } }} style={s.areaPill}>
+        <T style={s.areaText}>Pretraži ovu oblast</T>
+      </Press>
+    </View> : null}
+    {sheetTop && height ? <Animated.View pointerEvents="box-none" style={[s.ride, { height }, ride]}>{controls}</Animated.View>
+      : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{controls}</View>}
+    {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
+      {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></>
+        : <><T accessibilityRole="alert" style={sys.type.title}>Mapa nije učitana</T><T style={sys.type.body}>Proveri vezu. Zadaci i filteri ostaju u listi.</T>
+          <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
+          {/* A screen whose list is a sheet over the map already offers the list on the sheet's own top line. */}
+          {sheetTop ? null : <V2Action label="Pogledaj listu" onPress={props.onList} />}</>}</View> : null}
   </View>;
 }
 export function DiscoveryMap(props: DiscoveryMapProps) {
   const [owner, setOwner] = useState<Owner | null>(null), [attempt, setAttempt] = useState(0);
   const current = useRef<Owner | null>(null), epoch = useRef(0), latestKey = useRef(props.scopeKey); latestKey.current = props.scopeKey;
+  // Place names in Serbian Latin: the map mounts once its style is known (read once for the whole app).
+  const mapStyle = useMapStyle();
   useFocusEffect(useCallback(() => {
     const scope = { active: true, key: props.scopeKey, epoch: ++epoch.current }; current.current = scope; setOwner(scope);
     return () => { scope.active = false; if (current.current === scope) current.current = null; };
   }, [props.scopeKey]));
   if (!owner?.active || owner.key !== props.scopeKey || current.current !== owner) return <View style={s.feedback}><T>Mapa je dostupna dok je ovaj pregled otvoren.</T></View>;
+  if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></View>;
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
-  return <MapSession key={`${owner.epoch}:${attempt}`} {...props} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
+  return <MapSession key={`${owner.epoch}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
-  area: { position: 'absolute', top: 12, left: 16, right: 76 }, zoom: { position: 'absolute', top: 12, right: 12, gap: 6 },
-  zoomButton: { minWidth: 44, minHeight: 44, borderRadius: sys.radius.chip, justifyContent: 'center', alignItems: 'center', backgroundColor: sys.color.surface },
-  zoomText: { ...sys.type.cardTitle, color: sys.color.ink }, selectedPin: { width: 48, height: 48, borderRadius: sys.radius.chip, borderBottomLeftRadius: 5,
-    borderWidth: 3, borderColor: sys.color.orange, backgroundColor: sys.color.green, alignItems: 'center', justifyContent: 'center' },
+  // An auto-width pill centred under the tools: a quiet offer, never the screen's primary (critique B8).
+  areaRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  areaPill: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, shadowColor: sys.color.ink, shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  areaText: { fontSize: 15, lineHeight: 20, fontWeight: '600', color: sys.color.green },
+  ride: { position: 'absolute', left: 0, right: 0, top: 0 },
+  // One capsule with a hairline between its halves (critique B11), bottom-right above the sheet.
+  zoom: { position: 'absolute', right: sys.space.base, bottom: GAP, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, shadowColor: sys.color.ink, shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
+  zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
-  attribution: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: sys.color.surface, padding: 4 },
-  credit: { ...sys.type.label, color: sys.color.muted },
+  // The credits stay visible and linked, as quiet 12 px words with a light halo instead of a white slab (critique B9).
+  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  credit: { fontSize: 12, lineHeight: 16, fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
+    textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

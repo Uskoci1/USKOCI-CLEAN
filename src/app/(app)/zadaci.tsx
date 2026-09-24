@@ -5,13 +5,13 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
+import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
 
 /**
  * Zadaci, the middle tab: other people's open tasks (owner's information architecture, 2026-09-23: Početna | Zadaci |
  * Dogovori). The Mapa tab and the root `/prilike` used to show this same discovery twice, under two names; both
- * addresses now redirect here, so an old notification, a remembered route or a deep link still lands on it. It opens
- * on the map, as the Mapa tab did, until the map and the list become one screen.
+ * addresses now redirect here, so an old notification, a remembered route or a deep link still lands on it. Since owner
+ * step 4 (2026-09-24) the map and the list are one screen: the map under a list sheet (DiscoveryPresentation).
  */
 export default function Zadaci() {
   const { user, accountRevision } = useSesija();
@@ -57,7 +57,7 @@ function Discovery() {
   };
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
-  return <MarketplacePresentation owned={false} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined}
       onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}

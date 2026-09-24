@@ -11,6 +11,9 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: jest.fn() }));
 jest.mock('../../ui/v2/MarketplacePresentation', () => ({ MarketplacePresentation: 'Marketplace' }));
+// Zadaci renders DiscoveryPresentation since owner step 4 (2026-09-24): the same props under the same test name, so every
+// guard below is asserted exactly as before.
+jest.mock('../../ui/v2/DiscoveryPresentation', () => ({ DiscoveryPresentation: 'Marketplace' }));
 import Owned from '../../app/(app)/potrebe';
 // Discovery is the Zadaci tab since 2026-09-23; /prilike and /mapa only redirect to it (retired-discovery-routes.test).
 import Public from '../../app/(app)/zadaci';
