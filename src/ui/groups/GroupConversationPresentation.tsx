@@ -19,7 +19,8 @@ import type { GroupState } from './GroupConversationController';
 type Group = NonNullable<NonNullable<GroupState['context']>['group']>;
 type Member = Group['members'][number];
 const time = (value: string) => vreme(value, { danas: true });
-const status = (value: string) => ({ CONFIRMED: 'Važeći Dogovor', AWAITING_REQUESTER: 'Čeka potvrdu završetka', COMPLETED: 'Završen', CANCELLED: 'Otkazan' }[value] ?? 'Dogovor');
+// The management block is the requester's alone, so a finish that waits on the requester waits on the person reading it.
+const status = (value: string) => ({ CONFIRMED: 'Važeći Dogovor', AWAITING_REQUESTER: 'Čeka tvoju potvrdu završetka', COMPLETED: 'Završen', CANCELLED: 'Otkazan' }[value] ?? 'Dogovor');
 /** The counter appears only near the limit, as in Poruke. */
 const LIMIT = 2000, NEAR = 1800;
 
@@ -40,12 +41,18 @@ export type GroupConversationPresentationProps = {
 /**
  * The shared conversation of a group task, in the look of Poruke (round 6): the other people's messages on the left,
  * white with the card edge and the name at the start of their turn, mine on the right on pale green, the clock small,
- * and the floating pill to write in. The people of the group sit behind the bar's people button. Presentation only: the
- * screen owns the controller, the journal, the read marking of truly visible rows and every fence.
+ * and the floating pill to write in. A short thread sits on the composer, where a reply is written, and a state stands
+ * in the middle; the header copy and the states keep the screens' 20 dp gutter while the bubbles stay on Poruke's 16.
+ * The people of the group sit behind the bar's people button. Presentation only: the screen owns the controller, the
+ * journal, the read marking of truly visible rows and every fence.
  */
 export function GroupConversationPresentation(p: GroupConversationPresentationProps) {
   const { state } = p, group = state.context?.group ?? null, ready = state.phase === 'READY';
   const retry = state.phase === 'UNKNOWN' && state.canRetry;
+  const first = state.phase === 'LOADING' && !state.messages.length && !group;
+  // As in Poruke: a thread is anchored to the composer, a state (the first read, an error, nothing to show) to the middle.
+  const centred = first || state.phase === 'ERROR' || (ready && (!group || state.messages.length === 0));
+  const me = state.context?.accountId;
   // In a conversation the arrival IS the message. The history that was already there settles silently, "Starije poruke"
   // does not replay the thread, and only a message that has just landed moves.
   const appear = useAppear();
@@ -56,8 +63,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const length = p.draftLength;
   const composer = (ready && group?.canSend) || retry;
   const name = (message: GroupMessage) => message.mine ? 'Ti' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
-  const header = <View style={s.stack}>
-    {state.phase === 'LOADING' && !state.messages.length && !group ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
+  const header = <View style={[s.stack, s.gutter]}>
+    {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
     {state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
     {group ? <>
@@ -67,14 +74,16 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
       {p.showPeople ? <View style={s.people}>
         {group.members.map(member => {
           const fallback = <Avatar initials={inicijali(member.displayName)} size={40} />;
+          // The read lists the requester and every member, the reader included: their own row says so.
+          const role = member.role === 'REQUESTER' ? 'Traži pomoć' : 'Učesnik';
           return <View key={member.accountId} style={s.member}>
             {p.photo ? p.photo(member, fallback) : fallback}
-            <View style={s.flex}><T variant="bodyStrong">{member.displayName}</T><T variant="meta" tone="muted">{member.role === 'REQUESTER' ? 'Traži pomoć' : 'Učesnik'}</T></View>
+            <View style={s.flex}><T variant="bodyStrong">{member.displayName}</T><T variant="meta" tone="muted">{member.accountId === me ? `Ti · ${role}` : role}</T></View>
           </View>;
         })}
         {group.members.length === 0 ? <T variant="meta" tone="muted">Prikazana je ranije dostupna istorija.</T> : null}
         {group.role === 'REQUESTER' ? <View style={[s.stack, s.parted]}>
-          <T variant="heading" accessibilityRole="header">Tvoji pojedinačni Dogovori</T><T variant="meta" tone="muted">Ovo upravljanje vidiš samo ti.</T>
+          <T variant="heading" accessibilityRole="header">Tvoji pojedinačni Dogovori</T><T variant="meta" tone="muted">Ovo vidiš samo ti.</T>
           {(group.management ?? []).map(item => <View key={item.agreementId} style={s.managed}>
             <T variant="body">{group.members.find(member => member.accountId === item.accountId)?.displayName ?? 'Učesnik'} · {status(item.executionState ?? item.status)}</T>
             {item.problemOpened ? <T variant="meta" tone="muted">Privatan problem u Dogovoru</T> : null}
@@ -83,19 +92,24 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
           {group.managementNextId ? <V2Action label="Još pojedinačnih Dogovora" kind="quiet" onPress={p.onManagementNext} /> : null}
         </View> : null}
       </View> : null}
-    </> : state.phase === 'READY' ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
+    </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
       body="Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && state.phase !== 'ERROR' ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label="Starije poruke" kind="quiet" disabled={!ready} onPress={p.onOlder} /> : null}
+    {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
-      body="Još nema poruka u istoriji dostupnoj tvom nalogu." /> : null}
+      body={group.canSend ? 'Vidiš poruke od svog ulaska u grupu. Napiši prvu.' : 'Vidiš poruke od svog ulaska u grupu.'} /> : null}
+    {/* New messages come on focus, after my own send or by pulling down, and a screen reader cannot easily pull: as in
+        Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
+        there is none, and never on a finished conversation, where nothing new can arrive. */}
+    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" style={s.centred} onPress={p.onRefresh} /> : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title={group?.title ?? 'Grupni razgovor'} subtitle={group ? 'Grupni razgovor' : undefined}
       backLabel="Nazad na Dogovor" onBack={p.onBack}
       right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={p.onTogglePeople} /> : undefined} />
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled"
+      <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
         onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={state.phase === 'LOADING' && state.messages.length > 0} onRefresh={p.onRefresh}
         ListHeaderComponent={header}
         renderItem={({ item }) => {
@@ -121,11 +135,10 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
             {p.support && chosen === item.messageId ? <View style={[s.support, item.mine ? s.supportMine : s.supportTheirs]}>{p.support(item)}</View> : null}
           </Appear>;
         }}
-        ListFooterComponent={<View style={s.stack}>
+        ListFooterComponent={<View style={[s.stack, s.gutter]}>
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekam potvrdu slanja…</T> : null}
           {state.phase === 'UNKNOWN' ? <V2Action label="Proveri prvobitno slanje" style={brandAction} onPress={p.onRefresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Prikaži razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
-          {ready ? <V2Action label="Osveži poruke" kind="quiet" onPress={p.onRefresh} /> : null}
         </View>} />
       {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Unesi prvobitnu poruku' : 'Poruka grupi'}
         placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}
@@ -142,8 +155,14 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: sys.space.base, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: 0 },
+  // Poruke's list: the bubbles on 16, and the content grows so a short thread can sit on the composer.
+  content: { paddingHorizontal: sys.space.base, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: 0, flexGrow: 1 },
+  listBottom: { justifyContent: 'flex-end' },
+  listCentred: { justifyContent: 'center' },
   stack: { gap: sys.space.md, paddingBottom: sys.space.sm },
+  // The header copy, the people panel and the states sit on the screens' 20 dp gutter, 4 in from the bubbles' 16.
+  gutter: { paddingHorizontal: sys.space.xs },
+  centred: { alignSelf: 'center' },
   flex: { flex: 1 },
   people: { gap: sys.space.md, paddingVertical: sys.space.sm },
   member: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },

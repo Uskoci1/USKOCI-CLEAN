@@ -20,16 +20,34 @@ beforeEach(() => { photos = { agreementId: gid, loaded: true, busy: false, items
   reserved: () => false, canRetry: () => false, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
   retry: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), restore: jest.fn().mockResolvedValue(undefined) }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+// Round 6: every command is spoken by its visible words first ("Galerija", "Kamera", "Osveži fotografije", "Proveri i ponovi").
 it('starts only an explicit picker, keeps media uncertainty recoverable, and bounds the independent preview scroller', async () => {
   photos.items = [{ ref, receipt: null }]; photos.available = false; photos.message = 'Ishod nije potvrđen.';
   await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.refresh).not.toHaveBeenCalled();
-  expect(button('Dodaj fotografiju iz galerije').props.disabled).toBe(true);
-  expect(button('Fotografiši za poruku').props.disabled).toBe(true);
+  expect(button('Galerija · dodaj fotografiju').props.disabled).toBe(true);
+  expect(button('Kamera · fotografiši za poruku').props.disabled).toBe(true);
+  // The tools are grey because a photo is still on its way: the tray says so, and the tools speak it as their hint.
+  expect(texts()).toContain('Prvo sačekaj ishod fotografije koja se šalje.');
+  expect(button('Kamera · fotografiši za poruku').props.accessibilityHint).toBe('Prvo sačekaj ishod fotografije koja se šalje.');
   // The prepared photos are a sideways row: it takes the height of its tallest item, so no action under a photo is clipped.
   const row = tree.root.findByType('ScrollView' as React.ElementType).props; expect(row.horizontal).toBe(true); expect(row.style?.maxHeight).toBeUndefined();
   await act(async () => button('Ukloni pripremljenu fotografiju 1').props.onPress()); expect(photos.remove).toHaveBeenCalledWith(ref);
-  await act(async () => button('Proveri fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
+  await act(async () => button('Osveži fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
+});
+it('says why the tools are withheld by cause, and nothing while the tray is busy or the read itself failed', async () => {
+  photos.available = false; photos.items = Array.from({ length: 6 }, (_, n) => ({ ref: { ...ref, clientRequestId: `${rid.slice(0, -1)}${n}` }, receipt }));
+  await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  expect(texts()).toContain('Već je izabrano 6 fotografija.');
+  photos = { ...photos, items: [] };
+  await act(async () => { tree.update(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  expect(texts()).toContain('Osveži uslove Dogovora pre nove fotografije.');
+  photos = { ...photos, loaded: false, message: 'Sačuvani izbor nije učitan. Osveži fotografije.' };
+  await act(async () => { tree.update(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  expect(texts()).not.toContain('Osveži uslove Dogovora'); expect(texts()).toContain('Sačuvani izbor nije učitan. Osveži fotografije.');
+  photos = { ...photos, loaded: true, message: null, busy: true };
+  await act(async () => { tree.update(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  expect(texts()).not.toContain('Osveži uslove Dogovora'); expect(button('Galerija · dodaj fotografiju').props.accessibilityHint).toBeUndefined();
 });
 it('shows a visible old-version conflict without dropping the photo or canceling an outbox-reserved attachment', async () => {
   photos.items = [{ ref, receipt }]; photos.versionConflict = true; photos.reserved = () => true;
@@ -47,12 +65,14 @@ it('does not load or attach all server inventory pictures when offering recovery
   expect(photos.pick).not.toHaveBeenCalled(); expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
 });
 it('keeps the retry of a photo still on its way drawn and pressable, and says why a saved photo cannot come back at six', async () => {
+  // Six photos still on their way: the hook withholds the tools, and the tray names the pending photo as the first cause.
   photos.items = Array.from({ length: 6 }, (_, n) => ({ ref: { ...ref, clientRequestId: `${rid.slice(0, -1)}${n}` }, receipt: null }));
-  photos.canRetry = () => true; photos.saved = [receipt];
+  photos.canRetry = () => true; photos.saved = [receipt]; photos.available = false;
   await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
-  await act(async () => button('Ponovi istu fotografiju 1').props.onPress()); expect(photos.retry).toHaveBeenCalledWith(photos.items[0].ref);
+  await act(async () => button('Proveri i ponovi fotografiju 1').props.onPress()); expect(photos.retry).toHaveBeenCalledWith(photos.items[0].ref);
   await act(async () => button('Prikaži ranije pripremljene fotografije').props.onPress());
   expect(button('Vrati sačuvanu fotografiju 1').props.disabled).toBe(true);
   expect(button('Vrati sačuvanu fotografiju 1').props.accessibilityHint).toBe('Već je izabrano 6 fotografija.');
-  expect(texts()).toContain('Već je izabrano 6 fotografija.'); expect(photos.restore).not.toHaveBeenCalled();
+  expect(texts()).toContain('Već je izabrano 6 fotografija.'); expect(texts()).toContain('Prvo sačekaj ishod fotografije koja se šalje.');
+  expect(photos.restore).not.toHaveBeenCalled();
 });

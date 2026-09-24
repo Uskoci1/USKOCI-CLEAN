@@ -1,4 +1,5 @@
 import React from 'react';
+import {StyleSheet} from 'react-native';
 import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002',ID='20000000-0000-4000-8000-000000000001',G='30000000-0000-4000-8000-000000000001',KEY='40000000-0000-4000-8000-000000000001',M='50000000-0000-4000-8000-000000000001';
 let mockSession={user:{id:A},accountRevision:1},mockIntent='uskocer',mockFocused=true,mockForeground='active';
@@ -56,8 +57,18 @@ it('renders actual common message, member names/avatars and keeps individual man
  expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Vaši pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
- mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Čeka potvrdu završetka');
+ // Round 6: the block is the requester's own, so the finish waits on "tvoju" confirmation (it said the impersonal "Čeka potvrdu završetka").
+ mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Bojana · Čeka tvoju potvrdu završetka');
  await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+});
+it('marks the reader in the people panel and anchors the thread to the composer, a state to the middle, as Poruke does',async()=>{
+ const me={accountId:A,profileId:A,displayName:'Ana',role:'REQUESTER'};
+ mockService.context.mockResolvedValue(ok({...context('REQUESTER'),group:{...context('REQUESTER').group,members:[me,...context().group.members]}}));
+ await render();await tap('Učesnici razgovora');expect(text()).toContain('Ti · Traži pomoć');expect(text()).not.toContain('Ti · Učesnik');
+ const style=()=>StyleSheet.flatten(tree!.root.findByType('List' as never).props.contentContainerStyle);
+ expect(style()).toMatchObject({flexGrow:1,justifyContent:'flex-end'});
+ mockService.messages.mockResolvedValue(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));await tap('Osveži poruke');
+ expect(style().justifyContent).toBe('center');expect(text()).toContain('Vidiš poruke od svog ulaska u grupu. Napiši prvu.');expect(action('Osveži poruke')).toBeDefined();
 });
 it('has one send action, latches concurrent retained callbacks and persists no plaintext',async()=>{
  await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress;
@@ -77,7 +88,10 @@ it('confirmed receipt clears composer but displays real message page only after 
 });
 it('read-only and bilateral contexts offer no composer or fabricated group members',async()=>{
  mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true,members:[]}}));await render();expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);expect(text()).toContain('Razgovor je završen');
- mockService.context.mockResolvedValue(ok({...context(),available:false,group:null}));await tap('Osveži poruke');expect(text()).toContain('najmanje dva');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
+ // Round 6: a finished conversation offers no "Osveži poruke" (nothing new can arrive, as in Poruke); the pull-down refresh stays.
+ expect(tree!.root.findAllByProps({label:'Osveži poruke'})).toHaveLength(0);
+ mockService.context.mockResolvedValue(ok({...context(),available:false,group:null}));await act(async()=>tree!.root.findByType('List' as never).props.onRefresh());
+ expect(text()).toContain('najmanje dva');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
 });
 it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard avoidance with scalable input',async()=>{
  await render();expect(mockService.markRead).not.toHaveBeenCalled();const list=tree!.root.findByType('List' as never).props;

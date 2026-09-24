@@ -77,27 +77,32 @@ const POINT = { latitude: 45.2517, longitude: 19.8369, accuracyMeters: 12.4, cap
 const location = (state: Partial<LocationState>): LocationState => ({ phase: 'READY', context: locationContext('WORKER'), journal: null, message: null, ...state });
 
 // ——— Grupni razgovor ———
-const members = [
-  { accountId: OTHER, profileId: OTHER, displayName: 'Marko Jovanović', role: 'REQUESTER' as const },
-  { accountId: '10000000-0000-4000-8000-000000000003', profileId: '10000000-0000-4000-8000-000000000003', displayName: 'Stefan Ilić', role: 'PARTICIPANT' as const },
+const THIRD = '10000000-0000-4000-8000-000000000003';
+const person = (accountId: string, displayName: string, role: 'REQUESTER' | 'PARTICIPANT') => ({ accountId, profileId: accountId, displayName, role });
+/** As the real read lists them: the requester and every active member, the viewer included (review r6). */
+const members = (requester: string) => [
+  person(OTHER, 'Marko Jovanović', requester === OTHER ? 'REQUESTER' : 'PARTICIPANT'),
+  person(THIRD, 'Stefan Ilić', 'PARTICIPANT'),
+  person(ME, 'Jovana Petrović', requester === ME ? 'REQUESTER' : 'PARTICIPANT'),
 ];
 const groupContext = (patch: Record<string, unknown> = {}) => ({ accountId: ME, agreementId: AGREEMENT, needId: NEED, available: true, authoritative: true as const,
-  group: { groupId: 'grupa', title: 'Selidba dvosobnog stana', canSend: true, terminal: false, role: 'PARTICIPANT' as const, members, management: null,
-    managementNextId: null, unreadCount: 0, ...patch } });
+  group: { groupId: 'grupa', title: 'Selidba dvosobnog stana', canSend: true, terminal: false, role: 'PARTICIPANT' as const,
+    members: members(patch.role === 'REQUESTER' ? ME : OTHER), management: null, managementNextId: null, unreadCount: 0, ...patch } });
 const said = (n: number, sender: string, body: string, createdAt: string): GroupMessage =>
   ({ messageId: `poruka-${n}`, sequence: String(n), senderAccountId: sender, body, createdAt, mine: sender === ME });
 const MESSAGES = [
   said(1, OTHER, 'Dobro jutro! Kombi dolazi u 9, ulaz je iz dvorišta.', '2026-09-24T06:40:00Z'),
   said(2, OTHER, 'Ključ od podruma je kod komšije na prvom spratu.', '2026-09-24T06:41:00Z'),
-  said(3, members[1].accountId, 'Stižem pet minuta ranije.', '2026-09-24T06:52:00Z'),
+  said(3, THIRD, 'Stižem pet minuta ranije.', '2026-09-24T06:52:00Z'),
   said(4, ME, 'I ja. Poneću rukavice za sve.', '2026-09-24T06:55:00Z'),
 ];
 const group = (state: Partial<GroupState>): GroupState => ({ phase: 'READY', context: groupContext(), messages: MESSAGES, before: null, journal: null,
   receipt: null, canRetry: false, message: null, ...state } as GroupState);
 
 // ——— Fotografije uz poruku ———
-/** A photo tray that can do nothing: one photo whose sending is not confirmed, one saved earlier; never a picker or an upload. */
-const PHOTOS = { agreementId: AGREEMENT, loaded: true, busy: false, ready: false, hasSelection: true, available: true, selected: [], versionConflict: false,
+/** A photo tray that can do nothing: one photo whose sending is not confirmed (so, as the hook has it, the tools are
+ *  withheld), one saved earlier; never a picker or an upload. */
+const PHOTOS = { agreementId: AGREEMENT, loaded: true, busy: false, ready: false, hasSelection: true, available: false, selected: [], versionConflict: false,
   items: [{ ref: { agreementId: AGREEMENT, agreementVersion: 3, clientRequestId: 'galerija-1' }, receipt: null }],
   saved: [{ clientRequestId: 'galerija-2', photo: { width: 1600, height: 1200 } }], message: null,
   canSubmit: () => false, capture: () => null, refresh: later, pick: later, retry: later, remove: later, restore: later, reserved: () => false, canRetry: () => true,
@@ -165,7 +170,8 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
       accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
     case 'gr-thread': return <GroupConversationPresentation {...groupProps(group({}), back, draft, setDraft)} />;
     case 'gr-people': return <GroupConversationPresentation {...groupProps(group({ context: groupContext({ role: 'REQUESTER', management: [
-      { agreementId: 'pojedinacni-1', accountId: members[1].accountId, status: 'CONFIRMED', executionState: 'AWAITING_REQUESTER', problemOpened: false }] }) }), back, draft, setDraft)}
+      { agreementId: 'pojedinacni-1', accountId: THIRD, status: 'CONFIRMED', executionState: 'AWAITING_REQUESTER', problemOpened: false },
+      { agreementId: 'pojedinacni-2', accountId: OTHER, status: 'CONFIRMED', executionState: 'CONFIRMED', problemOpened: false }] }) }), back, draft, setDraft)}
       showPeople />;
     case 'gr-empty': return <GroupConversationPresentation {...groupProps(group({ messages: [] }), back, draft, setDraft)} />;
     case 'gr-closed': return <GroupConversationPresentation {...groupProps(group({ context: groupContext({ canSend: false, terminal: true }) }), back, draft, setDraft)} />;
