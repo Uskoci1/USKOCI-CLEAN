@@ -35,7 +35,7 @@ jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({
   WorkerProfileStatus: (props: Record<string, unknown>) => require('react').createElement('Status', props),
   WorkerProfileForm: (props: Record<string, unknown>) => require('react').createElement('WorkerProfileForm', props),
   // The save status stands above the footer actions since 2026-09-24; its actions are the route's own, drawn as they are.
-  WorkerProfileFooter: ({ children }: { children?: unknown }) => children,
+  WorkerProfileFooter: ({ children, ...props }: { children?: unknown }) => require('react').createElement('Footer', props, children),
 }));
 
 import Profile from '../../app/(app)/profil/radnik';
@@ -119,5 +119,40 @@ describe('PKG-005 progressive Worker onboarding', () => {
     await act(async () => action('Dopuni osnovne podatke').props.onPress());
     expect(writeProfile).not.toHaveBeenCalled();
     expect(form().props.focusRequest).toMatchObject({ target: 'name' });
+  });
+
+  // Round 5c: a row tapped with an unsaved draft (the keyboard often still up) refuses into the footer's answer, which the
+  // frame keeps on screen while typing; the guide's instruction goes to the same place before the field is focused.
+  it('answers a row tapped with an unsaved draft in the footer and does not navigate', async () => {
+    readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE' }));
+    await render();
+    const footer = () => tree!.root.findByType('Footer' as React.ElementType);
+    await act(async () => form().props.change({ ...form().props.draft, ime: 'Ana Anić' }));
+    await act(async () => form().props.navigate('/profil/lokacija'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja drugog podešavanja.');
+    await act(async () => form().props.navigate('/podrska'));
+    expect(footer().props.error).toBe('Sačuvaj unos pre nego što pišeš podršci.');
+    await act(async () => form().props.openConversation());
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja razgovora.');
+  });
+
+  it('keeps the guide instruction in the footer answer while the field it focuses opens the keyboard', async () => {
+    readProfile.mockResolvedValue(readyDraft({ ime: '', vestine: [] }));
+    await render();
+    await act(async () => action('Dopuni osnovne podatke').props.onPress());
+    expect(tree!.root.findByType('Footer' as React.ElementType).props.error).toBe('Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.');
+  });
+
+  // Round 5c: a saved profile whose state is unknown is still a saved profile; the capacity note keys on that, not on status.
+  it('tells the form a profile exists even when its state is unknown', async () => {
+    readProfile.mockResolvedValue(readyDraft({ stanje: null }));
+    await render();
+    expect(form().props.status).toBeNull(); expect(form().props.profileExists).toBe(true);
+    await act(async () => tree!.unmount()); tree = undefined;
+    readProfile.mockResolvedValue(null);
+    await render();
+    expect(form().props.profileExists).toBe(false);
   });
 });

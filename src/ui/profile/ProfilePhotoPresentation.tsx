@@ -52,9 +52,6 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
   // While a chosen picture travels the circle still shows what is saved; the caption says the new one is on its way.
   const caption = !stage ? null : sending ? 'Šaljemo fotografiju…' : stage.kind === 'loading' ? 'Učitavamo fotografiju…'
     : stage.kind === 'none' ? 'Profil još nema fotografiju.' : stage.kind === 'photo' && stage.staged ? 'Još nije sačuvana' : null;
-  // After a refusal before anything was sent the read only brings the choices back, and says so; when the saved photo
-  // itself could not be read, the read is what the person is asked for.
-  const checkLabel = stage?.kind === 'unavailable' ? 'Proveri sačuvanu fotografiju' : 'Nazad na izbor fotografije';
   return <SettingsScreen title="Fotografija profila" onBack={onBack}>
     {stage ? <View style={s.stage}>
       {preview}
@@ -74,7 +71,9 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
         <SettingsAction label="Proveri sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
       </>}
     </View> : mode === 'reconcile' ? <View style={s.actions}>
-      <SettingsAction label={checkLabel} disabled={waiting} onPress={onCheck} />
+      {/* Every refusal on the phone stays in `pick`, so this is reached only when a read really is needed (a write that
+          was not confirmed, a failed read, a conflict): the button says the check its error asks for (review 5b). */}
+      <SettingsAction label="Proveri sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
     </View> : mode === 'staged' ? <View style={s.actions}>
       <SettingsAction label="Sačuvaj fotografiju" loading={running === 'APPLY'} disabled={!canAct} onPress={onApply} />
       <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'} disabled={!canAct} onPress={onDiscard} />

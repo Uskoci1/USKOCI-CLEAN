@@ -62,6 +62,15 @@ it('writes the year of a rule day only when it is not the current one', async ()
   expect(copy).toContain(`od 24. sep do 5. jan ${next}`); expect(copy).not.toContain(`24. sep ${now}`);
 });
 
+// Round 5c: the rule day is the shared civilDay, so a value that is not a calendar date is shown as it came, never as
+// "Invalid Date".
+it('shows a malformed rule day as it came instead of an invented date', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({ rules: [{ id: 'rule', weekdays: [1], startTime: '08:00', endTime: '16:00',
+    startsOn: '2026-02-31', endsOn: null, label: '', active: true }] })} />); });
+  const copy = texts();
+  expect(copy).toContain('od 2026-02-31'); expect(copy).not.toMatch(/Invalid|NaN/);
+});
+
 it('draws the activation choice on a flat tint with a white thumb', async () => {
   await act(async () => { tree = create(<WorkerAiActivation activate={false} disabled={false} change={() => {}} />); });
   const toggle = tree.root.findByType('Switch' as React.ElementType);

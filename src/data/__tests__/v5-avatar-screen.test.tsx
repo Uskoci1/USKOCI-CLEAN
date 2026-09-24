@@ -141,14 +141,30 @@ it('while a chosen picture is sent the screen says so, and never shows it as an 
   const words = tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string'));
   expect(words).toContain('Još nije sačuvana'); expect(words).not.toContain('Šaljemo fotografiju…');
 });
-it('a refusal of a command that sent nothing offers the way back to the choice, not a check of a saved photo', async () => {
+// Round 5c: every refusal on the phone stays in the choice, so the read after a refused command is a real check, and its
+// button says the check the error above it asks for (it used to say "Nazad na izbor fotografije").
+it('a refusal of a command that sent nothing asks for the check its error names, and the check brings the choice back', async () => {
   mockSet.mockRejectedValue(new Error('unavailable')); await render();
   await act(async () => action('Izaberi iz galerije').onPress());
   expect(mockUpload).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ label: 'Proveri sačuvanu fotografiju' })).toHaveLength(0);
-  await act(async () => action('Nazad na izbor fotografije').onPress());
+  expect(tree.root.findAllByProps({ label: 'Nazad na izbor fotografije' })).toHaveLength(0);
+  await act(async () => action('Proveri sačuvanu fotografiju').onPress());
   expect(mockRead).toHaveBeenCalledTimes(2); expect(action('Izaberi iz galerije').disabled).toBe(false);
+});
+// Round 5c: the retried upload resets the read flag while it is in flight; the pressed retry keeps its spinner instead of
+// turning into a grey check that gives no reason.
+it('a retried upload keeps its own button and spinner while it is sent', async () => {
+  mockReceipt.mockResolvedValue(ok({ ...asset(), state: 'STAGED', ref: null }));
+  await render(); await act(async () => action('Izaberi iz galerije').onPress());
+  expect(mockUpload).toHaveBeenCalledTimes(1); expect(action('Ponovi istu promenu').loading).toBe(false);
+  let finish!: (value: unknown) => void;
+  mockUpload.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await act(async () => { void action('Ponovi istu promenu').onPress(); });
+  expect(mockUpload).toHaveBeenCalledTimes(2);
+  expect(action('Ponovi istu promenu').loading).toBe(true);
+  expect(JSON.stringify(tree.toJSON())).not.toContain('Proveri ishod pre novog izbora');
+  await act(async () => finish(ok(asset())));
 });
 it('while a change is unresolved nothing new can be picked and the retry is the one filled action', async () => {
   mockJournal.set(journalKey, JSON.stringify({ phase: 'APPLY', requestId: REQUEST, assetId: ASSET, expectedPath: null }));

@@ -44,10 +44,11 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
 }) {
   const { width } = useWindowDimensions(), textScale = useTextScale();
   // A long name stacks too: beside the photo a 28 px name of more than about 24 letters needs three lines at 390 dp, and a
-  // person's own name is never cut with an ellipsis (review of step 9, 2026-09-24).
-  const longName = identity.state === 'ready' && (identity.name?.length ?? 0) > LONG_NAME;
+  // person's own name is never cut with an ellipsis (review of step 9, 2026-09-24). The letters are weighed by the text
+  // scale, so a larger text stacks a shorter name; stacked, the name takes every line it needs (round 5c).
+  const longName = identity.state === 'ready' && (identity.name?.length ?? 0) * textScale > LONG_NAME;
   const stacked = forced ?? (width < 360 || textScale >= 1.3 || longName);
-  const nameLines = stacked ? 3 : 2;
+  const nameLines = stacked ? undefined : 2;
   const row = [s.identity, stacked && s.stacked];
   const copy = [s.copy, stacked && s.copyStacked];
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>

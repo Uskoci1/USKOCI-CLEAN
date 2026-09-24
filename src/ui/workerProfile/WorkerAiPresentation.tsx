@@ -6,15 +6,13 @@ import { countryCode } from '../../lib/market';
 import { T } from '../Text';
 import { sys, card, inset, field } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
-import { displayDate, weekdays } from '../calendar/calendarPresentation';
+import { civilDay, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { osoba, plural } from '../system/plural';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
 const list=(values:readonly string[])=>values.length?values.join(' · '):EMPTY;
-/** A rule's day as "5. jan", with the year only when it is not the current one (the one time format, src/lib/vreme.ts). */
-const ruleDate=(day:string)=>{const year=day.slice(0,4);return year===String(new Date().getFullYear())?displayDate(day):`${displayDate(day)} ${year}`;};
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
   // No eyebrow: the chrome above already says "Tvoj radni profil" (round 4 review ra, outside-unit note).
@@ -45,7 +43,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
     </View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Redovna nedelja</T>
       {weekdays.map(day=><Row key={day.day} label={day.name} value={p.availability.rules.filter(r=>r.weekdays.includes(day.day)).map(r=>
-        `${r.startTime}–${r.endTime} · od ${ruleDate(r.startsOn)}${r.endsOn?' do '+ruleDate(r.endsOn):''}${r.active?'':' · pauzirano'}${r.label?' · '+r.label:''}`).join('\n')||'Nema redovnih termina'} />)}</View>
+        `${r.startTime}–${r.endTime} · od ${civilDay(r.startsOn)}${r.endsOn?' do '+civilDay(r.endsOn):''}${r.active?'':' · pauzirano'}${r.label?' · '+r.label:''}`).join('\n')||'Nema redovnih termina'} />)}</View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Posebni datumi</T>
       {p.availability.windows.length?p.availability.windows.map(w=><Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'}
         value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />):<T variant="body" style={s.ink}>Nema posebnih datuma.</T>}</View>

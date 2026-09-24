@@ -9,7 +9,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
-import { WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../ui/workerProfile/WorkerProfilePresentation';
+import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../ui/workerProfile/WorkerProfilePresentation';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -85,4 +85,54 @@ test('the sticky footer steps aside while the keyboard is up and comes back when
     expect(remove).toHaveBeenCalledTimes(2);
     tree = undefined as unknown as ReactTestRenderer;
   } finally { spy.mockRestore(); }
+});
+// Round 5c: a row tapped while typing refuses into the footer ("Sačuvaj unos pre…"), and "Dopuni osnovne podatke" writes its
+// instruction there and then focuses a field. Hiding the whole footer made the tap look dead and hid the instruction, so a
+// WorkerProfileFooter keeps its answer on screen while typing and steps aside only with its actions and the held line.
+test('while the keyboard is up the footer keeps its answer visible and hides only its actions', async () => {
+  const { Keyboard, StyleSheet } = jest.requireActual('react-native');
+  const events: Record<string, () => void> = {};
+  const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation(((name: string, callback: () => void) => {
+    events[name] = callback; return { remove: jest.fn() }; }) as never);
+  const hidden = (node: { props: Record<string, unknown>; parent: unknown }) => {
+    for (let at: any = node; at; at = at.parent) {
+      if (at.props && (StyleSheet.flatten(at.props.style)?.display === 'none' || at.props.accessibilityElementsHidden === true)) return true;
+    }
+    return false;
+  };
+  const sentence = 'Sačuvaj unos pre otvaranja drugog podešavanja.';
+  const screen = (error: string | null) => <WorkerProfileFrame back={() => {}} footer={<WorkerProfileFooter error={error} held>
+    {React.createElement('T', null, 'Sačuvaj izmene')}</WorkerProfileFooter>}>
+    <WorkerProfileForm draft={draft()} change={change} disabled={false} status="ACTIVE" navigate={navigate} /></WorkerProfileFrame>;
+  const node = (text: string) => tree.root.findAll(n => String(n.type) === 'T' && n.children.includes(text))[0];
+  try {
+    await act(async () => { tree = create(screen(null)); });
+    const event = (suffix: RegExp) => events[Object.keys(events).find(name => suffix.test(name))!];
+    await act(async () => event(/Show$/)());
+    // Typing with nothing to say: no answer, no strip on the keyboard, the actions stay mounted but hidden.
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-answer' })).toHaveLength(0);
+    const footer = tree.root.findByProps({ testID: 'worker-profile-footer' });
+    expect(StyleSheet.flatten(footer.props.style).paddingVertical).toBe(0);
+    expect(hidden(node('Sačuvaj izmene'))).toBe(true); expect(hidden(node('Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.'))).toBe(true);
+    // A tap refuses while the keyboard stays up: its sentence is on screen and announced, the buttons still step aside.
+    await act(async () => tree.update(screen(sentence)));
+    expect(hidden(node(sentence))).toBe(false); expect(node(sentence).props.accessibilityRole).toBe('alert');
+    expect(hidden(node('Sačuvaj izmene'))).toBe(true);
+    await act(async () => event(/Hide$/)());
+    expect(hidden(node(sentence))).toBe(false); expect(hidden(node('Sačuvaj izmene'))).toBe(false);
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'worker-profile-footer' }).props.style).paddingVertical).toBe(12);
+  } finally { spy.mockRestore(); }
+});
+test('the body closes the keyboard on a drag, so the footer can come back without a return key', async () => {
+  await act(async () => { tree = create(<Screen value={draft()} />); });
+  expect(['on-drag', 'interactive']).toContain(tree.root.findByType('ScrollView' as React.ElementType).props.keyboardDismissMode);
+});
+// Round 5c: the capacity note keys on whether a profile exists, not on its state (a saved profile's state can be unknown).
+test('a saved profile with an unknown state says the capacity is not loaded yet, not that it must be saved', async () => {
+  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null })} change={change}
+    disabled={false} status={null} navigate={navigate} profileExists /></WorkerProfileFrame>); });
+  expect(texts()).toContain('Kapacitet profila još nije učitan.'); expect(texts()).not.toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
+  await act(async () => tree.update(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null })} change={change}
+    disabled={false} status={null} navigate={navigate} /></WorkerProfileFrame>));
+  expect(texts()).toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
 });

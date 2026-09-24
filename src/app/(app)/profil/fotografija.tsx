@@ -189,7 +189,10 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
       : existing ? { kind: 'photo', assetId: existing, staged: false } : { kind: 'none' };
   const error = editor.error ?? pickError;
   return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE}
-    mode={mode} retryable={!trouble && !!intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || !!bytes.current)}
+    // A retry in flight keeps its own pressed button and spinner (review 5b): the upload it sends resets `readAttempted`,
+    // which would otherwise swap it for a grey check with no reason. Display only; retry() and the editor keep every guard.
+    mode={mode} retryable={running === 'RETRY'
+      || (!trouble && !!intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || !!bytes.current))}
     running={running} sending={sending && waiting} canAct={canAct()} waiting={waiting} hasPhoto={!!snapshot?.profile.avatarPath}
     onBack={() => { if (!current()) return; navigating.current = true;
       if (router.canGoBack()) router.back(); else router.replace('/profil'); }}

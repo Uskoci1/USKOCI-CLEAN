@@ -262,13 +262,27 @@ describe('real profile hub', () => {
     expect(detail()).toBeUndefined();
   });
 
-  it('stacks a long name under the photo on a wide phone and lets it take three lines', async () => {
+  // Round 5c: stacked, the name is never cut (it used to stop at three lines, so a name over ~42 letters ended in "…").
+  it('stacks a long name under the photo on a wide phone and never cuts it', async () => {
     mockResource.data = { identity: { ime: 'Aleksandra Stefanović-Radosavljević', grad: 'Novi Sad' }, capability: null };
     await render();
     const { StyleSheet } = jest.requireActual('react-native');
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection).toBe('column');
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header'
-      && node.children.includes('Aleksandra Stefanović-Radosavljević'))[0].props.numberOfLines).toBe(3);
+      && node.children.includes('Aleksandra Stefanović-Radosavljević'))[0].props.numberOfLines).toBeUndefined();
+  });
+
+  // Round 5c: the length threshold is weighed by the text scale, so scales 1.1 to 1.29 stack a shorter name too.
+  it('weighs the name by the text scale: a 21-letter name sits beside the photo at 1.0 and stacks at 1.2', async () => {
+    mockResource.data = { identity: { ime: 'Milica Jovanović-Ilić', grad: 'Novi Sad' }, capability: null };
+    const { StyleSheet } = jest.requireActual('react-native');
+    const direction = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection;
+    await render();
+    expect(direction()).not.toBe('column');
+    await act(async () => { tree.unmount(); });
+    mockWindow = { ...mockWindow, fontScale: 1.2 };
+    await render();
+    expect(direction()).toBe('column');
   });
 
   it('ignores a late logout failure after batched A→B→A and admits a fresh current action', async () => {

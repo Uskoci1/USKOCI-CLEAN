@@ -206,8 +206,9 @@ const GROUPS: Group[] = [
     { key: 'photo-denied', label: 'Fotografija: kamera odbijena', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" permission
       error="Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije." /> },
     { key: 'photo-large', label: 'Fotografija: prevelika', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" error="Izaberi fotografiju do 10 MB." /> },
-    { key: 'photo-back', label: 'Fotografija: povratak na izbor', draw: () => <Photo stage={{ kind: 'none' }} mode="reconcile"
-      error="Ponovo otvori fotografiju za trenutni profil." /> },
+    // A write that was not confirmed: the one action is the check its message asks for (round 5c).
+    { key: 'photo-check', label: 'Fotografija: čuvanje nije potvrđeno', draw: () => <Photo stage={{ kind: 'none' }} mode="reconcile"
+      error="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." /> },
     { key: 'photo-unavailable', label: 'Fotografija: nije dostupna', draw: () => <Photo stage={{ kind: 'unavailable' }} mode="reconcile"
       error="Sačuvana fotografija nije potvrđena. Proveri ishod." /> },
     { key: 'photo-remove', label: 'Fotografija: uklanjanje (dodirni Ukloni)', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}

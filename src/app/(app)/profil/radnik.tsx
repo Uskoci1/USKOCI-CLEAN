@@ -176,6 +176,6 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady, capacity: capacityReady }} readyToActivate={!!primary.activates && !pending}
-        openConversation={openConversation} />}
+        openConversation={openConversation} profileExists={profile !== null} />}
   </WorkerProfileFrame>;
 }

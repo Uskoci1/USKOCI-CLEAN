@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createContext, isValidElement, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Minus, Plus, X } from 'phosphor-react-native';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,22 +26,36 @@ import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
  * While the software keyboard is up the sticky footer steps aside (review of step 9, 2026-09-24): on a 320 × 640 phone
  * the footer (status lines, a 54 dp primary, a quiet action or the area confirmation) rose with the keyboard and left
  * under 100 dp for the field being typed. It is hidden, not removed, so a button keeps its state and nothing is announced
- * again; it comes back as soon as the keyboard closes (Back, the return key, or a tap outside the field). The body keeps
- * what the person needs while typing: the activation checklist and every field's own hint.
+ * again; it comes back as soon as the keyboard closes (Back, the return key, a drag of the body, or a tap outside the
+ * field). The body keeps what the person needs while typing: the activation checklist and every field's own hint.
+ *
+ * A `WorkerProfileFooter` keeps its answer on screen while typing and steps aside only with its actions (round 5c): a tap
+ * on a row that refuses because the draft is not saved, or a "Dopuni osnovne podatke" that focuses a field, writes its
+ * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
+ * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
 export function WorkerProfileFrame({ back, children, footer, title = 'Veštine, alat i tim', backLabel = 'Nazad' }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
 }) {
   const typing = useKeyboardShown();
+  const keepsStatus = isValidElement(footer) && footer.type === WorkerProfileFooter;
+  const aside = typing && !keepsStatus;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar backLabel={backLabel} title={title} onBack={back} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
-      {footer ? <View testID="worker-profile-footer" style={[s.footer, typing && s.footerAside]} accessibilityElementsHidden={typing}
-        importantForAccessibility={typing ? 'no-hide-descendants' : 'auto'}>{footer}</View> : null}
+      {/* The iOS number pad has no return key and iOS has no Back: dragging the body closes the keyboard (review 5b). */}
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        contentContainerStyle={s.content}>{children}</ScrollView>
+      {footer ? <FooterTyping.Provider value={typing}>
+        <View testID="worker-profile-footer" style={[s.footer, typing && (keepsStatus ? s.footerTyping : s.footerAside)]}
+          accessibilityElementsHidden={aside} importantForAccessibility={aside ? 'no-hide-descendants' : 'auto'}>{footer}</View>
+      </FooterTyping.Provider> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
+
+/** Whether the frame's footer is drawn while the keyboard is up; only `WorkerProfileFooter` reads it. */
+const FooterTyping = createContext(false);
 
 /**
  * Whether the software keyboard is up, from the keyboard's own events (iOS says it before the animation, Android after).
@@ -69,17 +83,26 @@ export function WorkerProfileStatus({ loading, error, retry }: { loading: boolea
  * The answer to the last save, right above the button that made it: Save sits in this footer, often far below the top
  * of a long form, so a line at the top of the scroll was never seen. It is said only once the saved profile has been
  * read back (the route decides that); the button's own check confirms it for a moment.
+ *
+ * While the keyboard is up only the answer stays (the message and the error, with room of their own); the actions and
+ * the held line step aside, mounted, so a button keeps its state and nothing is announced again (round 5c).
  */
 export function WorkerProfileFooter({ message, error, held = false, children }: {
   message?: string | null; error?: string | null;
   /** An unconfirmed save is kept and only what is really saved is shown. */ held?: boolean; children: ReactNode;
 }) {
+  const typing = useContext(FooterTyping);
   return <>
-    {message ? <View style={s.statusLine}><FactArt kind="check" size={20} />
-      <T accessibilityRole="alert" variant="body" style={[s.grow, s.green]}>{message}</T></View> : null}
-    {error ? <T accessibilityRole="alert" variant="body" style={s.danger}>{error}</T> : null}
-    {held ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.</T> : null}
-    {children}
+    {message || error ? <View testID="worker-profile-answer" style={[s.answer, typing && s.answerTyping]}>
+      {message ? <View style={s.statusLine}><FactArt kind="check" size={20} />
+        <T accessibilityRole="alert" variant="body" style={[s.grow, s.green]}>{message}</T></View> : null}
+      {error ? <T accessibilityRole="alert" variant="body" style={s.danger}>{error}</T> : null}
+    </View> : null}
+    <View testID="worker-profile-actions" style={[s.answer, typing && s.footerAside]} accessibilityElementsHidden={typing}
+      importantForAccessibility={typing ? 'no-hide-descendants' : 'auto'}>
+      {held ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.</T> : null}
+      {children}
+    </View>
   </>;
 }
 
@@ -220,7 +243,8 @@ export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity';
  * conversation as another way to fill it in. Skills, tools and vehicles take chips, typing or pictures. Every field
  * keeps its label as the input's spoken name; the route owns saving and every guard.
  */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation }: {
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation,
+  profileExists = status !== null }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null; navigate: (path: WorkerNavigation) => void;
   focusRequest?: WorkerProfileFocusRequest | null;
   /** What activation is actually waiting for, from the same checks that gate it. */
@@ -228,7 +252,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   /** The route's primary action is the activation itself: only then does the note say everything is ready. */
   readyToActivate?: boolean;
   /** The AI conversation, behind the route's own guards. */
-  openConversation?: () => void }) {
+  openConversation?: () => void;
+  /** A profile has been saved and read, whatever its state (a saved profile's state can be unknown). */
+  profileExists?: boolean }) {
   // Where the lists stood when the screen opened decides only which quick pick starts open: an empty skill list opens its
   // pictures, because that is where a first profile begins.
   const skillsOpen = useRef(draft.vestine.length === 0).current;
@@ -247,7 +273,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     <TermsPicker label="Veštine i usluge" art="tasks" group="usluge" placeholder="Dodaj veštinu" quickLabel="Brzi izbor veština" quickOpen={skillsOpen}
       values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
       change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
-    <CountStepper value={draft.capacity} revision={draft.capacityRevision} saved={status !== null} change={capacity => patch({ capacity })}
+    <CountStepper value={draft.capacity} revision={draft.capacityRevision} saved={profileExists} change={capacity => patch({ capacity })}
       disabled={disabled} inputRef={capacityRef} />
     {/* Where and when are set in their own editors, each with its own save; here they are read and opened. */}
     <View style={s.rows}>
@@ -279,6 +305,9 @@ const s = StyleSheet.create({
   content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   footerAside: { display: 'none' },
+  // While typing, a footer that keeps its answer draws no strip of its own: an empty one would sit on the keyboard.
+  footerTyping: { paddingVertical: 0, borderTopWidth: 0, gap: 0 },
+  answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
   form: { gap: sys.space.xxl },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
