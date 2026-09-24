@@ -397,6 +397,8 @@ export const lazniIzvor: Izvor = {
         narucilacProfilId: NARUCILAC_PROFIL_ID,
         narucilacIme: 'Miloš',
         narucilacOcena: '4,9',
+        // The same 18 reviews the fake public profile of this requester says it stands on.
+        narucilacBrojOcena: 18,
         priblizno: { lat: 45.2396, lng: 19.8227 },
       } satisfies PrilikaProjekcija,
     ];

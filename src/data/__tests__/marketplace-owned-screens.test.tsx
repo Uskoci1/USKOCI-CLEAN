@@ -86,3 +86,22 @@ test.each(['narucilac', 'uskocer'])('central map opens actual public pins whatev
  await act(async () => props().onOpen(props().items[0]));
  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: 'public' } });
 });
+// One task card (step 5a, 2026-09-24): my own task's foot goes straight to the applications waiting for my choice, the
+// same direct entry Početna and the notifications use, behind the same navigation guard as opening the task.
+test('my own task opens its waiting applications once, through the same guard, and only for a task of the latest read', async () => {
+ Component = Owned; await render(); const item = props().items[0];
+ await act(async () => { props().onApplications(item); props().onApplications(item); props().onOpen(item); });
+ expect(mockNavigate).toHaveBeenCalledTimes(1);
+ expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: 'mine' } });
+ await act(async () => tree.unmount()); mockNavigate.mockReset(); await render();
+ // A card that is not in the latest read, a blurred screen and a backgrounded app are all refused.
+ await act(async () => props().onApplications({ id: 'stale' })); expect(mockNavigate).not.toHaveBeenCalled();
+ const old = props(); mockFocused = false; await update(); await act(async () => old.onApplications(old.items[0])); expect(mockNavigate).not.toHaveBeenCalled();
+ mockFocused = true; await update(); mockApp.currentState = 'background'; await act(async () => props().onApplications(props().items[0]));
+ expect(mockNavigate).not.toHaveBeenCalled();
+ mockApp.currentState = 'active'; await act(async () => props().onApplications(props().items[0]));
+ expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: 'mine' } });
+});
+test('discovery hands no applications foot to its cards', async () => {
+ await render(); expect(props().onApplications).toBeUndefined();
+});

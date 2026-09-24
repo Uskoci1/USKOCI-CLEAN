@@ -105,6 +105,17 @@ function formatPublicRating(profile: JavniProfilProjekcija | null | undefined): 
 }
 
 /**
+ * How many reviews the rating stands on, only when the same profile read discloses reviews. The read already carries
+ * it (the validated reviewCount); the list used to drop it, so a rating from one review read the same as from fifty.
+ * Unknown stays null: nothing is counted or guessed here.
+ */
+function publicReviewCount(profile: JavniProfilProjekcija | null | undefined): number | null {
+  if (!profile?.poverenje.recenzijeDostupne) return null;
+  const count = profile.poverenje.brojRecenzija;
+  return typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null;
+}
+
+/**
  * One narrow RPC per distinct profile id. A profile projection failure must not
  * erase otherwise-public Need/Application rows, so marketplace list consumers
  * degrade to unavailable trust while the explicit javniProfil() port itself
@@ -201,6 +212,7 @@ export const supabaseIzvor: SupabaseIzvor = {
         narucilacProfilId: r.requester_profile_id,
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
+        narucilacBrojOcena: publicReviewCount(narucilac),
         rezimCene: r.mode,
         osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
         ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
@@ -262,6 +274,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       narucilacProfilId: data.requester_profile_id,
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
+      narucilacBrojOcena: publicReviewCount(narucilac),
       rezimCene: data.mode as any,
       osnovaCene: data.price_basis === 'TOTAL' || data.price_basis === 'PER_PERSON' ? data.price_basis : null,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,

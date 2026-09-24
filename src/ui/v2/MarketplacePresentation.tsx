@@ -14,7 +14,7 @@ import { plural, zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, nested, sys } from '../system/tokens';
 import { T } from '../Text';
 import { DiscoveryMap } from './DiscoveryMap';
 import { TaskCard } from './TaskCard';
@@ -23,6 +23,8 @@ import { V2Action } from './V2Action';
 export type MarketplacePresentationProps = { owned: boolean; items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
+  /** My own tasks: the card's foot opens the applications that wait for my choice. Unused in discovery. */
+  onApplications?: (item: MarketplaceItem) => void;
   /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
   onBack?: () => void;
   /** In discovery: which of the shown tasks are mine and which I have applied to. Labels only. */
@@ -43,11 +45,13 @@ type Relation = 'OWNED' | 'APPLIED' | undefined;
  * search field or an open filter sheet re-renders the screen and not every card under it; the
  * `onOpen` it receives is the list's one stable function, and the closure over `item` is made here.
  */
-const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, relation, onOpen }: {
+const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, relation, onOpen, onApplications }: {
   item: MarketplaceItem; index: number; animate: boolean; relation: Relation; onOpen: (item: MarketplaceItem) => void;
+  onApplications?: (item: MarketplaceItem) => void;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
-  return <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} relation={relation} /></Appear>;
+  const applications = useMemo(() => onApplications ? () => onApplications(item) : undefined, [onApplications, item]);
+  return <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} onApplications={applications} relation={relation} /></Appear>;
 });
 
 /**
@@ -67,6 +71,10 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // read). The rows get one function that never changes and calls whatever is current at press time.
   const openRef = useRef(onOpen); openRef.current = onOpen;
   const openItem = useCallback((item: MarketplaceItem) => openRef.current(item), []);
+  // The same for the own-task foot. Only my own list gets it: in discovery a card has no applications of mine to open.
+  const applicationsRef = useRef(props.onApplications); applicationsRef.current = props.onApplications;
+  const hasApplications = owned && !!props.onApplications;
+  const openApplications = useCallback((item: MarketplaceItem) => applicationsRef.current?.(item), []);
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
   const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
@@ -136,7 +144,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // `renderItem` keeps its identity and the list does not re-render every cell on every render.
   const appearRef = useRef(appear); appearRef.current = appear;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
-    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem} />, [relationOf, openItem]);
+    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relationOf(item)} onOpen={openItem}
+      onApplications={hasApplications ? openApplications : undefined} />, [relationOf, openItem, hasApplications, openApplications]);
 
   // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
@@ -302,7 +311,8 @@ const s = StyleSheet.create({
   optionChecked: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft }, optionText: { color: sys.color.ink, flex: 1 },
   radio: { width: 22, height: 22, borderRadius: sys.radius.pill, borderWidth: 1.5, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
   radioChecked: { borderColor: sys.color.green }, radioDot: { width: 11, height: 11, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  check: { width: 22, height: 22, borderRadius: sys.radius.badge, borderWidth: 1.5, borderColor: sys.color.green, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
+  // A checkbox is a square box: the badge corner (12) on a 22 box drew a circle, which reads as a radio.
+  check: { width: 22, height: 22, borderRadius: nested(sys.radius.control, 6), borderWidth: 1.5, borderColor: sys.color.green, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
   checked: { backgroundColor: sys.color.green },
   sheetRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
 });

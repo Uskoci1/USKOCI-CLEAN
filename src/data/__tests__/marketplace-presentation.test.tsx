@@ -25,10 +25,10 @@ jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
 const row = (id: string, patch = {}): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat', 'Iskustvo', 'Prevoz'], statusTekst: 'Otvoren', rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 }, ...patch } as MarketplaceItem);
 let rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })], owned = false, loading = false, error = false;
-let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(); let allowNew = true;
+let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), applications = jest.fn(); let allowNew = true;
 let relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
 let withBack = false; const back = jest.fn();
-function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onBack={withBack ? back : undefined} relations={relations} />; }
+function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation owned={owned} items={rows} loading={loading} error={error} scopeKey="a:1" view={view} onView={setView} onOpen={open} onRefresh={refresh} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onBack={withBack ? back : undefined} relations={relations} onApplications={applications} />; }
 let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
@@ -39,7 +39,7 @@ const click = async (label: string) => act(async () => (label === 'Prikaži zada
 const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const render = async () => act(async () => { tree = create(<Screen />); });
-beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; relations = undefined; withBack = false; open.mockClear(); refresh.mockClear(); newTask.mockClear(); });
+beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' })]; owned = loading = error = mockReduced = false; allowNew = true; relations = undefined; withBack = false; open.mockClear(); refresh.mockClear(); newTask.mockClear(); applications.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('List/Map preserves search and viewport; panning alone keeps same exact result set', async () => {
  await render(); await act(async () => press('Pretraži zadatke').props.onChangeText('Novi Sad')); await tap('Mapa');
@@ -208,4 +208,26 @@ test('"Pokušaj ponovo" after a failed read in the list asks for the list again 
  expect(texts()).toContain('Zadatke trenutno nije moguće učitati');
  await click('Pokušaj ponovo');
  expect(refresh).toHaveBeenCalledTimes(1); expect(snapshot).toMatchObject({ query: 'Pomoć', mode: 'list' });
+});
+
+// One task card (step 5a, 2026-09-24): on my own list the card's foot goes straight to the applications waiting for my
+// choice, with the very row that was pressed; the body still opens the task, and discovery cards have no such foot.
+test('my own task\'s foot opens its applications with that row; the body still opens the task; discovery has no foot', async () => {
+ owned = true; withBack = true; rows = [row('one', { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 2 }), row('two', { stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 })];
+ await render();
+ expect(tree.root.findAllByProps({ accessibilityLabel: '2 prijave čekaju izbor, Pomoć one' }).length).toBeGreaterThan(0);
+ await tap('2 prijave čekaju izbor, Pomoć one'); expect(applications).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
+ await tap('Otvori Zadatak Pomoć one'); expect(open).toHaveBeenCalledWith(rows[0]); expect(applications).toHaveBeenCalledTimes(1);
+ // Nothing to choose is said quietly and is not a target.
+ expect(texts()).toContain('Još nema prijava za izbor');
+ expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pomoć two') && node.props.accessibilityLabel !== 'Otvori Zadatak Pomoć two' && typeof node.props.onPress === 'function')).toHaveLength(0);
+ await act(async () => tree.unmount()); owned = false; withBack = false; rows = [row('one'), row('two')]; await render();
+ expect(tree.root.findAll(node => /čeka(ju)? izbor/.test(String(node.props.accessibilityLabel)))).toHaveLength(0);
+});
+test('"Treba moja radnja" is a square checkbox, not a round radio', async () => {
+ owned = true; rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 1 })]; await render(); await tap('Filteri');
+ const box = press('Treba moja radnja').findAllByType('View' as React.ElementType)[0];
+ const radio = press('Svi načini').findAllByType('View' as React.ElementType)[0];
+ expect(box.props.style[0]).toMatchObject({ width: 22, height: 22, borderRadius: 6 });
+ expect(radio.props.style[0]).toMatchObject({ width: 22, height: 22, borderRadius: 999 });
 });

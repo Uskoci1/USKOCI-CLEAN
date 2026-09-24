@@ -1,125 +1,87 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { CaretRight } from 'phosphor-react-native';
 import type { MarketplaceItem } from '../../data/marketplaceView';
-import { hasNeedAttention, isOwnedNeed } from '../../data/marketplaceView';
-import { needPriceBasisNote, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
-import { prijava as prijave } from '../system/plural';
-import { FactArt } from '../system/FactArt';
-import { Press } from '../Press';
-import { sys, cardCompact } from '../system/tokens';
-import { T } from '../Text';
+import { isOwnedNeed } from '../../data/marketplaceView';
+import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { displaysUrgent } from '../../lib/needUrgency';
-import { NeedUrgencyBadge, useUrgencyClock } from './NeedUrgencyBadge';
-
-const STATUS = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' } as const;
+import { FactArt } from '../system/FactArt';
+import { useTextScale } from '../system/textScale';
+import { cardCompact, sys } from '../system/tokens';
+import { Press } from '../Press';
+import { T } from '../Text';
+import { useUrgencyClock } from './NeedUrgencyBadge';
+import { CardFact, CardFoot, CardHead, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
+  faceStyles, ownerNext, taskPlace, taskRequirement, taskStatus, taskValue } from './TaskFace';
 
 /**
- * A task in a list, recomposed from zero (owner, 2026-09-23: the prototypes document what a card says,
- * not its layout). A list is scanned, so the card answers the scanning questions in the order the eye
- * moves: what it is and what it pays on one line (the name on the left, the money on the right, the
- * marketplace convention), where and when on the next, then how many places are left, one condition
- * or the applications that wait, and who posted it. No hairlines inside the card and no big coloured
- * price block: at the owner's text size the old card showed one and a half tasks per screen.
- * Nothing here invents a rating, a count or a state: a zero, a missing rating and an unnamed price
- * basis are simply not drawn, and a word about money never wears the money colour.
+ * A task in a list: one face (`TaskFace`) for discovery, the map preview and my own tasks (owner's step 5a, 2026-09-24).
+ *
+ * The body is ONE press that opens the task. On my own task the next step is its own press, a sibling of the body and
+ * never inside it: when applications wait for my choice, the warm foot goes straight to them (`onApplications`), a
+ * screen shorter than through the task. The card is the shared hairline card with no shadow; a shadow means "this
+ * floats", and a card in a list does not.
  */
-function TaskCardBase({ item, onOpen, compact = false, disabled = false, relation }: { item: MarketplaceItem; onOpen: () => void; compact?: boolean; disabled?: boolean;
+function TaskCardBase({ item, onOpen, onApplications, compact = false, disabled = false, relation }: {
+  item: MarketplaceItem; onOpen: () => void;
+  /** My own task only: opens the applications that wait for my choice. Without it the count is still said, as words. */
+  onApplications?: () => void;
+  compact?: boolean; disabled?: boolean;
   /** What this account is to a task found in discovery, from its own tasks and applications. Absent = nothing known. */
   relation?: 'OWNED' | 'APPLIED' }) {
-  const own = isOwnedNeed(item), attention = own && hasNeedAttention(item), draft = own && item.stanje === 'NACRT';
-  const settled = own && (item.stanje === 'DELIMICNO_POPUNJENA' || item.stanje === 'POPUNJENA' || item.stanje === 'ZATVORENA');
-  // A sent application is a paper plane in words, never the tick of something finished.
-  const status = draft ? STATUS.NACRT : settled ? STATUS[item.stanje]
-    : relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava poslata' : null;
-  const quiet = draft || (own && item.stanje === 'ZATVORENA');
-  const tone = quiet ? sys.color.muted : sys.color.green;
+  const large = useTextScale() >= 1.3;
+  const own = isOwnedNeed(item);
+  const title = readableTitle(item.naslov);
+  const status = taskStatus(item, relation);
   // HITNO counts only until the server's expiry, on the one clock the badge is given below: an expired HITNO on a task
   // with no status drew an empty top row, the badge having already gone.
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
+  const place = taskPlace(item);
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
-  const remote = item.detalji?.rezimLokacije === 'REMOTE';
-  const offers = item.rezimCene === 'OFFERS';
-  const amount = offers ? null : item.ponudjenaCena?.prikaz ?? null;
-  // The number leads and what it buys goes quietly under it, so a per-person price never reads as the total.
-  const basis = amount ? needPriceBasisNote(item) : null;
-  const waiting = attention ? item.brojPrijavaZaIzbor ?? 0 : 0;
-  const [condition, ...moreConditions] = item.uslovi;
-  const publisher = 'narucilacIme' in item && item.narucilacIme ? item.narucilacIme : null;
-  const rating = 'narucilacOcena' in item ? item.narucilacOcena : null;
-  const { popunjeno, ukupno } = item.pokrivenost;
-  return <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${readableTitle(item.naslov)}`}
-    accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
-    style={[s.card, compact && s.compact, disabled && s.disabled]}>
-    {status || urgent ? <View style={s.top}>
-      {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: tone }]} /><T variant="label" style={[s.status, { color: tone }]}>{status}</T></View> : <View style={s.grow} />}
-      <NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} />
-    </View> : null}
-    {/* Only an amount stands beside the name: it is short and it is what the eye compares down the list.
-        A word about money ("Tražim ponude") squeezed the name into three lines on the phone, so it is a fact below. */}
-    <View style={s.head}>
-      <T style={s.title} numberOfLines={3}>{readableTitle(item.naslov)}</T>
-      {amount ? <View style={s.priceSide}>
-        <T style={s.price}>{amount}</T>
-        {basis ? <T style={s.basis}>{basis}</T> : null}
-      </View> : null}
-    </View>
-    <View style={s.facts}>
-      <View style={s.fact}><FactArt kind={remote ? 'remote' : 'pin'} size={16} /><T style={s.factText} numberOfLines={1}>{remote ? 'Na daljinu' : item.podrucjeTekst}</T></View>
-      <View style={s.fact}><FactArt kind="calendar" size={16} /><T style={s.factText}>{schedule}</T></View>
-      {!amount ? <View style={s.fact}><FactArt kind={offers ? 'offers' : 'money'} size={16} muted={!offers} />
-        <T style={offers ? s.priceWord : s.noPrice}>{offers ? 'Tražim ponude' : 'Cena nije navedena'}</T></View> : null}
-    </View>
-    <View style={s.bottom}>
-      {draft ? <T style={s.next}>Nastavi uređivanje</T>
-        : <View accessible accessibilityLabel={`${popunjeno} od ${ukupno} popunjeno`} style={s.fact}>
-          <FactArt kind="users" size={16} muted={quiet} />
-          <T style={[s.factText, s.places, attention && s.placesAttention]}>{`${popunjeno}/${ukupno} popunjeno`}</T>
-        </View>}
-      {waiting > 0 ? <View style={s.waiting}><T style={s.waitingText}>{prijave(waiting)} za pregled</T></View>
-        : condition ? <T style={s.condition} numberOfLines={1}>{`${condition}${moreConditions.length ? ` +${moreConditions.length}` : ''}`}</T> : null}
-      {publisher ? <View style={s.publisher}>
-        <View style={s.avatar}><T style={s.avatarText}>{publisher.trim().charAt(0).toLocaleUpperCase('sr-Latn-RS')}</T></View>
-        <T style={s.publisherName} numberOfLines={1}>{publisher}</T>
-        {rating ? <><FactArt kind="star" size={14} /><T style={s.ratingText}>{rating}</T></> : null}
-      </View> : null}
-    </View>
-  </Press>;
+  const requirement = taskRequirement(item);
+  // The owner reads the progress of their task; so does a task of mine met in discovery. Everyone else reads the places left.
+  const ownerView = own || relation === 'OWNED';
+  const next = own ? ownerNext(item) : null;
+  const publisher = !ownerView && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
+  const person = 'narucilacIme' in item && publisher
+    ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} /> : null;
+  const waitingFoot = next?.kind === 'waiting' && onApplications ? next : null;
+  return <View style={[s.card, disabled && s.disabled]}>
+    <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`}
+      accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} haptic="select" scaleTo={0.986}
+      style={[s.body, compact && s.bodyCompact, waitingFoot && s.bodyOverFoot]}>
+      {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
+      <CardHead title={title} value={taskValue(item)} large={large} />
+      <View style={s.facts}>
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={16} />} text={place.text} />
+        <CardFact art={<FactArt kind="calendar" size={16} />} text={schedule} lines={large ? 2 : 1} />
+        {requirement ? <CardRequirement requirement={requirement} /> : null}
+      </View>
+      {next?.kind === 'draft' ? <CardNext label="Nastavi uređivanje" />
+        : <CardFoot large={large} places={<CardPlaces places={item.pokrivenost} audience={ownerView ? 'owner' : 'worker'} />} person={person} />}
+      {next?.kind === 'none' ? <CardNote text="Još nema prijava za izbor" /> : null}
+      {next?.kind === 'waiting' && !onApplications ? <CardWaitingLine text={next.text} /> : null}
+    </Press>
+    {waitingFoot ? <Press accessibilityRole="button" accessibilityLabel={`${waitingFoot.text}, ${title}`} accessibilityHint="Otvara prijave za izbor."
+      accessibilityState={{ disabled }} disabled={disabled} onPress={onApplications} haptic="select"
+      style={[faceStyles.ownerFoot, s.foot, compact && s.footCompact]}>
+      <T style={faceStyles.ownerFootText} numberOfLines={2}>{waitingFoot.text}</T>
+      <CaretRight size={18} weight="bold" color={sys.color.waitingInk} />
+    </Press> : null}
+  </View>;
 }
 export const TaskCard = memo(TaskCardBase);
 
 const s = StyleSheet.create({
-  card: { ...cardCompact, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8 },
-  compact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
+  // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
+  // card stays one target up to its edge.
+  card: { ...cardCompact, padding: 0 },
   disabled: { opacity: 0.55 },
-  grow: { flex: 1 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
-  dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
-  status: { flexShrink: 1, letterSpacing: 0.3 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { flex: 1, minWidth: 0, fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
-  // The amount keeps its width and the name wraps beside it.
-  priceSide: { alignItems: 'flex-end', maxWidth: '42%' },
-  price: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  priceWord: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.ink, flexShrink: 1 },
-  noPrice: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.muted, flexShrink: 1 },
-  basis: { fontSize: 12, lineHeight: 16, color: sys.color.muted, textAlign: 'right' },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 4 },
-  fact: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  factText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact, flexShrink: 1 },
-  bottom: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 6, marginTop: 2 },
-  places: { fontVariant: ['tabular-nums'] },
-  placesAttention: { color: sys.color.attentionInk, fontWeight: '700' },
-  next: { fontSize: 14, lineHeight: 19, color: sys.color.green, fontWeight: '600' },
-  condition: { flexShrink: 1, maxWidth: 200, fontSize: 13, lineHeight: 18, fontWeight: '600', color: sys.color.muted,
-    paddingHorizontal: 9, paddingVertical: 3, borderRadius: sys.radius.badge, backgroundColor: sys.color.iconWell, overflow: 'hidden' },
-  waiting: { borderRadius: sys.radius.badge, paddingHorizontal: 9, paddingVertical: 3, backgroundColor: sys.color.orangeSoft },
-  waitingText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: sys.color.waitingInk },
-  // Beside the places when there is room; under them, from the same left edge, when there is not.
-  publisher: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1, maxWidth: '100%' },
-  avatar: { width: 22, height: 22, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 12, lineHeight: 15, fontWeight: '700', color: sys.color.ink },
-  publisherName: { fontSize: 13, lineHeight: 17, fontWeight: '600', color: sys.color.ink, flexShrink: 1 },
-  ratingText: { fontSize: 13, lineHeight: 17, color: sys.color.muted },
+  body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
+  bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
+  bodyOverFoot: { paddingBottom: 10 },
+  facts: { gap: 4 },
+  foot: { marginHorizontal: 12, marginBottom: 12 },
+  footCompact: { marginHorizontal: 10, marginBottom: 10 },
 });

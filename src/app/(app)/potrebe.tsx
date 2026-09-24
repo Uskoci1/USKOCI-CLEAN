@@ -37,14 +37,24 @@ function OwnedCollection() {
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
-  const open = (item: MarketplaceItem) => {
+  // Only a task of the latest successful read opens, and only once per visit: a stale card from before a refresh is
+  // refused like a blurred or backgrounded screen.
+  const known = (item: MarketplaceItem) => {
     const latest = latestResource.current;
-    if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
-    navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: item.id } }));
+    return !latest.loading && !latest.error && !!latest.data?.some(row => row.id === item.id);
+  };
+  const open = (item: MarketplaceItem) => {
+    if (known(item)) navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: item.id } }));
+  };
+  // The card's foot goes straight to the applications that wait for my choice, the same entry Početna and the
+  // notifications use; that screen owns its own read and guards.
+  const applications = (item: MarketplaceItem) => {
+    if (known(item)) navigate(() => router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: item.id } }));
   };
   return <MarketplacePresentation owned={true} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
+    onApplications={applications}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
     onNew={() => navigate(() => router.navigate('/nova'))} />;

@@ -72,7 +72,11 @@ test('loading shows placeholder geometry and a spoken status, never a stale card
 test('an owner draft shows a quiet draft status and "Nastavi uređivanje", never an application count', async () => {
   await act(async () => { tree = create(<Marketplace owned rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
   await act(async () => roleOf('Nacrti').onPress());
-  const copy = texts(); expect(copy).toContain('Privatan nacrt'); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 \/ 2/);
+  // One task card (step 5a, 2026-09-24): the own-task status words are Nacrt / Delimično popunjen / Popunjen / Zatvoren,
+  // so the draft reads "Nacrt" (was "Privatan nacrt"); a draft still draws no places and no application count.
+  const copy = texts(); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2/);
+  // The whole word, not the "Nacrti" tab that contains it.
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
   expect(roleOf('Otvori Zadatak Pomoć d')).toBeTruthy();
 });
 test('the filter sheet offers price modes as radios and the primary action is the only brand action', async () => {

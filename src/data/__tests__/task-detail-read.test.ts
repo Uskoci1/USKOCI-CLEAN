@@ -79,6 +79,16 @@ describe('W04 public-safe detail read', () => {
     expect(JSON.stringify(result)).not.toContain('PRIVATE');
     expect(publicProfile).toHaveBeenCalledWith('requester-a');
     expect(result?.rokZaPrijaveIso).toBeNull();
+    // A failed profile read leaves the review count unknown, never zero (step 5a, 2026-09-24).
+    expect(result?.narucilacBrojOcena).toBeNull();
+  });
+
+  it('carries the review count the requester\'s public profile discloses', async () => {
+    maybeSingle.mockResolvedValue({ data: row(), error: null });
+    publicProfile.mockResolvedValueOnce({ profilId: 'requester-a', uloga: 'narucilac', ime: 'Ana', avatarPutanja: null, grad: null, naslov: null, biografija: null,
+      poverenje: { ocenaProsek: 5, brojRecenzija: 1, zavrseniBroj: 1, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true,
+        verifikacijaIdentitetaDostupna: false } });
+    await expect(supabaseIzvor.prilika('task-a')).resolves.toMatchObject({ narucilacIme: 'Ana', narucilacOcena: '5,0', narucilacBrojOcena: 1 });
   });
 
   it.each(['ACTIVE', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'ARCHIVED', 'DRAFT', 'UNKNOWN'])('keeps readable %s tasks read-only', async status => {

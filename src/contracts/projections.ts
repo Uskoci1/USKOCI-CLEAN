@@ -127,6 +127,11 @@ export type PrilikaProjekcija = {
   narucilacProfilId: string;
   narucilacIme: string;
   narucilacOcena: string | null;
+  /**
+   * How many reviews the rating stands on, as the public profile read says it: 0 = none yet, null/absent = not known
+   * (the read failed or does not disclose reviews). Never guessed, so "5,0" from one review cannot pass for fifty.
+   */
+  narucilacBrojOcena?: number | null;
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
   rezimCene?: RezimCene;

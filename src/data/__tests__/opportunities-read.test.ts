@@ -82,8 +82,27 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
       detalji: { kategorija: 'Selidbe', geografija: null, rezimLokacije: null,
         zahtevi: { vestine: ['Selidbe'], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false } },
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
-      uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null,
+      // A failed profile read leaves the review count unknown (null), never zero (step 5a, 2026-09-24).
+      uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null, narucilacBrojOcena: null,
       priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined,
     }]);
+  });
+
+  // One task card (step 5a, 2026-09-24): the rating travels with how many reviews it stands on, taken from the same
+  // profile read the list already makes; nothing is counted or guessed when that read does not disclose reviews.
+  it('carries the review count the public profile discloses, 0 when there are none and null when it is not disclosed', async () => {
+    const trust = (patch: Record<string, unknown>) => ({ profilId: 'requester-1', uloga: 'narucilac', ime: 'Nikola', avatarPutanja: null, grad: null,
+      naslov: null, biografija: null, poverenje: { ocenaProsek: null, brojRecenzija: null, zavrseniBroj: 0, identitetVerifikovan: false,
+        ocenaDostupna: false, recenzijeDostupne: false, verifikacijaIdentitetaDostupna: false, ...patch } });
+    const read = async (profile: unknown) => {
+      mockRpc.mockResolvedValueOnce(page([item()])); publicProfile.mockResolvedValueOnce(profile);
+      const [row] = await supabaseIzvor.otvorenePrilike();
+      return { narucilacOcena: row.narucilacOcena, narucilacBrojOcena: row.narucilacBrojOcena };
+    };
+    await expect(read(trust({ ocenaProsek: 4.8, brojRecenzija: 12, ocenaDostupna: true, recenzijeDostupne: true })))
+      .resolves.toEqual({ narucilacOcena: '4,8', narucilacBrojOcena: 12 });
+    await expect(read(trust({ brojRecenzija: 0, recenzijeDostupne: true }))).resolves.toEqual({ narucilacOcena: null, narucilacBrojOcena: 0 });
+    await expect(read(trust({}))).resolves.toEqual({ narucilacOcena: null, narucilacBrojOcena: null });
+    await expect(read(null)).resolves.toEqual({ narucilacOcena: null, narucilacBrojOcena: null });
   });
 });
