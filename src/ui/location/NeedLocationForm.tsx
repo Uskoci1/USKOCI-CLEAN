@@ -178,12 +178,12 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
             countryCode={baseValue.taskCountryCode}
             initialQuery={[mode === 'STATIONARY' ? address : '', selectedSlot === 'start' ? start.city : selectedSlot === 'end' ? end.city
               : selectedSlot === 'serviceArea' ? area.city : waypoints[Number(selectedSlot.split('/')[1])]?.city].filter(Boolean).join(', ')}
-            resolver={resolver}
+            resolver={resolver} confirmAsPrimary={false}
             point={points.find(point => point.slot === selectedSlot)} disabled={disabled}
             scopeKey={`${review.accountId}:${review.conversationId}:${review.revision}:${pinEpoch}:${selectedSlot}`}
             onInvalidate={() => change(() => { setPoints(old => old.filter(point => point.slot !== selectedSlot)); setPendingPoint(true); }, false)}
             onConfirm={point => change(() => { setPoints(old => [...old.filter(item => item.slot !== selectedSlot), point]); setPendingPoint(false); }, false)} /> : null}
-          {points.length < slots.length ? <T variant="meta" tone="muted">Lokacija je potpuno potvrđena tek kada potvrdiš sve tačke.</T> : null}
+          {points.length < slots.length ? <T variant="meta" tone="muted">Mesto je potpuno potvrđeno tek kada potvrdiš sve tačke.</T> : null}
         </>}
         <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
         <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}

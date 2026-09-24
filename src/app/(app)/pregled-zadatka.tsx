@@ -71,6 +71,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const [publishing, setPublishing] = useState(false);
   // The place is being read before its editor opens: the "Uredi mesto" action says so.
   const [opening, setOpening] = useState(false);
+  // A place that could not be read says so beside its button, instead of the button doing nothing.
+  const [openError, setOpenError] = useState<string | null>(null);
   // True once a publish or resume started on this screen read back its publication: only that confirms itself with the
   // spring. A published review restored on opening is simply shown (motion only on a real state change).
   const publishedHere = useRef(false);
@@ -200,10 +202,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   };
   const openLocation = async () => {
     if (!canAct() || !conversationId || !review || command || edit || deadlineEditor || opening) return;
-    setOpening(true);
+    setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
-    try { result = await needLocationClientService.read(conversationId); } finally { setOpening(false); }
-    if (!current() || !result.ok) return;
+    try { result = await needLocationClientService.read(conversationId); }
+    catch { if (current()) setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); return; }
+    finally { setOpening(false); }
+    if (!current()) return;
+    if (!result.ok) { setOpenError(result.poruka); return; }
     setEdit(null);
     setLocationEditor({ ...result.podatak, value: locationProposal.current?.value ?? review.location ?? result.podatak.value });
   };
@@ -258,7 +263,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const factProblem = review && !published && !command ? reviewFactProblem(review) : null;
   // `canAccept` is false for exactly three server reasons (a safety block, something missing, no place on the map); each
   // is a row of "Još treba" with its way to the fix, and the grey publish says in one line that they come first.
-  const todos = review && !published && !command ? reviewTodos(review, factProblem) : [];
+  const todos = review && !published && !command ? reviewTodos(review, factProblem, !!unavailableIdentityFact) : [];
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
@@ -350,7 +355,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <DetailTopBar title="Mesto zadatka" backLabel="Nazad na pregled" disabled={disabled} onBack={closePlace} />
-      {editor.error || editor.uncertain ? <View style={[s.danger, { marginHorizontal: 20, marginTop: 8 }]}>
+      {editor.error || editor.uncertain ? <View style={[s.danger, s.placeAlert]}>
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
         <V2Action label="Učitaj pregled i proveri ishod" disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />
       </View> : null}
@@ -360,6 +365,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   </SafeAreaView>;
 
   const summary = review ? publicSummary(review.publicProjection) : null;
+  // The title leads the preview; it is corrected in place like every other fact.
+  const titleFact = review?.publicProjection.find(fact => fact.key === 'need.title');
   const geography = review?.publicProjection.find(fact => fact.key === 'need.task_geography');
   const geographyMode = (geography?.value as { mode?: string } | null | undefined)?.mode;
   // A route names its stops (street and place, never a house number: owner decision 2, 2026-09-24); one place is the line above.
@@ -390,7 +397,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       <DetailTopBar backLabel="Nazad u razgovor" onBack={back}
         title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled zadatka'} />
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-        <View ref={content} style={{ gap: 24 }}>
+        <View ref={content} style={s.stack}>
         {!review || !summary ? editor.loading
           ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 4, variant: 'task' }} />
           : <StateView kind="error" art="document" title="Pregled nije učitan" body={editor.error ?? 'Pokušaj ponovo.'}
@@ -402,12 +409,16 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
           <ReviewPreview summary={summary} large={large}
-            unpriced={review.publicProjection.some(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN')} />
+            unpriced={review.publicProjection.some(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN')}
+            action={titleFact?.id && !command && edit?.fact.key !== 'need.title' ? <V2Action label="Izmeni naslov" kind="quiet" compact
+              disabled={quietEdit} onPress={() => startEdit(titleFact)} /> : null} />
+          {titleFact && edit?.fact.key === 'need.title' ? row(titleFact) : null}
           {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled || !!edit || deadlineEditor}>
             {identityBlock}
           </ReviewTodoList> : null}
           <ReviewSection title="Mesto" action={!command ? <V2Action label={review.location ? 'Uredi mesto' : 'Dodaj mesto'} kind="quiet" compact
             loading={opening} disabled={disabled || !!edit || deadlineEditor} onPress={openLocation} /> : null}>
+            {openError ? <View style={s.danger}><T accessibilityRole="alert" style={s.error}>{openError}</T></View> : null}
             {snapshot?.locationConflict ? <View style={s.warn}><T accessibilityRole="alert" style={s.warnText}>
               Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
             </T></View> : null}
@@ -449,12 +460,13 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             {((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW')))
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
               ? <V2Action label="Izmeni zadatak" style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
-            <V2Action label={command.state === 'ACCEPTED' ? 'Proveri stanje nacrta' : 'Proveri objavu'} disabled={editor.busy || editor.loading} onPress={refresh} />
+            <V2Action label={command.state === 'ACCEPTED' ? 'Proveri stanje nacrta' : 'Proveri objavu'} disabled={editor.busy || editor.loading}
+              loading={editor.loading} onPress={refresh} />
             {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
               onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : null}
           </> : <>
-            <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} onPress={publish} />
-            <T style={s.caption}>{caption}</T>
+            <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
+            <T accessibilityLiveRegion="polite" style={s.caption}>{caption}</T>
             {/* A new task only: accepting an edit of an existing one confirms that edit, which is not a draft. */}
             {!revising && review.canAccept && !unavailableIdentityFact ? <V2Action label="Sačuvaj nacrt" kind="quiet"
               disabled={quietEdit} onPress={() => { void accept(false); }} /> : null}

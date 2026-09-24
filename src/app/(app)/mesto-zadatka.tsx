@@ -7,15 +7,19 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { LocationScreen } from '../../ui/location/LocationControls';
 import { StateView } from '../../ui/system/StateView';
 import { SuccessMark } from '../../ui/system/SuccessMark';
-import { brandAction, inset, sys } from '../../ui/system/tokens';
+import { inset, sys } from '../../ui/system/tokens';
 import { T } from '../../ui/Text';
 import { V2Action as Button } from '../../ui/v2/V2Action';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
+import { uuid } from '../../data/serverReceipt';
 
 export default function MestoZadatka() {
   const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
   const id = typeof params.conversationId === 'string' ? params.conversationId : '';
-  const read = useCallback(() => needLocationClientService.read(id), [id]);
+  // An address without a valid conversation cannot be read; it says so instead of offering a retry that never works.
+  const valid = uuid(id);
+  const read = useCallback(() => valid ? needLocationClientService.read(id)
+    : Promise.resolve({ ok: false as const, kod: 'LOCATION_ROUTE_INVALID', poruka: 'Otvori mesto iz pregleda zadatka.' }), [id, valid]);
   const editor = useOwnedEditor(read);
   const resolver = useMemo(() => createProductionLocationResolver(), [id, editor.data?.accountId, editor.data?.revision]);
   // A direct/deep entry must return to the current complete review, never the
@@ -26,13 +30,13 @@ export default function MestoZadatka() {
   const unread = !editor.data && !editor.loading && !!editor.error;
   return <LocationScreen title="Mesto zadatka" onBack={back} loading={editor.loading} error={unread ? null : editor.error} onRetry={retry}
     scroll={unread}>
-    {unread ? <StateView kind="error" art="pin" title="Mesto nije učitano" body={editor.error ?? undefined}
-      primary={{ label: 'Učitaj sačuvano stanje', onPress: retry }} /> : null}
-    {/* Saved: one green way back, and the form under it waits grey for a new change (one green per screen). */}
+    {unread ? <StateView kind="error" art="pin" title={valid ? 'Mesto nije učitano' : 'Mesto nije dostupno'} body={editor.error ?? undefined}
+      primary={valid ? { label: 'Učitaj sačuvano stanje', onPress: retry } : undefined} /> : null}
+    {/* Saved: a white way back; the form's own save stays the screen's one green action for a new change. */}
     {editor.saved ? <View style={s.saved}>
       <View style={s.savedRow}><SuccessMark fresh size={32} />
-        <T accessibilityRole="alert" variant="body" style={s.grow}>Lokacija je sačuvana u pregledu Zadatka.</T></View>
-      <Button label="Nazad na pregled" style={brandAction} onPress={back} />
+        <T accessibilityRole="alert" variant="body" style={s.grow}>Mesto je sačuvano u pregledu zadatka.</T></View>
+      <Button label="Nazad na pregled" kind="secondary" onPress={back} />
     </View> : null}
     {editor.data ? <NeedLocationForm key={editor.data.revision} layout="screen" review={editor.data} busy={editor.busy} uncertain={editor.uncertain}
       resolver={resolver}

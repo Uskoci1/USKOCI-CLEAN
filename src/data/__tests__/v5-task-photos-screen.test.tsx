@@ -216,7 +216,7 @@ describe('round 6: the photo grid', () => {
     for (const label of ['Odustani od nepotvrđenog slanja', 'Osveži i proveri fotografije', 'Nastavi slanje iste fotografije'])
       expect(tree.root.findAllByProps({ label }).length).toBeLessThanOrEqual(1);
     expect(JSON.stringify(tree.toJSON())).toContain('Slanje nije potvrđeno');
-    expect(action('Izaberi iz galerije').reason).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
+    expect(action('Fotografiši').reason).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
   });
   it('an empty draft says so and leaves both add actions live', async () => {
     await render();
