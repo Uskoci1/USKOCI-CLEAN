@@ -40,6 +40,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
   removeItem: jest.fn(async (key: string) => { mockStorage.delete(key); }) } }));
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
+import { ApplicationSelectionPresentation } from '../../ui/v2/ApplicationSelectionPresentation';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
   stanje: 'CEKA_PRIJAVE', pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade',
   schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T08:00:00.123456Z', endsAt: '2026-09-20T09:00:00.654321Z' } });
@@ -118,6 +119,34 @@ it('refuses a submission when the authoritative task gate says remaining search 
   await act(async () => { await presentation.props.submit(); });
   expect(mockSubmit).not.toHaveBeenCalled();
   expect(text()).toContain('Proveri aktuelni Zadatak i aktivan radni profil.');
+});
+// Round 2c (verifier va, should 5): the composer's block branch was pinned only by its text. The review button carries
+// the reason as its own line and spoken hint; the way out stands beside it; while a send runs the reason has its own line.
+const PROFILE_REASON = 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.';
+const reasonLines = () => tree!.root.findAll(node => String(node.type) === 'T' && node.props.children === PROFILE_REASON);
+it('with the worker profile not active, the review button says why once, as its line and its hint, and the link opens the profile', async () => {
+  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'DRAFT' });
+  await offer();
+  const review = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
+  expect(review.props.disabled).toBe(true); expect(review.props.accessibilityHint).toBe(PROFILE_REASON);
+  // Drawn once, under the button, and not read there a second time: the hint already says it.
+  expect(text().split(PROFILE_REASON)).toHaveLength(2);
+  expect(reasonLines()).toHaveLength(1); expect(reasonLines()[0].props.accessibilityElementsHidden).toBe(true);
+  await tap('Dopuni radni profil');
+  expect(mockRouter.push).toHaveBeenCalledWith('/profil/radnik'); expect(mockSubmit).not.toHaveBeenCalled();
+});
+it('while a send is in flight, the reason stands in its own live line beside the working button', async () => {
+  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'DRAFT' });
+  await offer();
+  // The same props the route handed the composer, drawn while its own send runs.
+  const props = tree!.root.findByType(ApplicationSelectionPresentation).props as React.ComponentProps<typeof ApplicationSelectionPresentation>;
+  await act(async () => tree!.unmount());
+  await act(async () => { tree = create(<ApplicationSelectionPresentation {...props} busy />); });
+  const sending = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Slanje…')[0];
+  expect(sending.props.accessibilityState).toEqual({ disabled: true, busy: true }); expect(sending.props.accessibilityHint).toBeUndefined();
+  expect(reasonLines()).toHaveLength(1);
+  expect(reasonLines()[0].props.accessibilityLiveRegion).toBe('polite'); expect(reasonLines()[0].props.accessibilityElementsHidden).toBeUndefined();
+  expect(press('Dopuni radni profil')).toBeDefined();
 });
 it('treats the closed remaining search server rejection as a known refusal that can be reset after refresh', async () => {
   mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osveži Zadatak.' });

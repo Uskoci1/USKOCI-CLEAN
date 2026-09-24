@@ -11,6 +11,8 @@ jest.mock('phosphor-react-native', () => ({ House: 'Icon', Handshake: 'Icon' }))
 jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 'Mark' }));
 import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
+import { StyleSheet } from 'react-native';
+import { nested, sys } from '../../ui/system/tokens';
 let tree: ReactTestRenderer;
 const routes = ['index', 'zadaci', 'dogovori', 'profil', 'profil/obavestenja', 'moje-aktivnosti', 'prilike', 'mapa', 'prilike/[id]', 'oceni-dogovor']
   .map(name => ({ name, key: name }));
@@ -64,6 +66,18 @@ it('keeps every earlier destination registered and reachable by its URL, only no
   const hidden = (name: string) => screens.find(screen => screen.props.name === name)?.props.options.href;
   for (const name of ['potrebe', 'moje-prijave', 'prilike', 'mapa', 'nova', 'pregled-nacrta', 'pregled-zadatka', 'moje-aktivnosti',
     'profil', 'potrebe/[id]/pregled', 'potrebe/[id]/kandidati', 'prilike/[id]', 'prilike/[id]/prijava']) expect(hidden(name)).toBeNull();
+});
+
+// Round 2c (verifier vf, should 5): the selected capsule sat inside the bar with the bar's own 24 corner, so the two
+// lines did not follow each other. It is the bar's corner minus the bar's padding.
+it('nests the selected capsule inside the bar: its corner is the bar\'s corner minus the padding between them', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  const options = optionsFor('zadaci', ['index', 'zadaci']);
+  const { borderRadius: bar, padding } = options.tabBarStyle;
+  const capsule = StyleSheet.flatten(options.tabBarButton({ children: 'Zadaci', 'aria-selected': true }).props.style).borderRadius;
+  expect(bar).toBe(sys.radius.card);
+  expect(capsule).toBe(nested(bar, padding)); expect(options.tabBarItemStyle.borderRadius).toBe(capsule);
+  expect(capsule).toBeLessThan(bar);
 });
 
 it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {

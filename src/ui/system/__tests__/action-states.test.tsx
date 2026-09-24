@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Animated, StyleSheet, Text } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, StyleSheet, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockReduced = false;
@@ -156,13 +156,51 @@ it('keeps a row of buttons in its columns when one of them says something under 
   expect(flat(button).flex).toBeUndefined();
   expect(flat(button).marginTop).toBeUndefined();
   expect(column.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'alert')).toHaveLength(1);
-  // Without a message nothing wraps the button: it stays the row's own child.
+  // Without a message prop (left out, not null) nothing wraps the button: it stays the row's own child.
   await update(<View testID="row" style={{ flexDirection: 'row', gap: 8 }}>
     <V2Action label="Podeli lokaciju" style={{ flex: 1 }} onPress={noop} />
   </View>);
   const plain = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'row')[0];
   expect(plain.findAll(node => typeof node.type === 'string' && node.props.testID === 'action-column')).toHaveLength(0);
   expect(flat(plain.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'button')[0]).flex).toBe(1);
+});
+
+// Round 2c (verifier va, should 3): the top element switched between the bare button and the column the moment an error
+// or a reason appeared, so React built the button again and TalkBack lost its place on the button just pressed.
+it('keeps the same button when its error or reason appears, because a caller that passes the prop gets the column at once', async () => {
+  const hosts = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'button');
+  await render(<V2Action label="Podeli lokaciju" error={null} onPress={noop} />);
+  const before = hosts()[0];
+  expect(tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'action-column')).toHaveLength(1);
+  await update(<V2Action label="Podeli lokaciju" error="Lokacija nije podeljena." onPress={noop} />);
+  expect(hosts()[0]).toBe(before);
+  await render(<V2Action label="Pregledaj ponudu" style={brandAction} reason={null} onPress={noop} />);
+  const live = hosts()[0];
+  await update(<V2Action label="Pregledaj ponudu" style={brandAction} disabled reason="Zadatak više ne prima prijave." onPress={noop} />);
+  expect(hosts()[0]).toBe(live);
+  expect(hosts()[0].props.accessibilityHint).toBe('Zadatak više ne prima prijave.');
+});
+
+// Round 2c (verifier va, should 4): the reason used to stand in a live region; as the button's hint it is only heard when
+// focus lands there, so a reason that turns up after a refresh went unsaid.
+it('announces a reason that appears or changes, but not the one it was drawn with, nor the same one after working', async () => {
+  // The preset's AccessibilityInfo is already a mock that keeps its calls across tests: start from none.
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+  announce.mockClear();
+  const action = (props: Partial<React.ComponentProps<typeof V2Action>>) =>
+    <V2Action label="Pregledaj ponudu" style={brandAction} onPress={noop} {...props} />;
+  await render(action({ disabled: true, reason: 'Radni profil još nije aktivan.' }));
+  expect(announce).not.toHaveBeenCalled();
+  await update(action({ disabled: true, reason: 'Zadatak više ne prima prijave.' }));
+  expect(announce).toHaveBeenCalledTimes(1); expect(announce).toHaveBeenLastCalledWith('Zadatak više ne prima prijave.');
+  // At work the line is not drawn; back from work with the same reason, nothing new is said.
+  await update(action({ disabled: true, loading: true, reason: 'Zadatak više ne prima prijave.' }));
+  await update(action({ disabled: true, reason: 'Zadatak više ne prima prijave.' }));
+  expect(announce).toHaveBeenCalledTimes(1);
+  // Live again, then refused after a refresh: the reason that turns up is said once.
+  await update(action({ reason: null }));
+  await update(action({ disabled: true, reason: 'Zadatak više ne prima prijave.' }));
+  expect(announce).toHaveBeenCalledTimes(2);
 });
 
 it('writes the label white on the brand surface and green on every other action', async () => {

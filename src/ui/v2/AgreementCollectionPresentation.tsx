@@ -7,6 +7,7 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Appear, useAppear } from '../system/Appear';
+import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { dogovora, osoba } from '../system/plural';
 import { ChromeIconButton } from '../system/ScreenChrome';
@@ -37,6 +38,8 @@ const Separator = () => <View style={{ height: 12 }} />;
 const keyOf = (item: DogovorProjekcija) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
+/** The other person's face on a card: the list-row step of the one Avatar scale, the photo at the same size. */
+const AVATAR = 40;
 
 type Attention = { art: FactArtKind; title: string; line: string };
 /**
@@ -81,13 +84,14 @@ function AgreementCard({ item, onOpen }: { item: DogovorProjekcija; onOpen: () =
   // The same words the Dogovor itself uses in AgreementPeople, with V41's "na tvoj zadatak" saying whose task.
   const relation = other?.uloga === 'narucilac' ? 'Traži pomoć' : other?.uloga === 'uskocer' ? 'Uskače na tvoj zadatak' : '';
   const term = termParts(item.vremeTekst), remote = item.rezim === 'DALJINSKI';
-  const initials = <View style={s.avatar}><T variant="label" style={s.initials}>{other?.inicijali ?? '—'}</T></View>;
+  // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
+  const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${readableTitle(item.naslov)}`}
     accessibilityHint={attention ? `${attention.title}. ${attention.line}` : undefined} onPress={onOpen}
     haptic="select" scaleTo={0.986} style={[s.card, attention && s.cardAttention]}>
     <View style={s.main}>
       <View style={s.person}>
-        {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={44} fallback={initials} /> : initials}
+        {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
         <View style={s.personCopy}>
           <T variant="bodyStrong" style={s.personName} numberOfLines={1}>{other?.ime ?? 'Druga strana'}</T>
           {relation ? <T variant="meta" tone="muted" numberOfLines={1}>{relation}</T> : null}
@@ -247,9 +251,6 @@ const s = StyleSheet.create({
   cardAttention: { borderColor: sys.color.orangeHalo },
   main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  avatar: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line,
-    alignItems: 'center', justifyContent: 'center' },
-  initials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
   personCopy: { flex: 1, minWidth: 0 }, personName: { color: sys.color.ink, fontWeight: '700' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0.3 },
   title: { ...sys.type.cardTitle, color: sys.color.ink },

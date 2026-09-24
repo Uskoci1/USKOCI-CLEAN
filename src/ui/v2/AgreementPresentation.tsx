@@ -6,6 +6,7 @@ import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/proje
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { DetailFact, DetailFacts, ProductTitle } from '../product/ProductDetails';
+import { Avatar } from '../system/Avatar';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
@@ -37,9 +38,10 @@ export const agreementStateText = (state: DogovorProjekcija['stanje']) => states
 export function AgreementPersonBar({ person, state, back }: {
   person: UcesnikProjekcija; state: DogovorProjekcija['stanje']; back: () => void;
 }) {
-  const initials = <View style={s.barAvatar}><T variant="label" style={s.barInitials}>{person.inicijali}</T></View>;
+  // The one Avatar: a missing name draws the person, never an empty disc.
+  const initials = <Avatar initials={person.inicijali} size={40} />;
   return <ScreenChrome variant="detail" onBack={back} title={person.ime} subtitle={states[state]}
-    lead={person.profilId ? <ProfilePhoto profileId={person.profilId} size={44} fallback={initials} /> : initials} />;
+    lead={person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials} />;
 }
 
 /**
@@ -80,8 +82,8 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
         stay — an account id must never be handed to the media service in its place. */}
     {agreement.ucesnici.map((person, index) => <View key={person.id} style={[s.person, index ? s.personDivider : null]}>
       {person.profilId
-        ? <ProfilePhoto profileId={person.profilId} size={48} fallback={<View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>} />
-        : <View style={s.avatar}><T variant="label" style={s.initials}>{person.inicijali}</T></View>}
+        ? <ProfilePhoto profileId={person.profilId} size={56} fallback={<Avatar initials={person.inicijali} size={56} />} />
+        : <Avatar initials={person.inicijali} size={56} />}
       <View style={s.grow}>
         <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
         <T variant="note" tone="muted">{person.uloga === 'narucilac' ? (person.viSte ? 'Ti · tražiš pomoć' : 'Traži pomoć') : person.viSte ? 'Ti · uskačeš' : 'Uskače'}
@@ -98,14 +100,9 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  barAvatar: { width: 44, height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line,
-    alignItems: 'center', justifyContent: 'center' },
-  barInitials: { color: sys.color.green, fontSize: 15, lineHeight: 20, letterSpacing: 0 },
   hero: { gap: 12 },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   people: { borderTopWidth: 1, borderTopColor: sys.color.line },
   person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
   personDivider: {},
-  avatar: { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  initials: { color: sys.color.green, letterSpacing: 0, fontSize: 17, lineHeight: 22 },
 });

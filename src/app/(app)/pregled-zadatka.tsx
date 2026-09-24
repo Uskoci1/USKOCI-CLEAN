@@ -60,6 +60,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   // line opens them. Nothing is hidden; a wall of "Nema navedenih stavki" is just not a wall.
   const [showEmpty, setShowEmpty] = useState(false);
   const [deadlineEditor, setDeadlineEditor] = useState(false);
+  // True only while the write in flight is the publish itself: every other save (a draft, a corrected fact, the place,
+  // the deadline) also makes the editor busy, and "Objavi zadatak" must not spin for those.
+  const [publishing, setPublishing] = useState(false);
   const deadlineProposal = useRef<string | null | undefined>(undefined);
   // The deadline is a term other people read, so it is set and shown in Serbian time like every
   // agreed time (owner rule 8.27); the facts above it already read in that zone.
@@ -133,13 +136,19 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const accept = async (andPublish: boolean) => {
     if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
-    await editor.save(async () => {
-      const request = { review: accepted.review, clientRequestId: accepted.id };
-      const result = await (andPublish ? aiTaskReviewClientService.acceptAndPublish(request) : aiTaskReviewClientService.acceptAsDraft(request));
-      if (!current()) return changed();
-      if (!result.ok) return result;
-      return read();
-    });
+    // Marked only once the editor has taken the write (the export screen's rule), so a refused second press never
+    // clears the first one's spinner.
+    let started = false;
+    try {
+      await editor.save(async () => {
+        started = true; if (andPublish) setPublishing(true);
+        const request = { review: accepted.review, clientRequestId: accepted.id };
+        const result = await (andPublish ? aiTaskReviewClientService.acceptAndPublish(request) : aiTaskReviewClientService.acceptAsDraft(request));
+        if (!current()) return changed();
+        if (!result.ok) return result;
+        return read();
+      });
+    } finally { if (started) setPublishing(false); }
   };
   const publish = () => accept(true);
   const resume = async () => {
@@ -240,7 +249,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         : !review.location ? 'Fali mesto na mapi. Otvori „Dodaj mesto" i potvrdi tačku — bez nje niko ne zna gde da dođe.'
           : factProblem ? factProblem
           : unavailableIdentityFact ? IDENTITY_VERIFICATION_UNAVAILABLE_COPY
-            : edit ? 'Sačuvaj ili otkaži izmenu koju si otvorio.'
+            : edit ? 'Sačuvaj ili otkaži otvorenu izmenu.'
               : locationEditor ? 'Sačuvaj ili zatvori mesto koje uređuješ.'
                 : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
@@ -256,7 +265,10 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
   const disabled = editor.busy || editor.loading || editor.uncertain;
   const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || !!deadlineEditor;
-  const publishResting = publishBlocked && !editor.busy;
+  // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
+  // it simply waits grey.
+  const publishWorking = editor.busy && publishing;
+  const publishResting = publishBlocked && !publishWorking;
   const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
   // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
   // writes it for the server, which reads a kind of work from it only to match; it is not a row here.
@@ -409,9 +421,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             {/* The same states as every V2Action: at work it keeps its green and its words with a spinner before them;
                 unavailable it is the quiet wash with muted words, never a faded copy of the live button. */}
             <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={publishBlocked}
-              accessibilityState={editor.busy ? { disabled: true, busy: true } : { disabled: publishBlocked }} onPress={publish}
+              accessibilityState={publishWorking ? { disabled: true, busy: true } : { disabled: publishBlocked }} onPress={publish}
               style={[s.publish, publishResting && s.publishResting]}>
-              {editor.busy ? <ActivityIndicator color={sys.color.onGreen} /> : null}
+              {publishWorking ? <ActivityIndicator color={sys.color.onGreen} /> : null}
               <T style={[s.publishLabel, publishResting && s.publishLabelResting]}>{acceptLabel}</T>
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
               ? 'Ovim potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
@@ -440,7 +452,9 @@ const s = StyleSheet.create({
   footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line, gap: sys.space.sm },
   /** The one brand action of the screen, on the system's shape. */
   publish: { ...brandAction, flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
-  publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen },
+  // Shrinks and wraps beside the spinner rather than running out of the button ("Potvrdi izmene i objavi" at 320 dp
+  // with large text).
+  publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen, flexShrink: 1, textAlign: 'center' },
   publishResting: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   publishLabelResting: { color: sys.color.muted },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },

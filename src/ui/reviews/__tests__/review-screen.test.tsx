@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const D='dddddddd-dddd-4ddd-8ddd-dddddddddddd', K='cccccccc-cccc-4ccc-8ccc-cccccccccccc', R='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 let mockAccount: string | null=A, mockRevision=1, mockFocused=true, mockAgreementId: string | string[]=D;
+let mockFrom: string | undefined;
 const mockContext=jest.fn(), mockSubmit=jest.fn(), mockReputation=jest.fn();
 const mockListeners=new Set<(state:string)=>void>();
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
@@ -11,7 +12,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native');re
  return ['View','ScrollView','ActivityIndicator'].includes(String(key))?key:Reflect.get(target,key);
 }});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
-jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>({agreementId:mockAgreementId}),
+jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>({agreementId:mockAgreementId,from:mockFrom}),
  useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
 jest.mock('../../../store/sesija',()=>({useSesija:()=>({user:mockAccount?{id:mockAccount}:null,accountRevision:mockRevision}),
  sesijaSada:()=>({user:mockAccount?{id:mockAccount}:null,accountRevision:mockRevision})}));
@@ -37,7 +38,7 @@ const button=(label:string)=>tree.root.findByProps({accessibilityLabel:label});
 const click=(label:string)=>act(()=>button(label).props.onPress());
 const settle=async()=>{await act(async()=>{});};
 async function render(){await act(async()=>{tree=create(<ReviewRoute/>);});}
-beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockAgreementId=D;
+beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockAgreementId=D;mockFrom=undefined;
  mockContext.mockReset().mockResolvedValue({ok:true,podatak:context()});mockSubmit.mockReset();mockReputation.mockReset();
  mockRouter.canGoBack.mockReturnValue(true);
 });
@@ -76,6 +77,22 @@ it('lost acknowledgement resolves from own stored review without another write',
  await render();click('Ocena 4 od 5');click('Sačuvaj ocenu');await settle();
  mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false,review:receipt(mockSubmit.mock.calls[0][0])}});
  click('Proveri sačuvanu ocenu');await settle();expect(texts()).toContain('Ocena je sačuvana');expect(mockSubmit).toHaveBeenCalledTimes(1);
+});
+// Round 2c (verifier vf, must 1): Početna opens the rating directly, and its button said "Nazad na Dogovor" while Back
+// returned to Početna. The route now names the screen it came from, and Back goes there even with no history.
+it('names the way back after the screen it was opened from, and goes there',async()=>{
+ const receipted=()=>({ok:true,podatak:{...context(),eligible:false,review:receipt({agreementId:D,targetAccountId:B,rating:5,tags:[],clientRequestId:K})}});
+ mockContext.mockResolvedValue(receipted());await render();
+ expect(button('Nazad na Dogovor')).toBeDefined();expect(tree.root.findAllByProps({accessibilityLabel:'Nazad na Početnu'})).toHaveLength(0);
+ await act(async()=>tree.unmount());
+ mockFrom='pocetna';await render();
+ expect(texts()).toContain('Ocena je sačuvana');expect(tree.root.findAllByProps({accessibilityLabel:'Nazad na Dogovor'})).toHaveLength(0);
+ mockRouter.canGoBack.mockReturnValue(false);click('Nazad na Početnu');expect(mockRouter.replace).toHaveBeenLastCalledWith('/');
+ mockRouter.canGoBack.mockReturnValue(true);click('Nazad na Početnu');expect(mockRouter.back).toHaveBeenCalledTimes(1);
+ // Not yet eligible: the same way back, under the same name.
+ await act(async()=>tree.unmount());
+ mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false}});await render();
+ expect(texts()).toContain('Ocena još nije dostupna');expect(button('Nazad na Početnu')).toBeDefined();
 });
 it('server ineligibility and already submitted receipt never expose a new submission',async()=>{
  mockContext.mockResolvedValue({ok:true,podatak:{...context(),eligible:false}});await render();

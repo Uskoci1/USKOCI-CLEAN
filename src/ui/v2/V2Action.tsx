@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Check } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -30,7 +30,9 @@ export const ACTION_MIN_HEIGHT = 48;
  * - success: a check before the label for 1.2 s, only when the caller says the write is CONFIRMED (never on press);
  * - error: a danger outline and the caller's message right under the button, announced as an alert.
  * A line under the button is drawn inside one column with it, so a row of buttons keeps its columns; the caller's
- * place in its row (flex, width, margins) moves onto that column.
+ * place in its row (flex, width, margins) moves onto that column. A caller that passes `reason` or `error` at all (even
+ * null) gets the column from the start, so the button is never rebuilt when a line appears. A reason that appears or
+ * changes later is announced.
  * Every action is at least 48 px high; the primary 54, as `brandAction`.
  */
 export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', icon, style, compact = false,
@@ -61,8 +63,11 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   const lead = loading ? <ActivityIndicator size="small" color={color} /> : confirmed ? <ConfirmedCheck color={color} />
     : resting && isValidElement<{ color?: string }>(icon) ? cloneElement(icon, { color }) : icon;
   const why = resting && !error && reason ? reason : null;
-  const wrapped = !!error || !!why;
+  // The column is decided by whether the caller passes a line at all, not by whether one shows now: switching between
+  // the bare button and the column rebuilt the button, and TalkBack lost its place on it just as its error appeared.
+  const wrapped = error !== undefined || reason !== undefined;
   const [outer, inner] = wrapped ? splitPlacement(flat) : [null, style];
+  useAnnouncedReason(why, loading);
   const button = <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityHint={why ?? undefined}
     accessibilityState={loading ? { disabled: true, busy: true } : { disabled }}
     onPress={onPress} disabled={inactive} haptic={inactive ? 'none' : kind === 'primary' ? 'light' : 'select'}
@@ -96,6 +101,20 @@ function splitPlacement(flat: ViewStyle): [ViewStyle, ViewStyle] {
   // A button that sized itself to its label keeps that size inside the column.
   if (flat.alignSelf !== undefined) inner.alignSelf = flat.alignSelf;
   return [outer, inner];
+}
+
+/**
+ * A reason that appears or changes while the button is on screen is announced once ("Zadatak više ne prima prijave."
+ * after a refresh): it is otherwise only the button's hint, heard when focus lands there. The reason the button was drawn
+ * with is not announced, and a button at work keeps the reason it had, so the same words are not said again after it.
+ */
+function useAnnouncedReason(why: string | null, loading: boolean) {
+  const spoken = useRef(why);
+  useEffect(() => {
+    if (loading) return;
+    if (why && why !== spoken.current) AccessibilityInfo.announceForAccessibility(why);
+    spoken.current = why;
+  }, [why, loading]);
 }
 
 /** True for `ACTION_SUCCESS_MS` after `success` turns on; a caller that keeps it on does not keep the check. */

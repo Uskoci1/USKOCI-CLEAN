@@ -57,8 +57,9 @@ function Home() {
     onProfile={() => navigate(() => router.navigate('/profil'))} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
     // 2026-09-24), exactly as the Dogovor screen opens it. Several, or none known: Dogovori, where each one waits.
+    // `from` tells the rating where Back returns, so its button says "Nazad na Početnu" and not "Nazad na Dogovor".
     onRatings={agreementId => navigate(() => agreementId
-      ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId } }) : router.navigate('/dogovori'))}
+      ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId, from: 'pocetna' } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
     onRefresh={() => { if (current()) void resource.refresh(true); }} />;

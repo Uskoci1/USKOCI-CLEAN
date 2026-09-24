@@ -151,7 +151,8 @@ it('rows on Početna are at least 64 tall, and the publish tile is the one orang
   expect(tile('Moji zadaci. 1 aktivan').minHeight).toBeGreaterThanOrEqual(64);
   expect(tile('Moje prijave. Još nemaš prijavu').minHeight).toBeGreaterThanOrEqual(64);
   expect(tile('Objavi zadatak').backgroundColor).toBe(sys.color.orange);
-  expect(tile('Uskoči i zaradi')).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line });
+  // The card edge is `cardLine` since round 2c (the faint `line` left the white tile almost without an edge).
+  expect(tile('Uskoči i zaradi')).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.cardLine });
   const strip = tile('Oceni 2 završena Dogovora');
   expect(strip.backgroundColor).toBe(sys.color.orangeSoft); expect(strip.borderWidth ?? 0).toBe(0);
 });
@@ -181,7 +182,8 @@ it('with exactly one Dogovor waiting for my rating, opens that rating in one tap
   expect(row('Oceni završen Dogovor').accessibilityHint).toBe('Otvara ocenu saradnje.');
   await act(async () => row('Oceni završen Dogovor').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
-  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: 'd1' } });
+  // Round 2c (verifier vf, must 1): the rating is told it was opened from Početna, so its way back names Početna.
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: 'd1', from: 'pocetna' } });
 });
 
 it.each([[5, 'Oceni 5 završenih Dogovora'], [21, 'Oceni 21 završen Dogovor'], [22, 'Oceni 22 završena Dogovora']])(

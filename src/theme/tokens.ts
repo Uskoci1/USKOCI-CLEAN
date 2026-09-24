@@ -41,7 +41,7 @@ export const palette = {
   ink: '#0E3D37', // na svetloj = 11.78
   inkMuted: '#586B62', // na beloj = 5.7 (original #657872 je padao na 3.98)
   onDark: '#FBF2E5', // na forest800 = 10.87
-  onDarkMuted: '#73A99D', // na forest800 = 4.53 (teal400 je padao na 3.44)
+  // onDarkMuted je uklonjen 2026-09-24: prolazio je samo na penzionisanoj forest podlozi, a na zelenoj daje 2.4.
 
   // semantika — nikad sama, uvek uz ikonu ili tekst
   success: '#1D6F4B',

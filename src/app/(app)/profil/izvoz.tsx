@@ -184,7 +184,10 @@ function OwnedExport() {
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
       ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} loading={editor.busy && working === 'prepare'}
         onPress={() => { void prepare(); }} />
-      : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
+      // While the request is on its way it says so: the retained key is set before the write, so the label read
+      // "Ponovi isti zahtev" beside the spinner of the very first request.
+      : <Button label={editor.busy && working === 'request' ? 'Slanje zahteva…' : pendingKey.current ? 'Ponovi isti zahtev'
+          : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
         loading={editor.busy && working === 'request'} onPress={() => { void requestExport(); }} />
     : null;
   return <><SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>

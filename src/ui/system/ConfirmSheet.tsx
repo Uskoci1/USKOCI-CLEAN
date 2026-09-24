@@ -67,8 +67,10 @@ export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odus
   const danger = tone === 'danger';
   // Leaving a slow command's sheet is not a cancel: `decided` is already set, so the cancel path does not run again.
   return <ProductSheet title={title} closeButton={false} dismissible={!busy || slow} reduced={reduced} onClose={ended}
-    // A tap outside the question closes it as a "no". Once the command runs it no longer answers anything, so it says nothing.
-    backdropHint={busy ? null : 'Zatvara pitanje bez potvrde.'}
+    // A tap outside the question closes it as a "no"; a notice (nothing to cancel) it simply closes. While the command runs
+    // a tap outside does nothing, so the sheet takes it out of what a screen reader visits; once the command runs long it
+    // only closes the window and the command carries on.
+    backdropHint={busy ? 'Zatvara prozor; radnja se nastavlja.' : cancelLabel === null ? 'Zatvara obaveštenje.' : 'Zatvara pitanje bez potvrde.'}
     footer={dismiss => <View style={s.actions}>
       <Press testID="confirm-sheet-confirm" accessibilityRole="button" accessibilityLabel={confirmLabel}
         accessibilityState={{ disabled: busy, busy }} disabled={busy} haptic={busy ? 'none' : danger ? 'medium' : 'light'}

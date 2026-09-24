@@ -227,7 +227,7 @@ const s = StyleSheet.create({
   ratingsDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   ratingsDueText: { flex: 1, color: sys.color.warn, fontWeight: '600' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
-  // The bottom padding keeps the last row clear of the floating tab bar when the list is scrolled to its end.
+  // The bottom padding leaves air between the last row and the inset tab bar below the list when it is scrolled to its end.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted }, onOrange: { color: sys.color.onOrange },
   hero: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 108, marginTop: sys.space.xxl },

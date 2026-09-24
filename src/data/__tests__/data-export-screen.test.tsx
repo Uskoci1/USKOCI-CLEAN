@@ -75,6 +75,17 @@ it('serializes request double taps and reads back the accepted request', async (
   await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
   expect(texts()).toContain('Zahtev za izvoz je zabeležen'); expect(button('Pripremi kopiju')).toBeTruthy(); expect(mockPrepare).not.toHaveBeenCalled();
 });
+// Round 2c (verifier va, item 7): the retained key is set before the write, so the very first request read "Ponovi isti
+// zahtev" beside its spinner, as if it were a retry.
+it('says the first request is on its way while it runs, not that it repeats one', async () => {
+  const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise); await render();
+  await act(async () => { void button('Zatraži izvoz').props.onPress(); });
+  expect(button('Slanje zahteva…').props).toMatchObject({ loading: true, disabled: true });
+  expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
+  const key = mockRequest.mock.calls[0][0]; mockStatus.mockResolvedValue(ok(status('REQUESTED', null, key)));
+  await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
+  expect(tree.root.findAllByProps({ label: 'Slanje zahteva…' })).toHaveLength(0);
+});
 it('retains the same request key after unknown outcome and requires readback', async () => {
   mockRequest.mockRejectedValueOnce(new Error('private SQL detail')); await render(); await tap('Zatraži izvoz'); const key = mockRequest.mock.calls[0][0];
   expect(texts()).not.toContain('private SQL'); expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
@@ -111,12 +122,22 @@ it('cancels only after explicit confirmation and refetches the real cancelled st
   const action = confirm();
   await act(async () => { action(); action(); }); expect(mockCancel).toHaveBeenCalledTimes(1); expect(texts()).toContain('Zahtev je otkazan');
 });
-it('the screen\'s own answer, fired twice, cancels once: its dialog token is the fence, not the sheet\'s latch', async () => {
+it('the screen\'s own answer, fired twice in one tick, cancels once: the screen\'s guards and the editor\'s write lock', async () => {
   // The test above presses the sheet's button, which the sheet itself runs only once. This one calls the answer the screen
-  // handed the sheet, so it fails if the screen's own token check is removed.
+  // handed the sheet twice: the second call is refused by the screen's own guards (the token it retired, `canAct`) or by
+  // the editor's write lock, whichever comes first. It does not single out the token; the next test does.
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
   await render(); await tap('Otkaži zahtev'); const answer = retained();
   await act(async () => { answer(); answer(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
+});
+it('an answer kept after the question was cancelled sends nothing: the dialog token is the fence', async () => {
+  // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
+  // only the screen's dialog token can refuse it. It fails when `dialog.current !== token ||` is removed.
+  mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
+  await render(); await tap('Otkaži zahtev'); const answer = retained();
+  await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+  expect(sheets()).toHaveLength(0);
+  await act(async () => { answer(); }); expect(mockCancel).not.toHaveBeenCalled();
 });
 it('keeps the question open with a busy confirm while the cancellation runs, and closes it once it settles', async () => {
   const cancelled = deferred(); mockCancel.mockReturnValueOnce(cancelled.promise);

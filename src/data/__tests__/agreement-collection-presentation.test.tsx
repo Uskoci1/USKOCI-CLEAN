@@ -17,6 +17,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 import { Segmented } from '../../ui/system/Segmented';
+import { AgreementPeople, AgreementPersonBar } from '../../ui/v2/AgreementPresentation';
 const agreement = (id: string, state: DogovorProjekcija['stanje'], requester = true): DogovorProjekcija => ({
   id, verzija: 3, naslov: `Posao ${id}`, stanje: state, cena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' },
   vremeTekst: '11. septembar · 10:00:00.000001–10:00:00.000009', putanjaTekst: 'Novi Sad',
@@ -55,6 +56,26 @@ test('active and history preserve both actual participant roles; attention means
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   await tap('Svi'); expect(titles()).toHaveLength(5);
+});
+// Round 2c (verifier vf, must 2): since 2026-09-24 a missing name reaches the screens as an empty string. The card wrote
+// `inicijali ?? '—'` (which lets '' through) and the Dogovor printed it bare, so both drew an empty green disc. The one
+// Avatar draws the person instead, on the card, in the Dogovor's bar and in its people rows.
+test('a person without a name gets the drawn person, never an empty disc, on the card, the bar and the people rows', async () => {
+  const nameless = agreement('nameless', 'CONFIRMED');
+  nameless.ucesnici = nameless.ucesnici.map(person => ({ ...person, inicijali: '' }));
+  const discs = () => tree.root.findAll(node => typeof node.type !== 'string' && node.props.initials !== undefined && node.props.size !== undefined);
+  const people = () => tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'person');
+  const emptyLetters = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.children.length === 0 || node.children.every(child => child === ''));
+  rows = [nameless]; await render();
+  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]);
+  expect(people()).toHaveLength(1); expect(emptyLetters()).toHaveLength(0);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<AgreementPersonBar person={nameless.ucesnici[1]} state="CONFIRMED" back={() => {}} />); });
+  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]); expect(people()).toHaveLength(1);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<AgreementPeople agreement={nameless} />); });
+  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 56], ['', 56]]); expect(people()).toHaveLength(2);
+  expect(emptyLetters()).toHaveLength(0);
 });
 test('reuses full accepted amount, precise interval and coverage, without exposing contact or exact address', async () => {
   rows = [agreement('remote', 'CONFIRMED')]; rows[0].rezim = 'DALJINSKI'; rows[0].putanjaTekst = 'REMOTE_MUST_HIDE_LOCATION';

@@ -168,13 +168,24 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     const action = confirmation(); await act(async () => { action(); action(); });
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String)); expect(mockNeed).toHaveBeenCalledTimes(2);
   });
-  it('the screen\'s own answer, fired twice, closes the search once: its dialog token is the fence, not the sheet\'s latch', async () => {
-    // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet,
-    // so it fails if the screen's own token check is removed.
+  it('the screen\'s own answer, fired twice in one tick, closes the search once: the screen\'s guards and the editor\'s write lock', async () => {
+    // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet
+    // twice: the second call is refused by the screen's own guards (the token it retired, `canAct`) or by the editor's
+    // write lock, whichever comes first. It does not single out the token; the next test does.
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     await render(); await tap('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
     const answer = retainedAnswer(); await act(async () => { answer(); answer(); });
     expect(mockClose).toHaveBeenCalledTimes(1);
+  });
+  it('an answer kept after the question was cancelled closes nothing: the dialog token is the fence', async () => {
+    // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
+    // only the screen's dialog token can refuse it. It fails when `dialog.current !== confirmation ||` is removed.
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    await render(); await tap('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
+    const answer = retainedAnswer();
+    await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
+    expect(sheets()).toHaveLength(0);
+    await act(async () => { answer(); }); expect(mockClose).not.toHaveBeenCalled();
   });
   it('keeps the question open with a busy confirm while the search is being closed, and closes it once that settles', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });

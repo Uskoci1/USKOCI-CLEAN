@@ -181,8 +181,9 @@ describe('the conversation point ask', () => {
     const reads = mockRead.mock.calls.length;
     await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
     expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Učitaj sačuvano mesto?', confirmLabel: 'Učitaj', cancelLabel: 'Odustani', tone: 'danger',
-      // One voice without grammatical gender (owner rule): no "koje si potvrdio".
-      message: 'Potvrđene tačke koje nisu sačuvane zameniće poslednje sačuvano mesto.' });
+      // One voice without grammatical gender (owner rule): no "koje si potvrdio". Round 2c (verifier vs, should 3): the
+      // sentence used to say the unsaved points replace the saved place; the reload does the opposite.
+      message: 'Poslednje sačuvano mesto zameniće potvrđene tačke koje još nisu sačuvane.' });
     expect(mockRead).toHaveBeenCalledTimes(reads);
     await answer('confirm-sheet-cancel');
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(mockRead).toHaveBeenCalledTimes(reads);
@@ -216,5 +217,20 @@ describe('the conversation point ask', () => {
     await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
     await act(async () => { tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress(); });
     expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  // Round 2c (verifier vs, nit): a route with a stop can hold two confirmed points when the person leaves, and the
+  // question said "ova tačka" about both.
+  it('leaving with several confirmed points speaks of them in the plural', async () => {
+    const stops = { mode: 'MULTI_STOP' as const, start: { city: 'Novi Sad' }, waypoints: [{ city: 'Sremski Karlovci' }], end: { city: 'Beočin' } };
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value, geography: stops } } });
+    await mount();
+    await act(async () => { editor().props.onConfirm(point('start')); });
+    expect(editor().props.slot).toBe('waypoints/0');
+    await act(async () => { editor().props.onConfirm({ ...point('start'), slot: 'waypoints/0' }); });
+    await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
+    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Potvrđene tačke nisu sačuvane',
+      message: 'Tačke su potvrđene, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ove tačke se gube.' });
+    expect(mockSave).not.toHaveBeenCalled();
   });
 });

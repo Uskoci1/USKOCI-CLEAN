@@ -21,10 +21,16 @@ const tagLabels: Record<ReviewTag, string> = {
 };
 const ratingLabels = ['Izaberi ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
 export function backFromReview() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
+/** The rating opened from Početna: Back returns there, and with no history it lands there too. */
+export function backFromReviewToHome() { if (router.canGoBack()) router.back(); else router.replace('/'); }
 
 /** One rating, up to N tags, one save. The saved receipt is final and shown as such. */
-export function AgreementReviewScreen({ agreementId, accountId, accountRevision }: {
+export function AgreementReviewScreen({ agreementId, accountId, accountRevision, backLabel = 'Nazad na Dogovor', onBack = backFromReview }: {
   agreementId: string; accountId: string; accountRevision: number;
+  /** What the way back is called: the screen the rating was opened from ("Nazad na Početnu" from Početna's strip). */
+  backLabel?: string;
+  /** The way back, for the top bar's arrow and for the button that names it. */
+  onBack?: () => void;
 }) {
   const read = useCallback(() => reviewsClientService.context(agreementId, { accountId, accountRevision }),
     [agreementId, accountId, accountRevision]);
@@ -75,7 +81,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
     });
   };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar title="Ocena saradnje" onBack={backFromReview} />
+    <DetailTopBar title="Ocena saradnje" onBack={onBack} />
     <ScrollView contentContainerStyle={s.content}>
       {workspace.loading || !foreground || resumeRequired ? <View accessible accessibilityLabel="Učitavanje ocene"><SkeletonList count={1} rows={3} /></View>
         : receipt ? <View style={s.card}>
@@ -85,7 +91,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
           <T variant="body" style={s.ink}>Tvoja ocena: {receipt.rating} od 5</T>
           {receipt.tags.length ? <View style={s.tags}>{receipt.tags.map(tag => <View key={tag} style={[s.tag, s.tagSelected]}><T variant="meta" style={s.tagTextSelected}>{tagLabels[tag]}</T></View>)}</View> : null}
           <T variant="meta" tone="muted">Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
-          <V2Action label="Nazad na Dogovor" onPress={backFromReview} style={brandAction} />
+          <V2Action label={backLabel} onPress={onBack} style={brandAction} />
         </View> : context?.eligible ? <>
           <View style={s.intro}>
             <T accessibilityRole="header" variant="display" style={s.ink}>Kako je prošla saradnja?</T>
@@ -127,7 +133,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision 
         </> : context ? <View style={s.card}>
           <T accessibilityRole="header" variant="title" style={s.ink}>Ocena još nije dostupna</T>
           <T variant="body" tone="muted">Možeš oceniti drugu stranu kada Dogovor bude završen.</T>
-          <V2Action label="Nazad na Dogovor" onPress={backFromReview} />
+          <V2Action label={backLabel} onPress={onBack} />
         </View> : null}
       {workspace.error ? <View style={s.errorBlock}>
         <T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>

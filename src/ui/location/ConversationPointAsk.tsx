@@ -116,9 +116,13 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   // last point of a set commits, so on a two-point task that is exactly what "Kasnije" did.
   const leave = () => {
     if (!points.length || state.kind === 'SAVED') { props.onClose(); return; }
-    confirmation.ask({ title: 'Potvrđena tačka nije sačuvana',
+    // A route with stops can hold several confirmed points when the person leaves; the words follow the number.
+    const one = points.length === 1;
+    confirmation.ask({ title: one ? 'Potvrđena tačka nije sačuvana' : 'Potvrđene tačke nisu sačuvane',
       // One voice without grammatical gender (owner, 2026-09-23): the point is confirmed, not "potvrdio si".
-      message: 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.',
+      message: one
+        ? 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.'
+        : 'Tačke su potvrđene, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ove tačke se gube.',
       cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: props.onClose });
   };
 
@@ -135,8 +139,9 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
     {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
     {points.length
+      // `load()` puts the saved place back over the points on screen, so the saved place is what replaces.
       ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => confirmation.ask({ title: 'Učitaj sačuvano mesto?',
-        message: 'Potvrđene tačke koje nisu sačuvane zameniće poslednje sačuvano mesto.',
+        message: 'Poslednje sačuvano mesto zameniće potvrđene tačke koje još nisu sačuvane.',
         cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { void load(); } })} />
       : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />}
     <Button kind="quiet" label="Zatvori" onPress={leave} />

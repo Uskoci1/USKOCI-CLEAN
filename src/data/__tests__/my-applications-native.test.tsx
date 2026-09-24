@@ -196,9 +196,10 @@ it('withdraws only after explicit confirmation, fences double taps, and reads be
   await act(async () => { send(); send(); }); expect(mockWithdraw).toHaveBeenCalledTimes(1); expect(mockWithdraw.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 4, prijavaVerzija: 2, razlog: null });
   expect(mockRead).toHaveBeenCalledTimes(2); expect(text()).toContain('Sačuvano stanje: Prijava je povučena.');
 });
-it('the screen\'s own answer, fired twice, withdraws once: its pending intent is the fence, not the sheet\'s latch', async () => {
-  // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet,
-  // so it fails if the screen's own pending-intent check is removed.
+it('the screen\'s own answer, fired twice in one tick, withdraws once: the screen\'s idle check and the editor\'s write lock', async () => {
+  // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet
+  // twice. This screen has no dialog token: the second call is refused because the first one already made the screen
+  // busy (`idle()` sees its pending command) and holds the editor's write lock.
   const held = deferred(); mockWithdraw.mockReturnValueOnce(held.promise);
   await render(); await tap('Povuci prijavu: Unos ormara'); const answer = retained();
   await act(async () => { answer(); answer(); }); expect(mockWithdraw).toHaveBeenCalledTimes(1);

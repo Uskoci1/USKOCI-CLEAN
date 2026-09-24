@@ -43,6 +43,8 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
+import { StyleSheet } from 'react-native';
+import { sys } from '../../ui/system/tokens';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const unknownOutcome = () => ({ ok: false, kod: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', poruka: 'Ishod objave nije potvrđen.' });
@@ -590,6 +592,29 @@ it('saves the reviewed task as a private draft without asking for publication, t
   expect(tree.root.findAllByProps({ label: 'Proveri objavu' })).toHaveLength(0);
   expect(action('Proveri stanje nacrta').disabled).toBe(false);
   await act(async () => action('Otvori moje zadatke').onPress()); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
+});
+// Round 2c (verifier va, must 1): loading is the write the action started. "Objavi zadatak" read the editor's busy flag,
+// which every save sets, so it spun and was spoken as busy while a draft or a corrected fact was being saved.
+it('spins "Objavi zadatak" only for the publish itself: while a draft saves it waits grey and is not busy', async () => {
+  const publishPress = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' });
+  const spinners = () => publishPress().findAllByType('ActivityIndicator' as React.ElementType);
+  const fill = () => StyleSheet.flatten(publish().style).backgroundColor;
+  const draft = deferred(); mockDraft.mockReturnValueOnce(draft.promise);
+  await render();
+  await act(async () => { void action('Sačuvaj nacrt').onPress(); });
+  expect(mockDraft).toHaveBeenCalledTimes(1);
+  expect(publish().accessibilityState).toEqual({ disabled: true }); expect(publish().disabled).toBe(true);
+  expect(spinners()).toHaveLength(0); expect(fill()).toBe(sys.color.wash);
+  await act(async () => { draft.resolve(unknownOutcome()); });
+  await act(async () => tree.unmount());
+  const held = deferred(); mockAccept.mockReturnValueOnce(held.promise);
+  await render();
+  await act(async () => { void publish().onPress(); });
+  expect(mockAccept).toHaveBeenCalledTimes(1);
+  expect(publish().accessibilityState).toEqual({ disabled: true, busy: true });
+  expect(spinners()).toHaveLength(1); expect(fill()).toBe(sys.color.green);
+  await act(async () => { held.resolve(unknownOutcome()); });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' }).flatMap(node => node.findAllByType('ActivityIndicator' as React.ElementType))).toHaveLength(0);
 });
 it('does not offer a draft while the review cannot be accepted, or when it edits a task that already exists', async () => {
   mockPrepare.mockResolvedValue(ok({ ...review(), canAccept: false, missingRequired: ['need.category'] }));

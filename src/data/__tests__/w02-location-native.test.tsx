@@ -31,6 +31,8 @@ jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'Resolved
 
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
+import { StyleSheet } from 'react-native';
+import { nested, sys } from '../../ui/system/tokens';
 
 const review = (): NeedLocationReview => ({ accountId: 'account-a', conversationId: 'conversation-a', editable: true,
   confirmed: true, revision: 'revision-a', value: { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
@@ -72,6 +74,14 @@ describe('actual native Need location form', () => {
     expect(confirm().props.accessibilityState.checked).toBe(false);
     await check(); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Sačuvana privatna ispravka' }));
+  });
+
+  // Round 2c (verifier vf, must 3): the 12 corner scale turned this 24 px box into a circle, which reads as a radio.
+  it('draws the location confirmation as a checkbox: a rounded square, never a circle', async () => {
+    await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={jest.fn()} />); });
+    const box = confirm().findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.width === 24)[0];
+    const radius = StyleSheet.flatten(box.props.style).borderRadius;
+    expect(radius).toBe(nested(sys.radius.control, 6)); expect(radius).toBeLessThan(24 / 2);
   });
 
   it('requires point confirmation before saving and does not publish the precise point in geography', async () => {

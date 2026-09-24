@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactArt } from '../../ui/system/FactArt';
 import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
-import { sys } from '../../ui/system/tokens';
+import { nested, sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
 
@@ -26,6 +26,13 @@ import { T } from '../../ui/Text';
  */
 const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.push } } };
+
+/**
+ * The selected tab's capsule sits inside the bar, `TAB_BAR_PADDING` in from its edge, so its corner is the bar's corner
+ * minus that padding: a nested corner follows the outer line. The same 24 inside a 24 bar did not (round 2c).
+ */
+const TAB_BAR_PADDING = 4;
+const TAB_CAPSULE = nested(sys.radius.card, TAB_BAR_PADDING);
 
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;
@@ -148,11 +155,11 @@ export default function TabLayout() {
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
-          style={[style, { borderRadius: sys.radius.cardCompact, backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
-      tabBarItemStyle: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
+          style={[style, { borderRadius: TAB_CAPSULE, backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
+      tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden' },
       tabBarStyle: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
         borderRadius: sys.radius.card, elevation: 0, shadowOpacity: 0,
-        height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: 4,
+        height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: TAB_BAR_PADDING,
         marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />

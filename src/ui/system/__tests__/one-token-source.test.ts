@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Platform } from 'react-native';
 import { brandAction, card, cardCompact, fieldBox, floating, sys } from '../tokens';
+import { palette } from '../../../theme/tokens';
 
 /**
  * One token source and one motion source (2026-09-24). The files below were moved onto `sys` and onto the one
@@ -82,8 +83,10 @@ it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary actio
 
 // Emulator critique B5 (2026-09-24): a list card wore a border and a shadow. A card lying on the white screen is drawn
 // by its hairline; a shadow says "this floats", and only floating layers keep it.
+// Round 2c (verifier vf, should 4): with the shadow gone the edge is the card's only outline, so it is V28's measured card
+// edge `cardLine`, not the faintest `line` this pinned before (about 1.17:1 on white, next to no edge at all).
 it.each([['card', card], ['cardCompact', cardCompact]] as const)('%s is a hairline card with no shadow', (_name, style) => {
-  expect(style).toMatchObject({ borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface, borderRadius: 24 });
+  expect(style).toMatchObject({ borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface, borderRadius: 24 });
   for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity', 'shadowRadius', 'shadowOffset']) expect(style).not.toHaveProperty(key);
   expect(floating).toEqual(expect.objectContaining(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 1 } : { boxShadow: expect.any(String) }));
 });
@@ -93,4 +96,6 @@ it('the second motion scale is gone with the v2 token file, and no tone reads be
   // onDarkMuted read 2.4:1 on sys.color.green; it passed only on the retired forest ground.
   expect(sys.color).not.toHaveProperty('onDarkMuted');
   expect(read('src/ui/Text.tsx')).not.toMatch(/'onDarkMuted'|onDarkMuted:/);
+  // Round 2c (verifier vf, nit): nothing read the theme palette's copy either, so it is gone there too.
+  expect(palette).not.toHaveProperty('onDarkMuted');
 });

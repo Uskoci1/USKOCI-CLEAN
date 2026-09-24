@@ -18,9 +18,10 @@ const SheetHandle = () => <View accessible={false} importantForAccessibility="no
 export const SHEET_TOUCH = Math.max(48, sys.touch.min);
 /** The one settle for every sheet: critically damped, no bounce. Reduced motion replaces it with no motion at all. */
 export const SHEET_SPRING = { stiffness: 300, damping: 30, mass: 1, overshootClamping: true } as const;
-/** What the tap-outside area says it does on a sheet that simply closes. A guarded sheet says nothing: there a tap outside
- *  asks first, or does nothing while a command runs. */
+/** What the tap-outside area says it does on a sheet that simply closes. */
 export const SHEET_BACKDROP_HINT = 'Zatvara pregled bez primene izbora.';
+/** What the tap-outside area says on a sheet with unsaved input: a tap there asks first, it does not close. */
+export const SHEET_BACKDROP_DIRTY_HINT = 'Pita pre nego što odbaci izmene.';
 /**
  * The pinned actions' height before their first layout: a confirmation's primary (54), the gap (4), its quiet way out
  * (48) and the footer's padding above and below (12 + 12). Starting from 0 opened every confirmation short, with the
@@ -50,8 +51,9 @@ export type ProductSheetProps = {
   label?: string;
   /** The × and the backdrop say this. */
   closeLabel?: string;
-  /** What a screen reader says a tap outside does, when it simply closes the sheet; `null` says nothing. Never said while
-   *  the sheet is guarded (unsaved input, or a command running), because a tap outside does not close it then. */
+  /** What a screen reader says a tap outside does, when it simply closes the sheet; `null` takes the tap-outside area out
+   *  of what a screen reader visits. Unsaved input says it asks first instead; while a command runs (not dismissible) a
+   *  tap outside does nothing, so the area is not visited at all. */
   backdropHint?: string | null;
   /** The caller's own reading of the system setting; the sheet reads it itself when this is left out. */
   reduced?: boolean;
@@ -99,12 +101,16 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
     dismiss();
   }, [dismiss]);
   const guarded = dirty || !dismissible;
+  // Gorhom substitutes its own English hint for a missing or empty one ("Tap to close the bottom sheet"): always pass a
+  // true Serbian sentence, and take the backdrop out of the accessibility tree while a tap on it does nothing.
+  // While the discard question stands, a tap outside is its "no": editing goes on.
+  const backdropSays = !dismissible ? null : asking ? 'Nastavlja uređivanje.' : dirty ? SHEET_BACKDROP_DIRTY_HINT : backdropHint;
   const backdrop = useCallback((props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props}
     appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.3}
     // A tap outside a guarded sheet stays where it is (snap to the open index) and asks the guard instead.
     pressBehavior={guarded ? 0 : 'close'} onPress={guarded ? requestClose : undefined}
-    accessibilityLabel={closeLabel} accessibilityHint={guarded ? undefined : backdropHint ?? undefined} />,
-  [backdropHint, closeLabel, guarded, requestClose]);
+    accessible={backdropSays !== null} accessibilityLabel={closeLabel} accessibilityHint={backdropSays ?? closeLabel} />,
+  [backdropSays, closeLabel, guarded, requestClose]);
   const pinned = asking ? <View style={s.discard} accessibilityLiveRegion="polite">
     <T accessibilityRole="alert" variant="heading" style={s.discardTitle}>Odbaciti izmene?</T>
     <T variant="copy" tone="muted">Unete izmene neće biti sačuvane.</T>

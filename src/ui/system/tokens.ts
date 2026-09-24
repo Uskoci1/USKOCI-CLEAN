@@ -155,14 +155,16 @@ export const sys = {
 
 /**
  * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (20px padding); an item in a
- * list is `cardCompact` (16px padding); both have the card corner. Both are white with the `line` hairline and NO
- * shadow (emulator critique B5, 2026-09-24): a card lying on the white screen is drawn by its edge, and a border plus a
- * shadow on every card of a list was two outlines for one thing. Shadow means "this floats above the screen", so it is
- * kept for what really floats (`floating`: sheets, map controls, the tab bar). Something inside a card is never
- * another card: it is a flat tint at control radius.
+ * list is `cardCompact` (16px padding); both have the card corner. Both are white with V28's measured card edge
+ * (`cardLine`) and NO shadow (emulator critique B5, 2026-09-24): a card lying on the white screen is drawn by its edge,
+ * and a border plus a shadow on every card of a list was two outlines for one thing. With the shadow gone the edge is the
+ * card's only outline, so it is `cardLine` (#D8DED7), not the faintest `line` (#EBEEEA, about 1.17:1 on white), which
+ * left list cards and the white Početna tile with almost no visible edge (round 2c). Shadow means "this floats above the
+ * screen", so it is kept for what really floats (`floating`: sheets, map controls, the tab bar). Something inside a
+ * card is never another card: it is a flat tint at control radius.
  */
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
-  borderColor: sys.color.line, padding: 20 };
+  borderColor: sys.color.cardLine, padding: 20 };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 /** The lift of a layer that floats over the screen (V28's measured two-layer shadow). Never on a card in a list. */
 export const floating: ViewStyle = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
@@ -184,9 +186,14 @@ export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 
 export const brandAction: ViewStyle = { backgroundColor: sys.color.green, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
 /**
- * 48px icon control in a quiet well (V5 head icon button). The screen chrome's arrow, X, profile, bell and "···" are all
- * this size (master design plan, 2026-09-24): an important command is never under 48, and one size keeps every bar the
- * same height.
+ * 48px icon control in a quiet well (V5 head icon button). The screen chrome no longer draws it: its arrow, X, profile,
+ * bell and "···" are `ChromeIconButton` (ui/system/ScreenChrome, 2026-09-24). The AI conversation's options button is
+ * the one place left that still uses this token, until that bar moves onto the chrome.
  */
 export const iconButton: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
+/**
+ * The 48px well a menu row's picture sits in (the "···" sheet). It is a picture box, not a button, and has its own token
+ * so that redrawing the icon button never changes the menu.
+ */
+export const pictureWell: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
 

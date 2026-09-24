@@ -6,7 +6,7 @@ import { ConfirmSheet, SLOW_COMMAND_MS, useConfirmSheet, type ConfirmRequest } f
 import { ActionSheet, orderActions, type SheetAction } from '../ActionSheet';
 import { PeekSheet } from '../PeekSheet';
 import { FOOTER_ESTIMATE, ProductSheet, SHEET_BACKDROP_HINT } from '../../product/ProductSheet';
-import { brandAction, sys } from '../tokens';
+import { brandAction, pictureWell, sys } from '../tokens';
 import { Press } from '../../Press';
 
 let mockReduced = false;
@@ -72,12 +72,17 @@ describe('ConfirmSheet', () => {
     expect(flat(byTestId('confirm-sheet-confirm').props.style)).toMatchObject({ backgroundColor: sys.color.danger, minHeight: brandAction.minHeight });
   });
 
-  it('says what a tap outside does to the question, and says nothing once the command it started runs', async () => {
+  // Round 2c (verifier vs, must 1): Gorhom speaks its own English hint ("Tap to close the bottom sheet") for a missing or
+  // empty one, so "says nothing" was said in English. The backdrop now always carries a Serbian sentence, and while a tap
+  // on it does nothing it is taken out of what a screen reader visits (`accessible` false).
+  it('says what a tap outside does to the question, and is not visited while the command it started runs', async () => {
     const command = deferred();
     await render(<ConfirmSheet {...request({ onConfirm: () => command.promise })} onClosed={jest.fn()} />);
-    expect(backdropOf().props.accessibilityHint).toBe('Zatvara pitanje bez potvrde.');
+    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Zatvara pitanje bez potvrde.' });
     await press(byTestId('confirm-sheet-confirm'));
-    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    expect(backdropOf().props.accessible).toBe(false);
+    // Never empty, so Gorhom has no reason to put its English default in its place.
+    expect(backdropOf().props.accessibilityHint).toBe('Zatvori');
     await act(async () => { command.resolve(); await command.promise; });
   });
 
@@ -136,8 +141,8 @@ describe('ConfirmSheet', () => {
     expect(byTestId('confirm-sheet-confirm').props.accessibilityState).toEqual({ disabled: true, busy: true });
     expect(byTestId('confirm-sheet-cancel').props.disabled).toBe(true);
     expect(backdropOf().props.pressBehavior).toBe('close'); expect(sheet().props.enablePanDownToClose).toBe(true);
-    // A tap outside now only closes the window; it no longer answers the question, so it promises nothing.
-    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    // A tap outside now only closes the window; it no longer answers the question, and it says so in Serbian.
+    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Zatvara prozor; radnja se nastavlja.' });
     await act(async () => { modal().props.onRequestClose(); });
     expect(onClosed).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled();
     await act(async () => { command.resolve(); await command.promise; });
@@ -179,6 +184,8 @@ describe('ConfirmSheet', () => {
     const onClosed = jest.fn();
     await render(<ConfirmSheet {...request({ title: 'Govorni unos i privatnost', confirmLabel: 'U redu', cancelLabel: null })} onClosed={onClosed} />);
     expect(tree.root.findAllByProps({ testID: 'confirm-sheet-cancel' })).toHaveLength(0);
+    // It asks nothing, so a tap outside closes a notice, not a question.
+    expect(backdropOf().props.accessibilityHint).toBe('Zatvara obaveštenje.');
     await press(byTestId('confirm-sheet-confirm')); expect(onClosed).toHaveBeenCalledTimes(1);
   });
 
@@ -255,19 +262,29 @@ describe('ProductSheet', () => {
     expect(byTestId('apply').props.children).toBe('Primeni izbor');
   });
 
-  it('says what a tap outside does only while it simply closes the sheet', async () => {
+  // Round 2c (verifier vs, must 1): an undefined or empty hint made Gorhom speak its English default, which also claimed
+  // a tap closes the sheet when it did not. Every state now says what a tap outside really does, in Serbian, or is not
+  // visited at all.
+  it('says in Serbian what a tap outside really does, and is not visited where a tap does nothing', async () => {
     await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props.accessibilityHint).toBe(SHEET_BACKDROP_HINT);
+    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: SHEET_BACKDROP_HINT });
     await act(async () => tree.unmount());
     await render(<ProductSheet title="Filteri" backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
     expect(backdropOf().props.accessibilityHint).toBe('Zatvara meni.');
     await act(async () => tree.unmount());
+    // A caller that has nothing to say takes the area out of the tree; its hint is still Serbian, never empty.
     await render(<ProductSheet title="Filteri" backdropHint={null} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props.accessibilityHint).toBeUndefined();
-    // Guarded, a tap outside asks first (unsaved input) or does nothing (a command runs): it promises no closing.
+    expect(backdropOf().props).toMatchObject({ accessible: false, accessibilityHint: 'Zatvori' });
+    // Unsaved input: a tap outside asks first, and says so; while the question stands it means "keep editing".
     await act(async () => tree.unmount());
     await render(<ProductSheet title="Filteri" dirty backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Pita pre nego što odbaci izmene.' });
+    await press(tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' }));
+    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Nastavlja uređivanje.' });
+    // Not dismissible (a command runs): a tap outside does nothing, so it is not visited.
+    await act(async () => tree.unmount());
+    await render(<ProductSheet title="Filteri" dismissible={false} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(backdropOf().props.accessible).toBe(false);
   });
 
   it('names a sheet without a visible title, and draws no heading for it', async () => {
@@ -371,8 +388,18 @@ describe('ActionSheet', () => {
     expect(tree.root.findByProps({ accessibilityRole: 'menu' }).props.accessibilityLabel).toBe('Radnje');
     expect(backdropOf().props.accessibilityHint).toBe('Zatvara meni bez izbora.');
     await act(async () => tree.unmount());
+    // Round 2c (verifier vs, nit): a titled menu used to carry its title as its label too, so TalkBack read the visible
+    // heading and then the same words again on the menu. The heading is read; the menu adds nothing to it.
     await render(<ActionSheet title="Dogovor" actions={actions([])} onClose={jest.fn()} />);
-    expect(tree.root.findByProps({ accessibilityRole: 'menu' }).props.accessibilityLabel).toBe('Dogovor');
+    expect(tree.root.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Dogovor');
+    expect(tree.root.findByProps({ accessibilityRole: 'menu' }).props.accessibilityLabel).toBeUndefined();
+  });
+
+  it('draws each picture in its own well token, not in the icon button\'s', async () => {
+    await render(<ActionSheet actions={actions([])} onClose={jest.fn()} />);
+    // FactArt is memo'd: the renderer holds it under its inner function, so it is found by its props.
+    const art = tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'person')[0];
+    expect(flat(art.parent!.props.style)).toMatchObject(pictureWell);
   });
 
   it('runs the chosen action once, after the sheet has gone', async () => {
