@@ -468,6 +468,20 @@ it('names the first few missing things and counts the rest instead of a wall tha
   expect(text()).not.toContain('Još treba: Naslov');
 });
 
+it('puts photos behind the contextual composer plus only after a conversation exists', async () => {
+  await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj fotografiju ili mesto' })).toHaveLength(0);
+
+  await act(async () => tree.unmount());
+  await resume();
+  const add = tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografiju ili mesto' });
+  await act(async () => add.props.onPress());
+  const photo = tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografije zadatka' });
+  await act(async () => photo.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
+  expect(mockSend).not.toHaveBeenCalled();
+});
+
 it('offers the owned photo route and options without automatic abandonment', async () => {
   // Photos belong to a conversation, so before the first word there is nothing to attach them to
   // and the entry is not offered.
