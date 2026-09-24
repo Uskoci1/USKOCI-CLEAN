@@ -9,7 +9,8 @@ import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { osoba } from '../system/plural';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
-import { displayDate, zonedParts } from '../calendar/calendarPresentation';
+import { raspon } from '../../lib/vreme';
+import { DOGOVORENA_ZONA, napomenaZone } from '../../lib/dogovorenoVreme';
 import { Press } from '../Press';
 import { brandAction, cardCompact, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
@@ -17,10 +18,9 @@ import { useTextScale } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
-import { ProductSheet } from '../product/ProductSheet';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { CardFact, CardValue, type TaskValue } from './TaskFace';
+import { CardFact, CardTitle, CardValue, valueSpoken, type TaskValue } from './TaskFace';
 import { pointsMissing } from '../../lib/location';
 import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
@@ -48,13 +48,11 @@ const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYT
 function fixedRange(startsAt: unknown, endsAt: unknown): string | undefined {
   const start = calendarInstant(startsAt), end = calendarInstant(endsAt);
   if (start === null || end === null || end <= start) return undefined;
-  try {
-    // Existing candidate presentation zone, display-only; never inferred or saved
-    // as the task's timezone. The label makes this explicit for other countries.
-    const from = zonedParts(new Date(Number(start / 1000n)), 'Europe/Belgrade');
-    const to = zonedParts(new Date(Number(end / 1000n)), 'Europe/Belgrade');
-    return `${displayDate(from.date)} · ${from.time.slice(0, 5)}–${from.date === to.date ? '' : `${displayDate(to.date)} · `}${to.time.slice(0, 5)} (vreme u Beogradu)`;
-  } catch { return undefined; }
+  // The app's one way to write a window (src/lib/vreme.ts: "26. sep · 17:00–19:00"), read in Serbian time as every agreed
+  // term is, and named so only on a phone set to another zone (review r4 ra item 8). Display only; never inferred or
+  // saved as the task's timezone.
+  const text = raspon(new Date(Number(start / 1000n)), new Date(Number(end / 1000n)), { zona: DOGOVORENA_ZONA });
+  return text ? text + napomenaZone() : undefined;
 }
 
 /** What the live card shows: public facts only, each already in the words the card draws. */
@@ -105,20 +103,26 @@ const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko se
  * is still missing or that the review is ready. It is one target: the whole card opens the review. What it says is
  * spoken once as its hint, so a screen reader does not stop on each fact.
  */
-export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note }: {
+export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
+  editing = false, hiddenMissing = false }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
+  /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
+  reviewLabel?: string;
+  /** The conversation changes a task that already exists (review r4 ra item 9): the card says "Izmena", not "Nacrt". */
+  editing?: boolean;
+  /** Something the server still needs is one people never see (the category): the card claims nothing is missing. */
+  hiddenMissing?: boolean;
 }) {
   const large = useTextScale() >= 1.3;
-  const status = busy ? 'Nacrt · dopunjuje se' : 'Nacrt';
+  const status = `${editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
-  const ready = open && !stillNeeded;
-  const spoken = [status, summary.title ?? 'Zadatak u nastajanju',
-    summary.value ? summary.value.kind === 'amount' ? [summary.value.amount, summary.value.basis].filter(Boolean).join(' ')
-      : summary.value.kind === 'offers' ? 'Tražim ponude' : null : null,
+  const ready = open && !stillNeeded && !hiddenMissing;
+  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.value ? valueSpoken(summary.value) : null,
     summary.zone || null, summary.schedule ?? null, summary.people, next, note].filter(Boolean).join(', ');
   return <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
-    accessibilityHint={`${spoken}. Otvara pregled svih podataka pre objave.`} accessibilityState={{ disabled: !canReview }}
+    accessibilityHint={`${spoken}. ${editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}`}
+    accessibilityState={{ disabled: !canReview }}
     disabled={!canReview} onPress={onReview} haptic={canReview ? 'select' : 'none'} scaleTo={1}
     style={[s.card, compact && s.cardCompact]}>
     {compact ? null : <View style={s.statusRow}>
@@ -128,18 +132,20 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       {canReview && !ready ? <CaretRight size={16} weight="bold" color={sys.color.muted} /> : null}
     </View>}
     <View style={large ? s.headStacked : s.head}>
-      <T style={[s.title, !large && s.titleSide, !summary.title && s.titleEmpty]} numberOfLines={compact ? 1 : 2}>
-        {summary.title ?? 'Zadatak u nastajanju'}</T>
+      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={compact ? 1 : 2}
+        style={[!large && s.titleSide, !summary.title && s.titleEmpty]} />
       {summary.value ? <CardValue value={summary.value} large={large} /> : null}
     </View>
     {compact ? null : <>
       {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={16} />} text={summary.zone} /> : null}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={16} />} text={summary.schedule} lines={2} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={16} />} text={summary.people} /> : null}
-      {note ? <T variant="note" tone="muted" numberOfLines={3}>{note}</T> : null}
     </>}
+    {/* The safety note stays on the compact card too (large text, a small phone, a pending turn), in two lines there
+        (review r4 ra item 6): it used to live in the options panel, and hiding it on compact lost it for those people. */}
+    {note ? <T variant="note" tone="muted" numberOfLines={compact ? 2 : 3}>{note}</T> : null}
     {next ? <T variant="note" tone="muted" numberOfLines={compact ? 1 : 2} style={s.next}>{next}</T>
-      : ready && canReview ? <View style={s.ready}><T style={s.readyText} numberOfLines={1}>Pregledaj zadatak</T>
+      : ready && canReview ? <View style={s.ready}><T style={s.readyText} numberOfLines={1}>{reviewLabel}</T>
         <CaretRight size={16} weight="bold" color={sys.color.green} /></View>
         : ready ? <T variant="note" tone="muted" numberOfLines={1} style={s.next}>Sve traženo je uneto.</T> : null}
   </Press>;
@@ -150,7 +156,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
  */
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
-  const [panel, setPanel] = useState<'options' | 'points' | null>(null);
+  const [panel, setPanel] = useState<'options' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [pointAskHidden, setPointAskHidden] = useState(false);
   const reduced = useReducedMotion();
@@ -168,7 +174,11 @@ export function IntakePresentation(props: Props) {
   // contain it, because the AI is not allowed to propose it). A required fact the AI has already proposed is not listed:
   // confirming what it proposed is the review screen's job, and the card's heading already shows it.
   const proposed = new Set(conversation.facts.filter(fact => fact.status !== 'UNKNOWN').map(fact => fact.key));
-  const stillNeeded = [...conversation.review.missingRequired.filter(key => !proposed.has(key)).map(factDisplayLabel),
+  const missing = conversation.review.missingRequired.filter(key => !proposed.has(key));
+  // People never see a category (owner, PKG-031; the review screen leaves it out too): the AI writes it for matching only,
+  // so it is never named as "still needed" (review r4 ra item 4). While it is missing the card claims nothing is.
+  const hiddenMissing = missing.includes('need.category');
+  const stillNeeded = [...missing.filter(key => key !== 'need.category').map(factDisplayLabel),
     ...(needsPoint ? ['tačka na mapi'] : [])];
   // At the start nothing is filled, so the full list is eight items long; the card names the first few and counts the rest.
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
@@ -181,10 +191,12 @@ export function IntakePresentation(props: Props) {
   // on, so there is no menu either.
   const menu: SheetAction[] = [];
   if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', onPress: props.onReview });
-  if (open && gap.total > 0) menu.push({ key: 'place', label: needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi', icon: 'pin',
-    // A missing point is asked for in the thread, beside the words; a complete one is changed in the sheet.
-    onPress: () => { setPointAskHidden(false); if (!needsPoint) setPanel('points'); } });
-  if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'chat', disabled: props.readbackDisabled, onPress: props.onRefresh });
+  // A missing point is asked for in the thread, beside the words; the row brings that ask back only once it was put
+  // away (review r4 ra item 13). A point already saved is changed in the task's review, where the place is edited:
+  // the conversation's point editor has nothing to show once every point is saved, so a row for it led nowhere and
+  // warned about points that were already saved (review r4 ra item 3).
+  if (needsPoint && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setPointAskHidden(false) });
+  if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled, onPress: props.onRefresh });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi Zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
@@ -204,7 +216,8 @@ export function IntakePresentation(props: Props) {
     // top of a fresh screen states a draft that does not exist yet and buries the invitation.
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={props.canReview}
-      onReview={props.onReview} note={note} />}
+      onReview={props.onReview} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
+      hiddenMissing={hiddenMissing} />}
     actions={
       // Only a hard block belongs in the thread. REVIEW and CLARIFY describe the draft, so they sit on its card.
       safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : undefined}
@@ -232,13 +245,6 @@ export function IntakePresentation(props: Props) {
       {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'options' ? <ActionSheet label="Opcije razgovora" actions={menu} reduced={reduced} onClose={() => setPanel(null)} /> : null}
-    {/* The point editor asks its own question before confirmed points are thrown away ("Kasnije"), and that question
-        opens over this sheet, inside it, so Back answers the question first and the sheet closes only on its answer. */}
-    {panel === 'points' ? <ProductSheet label="Mesto zadatka" reduced={reduced} onClose={() => setPanel(null)}>
-      {dismiss => <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
-        <ConversationPointAsk conversationId={conversation.conversationId} onSaved={props.onRefresh} onClose={dismiss} />
-      </Suspense>}
-    </ProductSheet> : null}
   </AiConversationShell>;
 }
 
@@ -255,7 +261,6 @@ const s = StyleSheet.create({
   status: { flex: 1, color: sys.color.muted, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   headStacked: { gap: 4 },
-  title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
   titleEmpty: { color: sys.color.muted },
   next: { marginTop: 2 },

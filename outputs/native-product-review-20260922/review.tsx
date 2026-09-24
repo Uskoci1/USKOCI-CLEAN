@@ -85,7 +85,7 @@ function Review() {
   if (screen === 'agreement') return <View style={{ flex: 1 }}><ProductHeader title="Dogovor" subtitle="Dogovoreno" back={() => setScreen('task')} />
     <View style={{ paddingHorizontal: 20 }}><AgreementTabs tab="pregled" onChange={noop} /></View>
     <ScrollView contentContainerStyle={{ padding: 20, gap: 24 }}><AgreementHero agreement={agreement} /><AgreementPeople agreement={agreement} /></ScrollView></View>;
-  if (screen === 'ai') return <AiConversationShell title="Objavi zadatak" subtitle="Nacrt" welcome="Šta treba da se uradi?" welcomeDetail="Napiši svojim rečima. Zajedno ćemo složiti detalje."
+  if (screen === 'ai') return <AiConversationShell title="Objavi zadatak" welcome="Šta treba da se uradi?" welcomeDetail="Napiši svojim rečima. Zajedno ćemo složiti detalje."
     card={() => null} messages={[]} value={value} onChange={setValue} onSend={noop} onBack={() => setScreen('task')} onOptions={noop}
     canEdit canSend={false} pending={false} busy={false} openings={['Treba mi pomoć u stanu', 'Selidba i prevoz']} />;
   return <PublicNeedPresentation need={need} loading={false} error={false} missing={false} stale={false} busy={false} canApply canRetry

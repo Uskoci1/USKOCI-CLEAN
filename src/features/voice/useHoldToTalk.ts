@@ -8,7 +8,13 @@ import { HoldToTalkController, type HoldToTalkOptions } from './holdToTalk';
 import { createNativeSpeechAdapter } from './nativeSpeechAdapter';
 import { SPEECH_LIMITS } from './speechProtocol';
 
-export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke. Završni tekst najpre vidiš u polju za poruku i možeš ga izmeniti; u razgovor odlazi tek kada izabereš Pošalji. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
+/**
+ * The speech privacy notice. Round 4 review (ra item 1, 2026-09-24): the middle sentence used to say the text reaches the
+ * conversation only after "Pošalji", which stopped being true when held speech started sending on release (owner,
+ * 2026-09-23) in both conversations and in voice mode. It now says what the app does; the other sentences are unchanged.
+ * Privacy copy: recorded for the owner's review.
+ */
+export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke. Kad pustiš mikrofon, ili u glasovnom režimu ponovo dodirneš, izgovoreni tekst odmah odlazi u razgovor. Ako uključiš „Pregledaj tekst pre slanja“ ili koristiš čitač ekrana, tekst najpre stiže u polje za poruku i šalje se tek kad izabereš Pošalji. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
 
 export function useHoldToTalk(options: {
   /** A getter exposes a lazily opened id before React's next render. Null disables speech. */

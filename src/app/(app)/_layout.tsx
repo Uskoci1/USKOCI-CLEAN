@@ -135,9 +135,10 @@ export default function TabLayout() {
         : original.getStateForAction(state, action, options)),
       getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}
     // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
-    // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). The one exception is
-    // `profil/razgovor`, whose composer gets its keyboard-aware inset first. (`prilike`, the root-like copy of Mapa that
-    // was the other exception, is a redirect to Zadaci now.)
+    // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). `profil/razgovor` was
+    // the last exception until its composer had a keyboard-aware inset of its own; the AI conversation shell gives it one
+    // now (round 4 review ra), so it hides the bar like every other conversation. (`prilike`, the root-like copy of Mapa
+    // that was the other exception, is a redirect to Zadaci now.)
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
@@ -174,7 +175,7 @@ export default function TabLayout() {
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
-    <Tabs.Screen name="profil/razgovor" options={{ href: null, ...PUSHED }} />
+    <Tabs.Screen name="profil/razgovor" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/podaci" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/fotografija" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/blokirani" options={{ href: null, ...FULL }} />

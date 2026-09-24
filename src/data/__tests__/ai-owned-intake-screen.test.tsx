@@ -546,25 +546,68 @@ it('names the first few missing things and counts the rest instead of a wall tha
   eight.review.missingRequired = ['need.title', 'need.description', 'need.category', 'need.price_mode',
     'need.schedule_kind', 'need.people_needed', 'need.task_country_code', 'need.task_geography'];
   mockLoad.mockResolvedValue(eight); await resume();
-  expect(text()).toContain('Još treba: Naslov · Opis · Kategorija · i još 5');
-  expect(text()).not.toContain('Država zadatka');
+  // Review r4 ra item 4: people never see a category (owner, PKG-031), so it is never named as missing. These lines
+  // pinned "Kategorija" among the missing things before.
+  expect(text()).toContain('Još treba: Naslov · Opis · Cena · i još 4');
+  expect(text()).not.toContain('Država zadatka'); expect(text()).not.toContain('Kategorija');
 
   // Three or fewer are all named: there is nothing to count.
   await act(async () => tree.unmount());
   const three = conversation({ messages: said });
-  three.review.missingRequired = ['need.category', 'need.price_mode', 'need.people_needed'];
+  three.review.missingRequired = ['need.category', 'need.price_mode', 'need.people_needed', 'need.description'];
   mockLoad.mockResolvedValue(three); await resume();
-  expect(text()).toContain('Još treba: Kategorija · Cena · Ljudi');
-  expect(text()).not.toContain('i još');
+  expect(text()).toContain('Još treba: Cena · Ljudi · Opis');
+  expect(text()).not.toContain('i još'); expect(text()).not.toContain('Kategorija');
 
   // A title the AI has already proposed is the card's own heading. Listing it underneath as still
   // needed made the card contradict itself; confirming it is the review screen's job.
   await act(async () => tree.unmount());
   const titled = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
-  titled.review.missingRequired = ['need.title', 'need.category'];
+  titled.review.missingRequired = ['need.title', 'need.description'];
   mockLoad.mockResolvedValue(titled); await resume();
-  expect(text()).toContain('Još treba: Kategorija');
+  expect(text()).toContain('Još treba: Opis');
   expect(text()).not.toContain('Još treba: Naslov');
+});
+
+// Review r4 ra item 4: while only the hidden category is missing, the card names nothing as missing and does not call
+// the draft ready either; the card itself still opens the review.
+it('never names a category and does not call the draft ready while only the category is missing', async () => {
+  const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
+  const hidden = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
+  hidden.review.missingRequired = ['need.category'];
+  mockLoad.mockResolvedValue(hidden); await resume();
+  expect(text()).not.toContain('Kategorija'); expect(text()).not.toContain('Još treba');
+  expect(text()).not.toContain('Pregledaj zadatak'); expect(text()).not.toContain('Sve traženo je uneto.');
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).props.disabled).toBe(false);
+  await act(async () => tree.unmount());
+  const done = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
+  mockLoad.mockResolvedValue(done); await resume();
+  expect(text()).toContain('Pregledaj zadatak');
+});
+
+// Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.
+it('the card of a task being changed says "Izmena" and names the review the way the menu does', async () => {
+  const said = [{ id: other, body: 'Promeni vreme.', fromAi: false, safety: null, proposedFactIds: [] }];
+  const bound = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] }); bound.review.boundNeedId = other;
+  mockLoad.mockResolvedValue(bound); await resume();
+  expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
+  expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).props.accessibilityHint).toMatch(/Otvara pregled izmena\.$/);
+});
+
+// Review r4 ra item 6: the REVIEW/CLARIFY note describes the draft, so it stays on the card when the card is compact.
+it('keeps the safety note on the compact card, in two lines', async () => {
+  const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
+  const flagged = conversation({ messages: said, safety: 'REVIEW', facts: [publicFact('need.title', 'Prenos ormara')] });
+  mockLoad.mockResolvedValue(flagged); await resume();
+  const card = () => tree.root.findByProps({ testID: 'intake-task-summary' });
+  const noteOf = () => card().findAll(node => node.type === ('T' as React.ElementType) && node.props.variant === 'note' && node.props.tone === 'muted'
+    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.');
+  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBe(3);
+  // A sent message makes the card compact (the shell's rule while a turn is pending).
+  await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());
+  expect(card().props.style).toEqual(expect.arrayContaining([expect.objectContaining({ gap: 4 })]));
+  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBe(2);
 });
 
 it('offers the owned photo route and options without automatic abandonment', async () => {
@@ -591,27 +634,35 @@ it('offers the owned photo route and options without automatic abandonment', asy
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
 });
 
-it('changes a placed point in a sheet after the menu has gone; the editor\u2019s own question opens inside it, and only its answer closes it', async () => {
+// Review r4 ra items 3 and 13 (this replaces the test that pinned "Izmeni mesto na mapi" opening the point editor in a
+// sheet with a stub). With every point saved the real editor shows nothing and its "Kasnije" warned that saved points
+// would be lost, so the conversation offers no such row: a saved place is changed in the task's review. The row that
+// remains brings back the inline ask for a missing point, and only after that ask was put away.
+it('offers no dead place row once every point is saved, and brings a put-away point ask back from the menu', async () => {
   const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Liman' } });
   const placed = { ...publicFact('need.resolved_location', { points: [{ slot: 'start' }] }), privacyClass: 'PRIVATE' as const };
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
   mockLoad.mockResolvedValue(conversation({ facts: [geography, placed], messages: said })); await resume();
-  const pointSheets = () => tree.root.findAll(node => node.type === ProductSheet && node.props.label === 'Mesto zadatka');
   await options();
-  await act(async () => menuItem('Izmeni mesto na mapi').onPress());
-  await act(async () => { await Promise.resolve(); });
-  // One window at a time: the menu is gone before the sheet opens.
-  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-  expect(pointSheets()).toHaveLength(1);
-  const later = () => pointSheets()[0].findByProps({ accessibilityLabel: 'Kasnije' });
-  await act(async () => later().props.onPress());
-  // The question stands over the sheet, inside it, so Back answers the question first.
-  expect(pointSheets()[0].findAllByType(ConfirmSheet)).toHaveLength(1);
-  await act(async () => answer('confirm-sheet-cancel'));
-  expect(leaveSheets()).toHaveLength(0); expect(pointSheets()).toHaveLength(1);
-  await act(async () => later().props.onPress());
+  expect(menuItems('Izmeni mesto na mapi')).toHaveLength(0); expect(menuItems('Mesto na mapi')).toHaveLength(0);
+  expect(tree.root.findAll(node => node.type === ProductSheet && node.props.label === 'Mesto zadatka')).toHaveLength(0);
+  await closeMenu();
+
+  await act(async () => tree.unmount());
+  mockLoad.mockResolvedValue(conversation({ facts: [geography], messages: said })); await resume();
+  const asks = () => tree.root.findAllByType('PointAsk' as React.ElementType);
+  // The ask is in the thread, beside the words: a menu row for it would do nothing.
+  expect(asks()).toHaveLength(1);
+  await options(); expect(menuItems('Mesto na mapi')).toHaveLength(0); await closeMenu();
+  // Put away ("Kasnije", then the editor's own "Iza\u0111i ipak"), the ask gives way to its button and to the menu row.
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kasnije' }).props.onPress());
   await act(async () => answer('confirm-sheet-confirm'));
-  expect(pointSheets()).toHaveLength(0); expect(leaveSheets()).toHaveLength(0);
+  expect(asks()).toHaveLength(0);
+  await options();
+  await act(async () => menuItem('Mesto na mapi').onPress());
+  await act(async () => { await Promise.resolve(); });
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  expect(asks()).toHaveLength(1);
   expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
@@ -624,11 +675,13 @@ it('respects reduced motion for screen entry and the options panel', async () =>
   expect(tree.root.findByType(BottomSheet).props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
 });
 
-it('shows actual typed fixed dates and times in the existing explicit Belgrade display zone', async () => {
+it('shows actual typed fixed dates and times in Serbian time, in the app’s one format', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z'), publicFact('need.ends_at', '2026-09-10T17:00:00Z')] }));
-  await resume(); expect(text()).toContain('10.'); expect(text()).toContain('18:00–19:00');
-  expect(text()).toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
+  // Review r4 ra item 8: the card writes the window as every agreed term is written (src/lib/vreme.ts), read in Serbian
+  // time and named so on a phone set elsewhere (the suite runs in UTC). It said "(vreme u Beogradu)" in a format of its own.
+  await resume(); expect(text()).toContain('10. sep · 18:00–19:00 (po vremenu u Srbiji)');
+  expect(text()).not.toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
 it('omits an incomplete fixed interval without inventing an end time', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),

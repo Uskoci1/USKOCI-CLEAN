@@ -121,6 +121,11 @@ export const sys = {
     priceRow: { fontSize: 16, lineHeight: 21, fontWeight: '700', fontVariant: ['tabular-nums'] } as TextStyle,
     /** The letter standing in for a photo, on a 96px avatar. */
     monogram: { fontSize: 30, lineHeight: 36, fontWeight: '700' } as TextStyle,
+    /**
+     * The answer in voice mode, read at a glance from arm's length while the thread's own `speech` (16/26) is read up
+     * close: the same voice, a step larger.
+     */
+    speechLarge: { fontSize: 20, lineHeight: 30, fontWeight: '400' } as TextStyle,
   },
   /**
    * Motion, in milliseconds. Short, and only on a real change of state: a press, a switch, something arriving or

@@ -41,7 +41,8 @@ const idle: VoiceSnapshot = { phase: 'IDLE', session: null, finalText: '', inter
 const controller = () => ({ begin: jest.fn(() => true), release: jest.fn(), cancel: jest.fn(), useFallback: jest.fn(), getSnapshot: () => idle });
 const voice = (patch: Partial<NonNullable<AiConversationShellProps['voice']>> = {}) => ({ controller: controller() as never, state: idle,
   disabled: false, onKeepText: jest.fn(() => true), ...patch }) as NonNullable<AiConversationShellProps['voice']>;
-const props = (): AiConversationShellProps => ({title:'Novi zadatak',subtitle:'MENI TREBA',card:jest.fn(()=>null),
+// Review r4 ra item 15: the shell's dead `subtitle` prop is gone (the chrome drew nothing for it), so the helper no longer passes one.
+const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.fn(()=>null),
   messages:[],welcome:'Šta ti treba?',welcomeDetail:'Opiši zadatak.',value:'Sačuvana poruka',canEdit:true,
   canSend:false,pending:false,busy:false,onChange:jest.fn(),onSend:jest.fn(),onBack:jest.fn(),onOptions:jest.fn()});
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -167,6 +168,28 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     expect(text()).toContain(HOLD_HINT);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props.onChangeText('T'));
     expect(text()).not.toContain(HOLD_HINT);
+  });
+  // Review r4 ra item 7: once the field has text the waveform gives way to send, so the advice after a tap carries the
+  // way to speak without holding; with a draft it opens voice mode with the review on, so speech joins the draft.
+  it.each([['with a draft', 'Treba mi prevoz', true], ['with an empty field', '', false]] as const)(
+    'the advice after a tap opens voice mode without holding %s', async (_name, value, review) => {
+      const p = props(); p.value = value; p.canSend = !!value; p.voice = voice();
+      await act(async () => { tree = create(<AiConversationShell {...p} />); });
+      expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
+      const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPressIn === 'function')[0];
+      await act(async () => { mic.props.onPressIn({ nativeEvent: { pageY: 200 } }); mic.props.onPressOut(); });
+      await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
+      expect(tree.root.findByType(VoiceMode).props.reviewFirst).toBe(review);
+      expect(text()).not.toContain(HOLD_HINT);
+      // Opening voice mode starts nothing: the one capture is the tap on the held microphone that brought the advice.
+      expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).toHaveBeenCalledTimes(1);
+    });
+  it('the advice offers no voice mode while the screen cannot take a message', async () => {
+    const p = props(); p.value = 'Treba mi prevoz'; p.voice = voice({ disabled: true });
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPressIn === 'function')[0];
+    await act(async () => { mic.props.onPressIn({ nativeEvent: { pageY: 200 } }); mic.props.onPressOut(); });
+    expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
   });
   it('the chrome has no "···" when the screen has nothing to put behind it', async () => {
     const p = props(); delete p.onOptions;

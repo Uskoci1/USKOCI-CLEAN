@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 import { CaretDown, CaretRight } from 'phosphor-react-native';
 import type { NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
@@ -299,9 +299,12 @@ export function CardStatusLine({ text, tone }: { text: string; tone: StatusTone 
   </View>;
 }
 
-/** The title alone, in the task card's title type, for a face whose value is not beside it. */
-export function CardTitle({ title, lines = 2 }: { title: string; lines?: number }) {
-  return <T style={s.title} numberOfLines={lines}>{title}</T>;
+/**
+ * The title alone, in the task card's title type, for a face whose value is not beside it. `style` places it (beside a
+ * value slot) or quiets it (a title not known yet); the type stays the card's.
+ */
+export function CardTitle({ title, lines = 2, style }: { title: string; lines?: number; style?: StyleProp<TextStyle> }) {
+  return <T style={[s.title, style]} numberOfLines={lines}>{title}</T>;
 }
 
 /**

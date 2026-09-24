@@ -122,7 +122,7 @@ function Levels({ level }: { level: number }) {
  * The line above the composer: what the microphone is doing and what it heard, or what went wrong and the way out.
  * `hint` is the composer's own quiet advice, shown only while the microphone has nothing to say.
  */
-export function VoiceNotice(p: VoiceInput & { hint?: string | null }) {
+export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?: { label: string; onPress: () => void } }) {
   const reader = useScreenReader();
   const { state } = p;
   const active = voiceActive(state), listening = state.phase === 'LISTENING';
@@ -146,7 +146,13 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null }) {
     {keep ? <V2Action kind="quiet" compact label="Uredi sačuvani tekst" style={s.start}
       onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
-  return p.hint ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hint}>{p.hint}</T> : null;
+  if (!p.hint) return null;
+  // The advice after a tap carries the way to speak without holding (review r4 ra item 7): a person who cannot hold, or
+  // who uses Switch Access, has voice mode here even while the field has text and the waveform button is not shown.
+  return <View style={s.hintRow}>
+    <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hintText}>{p.hint}</T>
+    {p.hintAction ? <V2Action kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
+  </View>;
 }
 
 /**
@@ -158,11 +164,13 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null }) {
  */
 export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string | null; said: string | null;
   /** The answer is being written and no text has arrived yet. */ thinking: boolean;
+  /** Opens with "Pregledaj tekst pre slanja" already on (reached from the hold advice while the field has a draft). */
+  reviewFirst?: boolean;
   onClose: (reason: 'closed' | 'review') => void }) {
   const { controller, state, disabled, onKeepText } = p.voice;
   const reduced = useReducedMotion();
   const reader = useScreenReader();
-  const [reviewFirst, setReviewFirst] = useState(false);
+  const [reviewFirst, setReviewFirst] = useState(p.reviewFirst ?? false);
   const review = reader || reviewFirst;
   const notice = useConfirmSheet({ reduced });
   const gesture = useRef<string | null>(null), started = useRef<'hold' | 'accessible' | null>(null);
@@ -174,8 +182,11 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
     const before = previous.current; previous.current = state.phase;
     if (before === 'IDLE' || state.phase !== 'IDLE') return;
     const mode = started.current; started.current = null; gesture.current = null;
-    // A reviewed capture is now in the message field: this screen steps aside so the person reads and sends it.
-    if (mode === 'accessible' && !state.error && !state.fallbackText) close.current('review');
+    // A reviewed capture is now in the message field: this screen steps aside so the person reads and sends it. Only a
+    // capture that was finalised put text there (review r4 ra item 5): one stopped while the microphone was still on
+    // its way ("Dodir prekida."), or cancelled when the app left the foreground, ends in IDLE with nothing in the field,
+    // and voice mode stays open.
+    if (mode === 'accessible' && before === 'FINALIZING' && !state.error && !state.fallbackText) close.current('review');
   }, [state.phase, state.error, state.fallbackText]);
   // Taken away by its screen while a capture it started still runs: that capture ends unsent.
   useEffect(() => () => { if (gesture.current) controller.cancel('gesture'); }, [controller]);
@@ -199,7 +210,9 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
   const line = state.error ? null : listening ? review ? 'Slušam. Dodirni kad završiš — tekst ide u polje za poruku.'
       : 'Slušam. Dodirni kad završiš — poruka ide u razgovor.'
     : active || finishing ? PHASE_WORDS[state.phase]!
-      : disabled ? p.thinking ? 'Stiže odgovor…' : 'Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.'
+      // While the answer is being written the exchange above says "Stiže odgovor…" once, in its own live region
+      // (review r4 ra item 10); the line under it would say it a second time.
+      : disabled ? p.thinking ? null : 'Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.'
         : review ? 'Dodirni mikrofon i govori. Tekst stiže u polje za poruku da ga pregledaš.'
           : 'Dodirni mikrofon i govori. Kad ponovo dodirneš, poruka ide u razgovor.';
   // While new words arrive they stand alone: the previous answer under them would read as a reply to them.
@@ -231,7 +244,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
       <View style={s.controls}>
         {state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[state.error]} />
           : state.error ? <T accessibilityLiveRegion="polite" variant="note" style={[s.error, s.center]}>{VOICE_ERROR_COPY[state.error]}</T>
-            : <T testID="voice-mode-line" accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>{line}</T>}
+            : line ? <T testID="voice-mode-line" accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>{line}</T> : null}
         {state.fallbackText && state.phase === 'IDLE' ? <V2Action kind="quiet" compact label="Uredi sačuvani tekst"
           onPress={() => { if (controller.useFallback(onKeepText)) p.onClose('review'); }} /> : null}
         <View style={s.row}>
@@ -248,7 +261,8 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
             <X size={28} color={sys.color.ink} />
           </Press>
         </View>
-        {reader ? null : <Press accessibilityRole="switch" accessibilityLabel="Pregledaj tekst pre slanja"
+        {/* Drawn as a checkbox, so it is one to a screen reader too (review r4 ra item 12). */}
+        {reader ? null : <Press accessibilityRole="checkbox" accessibilityLabel="Pregledaj tekst pre slanja"
           accessibilityState={{ checked: reviewFirst, disabled: active || finishing }} disabled={active || finishing} haptic="select"
           onPress={() => setReviewFirst(value => !value)} style={s.option}>
           <View style={[s.box, reviewFirst && s.boxOn]}>{reviewFirst ? <Check size={14} weight="bold" color={sys.color.onGreen} /> : null}</View>
@@ -296,7 +310,8 @@ const s = StyleSheet.create({
   noticeText: { flex: 1, color: sys.color.muted },
   noticeLive: { color: sys.color.green, fontWeight: '600' },
   heard: { ...sys.type.body, color: sys.color.ink },
-  hint: { paddingHorizontal: 8 },
+  hintRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, paddingHorizontal: 8 },
+  hintText: { flexShrink: 1 },
   error: { color: sys.color.danger },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
   level: { width: 3, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong },
@@ -311,7 +326,7 @@ const s = StyleSheet.create({
   saidLive: { opacity: 0.7 },
   saidText: { ...sys.type.body, color: sys.color.ink },
   answerBlock: { gap: 10 },
-  answer: { fontSize: 20, lineHeight: 30, fontWeight: '400', color: sys.color.ink },
+  answer: { ...sys.type.speechLarge, color: sys.color.ink },
   prompt: { ...sys.type.display, color: sys.color.green },
   controls: { gap: 12, paddingHorizontal: sys.space.lg, paddingTop: 8, paddingBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },

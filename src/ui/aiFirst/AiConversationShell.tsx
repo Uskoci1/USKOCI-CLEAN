@@ -16,8 +16,7 @@ import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } fro
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
 export type AiConversationShellProps = {
-  /** The chrome's title. */ title: string;
-  /** Kept for callers; the chrome draws no line under the title (no copy that explains where you are). */ subtitle?: string;
+  /** The chrome's title; the chrome draws no line under it (no copy that explains where you are). */ title: string;
   /** The one live card pinned above the thread; null until there is something to pin. */ card: (compact: boolean) => ReactNode;
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
@@ -36,11 +35,6 @@ export type AiConversationShellProps = {
   sentMessage?: string | null;
   /** Only real server text deltas belong here. No typewriter animation. */
   streamingText?: string;
-  /**
-   * The composer keeps clear of the phone's gesture bar itself. False only on a screen whose tab bar is still drawn
-   * under it (the worker profile conversation, until `_layout` hides the bar there): the bar already owns that inset.
-   */
-  ownsBottomInset?: boolean;
 };
 
 /**
@@ -62,6 +56,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const textScale = useTextScale();
   const [keyboard, setKeyboard] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+  // Voice mode opened from the hold advice while the field has a draft starts with the review on, so what is said joins
+  // the draft instead of going out as a message of its own.
+  const [voiceReview, setVoiceReview] = useState(false);
   const [holdHint, setHoldHint] = useState(false);
   const input = useRef<TextInput>(null);
   const thread = useRef<ScrollView>(null);
@@ -148,9 +145,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
       </ScrollView>
-      {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. */}
-      <SafeAreaView edges={keyboard || p.ownsBottomInset === false ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
-        {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null} /> : null}
+      {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
+          is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
+      <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
+        {/* The hold advice carries the way to speak without holding (review r4 ra item 7): once the field has text the
+            waveform button gives way to send, and a person who cannot hold would otherwise have no speech at all. */}
+        {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
+          hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
+            Keyboard.dismiss(); setHoldHint(false); setVoiceReview(hasText); setVoiceMode(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send
             button still says it to a screen reader. */}
         {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
@@ -175,7 +177,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </Press> : p.voice ? <Press testID="ai-voice-mode" accessibilityRole="button" accessibilityLabel="Razgovaraj glasom"
             accessibilityHint="Govoriš umesto da kucaš; odgovor stiže kao tekst."
             accessibilityState={{ disabled: p.voice.disabled || !voiceIdle }} disabled={p.voice.disabled || !voiceIdle}
-            haptic="select" hitSlop={0} onPress={() => { Keyboard.dismiss(); setVoiceMode(true); }} style={s.target}>
+            haptic="select" hitSlop={0} onPress={() => { Keyboard.dismiss(); setVoiceReview(false); setVoiceMode(true); }} style={s.target}>
             <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
               <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.green} /></View>
           </Press> : null}
@@ -183,7 +185,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       </SafeAreaView>
     </KeyboardAvoidingView>
     {voiceMode && p.voice ? <VoiceMode voice={p.voice} prompt={p.welcome} answer={answer} said={said}
-      thinking={p.busy && !p.streamingText}
+      thinking={p.busy && !p.streamingText} reviewFirst={voiceReview}
       onClose={reason => { setVoiceMode(false); if (reason === 'review') requestAnimationFrame(() => input.current?.focus()); }} /> : null}
     {p.children}
     {notice.sheet}
@@ -262,14 +264,16 @@ const s = StyleSheet.create({
   // The assistant: plain, large and calm, the whole width of the thread, no bubble.
   assistant: { gap: 8, alignSelf: 'stretch' },
   mark: { width: 20, height: 21 },
-  answer: { fontSize: 17, lineHeight: 27, fontWeight: '400', color: sys.color.ink },
+  // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
+  answer: { ...sys.type.speech, color: sys.color.ink },
   // The person: a compact pill on the right, in the pale green.
   person: { alignSelf: 'flex-end', maxWidth: '85%', marginLeft: 40, paddingVertical: 10, paddingHorizontal: 16,
     borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
   personText: { ...sys.type.body, color: sys.color.ink },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
   sending: { opacity: 0.6 },
-  typing: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 27, paddingLeft: 2 },
+  // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
+  typing: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26, paddingLeft: 2 },
   dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   dotStill: { opacity: 0.55 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },

@@ -163,7 +163,34 @@ describe('voice mode', () => {
     expect(mic().props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
     await act(async () => mic().props.onPress());
     expect(c.begin).not.toHaveBeenCalled();
-    expect(tree.root.findByProps({ testID: 'voice-mode-line' }).props.children).toBe('Stiže odgovor…');
+    // Review r4 ra item 10 (was: the line under the exchange said "Stiže odgovor…" too, in a second live region). The
+    // exchange says it once; the line is not drawn while the answer is being written.
+    expect(tree.root.findAllByProps({ testID: 'voice-mode-line' })).toHaveLength(0);
+    expect(text().match(/Stiže odgovor…/g)).toHaveLength(1);
+    await act(async () => tree.update(<VoiceMode voice={{ controller: c as unknown as HoldToTalkController, state: idle, disabled: true, onKeepText: jest.fn() }}
+      prompt="Reci šta ti treba." answer={null} said="Treba mi prevoz." thinking={false} onClose={jest.fn()} />));
+    expect(tree.root.findByProps({ testID: 'voice-mode-line' }).props.children).toBe('Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.');
+  });
+  // Review r4 ra item 5: only a finalised reviewed capture put text in the field; a tap while the microphone was still on
+  // its way, or a cancel when the app went to the background, ends with nothing there, and voice mode stays open.
+  it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING'] as const)('a reviewed capture stopped from %s leaves voice mode open', async phase => {
+    const c = controller(), onClose = jest.fn(), reviewed = { ...session, mode: 'accessible' as const };
+    await act(async () => { tree = create(mode(c, idle, { onClose, reviewFirst: true })); });
+    await act(async () => mic().props.onPress());
+    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
+    await act(async () => tree.update(mode(c, { ...idle, phase, session: reviewed }, { onClose, reviewFirst: true })));
+    await act(async () => tree.update(mode(c, idle, { onClose, reviewFirst: true })));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+  it('opens with the review already on when asked, and says it is a checkbox', async () => {
+    const c = controller();
+    await act(async () => { tree = create(mode(c, idle, { reviewFirst: true })); });
+    const review = tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' });
+    // Review r4 ra item 12: drawn as a checkbox, so a screen reader hears one (it was announced as a switch).
+    expect(review.props.accessibilityRole).toBe('checkbox');
+    expect(review.props.accessibilityState.checked).toBe(true);
+    await act(async () => mic().props.onPress());
+    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
   });
   it('the glow follows nothing and the screen does not fade under reduced motion', async () => {
     mockReduced = true; const c = controller();

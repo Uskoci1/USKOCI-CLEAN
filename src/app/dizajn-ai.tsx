@@ -46,18 +46,24 @@ const FACTS = [fact('need.title', 'Prenos ormana i kutija sa trećeg sprata'), f
   fact('need.schedule_kind', 'TOMORROW_FLEXIBLE'), fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 5000), fact('need.price_basis', 'TOTAL')];
 const LONG = 'Selidba kompletnog dvosobnog stana sa klavirom, dve garderobe i radnim stolom iz Novog Sada u Sremsku Kamenicu';
 
-const DRAFTS: { title: string; summary: Summary; still: string | null; busy?: boolean; compact?: boolean; note?: string }[] = [
-  { title: 'Nacrt sa mestom i cenom', still: 'Opis · Kategorija', summary: { title: 'Prenos ormana i kutija sa trećeg sprata', zone: 'Novi Sad · Liman',
+// Review r4 ra items 4, 6, 8 and 9: no category is ever named as missing, a fixed window is written the app's one way in
+// Serbian time, the safety note stays on the compact card, and a task being changed says "Izmena".
+const DRAFTS: { title: string; summary: Summary; still: string | null; busy?: boolean; compact?: boolean; note?: string; editing?: boolean }[] = [
+  { title: 'Nacrt sa mestom i cenom', still: 'Opis', summary: { title: 'Prenos ormana i kutija sa trećeg sprata', zone: 'Novi Sad · Liman',
     schedule: 'Sutra', value: { kind: 'amount', amount: '5.000 RSD', basis: 'ukupno' }, people: '2 osobe' } },
   { title: 'Traži ponude, sve uneto', still: null, summary: { title: 'Montaža police u hodniku', zone: 'Beograd · Vračar',
-    schedule: '26. sep · 17:00–19:00 (vreme u Beogradu)', value: { kind: 'offers' }, people: '1 osoba' } },
+    schedule: '26. sep · 17:00–19:00 (po vremenu u Srbiji)', value: { kind: 'offers' }, people: '1 osoba' } },
   { title: 'Dopunjuje se', still: 'Cena · Ljudi · tačka na mapi', busy: true, summary: { title: 'Čišćenje dvorišta', zone: 'Novi Sad · Detelinara',
     value: null, people: null } },
-  { title: 'Zbijeno (tastatura)', still: 'Naslov · Opis · Kategorija · i još 5', compact: true, summary: { title: null, zone: '', value: null, people: null } },
-  { title: 'Dugi naslov', still: 'Kategorija', summary: { title: LONG, zone: 'Novi Sad · Grbavica → Sremska Kamenica', schedule: 'Ove nedelje',
+  { title: 'Zbijeno (tastatura)', still: 'Naslov · Opis · Cena · i još 4', compact: true, summary: { title: null, zone: '', value: null, people: null } },
+  { title: 'Dugi naslov', still: 'Opis', summary: { title: LONG, zone: 'Novi Sad · Grbavica → Sremska Kamenica', schedule: 'Ove nedelje',
     value: { kind: 'amount', amount: '18.000 RSD', basis: 'po osobi' }, people: '4 osobe' } },
   { title: 'Provera pre objave', still: null, note: 'Zahtev traži dodatnu proveru pre objavljivanja. Nacrt možeš pregledati i sačuvati.',
     summary: { title: 'Prevoz stvari do vikendice', zone: 'Na daljinu', value: { kind: 'offers' }, people: '2 osobe' } },
+  { title: 'Provera pre objave, zbijeno', still: null, compact: true, note: 'Zahtev traži dodatnu proveru pre objavljivanja. Nacrt možeš pregledati i sačuvati.',
+    summary: { title: 'Prevoz stvari do vikendice', zone: 'Na daljinu', value: { kind: 'offers' }, people: '2 osobe' } },
+  { title: 'Izmena objavljenog zadatka', still: null, editing: true, summary: { title: 'Montaža police u hodniku', zone: 'Beograd · Vračar',
+    schedule: 'Ove nedelje', value: { kind: 'amount', amount: '3.000 RSD', basis: 'ukupno' }, people: '1 osoba' } },
 ];
 
 const PROFILE: WorkerAiProfile = { displayName: 'Marko', bio: '', skills: ['Selidbe', 'Montaža nameštaja'], tools: ['Bušilica'], vehicles: ['Kombi'],
@@ -138,7 +144,8 @@ export default function DizajnAi() {
       {DRAFTS.map(draft => <View key={draft.title} style={s.sample}>
         <T variant="meta" tone="muted">{draft.title}</T>
         <DraftCard summary={draft.summary} stillNeeded={draft.still} open busy={!!draft.busy} compact={!!draft.compact}
-          canReview={!draft.busy} onReview={noop} note={draft.note ?? null} />
+          canReview={!draft.busy} onReview={noop} note={draft.note ?? null} editing={!!draft.editing}
+          reviewLabel={draft.editing ? 'Pregledaj izmene' : 'Pregledaj zadatak'} />
       </View>)}
     </ScrollView>
   </SafeAreaView>;

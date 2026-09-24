@@ -89,6 +89,19 @@ it('held speech is sent as its own profile message on release, through the journ
  await act(async()=>expect(again({text:'Još nešto.',isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));
  expect(mockApi.send).toHaveBeenCalledTimes(1);
 });
+// Review r4 ra item 2: the sentence just sent is on screen (and in voice mode's exchange) until the read brings it back,
+// so the previous answer is never shown as the reply to it.
+it('shows the message it just sent until the read confirms it, and nothing for an intent restored without text',async()=>{
+ await render();expect(shell().props.sentMessage).toBeNull();
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:' Radim vikendom. ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(true));
+ expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBe('Radim vikendom.');
+ await act(async()=>tree.unmount());
+ // A restored intent carries only ids: it is pending, and there are no words to show.
+ mockStored=intent();mockApi.recoverTurn.mockResolvedValue(ok(recovery('PROCESSING')));
+ await render();await flush();
+ expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBeNull();
+});
 it('held speech that is empty or over the limit is refused without a send',async()=>{
  await render();const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
  await act(async()=>expect(receive({text:'   ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));

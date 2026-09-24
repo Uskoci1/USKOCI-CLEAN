@@ -12,7 +12,8 @@ import { osoba, plural } from '../system/plural';
 const list=(values:readonly string[],empty='Još nije navedeno')=>values.length?values.join(' · '):empty;
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
-  return <View style={[s.card,compact&&s.cardCompact]}><T variant="meta" style={s.label}>Tvoj radni profil</T>
+  // No eyebrow: the chrome above already says "Tvoj radni profil" (round 4 review ra, outside-unit note).
+  return <View style={[s.card,compact&&s.cardCompact]}>
     <T numberOfLines={compact?1:2} style={s.title}>{profile.skills.length?profile.skills.join(' · '):'Šta možeš da preuzmeš?'}</T>
     <T variant="body" style={s.ink}>{profile.location.city||'Područje rada'}{profile.location.operatingCountryCode?` · ${profile.location.operatingCountryCode}`:''} · {osoba(profile.teamCapacity)}</T>
     {!compact?<T variant="meta" tone="muted">{profile.location.radiusKm} km · {profile.availability.availableNow?'Mogu odmah':'Dostupnost po rasporedu'} · {plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')}</T>:null}
@@ -84,7 +85,7 @@ const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   card:{...card,gap:6},
   cardCompact:{padding:12,borderRadius:sys.radius.cardCompact},
-  title:{...sys.type.cardTitle,color:sys.color.ink},label:{color:sys.color.green,fontWeight:'600'},
+  title:{...sys.type.cardTitle,color:sys.color.ink},
   section:{...card,gap:10},
   row:{gap:3,paddingVertical:8,borderBottomWidth:1,borderColor:sys.color.line},
   notice:{padding:14,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},

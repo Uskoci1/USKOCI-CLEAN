@@ -210,7 +210,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     </WorkerProfileFrame>;
   }
   // Editing by hand and the week are "sometimes" actions: they live behind "···", not at the end of every conversation.
-  const unavailableNow=enabled?undefined:'Dostupno kad razgovor ne čeka odgovor.';
+  // A grey row says its own reason (review r4 ra item 16): the wait for an answer was named for every cause.
+  const unavailableNow=enabled?undefined:voiceBusy?'Dostupno kad završiš govor.'
+    :awaiting||pending.current?'Dostupno kad razgovor ne čeka odgovor.'
+      :editor.uncertain?'Prvo proveri stanje razgovora.'
+        :editor.loading||resuming?'Dostupno kad se razgovor učita.':'Dostupno kad se završi prethodna radnja.';
   return <><AiConversationShell title="Tvoj radni profil"
     card={compact=><WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
@@ -218,9 +222,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(enabled&&writable)setInput(value);}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
+    // What was just sent and is not yet read back stays on screen (review r4 ra item 2): without it, voice mode fell
+    // back to the previous exchange and showed the old answer as the reply to what was just said. A recovered intent
+    // has no text (storage holds only ids), and then nothing is shown.
+    sentMessage={pending.current?.text??null}
     onSend={()=>{if(!voiceBusy)void send(input.trim());}} onBack={back} onOptions={writable?()=>setMenu(true):undefined}
-    // The tab bar is still drawn under this screen (`_layout`), and it owns the bottom inset.
-    ownsBottomInset={false}
     // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
     // when there is something to say.
     status={statusCopy||editor.error?<>{statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
