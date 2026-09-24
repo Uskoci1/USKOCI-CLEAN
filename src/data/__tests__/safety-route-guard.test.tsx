@@ -40,10 +40,20 @@ it('with a real other account opens the safety screen bound to that target', asy
   expect(tree.root.findByType('Safety' as React.ElementType).props).toMatchObject({ targetAccountId: B, needId: null, agreementId: null });
 });
 
+// This used to open with the person's own id, which now has its own title (round-5 review, 2026-09-24); the case with no
+// target at all keeps "Nije izabrana osoba".
 it('without a usable target, offers the one way forward: the people you block', async () => {
-  mockParams = { targetAccountId: A }; await render();
+  mockParams = {}; await render();
   expect(text()).toContain('Nije izabrana osoba');
   await act(async () => press('Blokirani korisnici').props.onPress());
   expect(mockRouter.replace).toHaveBeenCalledWith('/profil/blokirani');
   expect(mockRouter.back).not.toHaveBeenCalled();
+});
+
+it('opened with your own account, says that it is yours instead of "Nije izabrana osoba", and opens nothing on it', async () => {
+  mockParams = { targetAccountId: A }; await render();
+  expect(tree.root.findAllByType('Safety' as React.ElementType)).toHaveLength(0);
+  expect(text()).toContain('Ovo je tvoj nalog');
+  expect(text()).not.toContain('Nije izabrana osoba');
+  expect(press('Blokirani korisnici')).toBeDefined();
 });

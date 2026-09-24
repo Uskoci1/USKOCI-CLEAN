@@ -75,9 +75,11 @@ const SCENES: Scene[] = [
   { key: 'inbox-reading', label: 'Obaveštenja · označavanje svih', group: 'Obaveštenja' },
   { key: 'inbox-unavailable', label: 'Obaveštenja · sadržaj nije dostupan', group: 'Obaveštenja' },
   { key: 'push', label: 'Podešavanja · uključeno, povezan telefon', group: 'Podešavanja obaveštenja' },
+  { key: 'push-unlinked', label: 'Podešavanja · uključeno, telefon nije povezan', group: 'Podešavanja obaveštenja' },
   { key: 'push-denied', label: 'Podešavanja · telefon ne dozvoljava', group: 'Podešavanja obaveštenja' },
   { key: 'push-dirty', label: 'Podešavanja · izmena nije sačuvana', group: 'Podešavanja obaveštenja' },
   { key: 'push-saving', label: 'Podešavanja · čuvanje', group: 'Podešavanja obaveštenja' },
+  { key: 'push-saved', label: 'Podešavanja · sačuvano', group: 'Podešavanja obaveštenja' },
   { key: 'push-uncertain', label: 'Podešavanja · stanje nije potvrđeno', group: 'Podešavanja obaveštenja' },
   { key: 'push-invalid', label: 'Podešavanja · vreme nije ispravno', group: 'Podešavanja obaveštenja' },
   { key: 'push-emulator', label: 'Podešavanja · uređaj bez obaveštenja', group: 'Podešavanja obaveštenja' },
@@ -87,6 +89,7 @@ const SCENES: Scene[] = [
   { key: 'blocked-confirm', label: 'Blokirani · pitanje pre odblokiranja', group: 'Blokirani korisnici' },
   { key: 'blocked-pending', label: 'Blokirani · odblokiranje u toku', group: 'Blokirani korisnici' },
   { key: 'blocked-uncertain', label: 'Blokirani · ishod nije potvrđen', group: 'Blokirani korisnici' },
+  { key: 'blocked-stale', label: 'Blokirani · lista nije osvežena', group: 'Blokirani korisnici' },
   { key: 'blocked-done', label: 'Blokirani · uklonjeno', group: 'Blokirani korisnici' },
   { key: 'blocked-empty', label: 'Blokirani · prazno', group: 'Blokirani korisnici' },
   { key: 'blocked-loading', label: 'Blokirani · učitavanje', group: 'Blokirani korisnici' },
@@ -149,7 +152,7 @@ function InboxScene({ state, role: initial, back }: { state: InboxView; role: In
   const [role, setRole] = useState(initial);
   return <SafeAreaView edges={['top']} style={s.screen}>
     <DetailTopBar title="Obaveštenja" onBack={back} right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={noop} />} />
-    <InboxList state={state} role={role} onRole={setRole} onOpen={noop} onReadAll={noop} onRefresh={noop} onMore={noop} onSettings={noop} />
+    <InboxList key={role ?? 'ALL'} state={state} role={role} onRole={setRole} onOpen={noop} onReadAll={noop} onRefresh={noop} onMore={noop} onSettings={noop} />
   </SafeAreaView>;
 }
 
@@ -163,15 +166,16 @@ function PushScene({ scene, back }: { scene: string; back: () => void }) {
   const native: NonNullable<PushPreferencesViewProps['data']>['native'] = scene === 'push-denied' ? 'DENIED' : scene === 'push-emulator' ? 'UNSUPPORTED'
     : scene === 'push-dirty' ? 'PERMISSION_REQUIRED' : 'READY';
   const busy = scene === 'push-saving', error = scene === 'push-uncertain' || scene === 'push-failed';
+  // Only "telefon nije povezan" draws a phone that has not been connected; every other ready phone is connected.
   const props: PushPreferencesViewProps = { role, signedIn: true,
-    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, enabled: native === 'READY', registered: scene === 'push',
-      readiness: scene === 'push' ? READINESS : null },
+    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, enabled: native === 'READY',
+      registered: native === 'READY' && scene !== 'push-unlinked', readiness: scene === 'push' || scene === 'push-saved' ? READINESS : null },
     busy, error, locked: busy || error, dirty, validation: scene === 'push-invalid' ? 'Vreme tihih sati nije ispravno. Izaberi ga ponovo.' : null,
-    working: busy ? 'save' : null, justSaved: false, deviceZone: 'Europe/Belgrade',
+    working: busy ? 'save' : null, justSaved: scene === 'push-saved' && !dirty, deviceZone: 'Europe/Belgrade',
     onEdit: (key, value) => setDraft(current => ({ ...current, [key]: value })), onSave: noop, onEnable: noop, onDisable: noop, onRefresh: noop,
     onOpenSystemSettings: noop };
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={back} />
+    <DetailTopBar title="Podešavanja obaveštenja" onBack={back} />
     <View style={s.sets}>
       <Segmented appearance="underline" value={role} onChange={setRole}
         options={[{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }]} />
@@ -187,7 +191,7 @@ function BlockedScene({ scene, back }: { scene: string; back: () => void }) {
     : scene === 'blocked-done' ? { ...BLOCKED, items: BLOCKED.items.slice(1) } : BLOCKED;
   return <SettingsScreen title="Blokirani korisnici" onBack={back}>
     <BlockedAccountsList data={data} loading={scene === 'blocked-loading'} busy={false}
-      error={scene === 'blocked-failed' ? 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.'
+      error={scene === 'blocked-failed' || scene === 'blocked-stale' ? 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.'
         : scene === 'blocked-uncertain' ? 'Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja.' : null}
       uncertain={scene === 'blocked-uncertain'} cursor={null} pending={scene === 'blocked-pending' ? 'b1' : null}
       notice={scene === 'blocked-done' ? 'Blokiranje je uklonjeno: Marko Marković.' : null}

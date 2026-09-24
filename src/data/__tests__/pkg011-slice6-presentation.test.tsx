@@ -93,6 +93,24 @@ test('rows are 56 dp at least, a destructive row speaks in the danger colour, an
   expect(colorOf('Nedostupno')).toBe(sys.color.muted);
   expect(colorOf('Pravila')).toBe(sys.color.ink);
 });
+// Round-5 review (2026-09-24): a disabled row's picture is muted with its words, as V2Action mutes its icon; a live row
+// keeps its colours.
+test('a disabled row draws its picture in the muted set, a live row in colour', async () => {
+  const { FactArt } = require('../../ui/system/FactArt') as typeof import('../../ui/system/FactArt');
+  await act(async () => { tree = create(<SettingsGroup>
+    <SettingsRow label="Obaveštenja" icon={<FactArt kind="bell" size={26} />} onPress={() => {}} />
+    <SettingsRow label="Zauzeto" icon={<FactArt kind="bell" size={26} />} onPress={() => {}} disabled last />
+  </SettingsGroup>); });
+  const art = (label: string) => byLabel(label).findAll(node => typeof node.type !== 'string' && node.props.kind === 'bell', { deep: false })[0].props;
+  expect(art('Obaveštenja').muted).toBeFalsy();
+  expect(art('Zauzeto').muted).toBe(true);
+});
+test('the person part of a person row ends in the chevron; the action has none', async () => {
+  await act(async () => { tree = create(<SettingsPersonRow name="Marko Marković" initials="MM" onOpen={() => {}}
+    action={{ label: 'Odblokiraj', accessibilityLabel: 'Odblokiraj, Marko Marković', onPress: () => {} }} last />); });
+  expect(byLabel('Marko Marković').findAllByType('CaretRight' as React.ElementType)).toHaveLength(1);
+  expect(byLabel('Odblokiraj, Marko Marković').findAllByType('CaretRight' as React.ElementType)).toHaveLength(0);
+});
 test('the footer band is reusable and keeps its test id; a screen can name where its arrow goes', async () => {
   const back = jest.fn();
   await act(async () => { tree = create(<SettingsScreen title="Podešavanja obaveštenja" backLabel="Nazad na profil" onBack={back}>{null}</SettingsScreen>); });

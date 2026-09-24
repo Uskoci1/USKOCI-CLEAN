@@ -13,7 +13,9 @@ jest.mock('../../ui/Text', () => ({ T: (props: unknown) => require('react').crea
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: () => null }));
 jest.mock('../../ui/notifications/PushPreferences', () => ({ PushPreferences: (props: unknown) => require('react').createElement('PushPreferences', props) }));
 let tree: Renderer.ReactTestRenderer;
-const back = () => tree.root.findByProps({ accessibilityLabel: 'Nazad na profil' }).props.onPress;
+// The arrow says "Nazad" (round-5 review, 2026-09-24): the screen also opens from the gear in Obaveštenja, where
+// "Nazad na profil" was wrong. This helper pinned the old label.
+const back = () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress;
 beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
 afterEach(() => act(() => tree.unmount()));
 it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), the accessible header/back and footer', () => {
@@ -57,10 +59,12 @@ it('a confirmed discard still refuses to leave for an account that changed while
  act(() => confirmButton().props.onPress());
  expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
 });
-it('switching the set with unsaved changes asks first; "Odustani" keeps the set and its changes', () => {
+it('switching the set with unsaved changes asks first; "Nastavi uređivanje" keeps the set and its changes', () => {
  makeDirty();
  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
  expect(shown().props.role).toBe('REQUESTER');
+ // The way out of "Odbaci izmene?" says it keeps the changes; "Odustani" could be read as giving them up.
+ expect(cancelButton().props.accessibilityLabel).toBe('Nastavi uređivanje');
  act(() => cancelButton().props.onPress());
  expect(shown().props.role).toBe('REQUESTER'); expect(mockBack).not.toHaveBeenCalled();
  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
@@ -81,4 +85,16 @@ it('Android Back asks the same question only while something is unsaved', () => 
   expect(handled).toBe(true); expect(mockBack).not.toHaveBeenCalled();
   expect(confirmButton()).toBeDefined();
  } finally { spy.mockRestore(); }
+});
+// Round-5 review (2026-09-24): a write of the shown set keeps the set until its outcome is read back.
+it('while a save of the shown set runs, the set switch waits and nothing is asked; afterwards it switches again', () => {
+ const untouchable = () => tree.root.findAll(node => node.props.pointerEvents === 'none').length;
+ const before = untouchable();
+ act(() => shown().props.onWritingChange(true));
+ expect(untouchable()).toBeGreaterThan(before);
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ expect(shown().props.role).toBe('REQUESTER'); expect(confirmButton()).toBeUndefined();
+ act(() => shown().props.onWritingChange(false));
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ expect(shown().props.role).toBe('WORKER');
 });

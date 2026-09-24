@@ -23,10 +23,13 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
   onPage: (cursor: string | null) => void;
 }) {
   const items = data?.items ?? [];
-  const empty = !loading && !error && data?.items.length === 0;
+  // A page that is empty while another follows it is not "nobody blocked": only the way to the next page is offered.
+  const empty = !loading && !error && data?.items.length === 0 && !data.nextCursor;
   const reading = busy || loading;
-  // A refused or unknown outcome keeps every unblock waiting until the list is read again; the alert above says why.
-  const locked = reading || uncertain || !!pending;
+  // A refused or unknown outcome keeps every unblock waiting until the list is read again; the alert above says why. So
+  // does a re-read that got no answer: the list stays on screen under its error, but it is not confirmed, and the
+  // command would refuse to run on it (a confirmed "Odblokiraj" that silently does nothing). "Proveri listu" frees it.
+  const locked = reading || uncertain || !!pending || !!error;
   return <>
     {notice ? <T tone="success" accessibilityLiveRegion="polite">{notice}</T> : null}
     {error && data ? <View style={s.notice}>

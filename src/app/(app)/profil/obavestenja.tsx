@@ -23,6 +23,8 @@ export default function PushSettings() {
  const [role, setRole] = useState<SetKey>('REQUESTER');
  // Unsaved changes of the shown set. Switching the set or going back used to throw them away without a word.
  const [dirty, setDirty] = useState(false);
+ // A save, or the phone switched on or off, is running for the shown set: the set stays until its outcome is read back.
+ const [writing, setWriting] = useState(false);
  const confirm = useConfirmSheet();
  const owner = useRef<{ accountId: string; revision: number } | null>(null);
  const closeConfirm = confirm.close;
@@ -40,11 +42,12 @@ export default function PushSettings() {
  /** Asks before unsaved changes are thrown away; the step itself runs its own checks when it is confirmed. */
  function discardThen(proceed: () => void) {
   if (!dirty) { proceed(); return; }
-  confirm.ask({ title: 'Odbaci izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene', tone: 'danger',
-   onConfirm: proceed });
+  // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
+  confirm.ask({ title: 'Odbaci izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
+   cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: proceed });
  }
  const requestBack = () => discardThen(back);
- const requestRole = (next: SetKey) => { if (next !== role) discardThen(() => { setDirty(false); setRole(next); }); };
+ const requestRole = (next: SetKey) => { if (next !== role && !writing) discardThen(() => { setDirty(false); setWriting(false); setRole(next); }); };
  // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.
  const latestBack = useRef({ dirty, requestBack }); latestBack.current = { dirty, requestBack };
  useFocusEffect(useCallback(() => {
@@ -56,12 +59,15 @@ export default function PushSettings() {
  }, []));
  return <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
   <Stack.Screen options={{ headerShown: false }} />
-  <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={requestBack} />
-  <View style={s.sets}>
+  {/* The arrow says only "Nazad": this screen is opened from Profil and from the gear in Obaveštenja, so naming one of
+      them would be wrong for the other. */}
+  <DetailTopBar title="Podešavanja obaveštenja" onBack={requestBack} />
+  {/* While a write of the shown set runs, its tabs wait with every other control (the Save spinner says why). */}
+  <View style={s.sets} pointerEvents={writing ? 'none' : 'auto'}>
    <Segmented appearance="underline" options={SETS} value={role} onChange={requestRole} />
    <T variant="note" tone="muted">{CAPTION[role]}</T>
   </View>
-  <PushPreferences key={role} role={role} onDirtyChange={setDirty} />
+  <PushPreferences key={role} role={role} onDirtyChange={setDirty} onWritingChange={setWriting} />
   {confirm.sheet}
  </SafeAreaView>;
 }

@@ -21,7 +21,8 @@ export default function AboutUskoci() {
     navigating.current = true; action(); };
   return <SettingsScreen title="O aplikaciji" onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}>
     <View style={s.brand}>
-      <View accessibilityRole="header"><BrandLockup width={148} /></View>
+      {/* One focus stop, spoken as the screen's heading "USKOČI": a header role on a plain View is not read at all. */}
+      <View accessible accessibilityRole="header" accessibilityLabel="USKOČI"><BrandLockup width={148} /></View>
       <T variant="copy" tone="muted">Pomoć počinje dogovorom. Objavi šta ti treba ili ponudi ono što znaš i možeš.</T>
     </View>
     <View style={s.section}>

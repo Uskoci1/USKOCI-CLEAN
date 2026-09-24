@@ -39,6 +39,8 @@ function OwnedBlocks() {
       commands.current.set(target, command);
     }
     const frozen = command;
+    // The page the question was asked on; `save` refuses to run on any other.
+    const shown = editor.data;
     setPending(target);
     try {
       await editor.save(async () => {
@@ -47,7 +49,17 @@ function OwnedBlocks() {
           expectedRevision: frozen.revision, clientRequestId: frozen.id });
         if (!result.ok) return result;
         commands.current.delete(target);
-        return safetyClientService.listMyBlocks(cursor);
+        // The receipt is the server's word that the block is gone. If the list cannot be read again right after it, the
+        // unblock is still confirmed, so it is not reported as unconfirmed: the page shown stays, without that person.
+        // Everyone else on it keeps the revision that was read, and any later command is checked against the server.
+        const fallback = () => shown ? { ok: true as const, podatak: { ...shown, items: shown.items.filter(item => item.targetAccountId !== target) } } : null;
+        try {
+          const list = await safetyClientService.listMyBlocks(cursor);
+          return list.ok ? list : fallback() ?? list;
+        } catch (error) {
+          const kept = fallback(); if (kept) return kept;
+          throw error;
+        }
       });
     } finally { setPending(null); }
   }

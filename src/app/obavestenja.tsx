@@ -62,7 +62,8 @@ export default function Obavestenja() {
     <DetailTopBar title="Obaveštenja"
       onBack={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}
       right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
-    <InboxList state={state} role={role} onRole={setRole} onOpen={onOpen}
+    {/* One list per filter: switching the filter draws that filter's first page as what was there, not as arrivals. */}
+    <InboxList key={role ?? 'ALL'} state={state} role={role} onRole={setRole} onOpen={onOpen}
       onReadAll={()=>void model.readAll()} onRefresh={()=>void model.refresh()} onMore={()=>void model.more()} onSettings={settings} />
   </SafeAreaView>;
 }

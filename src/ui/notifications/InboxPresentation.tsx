@@ -127,16 +127,43 @@ function DayHeader({ label, first }: { label: string; first: boolean }) {
   return <T variant="meta" tone="muted" accessibilityRole="header" style={[s.day, first && s.dayFirst]}>{label}</T>;
 }
 
-/** One quiet notice at the top of the list; never an orange fill. Only an error offers a way forward. */
-function Banner({ title, sentence, retry, disabled }: { title: string; sentence: string; retry?: () => void; disabled: boolean }) {
+/**
+ * One quiet notice at the top of the list; never an orange fill. Only an error offers a way forward, and its button says
+ * what it does: after an unconfirmed action it reads the list again, it does not repeat the action.
+ */
+function Banner({ title, sentence, retry, retryLabel = 'Pokušaj ponovo', disabled }: {
+  title: string; sentence: string; retry?: () => void; retryLabel?: string; disabled: boolean;
+}) {
   return <View style={s.banner}>
     <FactArt kind="info" size={24} muted />
     <View style={s.bannerCopy}>
       <T variant="bodyStrong" accessibilityRole="alert">{title}</T>
       <T variant="note" tone="muted">{sentence}</T>
-      {retry ? <V2Action kind="quiet" compact label="Pokušaj ponovo" disabled={disabled} onPress={retry} style={s.inlineAction} /> : null}
+      {retry ? <V2Action kind="quiet" compact label={retryLabel} disabled={disabled} onPress={retry} style={s.inlineAction} /> : null}
     </View>
   </View>;
+}
+
+/** An event's moment in milliseconds, or null when it cannot be read (such an event is never treated as new). */
+const occurredMs = (item: InboxItem): number | null => { const ms = Date.parse(item.occurredAt); return Number.isFinite(ms) ? ms : null; };
+
+/**
+ * Which events are arrivals. `useAppear` settles the first list it is given and animates every id it has not seen; an
+ * older page ("Učitaj starija obaveštenja") is also made of ids it has not seen, and those did not arrive, they were
+ * fetched. So an unseen event is an arrival only when it is newer than the newest one already on screen; every other
+ * unseen event is marked seen here, before the rows ask, and stays still. Called once per render, before the rows.
+ */
+function useArrivals(items: readonly InboxItem[]) {
+  const appear = useAppear();
+  const newest = useRef<number | null>(null);
+  appear.settle(items.map(item => item.id));
+  const before = newest.current;
+  for (const item of items) {
+    const ms = occurredMs(item);
+    if (ms === null || before === null || ms <= before) appear.isNew(item.id);
+    if (ms !== null && (newest.current === null || ms > newest.current)) newest.current = ms;
+  }
+  return appear;
 }
 
 export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, onMore, onSettings, zona, sada }: {
@@ -150,14 +177,14 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
   const items = page?.items;
   const rows = useMemo(() => inboxRows(items ?? [], { zona, sada }), [items, zona, sada]);
   // An event that arrives while the Inbox is open is worth a moment of motion; the ones that were there when it opened,
-  // and the ones a refresh returns unchanged, are not. Only event rows take part, never a day header.
-  const appear = useAppear();
-  appear.settle((items ?? []).map(item => item.id));
+  // the ones a refresh returns unchanged and an older page are not. Only event rows take part, never a day header. Each
+  // filter is its own list (the route keys this component by it), so a filter's first page is what was there, too.
+  const appear = useArrivals(items ?? []);
   const unreadCount = page?.unreadCount;
   useReadAllAnnouncement(unreadCount);
 
   const banner = unavailable ? <Banner title="Sadržaj više nije dostupan." sentence="Možda je uklonjen ili mu više nemaš pristup." disabled={busy} />
-    : error === 'action' ? <Banner title="Radnja nije potvrđena." sentence={AGAIN} retry={onRefresh} disabled={busy} />
+    : error === 'action' ? <Banner title="Radnja nije potvrđena." sentence={AGAIN} retry={onRefresh} retryLabel="Osveži obaveštenja" disabled={busy} />
       : error === 'load' && page ? <Banner title="Obaveštenja nisu osvežena." sentence={AGAIN} retry={onRefresh} disabled={busy} /> : null;
 
   const header = <View style={s.header}>
@@ -227,11 +254,12 @@ const s = StyleSheet.create({
   rowLast: { borderBottomWidth: 0 },
   dotColumn: { width: 8, marginTop: 8 },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  art: { width: 32, alignItems: 'center', paddingTop: 2 },
-  copy: { flex: 1, minWidth: 0, gap: 2 },
+  // On the 4/8 scale (src/theme/tokens.ts): the smallest step is `space.xs`.
+  art: { width: 32, alignItems: 'center', paddingTop: sys.space.xs },
+  copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   firstLine: { flexDirection: 'row', alignItems: 'flex-start' },
   primary: { flex: 1, minWidth: 0, color: sys.color.ink },
   clock: { ...tabular },
-  clockBeside: { marginLeft: 8, marginTop: 3 },
+  clockBeside: { marginLeft: sys.space.sm, marginTop: sys.space.xs },
   footer: { paddingTop: 16, gap: 8 },
 });

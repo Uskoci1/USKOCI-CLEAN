@@ -3,6 +3,7 @@ import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { trenutak } from '../../lib/trenutak';
 import { inboxEventArt } from '../../ui/notifications/InboxPresentation';
+import { Appear } from '../../ui/system/Appear';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
@@ -77,9 +78,30 @@ test('a failed page of older events is said next to the button that loads them, 
 test('an action that failed with a page offers a re-read in the notice, drawn on the quiet wash, never orange',async()=>{
   mockState={...mockState,error:'action',page:{...mockState.page,items:[item],unreadCount:1}};await render();
   expect(text()).toContain('Radnja nije potvrđena.');
-  await act(async()=>press('Pokušaj ponovo').props.onPress());expect(mockModel.refresh).toHaveBeenCalledTimes(1);
+  // The button reads the list again; "Pokušaj ponovo" promised to repeat the action (round-5 review, 2026-09-24).
+  expect(presses().filter(node=>node.props.accessibilityLabel==='Pokušaj ponovo')).toHaveLength(0);
+  await act(async()=>press('Osveži obaveštenja').props.onPress());expect(mockModel.refresh).toHaveBeenCalledTimes(1);
   const fills=tree.root.findAll(node=>typeof node.type==='string').map(node=>StyleSheet.flatten(node.props.style)?.backgroundColor);
   expect(fills).not.toContain('#FFF5E9');
+});
+// Round-5 review (2026-09-24): motion only for an event that really arrived. An older page is fetched, not arrived, and a
+// filter's first page is what was there; both used to fade in row by row.
+test('only an event newer than the list moves; an older page and a new filter\'s first page stay still',async()=>{
+  const minutesAgo=(minutes:number)=>new Date(Date.parse(at)-minutes*60_000).toISOString();
+  const moving=()=>tree.root.findAllByType(Appear).filter(node=>node.props.animate).map(node=>node.props.children.props.item.id);
+  mockState.page={...mockState.page,items:[{...item,id:'a',occurredAt:minutesAgo(10)},{...item,id:'b',occurredAt:minutesAgo(20)}],unreadCount:2,hasMore:true};
+  await render();
+  expect(moving()).toEqual([]);
+  mockState={...mockState,page:{...mockState.page,items:[{...item,id:'new',occurredAt:minutesAgo(1)},...mockState.page.items]}};
+  await act(async()=>tree.update(<Inbox/>));
+  expect(moving()).toEqual(['new']);
+  mockState={...mockState,page:{...mockState.page,items:[...mockState.page.items,{...item,id:'older',occurredAt:minutesAgo(600)}]}};
+  await act(async()=>tree.update(<Inbox/>));
+  expect(moving()).toEqual([]);
+  // Another filter is another list: its first page, even with an event newer than anything shown before, is not news.
+  mockState={...mockState,page:{...mockState.page,items:[{...item,id:'requester',occurredAt:minutesAgo(0)},{...item,id:'r2',occurredAt:minutesAgo(30)}]}};
+  await act(async()=>press('Moji zadaci').props.onPress());
+  expect(moving()).toEqual([]);
 });
 test('events are grouped under their day, the day said once',async()=>{
   const now=new Date(), today=now.toISOString(), earlier=new Date(now.getTime()-60_000).toISOString();

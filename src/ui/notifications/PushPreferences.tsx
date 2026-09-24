@@ -38,9 +38,12 @@ function validateDraft(value: NotificationSettings): string | null {
 /** Which of this screen's own commands is at work, so only its button shows the spinner. Presentation only. */
 type Working = 'save' | 'enable' | 'disable' | 'read' | null;
 
-export function PushPreferences({ role, onDirtyChange }: { role: NotificationRole;
- /** Told whenever there are unsaved changes, so the route can ask before Back or a set switch throws them away. */
- onDirtyChange?: (dirty: boolean) => void }) {
+export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role: NotificationRole;
+ /** Told whenever there are unsaved changes, so the route can ask before Back or a set switch throws them away. A change
+  *  that is being saved is not reported: its request is already on its way and lands whether the person stays or not. */
+ onDirtyChange?: (dirty: boolean) => void;
+ /** Told while one of this screen's writes (save, enable, disable) runs, so the route keeps the set where it is. */
+ onWritingChange?: (writing: boolean) => void }) {
  const { user, accountRevision } = useSesija(); const accountId = user?.id ?? '';
  const renderedOwner = useRef({ accountId, accountRevision, role }); renderedOwner.current = { accountId, accountRevision, role };
  const scopeRef = useRef<Scope | null>(null);
@@ -70,13 +73,15 @@ export function PushPreferences({ role, onDirtyChange }: { role: NotificationRol
   if (!current(scope, generation)) throw Error('STALE');
   return { preferences, native, device: result?.ok ? result.podatak : null, readiness };
  }
- async function run(scope: Scope, work: (generation: number) => Promise<Snapshot>) {
+ async function run(scope: Scope, work: (generation: number) => Promise<Snapshot>, kind: Working = null) {
   if (scope.busy || !current(scope, scope.generation)) return;
   // setView(null) here meant that pressing "Sačuvaj podešavanja" made nine switches, three fields
   // and five buttons vanish behind a spinner, and on any failure the wipe was permanent: the error
   // panel replaced the settings instead of standing beside them. The last good state stays mounted
-  // and is dimmed while the work runs; only a first read has nothing to show.
-  scope.busy = true; const generation = ++scope.generation; setBusy(true); setError(false); setValidation(null);
+  // and waits (every control is locked) while the work runs; only a first read has nothing to show.
+  // The spinner goes to the command that really starts, after the busy check: a press or a foreground re-read that is
+  // refused here must not move it onto its own button while another command runs.
+  scope.busy = true; const generation = ++scope.generation; setBusy(true); setError(false); setValidation(null); setWorking(kind);
   try {
    const snapshot = await bounded(work(generation), scope);
    if (current(scope, generation)) {
@@ -98,9 +103,10 @@ export function PushPreferences({ role, onDirtyChange }: { role: NotificationRol
   // because a read replaces the draft with what the server holds.
   const foreground = AppState.addEventListener('change', next => {
    const now = latest.current;
-   if (next !== 'active' || scopeRef.current !== scope || !now.snapshot || now.busy || now.dirty
+   // `scope.busy` as well as the rendered value: a command that started after the last render is already at work.
+   if (next !== 'active' || scopeRef.current !== scope || scope.busy || !now.snapshot || now.busy || now.dirty
     || (now.snapshot.native.kind !== 'DENIED' && now.snapshot.native.kind !== 'PERMISSION_REQUIRED')) return;
-   setWorking('read'); void run(scope, generation => read(scope, generation, false));
+   void run(scope, generation => read(scope, generation, false), 'read');
   });
   return () => { foreground?.remove(); scope.alive = false; scope.generation++; if (scopeRef.current === scope) scopeRef.current = null; };
  // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,10 +115,9 @@ export function PushPreferences({ role, onDirtyChange }: { role: NotificationRol
  const renderedGeneration = owner?.generation;
  const snapshot = owner && owner.accountId === accountId && owner.accountRevision === accountRevision && owner.role === role && view?.owner === owner ? view.snapshot : null;
  const settings = owner && draft?.owner === owner ? draft.settings : null;
- function refresh() { const scope = scopeRef.current; if (scope) { setWorking('read'); void run(scope, generation => read(scope, generation, false)); } }
+ function refresh() { const scope = scopeRef.current; if (scope) void run(scope, generation => read(scope, generation, false), 'read'); }
  function enable() {
   const scope = scopeRef.current; if (!scope || !snapshot || view?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
-  setWorking('enable');
   void run(scope, async generation => {
    const fresh = await read(scope, generation, true);
    if (fresh.native.kind !== 'READY' || !fresh.device) return fresh;
@@ -122,17 +127,16 @@ export function PushPreferences({ role, onDirtyChange }: { role: NotificationRol
     { ...fresh.preferences.settings, push_enabled: true }, fresh.preferences.revision);
    if (!current(scope, generation)) throw Error('STALE');
    return read(scope, generation, false);
-  });
+  }, 'enable');
  }
  function disable() {
   const scope = scopeRef.current; if (!scope || !snapshot || view?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
   const original = snapshot.preferences;
-  setWorking('disable');
   void run(scope, async generation => {
    await notificationPreferencesClientService.save(scope.accountId, scope.role, { ...original.settings, push_enabled: false }, original.revision);
    if (!current(scope, generation)) throw Error('STALE');
    return read(scope, generation, false);
-  });
+  }, 'disable');
  }
  function edit<K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) {
   const scope = scopeRef.current;
@@ -144,20 +148,23 @@ export function PushPreferences({ role, onDirtyChange }: { role: NotificationRol
   if (!scope || !snapshot || view?.owner !== scope || !settings || draft?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
   const problem = validateDraft(settings); if (problem) { setValidation(problem); return; }
   const original = snapshot.preferences; const payload = cloneSettings(settings);
-  setWorking('save');
   void run(scope, async generation => {
    await notificationPreferencesClientService.save(scope.accountId, scope.role, payload, original.revision);
    if (!current(scope, generation)) throw Error('STALE');
    const confirmed = await read(scope, generation, false);
    savedSnapshot.current = confirmed;
    return confirmed;
-  });
+  }, 'save');
  }
  const enabled = snapshot?.preferences.settings.push_enabled === true;
  const registered = snapshot?.native.kind === 'READY' && snapshot.device?.active && snapshot.device.sessionBound;
  const dirty = !!snapshot && !!settings && !sameSettings(snapshot.preferences.settings, settings);
  latest.current = { snapshot, busy, dirty };
- useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+ // While "Sačuvaj podešavanja" runs the changes are on their way, so Back must not offer to throw them away.
+ const unsaved = dirty && !busy;
+ useEffect(() => { onDirtyChange?.(unsaved); }, [unsaved, onDirtyChange]);
+ const writing = busy && (working === 'save' || working === 'enable' || working === 'disable');
+ useEffect(() => { onWritingChange?.(writing); }, [writing, onWritingChange]);
  // An unconfirmed outcome used to remove the controls by wiping the whole body. Keeping them on
  // screen must not make them usable: until the state is read back, everything here is locked.
  const locked = busy || error;
@@ -177,6 +184,12 @@ const CATEGORY_HELP = {
 };
 const PRIVACY = 'Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.';
 const SAVE_FIRST = 'Prvo sačuvaj izmene kategorija i tihih sati.';
+const CHECK_FIRST = 'Prvo proveri stanje.';
+/** Said once a save has been read back, in place of the reason the grey button otherwise gives. */
+const SAVED = 'Podešavanja su sačuvana.';
+/** Each set by the name its underlined tab shows, in the form that follows "za" ("za Moje zadatke"), so a sentence about
+ *  sending says which set it means. */
+const FOR_SET: Record<NotificationRole, string> = { REQUESTER: 'Moje zadatke', WORKER: 'Moje prijave' };
 
 export type PushPreferencesViewProps = {
  role: NotificationRole; signedIn: boolean;
@@ -210,19 +223,26 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  const { settings, native, enabled, registered, readiness } = data;
  const zone = fixedZone === undefined ? deviceZone() : fixedZone;
  const settingsPage = onOpenSystemSettings ?? (() => { void Linking.openSettings().catch(() => undefined); });
- const phone = phoneStatus(native, enabled, registered);
- // The phone's own actions, in the order they are needed; the first one says why they wait while a change is unsaved.
+ const phone = phoneStatus(native, enabled, registered, FOR_SET[role]);
+ // The phone's own actions, in the order they are needed; the first one says why they wait (an unconfirmed state, or a
+ // change that is not saved yet).
  const phoneActions: { label: string; kind: 'secondary' | 'quiet'; onPress: () => void; working?: Working; guarded: boolean }[] = [];
  if (native === 'DENIED') phoneActions.push({ label: 'Podešavanja telefona', kind: 'secondary', onPress: settingsPage, guarded: false });
- const deviceCanAsk = native !== 'UNSUPPORTED' && native !== 'UNCONFIGURED' && native !== 'DENIED';
- if (deviceCanAsk && (!registered || !enabled)) phoneActions.push({ label: 'Uključi obaveštenja na telefonu', kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
- if (enabled) phoneActions.push({ label: 'Isključi obaveštenja na telefonu', kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
- // On a device that cannot receive notifications at all (the emulator) or a build without them, reading again changes
- // nothing, so there is no action there.
- if (native !== 'UNSUPPORTED' && native !== 'UNCONFIGURED') phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
+ // A device that cannot receive notifications at all (the emulator) or a build without them has no phone action: next to
+ // "Nije dostupno na ovom uređaju" a switch-off button contradicted the headline.
+ const deviceKnowsPush = native !== 'UNSUPPORTED' && native !== 'UNCONFIGURED';
+ const deviceCanAsk = deviceKnowsPush && native !== 'DENIED';
+ // Sending is already on for this set and only this phone is missing: the step is to connect it, not to switch on.
+ if (deviceCanAsk && (!registered || !enabled)) phoneActions.push({ label: enabled ? 'Poveži ovaj telefon' : 'Uključi obaveštenja na telefonu',
+  kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
+ if (enabled && deviceKnowsPush) phoneActions.push({ label: 'Isključi obaveštenja na telefonu', kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
+ // Reading again is offered only where it can change something, and not beside "Proveri stanje", which already does it.
+ if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
  const firstGuarded = phoneActions.findIndex(action => action.guarded);
+ const waitReason = error ? CHECK_FIRST : dirty ? SAVE_FIRST : null;
  const showZone = settings.quiet_timezone !== zone && (settings.quiet_hours_enabled || !settings.quiet_timezone.trim());
- const saveReason = error ? 'Prvo proveri stanje.' : !busy && !dirty ? 'Dugme se uključuje kad promeniš neko podešavanje.' : null;
+ // After a confirmed save the grey button's reason gives way to the saved line above it, which is said once.
+ const saveReason = error ? CHECK_FIRST : busy || dirty || justSaved ? null : 'Dugme se uključuje kad promeniš neko podešavanje.';
  const stackTimes = large || narrow;
  return <View style={styles.fill}>
   <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -241,17 +261,19 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
     </SettingsGroup>
     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
-     reason={index === firstGuarded && dirty ? SAVE_FIRST : action.guarded ? null : undefined} />)}
+     reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
     <T variant="note" tone="muted" style={styles.aside}>{PRIVACY}</T>
    </View>
 
-   {/* While a command runs the choices stay readable and visibly wait; the phone's state and the footer are not dimmed. */}
-   <View style={[styles.groups, busy && styles.working]}>
+   {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
+       the block is not faded a second time on top of that. The phone's state and the footer are not touched. */}
+   <View style={styles.groups}>
     <SettingsGroup title="U aplikaciji">
      <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Obaveštenja unutar aplikacije. Spisak obaveštenja ostaje sačuvan."
       value={settings.in_app_enabled} disabled={locked} onChange={value => onEdit('in_app_enabled', value)} last />
     </SettingsGroup>
-    <SettingsGroup title="Zadaci i prijave">
+    {/* The note covers every category, so it stands under the first of them, not under the last. */}
+    <SettingsGroup title="Zadaci i prijave" footer="Isključena kategorija ne stiže ni u aplikaciju ni na telefon. Promena kategorije ne menja dozvolu za obaveštenja na telefonu.">
      {role === 'WORKER' ? <SettingsSwitchRow label="Novi zadaci" help={CATEGORY_HELP.opportunities}
       value={settings.opportunities_enabled} disabled={locked} onChange={value => onEdit('opportunities_enabled', value)} /> : null}
      <SettingsSwitchRow label="Prijave i odgovori" help={CATEGORY_HELP.responses[role]}
@@ -263,7 +285,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
      <SettingsSwitchRow label="Izvršenje i završetak" help="Tok posla i potvrda završetka."
       value={settings.execution_enabled} disabled={locked} onChange={value => onEdit('execution_enabled', value)} last />
     </SettingsGroup>
-    <SettingsGroup title="Ostalo" footer="Isključena kategorija ne stiže ni u aplikaciju ni na telefon. Promena kategorije ne menja dozvolu za obaveštenja na telefonu.">
+    <SettingsGroup title="Ostalo">
      <SettingsSwitchRow label="Oporavak" help="Kad neka radnja ostane nedovršena i treba je proveriti."
       value={settings.recovery_enabled} disabled={locked} onChange={value => onEdit('recovery_enabled', value)} />
      <SettingsSwitchRow label="Nalog i ostalo" help="Obaveštenja o tvom nalogu i bezbednosti."
@@ -292,7 +314,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
    </View>
 
    <View style={styles.readiness}>
-    <T variant="bodyStrong">Poslednja provera slanja</T>
+    <T variant="bodyStrong" accessibilityRole="header">Poslednja provera slanja</T>
     <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Pri poslednjoj proveri slanje obaveštenja je radilo.'
      : readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
       : readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na telefon još nije uključeno.'
@@ -303,20 +325,30 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
   </ScrollView>
   <SettingsFooter>
    {validation ? <T variant="note" tone="danger" accessibilityRole="alert">{validation}</T> : null}
+   {/* The confirmed save is said in words (in the success colour, once to a screen reader), not only by a check that
+       leaves after a moment on a button that turns grey again. */}
+   {justSaved ? <T variant="note" tone="success" accessibilityLiveRegion="polite">{SAVED}</T> : null}
    <V2Action label="Sačuvaj podešavanja" onPress={onSave} disabled={locked || !dirty} loading={working === 'save'}
     success={justSaved} reason={saveReason} style={brandAction} />
   </SettingsFooter>
  </View>;
 }
 
-/** What the phone can do, in one headline and one sentence: the device first, then the account's choice. */
-function phoneStatus(native: NativePushState['kind'], enabled: boolean, registered: boolean): { title: string; body: string } {
- if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: 'Obaveštenja na telefon rade samo na pravom telefonu.' };
- if (native === 'UNCONFIGURED') return { title: 'Još nije dostupno', body: 'Obaveštenja na telefon još nisu dostupna u ovoj verziji aplikacije.' };
- if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: 'Dozvoli obaveštenja u podešavanjima telefona.' };
- return { title: enabled ? 'Obaveštenja na telefon su uključena.' : 'Obaveštenja na telefon su isključena.',
-  body: registered ? 'Ovaj telefon je povezan sa tvojim nalogom. Povezan telefon ne znači da je svako obaveštenje stiglo.'
-   : 'Ovaj telefon još nije povezan za obaveštenja.' };
+/**
+ * What the phone can do, in one headline and one sentence: the device first, then the account's choice for this set.
+ * The headline never claims what this phone does not do: a phone that is not connected says so first, and the set's
+ * choice follows. The choice names its set, because turning it off leaves the other set as it is.
+ */
+function phoneStatus(native: NativePushState['kind'], enabled: boolean, registered: boolean, set: string): { title: string; body: string } {
+ const choice = enabled ? `Slanje na telefon je uključeno za ${set}.` : `Slanje na telefon je isključeno za ${set}.`;
+ // On a device that cannot show anything the account's choice matters only when it is on (other phones still receive).
+ const onElsewhere = enabled ? ` ${choice}` : '';
+ if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Obaveštenja na telefon rade samo na pravom telefonu.${onElsewhere}` };
+ if (native === 'UNCONFIGURED') return { title: 'Još nije dostupno', body: `Obaveštenja na telefon još nisu dostupna u ovoj verziji aplikacije.${onElsewhere}` };
+ if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: `Dozvoli obaveštenja u podešavanjima telefona.${onElsewhere}` };
+ if (!registered) return { title: 'Ovaj telefon još nije povezan', body: choice };
+ return { title: enabled ? `Obaveštenja na telefon su uključena za ${set}.` : `Obaveštenja na telefon su isključena za ${set}.`,
+  body: 'Ovaj telefon je povezan sa tvojim nalogom. Povezan telefon ne znači da je svako obaveštenje stiglo.' };
 }
 
 const deviceZone = (): string | null => {
@@ -331,8 +363,6 @@ const styles = StyleSheet.create({
  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, gap: 24, flexGrow: 1 },
  block: { gap: 8 },
  groups: { gap: 24 },
- /** Still readable, visibly not accepting input yet. */
- working: { opacity: 0.55 },
  checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },
  aside: { paddingHorizontal: 4 },
  times: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },

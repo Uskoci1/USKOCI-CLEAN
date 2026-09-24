@@ -10,7 +10,15 @@ const mockList = jest.fn(), mockSetBlock = jest.fn(), mockRouter = { back: jest.
 jest.mock('../safetyClientService', () => ({ safetyClientService: {
   listMyBlocks: (...args: unknown[]) => mockList(...args), setBlock: (...args: unknown[]) => mockSetBlock(...args) } }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
+// Focus is an effect as before; each focused effect is also kept, so a test can leave and come back to the screen
+// (the way back from /bezbednost) without remounting it.
+type MockFocus = { effect: () => void | (() => void); cleanup?: void | (() => void) };
+const mockFocused = new Set<MockFocus>();
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(() => {
+  const entry: MockFocus = { effect, cleanup: effect() }; mockFocused.add(entry);
+  return () => { mockFocused.delete(entry); if (typeof entry.cleanup === 'function') entry.cleanup(); };
+}, [effect]) }));
+const refocus = () => { for (const entry of mockFocused) { if (typeof entry.cleanup === 'function') entry.cleanup(); entry.cleanup = entry.effect(); } };
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsScreen: 'Screen', SettingsGroup: 'Group', SettingsRow: 'Row',
   SettingsAction: 'Action', SettingsPersonRow: 'PersonRow' }));
 // The empty, loading and error states are the shared StateView, whose words are the same `T` host here.
@@ -125,4 +133,53 @@ it('a question left open is retired when the list is read again, so a late confi
   expect(confirmButton()).toBeUndefined();
   await act(async () => { late(); });
   expect(mockSetBlock).not.toHaveBeenCalled();
+});
+
+// Round-5 review (2026-09-24): a list that stays on screen under a failed re-read is not confirmed. "Odblokiraj" used to
+// stay live there, and its confirm then did nothing at all, with no error and no change.
+it('a re-read that got no answer keeps the list under its error with every "Odblokiraj" waiting, until "Proveri listu"', async () => {
+  mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }]));
+  await render();
+  expect(person('Marko').props.action.disabled).toBe(false);
+  // Back from /bezbednost while offline: the screen reads its list again and gets no answer.
+  mockList.mockRejectedValueOnce(Error('offline'));
+  await act(async () => { refocus(); });
+  expect(people().map(node => node.props.name)).toEqual(['Marko']);
+  expect(text()).toContain('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
+  expect(person('Marko').props.action.disabled).toBe(true);
+  mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }]));
+  await act(async () => action('Proveri listu').onPress());
+  expect(person('Marko').props.action.disabled).toBe(false);
+  mockSetBlock.mockResolvedValueOnce(receipt(B, 5)); mockList.mockResolvedValueOnce(ok([]));
+  await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
+  expect(mockSetBlock).toHaveBeenCalledTimes(1);
+});
+
+// The receipt is the server's word; a list that cannot be read right after it does not make a confirmed unblock
+// "unconfirmed" (it used to lock the whole list with "Čuvanje nije potvrđeno").
+it.each([['no answer', () => mockList.mockRejectedValueOnce(Error('offline'))],
+  ['a refusal', () => mockList.mockResolvedValueOnce({ ok: false, kod: 'READ_FAILED', poruka: 'Lista nije dostupna.' })]])(
+  'a confirmed unblock whose re-read gets %s is said as done, and only that person leaves the page', async (_case, failNextRead) => {
+    mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }, { targetAccountId: C, displayName: 'Ana', revision: 2 }]));
+    mockSetBlock.mockResolvedValueOnce(receipt(B, 5));
+    await render();
+    failNextRead();
+    await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
+    expect(mockSetBlock).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('Blokiranje je uklonjeno: Marko.');
+    expect(text()).not.toContain('Čuvanje nije potvrđeno');
+    expect(people().map(node => node.props.name)).toEqual(['Ana']);
+    expect(person('Ana').props.action.disabled).toBe(false);
+    expect(person('Ana').props.action.accessibilityLabel).toBe('Odblokiraj, Ana');
+  });
+
+it('a refused unblock is still reported as refused, whatever the list does afterwards', async () => {
+  mockList.mockResolvedValue(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }]));
+  mockSetBlock.mockResolvedValueOnce({ ok: false, kod: 'STALE_REVISION', poruka: 'Lista se promenila. Proveri je ponovo.' });
+  await render();
+  await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
+  expect(text()).toContain('Lista se promenila. Proveri je ponovo.');
+  expect(text()).not.toContain('Blokiranje je uklonjeno');
+  expect(people().map(node => node.props.name)).toEqual(['Marko']);
+  expect(person('Marko').props.action.disabled).toBe(true);
 });

@@ -25,6 +25,10 @@ it('names the brand with its mark, not with a second title, and keeps the words'
   await render();
   expect(texts().some(node => node.children.includes('USKOČI'))).toBe(false);
   expect(tree.root.findAllByType('BrandLockup' as React.ElementType)).toHaveLength(1);
+  // The mark is one focus stop spoken as the heading: a header role on a View that is not `accessible` was not read.
+  const heading = tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI');
+  expect(heading.length).toBeGreaterThan(0); expect(heading[0].props.accessible).toBe(true);
+  expect(heading[0].findAllByType('BrandLockup' as React.ElementType)).toHaveLength(1);
   const copy = texts().flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
   expect(copy).toContain('Pomoć počinje dogovorom.');
   expect(copy).toContain('AI pomaže da sastaviš zadatak. Ti pregledaš podatke i odlučuješ o objavi.');

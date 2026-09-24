@@ -1,10 +1,11 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { cloneElement, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
+import { FactArt } from '../system/FactArt';
 import { useTextScale } from '../system/textScale';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -85,10 +86,13 @@ export function SettingsRow({ label, detail, icon, onPress, disabled = false, la
 }) {
   const danger = tone === 'danger';
   const ink = disabled ? sys.color.muted : danger ? sys.color.danger : sys.color.ink;
+  // A row that cannot be opened now draws its picture in the muted set too, as V2Action does with its icon: a full-colour
+  // picture beside muted words still looked usable.
+  const drawn = disabled && isValidElement<{ muted?: boolean }>(icon) && icon.type === FactArt ? cloneElement(icon, { muted: true }) : icon;
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail} disabled={disabled}
     accessibilityState={{ disabled }} onPress={onPress} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
     style={[styles.row, last && styles.last]}>
-    {icon && !compact ? <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>{icon}</View> : null}
+    {drawn && !compact ? <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>{drawn}</View> : null}
     <View style={styles.rowCopy}><SettingsText variant="bodyStrong" style={{ color: ink }}>{label}</SettingsText>
       {detail ? <SettingsText variant="note" tone="muted">{detail}</SettingsText> : null}</View>
     {accessory ?? <CaretRight size={18} color={sys.color.muted} />}
@@ -123,7 +127,8 @@ export function SettingsSwitchRow({ label, help, value, disabled = false, reason
 
 /**
  * A person with one action beside them (the blocked list). Two focus stops, side by side: the person, which opens
- * them, and the action. At a large text size the action moves under the name, so neither is squeezed.
+ * them, and the action. At a large text size the action moves under the name, so neither is squeezed. The person's
+ * part ends in the settings chevron, so it reads as a way onward and not as a label beside a button.
  */
 export function SettingsPersonRow({ name, initials, onOpen, openHint, action, last = false }: {
   name: string; initials: string | null; onOpen: () => void; openHint?: string;
@@ -136,6 +141,7 @@ export function SettingsPersonRow({ name, initials, onOpen, openHint, action, la
       onPress={onOpen} style={styles.personOpen}>
       <Avatar initials={initials} size={40} />
       <SettingsText variant="bodyStrong" numberOfLines={2} style={styles.personName}>{name}</SettingsText>
+      <CaretRight size={18} color={sys.color.muted} />
     </Press>
     <View style={large ? styles.personActionLarge : undefined}>
       <V2Action label={action.label} accessibilityLabel={action.accessibilityLabel} onPress={action.onPress}

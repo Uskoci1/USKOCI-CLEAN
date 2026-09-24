@@ -27,6 +27,9 @@ it('opens every scene from its visible name, draws it, and comes back with "Naza
   await act(async () => { tree = create(<Gallery />); });
   const labels = presses().map(node => node.props.accessibilityLabel as string).filter(label => label.includes(' · '));
   expect(labels.length).toBeGreaterThanOrEqual(25);
+  // The states the round-5 review fixes drew for the first time are on the board too.
+  expect(labels).toEqual(expect.arrayContaining(['Podešavanja · sačuvano', 'Podešavanja · uključeno, telefon nije povezan',
+    'Blokirani · lista nije osvežena']));
   for (const label of labels) {
     await act(async () => press(label)!.props.onPress());
     expect(press(label)).toBeUndefined();
@@ -36,4 +39,6 @@ it('opens every scene from its visible name, draws it, and comes back with "Naza
   }
   expect(mockData).not.toHaveBeenCalled();
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
-});
+// It walks every scene (about 30) in one test, as the other boards' suites do: a longer budget than a single screen, so a
+// loaded machine does not fail it at Jest's 5 s default (seen twice in the round-5 review).
+}, 60_000);
