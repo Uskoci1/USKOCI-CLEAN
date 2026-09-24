@@ -38,7 +38,8 @@ test('account ABA drops late private rows, old navigation and old filters', asyn
   await act(async () => { old.onSection('history'); old.onConfirmationOnly(true); });
   mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
   mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
-  await act(async () => { late.resolve([{ id: 'retired-private' }]); old.onCalendar(); old.onSection('all'); });
+  // "Svi" is gone (round-1 critique A11); a retained section change is refused the same way.
+  await act(async () => { late.resolve([{ id: 'retired-private' }]); old.onCalendar(); old.onSection('history'); });
   expect(props().items).toEqual([{ id: 'owned', verzija: 1 }]); expect(props().section).toBe('active');
   expect(props().confirmationOnly).toBe(false); expect(mockNavigate).not.toHaveBeenCalled();
 });
@@ -83,6 +84,36 @@ test('bounded read rejects a late result; explicit retry recovers without exposi
   await act(async () => jest.advanceTimersByTime(15_001)); expect(props().loading).toBe(false); expect(props().error).toBe(true);
   await act(async () => late.resolve([{ id: 'late-private' }])); expect(props().items).toEqual([]);
   await act(async () => props().onRefresh()); expect(props().error).toBe(false); expect(props().items[0].id).toBe('owned');
+});
+// Round-1 critique A2 (owner step 8): the rating strip on a finished Dogovor's card goes straight to the rating, the
+// route the Dogovor's own footer opens, behind the same guards as opening the card.
+describe('the rating strip', () => {
+  const finished = { id: '20000000-0000-4000-8000-000000000001', verzija: 1, stanje: 'COMPLETED', ocenaMoguca: true };
+  beforeEach(() => { mockRead.mockImplementation(async () => [finished, { id: 'live', verzija: 1, stanje: 'CONFIRMED', ocenaMoguca: false }]); });
+  test('opens the rating of that Dogovor once, saying where Back returns', async () => {
+    await render(); const shown = props();
+    await act(async () => { shown.onRate(shown.items[0]); shown.onRate(shown.items[0]); });
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: finished.id, from: 'dogovori' } });
+  });
+  test('refuses a Dogovor that has no rating to give, and a card from an older read', async () => {
+    await render(); const old = props();
+    await act(async () => old.onRate(old.items[1])); expect(mockNavigate).not.toHaveBeenCalled();
+    mockRead.mockResolvedValueOnce([{ ...finished, verzija: 2 }]);
+    await act(async () => props().onRefresh()); await act(async () => old.onRate(old.items[0]));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    await act(async () => props().onRate(props().items[0])); expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+  test('is refused while the screen is not focused, in the background, or after the account changed', async () => {
+    await render(); const old = props();
+    mockFocused = false; await update(); await act(async () => old.onRate(old.items[0]));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    mockFocused = true; await update(); const focused = props();
+    mockApp.currentState = 'background'; await act(async () => focused.onRate(focused.items[0]));
+    expect(mockNavigate).not.toHaveBeenCalled(); mockApp.currentState = 'active';
+    mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await act(async () => focused.onRate(focused.items[0]));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
 test('there is no mode to change: what used to reset the list on a switch now leaves its section and its callbacks alone', async () => {
   // Owner decision 1 (2026-09-19). One list holds both sides of one account, so nothing about the

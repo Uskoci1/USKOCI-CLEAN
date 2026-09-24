@@ -55,7 +55,10 @@ test('active and history preserve both actual participant roles; attention means
   expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
   await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
-  await tap('Svi'); expect(titles()).toHaveLength(5);
+  // Round-1 critique A11 (owner step 8): Aktivni and Istorija only. "Svi" repeated both sets and is gone.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Svi' })).toHaveLength(0);
+  // Nothing in history waits for a confirmation, so the filter is offered on Aktivni only.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka moju potvrdu' })).toHaveLength(0);
 });
 // Round 2c (verifier vf, must 2): since 2026-09-24 a missing name reaches the screens as an empty string. The card wrote
 // `inicijali ?? '—'` (which lets '' through) and the Dogovor printed it bare, so both drew an empty green disc. The one
@@ -70,7 +73,7 @@ test('a person without a name gets the drawn person, never an empty disc, on the
   expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]);
   expect(people()).toHaveLength(1); expect(emptyLetters()).toHaveLength(0);
   await act(async () => tree.unmount());
-  await act(async () => { tree = create(<AgreementPersonBar person={nameless.ucesnici[1]} state="CONFIRMED" back={() => {}} />); });
+  await act(async () => { tree = create(<AgreementPersonBar person={nameless.ucesnici[1]} back={() => {}} />); });
   expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]); expect(people()).toHaveLength(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<AgreementPeople agreement={nameless} />); });
@@ -79,10 +82,11 @@ test('a person without a name gets the drawn person, never an empty disc, on the
 });
 test('reuses full accepted amount, precise interval and coverage, without exposing contact or exact address', async () => {
   rows = [agreement('remote', 'CONFIRMED')]; rows[0].rezim = 'DALJINSKI'; rows[0].putanjaTekst = 'REMOTE_MUST_HIDE_LOCATION';
-  // V41 anatomy: the accepted term is the day with the time under it, split where the term itself says " · ",
+  // The accepted term is one full line (round-1 critique B15; it used to be split into a day and a time under it),
   // and the interval keeps every microsecond it was agreed with.
-  await render(); const text = texts(); expect(text).toContain('11. septembar 10:00:00.000001–10:00:00.000009'); expect(text).toContain('2.500 RSD'); expect(text).toContain('3'); expect(text).toContain('osobe');
-  expect(text).toContain('dogovoreno ukupno');
+  await render(); const text = texts(); expect(text).toContain('11. septembar · 10:00:00.000001–10:00:00.000009'); expect(text).toContain('2.500 RSD'); expect(text).toContain('3'); expect(text).toContain('osobe');
+  // The amount carries what it covers beside it, in one short word (it was "dogovoreno ukupno" under it).
+  expect(text).toContain('ukupno');
   expect(text).toContain('Na daljinu'); expect(text).not.toMatch(/PRIVATE_|REMOTE_MUST_HIDE_LOCATION/);
   await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
 });
@@ -105,19 +109,19 @@ test('a finished Dogovor that still waits for my rating stays among the active o
   await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']); expect(texts()).not.toContain('Čeka tvoju ocenu');
 });
 
-// V41 (owner, 2026-09-23): the underlined tabs carry their counts, one row counts what is shown, and a warm strip
-// across a card's foot appears only when that Dogovor waits for me.
+// V41 (owner, 2026-09-23): the underlined tabs carry their counts, and a foot on a card appears only when that
+// Dogovor waits for me. Round-1 critique A11 (owner step 8): the line under the tabs that counted again is gone.
 const card = (title: string) => tree.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === `Otvori Dogovor ${title}`)!;
 const cardTexts = (title: string) => card(title).findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-test('each set carries its count once the read settles, an empty one none, and the row counts what is shown', async () => {
+test('each set carries its count once the read settles, an empty one none, and no line counts it again', async () => {
   await render();
   expect(tree.root.findByType(Segmented).props.appearance).toBe('underline');
   expect(tree.root.findByType(Segmented).props.options.map((option: { key: string; badge?: number }) => [option.key, option.badge]))
-    .toEqual([['active', 3], ['history', 2], ['all', 5]]);
-  expect(texts()).toContain('3 Dogovora');
+    .toEqual([['active', 3], ['history', 2]]);
+  expect(texts()).not.toContain('3 Dogovora');
   rows = rows.filter(row => row.stanje !== 'COMPLETED' && row.stanje !== 'CANCELLED');
   await act(async () => tree.update(<Screen />));
-  expect(tree.root.findByType(Segmented).props.options.map((option: { badge?: number }) => option.badge)).toEqual([3, undefined, 3]);
+  expect(tree.root.findByType(Segmented).props.options.map((option: { badge?: number }) => option.badge)).toEqual([3, undefined]);
   await act(async () => tree.unmount()); loading = true; await render();
   expect(tree.root.findByType(Segmented).props.options.every((option: { badge?: number }) => option.badge === undefined)).toBe(true);
 });
@@ -140,7 +144,81 @@ test('a term that is missing stays one sentence and a missing place or amount is
   rows = [{ ...agreement('bare', 'CONFIRMED'), vremeTekst: 'Termin nije potvrđen', putanjaTekst: '', cena: { iznos: Number.NaN, valuta: 'RSD', prikaz: '' } }];
   await render(); const text = cardTexts('Posao bare');
   expect(text).toContain('Termin nije potvrđen'); expect(text).toContain('Mesto nije navedeno'); expect(text).toContain('Iznos nije sačuvan');
-  expect(text).not.toContain('dogovoreno ukupno');
+  expect(text).not.toContain('ukupno');
+});
+// Round-1 critique A3: a finished or cancelled Dogovor that never had a time is not waiting for one.
+test.each(['COMPLETED', 'CANCELLED'] as const)('a %s Dogovor without a time says "Bez tačnog termina", never "Termin nije potvrđen"', async state => {
+  rows = [{ ...agreement('over', state), vremeTekst: 'Termin nije potvrđen' }];
+  await render(); await tap('Istorija');
+  const text = cardTexts('Posao over');
+  expect(text).toContain('Bez tačnog termina'); expect(text).not.toContain('Termin nije potvrđen');
+  // The spoken card says the same words as the drawn one.
+  expect(card('Posao over').props.accessibilityValue.text).toContain('Bez tačnog termina');
+});
+// Round-1 critique B15: the date broke over three lines beside the amount. It is one full line now, and the zone note a
+// phone set outside Serbia carries stands on a quiet line of its own.
+test('the term is one full line and its zone note stands on its own line', async () => {
+  rows = [{ ...agreement('zone', 'CONFIRMED'), vremeTekst: '24. sep · 17:00–19:00 (po vremenu u Srbiji)' }];
+  await render();
+  const lines = card('Posao zone').findAllByType('T' as React.ElementType).map(node => node.children.filter(child => typeof child === 'string').join(''));
+  expect(lines).toContain('24. sep · 17:00–19:00'); expect(lines).toContain('Po vremenu u Srbiji');
+  expect(lines.some(line => line.includes('(po vremenu u Srbiji)'))).toBe(false);
+});
+// Round-1 critique B16: the whole card is the press, so it draws no caret of its own.
+test('a card draws no caret; the body is the one press that opens the Dogovor', async () => {
+  const { CaretRight } = require('phosphor-react-native');
+  await render();
+  expect(tree.root.findAllByType(CaretRight)).toHaveLength(0);
+});
+// Round-1 critique A13 applied to the card: "1 osoba" beside the one person the card already shows said them twice.
+test('a card says how many people only when it is more than the one person it shows', async () => {
+  rows = [{ ...agreement('one', 'CONFIRMED'), pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } }, agreement('three', 'CONFIRMED')];
+  await render();
+  const users = (title: string) => card(title).findAll(node => typeof node.type !== 'string' && node.props.kind === 'users');
+  expect(cardTexts('Posao one')).not.toContain('1 osoba'); expect(users('Posao one')).toHaveLength(0);
+  expect(cardTexts('Posao three')).toContain('3 osobe'); expect(users('Posao three')).toHaveLength(1);
+});
+
+// Round-1 critique A2 and B1 (owner step 8): the "Oceni saradnju" strip looked like a button and opened the Dogovor. It
+// is its own press now, straight to the rating the route guards, drawn on white under a hairline with an orange dot.
+describe('the rating strip is a press of its own', () => {
+  const rate = jest.fn();
+  const flat = (style: unknown): Record<string, unknown> => Array.isArray(style) ? Object.assign({}, ...style.map(flat)) : (style as Record<string, unknown>) ?? {};
+  function Rated() {
+    return <AgreementCollectionPresentation items={rows} loading={false} error={false} section="active" confirmationOnly={false}
+      onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRate={rate} onRefresh={refresh} onHome={tasks}
+      onCalendar={() => {}} onProfile={() => {}} />;
+  }
+  beforeEach(() => { rate.mockClear(); rows = [{ ...agreement('done-unrated', 'COMPLETED'), ocenaMoguca: true }, agreement('plain', 'CONFIRMED')]; });
+  test('it is labelled with the Dogovor, goes to the rating with that Dogovor, and never opens the Dogovor', async () => {
+    await act(async () => { tree = create(<Rated />); });
+    const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
+    expect(strip.type).toBe('Press'); expect(strip.props.accessibilityRole).toBe('button');
+    await act(async () => strip.props.onPress());
+    expect(rate).toHaveBeenCalledTimes(1); expect(rate).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
+    // The strip is a sibling of the body, never inside it, and the body no longer speaks the rating as its own hint.
+    expect(card('Posao done-unrated').findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' })).toHaveLength(0);
+    expect(card('Posao done-unrated').props.accessibilityHint).toBeUndefined();
+    expect(cardTexts('Posao done-unrated')).not.toContain('Oceni saradnju');
+    await act(async () => card('Posao done-unrated').props.onPress()); expect(open).toHaveBeenCalledWith(rows[0]); expect(rate).toHaveBeenCalledTimes(1);
+    // Only a Dogovor that waits for my rating has the strip.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao plain' })).toHaveLength(0);
+  });
+  test('it is drawn on white under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
+    const { sys } = require('../../ui/system/tokens');
+    await act(async () => { tree = create(<Rated />); });
+    const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
+    expect(flat(strip.props.style)).toMatchObject({ backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line });
+    const dots = strip.findAll(node => typeof node.type === 'string' && flat(node.props.style).backgroundColor === sys.color.orange);
+    expect(dots).toHaveLength(1); expect(flat(dots[0].props.style)).toMatchObject({ width: 8, height: 8 });
+    const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Oceni saradnju'))!;
+    expect(flat(words.props.style).color).toBe(sys.color.warn);
+    // No orange card edge and no orange fill anywhere on the list: the dot is the only orange.
+    const fills = tree.root.findAll(node => typeof node.type === 'string' && [sys.color.orange, sys.color.orangeSoft, sys.color.orangeHalo]
+      .includes(flat(node.props.style).backgroundColor as string) && flat(node.props.style).width !== 8);
+    expect(fills).toHaveLength(0);
+    expect(tree.root.findAll(node => [sys.color.orange, sys.color.orangeHalo].includes(flat(node.props.style).borderColor as string))).toHaveLength(0);
+  });
 });
 
 // Round-1 critique A12: the header is profile · mark · bell on all three tabs; the calendar is a view of these Dogovori,
@@ -171,21 +249,28 @@ test('the header is profile, mark and bell only, and the calendar ends the tab r
 });
 
 // Review r3 item 7: the filtered-empty view's one way forward must clear BOTH the set and the confirmation filter,
-// or "Prikaži sve Dogovore" could land on another empty view.
-test('"Prikaži sve Dogovore" shows every set and turns the confirmation filter off', async () => {
+// or it could land on another empty view. With "Svi" gone (A11) it leads to the set that holds Dogovori.
+test('an empty set leads to the set that holds Dogovori and turns the confirmation filter off', async () => {
   const onSection = jest.fn(), onConfirmationOnly = jest.fn();
   rows = [agreement('done', 'COMPLETED')];
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
     confirmationOnly onSection={onSection} onConfirmationOnly={onConfirmationOnly} onOpen={open} onRefresh={refresh} onHome={tasks}
     onCalendar={() => {}} onProfile={() => {}} />); });
-  expect(texts()).toContain('Nema Dogovora u ovom prikazu');
-  await act(async () => tree.root.findByProps({ label: 'Prikaži sve Dogovore' }).props.onPress());
-  expect(onSection).toHaveBeenCalledTimes(1); expect(onSection).toHaveBeenCalledWith('all');
+  expect(texts()).toContain('Nijedan Dogovor ne čeka tvoju potvrdu');
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj istoriju' }).props.onPress());
+  expect(onSection).toHaveBeenCalledTimes(1); expect(onSection).toHaveBeenCalledWith('history');
   expect(onConfirmationOnly).toHaveBeenCalledTimes(1); expect(onConfirmationOnly).toHaveBeenCalledWith(false);
   expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
   // Through the real screen state the same press leaves a list, not another empty view.
   await act(async () => tree.unmount());
   await render();
-  await act(async () => tree.root.findByProps({ label: 'Prikaži sve Dogovore' }).props.onPress());
+  expect(texts()).toContain('Nema aktivnih Dogovora');
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj istoriju' }).props.onPress());
   expect(titles()).toEqual(['Otvori Dogovor Posao done']);
+  // And back: an empty history leads to the active Dogovori.
+  await act(async () => tree.unmount());
+  rows = [agreement('live', 'CONFIRMED')]; await render(); await tap('Istorija');
+  expect(texts()).toContain('Još nema završenih Dogovora');
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
+  expect(titles()).toEqual(['Otvori Dogovor Posao live']);
 });

@@ -31,6 +31,39 @@ export function WorkspaceCard({ children, style, tone }: { children: ReactNode; 
   return <View style={[tinted ? [inset, s.tinted, { backgroundColor: toneSoft[tone!] }] : s.flat, style]}>{children}</View>;
 }
 
+export type AgreementStep = { tone: WorkspaceTone; title: string; body: string | null };
+
+/**
+ * Where the Dogovor stands and what comes next, as the one place that says its state (round-1 critique A13: the bar,
+ * the step and the people rows used to say it two or three times). The title is the state, or what waits when something
+ * does; the body is the next step. Pure words: the route decides what can be done, and nothing here enables an action.
+ *
+ * - `party`: I am one of the two sides (a Dogovor read for someone else says the state and nothing to do).
+ * - `change`: a proposal waits; `mine` is null when its content could not be read.
+ * - `deadline`: the server's confirmation window, already written, used only while the requester's answer is awaited.
+ */
+export function agreementNextStep({ state, party, worker, change, ownRating, problemOpen, deadline }: {
+  state: DogovorProjekcija['stanje']; party: boolean; worker: boolean;
+  change: { waits: boolean; mine: boolean | null };
+  ownRating: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE';
+  problemOpen: boolean; deadline: string;
+}): AgreementStep {
+  if (change.waits) return { tone: 'warn',
+    title: change.mine === true ? 'Tvoj predlog izmene čeka odgovor' : change.mine === false ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
+    body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' };
+  if (state === 'COMPLETED') return { tone: 'green', title: 'Dogovor je završen', body: !party ? null
+    : ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
+      : ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' };
+  if (state === 'CANCELLED') return { tone: 'muted', title: 'Dogovor je otkazan.', body: null };
+  if (state === 'AWAITING_REQUESTER') return { tone: 'warn', title: worker ? 'Čeka se potvrda druge strane' : 'Završetak je označen i čeka tvoju potvrdu',
+    body: problemOpen ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` };
+  // Confirmed: the state is the title and the next step its sentence. The title used to be the step, and the body
+  // then said the same step again ("Kada završiš, označi završetak. Kada završiš, označi završetak…").
+  return { tone: 'green', title: 'Dogovoreno', body: !party ? null : worker
+    ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
+    : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.' };
+}
+
 /**
  * Where the Dogovor stands and what comes next, said once: a dot in the state's colour and a sentence.
  * The eyebrow "Sledeći korak" is gone (owner, 2026-09-23: no copy explaining where you are); a soft

@@ -184,6 +184,84 @@ describe('D03 actual message component', () => {
     expect(entry.canAct()).toBe(false);
     expect(tree.root.findByType('SupportContextEntry' as React.ElementType).props.reference.revision).toBe(5);
   });
+  // Owner step 8: a calm, modern conversation. The other person on the left on the wash, mine on the right on pale green,
+  // the clock small and muted, a day named once above its messages, and a floating pill composer.
+  describe('the look of the conversation', () => {
+    const { sys } = require('../../ui/system/tokens');
+    const { messageMoment } = require('../../ui/AgreementChat');
+    const flat = (style: unknown): Record<string, unknown> => Array.isArray(style) ? Object.assign({}, ...style.map(flat)) : (style as Record<string, unknown>) ?? {};
+    const other = '10000000-0000-4000-8000-000000000002';
+    const message = (id: string, moja: boolean, telo: string, vremeTekst: string) => ({ id: `30000000-0000-4000-8000-00000000000${id}`, dogovorVerzija: 1,
+      clientMessageId: null, posiljalacAccountId: moja ? account : other, posiljalacIme: moja ? 'Ja' : 'Marko', moja, telo, vremeTekst, procitano: null });
+    const bubble = (sender: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === `Poruka: ${sender}`);
+    const lines = () => tree.root.findAll(node => String(node.type) === 'T').map(node => node.children.filter(child => typeof child === 'string').join(''));
+    it('reads the day and the clock from the words the read wrote, and invents no day', () => {
+      expect(messageMoment('23. sep · 14:05')).toEqual({ day: '23. sep', clock: '14:05' });
+      expect(messageMoment('23. sep 2025 · 09:00')).toEqual({ day: '23. sep 2025', clock: '09:00' });
+      expect(messageMoment('14:05')).toEqual({ day: 'Danas', clock: '14:05' });
+      expect(messageMoment('sada')).toEqual({ day: null, clock: 'sada' });
+    });
+    it('names each day once above its messages and puts only the clock in a bubble', async () => {
+      await render({ messages: [message('1', false, 'Stižem u 10.', '23. sep · 09:40'), message('2', true, 'Važi.', '23. sep · 09:41'),
+        message('3', false, 'Evo me.', '10:02'), message('4', false, 'Kod ulaza sam.', '10:03')] });
+      const days = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
+      expect(days).toEqual(['23. sep', 'Danas']);
+      expect(lines()).toEqual(expect.arrayContaining(['09:40', '09:41', '10:02', '10:03']));
+      expect(lines().some(line => line.includes('23. sep ·'))).toBe(false);
+    });
+    it('draws the other person left on the wash and mine right on pale green, the clock small and muted, no name in the bubble', async () => {
+      await render({ messages: [message('1', false, 'Zdravo', '10:00'), message('2', true, 'Ćao', '10:01')] });
+      expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.color.wash });
+      expect(flat(bubble('Ja')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft });
+      // The name is heard with the bubble, not drawn in it: the bar above already names the person.
+      expect(lines()).not.toContain('Marko');
+      const clock = tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('10:00'))[0];
+      expect(flat(clock.props.style)).toMatchObject({ fontSize: 12, color: sys.color.muted });
+      expect(texts()).not.toContain('Povuci naniže');
+    });
+    it('writes in one floating pill: a green send when a message can go, a grey one that is never faded when it cannot', async () => {
+      await render();
+      const send = button('Pošalji poruku');
+      expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
+      const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
+      expect(circle(send).backgroundColor).toBe(sys.color.green); expect(flat(send.props.style).opacity).toBeUndefined();
+      const pill = send.parent!;
+      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.color.wash, borderRadius: sys.radius.sheet });
+      expect(pill.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(1);
+      await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '' }} />));
+      expect(button('Pošalji poruku').props.disabled).toBe(true);
+      expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.control);
+    });
+    it('keeps the photo tools behind the pill\'s "+" and never hides a chosen photo', async () => {
+      const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, items: [], message: null,
+        versionConflict: false, canSubmit: () => false, capture: () => null, refresh: jest.fn() } as any;
+      await render({ photos });
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false });
+      await act(async () => button('Fotografije uz poruku').props.onPress());
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true });
+      await act(async () => button('Fotografije uz poruku').props.onPress());
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
+      await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
+      // A closed Dogovor draws no photo tools at all.
+      await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} photos={{ ...photos, hasSelection: true }} />));
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Fotografije uz poruku' })).toHaveLength(0);
+    });
+    it('keeps a failed send in place with its reason and the retry of that exact message', async () => {
+      await render({ messages: [message('1', false, 'Zdravo', '10:00')],
+        state: { ...state, entries: [{ command, state: 'failed', error: 'UNAVAILABLE', persisted: true, attempt: 2 }] } });
+      expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Slanje još nije potvrđeno.');
+      await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+      expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId); expect(props.refresh).toHaveBeenCalledTimes(1);
+    });
+    it('says a closed Dogovor is closed, true of a finished and of a cancelled one', async () => {
+      await render({ terminal: true, writable: false });
+      expect(texts()).toContain('Dogovor je zatvoren · poruke su samo za čitanje.'); expect(texts()).not.toContain('završen');
+    });
+  });
   it('does not select an unconfirmed local outbox item, failed read, or missing message version', async () => {
     const support = { canAct: () => true, navigate: jest.fn() };
     await render({ support, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] },

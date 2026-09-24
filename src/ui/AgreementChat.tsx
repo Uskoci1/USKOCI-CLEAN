@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { PaperPlaneTilt } from 'phosphor-react-native';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
@@ -7,6 +7,7 @@ import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
+import { FactArt } from './system/FactArt';
 import { sys } from './system/tokens';
 import { T } from './Text';
 import { positiveInteger, uuid } from '../data/serverReceipt';
@@ -41,21 +42,40 @@ const errors: Record<OutboxError, string> = {
   NOT_READY: 'Sačekaj da se učitaju sačuvane poruke.',
 };
 
+/** A command in the conversation (send, the "+", retry) is at least 48 high; the touch token is the 44 of a row. */
+const COMMAND = 48;
+const CLOCK = /^\d{1,2}:\d{2}$/;
+/**
+ * The day a message belongs to and its clock, from the words the message read already wrote (`vreme`, "24. sep · 14:05",
+ * and a bare "14:05" for a message of today). Nothing is recomputed from a device clock: a text in any other shape keeps
+ * its words as the time and opens no day of its own, so a day separator never says something the read did not.
+ */
+export function messageMoment(text: string): { day: string | null; clock: string } {
+  const at = text.lastIndexOf(' · ');
+  if (at > 0) return { day: text.slice(0, at), clock: text.slice(at + 3) };
+  return CLOCK.test(text.trim()) ? { day: 'Danas', clock: text.trim() } : { day: null, clock: text };
+}
+
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
-function ChatAction({ label, text = label, onPress, tone = 'green' }: { label: string; text?: string; onPress: () => void; tone?: 'green' | 'ink' }) {
-  return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress} style={s.chatAction}>
+function ChatAction({ label, text = label, onPress, tone = 'green', center = false }: { label: string; text?: string; onPress: () => void;
+  tone?: 'green' | 'ink'; center?: boolean }) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress} style={[s.chatAction, center && s.center]}>
     <T variant="action" style={{ color: tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
   </Press>;
 }
 
 /**
- * Agreement conversation. Own messages sit right in a soft green bubble, the other
- * party's sit left on white; pending sends render under the list with their real
- * outbox state (never a text-match guess). The composer stays above the keyboard.
+ * The conversation of a Dogovor, calm and modern (owner step 8): the other person's messages on the left on the quiet
+ * wash, mine on the right on pale green, each with its clock small and muted, a day named once above its messages, and
+ * a floating pill to write in, in the look of the AI conversation's composer (text and send, with the photo tools behind
+ * its "+"). Pending sends render under the list with their real outbox state (never a text-match guess), and no delivery
+ * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos }: Props) {
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
+  // The photo tools stay behind the pill's "+" until asked for, or while a photo is chosen, prepared or explained.
+  const [attachOpen, setAttachOpen] = useState(false);
   const list = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const initialScroll = useRef(true);
@@ -98,81 +118,103 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         ? { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } : undefined)
       && (!entry.messageId || message.id === entry.messageId)));
   const denied = state.entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
+  // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists.
+  const photoPanel = !!photos && !terminal && (attachOpen || photos.hasSelection || !!photos.items?.length || !!photos.message || !!photos.versionConflict);
+  const shown = !error ? messages : [];
+  const empty = !loading && !error && messages.length === 0 && local.length === 0;
+  let previousDay: string | null = null;
   return (
     <View style={s.screen}>
       <ScrollView ref={list} keyboardShouldPersistTaps="handled" onContentSizeChange={followLatest} onLayout={followLatest}
         scrollEventThrottle={100} onScroll={({ nativeEvent: event }) => {
           nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
         }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} />}
-        contentContainerStyle={s.list}>
-        {/* The tab already says this is the conversation; the one useful line is how new messages arrive. */}
-        <T variant="meta" tone="muted" style={s.center}>Povuci naniže za nove poruke.</T>
-        {loading && <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} />}
-        {error && <View style={s.errorBlock}>
-          <T variant="bodyStrong" style={s.ink}>Poruke nisu učitane</T>
-          <T variant="meta" tone="muted">Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
-          <Press accessibilityRole="button" accessibilityLabel="Ponovo učitaj poruke" haptic="select" onPress={() => void refresh()} style={s.chatAction}>
-            <T variant="action" style={{ color: sys.color.green }}>Pokušaj ponovo</T>
-          </Press>
-        </View>}
-        {!loading && !error && messages.length === 0 && local.length === 0 &&
-          <View style={[s.emptyCopy, { gap: 6, alignItems: 'center' }]}>
-            {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
-            {terminal ? <T variant="copy" tone="muted" style={s.center}>U ovom Dogovoru nije bilo poruka.</T> : <>
-            <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>Napiši prvu poruku</T>
-            <T variant="copy" tone="muted" style={s.center}>Dogovor je potvrđen. Ovde dogovaraš detalje sa drugom stranom — poruke vide samo učesnici ovog Dogovora.</T></>}
-          </View>}
-        {!error && messages.map(message => <Press key={message.id} accessibilityRole="button"
-          accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."
-          onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
-          style={[s.bubble, message.moja ? s.mine : s.theirs]}>
-          {!message.moja && <T variant="meta" style={s.sender}>{message.posiljalacIme}</T>}
-          <T selectable variant="body" style={s.ink}>{message.telo}</T>
-          {message.fotografije?.map((photo, index) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
-            agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${index + 1}`}
-            style={s.photo} /> : null)}
-          <T variant="label" style={s.time}>{message.vremeTekst}</T>
-          {/* This stood under every message, full width, doubling the height of the transcript. It
-              belongs to the message a person actually wants to report, which is the one they hold. */}
-          {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
-            reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
-            label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
-              ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
-            canAct={supportCurrent} navigate={support.navigate} /> : null}
-        </Press>)}
-        {local.map(entry => <View key={entry.command.clientMessageId} style={[s.bubble, s.mine, entry.state === 'failed' && s.failed]}>
-          <T selectable variant="body" style={s.ink}>{entry.command.body}</T>
-          {entry.command.photos?.assetIds.map((assetId, index) => <AuthorizedPhoto key={assetId} assetId={assetId}
-            agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${index + 1}`}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
+        contentContainerStyle={[s.list, empty || error ? s.listCentred : s.listBottom]}>
+        {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
+        {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
+          <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
+          <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
+          <T variant="note" tone="muted" style={s.centerText}>Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
+          <ChatAction label="Ponovo učitaj poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center />
+        </View> : null}
+        {empty ? <View style={s.stateBlock}>
+          <View style={s.stateArt}><FactArt kind="chat" size={40} muted={terminal} /></View>
+          {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
+          {terminal ? <T variant="copy" tone="muted" style={s.centerText}>U ovom Dogovoru nije bilo poruka.</T> : <>
+            <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
+            <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T></>}
+        </View> : null}
+        {shown.map((message, index) => {
+          const moment = messageMoment(message.vremeTekst);
+          const newDay = moment.day !== null && moment.day !== previousDay;
+          if (moment.day !== null) previousDay = moment.day;
+          // Messages of one person in a row sit close; a turn of the conversation leaves air.
+          const before = shown[index - 1];
+          const sameRun = !!before && !newDay && before.moja === message.moja;
+          return <Fragment key={message.id}>
+            {newDay ? <T accessibilityRole="header" style={s.day}>{moment.day}</T> : null}
+            <Press accessibilityRole="button" accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."
+              onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
+              style={[s.bubble, message.moja ? s.mine : s.theirs, sameRun ? s.run : s.turn]}>
+              {message.telo ? <T selectable style={s.body}>{message.telo}</T> : null}
+              {message.fotografije?.map((photo, photoIndex) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
+                agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${photoIndex + 1}`}
+                style={s.photo} /> : null)}
+              <T style={s.time}>{moment.clock}</T>
+              {/* This stood under every message, full width, doubling the height of the transcript. It
+                  belongs to the message a person actually wants to report, which is the one they hold. */}
+              {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
+                reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
+                label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
+                  ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
+                canAct={supportCurrent} navigate={support.navigate} /> : null}
+            </Press>
+          </Fragment>;
+        })}
+        {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
+            unconfirmed send may be older than today). */}
+        {local.map((entry, index) => <View key={entry.command.clientMessageId}
+          style={[s.bubble, s.mine, entry.state === 'failed' && s.failed, index || shown[shown.length - 1]?.moja ? s.run : s.turn]}>
+          {entry.command.body ? <T selectable style={s.body}>{entry.command.body}</T> : null}
+          {entry.command.photos?.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
+            agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
             style={s.photo} />)}
-          <T variant="label" style={[s.time, entry.state === 'failed' && s.timeFailed]} accessibilityLiveRegion="polite">
+          <T style={[s.time, entry.state === 'failed' && s.timeFailed]} accessibilityLiveRegion="polite">
             {entry.state === 'sending' ? 'Šalje se…' : entry.state === 'confirmed' ? 'Poslato'
               : entry.state === 'unknown' ? 'Slanje nije potvrđeno' : 'Nije poslato'}
           </T>
-          {entry.state === 'failed' && entry.error && <T variant="meta" tone="muted">{errors[entry.error]}</T>}
+          {entry.state === 'failed' && entry.error ? <T variant="meta" tone="muted">{errors[entry.error]}</T> : null}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
             <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone="ink"
               onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }} />}
         </View>)}
       </ScrollView>
       <View style={s.composerArea}>
-        {state.error && <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T>}
-        {state.phase === 'error' && <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} />}
-        {/* A finished Dogovor keeps its conversation to read; the composer, the photo tools and the refresh helper
-            used to stay under it, a third of the screen with nothing to do (emulator, 2026-09-23). One line remains. */}
-        {terminal && <T variant="meta" tone="muted" style={s.center}>Dogovor je završen · poruke su samo za čitanje.</T>}
-        {!terminal && !writable && <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T>}
-        {!terminal && (!writable || denied) && <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} />}
-        {!terminal && length > 2000 && <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T>}
-        {photos && !terminal ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
-        {terminal ? null : <View style={[s.composer, !writable && s.composerLocked]}>
+        {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
+        {state.phase === 'error' ? <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} /> : null}
+        {/* A closed Dogovor keeps its conversation to read; the composer, the photo tools and the refresh helper
+            used to stay under it, a third of the screen with nothing to do (emulator, 2026-09-23). One line remains.
+            It says "zatvoren", which is true of a finished and of a cancelled Dogovor alike. */}
+        {terminal ? <T variant="meta" tone="muted" style={s.centerText}>Dogovor je zatvoren · poruke su samo za čitanje.</T> : null}
+        {!terminal && !writable ? <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}
+        {!terminal && (!writable || denied) ? <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
+        {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
+        {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
+        {terminal ? null : <View style={s.pill}>
+          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku" accessibilityState={{ expanded: photoPanel }}
+            onPress={() => setAttachOpen(open => !open)} haptic="select" style={s.tool}>
+            {photoPanel && attachOpen ? <X size={22} color={sys.color.ink} /> : <Plus size={22} color={sys.color.ink} />}
+          </Press> : null}
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
-            accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted} style={s.input} />
+            accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
+            style={[s.input, !photos && s.inputAlone]} />
           <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
-            accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'}
-            style={[s.send, canSend && s.sendReady]}>
-            <PaperPlaneTilt size={22} color={canSend ? sys.color.surface : sys.color.muted}  weight="fill" />
+            accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} style={s.sendArea}>
+            <View style={[s.send, canSend && s.sendReady]}>
+              {state.capturing ? <ActivityIndicator color={sys.color.muted} />
+                : <PaperPlaneTilt size={20} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
+            </View>
           </Press>
         </View>}
       </View>
@@ -182,21 +224,36 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  list: { padding: 18, gap: 10, flexGrow: 1 },
-  center: { textAlign: 'center' }, emptyCopy: { padding: 20 }, ink: { color: sys.color.ink },
-  errorBlock: { gap: 8, alignItems: 'center', padding: 12 },
-  chatAction: { minHeight: sys.touch.min, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
-  bubble: { maxWidth: '88%', borderRadius: sys.radius.card, padding: 12, gap: 4 },
-  mine: { alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 6 },
-  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, borderBottomLeftRadius: 6 },
+  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1 },
+  // A short conversation sits on the composer, where a reply is written; a state stands in the middle.
+  listBottom: { justifyContent: 'flex-end' },
+  listCentred: { justifyContent: 'center' },
+  loading: { paddingVertical: 24 },
+  center: { alignSelf: 'center' }, centerText: { textAlign: 'center' }, ink: { color: sys.color.ink },
+  stateBlock: { gap: 8, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 },
+  stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
+  day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
+  bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
+  // A turn of the conversation leaves air; the next message of the same person sits close under the last.
+  turn: { marginTop: 12 }, run: { marginTop: 4 },
+  mine: { alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 8 },
+  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.wash, borderBottomLeftRadius: 8 },
   failed: { backgroundColor: sys.color.dangerSoft },
-  sender: { color: sys.color.green, fontWeight: '600' },
+  body: { fontSize: 16, lineHeight: 22, color: sys.color.ink },
   photo: { width: 220, maxWidth: '100%' },
-  time: { color: sys.color.muted, textAlign: 'right', fontWeight: '500', letterSpacing: 0 }, timeFailed: { color: sys.color.danger },
-  composerArea: { padding: 16, paddingTop: 10, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 12, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
-  composerLocked: { backgroundColor: sys.color.wash },
-  input: { flex: 1, minHeight: sys.touch.min, maxHeight: 140, ...sys.type.body, color: sys.color.ink, paddingVertical: 10 },
-  send: { width: sys.touch.min, height: sys.touch.min, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
-  sendReady: { backgroundColor: sys.color.ink },
+  time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
+  timeFailed: { color: sys.color.danger },
+  // The composer floats: no rule above it, only air around one soft pill.
+  composerArea: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: sys.color.surface },
+  pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
+  tool: { width: COMMAND, height: COMMAND, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minHeight: COMMAND, maxHeight: 140, fontSize: 16, lineHeight: 22, color: sys.color.ink, paddingHorizontal: 4,
+    paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' },
+  inputAlone: { paddingHorizontal: 14 },
+  // The send is a 48 px target around a 40 px circle: green with a white glyph when a message can go, a grey well
+  // with a muted glyph when it cannot (never faded), a quiet spinner while photos are being captured.
+  sendArea: { width: COMMAND, height: COMMAND, alignItems: 'center', justifyContent: 'center' },
+  send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
+  sendReady: { backgroundColor: sys.color.green },
 });

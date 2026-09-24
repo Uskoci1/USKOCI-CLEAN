@@ -8,8 +8,8 @@ import { T } from '../../ui/Text';
 import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, agreementStateText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows } from '../../ui/agreements/AgreementWorkspace';
+import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, agreementNextStep } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
@@ -292,18 +292,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
       : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
         : { label: 'Otvori poruke', onPress: openMessages };
-  const nextStep = changeWaits ? { tone: 'warn' as const,
-    title: pendingChange?.moj ? 'Tvoj predlog izmene čeka odgovor' : pendingChange ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
-    body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' }
-    : dogovor.stanje === 'COMPLETED' ? { tone: 'green' as const, title: 'Dogovor je završen', body: !me ? null
-      : dogovor.ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
-        : dogovor.ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' }
-    : dogovor.stanje === 'CANCELLED' ? { tone: 'muted' as const, title: 'Dogovor je otkazan.', body: null }
-      : dogovor.stanje === 'AWAITING_REQUESTER' ? { tone: 'warn' as const, title: worker ? 'Čeka se potvrda druge strane' : 'Završetak je označen i čeka tvoju potvrdu',
-        body: dogovor.problemOtvoren ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` }
-        : { tone: 'green' as const, title: worker ? 'Kada završiš, označi završetak' : 'Potvrdi završetak kada je posao obavljen',
-          body: !me ? null : worker ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
-            : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.' };
+  // The one place the state is said (round-1 critique A13); the words live beside the step card.
+  const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null },
+    ownRating: dogovor.ownRating, problemOpen: dogovor.problemOtvoren, deadline });
   const problemPanel = report ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
@@ -342,13 +333,16 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {/* V41: the bar names the person this Dogovor is with, on both tabs, and says its state under the name.
-          Only a Dogovor that does not name the other side keeps the word "Dogovor" and its state. */}
-      {other ? <AgreementPersonBar person={other} state={dogovor.stanje} back={backToAgreements} />
-        : <ProductHeader back={backToAgreements} subtitle={agreementStateText(dogovor.stanje)} title="Dogovor" />}
+      {/* The bar names the person this Dogovor is with, on both tabs, and what they are to me under the name. The state
+          is said once, by the step under the terms (round-1 critique A13). Only a Dogovor that does not name the other
+          side keeps the word "Dogovor". */}
+      {other ? <AgreementPersonBar person={other} back={backToAgreements} />
+        : <ProductHeader back={backToAgreements} title="Dogovor" />}
+      {/* The tabs stand right under the bar on both tabs, so switching never moves them; the terms' summary is the
+          conversation's own head, under them. */}
       <View style={s.tabs}>
-        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
         <AgreementTabs tab={tab} onChange={setTab} />
+        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
       </View>
       {tab === 'poruke' ? <AgreementChat messages={namedMessages} loading={messages.loading} error={messages.error}
         writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
@@ -370,18 +364,20 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
             </View> : null}
           </NextStepCard>
-          <AgreementPeople agreement={dogovor} />
+          {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
+          {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
           {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <WorkspaceRows>
             {/* PKG-048: where this Dogovor came from. The server says so only since 2026-09-23, so a reader
                 that does not carry the ids offers nothing here rather than a row that leads nowhere. Each
-                side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava. */}
-            {dogovor.izvor?.zadatakId ? <WorkspaceRow art="tasks" label="Zadatak iz kog je nastao Dogovor"
-              hint={requester ? 'Tvoj zadatak: opis, prijave i izmene' : 'Zadatak za koji je tvoja ponuda'} disabled={!enabled}
+                side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava.
+                The rows are named for what they open, with no sentence under them (round-1 critique A14). */}
+            {dogovor.izvor?.zadatakId ? <WorkspaceRow art="tasks" label="Zadatak" disabled={!enabled}
               onPress={() => { const needId = dogovor.izvor?.zadatakId; if (!needId || !formCurrent()) return;
                 router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
                   : { pathname: '/prilike/[id]', params: { id: needId } }); }} /> : null}
-            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow art="offers" label="Tvoja ponuda" hint="Cena, obim i poruka iz tvoje prijave" disabled={!enabled}
+            {/* The requester has no screen that opens one Prijava by its id, so no "Prijava" row is drawn for them. */}
+            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow art="offers" label="Tvoja prijava" disabled={!enabled}
               onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
                 router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
             {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);

@@ -46,10 +46,14 @@ appId: rs.uskoci.dev
     text: "Dogovori"
     optional: true
 - takeScreenshot: 06-dogovori-aktivni
+# Aktivni and Istorija only since owner step 8 (round-1 critique A11); "Svi" is gone.
 - tapOn:
-    text: "Svi"
+    text: "Istorija"
     optional: true
-- takeScreenshot: 07-dogovori-svi
+- takeScreenshot: 07-dogovori-istorija
+- tapOn:
+    text: "Aktivni"
+    optional: true
 
 # A card names the Dogovor it opens ("Otvori Dogovor <naslov>"), so the first one can be opened
 # without knowing whose account this is. Opening it changes nothing.
@@ -60,10 +64,11 @@ appId: rs.uskoci.dev
 - scroll
 - takeScreenshot: 09-dogovor-radnje
 
-# PKG-048: the two rows that say where this Dogovor came from. Present only on a build whose server
-# carries the links, so the assertion is optional and the picture is the evidence either way.
+# PKG-048: the two rows that say where this Dogovor came from ("Zadatak", and "Tvoja prijava" for the worker).
+# Present only on a build whose server carries the links, so the assertion is optional and the picture is the
+# evidence either way.
 - assertVisible:
-    text: "Zadatak iz kog je nastao Dogovor"
+    text: "Zadatak"
     optional: true
 - takeScreenshot: 10-dogovor-izvor
 

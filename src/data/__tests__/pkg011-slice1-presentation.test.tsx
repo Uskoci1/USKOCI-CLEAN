@@ -92,7 +92,8 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   const rows = [agreement('a', 'CONFIRMED'), agreement('b', 'AWAITING_REQUESTER')]; rows[1].problemOtvoren = true;
   await act(async () => { tree = create(<Agreements rows={rows} />); });
   const copy = texts();
-  expect(copy).not.toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('2.500 RSD'); expect(copy).toContain('1 osoba');
+  // A card no longer says "1 osoba" beside the one person it already shows (round-1 critique A13, owner step 8).
+  expect(copy).not.toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('2.500 RSD'); expect(copy).not.toContain('1 osoba');
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Dogovori')).length).toBeGreaterThan(0);
   expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.

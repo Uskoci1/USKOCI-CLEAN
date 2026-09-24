@@ -60,16 +60,27 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
   const navigate = (action: () => void) => {
     if (current() && !navigating.current) { navigating.current = true; action(); }
   };
-  const open = (agreement: DogovorProjekcija) => {
+  // A card is acted on only while it is a row of the list on screen: a retained card from an older read is refused.
+  const shown = (agreement: DogovorProjekcija) => {
     const value = latest.current;
-    if (value.loading || value.error || value.data !== resource.data || !value.data?.includes(agreement)) return;
+    return !value.loading && !value.error && value.data === resource.data && !!value.data?.includes(agreement);
+  };
+  const open = (agreement: DogovorProjekcija) => {
+    if (!shown(agreement)) return;
     navigate(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreement.id } }));
+  };
+  // The rating strip of a finished Dogovor goes straight to its rating (round-1 critique A2), the same route the
+  // Dogovor's own footer opens, behind the same guards. The list offers it only while the Dogovor says the rating is
+  // possible; the rating screen reads for itself whether mine is still due. `from` names where Back returns.
+  const rate = (agreement: DogovorProjekcija) => {
+    if (!shown(agreement) || agreement.stanje !== 'COMPLETED' || !agreement.ocenaMoguca) return;
+    navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
   return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     section={section} confirmationOnly={confirmationOnly}
     onSection={value => { if (current()) setSection(value); }}
     onConfirmationOnly={value => { if (current()) setConfirmationOnly(value); }}
-    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
+    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onHome={() => navigate(() => router.navigate('/'))} />;
