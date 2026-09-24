@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt } from 'phosphor-react-native';
+import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt, Plus } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -20,6 +20,7 @@ export type AiConversationShellProps = {
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void; onOptions: () => void;
+  onAdd?: () => void; addDisabled?: boolean; addLabel?: string;
   status?: ReactNode; actions?: ReactNode; voice?: ReactNode; children?: ReactNode;
   /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
   openings?: readonly string[];
@@ -120,24 +121,37 @@ export function AiConversationShell(p: AiConversationShellProps) {
             A draft also opens it unprompted, because speech lands here for review before
             sending and must never end up somewhere the user cannot see it. */}
         {draft ? <View style={s.composer}>
-          <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.composerWell}
-            onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
-            <Microphone size={23} color={sys.color.green} weight="bold" /></Press>
+          {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
+            accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
+            haptic={p.addDisabled ? 'none' : 'select'} style={[s.composerWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
+            <Plus size={24} color={sys.color.ink} weight="bold" /></Press> : null}
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
-            placeholder="Napiši šta ti treba ili šta da promenim…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
+            placeholder="Napiši šta ti treba…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
+          {p.voice ? <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.voiceSwitch}
+            onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
+            <Microphone size={22} color={sys.color.green} weight="bold" /></Press> : null}
           <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press>
         </View> : null}
         {p.voice && !draft ? <View testID="ai-composer-bar" style={s.bar}>
-          <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
-            onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
-            <KeyboardIcon size={23} color={sys.color.ink} /></Press>
+          {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
+            accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
+            haptic={p.addDisabled ? 'none' : 'select'} style={[s.barWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
+            <Plus size={24} color={sys.color.ink} weight="bold" /></Press> :
+            <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
+              onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
+              <KeyboardIcon size={23} color={sys.color.ink} /></Press>}
           <View style={s.barCentre}>{p.voice}</View>
-          <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.barWell}
-            onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
-            <Info size={23} color={sys.color.muted} /></Press>
+          <View style={s.barRight}>
+            {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.smallWell}
+              onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
+              <KeyboardIcon size={21} color={sys.color.ink} /></Press> : null}
+            <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.smallWell}
+              onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
+              <Info size={21} color={sys.color.muted} /></Press>
+          </View>
         </View> : null}
       </View>
     </KeyboardAvoidingView>
@@ -213,8 +227,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: a.color.cardLine, shadowColor: a.color.ink, shadowOpacity: 0.08,
     shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
   barCentre: { flex: 1, minWidth: 0, alignItems: 'center' },
+  barRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   barWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
+  smallWell: { width: 42, height: 42, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   composerWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
+  voiceSwitch: { width: 42, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   composer: { flexDirection: 'row', gap: 6, alignItems: 'flex-end', minHeight: 64, borderRadius: 32,
     borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.surface, paddingVertical: 6, paddingHorizontal: 7,
     shadowColor: a.color.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
