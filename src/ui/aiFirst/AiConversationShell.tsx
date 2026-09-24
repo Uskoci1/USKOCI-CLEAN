@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DotsThree, Info, Keyboard as KeyboardIcon, Microphone, PaperPlaneTilt, Plus } from 'phosphor-react-native';
+import { DotsThree, Info, Microphone, PaperPlaneTilt, Plus } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -148,20 +148,16 @@ export function AiConversationShell(p: AiConversationShellProps) {
             {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
               accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
               haptic={p.addDisabled ? 'none' : 'select'} style={[s.barWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
-              <Plus size={24} color={sys.color.ink} weight="bold" /></Press> :
-              <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
-                onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
-                <KeyboardIcon size={23} color={sys.color.ink} /></Press>}
-          </> : null}
-          <View style={[s.barCentre, p.voiceActive && s.barCentreActive]}>{p.voice}</View>
-          {!p.voiceActive ? <View style={s.barRight}>
-            {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.smallWell}
+              <Plus size={24} color={sys.color.ink} weight="bold" /></Press> : null}
+            <Press accessibilityRole="button" accessibilityLabel="Napiši poruku" haptic="select" style={s.voicePrompt}
               onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
-              <KeyboardIcon size={21} color={sys.color.ink} /></Press> : null}
-            <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.smallWell}
-              onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
-              <Info size={21} color={sys.color.muted} /></Press>
-          </View> : null}
+              <T variant="body" tone="muted" numberOfLines={1}>Napiši šta ti treba…</T>
+            </Press>
+          </> : null}
+          <View style={[s.voiceSlot, p.voiceActive && s.voiceSlotActive]}>{p.voice}</View>
+          {!p.voiceActive ? <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.smallWell}
+            onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
+            <Info size={20} color={sys.color.muted} /></Press> : null}
         </Animated.View> : null}
       </View>
     </KeyboardAvoidingView>
@@ -237,11 +233,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: a.color.cardLine, shadowColor: a.color.ink, shadowOpacity: 0.08,
     shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
   barActive: { justifyContent: 'center', paddingHorizontal: 10 },
-  barCentre: { flex: 1, minWidth: 0, alignItems: 'center' },
-  barCentreActive: { width: '100%' },
-  barRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  voicePrompt: { flex: 1, minWidth: 48, minHeight: 48, justifyContent: 'center', paddingHorizontal: 10, borderRadius: sys.radius.pill },
+  voiceSlot: { flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  voiceSlotActive: { flex: 1, width: '100%' },
   barWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
-  smallWell: { width: 42, height: 42, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
+  smallWell: { width: 38, height: 38, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   composerWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
   voiceSwitch: { width: 42, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   composer: { flexDirection: 'row', gap: 6, alignItems: 'flex-end', minHeight: 64, borderRadius: 32,
