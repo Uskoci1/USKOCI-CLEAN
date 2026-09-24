@@ -16,7 +16,7 @@ export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'tomorrow', 'week'];
 export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Bilo gde'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
 export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Sve'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']];
 /** The one reset of the search, on the panel and on the empty list alike. */
-export const CLEAR_ALL = 'Obriši sve';
+export const CLEAR_ALL = 'Obriši uslove';
 /** What removes one condition that is on (a chip under the count). */
 export const removeWords = (label: string) => `Ukloni uslov: ${label}`;
 /** Where the list is narrowed to one public point (a place's "Prikaži sve u listi"). */

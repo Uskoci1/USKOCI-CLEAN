@@ -32,7 +32,7 @@ import { MarketplacePresentation } from '../../ui/v2/MarketplacePresentation';
  *     absent in discovery-presentation ("one screen", "my own tasks are simply not listed");
  *   - search over the map, applied price filter, area, filter draft, "Dodaj zadatak", pin card: discovery-presentation;
  *   - the discovery header name, stale cards while reading or failing, reduced motion, no GPS wording, the brand action
- *     in the filter sheet and "Poništi filtere" keeping the map: zadaci-guards-from-marketplace;
+ *     in the filter sheet and "Obriši uslove" keeping the map: zadaci-guards-from-marketplace;
  *   - discovery cards carry no applications foot: marketplace-owned-screens and task-card-face.
  */
 const row = (id: string, patch = {}): MarketplaceItem => ({ id, revizija: 1, naslov: `Pomoć ${id}`, opis: '', stanje: 'OBJAVLJENA', podrucjeTekst: 'Novi Sad',
@@ -136,10 +136,10 @@ test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding 
  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
 });
 // Review r3 item 7: the filtered-empty view's one way forward clears what was chosen, and only that.
-test('"Poništi filtere" clears search, price, attention and section, and asks for nothing', async () => {
+test('"Obriši uslove" clears search, price, attention and section, and asks for nothing', async () => {
  Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', attention: true, section: 'drafts' });
  await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await click('Poništi filtere');
+ await click('Obriši uslove');
  expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
  expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
 });

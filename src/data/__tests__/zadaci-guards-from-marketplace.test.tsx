@@ -123,11 +123,11 @@ test('the search panel offers price modes as radios and its apply action is the 
 // From marketplace-presentation (review r3 item 7): the filtered-empty view's one way forward clears what was chosen,
 // and only that. Where the map stands is not a filter, and neither is where the list sheet rests (Discovery V47 keeps
 // it in the view).
-test('"Obriši sve" clears search, price and area but keeps the map and where it stands', async () => {
+test('"Obriši uslove" clears search, price and area but keeps the map and where it stands', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19, 45, 20, 46] as [number, number, number, number] };
   Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', area: [19, 45, 20, 46], viewport });
   await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
-  await click('Obriši sve');
+  await click('Obriši uslove');
   expect(snapshot).toEqual({ ...initialMarketplaceView(), mode: 'map', viewport, sheet: 'half' });
   const [map] = maps();
   expect(map.props.viewport).toEqual(viewport);

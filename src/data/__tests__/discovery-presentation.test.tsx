@@ -359,7 +359,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await act(async () => chip('Tražim ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
     expect(press('Uslovi pretrage')).toBeTruthy();
   });
-  test('closing the panel any other way leaves the list exactly as it was; "Obriši sve" empties the draft', async () => {
+  test('closing the panel any other way leaves the list exactly as it was; "Obriši uslove" empties the draft', async () => {
     await render(); await tap('Uslovi pretrage');
     await choose('Danas'); await act(async () => press('Povećaj broj osoba').props.onPress());
     await tap('Zatvori pretragu');
@@ -368,7 +368,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await tap('Uslovi pretrage');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
     await choose('Danas'); await tap('Cena'); await choose('Navedena cena');
-    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši sve')!.props.onPress());
+    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
     expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
     await tap('Kada'); expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
@@ -446,9 +446,9 @@ test('reading, not read and nothing in this view keep their meanings, through th
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
   await act(async () => tree.unmount()); initial = { ...initial, query: 'nema takvog' }; await render();
   expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(listSheet().props.index).toBe(1);
-  // The one reset of the app: "Obriši sve", on the empty list as in the panel.
+  // The one reset of the app: "Obriši uslove", on the empty list as in the panel.
   expect(tree.root.findAll(node => node.props.label === 'Poništi filtere')).toHaveLength(0);
-  await click('Obriši sve'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
+  await click('Obriši uslove'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
 });
 
 test('pull to refresh is the list\'s own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {
@@ -704,7 +704,7 @@ test('an empty list over the map rests at half at most, so its green action and 
   await act(async () => listSheet().props.onChange(2)); expect(press('Mapa')).toBeTruthy();
   await act(async () => quick('Danas').props.onPress());
   expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
-  expect(action('Obriši sve')).toBeDefined();
+  expect(action('Obriši uslove')).toBeDefined();
   // Its top line says why and is not a button that would take the list up only to see it come back.
   expect(countLine()).toBeUndefined(); expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('Nema zadataka');
   // Pulled up anyway, it comes back to half.

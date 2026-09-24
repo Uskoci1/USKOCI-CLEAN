@@ -108,7 +108,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."
-          primary={{ label: 'Poništi filtere', onPress: () => props.onView(initialMarketplaceView()) }} />
+          primary={{ label: 'Obriši uslove', onPress: () => props.onView(initialMarketplaceView()) }} />
           : <StateView art="tasks" title={items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}
             body={items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}
             primary={props.onNew ? { label: items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak', onPress: props.onNew } : undefined}

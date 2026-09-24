@@ -29,7 +29,7 @@ import { sys } from '../../ui/system/tokens';
  * The Zadaci search panel (Discovery V47): Airbnb's step cards in USKOČI's look. One card is open at a time and every other
  * is a row that says its value; a single-tap choice moves on to the next step still unset, a choice of several taps (a
  * range of dates, the count of people) waits until it is complete. "Gde" offers only places the loaded tasks name. The
- * choices are a draft: the one green action applies it and counts it, "Obriši sve" empties it, × leaves the list as it was.
+ * choices are a draft: the one green action applies it and counts it, "Obriši uslove" empties it, × leaves the list as it was.
  */
 // Thursday 24 September 2026, 10:00 in Belgrade: the 23rd is past, the 26th and 27th are the weekend.
 const NOW = new Date('2026-09-24T08:00:00Z');
@@ -182,10 +182,10 @@ test('"Koliko vas dolazi" counts people from one: minus cannot go below one, and
   expect(lastDraft().places).toBe(2);
 });
 
-test('"Obriši sve" empties the draft and counts every task again; × leaves the list exactly as it was', async () => {
+test('"Obriši uslove" empties the draft and counts every task again; × leaves the list exactly as it was', async () => {
   view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd' }; await render();
   expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
-  await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši sve')!.props.onPress());
+  await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
   expect(show().props.label).toBe('Prikaži 4 zadatka');
   expect(rowsSaid()).toEqual([['Kada', 'Bilo kada', false], ['Kako se radi', 'Bilo gde', false], ['Koliko vas dolazi', 'Bilo koliko', false], ['Cena', 'Sve', false]]);
   await act(async () => show().props.onPress());

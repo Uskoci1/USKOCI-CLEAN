@@ -124,7 +124,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (value: number)
  * left and what it holds right (at large text, its name over its value), and a tap opens that one. A single-tap choice
  * moves on to the next step still unset, unless a screen reader is on; a choice made of more taps (a range of dates, the
  * count of people) stays open until it is complete. Every choice is a draft: the footer's one green action applies it all
- * and says how many tasks the list will then show (a polite live region, so the new number is heard), "Obriši sve"
+ * and says how many tasks the list will then show (a polite live region, so the new number is heard), "Obriši uslove"
  * empties the draft, and × or Back leaves the list exactly as it was. While the list is not known yet the panel counts
  * nothing: the action says the list is being read, or that it could not be, and cannot be pressed; while only what is
  * mine is still read it applies the draft without a number. The footer stays above the keyboard while "Gde" is typed in.
