@@ -5,10 +5,11 @@
 `a002058da58bc2b2beb7fbd2b3fef84096263fd701e1d94a9539f4a83faeabf3`, 40 118 characters, LF). Proof
 `supabase/proofs/pkg051/pkg051_proof.mjs`, run by `.github/workflows/pkg051-platform-price-list-proof.yml`; no run yet.
 Function-only plus four data rows: the certified closure digest (`cc248ff1…` on DEV) must **not** move, and the
-candidate asserts that before and after. Nothing is applied to DEV. It may be applied only after all three of: a
-green proof; **the owner's explicit answer to open decision 1**, that new rows in the existing
-`private.marketplace_config` table are acceptable; and his "primeni pkg051a". The apply phrase alone does not answer
-decision 1. Owner request 2026-09-24. No control row exists for payments yet; HITNO is A16.
+candidate asserts that before and after. Nothing is applied to DEV. It may be applied once the proof is green: the
+owner said **"primeni pkg051a"** on 2026-09-24, after the package was described to him in plain words (a price list at
+0 din, a new price as a new version, a lock against any price above 0), and the two package-level questions (storage
+in `private.marketplace_config`, the seed moment) are settled below as design-lead decisions, not owner gates.
+Owner request 2026-09-24. No control row exists for payments yet; HITNO is A16.
 
 | Function | Body md5 |
 | --- | --- |
@@ -39,13 +40,14 @@ A price list needs a home the certificate tolerates. Three homes were considered
 | Old versions | Tamper-evident: every version carries its own sha256 and its predecessor's. A head row names the latest version of each product. Every read and write re-verifies everything and fails closed on a broken chain. No trigger can guard the rows, because a trigger on a `private` table moves the certificate. | Triggers block edits (though the owner can still disable them). | Not editable, but also not addable: the owner could not add a version from the SQL editor. |
 | Existing objects touched | Four **new data rows under new keys**. The table's DDL, ACL (`default`), RLS flags and its three existing rows (`dispatch_normal`, `dispatch_urgent`, `urgent_activation_policy`) stay byte-identical, and every existing reader filters by key. Every later price write adds a row and updates the head row. | Existing function body and two tables, as above. | None. |
 
-**Boundary note, needs the owner's confirmation.** The package boundary says "no change to … any other existing …
-table". B writes new rows into an existing table, and nothing else. The approved architecture already puts the
-kill switch there (`PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1, principle 7). If new rows under new keys are also
-meant to be forbidden, no home is left inside the boundary. A new table would then need the owner's separate
-approval of a certificate move, plus a function-body re-bind that this package may not make. So this is open
-decision 1, and an explicit answer to it is a precondition of application: "primeni pkg051a" alone does not settle
-it.
+**Boundary note, settled.** The package boundary says "no change to … any other existing … table". B writes new
+rows into an existing table, and nothing else. The approved architecture already puts the kill switch there
+(`PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1, principle 7). If new rows under new keys were also forbidden, no home
+would be left inside the boundary: a new table needs the owner's separate approval of a certificate move, plus a
+function-body re-bind that this package may not make. Decision (design lead, 2026-09-24, under the autonomous
+directive): new rows under new keys are **data, not a change to the table** — its definition, ACL, RLS flags and
+existing rows stay byte-identical and the candidate pins all of them before and after — and the package brief itself
+named "versioned rows in the existing config mechanism" as the preferred home. See open decision 1 below.
 
 Also rejected: a table in a new schema or in `rls_private`. Either one slips past the certificate's completeness
 purpose, and `rls_private` grants USAGE to `authenticated`.
@@ -320,12 +322,11 @@ pomera. Cena iz cenovnika se još nigde ne naplaćuje i ne prikazuje. Dok poseba
 da upišeš samo 0. Za svaki iznos veći od nule dobićeš `PLATFORM_PAYMENTS_DISABLED`, i tako treba da bude.
 
 Cenovnik se čuva kao novi redovi u postojećoj tabeli podešavanja (`marketplace_config`). Postojeći redovi se ne
-diraju. Svaka nova cena dodaje jedan red i menja red `platform_price_head`. Zato prvo odgovori na pitanje 1 u
-odeljku „Open decisions“ ispod: da li je to u redu. Tek posle toga reci „primeni pkg051a“, jer sama ta reč na to
-pitanje ne odgovara.
+diraju, a paket to proverava pre i posle. Svaka nova cena dodaje jedan red i menja red `platform_price_head`. To je
+tehnička odluka i doneta je bez tebe (odeljak „Open decisions“ ispod). Rekao si „primeni pkg051a“ 24. septembra;
+primena čeka samo zeleni test na privremenoj bazi.
 
-Prva verzija obe cene nosi datum 24. septembar 2026, 00:00, dan tvoje odluke, a ne trenutak kad primeniš paket
-(pitanje 3).
+Prva verzija obe cene nosi datum 24. septembar 2026, 00:00, dan tvoje odluke, a ne trenutak kad se paket primeni.
 
 1. **Pogledaj cenovnik.** U Supabase-u otvori SQL Editor i pokreni `select private.platform_price_list_at(now());`.
    Za proizvod koji menjaš zapamti broj `latestVersion`. Pod `current` je cena koja sada važi, a pod `next`
@@ -359,17 +360,18 @@ open. This package decides none of them: which models and when, who pays, the pr
 accounts, refunds, fiscal and legal matters, retention, the IAP package, hold timeouts, charge-backs, and the
 HITNO price. It records only 0 and today's canon.
 
-Package-level questions for the owner:
+Package-level questions. The owner is not a programmer, so 1 and 3 were decided by the design lead on 2026-09-24
+under the autonomous directive (they are technical, not money, legal, privacy or release gates); the rest are
+recorded so a later package sees them.
 
-1. **Storage.** B (rows in `marketplace_config`) is the only home that leaves the certificate unmoved, if new rows
-   in an existing table are accepted. Are new rows under new keys in that existing table acceptable, together with
-   one row (`platform_price_head`) that every later price write updates? See the boundary note above. **An explicit
-   answer is a precondition of application;** "primeni pkg051a" alone does not answer it.
+1. **Storage — decided: B.** Rows under new keys in `marketplace_config`, plus the one head row that every later
+   price write updates. They are data, not a change to the table, and B is the only home that leaves the
+   certificate unmoved. See the boundary note above.
 2. **Units.** Amounts are in para (×100). The free ledger counts whole dinars.
-3. **Seed moment.** v1 declares 2026-09-24 00:00 Belgrade as both its effective and its recorded time, not the
-   moment of application (see "Which version applies"). If the owner prefers the moment of application, the
-   candidate changes to seed from the clock at apply time, and the seed sha256 values are pinned from the DEV
-   readback receipt instead of the candidate.
+3. **Seed moment — decided: the declared date.** v1 declares 2026-09-24 00:00 Belgrade as both its effective and
+   its recorded time, not the moment of application (see "Which version applies"), so DEV and the disposable proof
+   hold byte-identical rows and the seed sha256 values are pinned in the candidate. Nothing reads the list, so the
+   moment has no effect on any Agreement.
 4. **Who reads the list.** Only the owner, in SQL, for now. An app-facing read waits for the payment UX and would
    follow the architecture's `rpc_read_connection_quote` (with `p_expected_user_id`).
 5. **Typo cap.** 100 000 RSD per version.
@@ -394,10 +396,9 @@ Package-level questions for the owner:
 
 ## Application
 
-Only after all three of: a green proof; the owner's **explicit answer to open decision 1** (rows in the existing
-`marketplace_config` table are acceptable); and his **"primeni pkg051a"**. If the answer to decision 3 is "the
-moment of application", the candidate changes first and needs a new green proof. No certificate approval is
-needed, because the certificate does not move.
+Only after a green proof. The owner's **"primeni pkg051a"** was given on 2026-09-24, after the package was described
+to him in plain words; decisions 1 and 3 are settled above. No certificate approval is needed, because the
+certificate does not move.
 
 1. Apply the exact file bytes as `dev_alpha_pkg051a_platform_price_list`.
 2. Read back:
