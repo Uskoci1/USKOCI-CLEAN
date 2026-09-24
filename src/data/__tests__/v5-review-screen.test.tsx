@@ -692,6 +692,19 @@ describe('round 6: the publish review', () => {
     expect(mockHardwareBack.size).toBe(0);
   });
 
+  it('the place step can be left after an unconfirmed outcome, and the review keeps its recovery', async () => {
+    mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
+    mockPrepare.mockResolvedValue(ok(locatedReview(location('A'))));
+    await render(); await act(async () => action('Uredi mesto').onPress());
+    mockPrepare.mockResolvedValueOnce(unknownOutcome());
+    await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(location('B')));
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
+    await act(async () => { for (const handler of [...mockHardwareBack]) handler(); });
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+    expect(action('Učitaj pregled i proveri ishod').disabled).toBe(false);
+    expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
+  });
+
   it('shows the time rows without seconds and money with its grouping and currency', async () => {
     const base = review();
     mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [...base.publicProjection,

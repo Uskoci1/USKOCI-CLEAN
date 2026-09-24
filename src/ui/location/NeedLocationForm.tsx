@@ -205,7 +205,8 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
       disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)}
       reason={reason} onPress={submit} />
     {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled} onPress={discardPending} /> : null}
-    {!reviewOnly && !reason && !busy ? <T variant="note" tone="muted">Čuva se mesto u istom pregledu. Zadatak još nije objavljen.</T> : null}
+    {!reason && !busy ? <T variant="note" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.'
+      : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T> : null}
   </>;
   if (layout === 'screen') return <View style={f.screen}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.scroll}>{body}</ScrollView>

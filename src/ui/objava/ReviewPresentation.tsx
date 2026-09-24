@@ -107,13 +107,13 @@ export function PlaceGroup({ kind, children }: { kind: 'public' | 'private'; chi
  * The public place: the area line, the route's stops, and the approximate point the public map will show (never the
  * exact one). With no confirmed point there is no map and no invented point.
  */
-export function PublicPlace({ zone, lines, anchor, scopeKey }: { zone: string | null; lines: readonly string[];
-  anchor: PublicAnchor | null; scopeKey: string }) {
+export function PublicPlace({ zone, lines, anchor, scopeKey, pointsConfirmed }: { zone: string | null; lines: readonly string[];
+  anchor: PublicAnchor | null; scopeKey: string; /** Any exact point is confirmed: the privacy sentence belongs to it. */ pointsConfirmed?: boolean }) {
   return <PlaceGroup kind="public">
     <T variant="body">{zone || 'Mesto još nije navedeno.'}</T>
     {lines.map((line, index) => <T key={index} variant="note" tone="muted">{line}</T>)}
     {anchor ? <ResolvedPinMap position={anchor} coarse disabled height={160} scopeKey={scopeKey} onChoose={() => {}} /> : null}
-    {anchor ? <T variant="note" tone="muted">Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
+    {anchor || pointsConfirmed ? <T variant="note" tone="muted">Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
   </PlaceGroup>;
 }
 

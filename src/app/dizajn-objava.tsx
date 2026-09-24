@@ -120,7 +120,7 @@ export default function DizajnObjava() {
         <ReviewPreview summary={options.todos?.length ? { ...SUMMARY, value: null } : SUMMARY} unpriced={!!options.todos?.length} large={!!options.large} />
         {options.todos?.length ? <ReviewTodoList items={options.todos} disabled={false} /> : null}
         <ReviewSection title="Mesto" action={options.command ? null : <V2Action label={options.todos?.length ? 'Dodaj mesto' : 'Uredi mesto'} kind="quiet" compact onPress={noop} />}>
-          <PublicPlace zone={SUMMARY.zone} lines={[]} anchor={options.todos?.length ? null : ANCHOR} scopeKey="galerija:pregled" />
+          <PublicPlace zone={SUMMARY.zone} lines={[]} anchor={options.todos?.length ? null : ANCHOR} scopeKey="galerija:pregled" pointsConfirmed={!options.todos?.length} />
           <PrivatePlace>
             <ReviewFactRow label="Tačna adresa" value="Bulevar oslobođenja 12, stan 7" large={!!options.large} system={false}
               edit={options.command ? undefined : noop} editDisabled={false} />

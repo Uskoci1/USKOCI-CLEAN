@@ -167,7 +167,8 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
   const addReason = busy ? null : !recovered ? 'Fotografije još nisu učitane.' : unconfirmed ? 'Prvo završi ili otkaži nepotvrđeno slanje.'
     : full ? 'Dodato je najviše fotografija. Ukloni jednu da dodaš drugu.' : null;
   const list = photos?.photos ?? [];
-  const readError = !busy && !recovered && !!message && !!conversationId && !permissionDenied;
+  // An unconfirmed send keeps its own exits (retry, the server-owned cancel, refresh) even when the list could not be read.
+  const readError = !busy && !recovered && !!message && !!conversationId && !permissionDenied && !unconfirmed;
   const sending = working === 'LIBRARY' || working === 'CAMERA' || working === 'RETRY';
   // Removing asks first; the sheet stays open until the removal settles and the status line reports it.
   const askRemove = (assetId: string) => confirm.ask({ title: 'Ukloniti fotografiju?', message: 'Fotografija se uklanja iz nacrta zadatka.',
@@ -191,7 +192,7 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
           {list.map((photo, i) => <PhotoTile key={photo.assetId} index={i} size={tile}
             state={photo.state === 'READY' ? { kind: 'READY', assetId: photo.assetId }
               : { kind: photo.state === 'FAILED' ? 'FAILED' : 'PROCESSING', assetId: photo.assetId }}
-            removeDisabled={removeDisabled} onRemove={photo.state === 'READY' || photo.state === 'FAILED' ? () => askRemove(photo.assetId) : undefined} />)}
+            removeDisabled={removeDisabled} onRemove={() => askRemove(photo.assetId)} />)}
           {pending.current ? <PhotoTile index={list.length} size={tile} removeDisabled
             state={{ kind: sending ? 'SENDING' : 'UNCONFIRMED' }} /> : null}
         </>}</PhotoGrid> : null}
