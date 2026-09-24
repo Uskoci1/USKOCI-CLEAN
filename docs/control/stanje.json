@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-23T23:14:26Z",
+  "osvezeno": "2026-09-24T03:20:46Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "d7152e9f",
-  "head_poruka": "ia: apply the round-1 review - one place for what waits, steady tiles, Back after sign-in",
+  "head": "c054319c",
+  "head_poruka": "docs: round 3 checked on the emulator (builds 0efdf102 and 09dc6877)",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -270,7 +270,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -560,7 +560,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu.",
    "problem": "",
@@ -981,7 +981,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -1055,7 +1055,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -1124,7 +1124,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -1547,7 +1547,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "11 test fajl(ova)"
+    "test": "17 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
@@ -1625,7 +1625,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "12 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
@@ -2041,7 +2041,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "Isti snimak: dugme „Povuci prijavu“ je vidljivo na kartici poslate ponude. Nije pritisnuto — povlačenje menja stvarne podatke.",
    "problem": "",
@@ -4248,7 +4248,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "101 test fajl(ova)"
+    "test": "103 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -5626,6 +5626,54 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 35949898103,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "09dc6877",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T03:04:15Z"
+  },
+  {
+   "id": 35949895496,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "09dc6877",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T03:04:13Z"
+  },
+  {
+   "id": 35949893093,
+   "ime": "Build Android development APK",
+   "sha": "09dc6877",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T03:04:11Z"
+  },
+  {
+   "id": 35945598070,
+   "ime": "Build Android development APK",
+   "sha": "0efdf102",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T02:03:15Z"
+  },
+  {
+   "id": 35938881320,
+   "ime": "Build Android development APK",
+   "sha": "7a45f21a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T00:32:32Z"
+  },
+  {
+   "id": 35935201684,
+   "ime": "Build Android development APK",
+   "sha": "15bb4688",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-23T23:45:55Z"
+  },
+  {
    "id": 35930654407,
    "ime": "Build Android development APK",
    "sha": "d7152e9f",
@@ -5672,54 +5720,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-23T21:02:15Z"
-  },
-  {
-   "id": 35918197496,
-   "ime": "PKG-045 public task column privacy proof",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:46:33Z"
-  },
-  {
-   "id": 35917755080,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:42:31Z"
-  },
-  {
-   "id": 35917306227,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:38:29Z"
-  },
-  {
-   "id": 35917181097,
-   "ime": "Build Android development APK",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:37:20Z"
-  },
-  {
-   "id": 35917180793,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:37:20Z"
-  },
-  {
-   "id": 35917180687,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "077fd648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-23T20:37:20Z"
   }
  ]
 }
