@@ -1,35 +1,65 @@
-import { useCallback, useState } from 'react';
-import { router } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService } from '../../../data/safetyClientService';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { useSesija } from '../../../store/sesija';
-
-import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction } from '../../../ui/settings/SettingsPresentation';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
+import { BlockedAccountsList, blockedName, type BlockedAccount } from '../../../ui/settings/BlockedAccountsList';
+import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 
 export default function BlockedAccounts() {
   const { user, accountRevision } = useSesija();
   return <OwnedBlocks key={`${user?.id}:${accountRevision}`} />;
 }
+
+/**
+ * The people you block (step 11a, 2026-09-24): each is a person row with their own "Odblokiraj", asked once in a sheet
+ * before the command goes. Opening the person still leads to the private report and the block itself. The unblock is
+ * the existing revisioned, idempotent command: one request id per blocked revision, reused when the same unblock is
+ * tried again, and nothing else is sent until the list has been read again after a refused or unknown outcome.
+ */
 function OwnedBlocks() {
   const [cursor, setCursor] = useState<string | null>(null);
   const read = useCallback(() => safetyClientService.listMyBlocks(cursor), [cursor]), editor = useOwnedEditor(read);
-  const empty = !editor.loading && !editor.error && editor.data?.items.length === 0;
+  const confirmation = useConfirmSheet();
+  const commands = useRef(new Map<string, { revision: number; id: string }>());
+  const [pending, setPending] = useState<string | null>(null);
+  const lastUnblocked = useRef<string | null>(null);
+  const closeConfirmation = confirmation.close;
+  // A question left open is retired whenever its answer would land on a list that is no longer the one it was asked on.
+  useFocusEffect(useCallback(() => () => closeConfirmation(), [closeConfirmation]));
+  const refresh = () => { closeConfirmation(); void editor.refresh(); };
+  const page = (next: string | null) => { closeConfirmation(); setCursor(next); };
+  async function unblock(item: BlockedAccount) {
+    const target = item.targetAccountId, name = blockedName(item);
+    let command = commands.current.get(target);
+    if (!command || command.revision !== item.revision) {
+      command = { revision: item.revision, id: noviUuidZahtevId() };
+      commands.current.set(target, command);
+    }
+    const frozen = command;
+    setPending(target);
+    try {
+      await editor.save(async () => {
+        lastUnblocked.current = name;
+        const result = await safetyClientService.setBlock({ targetAccountId: target, blocked: false,
+          expectedRevision: frozen.revision, clientRequestId: frozen.id });
+        if (!result.ok) return result;
+        commands.current.delete(target);
+        return safetyClientService.listMyBlocks(cursor);
+      });
+    } finally { setPending(null); }
+  }
+  const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: blockedName(item),
+    message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokiraj',
+    onConfirm: () => unblock(item) });
   return <SettingsScreen title="Blokirani korisnici" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
-    <T tone="muted">Korisnici koje trenutno blokiraš. Otvori korisnika da promeniš blokiranje ili pošalješ privatnu prijavu.</T>
-    {editor.loading ? <T tone="muted">Učitavamo listu…</T> : null}
-    {/* Nobody blocked is the good case, and it used to be a bare sentence. It now says how a block
-        happens, since nothing on this screen can start one, and offers the one thing it can do. */}
-    {empty ? <>
-      <T>{cursor ? 'Na ovoj stranici nema više korisnika.' : 'Još nema blokiranih korisnika.'}</T>
-      {cursor ? null : <T variant="note" tone="muted">Blokiranje i privatnu prijavu pokrećeš sa javnog profila osobe, iz Zadatka ili iz Dogovora.</T>}
-      <SettingsAction label={cursor ? 'Početak liste' : 'Proveri ponovo'} kind="secondary" disabled={editor.busy}
-        onPress={() => { if (cursor) setCursor(null); else void editor.refresh(); }} />
-    </> : null}
-    {editor.data?.items.length ? <SettingsGroup title="Tvoja blokiranja">{editor.data.items.map((item, i, all) =>
-      <SettingsRow key={item.targetAccountId} label={item.displayName ?? 'USKOČI korisnik'} detail="Blokiran kontakt" last={i === all.length - 1}
-        onPress={() => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: item.targetAccountId } })} />)}</SettingsGroup> : null}
-    {editor.error ? <><T accessibilityRole="alert" tone="danger">{editor.error}</T><SettingsAction kind="secondary" label="Pokušaj ponovo" onPress={() => { void editor.refresh(); }} /></> : null}
-    {editor.data?.nextCursor ? <SettingsAction label="Sledeći korisnici" kind="secondary" onPress={() => setCursor(editor.data!.nextCursor)} /> : null}
-    {cursor && !empty ? <SettingsAction label="Početak liste" kind="quiet" onPress={() => setCursor(null)} /> : null}
+    <BlockedAccountsList data={editor.data} loading={editor.loading} busy={editor.busy} error={editor.error} uncertain={editor.uncertain}
+      cursor={cursor} pending={pending}
+      notice={editor.saved && lastUnblocked.current ? `Blokiranje je uklonjeno: ${lastUnblocked.current}.` : null}
+      onOpen={item => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: item.targetAccountId } })}
+      onUnblock={askUnblock} onRefresh={refresh} onPage={page} />
+    {confirmation.sheet}
   </SettingsScreen>;
 }

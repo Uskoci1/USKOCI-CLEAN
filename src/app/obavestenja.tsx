@@ -1,40 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { Check, CaretRight, GearSix } from 'phosphor-react-native';
-import { SvgXml } from 'react-native-svg';
+import { GearSix } from 'phosphor-react-native';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import { useInbox } from '../hooks/useInbox';
-import { Press } from '../ui/Press';
-import { T } from '../ui/Text';
-import { V2Action } from '../ui/v2/V2Action';
-import { Appear, useAppear } from '../ui/system/Appear';
+import { InboxList } from '../ui/notifications/InboxPresentation';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { ChromeIconButton } from '../ui/system/ScreenChrome';
-import { sys, cardCompact, inset } from '../ui/system/tokens';
-import { spojInboxArt } from '../ui/v2/spojInboxArt';
-import { neprocitanih } from '../ui/system/plural';
-import { Segmented } from '../ui/system/Segmented';
-import { vreme } from '../lib/vreme';
-import { FactArt, type FactArtKind } from '../ui/system/FactArt';
+import { sys } from '../ui/system/tokens';
 
-const filters: {label:string;role:InboxRole|null}[] = [
-  {label:'Sve',role:null},{label:'Moji zadaci',role:'REQUESTER'},{label:'Moje prijave',role:'WORKER'},
-];
-// One time format: the clock alone today, "22. sep · 14:05" before.
-const timestamp = (value: string) => vreme(value, { danas: true });
-
+/**
+ * The inbox. The list is drawn by `InboxList` (day groups, rows on a hairline, a dot for unread); this route owns what
+ * a row does: the model marks it read and resolves it, and the landing below goes exactly where the event points. The
+ * route literals stay in this file: the control table (scripts/control/osvezi.mjs) checks them here.
+ */
 export default function Obavestenja() {
   const [role,setRole] = useState<InboxRole|null>(null);
   const {state,model} = useInbox(role);
   const navigating = useRef(false);
   useFocusEffect(useCallback(() => { navigating.current=false; return () => { navigating.current=true; }; },[model]));
-  const busy = state.loading || state.paging || !!state.acting;
-  // An event that arrives while the Inbox is open is worth a moment of motion; the ones that were
-  // there when it opened, and the ones a refresh returns unchanged, are not.
-  const appear = useAppear();
-  appear.settle((state.page?.items ?? []).map(item => item.id));
   const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
   const settings = () => navigate(() => router.push('/profil/obavestenja'));
   async function open(item: InboxItem) {
@@ -69,107 +54,19 @@ export default function Obavestenja() {
     // switch the whole app into the other mode before an item of "the other intent" could open.
     navigate(go);
   }
+  // The rows are memoised, so they get one stable handler that always runs the latest `open`.
+  const latestOpen = useRef(open); latestOpen.current = open;
+  const onOpen = useCallback((item: InboxItem) => { void latestOpen.current(item); }, []);
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
     <DetailTopBar title="Obaveštenja"
       onBack={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}
       right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
-    <FlatList data={state.page?.items??[]} keyExtractor={item=>item.id}
-      contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-      refreshing={state.loading && !!state.page} onRefresh={()=>void model.refresh()}
-      ListHeaderComponent={<View style={{gap:14}}>
-        {/* V41: the same underlined tabs as every other set in the app. */}
-        <Segmented appearance="underline" value={role ?? 'ALL'} onChange={key => setRole(key === 'ALL' ? null : key as InboxRole)}
-          options={filters.map(filter => ({ key: filter.role ?? 'ALL', label: filter.label }))} />
-        {state.page && state.page.unreadCount>0 && <View style={styles.summary}>
-          <T style={styles.meta} accessibilityLiveRegion="polite">{neprocitanih(state.page.unreadCount)}</T>
-          {state.page.unreadCount>0 && <Press accessibilityRole="button" disabled={busy}
-            accessibilityState={{disabled:busy,busy:state.acting==='all'}}
-            onPress={()=>void model.readAll()} style={styles.readAll}>
-            <Check size={17} color={sys.color.green}/>
-            <T style={styles.filterText}>Pročitaj sve</T>
-          </Press>}
-        </View>}
-        {state.error && <View style={styles.notice} accessibilityLiveRegion="polite">
-          <T style={styles.strong}>{state.error==='action'?'Radnja nije potvrđena.':'Obaveštenja nisu osvežena.'}</T>
-          <T style={styles.body}>{state.page?'Proveri vezu i pokušaj ponovo. Poslednje učitano stanje ostaje prikazano.':'Proveri vezu i pokušaj ponovo da učitaš obaveštenja.'}</T>
-          <Press accessibilityRole="button" disabled={busy} style={styles.retry}
-            onPress={()=>state.error==='page'?void model.more():void model.refresh()}>
-            <T style={styles.filterText}>Pokušaj ponovo</T>
-          </Press>
-        </View>}
-        {state.unavailable && <View style={styles.notice} accessibilityLiveRegion="polite">
-          <T style={styles.strong}>Sadržaj više nije dostupan.</T>
-          <T style={styles.body}>Možda je uklonjen ili mu više nemaš pristup.</T>
-        </View>}
-      </View>}
-      ListEmptyComponent={state.loading || !state.page && !state.error
-        ? <View accessibilityLabel="Učitavanje obaveštenja" accessibilityState={{busy:true}} style={styles.empty}>
-            <ActivityIndicator color={sys.color.green}/><T style={styles.body}>Učitavamo obaveštenja…</T>
-          </View>
-        : state.page && !state.error ? <View style={styles.empty}>
-            <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><SvgXml xml={spojInboxArt} width={180} height={128} color={sys.color.ink}/></View>
-            <T style={styles.kicker}>Na jednom mestu</T>
-            <T style={[styles.title,{textAlign:'center'}]}>Još nema obaveštenja</T>
-            <T style={[styles.body,{textAlign:'center',maxWidth:280}]}>Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.</T>
-            <View style={styles.emptyAction}><V2Action label="Podesi obaveštenja" kind="quiet" onPress={settings}/></View>
-          </View> : null}
-      renderItem={({item,index})=><Appear index={index} animate={appear.isNew(item.id)}><Press accessibilityRole="button" disabled={busy}
-        accessibilityState={{disabled:busy,busy:state.acting===item.id}}
-        accessibilityLabel={`${item.readAt?'Pročitano':'Nepročitano'}. ${item.title}. ${item.body}`}
-        onPress={()=>void open(item)} style={[styles.item,!item.readAt && styles.unread]}>
-        <View style={[styles.itemIcon,!item.readAt && {backgroundColor:sys.color.orangeSoft}]}>{state.acting===item.id?<ActivityIndicator color={sys.color.green}/>:
-          <EventIcon family={item.family} eventType={item.eventType} unread={!item.readAt}/>}</View>
-        <View style={{flex:1,gap:5}}>
-          <T style={[styles.body,{color:sys.color.ink,fontWeight:item.readAt?'400':'700'}]}>{item.title}</T>
-          <T style={styles.meta}>{item.body}</T>
-          <T style={[styles.meta,{fontSize:12,marginTop:3}]}>
-            {/* The tab names the family and the tint says unread (a screen reader hears "Nepročitano" in the label); the row keeps only the time. */}
-            {timestamp(item.occurredAt)}
-          </T>
-        </View>
-        <CaretRight size={17} color={sys.color.muted}/>
-      </Press></Appear>}
-      ListFooterComponent={state.page?.hasMore?<Press accessibilityRole="button" disabled={busy}
-        onPress={()=>void model.more()} style={styles.loadMore}>
-        {state.paging?<ActivityIndicator color={sys.color.green}/>:<T style={styles.filterText}>Učitaj starija obaveštenja</T>}
-      </Press>:null}/>
+    <InboxList state={state} role={role} onRole={setRole} onOpen={onOpen}
+      onReadAll={()=>void model.readAll()} onRefresh={()=>void model.refresh()} onMore={()=>void model.more()} onSettings={settings} />
   </SafeAreaView>;
-}
-
-/**
- * The server sends six families — opportunities, responses, dogovor, execution, recovery, account
- * (20260911183000_clean_pre_v3_inbox_delivery_visibility.sql). This map was keyed to three names it
- * never sends ('agreements', 'messages', 'needs'), so five of the six drew the generic bell and the
- * icon column said nothing. The same six names are already spelled correctly in PushPreferences.
- *
- * Two families hide more than one thing. 'dogovor' carries a new message and a received review next
- * to the Agreement itself, and 'execution' is completion — seen on a device on 2026-09-23 drawing a
- * speech bubble over "Dogovor je završen" while "Nova poruka" wore a handshake. The event type
- * decides first, the family after it.
- */
-function EventIcon({family,eventType}:{family:string;eventType:string;unread:boolean}) {
-  const kind: FactArtKind = eventType==='MESSAGE_RECEIVED'?'chat':eventType==='REVIEW_RECEIVED'?'star'
-    :family==='opportunities'?'tasks':family==='responses'?'offers'
-    :family==='dogovor'?'agreements':family==='execution'?'check':family==='recovery'?'shield':'bell';
-  return <FactArt kind={kind} size={26}/>;
 }
 
 const styles=StyleSheet.create({
   screen:{flex:1,backgroundColor:sys.color.ground},
-  title:{...sys.type.title,color:sys.color.ink}, body:{fontSize:15,lineHeight:22.5,color:sys.color.muted},
-  strong:{fontSize:15,lineHeight:22.5,fontWeight:'700',color:sys.color.ink}, meta:{...sys.type.meta,color:sys.color.muted},
-  filterText:{fontSize:13,lineHeight:19,fontWeight:'600',color:sys.color.ink},
-  content:{paddingHorizontal:20,paddingTop:6,paddingBottom:28,gap:12,flexGrow:1,width:'100%',maxWidth:640,alignSelf:'center'},
-  summary:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:8},
-  readAll:{minHeight:44,flexDirection:'row',alignItems:'center',gap:4,paddingHorizontal:4},
-  item:{...cardCompact,minHeight:96,flexDirection:'row',alignItems:'flex-start',gap:12},
-  unread:{borderColor:sys.color.lineStrong,backgroundColor:sys.color.greenSoft},
-  itemIcon:{width:38,height:38,borderRadius:12,backgroundColor:sys.color.greenSoft,alignItems:'center',justifyContent:'center'},
-  notice:{...inset,backgroundColor:sys.color.orangeSoft,padding:16,gap:8},
-  retry:{minHeight:44,justifyContent:'center',alignSelf:'flex-start'},
-  empty:{alignItems:'center',justifyContent:'center',paddingTop:44,paddingHorizontal:12,gap:12},
-  kicker:{...sys.type.meta,fontWeight:'600',color:sys.color.green,marginTop:8},
-  emptyAction:{width:'100%',marginTop:24,paddingTop:12,borderTopWidth:1,borderTopColor:sys.color.line},
-  loadMore:{minHeight:44,alignItems:'center',justifyContent:'center',padding:12,borderRadius:13,backgroundColor:sys.color.surface},
 });

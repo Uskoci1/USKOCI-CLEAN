@@ -1,42 +1,71 @@
 import { useCallback, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { PushPreferences } from '../../../ui/notifications/PushPreferences';
 import { useSesija, sesijaSada } from '../../../store/sesija';
-import { Press } from '../../../ui/Press';
 import { T } from '../../../ui/Text';
+import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
 import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
 const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }] as const;
+type SetKey = typeof SETS[number]['key'];
+const CAPTION: Record<SetKey, string> = {
+ REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
+ WORKER: 'Obaveštenja o poslovima na koje se prijavljuješ.',
+};
 export default function PushSettings() {
  const { user, accountRevision } = useSesija(); const accountId = user?.id;
  // The server keeps two sets of notification settings for one account: one for the tasks it
  // publishes and one for the work it applies to. Which set this screen edits used to follow the
  // mode the whole app was in; it is now chosen here, on the screen that edits it.
- const [role, setRole] = useState<'REQUESTER' | 'WORKER'>('REQUESTER');
+ const [role, setRole] = useState<SetKey>('REQUESTER');
+ // Unsaved changes of the shown set. Switching the set or going back used to throw them away without a word.
+ const [dirty, setDirty] = useState(false);
+ const confirm = useConfirmSheet();
  const owner = useRef<{ accountId: string; revision: number } | null>(null);
+ const closeConfirm = confirm.close;
  useFocusEffect(useCallback(() => {
   const scope = accountId ? { accountId, revision: accountRevision } : null; owner.current = scope;
-  return () => { if (owner.current === scope) owner.current = null; };
- }, [accountId, accountRevision]));
+  // A question left open when the screen loses focus is retired, never answered later.
+  return () => { if (owner.current === scope) owner.current = null; closeConfirm(); };
+ }, [accountId, accountRevision, closeConfirm]));
  function back() {
   const scope = owner.current;
   if (!scope || scope.accountId !== accountId || scope.revision !== accountRevision
    || sesijaSada().user?.id !== scope.accountId || sesijaSada().accountRevision !== scope.revision) return;
   if (router.canGoBack()) router.back(); else router.replace('/profil');
  }
+ /** Asks before unsaved changes are thrown away; the step itself runs its own checks when it is confirmed. */
+ function discardThen(proceed: () => void) {
+  if (!dirty) { proceed(); return; }
+  confirm.ask({ title: 'Odbaci izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene', tone: 'danger',
+   onConfirm: proceed });
+ }
+ const requestBack = () => discardThen(back);
+ const requestRole = (next: SetKey) => { if (next !== role) discardThen(() => { setDirty(false); setRole(next); }); };
+ // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.
+ const latestBack = useRef({ dirty, requestBack }); latestBack.current = { dirty, requestBack };
+ useFocusEffect(useCallback(() => {
+  const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+   if (!latestBack.current.dirty) return false;
+   latestBack.current.requestBack(); return true;
+  });
+  return () => subscription?.remove();
+ }, []));
  return <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
   <Stack.Screen options={{ headerShown: false }} />
-  <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={back} />
-  <View style={s.sets}><Segmented options={SETS} value={role} onChange={setRole} /></View>
-  <ScrollView contentContainerStyle={s.content}><PushPreferences key={role} role={role} /></ScrollView>
-  <View style={s.footer}><T style={s.caption}>{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Obaveštenja o poslovima na koje se prijavljuješ.'}</T></View>
+  <DetailTopBar backLabel="Nazad na profil" title="Podešavanja obaveštenja" onBack={requestBack} />
+  <View style={s.sets}>
+   <Segmented appearance="underline" options={SETS} value={role} onChange={requestRole} />
+   <T variant="note" tone="muted">{CAPTION[role]}</T>
+  </View>
+  <PushPreferences key={role} role={role} onDirtyChange={setDirty} />
+  {confirm.sheet}
  </SafeAreaView>;
 }
 const s = StyleSheet.create({
- screen: { flex: 1, backgroundColor: sys.color.ground }, sets: { paddingHorizontal: 20, paddingTop: 8 },
- content: { padding: 20, paddingBottom: 32 },
- footer: { padding: 18, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface }, caption: { ...sys.type.meta, color: sys.color.muted },
+ screen: { flex: 1, backgroundColor: sys.color.ground },
+ sets: { paddingHorizontal: 20, paddingTop: 4, gap: 8 },
 });

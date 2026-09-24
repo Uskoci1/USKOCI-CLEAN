@@ -1,5 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
+import { BackHandler } from 'react-native';
 import PushSettings from '../../app/(app)/profil/obavestenja';
 const mockBack = jest.fn(), mockReplace = jest.fn(), mockCanBack = jest.fn();
 let mockIntent = 'narucilac'; let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
@@ -34,4 +35,50 @@ it('chooses which of the two server sets to edit here, on the screen, and a flip
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('WORKER');
  expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
  old(); expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+// Step 11a (2026-09-24): unsaved changes of one set are no longer thrown away without a word by Back or a set switch.
+const shown = () => tree.root.findByType('PushPreferences' as never);
+const confirmButton = () => tree.root.findAll(node => node.props.testID === 'confirm-sheet-confirm')[0];
+const cancelButton = () => tree.root.findAll(node => node.props.testID === 'confirm-sheet-cancel')[0];
+const makeDirty = () => act(() => shown().props.onDirtyChange(true));
+it('Back with unsaved changes asks first, and leaves only after "Odbaci izmene", through the same checks', () => {
+ makeDirty();
+ act(() => back()());
+ expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
+ expect(JSON.stringify(tree.toJSON())).toContain('Izmene kategorija i tihih sati nisu sačuvane.');
+ expect(confirmButton().props.accessibilityLabel).toBe('Odbaci izmene');
+ act(() => confirmButton().props.onPress());
+ expect(mockBack).toHaveBeenCalledTimes(1);
+});
+it('a confirmed discard still refuses to leave for an account that changed while the question stood', () => {
+ makeDirty(); act(() => back()());
+ mockOwner = { ...mockOwner, accountRevision: 3 };
+ act(() => confirmButton().props.onPress());
+ expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
+});
+it('switching the set with unsaved changes asks first; "Odustani" keeps the set and its changes', () => {
+ makeDirty();
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ expect(shown().props.role).toBe('REQUESTER');
+ act(() => cancelButton().props.onPress());
+ expect(shown().props.role).toBe('REQUESTER'); expect(mockBack).not.toHaveBeenCalled();
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => confirmButton().props.onPress());
+ expect(shown().props.role).toBe('WORKER');
+ expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+});
+it('Android Back asks the same question only while something is unsaved', () => {
+ act(() => tree.unmount());
+ const handlers: (() => boolean)[] = [];
+ const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(((_event: string, handler: () => boolean) => {
+  handlers.push(handler); return { remove: jest.fn() }; }) as never);
+ try {
+  act(() => { tree = Renderer.create(<PushSettings />); });
+  expect(handlers.at(-1)!()).toBe(false);
+  makeDirty();
+  let handled = false; act(() => { handled = handlers.at(-1)!(); });
+  expect(handled).toBe(true); expect(mockBack).not.toHaveBeenCalled();
+  expect(confirmButton()).toBeDefined();
+ } finally { spy.mockRestore(); }
 });

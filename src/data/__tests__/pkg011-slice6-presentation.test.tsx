@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { brandAction } from '../../ui/system/tokens';
+import { brandAction, sys } from '../../ui/system/tokens';
 // The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -11,7 +11,8 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsRow, SettingsScreen, SettingsText } from '../../ui/settings/SettingsPresentation';
+import { SettingsAction, SettingsFooter, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsPersonRow, SettingsRow, SettingsScreen,
+  SettingsSwitchRow, SettingsText } from '../../ui/settings/SettingsPresentation';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -39,4 +40,65 @@ test('a settings screen has a spoken header, rows with label, hint and chevron, 
   expect(brand()).toEqual(['Zatvori nalog']);
   await act(async () => byLabel('Nazad').props.onPress()); expect(back).toHaveBeenCalledTimes(1);
   expect(copy).not.toMatch(/[A-ZŠĐČĆŽ]{4,}/);
+});
+
+// Step 11a (2026-09-24): one rhythm and the missing pieces of the settings family.
+const flat = (style: unknown) => require('react-native').StyleSheet.flatten(style) ?? {};
+test('a switch row is one focus stop spoken as a switch, the drawn switch green on white and hidden from the reader', async () => {
+  const change = jest.fn();
+  await act(async () => { tree = create(<SettingsGroup title="Tihi sati" footer="Važi za ovaj telefon.">
+    <SettingsSwitchRow label="Uključi tihe sate" help="Telefon ćuti u tom periodu." value onChange={change} />
+    <SettingsSwitchRow label="Hitno može" help="Samo hitno." value={false} disabled reason="Prvo sačuvaj." onChange={change} last />
+  </SettingsGroup>); });
+  const on = byLabel('Uključi tihe sate');
+  expect(on.props.accessibilityRole).toBe('switch');
+  expect(on.props.accessibilityState).toEqual({ checked: true, disabled: false });
+  expect(flat(on.props.style).minHeight).toBe(56);
+  await act(async () => on.props.onPress()); expect(change).toHaveBeenCalledWith(false);
+  const drawn = on.findByProps({ importantForAccessibility: 'no-hide-descendants' });
+  expect(drawn.props.accessibilityElementsHidden).toBe(true);
+  const toggle = drawn.findByProps({ value: true });
+  expect(toggle.props).toMatchObject({ trackColor: { false: sys.color.lineStrong, true: sys.color.green }, thumbColor: sys.color.surface });
+  const off = byLabel('Hitno može');
+  expect(off.props.accessibilityState).toEqual({ checked: false, disabled: true });
+  expect(off.props.accessibilityHint).toBe('Samo hitno. Prvo sačuvaj.');
+  expect(texts()).toContain('Prvo sačuvaj.'); expect(texts()).toContain('Važi za ovaj telefon.');
+  // The group name is a quiet header, not a tracked capital label.
+  const title = tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes('Tihi sati'))!;
+  expect(title.props.accessibilityRole).toBe('header'); expect(title.props.variant).toBe('meta');
+});
+test('a person row has two focus stops side by side: the person, and the action', async () => {
+  const open = jest.fn(), unblock = jest.fn();
+  await act(async () => { tree = create(<SettingsPersonRow name="Marko Marković" initials="MM" onOpen={open} openHint="Otvara privatnu prijavu."
+    action={{ label: 'Odblokiraj', accessibilityLabel: 'Odblokiraj, Marko Marković', onPress: unblock }} last />); });
+  const person = byLabel('Marko Marković'), action = byLabel('Odblokiraj, Marko Marković');
+  expect(person.props.accessibilityHint).toBe('Otvara privatnu prijavu.');
+  expect(person.findAll(node => node === action)).toHaveLength(0); expect(action.findAll(node => node === person)).toHaveLength(0);
+  await act(async () => person.props.onPress()); expect(open).toHaveBeenCalledTimes(1); expect(unblock).not.toHaveBeenCalled();
+  await act(async () => action.props.onPress()); expect(unblock).toHaveBeenCalledTimes(1);
+  expect(flat(action.props.style).minHeight).toBeGreaterThanOrEqual(48);
+});
+test('rows are 56 dp at least, a destructive row speaks in the danger colour, and a disabled row is muted, never faded', async () => {
+  await act(async () => { tree = create(<SettingsGroup>
+    <SettingsRow label="Pravila" onPress={() => {}} compact />
+    <SettingsRow label="Nedostupno" onPress={() => {}} disabled />
+    <SettingsRow label="Zatvori nalog" onPress={() => {}} tone="danger" last />
+  </SettingsGroup>); });
+  for (const label of ['Pravila', 'Nedostupno', 'Zatvori nalog']) {
+    const style = flat(byLabel(label).props.style);
+    expect(style.minHeight).toBe(56); expect(style.opacity).toBeUndefined();
+  }
+  const colorOf = (label: string) => flat(tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes(label))!.props.style).color;
+  expect(colorOf('Zatvori nalog')).toBe(sys.color.danger);
+  expect(colorOf('Nedostupno')).toBe(sys.color.muted);
+  expect(colorOf('Pravila')).toBe(sys.color.ink);
+});
+test('the footer band is reusable and keeps its test id; a screen can name where its arrow goes', async () => {
+  const back = jest.fn();
+  await act(async () => { tree = create(<SettingsScreen title="Podešavanja obaveštenja" backLabel="Nazad na profil" onBack={back}>{null}</SettingsScreen>); });
+  await act(async () => byLabel('Nazad na profil').props.onPress()); expect(back).toHaveBeenCalledTimes(1);
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<SettingsFooter><SettingsAction label="Sačuvaj" onPress={() => {}} /></SettingsFooter>); });
+  expect(tree.root.findAll(node => node.props.testID === 'settings-primary-footer' && typeof node.type === 'string')).toHaveLength(1);
+  expect(brand()).toEqual(['Sačuvaj']);
 });
