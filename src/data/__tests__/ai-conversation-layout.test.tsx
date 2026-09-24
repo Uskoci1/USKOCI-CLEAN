@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 let mockHeight = 844, mockScale = 1;
 const mockKeyboard: Record<string, () => void> = {};
 jest.mock('react-native', () => {
