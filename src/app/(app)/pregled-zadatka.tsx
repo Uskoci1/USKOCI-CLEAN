@@ -255,6 +255,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     : command?.state === 'ACCEPTED' ? 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
   const disabled = editor.busy || editor.loading || editor.uncertain;
+  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || !!deadlineEditor;
+  const publishResting = publishBlocked && !editor.busy;
   const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
   // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
   // writes it for the server, which reads a kind of work from it only to match; it is not a row here.
@@ -393,19 +395,24 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
             outcome stands beside it in grey. */}
         {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
           : command ? <>
+            {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?
-              <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi istu objavu'} style={brandAction} disabled={disabled} onPress={resume} /> : null}
+              <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi istu objavu'} style={brandAction} disabled={disabled}
+                loading={editor.busy} onPress={resume} /> : null}
             {((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (outcome && outcome !== 'ALLOW')))
               || (!!unavailableIdentityFact && command.authoritative && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')))
-              ? <V2Action label="Izmeni zadatak" style={brandAction} disabled={disabled} onPress={revisePublishedDraft} /> : null}
+              ? <V2Action label="Izmeni zadatak" style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
             <V2Action label={command.state === 'ACCEPTED' ? 'Proveri stanje nacrta' : 'Proveri objavu'} disabled={editor.busy || editor.loading} onPress={refresh} />
             {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
               onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : null}
           </> : review ? <>
-            <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor}
-              accessibilityState={{ disabled: disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor }} onPress={publish}
-              style={[s.publish, (disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || deadlineEditor) && { opacity: 0.45 }]}>
-              {editor.busy ? <ActivityIndicator color={sys.color.onGreen} /> : <T style={s.publishLabel}>{acceptLabel}</T>}
+            {/* The same states as every V2Action: at work it keeps its green and its words with a spinner before them;
+                unavailable it is the quiet wash with muted words, never a faded copy of the live button. */}
+            <Press accessibilityRole="button" accessibilityLabel={acceptLabel} disabled={publishBlocked}
+              accessibilityState={editor.busy ? { disabled: true, busy: true } : { disabled: publishBlocked }} onPress={publish}
+              style={[s.publish, publishResting && s.publishResting]}>
+              {editor.busy ? <ActivityIndicator color={sys.color.onGreen} /> : null}
+              <T style={[s.publishLabel, publishResting && s.publishLabelResting]}>{acceptLabel}</T>
             </Press><T style={[s.meta, { textAlign: 'center' }]}>{blockReason ?? (revising
               ? 'Ovim potvrđuješ ovu verziju zadatka i tražiš njenu objavu.'
               : 'Ovim prihvataš prikazanu verziju i tražiš objavu.')}</T>
@@ -432,8 +439,10 @@ const s = StyleSheet.create({
   noticeDone: { flexDirection: 'row', alignItems: 'center', backgroundColor: sys.color.greenSoft }, grow: { flex: 1 }, error: { ...sys.type.meta, color: sys.color.danger },
   footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line, gap: sys.space.sm },
   /** The one brand action of the screen, on the system's shape. */
-  publish: { ...brandAction, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
+  publish: { ...brandAction, flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
   publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen },
+  publishResting: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
+  publishLabelResting: { color: sys.color.muted },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   photoTile: { width: '48%', aspectRatio: 1 },
 });

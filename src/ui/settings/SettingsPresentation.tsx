@@ -78,14 +78,19 @@ export function SettingsInfo({ title, children, icon, last = false }: { title: s
   </View></View>;
 }
 
-/** `primary` is the screen's one brand action (green surface, white label); other kinds map onto V2Action. */
-export function SettingsAction({ label, onPress, disabled = false, kind = 'primary', icon, compact = false }: {
-  label: string; onPress: () => void; disabled?: boolean; kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode;
+/**
+ * `primary` is the screen's one brand action (green surface, white label); other kinds map onto V2Action. `loading` is
+ * this action's own write in flight (it keeps its colour and words, with a spinner); `reason` says why a disabled one
+ * cannot be pressed now.
+ */
+export function SettingsAction({ label, onPress, disabled = false, loading = false, reason, kind = 'primary', icon, compact = false }: {
+  label: string; onPress: () => void; disabled?: boolean; loading?: boolean; reason?: string | null;
+  kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode;
   /** A small control beside content (under a photo tile), never for the screen's one brand action. */
   compact?: boolean;
 }) {
-  if (kind !== 'primary') return <V2Action label={label} onPress={onPress} disabled={disabled} kind={kind} icon={icon} compact={compact} />;
-  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={icon} style={brandAction} />;
+  if (kind !== 'primary') return <V2Action label={label} onPress={onPress} disabled={disabled} loading={loading} reason={reason} kind={kind} icon={icon} compact={compact} />;
+  return <V2Action label={label} onPress={onPress} disabled={disabled} loading={loading} reason={reason} icon={icon} style={brandAction} />;
 }
 
 export const settingsStyles = StyleSheet.create({

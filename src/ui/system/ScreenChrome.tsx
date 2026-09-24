@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { ArrowLeft, User, X, type Icon } from 'phosphor-react-native';
 import { BrandLockup } from '../entry/BrandAssets';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { useReducedMotion } from './motion';
-import { iconButton, sys } from './tokens';
+import { sys } from './tokens';
 
 /**
  * The one screen chrome (master design plan, 2026-09-24): every screen's top bar is one of three kinds, and all three
@@ -24,28 +24,48 @@ import { iconButton, sys } from './tokens';
  * uses them follows without being edited.
  */
 export const chrome = {
-  /** 48 px controls (sys.touch: important commands are never under 48) with 8 px above and below. */
+  /** 48 px controls (an important command is never under 48) with 8 px above and below. */
   minHeight: 64,
-  paddingHorizontal: 20,
-  paddingVertical: 8,
-  gap: 12,
+  paddingHorizontal: sys.space.lg,
+  paddingVertical: sys.space.sm,
+  gap: sys.space.md,
+  /** The touch area of every chrome control. */
   control: 48,
+  /** The circle drawn inside that area. */
+  circle: 44,
   icon: 22,
 } as const;
 
-/** A 48 px control in the chrome: the arrow, the X, "···", search or a filter. `active` is weight and colour together. */
-export function ChromeIconButton({ label, hint, icon: IconComponent, active, disabled = false, onPress, round = false, children }: {
+/**
+ * The one icon button of the chrome (round-1 critique B2: five icon-button shapes became one). A 44 px white circle with
+ * the hairline inside a 48 px touch area, and a 22 px Phosphor regular glyph in ink. The arrow back, the X, "···", the
+ * profile, the bell, search, filters, the Dogovori calendar and the week arrows all draw it.
+ * - `active` (a toggle: search, filters) is weight and colour together, the pale green fill and the filled green glyph,
+ *   and is spoken as selected.
+ * - `disabled` draws the glyph muted. The control is never faded: a faded ghost reads as broken, not as "not now".
+ * - `tone="green"` is for the root bar's own two, the profile and the bell (critique B1: orange is the screen's one
+ *   accent, so the bell's glyph is green and only its unread count keeps the orange badge).
+ * - `quiet` drops the circle for a control that ends a row of its own content (the calendar at the end of a tab row).
+ */
+export function ChromeIconButton({ label, hint, icon: IconComponent, active, disabled = false, onPress, tone = 'ink', quiet = false,
+  glyphStyle, children }: {
   label: string; hint?: string; icon: Icon;
   /** Set for a toggle (search, filters): shown by weight and colour together, and spoken as selected. */ active?: boolean;
   disabled?: boolean; onPress: () => void;
-  /** Round and white, as the tab screens draw their controls beside the round profile and bell. */ round?: boolean;
-  children?: ReactNode;
+  /** Green for the root bar's profile and bell; ink everywhere else. */ tone?: 'ink' | 'green';
+  /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
+  /** A moving style for the glyph alone (the bell's swing). */ glyphStyle?: Animated.WithAnimatedValue<StyleProp<ViewStyle>>;
+  /** Drawn over the circle, as the bell's count. */ children?: ReactNode;
 }) {
+  const color = disabled ? sys.color.muted : active || tone === 'green' ? sys.color.green : sys.color.ink;
+  // The Press is the 48 px touch area itself, so the hit is exactly that; neighbours 8 px apart do not overlap.
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
     // A toggle speaks whether it is on; a plain control speaks only whether it can be pressed.
     accessibilityState={active === undefined ? { disabled } : disabled ? { selected: active, disabled } : { selected: active }} disabled={disabled}
-    onPress={onPress} haptic={disabled ? 'none' : 'select'} style={[iconButton, round && s.round, active && s.active, disabled && s.disabled]}>
-    <IconComponent size={chrome.icon} color={active ? sys.color.green : sys.color.ink} weight={active ? 'fill' : 'regular'} />
+    onPress={onPress} haptic={disabled ? 'none' : 'select'} hitSlop={0} style={s.control}>
+    <View testID="chrome-circle" style={[s.circle, quiet && s.quiet, active && s.active]}>
+      <Animated.View style={glyphStyle}><IconComponent size={chrome.icon} color={color} weight={active ? 'fill' : 'regular'} /></Animated.View>
+    </View>
     {children}
   </Press>;
 }
@@ -86,9 +106,7 @@ export type ScreenChromeProps = RootChrome | DetailChrome | FlowChrome;
 
 export function ScreenChrome(props: ScreenChromeProps) {
   if (props.variant === 'root') return <View style={s.bar}>
-    <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={props.onProfile} haptic="select" style={[iconButton, s.avatar]}>
-      <User size={chrome.icon} weight="bold" color={sys.color.green} />
-    </Press>
+    <ChromeIconButton label="Moj profil" icon={User} tone="green" onPress={props.onProfile} />
     {/* Centred on the screen, not between the two sides, so it never shifts when the right side holds two controls. */}
     <View pointerEvents="none" style={s.brand}>
       <View accessible accessibilityRole="header" accessibilityLabel={`USKOČI, ${props.title}`}><BrandLockup width={112} /></View>
@@ -163,10 +181,11 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   title: { color: sys.color.ink },
   step: { fontVariant: ['tabular-nums'] },
-  avatar: { borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.line },
   brand: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingVertical: chrome.paddingVertical },
-  side: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  round: { borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
+  side: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  control: { width: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },
+  circle: { width: chrome.circle, height: chrome.circle, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center' },
+  quiet: { backgroundColor: 'transparent', borderColor: 'transparent' },
   active: { backgroundColor: sys.color.greenSoft },
-  disabled: { opacity: 0.5 },
 });

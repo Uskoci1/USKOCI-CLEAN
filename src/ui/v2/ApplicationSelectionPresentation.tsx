@@ -19,6 +19,7 @@ import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDeta
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, osobuAkuz, prijava } from '../system/plural';
 import { SkeletonList } from '../system/Skeleton';
+import { useTextScale } from '../system/textScale';
 import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
@@ -79,8 +80,12 @@ function TaskContext({ need }: { need: PotrebaProjekcija | PrilikaProjekcija }) 
       <View style={s.pill}><T variant="meta" style={s.pillText}>{need.pokrivenost.popunjeno} / {need.pokrivenost.ukupno} mesta</T></View></View>
   </View>;
 }
-function BrandAction({ label, onPress, disabled, send }: { label: string; onPress: () => void; disabled?: boolean; send?: boolean }) {
-  return <V2Action label={label} onPress={onPress} disabled={disabled} icon={send ? <PaperPlaneTilt size={20} color={sys.color.onGreen} weight="fill" /> : undefined} style={brandAction} />;
+/** `loading` is this action's own write in flight: the button keeps its green and its words, with a spinner. */
+function BrandAction({ label, onPress, disabled, loading, reason, send }: {
+  label: string; onPress: () => void; disabled?: boolean; loading?: boolean; reason?: string | null; send?: boolean;
+}) {
+  return <V2Action label={label} onPress={onPress} disabled={disabled} loading={loading} reason={reason}
+    icon={send ? <PaperPlaneTilt size={20} color={sys.color.onGreen} weight="fill" /> : undefined} style={brandAction} />;
 }
 function ErrorMessage({ error }: { error?: string | null }) {
   return error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null;
@@ -155,18 +160,22 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     : need.osnovaCene === 'PER_PERSON' ? `Cena je ${need.ponudjenaCena?.prikaz ?? 'navedena'} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
     : peopleLocked ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
     : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
+  const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
+  // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj ponudu" is the action.
+  const reviewAction = !confirmed && !uncertain && !pending && !busy;
   return <SelectionFrame title="Tvoja prijava" back={back} footer={<>
     <View style={s.summaryRow}><T variant="meta" tone="muted">Tvoja ponuda</T><T style={s.summary}>{reviewPrice ?? 'Proveri unetu cenu'}{reviewPrice ? ' ukupno' : ''} · {/^[1-9]\d*$/.test(draft.people) ? dolaziOsoba(Number(draft.people)) : 'broj ljudi nije unet'}</T></View>
     {confirmed ? <BrandAction label="Otvori moje prijave" onPress={openApplications} />
       : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-      : pending || busy ? <BrandAction label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} send />
+      : pending || busy ? <BrandAction label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} loading={busy} send />
       : <BrandAction label="Pregledaj ponudu" onPress={() => {
         if (!disabled && canSubmit && !reviewing) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
-      }} disabled={!canSubmit || reviewing} />}
-    {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. */}
-    {!canSubmit && !confirmed && !pending && blocked ? <View style={s.blocked}>
-      <T accessibilityLiveRegion="polite" variant="meta" tone="muted" style={s.center}>{blocked.reason}</T>
-      {blocked.actionLabel && blocked.onAction ? <V2Action kind="quiet" compact label={blocked.actionLabel} onPress={blocked.onAction} /> : null}
+      }} disabled={!canSubmit || reviewing} reason={shownBlock && reviewAction ? shownBlock.reason : null} />}
+    {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review
+        button the reason is the button's own line (and its spoken hint); beside the other actions it stands here. */}
+    {shownBlock && (!reviewAction || !!(shownBlock.actionLabel && shownBlock.onAction)) ? <View style={s.blocked}>
+      {reviewAction ? null : <T accessibilityLiveRegion="polite" variant="meta" tone="muted" style={s.center}>{shownBlock.reason}</T>}
+      {shownBlock.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
     </View> : null}
   </>}>
     <TaskContext need={opportunity} />
@@ -363,8 +372,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
   const [sorting, setSorting] = useState(false);
   const sort = chosenSort ?? ownSort;
-  const { width, fontScale } = useWindowDimensions();
-  const columns = compare && width >= 360 && fontScale < 1.3 ? 2 : 1;
+  const { width } = useWindowDimensions();
+  // Rounded: Android's "Large" arrives as 1.2999999523 and must count as the 1.3 it is.
+  const textScale = useTextScale();
+  const columns = compare && width >= 360 && textScale < 1.3 ? 2 : 1;
   // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
   // The list that was already there settles silently, and switching to the comparison and back is
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
@@ -427,7 +438,7 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
   useEffect(() => { void read(); return () => { request.current++; }; }, [load]);
   if (state.id) return <BrandAction label="Otvori Dogovor" onPress={() => { if (state.id) open(state.id); }} />;
   return <><T variant="meta" tone="muted">{state.loading ? 'Proveravamo Dogovor uz ovu Prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
-    <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} disabled={state.loading} /></>;
+    <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} loading={state.loading} /></>;
 }
 /** One offer in full, the public profile as a sheet, and the one choice that forms the Agreement. */
 export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety }: {
@@ -459,7 +470,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       : candidate.stanje === 'SELECTED' && !pending ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
       : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
       : review || pending ? <BrandAction label={busy ? 'Povezivanje…' : pending ? 'Ponovi isti izbor' : 'Izaberi ovu Prijavu'} onPress={choose}
-        disabled={busy || (!pending && !candidate.mozeIzabrati)} />
+        disabled={busy || (!pending && !candidate.mozeIzabrati)} loading={busy} />
       : candidate.mozeIzabrati ? <BrandAction label="Pregledaj povezivanje" onPress={() => setReview(true)} /> : undefined}>
     <TaskContext need={need} />
     <View style={s.card}><CandidateIdentity candidate={candidate} publicProfile={() => { void openProfile(); }} />

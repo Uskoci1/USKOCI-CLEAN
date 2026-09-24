@@ -179,3 +179,79 @@ test('Moji zadaci opened cold and replaced by Početna does not stay in the Back
   expect(tabState().focused).toBe('index');
   expect(tabHistory()).toEqual(['index']); expect(router.canGoBack()).toBe(false);
 });
+
+/** The route names of the `(app)` tab navigator, in the order it holds them. */
+function tabRouteNames(): string[] {
+  type Nav = { type?: string; routes?: { name: string; key: string; state?: Nav }[] };
+  const find = (state: Nav | undefined): Nav | undefined => !state ? undefined : state.type === 'tab' ? state
+    : state.routes?.map(route => find(route.state)).find(Boolean);
+  return find(require('expo-router/build/global-state/store').store.navigationRef.current.getRootState())!.routes!.map(route => route.name);
+}
+
+// The tab router's replace works with positions in the route list, so these cases only prove the phone's behaviour when
+// the navigator holds every screen in the order the real layout registers them.
+test('the navigator holds every (app) screen in the order the real layout registers them', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  const source = require('node:fs').readFileSync(join(APP, '_layout.tsx'), 'utf8') as string;
+  const declared = [...source.matchAll(/<Tabs\.Screen name="([^"]+)"/g)].map(match => match[1]);
+  expect([...declared].sort()).toEqual([...APP_ROUTES].sort());
+  expect(tabRouteNames()).toEqual(declared);
+});
+
+// nova.tsx pushes the review (pregled-zadatka) over the finished AI conversation; after a successful publication the
+// review replaces itself with the task it published ("Otvori zadatak"), or with Moji zadaci after a saved draft
+// (pregled-zadatka.tsx). Back from there must return to where the person started the task, never into the finished
+// conversation or its review (review r3 item 3).
+test('after publishing, Back from the opened task returns home, not to the finished conversation or the review', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate('/nova')); await settle();
+  await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId: 'c1' } })); await settle();
+  expect(tabHistory()).toEqual(['index', 'nova', 'pregled-zadatka']);
+  await act(async () => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: 'n1' } })); await settle();
+  expect(tabState().focused).toBe('potrebe/[id]/pregled');
+  expect(tabHistory()).toEqual(['index', 'potrebe/[id]/pregled']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+  expect(router.canGoBack()).toBe(false);
+});
+
+test('a task published from Moji zadaci goes Back to Moji zadaci and then home; a saved draft lands on Moji zadaci alone', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate('/potrebe')); await settle();
+  await act(async () => router.navigate('/nova')); await settle();
+  await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId: 'c1' } })); await settle();
+  await act(async () => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: 'n1' } })); await settle();
+  expect(tabHistory()).toEqual(['index', 'potrebe', 'potrebe/[id]/pregled']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('potrebe');
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+  await act(async () => tree.unmount());
+  // "Sačuvaj nacrt": the review replaces itself with Moji zadaci, which is already in the history.
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate('/potrebe')); await settle();
+  await act(async () => router.navigate('/nova')); await settle();
+  await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId: 'c1' } })); await settle();
+  await act(async () => router.replace('/potrebe')); await settle();
+  expect(tabState().focused).toBe('potrebe');
+  expect(tabHistory()).toEqual(['index', 'potrebe']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+});
+
+// "Izmeni u razgovoru" and the review's back arrow replace the review with the conversation: that flow is not over.
+test('going back from the review into the conversation keeps the conversation, and only the review leaves', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate('/nova')); await settle();
+  await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId: 'c1' } })); await settle();
+  await act(async () => router.replace({ pathname: '/nova', params: { conversationId: 'c1' } })); await settle();
+  expect(tabState().focused).toBe('nova');
+  expect(tabHistory()).toEqual(['index', 'nova']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+});

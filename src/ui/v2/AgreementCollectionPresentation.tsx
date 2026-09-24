@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight, CalendarBlank, CaretRight, Check } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -9,7 +9,8 @@ import { ProfilePhoto } from '../media/ContextPhotos';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { dogovora, osoba } from '../system/plural';
-import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
+import { ChromeIconButton } from '../system/ScreenChrome';
+import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { sys, cardCompact } from '../system/tokens';
@@ -199,12 +200,21 @@ export function AgreementCollectionPresentation(props: Props) {
     <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka moju potvrdu</T>
   </Press> : null;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <ScreenHeader title="Dogovori" onProfile={props.onProfile}
-      right={<HeaderIconButton label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />} />
+    {/* The root bar is the same on all three tabs: profile · mark · bell (round-1 critique A12). */}
+    <ScreenHeader title="Dogovori" onProfile={props.onProfile} />
     {/* V41: an underlined tab bar that spans the screen, then one quiet row with what is counted on the left
-        and the one filter on the right. The count belongs with what it counts; no heading repeats the tab. */}
+        and the one filter on the right. The count belongs with what it counts; no heading repeats the tab.
+        The calendar is a view of these same Dogovori, so it ends the tab row as a quiet icon, not a fourth
+        control in the header. */}
     <View style={s.controls}>
-      <Segmented options={sections} value={section} onChange={props.onSection} appearance="underline" />
+      <View style={s.tabRow}>
+        {/* The tabs keep their spacing and slide sideways only where they do not fit beside the calendar (320 dp,
+            large text), fading at the edge instead of running under it. */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} fadingEdgeLength={24} style={s.tabs}>
+          <Segmented options={sections} value={section} onChange={props.onSection} appearance="underline" style={s.tabTrack} />
+        </ScrollView>
+        <ChromeIconButton quiet label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />
+      </View>
       {count || chip ? <View style={s.toolbar}>
         {count ? <T variant="note" tone="muted" style={s.count}>{dogovora(count)}</T> : <View />}
         {chip}
@@ -220,6 +230,10 @@ export function AgreementCollectionPresentation(props: Props) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   controls: { paddingHorizontal: 20, paddingTop: 4 },
+  // The hairline under the tabs runs on under the calendar, so the row stays one line.
+  tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  tabs: { flex: 1, minWidth: 0 },
+  tabTrack: { borderBottomWidth: 0 },
   toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44, paddingTop: 8, paddingBottom: 4 },
   count: { fontVariant: ['tabular-nums'] },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

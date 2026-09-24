@@ -7,8 +7,11 @@ import { FactArt, type FactArtKind } from './FactArt';
 import { useReducedMotion } from './motion';
 import { sys } from './tokens';
 
-/** The art column of a row with art: the art's width and the air after it, so the opened part lines up under the label. */
-const ART_WIDTH = 32, ART_GAP = 14, INSET = 18;
+/**
+ * The art column of a row with art: the art's width and the air after it, so the opened part lines up under the label.
+ * Spacing is on the sys.space scale; the inset is a card's own padding, so a row's text lines up with the cards around it.
+ */
+const ART_WIDTH = 32, ART_GAP = sys.space.md, INSET = sys.space.lg;
 
 /**
  * The one "open in place" row (master design plan, 2026-09-24: sixteen hand-made open/close blocks had sixteen carets
@@ -28,7 +31,8 @@ export function Disclosure({ label, hint, art, expanded, defaultExpanded = false
   const open = expanded ?? own;
   const toggle = () => { if (expanded === undefined) setOwn(!open); onToggle?.(!open); };
   return <View style={[divider && s.divider, style]}>
-    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} onPress={toggle}
+    {/* The hint is a fact about what the row holds ("Tvoj broj je podeljen"), so a screen reader hears it too. */}
+    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ expanded: open }} onPress={toggle}
       haptic="select" scaleTo={0.99} style={[s.row, inset && s.inset]}>
       {art ? <View style={s.art}><FactArt kind={art} size={26} /></View> : null}
       <View style={s.copy}>
@@ -60,10 +64,11 @@ function TurningCaret({ open }: { open: boolean }) {
 
 const s = StyleSheet.create({
   divider: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  row: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: ART_GAP },
+  row: { minHeight: 56, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: ART_GAP },
   inset: { paddingHorizontal: INSET },
   art: { width: ART_WIDTH, alignItems: 'center' },
+  // Two lines of one row (label and hint) sit on their own leading, not on the layout scale.
   copy: { flex: 1, minWidth: 0, gap: 2 },
   label: { color: sys.color.ink },
-  body: { paddingBottom: 16, gap: 12 },
+  body: { paddingBottom: sys.space.base, gap: sys.space.md },
 });

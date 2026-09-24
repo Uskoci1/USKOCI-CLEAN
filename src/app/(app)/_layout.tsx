@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactArt } from '../../ui/system/FactArt';
+import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
@@ -78,10 +78,24 @@ function withoutRetired<State>(state: State): State {
 function replacedAsJump(action: { type: string }): boolean {
   return action.type === 'REPLACE';
 }
+/**
+ * A flow's last step takes the flow with it. The review before publishing (`pregled-zadatka`) is pushed over the AI
+ * conversation (`nova`), and it leaves by a replace: onto the task it just published ("Otvori zadatak"), onto Moji
+ * zadaci after a saved draft, or back into the conversation to change something. In the first two the new task is done,
+ * so the conversation leaves the history with the review, and Back from the task (or from Moji zadaci) returns to where
+ * the person started the task (Početna, Zadaci, Moji zadaci), never into a finished conversation or its review. A replace
+ * back into the conversation keeps it: it is the screen on show. Navigation state only; no screen, read or guard is
+ * involved (retired-discovery-routes.test).
+ */
+const FLOW_BEHIND: Readonly<Record<string, readonly string[]>> = { 'pregled-zadatka': ['nova'] };
 function withoutLeft<State>(state: State, left: { name: string; key?: string } | undefined): State {
   const tabs = state as unknown as TabHistory | null;
   if (!tabs || !left?.key || left.name === 'index' || !Array.isArray(tabs.history) || tabs.routes[tabs.index]?.key === left.key) return state;
-  const history = tabs.history.filter(entry => entry.type !== 'route' || entry.key !== left.key);
+  const shown = tabs.routes[tabs.index]?.key;
+  const flow = new Set(FLOW_BEHIND[left.name] ?? []);
+  const leaves = (key: string | undefined) => key === left.key
+    || (key !== shown && flow.has(tabs.routes.find(route => route.key === key)?.name ?? ''));
+  const history = tabs.history.filter(entry => entry.type !== 'route' || !leaves(entry.key));
   return history.length === tabs.history.length ? state : { ...tabs, history } as unknown as State;
 }
 
@@ -100,7 +114,7 @@ function withoutLeft<State>(state: State, left: { name: string; key?: string } |
 // current while they were open.
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const { fontScale } = useWindowDimensions();
+  const fontScale = useTextScale();
   const reducedMotion = useSystemReducedMotion();
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };

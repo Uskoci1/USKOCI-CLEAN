@@ -187,3 +187,25 @@ test('Moji zadaci and a discovery without relations show everything, as before',
  rows = [row('one'), row('mine')]; relations = undefined; await render();
  expect(press('Otvori priliku Pomoć mine')).toBeTruthy(); expect(texts()).not.toContain('sakriven');
 });
+// Review r3 item 7: the filtered-empty view's one way forward clears what was chosen, and only that. Whether the
+// person looks at the map or the list, and where the map stands, are not filters.
+test('"Poništi filtere" clears search, price, attention and area but keeps the map and where it stands', async () => {
+ const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19, 45, 20, 46] as [number, number, number, number] };
+ Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', attention: true, area: [19, 45, 20, 46], mode: 'map', viewport, selectedId: 'one' });
+ await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
+ await click('Poništi filtere');
+ expect(snapshot).toEqual({ ...initialMarketplaceView(), mode: 'map', viewport });
+ expect(map().props.viewport).toEqual(viewport);
+ expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one', 'two']);
+ expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
+ // In the list the same press keeps the list.
+ await act(async () => tree.unmount()); initial = { ...initialMarketplaceView(), query: 'Nema takvog posla' };
+ await render(); await click('Poništi filtere');
+ expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori priliku Pomoć two')).toBeTruthy();
+});
+test('"Pokušaj ponovo" after a failed read in the list asks for the list again and changes nothing else', async () => {
+ error = true; initial.query = 'Pomoć'; await render();
+ expect(texts()).toContain('Zadatke trenutno nije moguće učitati');
+ await click('Pokušaj ponovo');
+ expect(refresh).toHaveBeenCalledTimes(1); expect(snapshot).toMatchObject({ query: 'Pomoć', mode: 'list' });
+});

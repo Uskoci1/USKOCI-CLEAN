@@ -121,3 +121,50 @@ test('a term that is missing stays one sentence and a missing place or amount is
   expect(text).toContain('Termin nije potvrđen'); expect(text).toContain('Mesto nije navedeno'); expect(text).toContain('Iznos nije sačuvan');
   expect(text).not.toContain('dogovoreno ukupno');
 });
+
+// Round-1 critique A12: the header is profile · mark · bell on all three tabs; the calendar is a view of these Dogovori,
+// so it ends the Aktivni/Istorija tab row as a quiet icon with the same spoken label.
+test('the header is profile, mark and bell only, and the calendar ends the tab row under the same label', async () => {
+  const calendar = jest.fn();
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
+    confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks}
+    onCalendar={calendar} onProfile={() => {}} />); });
+  const { ScreenChrome } = require('../../ui/system/ScreenChrome');
+  const bar = tree.root.findByType(ScreenChrome);
+  expect(bar.props).toMatchObject({ variant: 'root', title: 'Dogovori' });
+  expect(bar.props.right).toBeUndefined();
+  expect(bar.findAll(node => node.props.accessibilityLabel === 'Kalendar obaveza')).toHaveLength(0);
+  // The calendar stands in the same row as the underlined tabs, after them; the tabs may slide sideways beside it on a
+  // narrow screen, so they sit in their own horizontal scroller.
+  const scroller = tree.root.findByType(Segmented).parent!;
+  expect(scroller.type).toBe('ScrollView');
+  expect(scroller.props.horizontal).toBe(true);
+  const tabRow = scroller.parent!;
+  const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Kalendar obaveza');
+  expect(entry).toHaveLength(1);
+  expect(tabRow.children.map(child => typeof child === 'string' ? child : child === scroller ? 'tabs' : child.props.label))
+    .toEqual(['tabs', 'Kalendar obaveza']);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Kalendar obaveza' }).filter(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
+  await act(async () => entry[0].props.onPress());
+  expect(calendar).toHaveBeenCalledTimes(1);
+});
+
+// Review r3 item 7: the filtered-empty view's one way forward must clear BOTH the set and the confirmation filter,
+// or "Prikaži sve Dogovore" could land on another empty view.
+test('"Prikaži sve Dogovore" shows every set and turns the confirmation filter off', async () => {
+  const onSection = jest.fn(), onConfirmationOnly = jest.fn();
+  rows = [agreement('done', 'COMPLETED')];
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
+    confirmationOnly onSection={onSection} onConfirmationOnly={onConfirmationOnly} onOpen={open} onRefresh={refresh} onHome={tasks}
+    onCalendar={() => {}} onProfile={() => {}} />); });
+  expect(texts()).toContain('Nema Dogovora u ovom prikazu');
+  await act(async () => tree.root.findByProps({ label: 'Prikaži sve Dogovore' }).props.onPress());
+  expect(onSection).toHaveBeenCalledTimes(1); expect(onSection).toHaveBeenCalledWith('all');
+  expect(onConfirmationOnly).toHaveBeenCalledTimes(1); expect(onConfirmationOnly).toHaveBeenCalledWith(false);
+  expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
+  // Through the real screen state the same press leaves a list, not another empty view.
+  await act(async () => tree.unmount());
+  await render();
+  await act(async () => tree.root.findByProps({ label: 'Prikaži sve Dogovore' }).props.onPress());
+  expect(titles()).toEqual(['Otvori Dogovor Posao done']);
+});

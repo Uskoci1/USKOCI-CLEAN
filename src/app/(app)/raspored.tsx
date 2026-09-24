@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, ArrowRight, CaretRight } from 'phosphor-react-native';
@@ -7,6 +7,8 @@ import { workerCalendarClientService } from '../../data/workerCalendarClientServ
 import { agreementClientService } from '../../data/agreementClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
+import { ChromeIconButton } from '../../ui/system/ScreenChrome';
+import { useTextScale } from '../../ui/system/textScale';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { CalendarAction as Button, CalendarText as T, calendarStyles as s } from '../../ui/calendar/CalendarControls';
@@ -16,7 +18,8 @@ import { BEZ_IZNOSA } from '../../lib/novac';
 import { FactArt } from '../../ui/system/FactArt';
 
 export default function Raspored() {
-  const { fontScale } = useWindowDimensions();
+  // Rounded, so Android's "Large" (1.2999999523) is the 1.3 the layout steps below are written against.
+  const fontScale = useTextScale();
   const [selected, setSelected] = useState(() => deviceDate(new Date()));
   const days = useMemo(() => weekDates(selected), [selected]);
   const from = localDayRange(days[0]).from, to = localDayRange(days[6]).to;
@@ -40,10 +43,9 @@ export default function Raspored() {
         {/* The week names itself; the subtitle that explained the screen under it is gone (owner rule, 2026-09-23). */}
         <View style={s.row}><View style={{ flex: 1, minWidth: sys.space.huge * 3, gap: sys.space.xs }}><T variant="bodyStrong">{displayDate(days[0])}–{displayDate(days[6])}</T></View>
           {days.includes(today) ? null : <Button label="Danas" kind="quiet" compact onPress={() => setSelected(today)} />}
-          <Press accessibilityRole="button" accessibilityLabel="Prethodna nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
-            onPress={() => setSelected(shiftDate(selected, -7))}><ArrowLeft size={20} color={sys.color.ink} /></Press>
-          <Press accessibilityRole="button" accessibilityLabel="Sledeća nedelja" haptic="select" style={[s.icon, { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill }]}
-            onPress={() => setSelected(shiftDate(selected, 7))}><ArrowRight size={20} color={sys.color.ink} /></Press>
+          {/* The week's arrows are the chrome's one icon button (round-1 critique B2), the same circle as Back. */}
+          <ChromeIconButton label="Prethodna nedelja" icon={ArrowLeft} onPress={() => setSelected(shiftDate(selected, -7))} />
+          <ChromeIconButton label="Sledeća nedelja" icon={ArrowRight} onPress={() => setSelected(shiftDate(selected, 7))} />
         </View>
         {/* Seven equal columns that always fit (the seventh day was cut off on the phone, 2026-09-23): no sideways
             scroll, each day one seventh of the row. At a very large font the weekday shrinks to its letter; the

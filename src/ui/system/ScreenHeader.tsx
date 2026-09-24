@@ -3,11 +3,14 @@ import type { Icon } from 'phosphor-react-native';
 import { InboxBell } from '../InboxBell';
 import { ChromeIconButton, ScreenChrome } from './ScreenChrome';
 
-/** A 48px round control beside the profile and the bell; `active` is shown by weight and colour together. */
+/**
+ * A toggle beside the profile and the bell (search, filters): the one chrome icon button, spoken as selected or not;
+ * `active` is shown by weight and colour together. A plain command uses `ChromeIconButton` itself.
+ */
 export function HeaderIconButton({ label, hint, icon, active = false, onPress, children }: {
   label: string; hint?: string; icon: Icon; active?: boolean; onPress: () => void; children?: ReactNode;
 }) {
-  return <ChromeIconButton round label={label} hint={hint} icon={icon} active={active} onPress={onPress}>{children}</ChromeIconButton>;
+  return <ChromeIconButton label={label} hint={hint} icon={icon} active={active} onPress={onPress}>{children}</ChromeIconButton>;
 }
 
 /**

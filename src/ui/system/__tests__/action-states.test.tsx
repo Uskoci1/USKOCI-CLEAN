@@ -7,6 +7,8 @@ jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.fn(), notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
 
+import { View } from 'react-native';
+import { DownloadSimple } from 'phosphor-react-native';
 import { ACTION_MIN_HEIGHT, ACTION_SUCCESS_MS, V2Action } from '../../v2/V2Action';
 import { brandAction, sys } from '../tokens';
 
@@ -101,6 +103,66 @@ it('draws a danger outline and the caller\'s message right under the button, ann
   expect(flat(alert).color).toBe(sys.color.danger);
   // The button itself stays usable: an error is a reason to try again, not a lock.
   expect(press().props.accessibilityState).toEqual({ disabled: false });
+});
+
+// Review r3 item 1: the grey wash under a disabled green button hid its white icon ("Slanje…", "Preuzimanje i čuvanje…").
+it('draws a disabled button\'s icon in the label\'s muted ink, and keeps the live icon\'s own colour otherwise', async () => {
+  const icon = () => tree.root.findAll(node => node.type === (DownloadSimple as unknown as React.ElementType))[0];
+  await render(<V2Action label="Preuzmi i sačuvaj" style={brandAction} disabled icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={noop} />);
+  expect(icon().props.color).toBe(sys.color.muted);
+  expect(icon().props.size).toBe(20);
+  await update(<V2Action label="Preuzmi i sačuvaj" style={brandAction} icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={noop} />);
+  expect(icon().props.color).toBe(sys.color.onGreen);
+  // At work the spinner stands where the icon was, in the button's own colour.
+  await update(<V2Action label="Preuzmi i sačuvaj" style={brandAction} disabled loading icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={noop} />);
+  expect(icon()).toBeUndefined();
+  expect(tree.root.findByType(ActivityIndicator).props.color).toBe(sys.color.onGreen);
+});
+
+it('says why a disabled action cannot be pressed: a muted line under it and the same words as its spoken hint', async () => {
+  const reason = 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.';
+  const note = () => tree.root.findAllByType(Text).find(node => node.props.children === reason);
+  await render(<V2Action label="Pregledaj ponudu" style={brandAction} disabled reason={reason} onPress={noop} />);
+  expect(press().props.accessibilityHint).toBe(reason);
+  expect(press().props.accessibilityState).toEqual({ disabled: true });
+  expect(flat(note()!).color).toBe(sys.color.muted);
+  // Spoken once, as the hint; the drawn line is not read a second time.
+  expect(note()!.props.accessibilityElementsHidden).toBe(true);
+  expect(note()!.props.importantForAccessibility).toBe('no-hide-descendants');
+  // A live button, a working one, or one that already shows an error has no reason line.
+  for (const element of [<V2Action label="Pregledaj ponudu" style={brandAction} reason={reason} onPress={noop} />,
+    <V2Action label="Pregledaj ponudu" style={brandAction} disabled loading reason={reason} onPress={noop} />,
+    <V2Action label="Pregledaj ponudu" style={brandAction} disabled error="Slanje nije uspelo." reason={reason} onPress={noop} />]) {
+    await update(element);
+    expect(note()).toBeUndefined();
+    expect(press().props.accessibilityHint).toBeUndefined();
+  }
+});
+
+it('keeps a row of buttons in its columns when one of them says something under itself', async () => {
+  await render(<View testID="row" style={{ flexDirection: 'row', gap: 8 }}>
+    <V2Action label="Podeli lokaciju" style={{ flex: 1, marginTop: 4 }} error="Lokacija nije podeljena." onPress={noop} />
+    <V2Action label="Otkaži" style={{ flex: 1 }} kind="quiet" onPress={noop} />
+  </View>);
+  // Two columns, not three: in what is drawn, the row holds the first button's column and the second button.
+  const drawn = tree.toJSON() as { props: { testID?: string }; children: { props: { testID?: string } }[] };
+  expect(drawn.props.testID).toBe('row');
+  expect(drawn.children).toHaveLength(2);
+  expect(drawn.children[0].props.testID).toBe('action-column');
+  const column = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'action-column')[0];
+  expect(flat(column)).toMatchObject({ flex: 1, marginTop: 4, gap: sys.space.xs });
+  const [button] = column.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'button');
+  // The place in the row moved onto the column; the button fills it.
+  expect(flat(button).flex).toBeUndefined();
+  expect(flat(button).marginTop).toBeUndefined();
+  expect(column.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'alert')).toHaveLength(1);
+  // Without a message nothing wraps the button: it stays the row's own child.
+  await update(<View testID="row" style={{ flexDirection: 'row', gap: 8 }}>
+    <V2Action label="Podeli lokaciju" style={{ flex: 1 }} onPress={noop} />
+  </View>);
+  const plain = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'row')[0];
+  expect(plain.findAll(node => typeof node.type === 'string' && node.props.testID === 'action-column')).toHaveLength(0);
+  expect(flat(plain.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'button')[0]).flex).toBe(1);
 });
 
 it('writes the label white on the brand surface and green on every other action', async () => {

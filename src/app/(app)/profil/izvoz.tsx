@@ -40,6 +40,8 @@ function OwnedExport() {
   const focus = useRef<object | null>(null), navigating = useRef(false), dialog = useRef<object | null>(null);
   const download = useRef<AbortController | null>(null), pendingKey = useRef<string | null>(null);
   const [savingFile, setSavingFile] = useState(false), [notice, setNotice] = useState<string | null>(null);
+  // Which of the footer's own writes is in flight, so that button shows it is working while every other one waits grey.
+  const [working, setWorking] = useState<'request' | 'prepare' | null>(null);
   const [fileReadbackRequired, setFileReadbackRequired] = useState(false);
   const fileReadback = useRef(false);
   const requireFileReadback = (value: boolean) => { fileReadback.current = value; setFileReadbackRequired(value); };
@@ -94,23 +96,32 @@ function OwnedExport() {
   const requestExport = async () => {
     if (!canAct() || (request && ['REQUESTED', 'PROCESSING'].includes(request.status))) return;
     const key = pendingKey.current ?? noviZahtevId('izvoz'); pendingKey.current = key;
-    await editor.save(async () => {
-      const result = await exports.requestExport(key);
-      if (!current()) return changed(); if (!result.ok) return result;
-      if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
-      pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.'); return read();
-    });
+    // Marked only once the editor has taken the write, so a refused second press never clears the first one's spinner.
+    let started = false;
+    try {
+      await editor.save(async () => {
+        started = true; setWorking('request');
+        const result = await exports.requestExport(key);
+        if (!current()) return changed(); if (!result.ok) return result;
+        if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
+        pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.'); return read();
+      });
+    } finally { if (started) setWorking(null); }
   };
   const prepare = async () => {
     if (!canAct() || !request || !['REQUESTED', 'PROCESSING'].includes(request.status)) return;
-    await editor.save(async () => {
-      const result = await exports.prepareExport(request.receiptId);
-      if (!current()) return changed(); if (!result.ok) return result;
-      if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Osveži stanje.');
-      if (result.podatak.kind === 'NOT_READY') return { ok: true, podatak: { ...editor.data!, preparation: result.podatak } };
-      setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.');
-      return read();
-    });
+    let started = false;
+    try {
+      await editor.save(async () => {
+        started = true; setWorking('prepare');
+        const result = await exports.prepareExport(request.receiptId);
+        if (!current()) return changed(); if (!result.ok) return result;
+        if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Osveži stanje.');
+        if (result.podatak.kind === 'NOT_READY') return { ok: true, podatak: { ...editor.data!, preparation: result.podatak } };
+        setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.');
+        return read();
+      });
+    } finally { if (started) setWorking(null); }
   };
   const cancelRequest = () => {
     if (!request || request.status !== 'REQUESTED') return;
@@ -167,11 +178,14 @@ function OwnedExport() {
   </View>;
   const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
   const primary = readyView ? available
-    ? <Button label={savingFile ? 'Preuzimanje i čuvanje…' : 'Preuzmi i sačuvaj'} disabled={busy}
+    // The button whose own write is in flight shows it is working (spinner, its green kept); the others wait grey.
+    ? <Button label={savingFile ? 'Preuzimanje i čuvanje…' : 'Preuzmi i sačuvaj'} disabled={busy} loading={savingFile}
       icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
-      ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} onPress={() => { void prepare(); }} />
-      : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy} onPress={() => { void requestExport(); }} />
+      ? <Button label={editor.busy ? 'Radnja je u toku…' : 'Pripremi kopiju'} disabled={busy} loading={editor.busy && working === 'prepare'}
+        onPress={() => { void prepare(); }} />
+      : <Button label={pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
+        loading={editor.busy && working === 'request'} onPress={() => { void requestExport(); }} />
     : null;
   return <><SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
     <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>

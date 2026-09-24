@@ -69,10 +69,29 @@ it('turns its caret over in 180 ms on a real change, and at once under reduced m
   expect(rotation()).toBe('180deg');
 });
 
+it('speaks its hint with the label, since the hint is a fact about what the row holds', async () => {
+  await render(<Disclosure label="Kontakt" hint="Tvoj broj je podeljen"><Text>broj</Text></Disclosure>);
+  expect(row('Kontakt').props.accessibilityHint).toBe('Tvoj broj je podeljen');
+  await act(async () => tree.unmount());
+  await render(<Disclosure label="Uslovi"><Text>uslovi</Text></Disclosure>);
+  expect(row('Uslovi').props.accessibilityHint).toBeUndefined();
+});
+
 it('lines what it opens up under the label when the row has a picture', async () => {
   await render(<Disclosure label="Lokacija i pristup" art="lock" defaultExpanded><Text>tačna adresa</Text></Disclosure>);
   const body = tree.root.findAllByType(Text).find(node => node.props.children === 'tačna adresa')!.parent!;
-  expect(flat(body).paddingLeft).toBe(46);
+  // Updated 2026-09-24: the gap after the 32 px art column moved from 14 onto the sys.space scale (md, 12).
+  expect(flat(body).paddingLeft).toBe(32 + sys.space.md);
+});
+
+it('keeps its spacing on the sys.space scale; a list inside a card is inset by the card\'s own padding', async () => {
+  await render(<Disclosure label="Opis" inset defaultExpanded><Text>opis</Text></Disclosure>);
+  const scale = new Set<number>(Object.values(sys.space));
+  const surfaceStyle = flat(surface('Opis'));
+  expect(surfaceStyle).toMatchObject({ paddingHorizontal: sys.space.lg, paddingVertical: sys.space.md });
+  expect(scale.has(surfaceStyle.gap as number)).toBe(true);
+  const body = tree.root.findAllByType(Text).find(node => node.props.children === 'opis')!.parent!;
+  expect(flat(body)).toMatchObject({ paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base, gap: sys.space.md });
 });
 
 it('draws the detail screens\' DisclosureRow through it, with the hairline between rows but not above the first', async () => {
