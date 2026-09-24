@@ -104,6 +104,13 @@ function connectedCalendar(client,userId){
     // The one time format (2026-09-23), imported by the Agreement service and by dogovorenoVreme.
     '../lib/vreme':'src/lib/vreme.ts',
     './vreme':'src/lib/vreme.ts',
+    // The exact window of a Dogovor's accepted terms (2026-09-24), a pure helper the Agreement service imports so the
+    // calendar can place requester-side and finished Dogovori; it imports calendarTime from its own folder.
+    '../lib/tacanTermin':'src/lib/tacanTermin.ts',
+    './calendarTime':'src/lib/calendarTime.ts',
+    // One way to draw initials (2026-09-24), a pure helper with no imports that the Agreement service uses for the
+    // other person's initials.
+    '../lib/inicijali':'src/lib/inicijali.ts',
   };
   const cache=new Map();
   const load=name=>{

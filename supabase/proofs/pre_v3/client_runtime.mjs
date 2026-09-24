@@ -19,7 +19,11 @@ const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClient
  // one zone an agreed time is shown in (dogovorenoVreme).
  'src/lib/novac.ts','src/ui/system/plural.ts','src/lib/dogovorenoVreme.ts',
  // The one time format (vreme, 2026-09-23): agreement, message and schedule text go through it.
- 'src/lib/vreme.ts']);
+ 'src/lib/vreme.ts',
+ // The exact window of a Dogovor's accepted terms (tacanTermin, 2026-09-24), a pure helper of the Agreement service.
+ 'src/lib/tacanTermin.ts',
+ // One way to draw initials (inicijali, 2026-09-24), a pure helper with no imports.
+ 'src/lib/inicijali.ts']);
 export function loadPreV3Clients({client,session,sourceSha}) {
  assert.equal(typeof client,'function');assert.equal(typeof session,'function');
  assert.match(sourceSha,/^[a-f0-9]{40}$/);
