@@ -43,6 +43,14 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it('keeps the contextual add action inside the composer without sending anything',async()=>{
+  const p=props();p.onAdd=jest.fn();p.addLabel='Dodaj fotografiju ili mesto';
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const add=tree.root.findByProps({accessibilityLabel:'Dodaj fotografiju ili mesto'});
+  await act(async()=>add.props.onPress());
+  expect(p.onAdd).toHaveBeenCalledTimes(1);
+  expect(p.onSend).not.toHaveBeenCalled();
+});
 it('offers a way in before the first word, and one tap puts it in the message',async()=>{
   // 38 of the first 62 conversations never received a single message: the screen opened, said
   // "Reci šta ti treba" over an empty card, and was left. An opening is a start, not a command,
