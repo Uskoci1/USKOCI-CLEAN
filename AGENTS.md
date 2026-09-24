@@ -18,6 +18,13 @@ bell), warm strips, underlined tabs with quiet counts, person-first Dogovori car
 Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
 green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
 
+CLOUD SESSION RESULT (2026-09-24 evening): round 5c, owner decisions 1–7, Discovery V47 (Zadaci on the Airbnb model)
+and round 6 are in code on `work/uskoci-ui-unification-20260924` (Jest 302/5,882, nine proofs green, emulator APK run
+36038648243), not yet seen on the emulator. Continue from the "Current head" section of
+`docs/implementation/design-system/cloud-handoff/README.md`: emulator loop, the owner's evening decisions ("U blizini"
+now, remove "Trenutna lokacija", rating comment server package, no place checkbox), then the sweep findings in
+`docs/implementation/design-system/r6-sweep/FINDINGS.json`. Payments/price list (PKG-051) belong to the owner's local session.
+
 CLOUD HANDOFF (2026-09-24, owner: continue in the cloud to use the cloud session credits): read
 `docs/implementation/design-system/cloud-handoff/README.md` first. It carries the working rules copied from the local
 agent memory (`cloud-handoff/rules/`), where rounds 1-5 stand (steps 1-11 built and emulator-checked; receipts in

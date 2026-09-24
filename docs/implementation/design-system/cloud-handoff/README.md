@@ -83,16 +83,56 @@ See the last section of this file (updated at handoff).
   tools, the four calendar wording choices and what "Mogu odmah" means to others (listed in the round-5 calendar
   report), the binding four-sentence candidate choice confirmation (kept word for word).
 
-## Current head at handoff
+## Current head (updated 2026-09-24 evening by the cloud session)
 
-- Branch `work/uskoci-ui-unification-20260924` at `bc127755` (rounds 1–5 and the round-5 review fixes integrated).
-- `npx tsc --noEmit` clean; full Jest **297 suites / 5,707 tests** pass on `bc127755`.
-- Emulator build `36015751245` on `bc127755` was installed and photographed on the owner's PC (receipt
-  `docs/implementation/design-system/r5-emulator-bc127755/`). Proofs green on this code: PKG-005, 006, 007, 048 and
-  PKG-010 (after `45d49581` declared the two new pure helpers `tacanTermin` and `inicijali` in its allowlists).
-- **Do first in the cloud (round 5c):** the independent verifiers of the round-5 fixes left small items, all "fix first"
-  or low. Read `round5b/*-verify-*.md` (profil: keyboard footer dead tap and two photo fixes that clash; kalendar: the
-  overnight-copy one-line regression and two accessibility fixes; obavestenja: the inbox filter rebuilding the whole
-  list and two accessibility regressions; privatnost: two support-screen defects; r4: three presentation items). Apply
-  them with one fixer per area (disjoint files, as in `round5b/*-fixer.md`), verify, run the full Jest, push.
-- Then run round 6 (`round6.workflow.js`).
+Any agent (Claude or Codex) continues from here. The earlier "current head" text (bc127755, round 5c to do first) is
+history: round 5c and round 6 are done.
+
+**Branch** `work/uskoci-ui-unification-20260924` (the cloud session also mirrors it to `…-poazkl`). Head: see
+`git log -1`; code head `b4531ef` plus docs. Nothing was merged into `main`. No server, migration, Edge, key or DEV
+change was made by the cloud session.
+
+**Done on 2026-09-24 in the cloud session** (all in code and tests, NOT yet seen on the emulator or a phone):
+- Round 5c: the verifier leftovers of `round5b/*-verify-*.md` in five areas (profil, kalendar, obavestenja,
+  privatnost/podrska, r4).
+- Owner decisions 1–7 (see `../OWNER_DECISIONS_20260924.md`): "Mogu odmah" saves on its own; no skill labels in the
+  offer; export step "Ova kopija se ne može sačuvati."; no "server" wording in receipts; photos only in task detail.
+- Discovery V47 (the Zadaci tab on the Airbnb interaction model: search pill, step-card panel Gde/Kada/Kako se radi/
+  Koliko vas dolazi/Cena, quick chips, list follows the map, "Bez tačke na mapi", one floating pin card, "Mapa" pill,
+  remembered state) plus 21 fixes from three independent reviews; one reset label "Obriši uslove".
+- Round 6 in three parallel cloud sessions, each with a three-lens review applied: `../r6-prijava/REPORT.md`,
+  `../r6-objava/REPORT.md`, `../r6-dogovor-dodaci/REPORT.md` (specs in `../r6-specs/`). Galleries:
+  `uskociapp://dizajn-prijava`, `dizajn-objava`, `dizajn-dodaci`.
+- Verification on `b4531ef`: `tsc` clean; full Jest **302 suites / 5,882 tests**; proofs green: PKG-004, 005, 006, 007,
+  008, 010, 042, 046, 050; emulator APK run `36038648243` (artifact `USKOCI-DEV-APK`).
+- Control table rows updated (`docs/control/redovi.json`, 24.09 uveče notes) and recomputed.
+
+**Next, in this order**
+1. **Emulator loop on the owner's PC** for `b4531ef`: install the APK (`adb install -r`), photograph the Zadaci tab
+   and the three galleries, and the items each report lists under "What the emulator check should look at"; write
+   receipts to `docs/implementation/design-system/r6-emulator-b4531ef/`; fix what the pictures show.
+2. **Owner decisions of 2026-09-24 evening, not yet built:**
+   - a. "U blizini" NOW (owner: "Da, odmah"): add `expo-location` with `npx expo install expo-location` (approved),
+     ask the foreground permission only when the person taps "U blizini", use the position only to centre the map,
+     never store or send it.
+   - b. Remove "Trenutna lokacija" (sharing where I am now) from the Dogovor: its screen, route
+     `/dogovor/[id]/lokacija` and entry points. KEEP the exact task address grant (`AgreementPrivateLocation`). Delete
+     nothing on the server.
+   - c. Written comment with a rating: YES. Needs a server package first (candidate + disposable proof + contract:
+     column, length, who sees it, report path, retention on closure); DEV only on the owner's "primeni"; then the UI.
+   - d. Remove the place confirmation checkbox ("Javno mesto i privatni podaci su provereni.", also the remote and the
+     worker-area variants): pressing save is the confirmation (the client still sends `confirmed: true`).
+   - e. Past special availability dates are never deleted automatically (no change needed).
+3. **Whole-app sweep findings:** `../r6-sweep/FINDINGS.json` — 181 findings (24 major: 22 confirmed, 2 unchecked; 157
+   minor/polish unchecked). The run was paused to save usage. Re-verify each against the current code, then fix with
+   one fixer per area.
+4. After each step: tsc + full Jest, push, dispatch the emulator APK and the proofs whose paths match, update
+   `docs/control/redovi.json` + `node scripts/control/osvezi.mjs`, republish the control table.
+
+**Coordination.** The owner's local session is building PKG-051 (versioned platform price list at 0 RSD). Payments
+and the price list belong to it; the cloud session did not touch those files. It must `git fetch origin` and merge
+`origin/work/uskoci-ui-unification-20260924` before its next push (no rebase, no force push).
+
+**Still the owner's:** the payment model (free now; later Google Play billing, e.g. via RevenueCat, and/or a web
+"USKOČI kredit" with DinaCard/Visa; KupujemProdajem-style paid visibility discussed), legal documents, the geocoder,
+the production database, Play Console and the closed test.
