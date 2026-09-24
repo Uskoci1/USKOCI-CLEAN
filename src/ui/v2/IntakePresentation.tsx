@@ -254,13 +254,8 @@ export function IntakePresentation(props: Props) {
           goes first and it is the strong one; starting over is an ordinary choice near the end,
           beside abandoning. */}
       {props.canReview ? <V2Action label={props.reviewLabel} kind="primary" onPress={() => { close(); props.onReview(); }} /> : null}
-      {props.onPhotos ? <V2Action label="Fotografije zadatka" disabled={props.photosDisabled}
-        onPress={() => { close(); props.onPhotos?.(); }} /> : null}
-      {/* Reachable whenever the task has a place, not only while a point is missing, so a point
-          can also be moved without hunting for the long form. */}
-      {conversation.status === 'OPEN' && gap.total > 0
-        ? <V2Action label={needsPoint ? 'Mesto na mapi' : 'Izmeni mesto na mapi'}
-          onPress={() => { close(); setPointAskHidden(false); setPanel(gap.done < gap.total ? null : 'points'); }} /> : null}
+      {/* Photos and location live behind the composer +. Keeping them here as well made the same
+          action appear in two different menus and turned this sheet into a second toolbar. */}
       <V2Action label="Osveži razgovor" kind="quiet" disabled={props.readbackDisabled} onPress={() => { close(); props.onRefresh(); }} />
       {props.onNewTask ? <V2Action label="Novi Zadatak" kind="quiet" disabled={props.newTaskDisabled}
         onPress={() => { close(); props.onNewTask?.(); }} /> : null}
