@@ -102,7 +102,7 @@ describe('CDL-A10 — canonical AI command owner after shadow deletion', () => {
     expect(result).toEqual({
       ok: false,
       kod: 'AI_EDGE_INVALID_RESPONSE',
-      poruka: 'AI server nije vratio ispravan rezultat.',
+      poruka: 'AI nije vratio ispravan rezultat.',
     });
   });
 

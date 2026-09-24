@@ -75,7 +75,7 @@ export const processorMapClientService = {
         ? 'Prijavi se da vidiš obrađivače podataka.'
         : 'Podaci o obrađivačima trenutno nisu dostupni. Pokušaj ponovo.');
     }
-    if (!data || typeof data.ready !== 'boolean') return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Server nije vratio stanje mape obrađivača.');
+    if (!data || typeof data.ready !== 'boolean') return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Stanje mape obrađivača nije učitano.');
     if (data.ready !== true) {
       const reason = NOT_READY.has(data.reason) ? data.reason : 'PROCESSOR_MAP_NOT_PUBLISHED';
       const missing = Array.isArray(data.missingProviders) ? data.missingProviders.filter((m: unknown) => typeof m === 'string') : [];
@@ -91,17 +91,17 @@ export const processorMapClientService = {
       || !nonNegativeInteger(technicalCount) || !nonNegativeInteger(requiredCount) || !nonNegativeInteger(coveredCount)
       || coveredCount !== requiredCount || coveredCount > technicalCount || !rawProviders || rawProviders.length < coveredCount
       || rawProviders.length > technicalCount) {
-      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Server je vratio neusklađeno stanje mape obrađivača.');
+      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Stanje mape obrađivača nije usklađeno.');
     }
 
     const providers = rawProviders.map(mapProvider);
     if (providers.some(provider => provider === null)) {
-      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Server je vratio neispravan zapis mape obrađivača.');
+      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Zapis mape obrađivača nije ispravan.');
     }
     const strictProviders = providers as ProcessorMapProvider[];
     const providerCodes = strictProviders.map(provider => provider.providerCode.toUpperCase());
     if (new Set(providerCodes).size !== providerCodes.length) {
-      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Server je vratio dupliran zapis mape obrađivača.');
+      return fail('PROCESSOR_MAP_INVALID_RESPONSE', 'Zapis mape obrađivača je dupliran.');
     }
 
     return { ok: true, podatak: { ready: true, mapVersion: data.mapVersion, effectiveAt: data.effectiveAt, providers: strictProviders } };

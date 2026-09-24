@@ -32,7 +32,7 @@ export const aiCommandOverrides: AiCommandOverrides = {
       return {
         ok: false,
         kod: 'AI_EDGE_INVALID_RESPONSE',
-        poruka: 'AI server nije vratio ispravan rezultat.',
+        poruka: 'AI nije vratio ispravan rezultat.',
       };
     }
 

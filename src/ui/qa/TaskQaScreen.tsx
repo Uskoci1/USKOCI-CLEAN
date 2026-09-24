@@ -202,7 +202,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       {message?<T accessibilityRole="alert">{message}</T>:null}
       {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
       {material?<SettingsAction label="Nazad na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
-      {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što server već obrađuje.</T>
+      {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što je već u obradi.</T>
         {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesi isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
         {absent?<SettingsAction label="Ponovi isti zahtev" kind="secondary" disabled={busy} onPress={()=>void retry()}/>:null}
         {classification?.canCancel?<SettingsAction label="Odustani od ovog slanja" kind="quiet" disabled={busy} onPress={()=>void cancel()}/>:null}

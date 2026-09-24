@@ -26,7 +26,7 @@ const consequence = (action: Action) => action === 'DELETE_DRAFT'
 export const LIFECYCLE_CHECK_NOTICE_MS = 400;
 
 /**
- * Which ways into the lifecycle a Need offers right now: the one rule for the inline entries and for the screen's "···".
+ * Which ways into the lifecycle a Need offers right now: the one rule for the screen's "···" and for `request` itself.
  * Places already agreed are cancelled through their Dogovori; a closed task offers nothing; a draft can also be deleted.
  */
 export function needLifecycleEntries(need: PotrebaProjekcija | null): { deleteDraft: boolean; cancel: boolean; agreements: boolean } {
@@ -36,7 +36,7 @@ export function needLifecycleEntries(need: PotrebaProjekcija | null): { deleteDr
   return { deleteDraft: need.stanje === 'NACRT', cancel: true, agreements: false };
 }
 
-/** What a screen's "···" calls. Each call passes the same guards as the inline entries it replaces. */
+/** What a screen's "···" calls. Each call passes every guard of the lifecycle before anything is asked or sent. */
 export type NeedLifecycleMenu = {
   /** Opens the review of `action` as a confirmation sheet; nothing is sent before its confirm. */ request: (action: Action) => void;
   openAgreements: () => void;
@@ -47,13 +47,14 @@ export type NeedLifecycleMenu = {
  * Recovery is deliberately mountable without the Need row: a successful delete
  * may make that row disappear before the client receives its terminal reply.
  *
- * Two ways to be placed (owner step 5b, 2026-09-24). Without `menu` it draws its own entries and asks inline, as it
- * always did. With `menu` the entries live in the screen's "···" (the handle is written into `menu`), the review is
- * asked in a ConfirmSheet with the same words and the same submit, and only what the person must see — the check of a
- * retained command, the command running, its uncertain, confirmed or refused outcome, an error — is drawn on the screen,
- * never hidden in a sheet. The storage key, restore, reconcile and every guard are the same in both. */
+ * The entries live in the screen's "···" (owner step 5b, 2026-09-24): the handle is written into `menu`, the review is
+ * asked in a ConfirmSheet, and only what the person must see — the check of a retained command, the command running, its
+ * uncertain, confirmed or refused outcome, an error — is drawn on the screen, never hidden in a sheet. The inline
+ * placement that drew its own entries and asked on the screen was retired after the review of step 5b: no screen used it
+ * any more, and its guards (persist before sending, one command, the revision fence, restore and reconcile) are the same
+ * ones `request` passes, now proved through this placement (v5-need-lifecycle-screen, need-lifecycle-menu). */
 export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId?: string; disabled: boolean;
-  onActiveChange: (active: boolean) => void; onRefresh: () => void; menu?: { current: NeedLifecycleMenu | null } }) {
+  onActiveChange: (active: boolean) => void; onRefresh: () => void; menu: { current: NeedLifecycleMenu | null } }) {
   const { user, accountRevision } = useSesija(), source = useIzvor();
   const accountId = user?.id ?? '', needId = p.need?.id ?? p.needId ?? '';
   const storageKey = `uskoci:need-lifecycle:v5:${accountId}:${needId}`;
@@ -117,7 +118,6 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
       && need.pokrivenost.popunjeno === 0 && need.stanje !== 'ZATVORENA'
       && (action !== 'DELETE_DRAFT' || need.stanje === 'NACRT');
   };
-  const review = (action: Action) => { if (latestView.current === view && !active && eligible(action)) setView({ ...view, review: action, error: null }); };
   const submit = async () => {
     const action = view.review, need = p.need, currentNeed = latest.current.need;
     if (latestView.current !== view || !action || view.command || !need || !currentNeed || !eligible(action)
@@ -143,7 +143,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   const request = (action: Action) => {
     if (latestView.current !== view || active || !eligible(action)) return;
     // The answer belongs to the version of the task the person was asked about. A newer one that arrived under the open
-    // question is not what they confirmed, so that confirm sends nothing (as a retained inline button does).
+    // question is not what they confirmed, so that confirm sends nothing; `submit` checks the same fence once more.
     const seen = latest.current.need?.revizija;
     setView({ ...view, review: action, error: null });
     confirmation.ask({ title: `${label(action)}?`, message: consequence(action), confirmLabel: label(action), tone: 'danger',
@@ -155,16 +155,16 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   };
   const openAgreements = () => { if (current(owner) && !p.disabled) router.push('/dogovori'); };
   // The screen's "···" reaches the newest guards through this handle, and loses it with this component.
-  useEffect(() => { if (p.menu) p.menu.current = { request, openAgreements }; });
-  useEffect(() => { const handle = p.menu; return () => { if (handle) handle.current = null; }; }, [p.menu]);
-  // In the "···" placement the check of a retained command is said only when it takes long enough to be seen: a line
-  // that came and went on every open would move the whole task under it.
+  useEffect(() => { p.menu.current = { request, openAgreements }; });
+  useEffect(() => { const handle = p.menu; return () => { handle.current = null; }; }, [p.menu]);
+  // The check of a retained command is said only when it takes long enough to be seen: a line that came and went on
+  // every open would move the whole task under it.
   const [slowCheck, setSlowCheck] = useState(false);
   useEffect(() => {
-    if (!p.menu || !view.loading) { setSlowCheck(false); return; }
+    if (!view.loading) { setSlowCheck(false); return; }
     const timer = setTimeout(() => setSlowCheck(true), LIFECYCLE_CHECK_NOTICE_MS);
     return () => clearTimeout(timer);
-  }, [p.menu, view.loading]);
+  }, [view.loading]);
   const run = (operation: 'reconcile' | 'retrySame' | 'refreshCollection') => {
     if (current(owner) && !latch.current) void controller.current?.[operation]();
   };
@@ -179,16 +179,13 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
     finally { if (current(owner)) latch.current = false; }
   };
   const phase = view.state?.phase;
-  const busy = view.loading || phase === 'SUBMITTING' || phase === 'RECONCILING';
-  const inline = !p.menu;
-  // With no current row and no retained command there is no lifecycle UI to show.
-  // The initial loading pass still runs so a retained command can be recovered.
-  if (!p.need && !view.loading && !view.state && !view.error) return confirmation.sheet;
-  const entries = needLifecycleEntries(p.need);
-  const body = view.loading ? (inline || slowCheck ? <T accessibilityLiveRegion="polite" style={s.copy}>Proveravamo prethodni zahtev…</T> : null)
+  // The initial loading pass runs with or without the Need row, so a retained command can be recovered; with nothing to
+  // say, nothing is drawn and the screen keeps its rhythm.
+  const body = view.loading ? (slowCheck ? <T accessibilityLiveRegion="polite" style={s.copy}>Proveravamo prethodni zahtev…</T> : null)
     : view.state ? <>
+      {/* The outcome in plain words, first under the task's name: what happened, not which system said so. */}
       <T accessibilityLiveRegion="polite" style={s.copy}>{phase === 'CONFIRMED'
-        ? view.command?.action === 'DELETE_DRAFT' ? 'Server je potvrdio brisanje nacrta.' : 'Server je potvrdio otkazivanje zadatka.'
+        ? view.command?.action === 'DELETE_DRAFT' ? 'Nacrt je obrisan.' : 'Zadatak je otkazan.'
         : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
           : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
       {phase === 'UNKNOWN_OUTCOME' ? <>
@@ -199,25 +196,11 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" style={s.quiet} onPress={() => run('refreshCollection')} /> : null}
         <V2Action label="Moji zadaci" onPress={() => { void finish(true); }} />
       </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" style={s.quiet} onPress={() => { void finish(false); }} /> : null}
-    </> : view.review && p.need ? (inline ? <>
-      <T style={s.title}>{label(view.review)}?</T><T style={s.copy}>{consequence(view.review)}</T>
-      <T style={s.copy}>{p.need.naslov}</T>
-      <V2Action label={label(view.review)} disabled={busy || p.disabled} onPress={() => { void submit(); }} />
-      <V2Action label="Odustani" kind="quiet" style={s.quiet} disabled={busy} onPress={() => { if (latestView.current === view && current(owner) && !latch.current && !controller.current) setView({ ...initial, loading: false }); }} />
-    </> : null) : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" style={s.quiet} onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
-      : !p.need || !inline ? null
-        : entries.agreements ? <><T style={s.copy}>Postojeći Dogovori se otkazuju zasebno.</T>
-          <V2Action label="Otvori moje Dogovore" kind="quiet" style={s.quiet} disabled={p.disabled} onPress={openAgreements} /></>
-          : entries.cancel ? <>
-            {/* Two quiet buttons of the same weight, one of which destroys the draft for good. */}
-            {entries.deleteDraft ? <V2Action label="Obriši nacrt" kind="destructive" style={s.quiet} disabled={p.disabled} onPress={() => review('DELETE_DRAFT')} /> : null}
-            <V2Action label="Otkazivanje zadatka" kind="quiet" style={s.quiet} disabled={p.disabled} onPress={() => review('CANCEL')} />
-          </> : <T style={s.copy}>Zadatak je zatvoren.</T>;
-  // Nothing to say in the "···" placement: nothing is drawn, so the screen keeps its rhythm.
-  if (!inline && !view.error && body === null) return confirmation.sheet;
-  // Headless inline: the screen places it under its own heading. In the "···" placement it is a notice of its own.
+    </> : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" style={s.quiet} onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
+      : null;
+  if (!view.error && body === null) return confirmation.sheet;
   return <>
-    <View style={[s.panel, !inline && s.notice]}>
+    <View style={s.notice}>
       {view.error ? <T accessibilityLiveRegion="polite" style={s.error}>{view.error}</T> : null}
       {body}
     </View>
@@ -225,10 +208,9 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   </>;
 }
 /** Same controller and copies; flat, in the task's own reading order (2026-09-23), not a card of its own. */
-const s = StyleSheet.create({ panel: { gap: 12, alignItems: 'flex-start' },
+const s = StyleSheet.create({
   // A flat tint, not a card: what happened to a command the person sent, where they read first.
-  notice: { ...inset, alignSelf: 'stretch', backgroundColor: sys.color.wash },
+  notice: { ...inset, gap: 12, alignItems: 'flex-start', alignSelf: 'stretch', backgroundColor: sys.color.wash },
   // Text actions start where the text of the screen starts, as the other ways to change the task do.
   quiet: { paddingHorizontal: 0 },
-  title: { ...sys.type.heading, color: sys.color.ink },
   copy: { ...sys.type.note, color: sys.color.muted }, error: { ...sys.type.note, color: sys.color.danger } });

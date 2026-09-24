@@ -127,26 +127,44 @@ export function ScreenChrome(props: ScreenChromeProps) {
   </View>;
 
   const { title, subtitle, titleVisible } = props;
+  const scrolled = titleVisible !== undefined;
   return <View style={s.bar}>
     <ChromeIconButton label={props.backLabel ?? 'Nazad'} icon={ArrowLeft} disabled={props.disabled} onPress={props.onBack} />
     {props.lead}
-    <View style={s.copy}>
-      {title && titleVisible === undefined ? <ChromeTitle title={title} subtitle={subtitle} />
-        : title ? <FadingTitle visible={titleVisible!}><ChromeTitle title={title} subtitle={subtitle} /></FadingTitle>
+    <View style={[s.copy, scrolled && s.scrolledCopy]}>
+      {title && !scrolled ? <ChromeTitle title={title} subtitle={subtitle} />
+        : title ? <FadingTitle visible={titleVisible!}><ChromeTitle title={title} subtitle={subtitle} scrolled /></FadingTitle>
           : subtitle ? <T variant="meta" tone="muted" numberOfLines={1}>{subtitle}</T> : null}
     </View>
     {props.right}
   </View>;
 }
 
-function ChromeTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+/**
+ * The largest text scale the scrolled-in title follows. One line of the title at this scale (26 × 1.3 ≈ 34 px) still sits
+ * inside the 48 px of the bar's controls, so the bar never grows when the person has chosen a large font.
+ */
+export const SCROLL_TITLE_MAX_SCALE = 1.3;
+
+/**
+ * A title that is always there may take two lines. The scrolled-in one is a reminder of a name the screen already showed
+ * large, so it is one line with an ellipsis and follows the text scale only up to `SCROLL_TITLE_MAX_SCALE`.
+ */
+function ChromeTitle({ title, subtitle, scrolled = false }: { title: string; subtitle?: string; scrolled?: boolean }) {
+  const cap = scrolled ? SCROLL_TITLE_MAX_SCALE : undefined;
   return <>
-    <T accessibilityRole="header" variant="title" numberOfLines={2} style={s.title}>{title}</T>
-    {subtitle ? <T variant="meta" tone="muted" numberOfLines={1}>{subtitle}</T> : null}
+    <T accessibilityRole="header" variant="title" numberOfLines={scrolled ? 1 : 2} maxFontSizeMultiplier={cap} style={s.title}>{title}</T>
+    {subtitle ? <T variant="meta" tone="muted" numberOfLines={1} maxFontSizeMultiplier={cap}>{subtitle}</T> : null}
   </>;
 }
 
-/** The scrolled-in title: a short fade and a 4 px rise on a real change only; hidden from a screen reader while unseen. */
+/**
+ * The scrolled-in title: a short fade and a 4 px rise on a real change only; hidden from a screen reader while unseen.
+ *
+ * It is laid over the copy area (absolute, centred on the bar's controls) instead of standing in it, so it takes no height
+ * whether it is shown or not (review of step 5b, 2026-09-24). In the flow, a faded two-line name held the bar at 68 px at
+ * normal text and about 84 px at the owner's large font, with an empty band above the large title before any scroll.
+ */
 function FadingTitle({ visible, children }: { visible: boolean; children: ReactNode }) {
   const reduced = useReducedMotion();
   const shown = useRef(new Animated.Value(visible ? 1 : 0)).current;
@@ -159,7 +177,7 @@ function FadingTitle({ visible, children }: { visible: boolean; children: ReactN
   }, [visible, reduced, shown]);
   const translateY = shown.interpolate({ inputRange: [0, 1], outputRange: [4, 0] });
   return <Animated.View testID="chrome-title" accessibilityElementsHidden={!visible} importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}
-    style={{ opacity: shown, transform: [{ translateY }] }}>{children}</Animated.View>;
+    style={[s.overlay, { opacity: shown, transform: [{ translateY }] }]}>{children}</Animated.View>;
 }
 
 /**
@@ -179,6 +197,9 @@ const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: chrome.gap, minHeight: chrome.minHeight,
     paddingHorizontal: chrome.paddingHorizontal, paddingVertical: chrome.paddingVertical },
   copy: { flex: 1, minWidth: 0 },
+  // The scrolled-in title's area spans the bar's content height (its 48 px controls), and the title lies over it.
+  scrolledCopy: { alignSelf: 'stretch' },
+  overlay: { ...StyleSheet.absoluteFill, justifyContent: 'center' },
   title: { color: sys.color.ink },
   step: { fontVariant: ['tabular-nums'] },
   brand: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingVertical: chrome.paddingVertical },

@@ -22,7 +22,7 @@ export function BuildIdentity() {
       <Text style={styles.copy}>{build.sourceDirty === true ? 'Radna verzija sa lokalnim izmenama.'
         : build.sourceDirty === false ? 'Izgrađeno iz čistog radnog stabla.' : 'Čistoća radnog stabla nije potvrđena.'}</Text>
       <Text style={styles.copy}>{targets[build.backendTarget]}</Text>
-      <Text style={styles.copy}>Verzija servera i aktivne mogućnosti proveravaju se zasebno.</Text>
+      <Text style={styles.copy}>Verzija usluge i aktivne mogućnosti proveravaju se zasebno.</Text>
     </View> : null}
   </View>;
 }

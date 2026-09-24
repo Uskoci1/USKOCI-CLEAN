@@ -62,8 +62,8 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
         const missing = receipt.kod === 'MEDIA_NOT_FOUND', retained = !!pending.current?.photo;
         setCanRetry(retained);
         setMessage(!missing ? 'Ishod slanja nije učitan. Proveri vezu i osveži prikaz.'
-          : retained ? 'Server nema ovo slanje. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.'
-            : 'Server nema ovo slanje, a fotografija više nije na uređaju. Odustani od slanja pa izaberi fotografiju ponovo.');
+          : retained ? 'Slanje nije primljeno. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.'
+            : 'Slanje nije primljeno, a fotografija više nije na uređaju. Odustani od slanja pa izaberi fotografiju ponovo.');
       }
     }
     if (!current()) return;

@@ -58,7 +58,7 @@ export function AgreementLocationScreen({agreementId}:{agreementId:string}){
     {ready&&!state.context?.canShare&&!state.context?.canRequest?<T style={s.copy}>Deljenje je dostupno samo učesnicima aktivnog fizičkog Dogovora kada važe dozvole za kontakt.</T>:null}
     {state.phase==='UNKNOWN'?<View style={s.group}><V2Action label="Proveri prvobitni zahtev" onPress={()=>run('refresh')}/>
       <V2Action label="Zaustavi zahtev ako još nije poslat" kind="quiet" onPress={()=>run('cancelUnknown')}/>
-      <T style={s.copy}>Ako je server već prihvatio zahtev, prikazaće se ta potvrda. Prekid čekanja ne povlači već podeljenu tačku.</T></View>:null}
+      <T style={s.copy}>Ako je zahtev već prihvaćen, prikazaće se ta potvrda. Prekid čekanja ne povlači već podeljenu tačku.</T></View>:null}
     {state.phase==='CONFIRMED'?<V2Action label="Prikaži stanje lokacije" onPress={()=>run('acknowledge')}/>:null}
     {ready||state.phase==='ERROR'?<V2Action label="Osveži prikaz" kind="quiet" onPress={()=>run('refresh')}/>:null}
   </ScrollView></SafeAreaView>;

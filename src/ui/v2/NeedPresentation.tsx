@@ -41,14 +41,16 @@ export type NeedPresentationProps = {
  * happens next ("Sledeće: prijave stižu ovde…") are gone: the screen shows the next step instead of
  * describing it (owner, 2026-09-23: no copy explaining where you are). A closed remaining search is said
  * here, once (it was also a note at the end of the screen), and a task whose search was closed before
- * every place was agreed never reads "Sva mesta su dogovorena".
+ * every place was agreed never reads "Sva mesta su dogovorena". It is said in every state that can have a
+ * search at all: a Dogovor cancelled after the search was closed can bring the agreed count back to 0, and
+ * the task then reads "Objavljen" or "Čeka prijave" while nobody can apply (review of step 5b, 2026-09-24).
  */
 function stateLine(need: PotrebaProjekcija, remainingClosed: boolean): { title: string; detail?: string; tone: 'green' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
   const closedEarly = remainingClosed && popunjeno < ukupno ? `${popunjeno} od ${ukupno} dogovoreno · preostala potraga je zatvorena` : null;
   switch (need.stanje) {
     case 'NACRT': return { title: STATUS.NACRT, tone: 'muted' };
-    case 'OBJAVLJENA': case 'CEKA_PRIJAVE': return { title: STATUS[need.stanje], tone: 'green' };
+    case 'OBJAVLJENA': case 'CEKA_PRIJAVE': return { title: STATUS[need.stanje], ...(closedEarly ? { detail: closedEarly } : {}), tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
       return { title: STATUS.DELIMICNO_POPUNJENA, detail: closedEarly ?? `${popunjeno} od ${ukupno} dogovoreno · potraga za ostalima traje`, tone: 'green' };
     case 'POPUNJENA': return { title: STATUS.POPUNJENA, detail: closedEarly ?? 'Sva mesta su dogovorena', tone: 'green' };

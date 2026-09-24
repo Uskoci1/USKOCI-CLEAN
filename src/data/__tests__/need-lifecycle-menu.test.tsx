@@ -38,7 +38,8 @@ import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 /**
  * NeedLifecycleActions in the "···" placement (owner step 5b, 2026-09-24). The entries left the screen for the bar's menu;
  * the review is asked in a ConfirmSheet with the same words and the same submit; everything the person must see about a
- * command they sent stays on the screen. The inline placement keeps its own suite (v5-need-lifecycle-screen), unchanged.
+ * command they sent stays on the screen. Since the review of step 5b this is the only placement; the retired inline one's
+ * guards were moved onto it in v5-need-lifecycle-screen.
  */
 let tree: ReactTestRenderer, need: PotrebaProjekcija, disabled = false;
 const menu: { current: NeedLifecycleMenu | null } = { current: null };
@@ -84,7 +85,8 @@ it('asks in a ConfirmSheet with its own words, persists before sending, sends on
   await act(async () => stored.resolve());
   expect(mockService.cancelNeed.mock.calls).toEqual([[N, 3, '']]);
   expect(sheets()).toHaveLength(0);
-  expect(texts()).toContain('Server je potvrdio otkazivanje zadatka.'); expect(actions()).toContain('Moji zadaci');
+  // The outcome in plain words since the review of step 5b (no "server" wording): what happened, not who said so.
+  expect(texts()).toContain('Zadatak je otkazan.'); expect(texts()).not.toMatch(/server/i); expect(actions()).toContain('Moji zadaci');
   await act(async () => { tree.root.findByProps({ label: 'Moji zadaci' }).props.onPress(); });
   expect(mockReplace).toHaveBeenCalledWith('/potrebe');
 });
@@ -96,7 +98,7 @@ it('a draft is deleted with its own words; an action the Task does not allow ope
   expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger' });
   await pressIn('confirm-sheet-confirm');
   expect(mockService.deleteDraftNeed.mock.calls).toEqual([[N, 3, '']]); expect(mockService.cancelNeed).not.toHaveBeenCalled();
-  expect(texts()).toContain('Server je potvrdio brisanje nacrta.');
+  expect(texts()).toContain('Nacrt je obrisan.'); expect(texts()).not.toMatch(/server/i);
 });
 
 it('cancelling the question sends nothing, frees the screen, and the question can be asked again', async () => {
@@ -167,7 +169,7 @@ it('opens the Dogovori for a task with agreed places, and the handle goes with t
   tree = undefined as unknown as ReactTestRenderer;
 });
 
-it('offers the same entries the inline placement draws', () => {
+it('offers the "···" the entries the Task allows: agreed places go through the Dogovori, a closed task offers nothing', () => {
   const base = { id: N, revizija: 3, naslov: 'x', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2 } } as PotrebaProjekcija;
   expect(needLifecycleEntries(null)).toEqual({ deleteDraft: false, cancel: false, agreements: false });
   expect(needLifecycleEntries({ ...base, stanje: 'NACRT' })).toEqual({ deleteDraft: true, cancel: true, agreements: false });

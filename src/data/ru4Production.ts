@@ -92,13 +92,13 @@ export const ru4Production = {
       || !sameId(receipt.needId, needId) || !positiveInteger(receipt.revision) || receipt.revision !== expectedRevision
       || !positiveInteger(receipt.requiredSlots) || !isoInstant(receipt.closedAt)
       || typeof receipt.idempotentReplay !== 'boolean') {
-      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Server nije vratio potvrdu zatvaranja preostale potrage.');
+      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Potvrda zatvaranja preostale potrage nije stigla.');
     }
     const rawClosed = receipt.closedRemainingSlots;
     const closedRemainingSlots = rawClosed === undefined && receipt.idempotentReplay === true ? null
       : typeof rawClosed === 'number' && Number.isSafeInteger(rawClosed) && rawClosed > 0 ? rawClosed : undefined;
     if (closedRemainingSlots === undefined) {
-      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Server nije vratio potvrdu zatvaranja preostale potrage.');
+      return failure('REMAINING_SEARCH_CLOSE_INVALID_RESPONSE', 'Potvrda zatvaranja preostale potrage nije stigla.');
     }
     return { ok: true, podatak: {
       needId: receipt.needId,

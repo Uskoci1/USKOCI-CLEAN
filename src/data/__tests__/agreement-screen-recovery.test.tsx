@@ -637,7 +637,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await confirmCompletion();
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledWith(workspace.id);
     expect(mockRead).toHaveBeenCalledTimes(2);
-    expect(texts()).toContain('Server nije potvrdio završetak');
+    expect(texts()).toContain('Završetak nije potvrđen');
     expect(texts()).not.toContain('Dogovor je završen');
     expect(button('Potvrdi završetak').props.disabled).toBe(true);
     await act(async () => button('Potvrdi završetak').props.onPress());
@@ -656,7 +656,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await render();
     await confirmCompletion();
     expect(texts()).toContain('Dogovor je završen');
-    expect(texts()).not.toContain('Server nije potvrdio završetak');
+    expect(texts()).not.toContain('Završetak nije potvrđen');
     expect(button('Oceni saradnju')).toBeTruthy();
     absent('Potvrdi završetak');
   });
@@ -680,7 +680,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await render();
     await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
-    expect(texts()).toContain('Server nije potvrdio završetak');
+    expect(texts()).toContain('Završetak nije potvrđen');
     expect(button('Posao je gotov').props.disabled).toBe(true);
     mockRead.mockResolvedValue({ ...asWorker, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', radnje: none });
     await act(async () => button('Osveži status Dogovora').props.onPress());

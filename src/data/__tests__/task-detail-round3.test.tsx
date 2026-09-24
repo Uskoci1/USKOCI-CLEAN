@@ -108,6 +108,16 @@ describe('a stranger\'s task', () => {
     expect(texts()).toContain('Traži pomoć · Ocena nije dostupna');
   });
 
+  it('puts the poster\'s face on the first line of the name, as every other fact\'s picture, and keeps the row one touch target', async () => {
+    const open = jest.fn();
+    await render(<Stranger onRequesterProfile={open} />);
+    const row = byLabel('Ana Anić, Traži pomoć, Ocena 4,8')!;
+    // Review of step 5b: centred, the face slid to the middle of a name and caption wrapped by a large text size.
+    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ alignItems: 'flex-start', minHeight: 48 });
+    expect(row.props.accessibilityHint).toBe('Otvara javni profil');
+    await act(async () => row.props.onPress()); expect(open).toHaveBeenCalledTimes(1);
+  });
+
   it('says why applying is not possible in one muted line beside a quiet way on, never with the brand action', async () => {
     const other = jest.fn();
     await render(<Stranger canApply={false} need={{ ...task, pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } }} onOtherTasks={other} />);
@@ -138,12 +148,20 @@ describe('a stranger\'s task', () => {
     await render(<Stranger safety={{ onPress: report, busy: false, error: null }} />);
     await openMenu();
     const rows = menuItems();
-    expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Prijavi ili blokiraj']);
+    // Updated in the review of step 5b: the row names the person, because beside "Sastavi prijavu" a bare "Prijavi"
+    // reads as "apply". It was "Prijavi ili blokiraj".
+    expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Prijavi ili blokiraj osobu']);
     expect(StyleSheet.flatten(rows[0].findByType('T' as React.ElementType).props.style).color).toBe(sys.color.danger);
     await act(async () => rows[0].props.onPress());
     expect(report).toHaveBeenCalledTimes(1); expect(menuItems()).toHaveLength(0);
     await act(async () => tree.update(<Stranger safety={{ onPress: report, busy: false, error: 'Korisnik trenutno nije dostupan.' }} />));
     expect(texts()).toContain('Korisnik trenutno nije dostupan.');
+    // With the person's profile open, its sheet says the failure itself; the line under the poster would repeat it and
+    // announce from behind the sheet.
+    await act(async () => tree.update(<Stranger safety={{ onPress: report, busy: false, error: 'Korisnik trenutno nije dostupan.' }}
+      requesterProfile={{ loading: true, data: null }} onCloseRequesterProfile={noop} />));
+    expect(tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.tone === 'danger'
+      && node.props.children === 'Korisnik trenutno nije dostupan.')).toHaveLength(0);
     // My own task has nobody to report, and without a safety entry there is nothing rare: no "···" is drawn.
     await act(async () => tree.update(<Stranger relation={{ kind: 'OWNER' }} safety={{ onPress: report, busy: false, error: null }} />));
     expect(byLabel('Više radnji')).toBeUndefined();
@@ -209,6 +227,22 @@ describe('my own task', () => {
     // Closed early, a task is never "Sva mesta su dogovorena", whatever state the server maps it to.
     await act(async () => tree.update(<Own value={{ ...partly, stanje: 'POPUNJENA' }} remainingClosed />));
     expect(joined()).toContain('1 od 2 dogovoreno · preostala potraga je zatvorena'); expect(joined()).not.toContain('Sva mesta su dogovorena');
+  });
+
+  it('says a closed search in every state that has one, also when a cancelled Dogovor brought the agreed count back to 0', async () => {
+    // Review of step 5b: the task then read "Objavljen" or "Čeka prijave" and nothing said that nobody can apply.
+    for (const stanje of ['OBJAVLJENA', 'CEKA_PRIJAVE'] as const) {
+      await render(<Own value={mine({ stanje })} remainingClosed />);
+      expect(joined()).toContain('0 od 2 dogovoreno · preostala potraga je zatvorena');
+      await act(async () => tree.unmount());
+    }
+    // An open search says nothing more than the state; a draft and a closed task have no search to speak of.
+    await render(<Own value={mine()} />);
+    expect(joined()).not.toContain('preostala potraga');
+    for (const stanje of ['NACRT', 'ZATVORENA'] as const) {
+      await act(async () => tree.update(<Own value={mine({ stanje })} remainingClosed />));
+      expect(joined()).not.toContain('preostala potraga');
+    }
   });
 
   it('draws no "···" when nothing can be changed, and a disabled one while an action runs', async () => {

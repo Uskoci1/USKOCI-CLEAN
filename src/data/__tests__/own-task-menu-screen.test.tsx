@@ -95,7 +95,8 @@ it('a published task: the edit reaches "Izmena Zadatka", the cancel its own revi
   await inSheet('confirm-sheet-confirm');
   expect(mockStored.setItem).toHaveBeenCalledTimes(1); expect(mockLifecycle.cancelNeed.mock.calls).toEqual([[NEED, 7, '']]);
   expect(sheets()).toHaveLength(0);
-  expect(texts()).toContain('Server je potvrdio otkazivanje zadatka.');
+  // The outcome in plain words since the review of step 5b (no "server" wording).
+  expect(texts()).toContain('Zadatak je otkazan.');
   await act(async () => { tree.root.findByProps({ label: 'Moji zadaci' }).props.onPress(); });
   expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
 });
@@ -125,6 +126,10 @@ it('a partly agreed task: closing the search reaches its question, and the Dogov
   await render();
   await openMenu();
   expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Otvori moje Dogovore', 'Ne traži više nikoga']);
+  // Why there is no "Otkaži zadatak" is said where it is seen, under the Dogovori row (review of step 5b), not only heard.
+  expect(rows()[0].findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children))
+    .toEqual(['Otvori moje Dogovore', 'Postojeći Dogovori se otkazuju zasebno.']);
+  expect(rows()[0].props.accessibilityHint).toBe('Postojeći Dogovori se otkazuju zasebno.');
   await act(async () => { rows()[1].props.onPress(); });
   expect(sheets()[0].props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', tone: 'danger' });
   await inSheet('confirm-sheet-cancel'); expect(mockClose).not.toHaveBeenCalled();

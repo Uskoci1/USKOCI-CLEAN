@@ -65,8 +65,10 @@ const text = () => tree!.root.findAll(node => String(node.type) === 'T')
 async function render() {
   const active = jest.fn();
   await act(async () => {
+    // The screen's "···" handle (review of step 5b, 2026-09-24): the inline placement this suite used was retired, and
+    // recovery without the Need row runs the same way in the placement the app uses.
     tree = create(<NeedLifecycleActions need={null} needId={NEED} disabled={false}
-      onActiveChange={active} onRefresh={jest.fn()} />);
+      onActiveChange={active} onRefresh={jest.fn()} menu={{ current: null }} />);
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
   });
   return active;
@@ -97,7 +99,8 @@ describe('PKG-004 lifecycle recovery without the Need row', () => {
     expect(serviceMocks.deleteDraftNeed).not.toHaveBeenCalled();
     expect(serviceMocks.cancelNeed).not.toHaveBeenCalled();
     expect(mojePotrebe).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('Server je potvrdio brisanje nacrta.');
+    // The outcome in plain words since the review of step 5b (no "server" wording); the confirmed receipt is the same.
+    expect(text()).toContain('Nacrt je obrisan.');
     expect(actions().some(node => node.props.label === 'Moji zadaci')).toBe(true);
     expect(active).toHaveBeenLastCalledWith(true);
   });

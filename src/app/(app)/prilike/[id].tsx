@@ -3,7 +3,9 @@ import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
 import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
 import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
+import { Avatar } from '../../../ui/system/Avatar';
 import { useSafetyEntry } from '../../../ui/safety/useSafetyEntry';
+import { inicijali } from '../../../lib/inicijali';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIzvor } from '../../../store/uloga';
@@ -124,9 +126,17 @@ export default function PrilikaDetaljiEkran() {
       .then(value => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: value?.profilId === profileId ? value : null }); })
       .catch(() => { if (request === profileRequest.current && currentScope()) setRequesterProfile({ loading: false, data: null }); });
   }
-  function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); }
   // F05: the poster is a person, not a profile; the server resolves the target before bezbednost opens.
-  const safety = useSafetyEntry(fresh?.narucilacProfilId, { needId: fresh?.id ?? null });
+  const safetyEntry = useSafetyEntry(fresh?.narucilacProfilId, { needId: fresh?.id ?? null });
+  // The entry keeps its last error until the next press. The screen says it once, after an attempt has settled, and lets
+  // it go when the person moves on: when the profile sheet closes (the sheet said it itself) and when the screen comes
+  // back into focus. A new attempt that fails the same way is said again.
+  const [safetyError, setSafetyError] = useState<string | null>(null);
+  const safetySettled = !!safetyEntry && !safetyEntry.busy, safetyAnswer = safetyEntry?.error ?? null;
+  useEffect(() => { if (safetySettled) setSafetyError(safetyAnswer); }, [safetySettled, safetyAnswer]);
+  useFocusEffect(useCallback(() => { setSafetyError(null); }, []));
+  const safety = safetyEntry ? { ...safetyEntry, error: safetyError } : undefined;
+  function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); setSafetyError(null); }
 
   return <PublicNeedPresentation key={`${accountId}:${epoch}:${id}`}
     qa={fresh && !resource.loading && !resource.error ? <TaskQaEntry disabled={busy} onPress={() => {
@@ -154,6 +164,10 @@ export default function PrilikaDetaljiEkran() {
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}
-    // The poster row asks for 32 px, the profile sheet for its large portrait.
-    publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />} />;
+    // The poster row asks for 32 px, the profile sheet for its large portrait. Without a photo, or while it cannot be
+    // read, the row shows the one Avatar with the poster's letters (a drawn person when there is no name), as every
+    // other person row does; ProfilePhoto's own stand-in drew a 15 px glyph there.
+    publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null}
+      fallback={size === 32 ? <Avatar size={32}
+        initials={fresh && profileId === fresh.narucilacProfilId ? inicijali(fresh.narucilacIme) : null} /> : undefined} />} />;
 }

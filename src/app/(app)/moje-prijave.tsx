@@ -109,7 +109,7 @@ export default function MojePrijave() {
         else if (observed(pending, named.podatak)) {
           notice = withdrawal(pending) ? 'Sačuvano stanje: Prijava je povučena.' : 'Prijava je usklađena sa pregledanom verzijom Zadatka.';
           session.pending = null;
-        } else if (pending.result === 'receipt') notice = 'Server je potvrdio radnju. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
+        } else if (pending.result === 'receipt') notice = 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Proveri vezu i pokušaj ponovo.' }; }
@@ -158,7 +158,7 @@ export default function MojePrijave() {
       if (!session.focused || !session.active || token !== session.token) return unknown();
       if (!result.ok) return result;
       const fresh = await read();
-      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Server je potvrdio radnju, ali lista nije učitana. Proveri sačuvano stanje.' };
+      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Radnja je potvrđena, ali lista nije učitana. Proveri sačuvano stanje.' };
       return fresh;
     });
   };

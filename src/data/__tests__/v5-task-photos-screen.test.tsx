@@ -124,7 +124,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
     mockGet.mockResolvedValue(REQUEST); await render();
     expect(mockReceipt).toHaveBeenCalledWith(REQUEST);
     expect(action('Izaberi iz galerije').disabled).toBe(true); expect(has('Nastavi slanje iste fotografije')).toBe(false);
-    expect(shown()).toContain('Server nema ovo slanje'); expect(mockRemoveJournal).not.toHaveBeenCalled();
+    expect(shown()).toContain('Slanje nije primljeno'); expect(mockRemoveJournal).not.toHaveBeenCalled();
     mockCancel.mockResolvedValueOnce(ok(cancelled()));
     await act(async () => action('Odustani od nepotvrđenog slanja').onPress());
     expect(mockCancel).toHaveBeenCalledWith({ conversationId: CID, clientRequestId: REQUEST });
@@ -155,7 +155,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
     await act(async () => { void action('Izaberi iz galerije').onPress(); });
     await act(async () => held.resolve({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' }));
     expect(has('Nastavi slanje iste fotografije')).toBe(true); expect(has('Odustani od nepotvrđenog slanja')).toBe(true);
-    expect(shown()).toContain('Server nema ovo slanje');
+    expect(shown()).toContain('Slanje nije primljeno');
     mockCancel.mockResolvedValueOnce(ok(cancelled()));
     await act(async () => action('Odustani od nepotvrđenog slanja').onPress());
     expect(mockUpload).toHaveBeenCalledTimes(1); expect(mockRemoveJournal).toHaveBeenCalledWith(JOURNAL);
@@ -170,7 +170,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
   it('an unknown command read keeps the exit without claiming the server has no command', async () => {
     mockGet.mockResolvedValue(REQUEST); mockReceipt.mockResolvedValue({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
     await render();
-    expect(shown()).toContain('Ishod slanja nije učitan'); expect(shown()).not.toContain('Server nema ovo slanje');
+    expect(shown()).toContain('Ishod slanja nije učitan'); expect(shown()).not.toContain('Slanje nije primljeno');
     expect(has('Odustani od nepotvrđenog slanja')).toBe(true); expect(has('Nastavi slanje iste fotografije')).toBe(false);
     expect(mockRemoveJournal).not.toHaveBeenCalled(); expect(action('Izaberi iz galerije').disabled).toBe(true);
   });

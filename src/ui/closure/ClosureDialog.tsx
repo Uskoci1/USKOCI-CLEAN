@@ -28,7 +28,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
   if(i.kind==='START'){
    const result=await closureExecutionClientService.read(i.clientRequestId,owner);if(!live(token))return;
    if(!result.ok){setMessage(result.poruka);return;}setAbsent(!result.podatak.found);setState(result.podatak.execution);
-   setMessage(result.podatak.found?'':'Server još nema potvrdu ovog zahteva. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.');
+   setMessage(result.podatak.found?'':'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.');
   }else{
    const result=await accountClosureClientService.readReceipt(i.clientRequestId,owner);if(!live(token))return;
    if(!result.ok){setMessage(result.poruka);return;}
@@ -82,14 +82,14 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
  const support=()=>{if(!live(focus.current)||busy)return;onClose();router.push('/podrska');};
  return <SettingsScreen title="Zatvaranje naloga" onBack={()=>{if(live(focus.current))onClose();}}>
   <SettingsIntro title={terminal?'Nalog je zatvoren.':state?'Zahtev je pokrenut.':'Pregled pre zatvaranja.'}>
-   {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok server proverava i završava pokrenuti zahtev.':'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}
+   {terminal?'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.':state?'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.':'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}
   </SettingsIntro>
   {busy?<View accessibilityRole="progressbar" style={{gap:8,flexDirection:'row'}}><ActivityIndicator color={sys.color.green}/><T>Proveravamo stanje…</T></View>:null}
   {message?<T accessibilityRole="alert">{message}</T>:null}
   {state?<SettingsPanel soft><T variant="bodyStrong">{terminal?'Završene radnje':'Obrada je u toku'}</T>
    <T>{terminal?'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.':'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>
    {erasure?<>
-    <T>{terminal?'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.':state.ordinaryContentErased?'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.':'Server postupno uklanja obične podatke aplikacije. Završetak se potvrđuje tek posle svih provera.'}</T>
+    <T>{terminal?'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.':state.ordinaryContentErased?'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.':'Obični podaci aplikacije se postupno uklanjaju. Završetak se potvrđuje tek posle svih provera.'}</T>
     {!terminal&&state.totalSteps?<T tone="muted">Provereni koraci: {state.completedSteps} od {state.totalSteps}.</T>:null}
    </>:<T>Identifikator naloga i evidencije obuhvaćene objavljenim pravilima ostaju ograničeno dostupni tokom propisanog čuvanja.</T>}
    {terminal?<T tone="muted">Završeno: {vreme(state.closedAt)}</T>:null}
@@ -98,7 +98,7 @@ export function ClosureDialog({onClose}:{onClose:()=>void}){
    {!review.ready?<SettingsPanel soft><T>{review.code==='CLOSURE_POLICY_NOT_READY'?(erasure?'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.':'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.'):review.code==='CLOSURE_PREPARATION_REQUIRED'?'Pripremi pregled trenutnih obaveza pre zatvaranja.':'Najpre reši obaveze navedene ispod.'}</T>
     {review.blockers.map(code=><T key={code}>{closureBlockerLabels[code]}</T>)}
     {review.code==='CLOSURE_PREPARATION_REQUIRED'?<SettingsAction label="Pripremi pregled" kind="secondary" disabled={busy} onPress={prepare}/>:null}
-   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>{erasure?'Pristup običnim funkcijama se ograničava. Server uklanja nezaštićene datoteke, obične lične i privatne podatke, pa podatke za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.':'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T></SettingsPanel>}
+   </SettingsPanel>:<SettingsPanel soft><T variant="bodyStrong">Posle pokretanja</T><T>{erasure?'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.':'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T></SettingsPanel>}
   </>:null}
   {erasure&&pendingExceptions.length>0?<SettingsPanel soft><T variant="bodyStrong">Pre konačnog zatvaranja</T>
    <T>Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>

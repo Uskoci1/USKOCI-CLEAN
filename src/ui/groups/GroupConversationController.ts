@@ -56,7 +56,7 @@ export class GroupConversationController{
   if(result.podatak.found){this.confirm(result.podatak.receipt!);return;}
   this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Potvrda prvobitne poruke nije pronađena. Za ponovni pokušaj unesi istu poruku.'});
  }
- private confirm(receipt:GroupReceipt){this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Server je sačuvao poruku u ovom grupnom razgovoru.'});}
+ private confirm(receipt:GroupReceipt){this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Poruka je sačuvana u ovom grupnom razgovoru.'});}
  send=(input:string)=>this.run(async()=>{
   const body=normalizeGroupBody(input),g=this.state.context?.group;if(this.state.phase!=='READY'||this.state.journal||!g?.canSend||!groupBody(body))return;
   const journal:GroupJournal={version:1,groupId:g.groupId,clientRequestId:(this.deps.uuid??noviUuidZahtevId)(),bodySha256:groupBodyHash(body)};

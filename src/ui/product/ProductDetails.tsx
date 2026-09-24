@@ -286,7 +286,7 @@ export function ProductPerson({ name, caption, photo, initials, onPress, disable
       <T numberOfLines={2} style={s.detailValue}>{name}</T>
       {caption ? <T variant="note" tone="muted">{caption}</T> : null}
     </View>
-    {onPress ? <CaretRight size={20} color={sys.color.muted} /> : null}
+    {onPress ? <View style={s.personCaret}><CaretRight size={20} color={sys.color.muted} /></View> : null}
   </Press>;
 }
 
@@ -320,8 +320,12 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   chipText: { color: sys.color.ink, fontWeight: '500' },
-  // A row of the facts list: the same art column and gap, and a full touch height because it opens the profile.
-  person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: sys.touch.min },
+  // A row of the facts list: the same art column and gap, and a full touch height because it opens the profile. The face
+  // sits on the first line of the name like every other fact's picture, also when a large text size wraps the name and
+  // the caption (review of step 5b, 2026-09-24); the caret, which belongs to the whole row, stays centred on it. A row
+  // that opens something is a command, so it is never under 48 (it was the 44 of `sys.touch.min`).
+  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, minHeight: 48 },
+  personCaret: { alignSelf: 'center' },
   footerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm },
   footerText: { flexShrink: 1, textAlign: 'center', color: sys.color.onGreen, fontVariant: ['tabular-nums'] },

@@ -70,8 +70,9 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // The server's own deadline, said only when there is one and a person can still apply before it.
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
   const scrollTitle = useDetailScrollTitle();
-  // Reporting the person behind a task is rare, so it waits behind "···". My own task has nobody to report.
-  const rare: SheetAction[] = ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj', icon: 'shield',
+  // Reporting the person behind a task is rare, so it waits behind "···". My own task has nobody to report. The row names
+  // the person: on a screen whose action is "Sastavi prijavu", a bare "Prijavi" reads as "apply" (review of step 5b).
+  const rare: SheetAction[] = ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield',
     destructive: true, disabled: safety.busy, hint: 'Prijava ili blokiranje osobe koja je objavila zadatak.', onPress: safety.onPress }] : [];
   const menu = useDetailMenu(rare, { disabled: busy });
   const rating = need ? (need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna') : '';
@@ -103,7 +104,10 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
             initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 32)} onPress={onRequesterProfile} disabled={busy} />
         </DetailFacts>
-        {safety?.error ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
+        {/* What went wrong with reporting from the "···". While the person's profile is open, its sheet says it itself (as an
+            alert), so this line would repeat it and announce from behind the sheet; the route clears it on focus and when
+            the sheet closes. */}
+        {safety?.error && !requesterProfile ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
         {need.opis ? <DetailSection><DetailDescription text={need.opis} /></DetailSection> : null}
         <ProductRequirements rows={needRequirementRows(need)} />
         {ready && !stale ? photos : null}

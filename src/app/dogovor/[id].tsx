@@ -247,7 +247,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
       const state = next.podatak?.stanje;
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
-      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Server nije potvrdio završetak. Osveži status Dogovora.' };
+      if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: 'Završetak nije potvrđen. Osveži status Dogovora.' };
       return next;
     });
   };
@@ -331,7 +331,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
         disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
       {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
-        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja proveri serverski status.</T>}
+        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja osveži stanje Dogovora.</T>}
     </>}
   </WorkspaceCard> : null;
 

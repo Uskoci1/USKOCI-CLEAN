@@ -252,7 +252,7 @@ it('a malformed receipt cannot fabricate success or unlock a changed command', a
 });
 it('a valid receipt plus failed readback says refresh is needed without an optimistic card', async () => {
   await render(); mockRead.mockRejectedValueOnce(new Error('private server path')); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  expect(text()).toContain('Server je potvrdio radnju, ali lista nije učitana'); expect(text()).not.toContain('Sačuvano stanje: Prijava je povučena.'); expect(text()).not.toContain('private server');
+  expect(text()).toContain('Radnja je potvrđena, ali lista nije učitana'); expect(text()).not.toContain('Sačuvano stanje: Prijava je povučena.'); expect(text()).not.toContain('private server');
   await tap('Proveri sačuvano stanje'); expect(text()).toContain('Sačuvano stanje: Prijava je povučena.');
 });
 it('bounds a hanging initial read; retry works and its late result cannot replace the current list', async () => {

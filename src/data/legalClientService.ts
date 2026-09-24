@@ -89,7 +89,7 @@ export const legalClientService = {
   async readBundle(): Promise<Ishod<LegalBundleStatus>> {
     const { data, error } = await supabase.rpc('rpc_get_legal_bundle');
     if (error) return legalFailure(error, 'LEGAL_BUNDLE_READ_FAILED');
-    if (!data || typeof data.ready !== 'boolean') return fail('LEGAL_BUNDLE_INVALID_RESPONSE', 'Server nije vratio stanje uslova.');
+    if (!data || typeof data.ready !== 'boolean') return fail('LEGAL_BUNDLE_INVALID_RESPONSE', 'Stanje uslova nije učitano.');
     if (data.ready !== true) {
       return {
         ok: true,
@@ -99,7 +99,7 @@ export const legalClientService = {
     const documents = (Array.isArray(data.documents) ? data.documents : []).map(mapDocument).filter(Boolean) as LegalDocument[];
     const kinds = documents.map((d) => d.kind);
     if (!kinds.includes('TERMS') || !kinds.includes('PRIVACY')) {
-      return fail('LEGAL_BUNDLE_INVALID_RESPONSE', 'Server nije vratio oba pravna dokumenta.');
+      return fail('LEGAL_BUNDLE_INVALID_RESPONSE', 'Nisu učitana oba pravna dokumenta.');
     }
     return {
       ok: true,
@@ -111,7 +111,7 @@ export const legalClientService = {
     const { data, error } = await supabase.rpc('rpc_accept_legal_bundle', { p_client_request_id: clientRequestId });
     if (error) return legalFailure(error, 'LEGAL_ACCEPT_FAILED');
     if (data?.accepted !== true || typeof data?.termsSha256 !== 'string' || typeof data?.privacySha256 !== 'string') {
-      return fail('LEGAL_ACCEPT_INVALID_RESPONSE', 'Server nije potvrdio prihvatanje uslova.');
+      return fail('LEGAL_ACCEPT_INVALID_RESPONSE', 'Prihvatanje uslova nije potvrđeno.');
     }
     return {
       ok: true,

@@ -67,7 +67,7 @@ it('restart reads original key and requires exact re-entry before same-key retry
 });
 it('confirmed receipt clears composer but displays real message page only after explicit acknowledgement',async()=>{
  await render();await change('Prvobitna poruka');mockService.send.mockResolvedValue(ok({...journal,messageId:KEY}));await tap('Pošalji poruku grupi');
- expect(text()).toContain('Server je sačuvao poruku');expect(text()).not.toContain('Prvobitna poruka');expect(mockStorage.removeItem).not.toHaveBeenCalled();
+ expect(text()).toContain('Poruka je sačuvana');expect(text()).not.toContain('Prvobitna poruka');expect(mockStorage.removeItem).not.toHaveBeenCalled();
  await tap('Prikaži razgovor');expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(tree!.root.findByType('TextInput' as never).props.value).toBe('');
 });
 it('read-only and bilateral contexts offer no composer or fabricated group members',async()=>{

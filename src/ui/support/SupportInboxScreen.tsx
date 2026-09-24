@@ -22,7 +22,7 @@ export function SupportInboxScreen({ mode = 'OWN', onMode }: { mode?: SupportMod
       <SettingsAction label="Novi privatni zahtev" disabled={busy} onPress={() => navigate(() => router.push('/podrska/novi'))} /> : undefined}>
     {/* The bar already names the screen; a second line ("Prati svaki odgovor.") only restated it. */}
     <SettingsIntro>
-      {mode === 'OWN' ? 'Zahtev, dopune i odgovor ostaju zajedno. Prijem zahteva vidiš čim ga server potvrdi.'
+      {mode === 'OWN' ? 'Zahtev, dopune i odgovor ostaju zajedno. Prijem zahteva vidiš čim bude potvrđen.'
         : 'Otvaranje predmeta ne znači da je obrada preuzeta. Preuzmi ga iz detalja kada započneš pregled.'}
     </SettingsIntro>
     <SupportPrivacy safety={mode === 'SAFETY'} />

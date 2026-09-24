@@ -188,6 +188,8 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
     // only the screen's dialog token can refuse it. It fails when `dialog.current !== confirmation ||` is removed.
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    // Reached through the "···" (owner step 5b), as the other tests here: this one came from round 2c alongside step 5b
+    // and still pressed the retired button, so it failed on the integrated base. The fence it proves is unchanged.
     await render(); await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
     const answer = retainedAnswer();
     await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });

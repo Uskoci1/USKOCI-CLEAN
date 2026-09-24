@@ -154,7 +154,7 @@ function OwnedNeed({ id }: { id: string }) {
         if (!after.ok) return after;
         if (after.podatak.remainingClosed) closeAttempt.current = null;
         return after.podatak.remainingClosed ? after
-          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Server nije potvrdio zatvaranje preostale potrage. Učitaj trenutno stanje.');
+          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Zatvaranje preostale potrage nije potvrđeno. Učitaj trenutno stanje.');
       }); });
   };
   const openOwnedReview = async (destination: '/nova' | '/pregled-zadatka') => {
@@ -186,7 +186,9 @@ function OwnedNeed({ id }: { id: string }) {
   const lifecycleMenu = useRef<NeedLifecycleMenu | null>(null);
   const entries = needLifecycleEntries(potreba);
   const lifecycleMenuActions: SheetAction[] = [
-    ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, hint: 'Postojeći Dogovori se otkazuju zasebno.',
+    // A task with agreed places cannot be cancelled as a whole, and the menu says why where it is seen, not only to a
+    // screen reader: the line under the row replaces the inline sentence the lifecycle used to draw.
+    ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, subtitle: 'Postojeći Dogovori se otkazuju zasebno.',
       onPress: () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } }] : []),
     ...(entries.deleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true,
       onPress: () => { if (canAct()) lifecycleMenu.current?.request('DELETE_DRAFT'); } }] : []),

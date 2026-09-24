@@ -205,6 +205,34 @@ describe('the title that appears on scroll', () => {
     expect(title().props.importantForAccessibility).toBe('auto');
   });
 
+  // Review of step 5b (2026-09-24): the faded name stood in the bar at opacity 0, two lines of it, and held the bar at
+  // 68 px at normal text and about 84 px at the owner's large font, with an empty band above the large title before any
+  // scroll. It now lies over the copy area, one line, capped at 1.3, so the bar is its controls' height at every size.
+  it('takes no height, hidden or shown, so the bar keeps one height at every text size', async () => {
+    const long = 'Selidba trosobnog stana sa trećeg sprata bez lifta, uz pakovanje i odnošenje starog nameštaja';
+    for (const visible of [false, true]) {
+      await render(<ProductHeader title={long} back={noop} titleVisible={visible}
+        right={<HeaderIconButton label="Više radnji" icon={MagnifyingGlass} onPress={noop} />} />);
+      expect(flat(title())).toMatchObject({ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'center' });
+      expect(header().props).toMatchObject({ numberOfLines: 1, maxFontSizeMultiplier: 1.3 });
+      expect(header().props.children).toBe(long);
+      // The copy area spans the controls' height and holds nothing in the flow: its first element is the laid-over title.
+      const copy = hosts(node => flat(node).flex === 1 && flat(node).alignSelf === 'stretch')[0];
+      expect(copy.findAll(node => typeof node.type === 'string' && node !== copy)[0].props.testID).toBe('chrome-title');
+      // What does stand in the row is two fixed 48 px controls, inside the one 64 px bar.
+      expect(flat(control('Nazad'))).toMatchObject({ width: 48, height: 48 });
+      expect(flat(control('Više radnji'))).toMatchObject({ width: 48, height: 48 });
+      expect(flat(bar())).toMatchObject({ minHeight: 64, paddingVertical: 8 });
+      expect(flat(bar()).height).toBeUndefined();
+      await act(async () => tree.unmount());
+    }
+    // A title that is always there is the only name on the screen, so it keeps its two lines and the chosen text size.
+    await render(<DetailTopBar title={long} onBack={noop} />);
+    expect(header().props.numberOfLines).toBe(2);
+    expect(header().props.maxFontSizeMultiplier).toBeUndefined();
+    expect(hosts(node => node.props.testID === 'chrome-title')).toHaveLength(0);
+  });
+
   it('is simply there under reduced motion', async () => {
     mockReduced = true;
     const timing = jest.spyOn(Animated, 'timing');
