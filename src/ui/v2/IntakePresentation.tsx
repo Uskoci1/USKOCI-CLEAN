@@ -152,7 +152,7 @@ export function IntakePresentation(props: Props) {
     return understood.length ? { ...message, understood } : message;
   });
   return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    subtitle="Razgovorom do zadatka" value={value} canEdit={props.canEdit} canSend={props.canSubmit}
+    value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
