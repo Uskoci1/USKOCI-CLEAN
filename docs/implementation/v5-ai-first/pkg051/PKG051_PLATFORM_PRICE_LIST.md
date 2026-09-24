@@ -1,11 +1,14 @@
 # PKG-051 — platform price list (cenovnik) for Povezivanje and HITNO, every price 0 RSD, server only
 
-**Status: written, proof pending, NOT applied.** Candidate `supabase/candidates/pkg051a_platform_price_list.sql`
-(trimmed sha256 `affc2932ba32e950618b2aeca9c1d7016aec157af58f86ff971cacea4bd5f28a`, 39 679 characters, LF). Proof
+**Status: written and reviewed, proof pending, NOT applied.** Candidate
+`supabase/candidates/pkg051a_platform_price_list.sql` (trimmed sha256
+`a002058da58bc2b2beb7fbd2b3fef84096263fd701e1d94a9539f4a83faeabf3`, 40 118 characters, LF). Proof
 `supabase/proofs/pkg051/pkg051_proof.mjs`, run by `.github/workflows/pkg051-platform-price-list-proof.yml`; no run yet.
 Function-only plus four data rows: the certified closure digest (`cc248ff1…` on DEV) must **not** move, and the
-candidate asserts that before and after. Nothing is applied to DEV; the owner applies it later with
-"primeni pkg051a". Owner request 2026-09-24. No control row exists for payments yet; HITNO is A16.
+candidate asserts that before and after. Nothing is applied to DEV. It may be applied only after all three of: a
+green proof; **the owner's explicit answer to open decision 1**, that new rows in the existing
+`private.marketplace_config` table are acceptable; and his "primeni pkg051a". The apply phrase alone does not answer
+decision 1. Owner request 2026-09-24. No control row exists for payments yet; HITNO is A16.
 
 | Function | Body md5 |
 | --- | --- |
@@ -40,7 +43,9 @@ A price list needs a home the certificate tolerates. Three homes were considered
 table". B writes new rows into an existing table, and nothing else. The approved architecture already puts the
 kill switch there (`PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1, principle 7). If new rows under new keys are also
 meant to be forbidden, no home is left inside the boundary. A new table would then need the owner's separate
-approval of a certificate move, plus a function-body re-bind that this package may not make.
+approval of a certificate move, plus a function-body re-bind that this package may not make. So this is open
+decision 1, and an explicit answer to it is a precondition of application: "primeni pkg051a" alone does not settle
+it.
 
 Also rejected: a table in a new schema or in `rls_private`. Either one slips past the certificate's completeness
 purpose, and `rls_private` grants USAGE to `authenticated`.
@@ -61,7 +66,7 @@ purpose, and `rls_private` grants USAGE to `authenticated`.
 - **Five private functions**. Each has `set search_path = pg_catalog`, is SECURITY INVOKER, and runs
   `revoke all … from public, anon, authenticated, service_role`, so its ACL is exactly `{postgres=X/postgres}`.
   Only the database owner can execute them, which in practice means the SQL editor. PostgREST cannot see them,
-  because `private` is not exposed and no role has USAGE on it.
+  because `private` is not exposed and no API role has USAGE on it.
 
   | Function | Kind | What it does |
   | --- | --- | --- |
@@ -102,13 +107,19 @@ A stored version is exactly `private.platform_price_canonical(...)`, compared as
 - **Current at t:** the version with the **highest number** whose `effectiveAt ≤ t`.
 - **Next at t:** whatever is current at `T`, the earliest `effectiveAt` among versions numbered above the current
   one. It is `null` if there is none.
-- A new version may not start before it is recorded: the writer refuses `effectiveAt < recordedAt`, and the
-  validator refuses it too. So `current(t)` for any t before a version was recorded never changes. The only
-  exception is the moments between the writer's insert and its commit.
+- A version written by `platform_price_add_version` may not start before it is recorded: the writer refuses
+  `effectiveAt < recordedAt`, and the validator refuses it too. So, for versions written through the writer,
+  `current(t)` for any t before a version was recorded never changes. The only exception is the moments between
+  the writer's insert and its commit. This does not hold against a deliberate owner edit, which can backdate a
+  consistent version (see "What the integrity check catches"), nor for the seed (below).
 - To cancel a scheduled price, add a version with the old price and the same or an earlier time. Because the
   highest number wins, the scheduled version then never becomes current. The proof shows this.
-- Before the seed moment (`2026-09-23T22:00:00Z`, 00:00 Belgrade on 2026-09-24) `current` is `null`. The free
-  ledger governs anyway: the list is advisory, and every existing Agreement predates the seed.
+- The seed v1 of each product has `effectiveAt = recordedAt = 2026-09-23T22:00:00Z` (00:00 Belgrade on
+  2026-09-24, the owner's decision day). That `recordedAt` is a **declared date, not the moment of application**:
+  the rows are really written when the owner applies the candidate, so `platform_price_list_at(t)` for a t between
+  the seed moment and the application changes from no list to 0 RSD. The value is inside the hash chain and so is
+  permanent. The no-backdating rule applies from v2 on. Before the seed moment `current` is `null`. The free
+  ledger, not this list, governs every Agreement.
 - Anyone who later quotes a price must store `(product, version, sha256)` and never recompute a past price.
 
 ### Kill switch (fail closed)
@@ -147,16 +158,21 @@ successor's `previousSha256` no longer matches), a deleted latest version or hea
 unknown key, a malformed value, and a version that starts before it was recorded. After any of these, every read
 and every write fails closed until the rows are repaired.
 
-It is **tamper-evident, not tamper-proof**. The database owner can do two things that stay consistent, so they
-cannot be detected:
+It is **tamper-evident, not tamper-proof**. The validator checks only that the stored rows agree with each other:
+each self-hash, each predecessor hash, the head, and times that never run backwards. The database owner can
+therefore re-chain the list consistently from any version on, and nothing inside the database can detect it. For
+example, the owner can:
 
+- rewrite **any** version, an older one included, through `platform_price_canonical`, then re-hash every later
+  version and the head;
 - delete the newest versions and point the head back at an older version's stored `(version, sha256)`;
-- rewrite the newest version through `platform_price_canonical` and update the head's hash.
+- insert a consistent version whose `recordedAt` and `effectiveAt` are backdated to any moment at or after its
+  predecessor's `recordedAt`, which changes the price that was in effect at that past moment.
 
-The proof performs both and records that they pass. A table with triggers would not be absolute either, since
-the owner can disable them. The only external anchor is outside the database: the writer returns the stored
-version, including its `sha256`. Recording that answer in a repository receipt after each owner write makes a
-later rewrite visible.
+The proof performs three such edits (cut the newest, rewrite the newest, a backdated version) and records that
+they pass. A table with triggers would not be absolute either, since the owner can disable them. The only
+external anchor is outside the database: the writer returns the stored version, including its `sha256`. Recording
+that answer in a repository receipt after each owner write makes a later rewrite visible.
 
 ### Invariants
 
@@ -166,7 +182,9 @@ later rewrite visible.
    lock CHECKs and three triggers are pinned by definition md5. No existing function reads the new keys, so a
    broken price list can never block a selection.
 2. The certificate does not move, neither at apply nor on any later price write.
-3. Append-only by the only writer. Detection limits are stated above.
+3. Append-only for versions written through `platform_price_add_version`, the only writer; for those the
+   no-backdating rule holds from v2 on. Accidental edits are detected; deliberate consistent owner edits are not
+   (above).
 4. The seed repeats today's canon. CONNECTION v1 = the free policy row: payer `REQUESTER` (canon C12,
    `beneficiary_role`), `HEADCOUNT`, 0. URGENT_BOOST v1 = 0, and HITNO's `chargesFee` is `false`. The URGENT_BOOST
    payer (`REQUESTER`) and basis (`FLAT`) are **placeholders**, not answers to P2, P3 or P12: HITNO has no unit
@@ -189,31 +207,38 @@ Today, and until a payment package says otherwise:
 - **HITNO** is governed by `urgent_activation_policy` (off, empty category list, `chargesFee:false`).
   `rpc_activate_urgent` has no charge hook.
 
-**The price list is advisory.** Nothing reads it, nothing charges from it, and no screen shows it. The payment
-package should take its prices from these versions, copying the chain into its immutable tables if it wants
-database-level immutability, instead of adding a second price field. The architecture document carries a dated
-amendment saying so: `docs/implementation/research/PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1. Without that,
-the owner's versions would be dead data.
+**The price list is advisory.** Nothing reads it, nothing charges from it, and no screen shows it. If the owner
+accepts storage B and the package is applied, the payment package should take its prices from these versions,
+copying the chain into its immutable tables if it wants database-level immutability, instead of adding a second
+price field. Without that, the owner's versions would be dead data. The architecture document carries a dated
+amendment that says so under exactly that condition; until then its §2.1 and §2.5 stand as written:
+`docs/implementation/research/PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1.
 
 ## Proof
 
 `supabase/proofs/pkg051/pkg051_proof.mjs` runs on a disposable database with the real local Auth/PostgREST
 stack, after the house replay (source147, every dev_alpha row up to PKG-040, then PKG-042a to PKG-050a inline with
 their trimmed-sha pins; PKG-045b stays unapplied as on DEV). The price list is read and written as the database
-owner through `psql`, the way the owner will use the SQL editor. Every refusal is matched by SQLSTATE and exact
-message, and every write check compares all config rows before and after. Kinds: BASELINE holds on the
-predecessor by design; NEW needs the candidate; NO_REGRESSION must hold before and after; TAMPER is a refusal
-that rolls back.
+owner through `psql`, the way the owner will use the SQL editor. Every SQL refusal is matched by SQLSTATE and exact
+message; the PostgREST refusals of check 16 are baseline only (see there). Every write check compares all config
+rows before and after. Kinds: BASELINE holds on the predecessor by design; NEW needs the candidate; NO_REGRESSION
+must hold before and after; TAMPER is a refusal that rolls back. The report reads `RUNNING` while the proof runs,
+and `FAIL` with the failure text and the last passed check if anything throws, a replay included.
 
 1. `EXACT_PREDECESSOR_REPLAY_READY_CERTIFICATE_NO_PRICE_LIST` (baseline): six pinned predecessors; the
    certificate is ready and consistent in all three places, and the binding equals it; the five functions and four
    keys are absent; the free-path pins and the free policy row hold; the HITNO bodies, all config rows, the surface,
    one HITNO preview and one dispatch-reader probe are recorded.
 2. `BASELINE_NOTHING_TO_READ_OR_WRITE_BEFORE` (baseline): the exact `42883` refusals are recorded.
-3. `TAMPERS_ROLL_BACK_ATOMICALLY`: each tamper uses a unique anchor and aborts with its own `PKG051_*` code
+3. `TAMPERS_ROLL_BACK_ATOMICALLY`: 17 tampers. Each uses a unique anchor and aborts with its own `PKG051_*` code
    (SQLSTATE 55000). After each one, the surface, the certificate, every config row and the absence of the
    functions are unchanged. The tampers:
    - predecessor pin;
+   - real drift that already exists when the candidate's checks run, set up inside its own transaction just
+     before `$pre$` so the refusal rolls it back: a disabled `connection_policy_versions_immutable_trg`
+     (`FREE_POLICY_DRIFT`), HITNO `chargesFee:true` and a missing `chargesFee` (`URGENT_POLICY_DRIFT`, twice),
+     forced RLS on `marketplace_config` (`CONFIG_SHAPE_DRIFT`), and an inconsistent certificate row
+     (`CERTIFICATE_NOT_READY`);
    - one body line;
    - `search_path`;
    - an extra grant;
@@ -222,7 +247,6 @@ that rolls back.
      (`KILL_SWITCH_NOT_CLOSED`: the only way to reach that defence-in-depth check, since without a ledger the
      switch stays off);
    - the same switch seed without a ledger (`SEED_MISMATCH`);
-   - the HITNO fee expectation;
    - the clock;
    - a touched `dispatch_normal` row (`CONFIG_CHANGED`);
    - a changed existing function (`EXISTING_OBJECT_CHANGED`);
@@ -241,7 +265,10 @@ that rolls back.
    - now: both products at v1, 0 RSD, `next` null, payments off;
    - before the seed: `current` null and `next` v1;
    - the hashes recompute in JavaScript;
-   - a version given as `'2027-03-01 00:00 Europe/Belgrade'` lands at `2027-02-28T23:00:00.000000Z` (rolled back).
+   - a version given in the owner's form, a Belgrade wall-clock text (midnight on the first of the month two
+     months ahead, taken from the clock so a later re-run never falls outside the writer's window), lands at the
+     matching UTC instant: equal to Postgres' own conversion and, checked separately in JavaScript, at UTC+1 or
+     UTC+2 (rolled back).
 7. `SEED_MATCHES_FREE_POLICY_AND_HITNO_CONFIG`.
 8. `FREE_SELECTION_PATH_UNCHANGED` (no regression): a real offer and a real selection create the Agreement and a
    `REQUESTER_SELECTION_V1/1`, 0 RSD, `SATISFIED` activation. The policy stays one row, an UPDATE still raises
@@ -264,12 +291,20 @@ that rolls back.
     Exactly one version is appended, and the loser is stale with `latest=4`.
 15. `HAND_EDITS_FAIL_CLOSED_AND_THE_KNOWN_LIMIT_IS_RECORDED`:
     - the reader, the list and the writer all refuse with the same DETAIL for 14 hand edits (every reason above);
-    - a consistent forged positive price is not served, and a 0 version still appends over it;
-    - the two undetectable owner edits are performed and recorded as passing.
+    - a consistent forged positive price (its two times read from one clock reading) is not served, and a 0
+      version still appends over it;
+    - three undetectable owner edits are performed and recorded as passing: cut the newest versions, rewrite the
+      newest one, and a consistent version backdated to v4's recording moment, which changes the price in effect
+      at that past moment.
 16. `API_AND_ROLES_CANNOT_REACH_THE_PRICE_LIST`:
-    - over PostgREST, anon, a signed-in stranger and the service key each get `PGRST202` for all five functions;
-    - in SQL, `anon`, `authenticated` and `service_role` each get `42501`;
-    - the ACLs are exact, and the config table is still `rls=true:force=false:acl=default`.
+    - in SQL, each of `anon`, `authenticated` and `service_role` is given USAGE on `private` inside a rolled-back
+      transaction, so only EXECUTE stands in the way, and every call to each of the five functions must fail with
+      exactly `42501: permission denied for function <name>`. On the predecessor this gives `42883`, and a stray
+      grant would let the call through or fail on something else;
+    - none of the three roles has USAGE on `private`;
+    - the ACLs are exact, and the config table is still `rls=true:force=false:acl=default`;
+    - baseline only: over PostgREST, anon, a signed-in stranger and the service key each get `PGRST202` for all
+      five functions. `private` is not an exposed schema, so this holds whatever a function's ACL says.
 17. `PRICE_WRITES_NEVER_MOVE_CERTIFICATE_OR_SURFACE` (no regression): after every committed write, the certificate
     and the surface are exactly where the application left them.
 
@@ -283,6 +318,14 @@ surface, closure before and after, known limits, notDone) and update the Status 
 Obe cene su 0 RSD. Plaćanja ostaju isključena, aplikacija se ne menja, a sertifikat za brisanje naloga se ne
 pomera. Cena iz cenovnika se još nigde ne naplaćuje i ne prikazuje. Dok poseban paket ne uključi plaćanja, možeš
 da upišeš samo 0. Za svaki iznos veći od nule dobićeš `PLATFORM_PAYMENTS_DISABLED`, i tako treba da bude.
+
+Cenovnik se čuva kao novi redovi u postojećoj tabeli podešavanja (`marketplace_config`). Postojeći redovi se ne
+diraju. Svaka nova cena dodaje jedan red i menja red `platform_price_head`. Zato prvo odgovori na pitanje 1 u
+odeljku „Open decisions“ ispod: da li je to u redu. Tek posle toga reci „primeni pkg051a“, jer sama ta reč na to
+pitanje ne odgovara.
+
+Prva verzija obe cene nosi datum 24. septembar 2026, 00:00, dan tvoje odluke, a ne trenutak kad primeniš paket
+(pitanje 3).
 
 1. **Pogledaj cenovnik.** U Supabase-u otvori SQL Editor i pokreni `select private.platform_price_list_at(now());`.
    Za proizvod koji menjaš zapamti broj `latestVersion`. Pod `current` je cena koja sada važi, a pod `next`
@@ -318,10 +361,15 @@ HITNO price. It records only 0 and today's canon.
 
 Package-level questions for the owner:
 
-1. **Storage.** B (rows in `marketplace_config`) is the only home inside the boundary that leaves the certificate
-   where it is. Are new rows under new keys in that existing table acceptable? See the boundary note above.
+1. **Storage.** B (rows in `marketplace_config`) is the only home that leaves the certificate unmoved, if new rows
+   in an existing table are accepted. Are new rows under new keys in that existing table acceptable, together with
+   one row (`platform_price_head`) that every later price write updates? See the boundary note above. **An explicit
+   answer is a precondition of application;** "primeni pkg051a" alone does not answer it.
 2. **Units.** Amounts are in para (×100). The free ledger counts whole dinars.
-3. **Seed moment.** 2026-09-24 00:00 Belgrade, or the moment of application?
+3. **Seed moment.** v1 declares 2026-09-24 00:00 Belgrade as both its effective and its recorded time, not the
+   moment of application (see "Which version applies"). If the owner prefers the moment of application, the
+   candidate changes to seed from the clock at apply time, and the seed sha256 values are pinned from the DEV
+   readback receipt instead of the candidate.
 4. **Who reads the list.** Only the owner, in SQL, for now. An app-facing read waits for the payment UX and would
    follow the architecture's `rpc_read_connection_quote` (with `p_expected_user_id`).
 5. **Typo cap.** 100 000 RSD per version.
@@ -346,8 +394,10 @@ Package-level questions for the owner:
 
 ## Application
 
-Only after a green proof and the owner's **"primeni pkg051a"**. No certificate approval is needed, because the
-certificate does not move.
+Only after all three of: a green proof; the owner's **explicit answer to open decision 1** (rows in the existing
+`marketplace_config` table are acceptable); and his **"primeni pkg051a"**. If the answer to decision 3 is "the
+moment of application", the candidate changes first and needs a new green proof. No certificate approval is
+needed, because the certificate does not move.
 
 1. Apply the exact file bytes as `dev_alpha_pkg051a_platform_price_list`.
 2. Read back:
@@ -367,7 +417,8 @@ certificate does not move.
 
 - `supabase/candidates/pkg051a_platform_price_list.sql`: the candidate, LF, pinned in `.gitattributes`.
 - `supabase/proofs/pkg051/pkg051_proof.mjs`: the disposable proof.
-- `.github/workflows/pkg051-platform-price-list-proof.yml`: the proof workflow, which runs on push to the listed
-  branches when these files change, and on `workflow_dispatch`.
-- `docs/implementation/research/PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1: the dated amendment on the price
-  source and the switch shape.
+- `.github/workflows/pkg051-platform-price-list-proof.yml`: the proof workflow, which runs on `workflow_dispatch`
+  and on push to the listed branches when any file it reads changes: the candidate, the proof, the six replayed
+  predecessor candidates, the shared runtime, the surface query, the live79 reconstruction and the replay drivers.
+- `docs/implementation/research/PAYMENT_READY_ARCHITECTURE_20260923.md` §2.1: a dated amendment on the price
+  source and the switch shape that applies only if the owner accepts storage B and PKG-051a is applied.

@@ -12,9 +12,19 @@ const {assert, sql, rows, q, randomUUID, ok, env} = rt;
 assert.equal(env.RU5_DEVICE_SUPABASE_URL, 'http://127.0.0.1:54321');
 assert.equal(env.DB_URL, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
 const sha = s => createHash('sha256').update(s).digest('hex');
-const report = {package: 'PKG-051', sourceSha: env.GITHUB_SHA, disposableOnly: true, providerCalls: 0, paymentCalls: 0,
-  checks: [], tampers: []};
+const report = {package: 'PKG-051', result: 'RUNNING', sourceSha: env.GITHUB_SHA, disposableOnly: true, providerCalls: 0,
+  paymentCalls: 0, checks: [], tampers: []};
 const save = () => writeFileSync(env.PRE_V3_ARTIFACT_DIR + '/pkg051-report.json', JSON.stringify(report, null, 2) + '\n');
+// A failure anywhere (a replay, the setup or a check) still leaves an artifact that says FAIL, why, and after which
+// check, like rt.prove(). The monitor only records: Node still prints the error and exits 1. It also sees a failed
+// top-level await, which Node raises as an uncaught exception.
+process.on('uncaughtExceptionMonitor', e => {
+  if (report.result === 'PASS') return;
+  report.result = 'FAIL';
+  report.failure = String(e?.message ?? e).slice(0, 1100);
+  report.failedAfter = report.checks.at(-1)?.name ?? null;
+  try { save(); } catch (saveError) { console.error('PKG051_REPORT_NOT_SAVED: ' + saveError.message); }
+});
 // kind: BASELINE holds on the predecessor by design; NEW needs the candidate (its objects are absent before);
 // NO_REGRESSION must hold before and after; TAMPER proves a refusal rolls everything back.
 const pass = (name, kind) => {report.checks.push({name, kind, result: 'PASS'}); save(); console.log('PASS ' + name);};
@@ -199,8 +209,11 @@ const intact = () => {
 const once = (source, from, to) => {
   assert.equal(source.split(from).length, 2, 'ANCHOR_NOT_UNIQUE: ' + from.slice(0, 80)); return source.replace(from, () => to);
 };
-const AFTER_PRE = '\n$pre$;\n';
+const AFTER_PRE = '\n$pre$;\n', BEFORE_PRE = '\ndo $pre$\n';
 const inject = statement => once(text, AFTER_PRE, AFTER_PRE + statement + '\n');
+// Drift that already exists when the candidate's own checks run: the statement is placed inside the candidate's
+// transaction just before $pre$, so the refusal rolls the drift back together with everything else.
+const preInject = statement => once(text, BEFORE_PRE, '\n' + statement + BEFORE_PRE);
 const refused = (tampered, code) => {
   assert.throws(() => apply(tampered), e => { assert.match(e.message, new RegExp('ERROR:\\s+55000: ' + code + '\\b'), e.message); return true; });
   intact(); report.tampers.push(code);
@@ -218,7 +231,14 @@ refused(once(text, "('CONNECTION', 'REQUESTER', 'HEADCOUNT')", "('CONNECTION', '
 refused(once(inject('create table private.platform_charges(id integer);'), "'enabled', false)", "'enabled', true)"), 'PKG051_KILL_SWITCH_NOT_CLOSED');
 // The same enabled switch seed without a charge ledger stays off, so the probe passes and the exact seed check refuses.
 refused(once(text, "'enabled', false)", "'enabled', true)"), 'PKG051_SEED_MISMATCH');
-refused(once(text, "c.value -> 'chargesFee'", "c.value -> 'chargesFeeRenamed'"), 'PKG051_URGENT_POLICY_DRIFT');
+// Real pre-existing drift, one per guard that pins state rather than candidate text: a disabled ledger trigger (the
+// free path would lose its immutability), HITNO charging a fee or no longer saying so, forced RLS on the config
+// table, and a certificate that is no longer consistent.
+refused(preInject('alter table private.connection_policy_versions disable trigger connection_policy_versions_immutable_trg;'), 'PKG051_FREE_POLICY_DRIFT');
+refused(preInject("update private.marketplace_config set value = jsonb_set(value, '{chargesFee}', 'true') where key = 'urgent_activation_policy';"), 'PKG051_URGENT_POLICY_DRIFT');
+refused(preInject("update private.marketplace_config set value = value - 'chargesFee' where key = 'urgent_activation_policy';"), 'PKG051_URGENT_POLICY_DRIFT');
+refused(preInject('alter table private.marketplace_config force row level security;'), 'PKG051_CONFIG_SHAPE_DRIFT');
+refused(preInject("update private.closure_source_v5 set sha256 = repeat('0', 64) where singleton;"), 'PKG051_CERTIFICATE_NOT_READY');
 refused(once(text, "timestamptz '2026-09-23 22:00:00+00'", "timestamptz '2999-01-01 00:00:00+00'"), 'PKG051_CLOCK_BEFORE_SEED');
 refused(inject("update private.marketplace_config set updated_at = updated_at + interval '1 second' where key = 'dispatch_normal';"), 'PKG051_CONFIG_CHANGED');
 refused(inject('alter function public.rpc_urgent_activation_preview(uuid) security invoker;'), 'PKG051_EXISTING_OBJECT_CHANGED');
@@ -228,6 +248,7 @@ sql("insert into private.marketplace_config(key, value) values ('platform_price:
 assert.throws(() => apply(text), e => { assert.match(e.message, /ERROR:\s+55000: PKG051_CONFIG_KEY_CONFLICT\b/, e.message); return true; });
 sql("delete from private.marketplace_config where key = 'platform_price:SUBSCRIPTION:000001';");
 intact(); report.tampers.push('PKG051_CONFIG_KEY_CONFLICT');
+assert.equal(report.tampers.length, 17, JSON.stringify(report.tampers));
 pass('TAMPERS_ROLL_BACK_ATOMICALLY', 'TAMPER');
 
 // 4. Apply once; a second run refuses. Five function lines appear and nothing else in the surface moves; the
@@ -289,10 +310,21 @@ for (const product of ['CONNECTION', 'URGENT_BOOST']) {
 assert.deepEqual(stored(), {CONNECTION: [SEED.CONNECTION], URGENT_BOOST: [SEED.URGENT_BOOST]});
 assert.equal(sql('select private.platform_payments_enabled()::text'), 'false');
 assert.equal(listAt("timestamptz '2026-09-23T21:59:59.999999Z'").products.every(p => p.current === null && p.next?.version === 1), true);
-const example = rollbackProbe(`select private.platform_price_add_version('CONNECTION', 1, 0, 'REQUESTER', 'HEADCOUNT', '2027-03-01 00:00 Europe/Belgrade')::text;
-select private.platform_price_list_at(clock_timestamp())::text;`);
+// The owner's form, a Belgrade wall-clock text. The date follows the clock (midnight on the first of the month two
+// months ahead), so a later re-run never falls into the past or beyond the writer's 366-day window.
+const exampleMonth = new Date(); exampleMonth.setUTCDate(1); exampleMonth.setUTCMonth(exampleMonth.getUTCMonth() + 2);
+const exampleLocal = exampleMonth.toISOString().slice(0, 8) + '01 00:00';
+const example = rollbackProbe(`select private.platform_price_add_version('CONNECTION', 1, 0, 'REQUESTER', 'HEADCOUNT', ${q(exampleLocal + ' Europe/Belgrade')})::text;
+select private.platform_price_list_at(clock_timestamp())::text;
+select to_char((timestamp ${q(exampleLocal)} at time zone 'Europe/Belgrade') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');`);
+assert.equal(example.length, 3, JSON.stringify(example));
 const exampleVersion = JSON.parse(example[0]), exampleList = JSON.parse(example[1]);
-assert.equal(exampleVersion.effectiveAt, '2027-02-28T23:00:00.000000Z');
+assert.equal(exampleVersion.effectiveAt, example[2]);
+// Independently of the database's zone rules: that instant is Belgrade midnight at UTC+1 (winter) or UTC+2 (summer).
+const belgradeOffset = Date.parse(exampleLocal.replace(' ', 'T') + ':00Z') - Date.parse(exampleVersion.effectiveAt.slice(0, 19) + 'Z');
+assert.ok(belgradeOffset === 3600000 || belgradeOffset === 7200000, 'BELGRADE_OFFSET:' + belgradeOffset);
+assert.match(exampleVersion.effectiveAt, /T2[23]:00:00\.000000Z$/);
+report.belgradeExample = {given: exampleLocal + ' Europe/Belgrade', effectiveAt: exampleVersion.effectiveAt};
 assert.equal(exampleVersion.previousSha256, SEED.CONNECTION.sha256);
 assert.equal(versionSha(exampleVersion), exampleVersion.sha256);
 assert.equal(entry(exampleList, 'CONNECTION').latestVersion, 2);
@@ -496,7 +528,7 @@ const HAND = [
   ['HEAD:MISSING', "delete from private.marketplace_config where key = 'platform_price_head';"],
   ['HEAD:CONNECTION', "update private.marketplace_config set value = jsonb_set(value, '{heads,CONNECTION,version}', '3') where key = 'platform_price_head';"],
   ['GAP:CONNECTION:99', `insert into private.marketplace_config(key, value) select ${V(99)}, private.platform_price_canonical('CONNECTION', 99, 0,
-    'RSD', 'REQUESTER', 'HEADCOUNT', clock_timestamp(), clock_timestamp(), repeat('0', 64));`],
+    'RSD', 'REQUESTER', 'HEADCOUNT', n.t, n.t, repeat('0', 64)) from (select clock_timestamp() as t) n;`],
   ['KEY', "insert into private.marketplace_config(key, value) values ('platform_price:SUBSCRIPTION:000001', '{}'::jsonb);"],
   ['KEY', "insert into private.marketplace_config(key, value) values ('platform_prices', '{}'::jsonb);"],
   ['PRODUCT_MISSING:URGENT_BOOST', "delete from private.marketplace_config where starts_with(key, 'platform_price:URGENT_BOOST:');"],
@@ -510,9 +542,11 @@ for (const [detail, edit] of HAND) {
   assert.deepEqual(rollbackProbe(`${edit}\n${tryOf(readCall)}\n${tryOf(listCall)}\n${tryOf(writeCall)}`), Array(3).fill(BROKEN(detail)), detail);
   report.handEdits.push(detail);
 }
+// The clock is read once: platform_price_canonical is never inlined (it has a SET clause), so two clock_timestamp()
+// arguments could differ by a microsecond and make the forgery fail the TIME check instead of being consistent.
 const forged = rollbackProbe(`insert into private.marketplace_config(key, value)
-select ${V(5)}, private.platform_price_canonical('CONNECTION', 5, 9900, 'RSD', 'REQUESTER', 'HEADCOUNT', clock_timestamp(), clock_timestamp(), v.value->>'sha256')
-  from private.marketplace_config v where v.key = ${V(4)};
+select ${V(5)}, private.platform_price_canonical('CONNECTION', 5, 9900, 'RSD', 'REQUESTER', 'HEADCOUNT', n.t, n.t, v.value->>'sha256')
+  from private.marketplace_config v cross join (select clock_timestamp() as t) n where v.key = ${V(4)};
 ${headTo(5)}
 ${tryOf(readCall)}
 ${tryOf(listCall)}
@@ -530,17 +564,29 @@ select (private.platform_price_list_at(clock_timestamp())->'products'->0->>'late
 ${headTo(4)}
 ${tryOf(readCall)}
 ${tryOf(listCall)}
-select (private.platform_price_list_at(clock_timestamp())->'products'->0->'current'->>'payerRole');`)};
+select (private.platform_price_list_at(clock_timestamp())->'products'->0->'current'->>'payerRole');`),
+  // A consistent version dated back to v4's recording moment: the price in effect at that past moment changes.
+  backdatedConsistentVersion: rollbackProbe(`select private.platform_price_list_at((select (value->>'recordedAt')::timestamptz from private.marketplace_config where key = ${V(4)}))->'products'->0->'current'->>'version';
+insert into private.marketplace_config(key, value)
+select ${V(5)}, private.platform_price_canonical('CONNECTION', 5, 0, 'RSD', 'WORKER', 'FLAT', (v.value->>'recordedAt')::timestamptz,
+  (v.value->>'recordedAt')::timestamptz, v.value->>'sha256') from private.marketplace_config v where v.key = ${V(4)};
+${headTo(5)}
+${tryOf(readCall)}
+select private.platform_price_list_at((select (value->>'recordedAt')::timestamptz from private.marketplace_config where key = ${V(4)}))->'products'->0->'current'->>'version';`)};
 assert.deepEqual(report.knownLimits.truncateNewestAndPointHeadBack, ['OK', 'OK', '3']);
 assert.deepEqual(report.knownLimits.rewriteNewestConsistently, ['OK', 'OK', 'WORKER']);
+assert.deepEqual(report.knownLimits.backdatedConsistentVersion, ['4', 'OK', '5']);
 assert.deepEqual(stored(), afterRace);
 pass('HAND_EDITS_FAIL_CLOSED_AND_THE_KNOWN_LIMIT_IS_RECORDED', 'NEW');
 
-// 16. Access: PostgREST cannot see any of the five functions for anon, a signed-in person or the service key; the
-//     API roles cannot execute them in SQL either; the grants are exactly the owner's, and the config table's ACL and
-//     RLS flags are unchanged.
+// 16. Access: the grants are exactly the owner's, and the config table's ACL and RLS flags are unchanged.
+//     The PostgREST probes are BASELINE: `private` is not an exposed schema, so PGRST202 holds whatever a function's
+//     ACL says. What carries the claim is the SQL probe below: each API role is given USAGE on `private` inside a
+//     rolled-back transaction, so the only barrier left is EXECUTE, and the refusal must name the function itself.
+//     On the predecessor that probe gives 42883 (no such function); a stray grant would let the call through or
+//     fail on something else.
 const stranger = await rt.actor('pkg051-stranger');
-report.restRefusals = [];
+report.restRefusals = []; report.restRefusalsKind = 'BASELINE';
 for (const [label, client] of [['anon', rt.anon], ['signedIn', stranger.client], ['service', rt.service]]) {
   for (const [fn, args] of [['platform_price_list_at', {p_at: new Date().toISOString()}], ['platform_price_versions', {}],
     ['platform_payments_enabled', {}], ['platform_price_add_version', {p_product: 'CONNECTION', p_expected_latest_version: 4,
@@ -555,7 +601,7 @@ for (const [label, client] of [['anon', rt.anon], ['signedIn', stranger.client],
 }
 const refusedAs = (role, stmt) => {
   let error;
-  try { sql(`\\set VERBOSITY verbose\nbegin;\nset local role ${role};\n${stmt};\nrollback;`); } catch (e) { error = e; }
+  try { sql(`\\set VERBOSITY verbose\nbegin;\ngrant usage on schema private to ${role};\nset local role ${role};\n${stmt};\nrollback;`); } catch (e) { error = e; }
   assert.ok(error, 'EXPECTED_SQL_REFUSAL:' + role + ':' + stmt);
   const m = /ERROR:\s+([0-9A-Z]{5}): ([^\n]*)/.exec(error.message);
   assert.ok(m, error.message);
@@ -563,14 +609,18 @@ const refusedAs = (role, stmt) => {
 };
 report.sqlRefusals = [];
 for (const role of ['anon', 'authenticated', 'service_role']) {
-  for (const stmt of ['select private.platform_price_list_at(now())', 'select private.platform_price_versions()',
-    'select private.platform_payments_enabled()', writeCall,
-    "select private.platform_price_canonical('CONNECTION', 1, 0, 'RSD', 'REQUESTER', 'HEADCOUNT', now(), now(), null)"]) {
+  for (const [fn, stmt] of [['platform_price_list_at', 'select private.platform_price_list_at(now())'],
+    ['platform_price_versions', 'select private.platform_price_versions()'],
+    ['platform_payments_enabled', 'select private.platform_payments_enabled()'],
+    ['platform_price_add_version', writeCall],
+    ['platform_price_canonical', "select private.platform_price_canonical('CONNECTION', 1, 0, 'RSD', 'REQUESTER', 'HEADCOUNT', now(), now(), null)"]]) {
     const r = refusedAs(role, stmt);
-    assert.match(r, /^42501:permission denied for (schema private|function platform_)/, role + ':' + stmt);
+    assert.equal(r, '42501:permission denied for function ' + fn, role + ':' + stmt);
     report.sqlRefusals.push(role + ':' + r);
   }
 }
+assert.equal(sql("select has_schema_privilege('anon', 'private', 'USAGE')::text || has_schema_privilege('authenticated', 'private', 'USAGE')::text || has_schema_privilege('service_role', 'private', 'USAGE')::text"),
+  'falsefalsefalse');
 for (const sig of Object.values(FN)) {
   assert.equal(sql(`select proacl::text from pg_proc where oid = ${q(sig)}::regprocedure`), '{postgres=X/postgres}', sig);
   assert.equal(sql(`select has_function_privilege('anon', ${q(sig)}, 'EXECUTE')::text || has_function_privilege('authenticated', ${q(sig)}, 'EXECUTE')::text || has_function_privilege('service_role', ${q(sig)}, 'EXECUTE')::text`), 'falsefalsefalse', sig);

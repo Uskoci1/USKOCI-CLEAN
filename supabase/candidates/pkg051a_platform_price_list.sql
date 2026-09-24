@@ -16,7 +16,8 @@
 --   * Every version holds amount (minor units: para), currency, payer role, unit basis, effective time, the time it
 --     was recorded, its predecessor's sha256 and its own. A later price is a new version; no version is edited. An
 --     accidental edit that breaks the chain makes every read and write refuse until repaired. This is tamper-evident,
---     not tamper-proof: the database owner can still forge a consistent chain or cut its newest versions.
+--     not tamper-proof: the database owner can still re-chain consistently from any version on, backdated times
+--     included, or cut its newest versions. Only an external record of each returned sha256 makes that visible.
 --   * Kill switch, fail closed: a price above 0 is refused while payments are off, and payments count as on only when
 --     the switch row is exactly the enabled V1 object AND the charge ledger private.platform_charges exists, which no
 --     package has created. A zero version can always be appended. Enabling payments is not part of this package.
@@ -460,9 +461,12 @@ comment on function private.platform_price_list_at(timestamptz) is
 comment on function private.platform_price_add_version(text,integer,bigint,text,text,timestamptz,text) is
   'PKG-051 the only price writer (database owner only): appends version N+1 of CONNECTION or URGENT_BOOST and moves the head. Refuses a price above 0 while payments are off.';
 
--- Seed, deterministic so DEV and the disposable proof hold the same rows: version 1 of each product at 0 RSD,
--- effective and recorded at 2026-09-24 00:00 Belgrade, the owner's decision day. CONNECTION repeats the free policy
--- row (payer REQUESTER, HEADCOUNT); the URGENT_BOOST payer and basis are placeholders, not answers to P2/P3/P12.
+-- Seed, deterministic so DEV and the disposable proof hold the same rows: version 1 of each product at 0 RSD.
+-- Its effectiveAt and recordedAt are both 2026-09-24 00:00 Belgrade, the owner's decision day, and NOT the moment
+-- this file runs: v1's recordedAt is a declared date. The rule that a version never takes effect before it was
+-- recorded holds from v2 on, for versions written by platform_price_add_version. Nothing reads this list, so no
+-- Agreement is affected: the free ledger alone governs them. CONNECTION repeats the free policy row (payer
+-- REQUESTER, HEADCOUNT); the URGENT_BOOST payer and basis are placeholders, not answers to P2/P3/P12.
 insert into private.marketplace_config(key, value)
 select 'platform_price:' || s.product || ':000001',
        private.platform_price_canonical(s.product, 1, 0, 'RSD', s.payer_role, s.unit_basis, t.seed_at, t.seed_at, null)

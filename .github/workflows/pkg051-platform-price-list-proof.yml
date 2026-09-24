@@ -2,10 +2,36 @@ name: PKG-051 platform price list proof
 on:
   push:
     branches: [work/uskoci-ui-unification-20260924, work/pre-v3-engine-integration-20260911, pkg051-impl]
+    # Every file the proof reads, directly or through the replay chain, so a changed input re-runs it. Explicit
+    # names only, no bracket patterns (GitHub rejected a workflow file over one).
     paths:
       - 'supabase/candidates/pkg051*.sql'
       - 'supabase/proofs/pkg051/**'
       - '.github/workflows/pkg051-platform-price-list-proof.yml'
+      - 'supabase/proofs/pre_v3/**'
+      - 'supabase/proofs/pkg023/pkg023_surface.sql'
+      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
+      - 'supabase/candidates/pkg042a_*.sql'
+      - 'supabase/candidates/pkg045a_*.sql'
+      - 'supabase/candidates/pkg046a_*.sql'
+      - 'supabase/candidates/pkg047a_*.sql'
+      - 'supabase/candidates/pkg048a_*.sql'
+      - 'supabase/candidates/pkg050a_*.sql'
+      - 'supabase/proofs/pkg023j/**'
+      - 'supabase/proofs/pkg027/**'
+      - 'supabase/proofs/pkg028/**'
+      - 'supabase/proofs/pkg029/**'
+      - 'supabase/proofs/pkg030/**'
+      - 'supabase/proofs/pkg031/**'
+      - 'supabase/proofs/pkg032/**'
+      - 'supabase/proofs/pkg033/**'
+      - 'supabase/proofs/pkg034/**'
+      - 'supabase/proofs/pkg035/**'
+      - 'supabase/proofs/pkg037/**'
+      - 'supabase/proofs/pkg038/**'
+      - 'supabase/proofs/pkg039/**'
+      - 'supabase/proofs/pkg040/**'
+      - 'supabase/proofs/pkg042/**'
   workflow_dispatch:
 permissions:
   contents: read
