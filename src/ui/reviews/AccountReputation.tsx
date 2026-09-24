@@ -7,9 +7,15 @@ import { T } from '../Text';
 import { sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
 
-/** Only a real aggregate is drawn: anything without a numeric count (a read that is not this one) draws nothing. */
-const isReputation = (value: unknown): value is Reputation =>
-  !!value && typeof value === 'object' && typeof (value as { reviewCount?: unknown }).reviewCount === 'number';
+/**
+ * Only a real aggregate is drawn: anything without a numeric count (a read that is not this one) draws nothing, and a
+ * count of reviews without a numeric average draws nothing either, because its label would read "undefined · 3 ocene".
+ */
+const isReputation = (value: unknown): value is Reputation => {
+  if (!value || typeof value !== 'object') return false;
+  const { reviewCount, averageRating } = value as { reviewCount?: unknown; averageRating?: unknown };
+  return typeof reviewCount === 'number' && (reviewCount === 0 || (typeof averageRating === 'number' && Number.isFinite(averageRating)));
+};
 
 /** One account reputation in both intents; an unavailable read is not zero reviews. */
 export function AccountReputation({ accountId }: { accountId: string }) {
@@ -49,6 +55,6 @@ const s = StyleSheet.create({
   retry: { minHeight: 48, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, alignSelf: 'flex-start' },
   shrink: { flexShrink: 1 },
   action: { color: sys.color.green, fontWeight: '600' },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   value: { color: sys.color.ink, fontWeight: '600' },
 });

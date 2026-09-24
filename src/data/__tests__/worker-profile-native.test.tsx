@@ -293,6 +293,20 @@ describe('team size stepper', () => {
     expect(control('Koliko ljudi možeš da obezbediš').props.editable).toBe(false);
     expect(texts()).toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
   });
+  // Review of step 9 (2026-09-24): a typed 51 to 999 read as no number, so minus was grey and plus jumped to 1.
+  it('reads a typed number above 50 as that number: minus brings it to 50 and plus stays grey', async () => {
+    await render(); input('Koliko ljudi možeš da obezbediš', '75');
+    expect(control('Više ljudi').props.disabled).toBe(true); expect(control('Manje ljudi').props.disabled).toBe(false);
+    click('Manje ljudi'); expect(control('Koliko ljudi možeš da obezbediš').props.value).toBe('50');
+  });
+});
+
+// Review of step 9 (2026-09-24): the support row is not a setting, so a dirty draft gets its own sentence.
+it('asks to save a dirty draft before writing to support, in words about support', async () => {
+  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await render();
+  input('Ime na radnom profilu', 'Lokalna izmena'); click('Piši podršci');
+  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(texts()).toContain('Sačuvaj unos pre nego što pišeš podršci.');
+  expect(texts()).not.toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
 });
 
 describe('activation checklist', () => {
@@ -305,5 +319,16 @@ describe('activation checklist', () => {
   it('says a complete draft is ready', async () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
     expect(texts()).toContain('Sve je spremno za aktivaciju.'); expect(control('Proveri i aktiviraj profil')).toBeTruthy();
+  });
+  // Review of step 9 (2026-09-24): the three checks passed while the primary still had to load the capacity revision.
+  it('says ready only when the primary is the activation itself', async () => {
+    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', capacityRevision: undefined }); await render();
+    expect(control('Učitaj kapacitet profila')).toBeTruthy();
+    expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
+    expect(texts()).toContain('Kapacitet profila još nije učitan.'); expect(texts()).not.toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
+    await act(async () => tree.unmount());
+    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
+    input('Ime na radnom profilu', 'Ana Petrović');
+    expect(control('Sačuvaj izmene')).toBeTruthy(); expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
   });
 });

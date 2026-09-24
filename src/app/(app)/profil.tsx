@@ -78,7 +78,10 @@ export default function Profil() {
     // No grammatical gender (one voice, 2026-09-23): "nisi podesio" spoke to a man only.
     : !capability ? 'Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak.'
       : capability.stanje === 'DRAFT' ? 'Profil je nacrt — dok je nacrt, zadaci ti se ne nude.'
-        : capability.stanje === 'SUSPENDED' ? 'Profil je obustavljen. Piši podršci.' : 'Profil je aktivan.';
+        : capability.stanje === 'SUSPENDED' ? 'Profil je obustavljen. Piši podršci.'
+          // Only a state the read really returned is said: a status the app does not know (a closed profile, a new value)
+          // reads as nothing rather than as "active" (review of step 9, 2026-09-24).
+          : capability.stanje === 'ACTIVE' ? 'Profil je aktivan.' : undefined;
   const photoReady = !!identity?.profileId && !profile.loading && !profile.error;
   const openPhoto = () => { const id = identity?.profileId; if (!id || profile.loading || profile.error) return;
     navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };
@@ -93,7 +96,9 @@ export default function Profil() {
         photo: identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={PROFILE_AVATAR} fallback={avatar} /> : avatar,
         photoReady, openPhoto, reputation: accountId ? <AccountReputation accountId={accountId} /> : null };
 
-  return <ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} workArea={capability?.grad?.trim() || undefined} busy={busy}
+  // A work profile without an area says so, as the worker screen does; without a work profile the row has nothing to say.
+  const workArea = capability?.grad?.trim() || (capability ? 'Nije podešeno' : undefined);
+  return <ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} workArea={workArea} busy={busy}
     open={(path: ProfileHubPath) => navigate(() => router.navigate(path))}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))}
     onLogout={() => { void logout(); }} logoutError={logoutError} />;

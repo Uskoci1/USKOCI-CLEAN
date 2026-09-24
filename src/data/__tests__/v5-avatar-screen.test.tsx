@@ -104,11 +104,51 @@ it('a cancelled removal writes nothing', async () => {
   await act(async () => { tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
   expect(mockClear).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled(); expect(mockJournal.size).toBe(0);
 });
-it('a denied camera leads to the phone settings instead of a red line alone', async () => {
+// Review of step 9 (2026-09-24): the denial used to settle as a failed command, which hid the gallery the message names and
+// left only a read. Nothing was written, so it now keeps the choice open; the test asserted only the settings button.
+it('a denied camera leads to the phone settings and keeps the gallery it names one tap away', async () => {
   mockPick.mockRejectedValueOnce(new Error('denied')); mockSelectionMessage = mockPermission; await render();
   await act(async () => action('Fotografiši').onPress());
   expect(tree.root.findAllByProps({ label: 'Podešavanja telefona' }).length).toBeGreaterThan(0);
+  expect(action('Izaberi iz galerije').disabled).toBe(false); expect(action('Fotografiši').disabled).toBe(false);
+  expect(tree.root.findAllByProps({ label: 'Proveri sačuvanu fotografiju' })).toHaveLength(0);
+  expect(mockUpload).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled(); expect(mockRead).toHaveBeenCalledTimes(1);
+  // The gallery works at once, without a read in between, and the message goes with the new choice.
+  await act(async () => action('Izaberi iz galerije').onPress());
+  expect(mockUpload).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByProps({ label: 'Podešavanja telefona' })).toHaveLength(0);
+});
+it('a picture over the size limit says so and keeps both ways to choose another', async () => {
+  mockPick.mockRejectedValueOnce(new Error('size')); mockSelectionMessage = 'Izaberi fotografiju do 10 MB.'; await render();
+  await act(async () => action('Izaberi iz galerije').onPress());
+  expect(JSON.stringify(tree.toJSON())).toContain('Izaberi fotografiju do 10 MB.');
+  expect(tree.root.findAllByProps({ label: 'Podešavanja telefona' })).toHaveLength(0);
+  expect(action('Izaberi iz galerije').disabled).toBe(false); expect(action('Fotografiši').disabled).toBe(false);
+  expect(mockUpload).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled();
+});
+it('while a chosen picture is sent the screen says so, and never shows it as an unknown outcome', async () => {
+  let finish!: (value: unknown) => void;
+  mockUpload.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await render();
+  await act(async () => { void action('Izaberi iz galerije').onPress(); });
+  expect(mockJournal.size).toBe(1); expect(mockUpload).toHaveBeenCalledTimes(1);
+  expect(action('Izaberi iz galerije').loading).toBe(true);
+  expect(tree.root.findAllByProps({ label: 'Proveri sačuvanu fotografiju' })).toHaveLength(0);
+  expect(JSON.stringify(tree.toJSON())).toContain('Šaljemo fotografiju…');
+  await act(async () => finish(ok(asset())));
+  expect(action('Sačuvaj fotografiju').disabled).toBe(false);
+  // The staged picture carries an element as a prop, so the words are read from the text nodes, not a JSON of the tree.
+  const words = tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string'));
+  expect(words).toContain('Još nije sačuvana'); expect(words).not.toContain('Šaljemo fotografiju…');
+});
+it('a refusal of a command that sent nothing offers the way back to the choice, not a check of a saved photo', async () => {
+  mockSet.mockRejectedValue(new Error('unavailable')); await render();
+  await act(async () => action('Izaberi iz galerije').onPress());
   expect(mockUpload).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Proveri sačuvanu fotografiju' })).toHaveLength(0);
+  await act(async () => action('Nazad na izbor fotografije').onPress());
+  expect(mockRead).toHaveBeenCalledTimes(2); expect(action('Izaberi iz galerije').disabled).toBe(false);
 });
 it('while a change is unresolved nothing new can be picked and the retry is the one filled action', async () => {
   mockJournal.set(journalKey, JSON.stringify({ phase: 'APPLY', requestId: REQUEST, assetId: ASSET, expectedPath: null }));

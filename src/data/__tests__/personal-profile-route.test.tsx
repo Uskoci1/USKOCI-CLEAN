@@ -30,6 +30,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 
 import Route from '../../app/(app)/profil/podaci';
+import { DisplayNameForm } from '../../ui/profile/DisplayNameForm';
 
 const identity = (displayName = 'Ana Petrović', revision = REVISION) => ({ schema: 'REQUESTER_IDENTITY_V1', accountId: ACCOUNT,
   profileId: '22222222-2222-4222-8222-222222222222', displayName, revision, writableFields: ['displayName'] });
@@ -84,6 +85,20 @@ it('an edit after an unconfirmed attempt issues a new request id', async () => {
   mockSave.mockResolvedValueOnce(ok({ saved: true, idempotentReplay: false, clientRequestId: 'x', identity: identity('Ana Petrović Jović', 'b'.repeat(64)) }));
   await type('Ana Petrović Jović'); await press('Sačuvaj ime');
   expect(mockSave.mock.calls.map(call => call[0].clientRequestId)).toEqual(['33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444']);
+});
+
+// Review of step 9 (2026-09-24): during a read that keeps the form (every return to the screen) the save was live, and
+// the editor refused it without a word.
+it('while the saved name is read again the save waits and says why', async () => {
+  const save = jest.fn(async () => {});
+  await act(async () => { tree = create(<DisplayNameForm savedName="Ana Petrović" busy={false} uncertain={false} saved={false} error={null}
+    checking check={() => {}} save={save} />); });
+  await type('Ana P.');
+  expect(button('Sačuvaj ime').props.disabled).toBe(true); expect(button('Sačuvaj ime').props.reason).toBe('Učitavamo sačuvano ime…');
+  expect(button('Sačuvaj ime').props.loading).toBe(false);
+  await act(async () => tree.update(<DisplayNameForm savedName="Ana Petrović" busy={false} uncertain={false} saved={false} error={null}
+    checking={false} check={() => {}} save={save} />));
+  expect(button('Sačuvaj ime').props.disabled).toBe(false); expect(button('Sačuvaj ime').props.reason).toBeNull();
 });
 
 it('a first read that fails offers the read again, not an empty form', async () => {

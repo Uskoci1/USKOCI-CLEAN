@@ -31,6 +31,9 @@ jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => mockResource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// The reputation reads its own resource; here it is a named element, so the hub is tested for where it places it and the
+// line itself is tested directly in review-screen.test.tsx (review of step 9, 2026-09-24).
+jest.mock('../../ui/reviews/AccountReputation', () => ({ AccountReputation: 'AccountReputation' }));
 
 import Profil from '../../app/(app)/profil';
 
@@ -227,11 +230,45 @@ describe('real profile hub', () => {
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection).toBe(direction);
   });
 
-  it('keeps the rating out of a failed profile and never draws anything for data that is not a reputation', async () => {
-    // useFocusedResource is mocked for every caller here, so the reputation receives the profile object: it must draw nothing.
+  // Review of step 9: this used to lean on the suite-wide useFocusedResource mock feeding the profile object into the real
+  // reputation. The reputation is now a named element here; that it never draws a non-reputation is tested on the line itself.
+  it('places the account rating under the name of a read profile, and keeps it out of a failed or loading one', async () => {
     await render();
-    expect(visibleText()).not.toMatch(/undefined|ocena/);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži ocene' })).toHaveLength(0);
+    const ratings = () => tree.root.findAll(node => String(node.type) === 'AccountReputation');
+    expect(ratings().map(node => node.props.accountId)).toEqual(['account-a']);
+    mockResource = { ...mockResource, error: true };
+    await act(async () => tree.update(<Profil />));
+    expect(ratings()).toHaveLength(0);
+    mockResource = { ...mockResource, error: false, loading: true };
+    await act(async () => tree.update(<Profil />));
+    expect(ratings()).toHaveLength(0);
+  });
+
+  // Review of step 9: a status the app does not know (a closed profile, a new value) read as "Profil je aktivan.".
+  it('says nothing about a work profile whose state it does not know, rather than calling it active', async () => {
+    mockResource.data = { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: null } };
+    await render();
+    expect(visibleText()).not.toContain('Profil je aktivan'); expect(visibleText()).not.toContain('Profil je nacrt');
+    expect(visibleText()).not.toContain('Radni profil još nije podešen');
+  });
+
+  it('says the work area is not set when a work profile has none, and says nothing without a work profile', async () => {
+    mockResource.data = { identity, capability: { ime: 'Ana', grad: '  ', stanje: 'DRAFT' } };
+    await render();
+    const detail = () => tree.root.findByProps({ label: 'Područje rada' }).props.detail;
+    expect(detail()).toBe('Nije podešeno');
+    mockResource = { ...mockResource, data: { identity, capability: null } };
+    await act(async () => tree.update(<Profil />));
+    expect(detail()).toBeUndefined();
+  });
+
+  it('stacks a long name under the photo on a wide phone and lets it take three lines', async () => {
+    mockResource.data = { identity: { ime: 'Aleksandra Stefanović-Radosavljević', grad: 'Novi Sad' }, capability: null };
+    await render();
+    const { StyleSheet } = jest.requireActual('react-native');
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection).toBe('column');
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header'
+      && node.children.includes('Aleksandra Stefanović-Radosavljević'))[0].props.numberOfLines).toBe(3);
   });
 
   it('ignores a late logout failure after batched A→B→A and admits a fresh current action', async () => {

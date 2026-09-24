@@ -44,11 +44,22 @@ it('names the zone only when it is not Serbian time', async () => {
   expect(texts()).toContain('Vremenska zona');
 });
 
-it('says one word for anything not given', async () => {
+// Review of step 9 (2026-09-24): licences are on the owner's decision list, so their empty word stays the one it was
+// ("Nisu navedene"); every other field not given says the one word. The test pinned the licence word too; it no longer does.
+it('says one word for anything not given, and keeps the licence row as the owner worded it', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
-  expect(copy).not.toMatch(/Još nije navedeno|Nisu navedene/);
+  expect(copy).not.toMatch(/Još nije navedeno/);
   expect(copy.split('Nije navedeno').length - 1).toBeGreaterThanOrEqual(5);
+  expect(copy.split('Nisu navedene').length - 1).toBe(1);
+});
+
+it('writes the year of a rule day only when it is not the current one', async () => {
+  const next = String(new Date().getFullYear() + 1), now = String(new Date().getFullYear());
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({ rules: [{ id: 'rule', weekdays: [1], startTime: '08:00', endTime: '16:00',
+    startsOn: `${now}-09-24`, endsOn: `${next}-01-05`, label: '', active: true }] })} />); });
+  const copy = texts();
+  expect(copy).toContain(`od 24. sep do 5. jan ${next}`); expect(copy).not.toContain(`24. sep ${now}`);
 });
 
 it('draws the activation choice on a flat tint with a white thumb', async () => {

@@ -121,7 +121,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const navigate = (path: '/profil/lokacija' | '/profil/dostupnost' | '/podrska') => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
-      setValidation('Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
+      // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
+      setValidation(path === '/podrska' ? 'Sačuvaj unos pre nego što pišeš podršci.' : 'Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
     }
     router.navigate(path);
   };
@@ -140,7 +141,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
     && Number(value.radius) >= 1 && Number(value.radius) <= 200;
   const capacityReady = !!value && /^[0-9]{1,2}$/.test(value.capacity) && Number(value.capacity) >= 1 && Number(value.capacity) <= 50;
-  const primary = (() => {
+  // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
+  // the primary still has to load the capacity revision or save a change first.
+  const primary: { label: string; run: () => void; activates?: boolean } = (() => {
     if (status === 'ACTIVE' || status === 'SUSPENDED') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (firstSave) return { label: 'Sačuvaj profil', run: () => { void save(false); } };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
@@ -150,7 +153,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide((value?.ime.trim().length ?? 0) >= 2 ? 'skill' : 'name',
       'Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.') };
     if (!capacityReady) return { label: 'Unesi kapacitet tima', run: () => guide('capacity', 'Unesi kapacitet od 1 do 50 ljudi.') };
-    return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); } };
+    return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); }, activates: true };
   })();
   // The other way to fill this in, not the first thing on it: a row near the end of the form, behind the same guards.
   const openConversation = () => {
@@ -172,6 +175,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
-        checks={{ basics: basicsReady, area: locationReady, capacity: capacityReady }} openConversation={openConversation} />}
+        checks={{ basics: basicsReady, area: locationReady, capacity: capacityReady }} readyToActivate={!!primary.activates && !pending}
+        openConversation={openConversation} />}
   </WorkerProfileFrame>;
 }

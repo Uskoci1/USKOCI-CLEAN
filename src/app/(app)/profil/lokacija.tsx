@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactElement, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import type { WorkerLocation, WorkerLocationInput } from '../../../contracts/location';
+import type { CoarsePosition, WorkerLocation, WorkerLocationInput } from '../../../contracts/location';
 import { workerLocationClientService } from '../../../data/locationClientService';
 import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
@@ -26,7 +26,11 @@ type WorkerLocationFormProps = { location: WorkerLocation; busy: boolean; uncert
   /** Where the route places the parts (the screen's sticky footer); by default they are drawn one under the other. */
   children?: (parts: WorkerLocationParts) => ReactElement;
   /** Why the last save did not go through, drawn under the save. */ error?: string | null;
-  /** Reads the saved state again; after an unknown outcome it replaces the save. */ onRetry?: () => void;
+  /** Reads the saved state again; after an unknown outcome or a failed read it replaces the save. */ onRetry?: () => void;
+  /** The saved state is being read again (the form stays on screen): the save waits and says why, without a spinner. */
+  reading?: boolean;
+  /** The last save was confirmed: while nothing has changed since, the footer says so instead of asking for a confirmation. */
+  saved?: boolean;
   /** Countries handed in (the design gallery, which reads nothing); otherwise the market list is read here. */
   countryOptions?: CountryOptions };
 type CountryOptions = ReturnType<typeof useCountryOptions>;
@@ -42,8 +46,10 @@ function LiveWorkerLocationForm(props: WorkerLocationFormProps) {
 /** Common distances, one tap each. They only fill the field; nothing stores them as a vocabulary. */
 const RADII = [5, 10, 20, 50, 100] as const;
 const stacked = ({ body, footer }: WorkerLocationParts) => <View style={{ gap: 24 }}>{body}{footer}</View>;
-function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver, children = stacked, error: refusal, onRetry, countryOptions }:
-  WorkerLocationFormProps & { countryOptions: CountryOptions }) {
+const samePosition = (a: CoarsePosition | null, b: CoarsePosition | null) =>
+  a === b || (!!a && !!b && a.latitude === b.latitude && a.longitude === b.longitude);
+function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver, children = stacked, error: refusal, onRetry, countryOptions,
+  reading = false, saved = false }: WorkerLocationFormProps & { countryOptions: CountryOptions }) {
   const [city, setCity] = useState(location.city);
   const [country, setCountry] = useState<string | null>(location.operatingCountryCode);
   const [radius, setRadius] = useState(String(location.radiusKm));
@@ -59,16 +65,23 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   };
   // Typing a radius and tapping one run the same three steps: a new distance needs a fresh confirmation.
   const changeRadius = (text: string) => { setRadius(text); setConfirmed(false); setError(false); };
+  // Right after a confirmed save the form is what was saved; until something changes the footer says so, instead of an
+  // empty confirmation and a grey save that read as "confirm it again" (review of step 9, 2026-09-24).
+  const settled = saved && city === location.city && country === location.operatingCountryCode && radius === String(location.radiusKm)
+    && samePosition(position, location.approximatePosition);
   const submit = () => {
-    if (disabled || !confirmed || !selectableCountry(countryOptions.countries, country)) return;
+    if (disabled || reading || settled || !confirmed || !selectableCountry(countryOptions.countries, country)) return;
     const value = normalizeWorkerLocation({ operatingCountryCode: country, city: city.trim(), radiusKm: /^\d+$/.test(radius) ? Number(radius) : NaN,
       approximatePosition: position });
     if (!value) { setError(true); return; }
     onSave(value);
   };
   const selectable = selectableCountry(countryOptions.countries, country);
-  // A grey save says why (owner rule, 2026-09-23): a country that cannot be chosen, then a missing confirmation.
-  const reason = !selectable ? 'Izaberi dostupnu državu.' : !confirmed ? 'Prvo potvrdi područje.' : null;
+  // A grey save says why (owner rule, 2026-09-23): a country that cannot be chosen, then a missing confirmation, then a
+  // read of the saved area that is still running (a save during it would be refused without a word). Once saved, the
+  // line above the button already says why.
+  const reason = settled ? null : !selectable ? 'Izaberi dostupnu državu.' : !confirmed ? 'Prvo potvrdi područje.'
+    : reading ? 'Učitavamo sačuvano područje…' : null;
   const body = <View style={{ gap: 24 }}>
     {/* Privacy wording, word for word. "Izaberi područje u kom radiš." and a second title under the bar are gone. */}
     <View style={s.note}><FactArt kind="lock" size={20} />
@@ -107,11 +120,17 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     </View> : null}
     {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada i ceo broj od 1 do 200 km.</T> : null}
   </View>;
+  // After an unknown outcome, or a read that failed while the form stayed, the read replaces the save: the editor refuses
+  // any save until the saved state is read again.
+  const retry = (uncertain || !!refusal) && onRetry;
   const footer = <>
-    <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>Potvrđujem područje u kom mogu da radim.</LocationConfirmation>
-    {uncertain && onRetry ? <V2Action label="Učitaj sačuvano stanje" onPress={onRetry} disabled={busy} style={brandAction} error={refusal ?? undefined} />
+    {settled && !retry ? <View style={s.saved}><FactArt kind="check" size={20} />
+      <T accessibilityRole="alert" tone="success" style={s.grow}>Područje rada je sačuvano.</T></View>
+      : <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>Potvrđujem područje u kom mogu da radim.</LocationConfirmation>}
+    {retry ? <V2Action label="Učitaj sačuvano stanje" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
+      error={refusal ?? undefined} />
       : <V2Action label="Sačuvaj područje rada" onPress={submit} loading={busy} style={brandAction}
-        disabled={disabled || !confirmed || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
+        disabled={disabled || reading || settled || !confirmed || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
   </>;
   return children({ body, footer });
 }
@@ -131,22 +150,21 @@ export default function PodrucjeRada() {
       primary={{ label: 'Učitaj sačuvano stanje', onPress: refresh }} />
       : <StateView kind="loading" title="Učitavamo sačuvanu lokaciju…" skeleton={{ count: 2, rows: 1 }} />}
   </WorkerProfileFrame>;
+  // The saved line stands in the footer above the save (it used to sit at the top of the body, out of sight of the button).
   return <WorkerLocationForm key={location.revision} location={location} busy={editor.busy} uncertain={editor.uncertain}
-    error={editor.error} onRetry={refresh}
+    reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}
     onSave={value => {
       void editor.save(async () => { const result = await workerLocationClientService.save({ expectedRevision: location.revision, confirmed: true, value });
         return result.ok ? { ok: true, podatak: result.podatak.location } : result; });
     }}>
-    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={back} footer={footer}>
-      {editor.saved ? <T accessibilityRole="alert" tone="success">Područje rada je sačuvano.</T> : null}
-      {body}
-    </WorkerProfileFrame>}
+    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={back} footer={footer}>{body}</WorkerProfileFrame>}
   </WorkerLocationForm>;
 }
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
-  note: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  note: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  saved: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   radius: { gap: 12 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { minHeight: 48, paddingHorizontal: 16, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,

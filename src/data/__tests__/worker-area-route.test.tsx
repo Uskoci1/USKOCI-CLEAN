@@ -58,10 +58,36 @@ it('a failed read without data offers one way to read it again', async () => {
   expect(mockRefresh).toHaveBeenCalledTimes(1);
 });
 
-it('says the area is saved at the top of the form', async () => {
+// Review of step 9 (2026-09-24): the saved line sat at the top of the body while the footer, remounted with the new
+// revision, showed an empty confirmation and "Prvo potvrdi područje." under a grey save. This pinned the top placement.
+it('says the area is saved in the footer, in place of the confirmation, until something changes', async () => {
   mockEditor = idle({ saved: true }); await render();
   expect(texts()).toContain('Područje rada je sačuvano.');
-  expect(buttons('Sačuvaj područje rada')).toHaveLength(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' })).toHaveLength(0);
+  expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(true); expect(buttons('Sačuvaj područje rada')[0].props.reason).toBeNull();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: '50 km' }).props.onPress());
+  expect(texts()).not.toContain('Područje rada je sačuvano.');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' })).toHaveLength(1);
+  expect(buttons('Sačuvaj područje rada')[0].props.reason).toBe('Prvo potvrdi područje.');
+});
+
+it('while the saved area is read again the save waits and says why', async () => {
+  mockEditor = idle({ loading: true }); await render();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' }).props.onPress());
+  expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(true);
+  expect(buttons('Sačuvaj područje rada')[0].props.reason).toBe('Učitavamo sačuvano područje…');
+  expect(buttons('Sačuvaj područje rada')[0].props.loading).toBe(false);
+  await act(async () => buttons('Sačuvaj područje rada')[0].props.onPress());
+  expect(mockSaveCall).not.toHaveBeenCalled();
+});
+
+it('a failed read that kept the form offers the read, not a save the editor would refuse', async () => {
+  mockEditor = idle({ error: 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.' }); await render();
+  expect(buttons('Sačuvaj područje rada')).toHaveLength(0);
+  const retry = buttons('Učitaj sačuvano stanje');
+  expect(retry).toHaveLength(1); expect(retry[0].props.error).toBe('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
+  await act(async () => retry[0].props.onPress());
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
 });
 
 it('an unknown outcome replaces the save with a read of the saved state', async () => {

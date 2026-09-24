@@ -81,10 +81,12 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.55 },
   check: { position: 'absolute', top: 10, right: 10 },
   checkMedium: { top: 8, right: 8 },
-  label: { color: sys.color.ink, textAlign: 'center', fontSize: 16, lineHeight: 21 },
-  labelMedium: { fontSize: 15, lineHeight: 20, fontWeight: '600' },
+  // Type from the scale only (review of step 9, 2026-09-24): the label is `bodyStrong` as its variant draws it, the medium
+  // tile's label `copy` at the same 600 weight.
+  label: { ...sys.type.bodyStrong, color: sys.color.ink, textAlign: 'center' },
+  labelMedium: { ...sys.type.copy, fontWeight: '600' },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  rowLabel: { color: sys.color.ink, textAlign: 'left', fontSize: 16, lineHeight: 21 },
+  rowLabel: { ...sys.type.bodyStrong, color: sys.color.ink, textAlign: 'left' },
   rowCheck: { width: 20, alignItems: 'center' },
   reason: { textAlign: 'center' },
 });

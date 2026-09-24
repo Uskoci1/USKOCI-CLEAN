@@ -13,6 +13,8 @@ import { Avatar } from '../system/Avatar';
 export const PROFILE_AVATAR = 56;
 /** The camera mark sits on the photo's edge at a size that leaves the face visible. */
 const BADGE = { width: 24, height: 24, right: -2, bottom: -2 } as const;
+/** More letters than this and the name takes the full width under the photo. */
+const LONG_NAME = 24;
 
 /** Every place the hub opens. The route turns a choice into navigation behind its own single-flight guard. */
 export type ProfileHubPath = '/profil/radnik' | '/profil/lokacija' | '/profil/dostupnost' | '/raspored' | '/profil/podaci'
@@ -30,8 +32,9 @@ export type ProfileHubIdentity =
 /**
  * The profile hub (2026-09-24): the person first — photo, name, place and rating in one identity row — and then short
  * grouped rows to everything they set up. A row says a state, never where it goes. The name is edited in its own row
- * ("Ime na profilu"): one control per job. On a narrow phone or with large text the identity stacks (photo on top), so a
- * 28 px name never breaks into three lines beside the photo. Logout is a quiet action; there is no primary action here.
+ * ("Ime na profilu"): one control per job. On a narrow phone, with large text or with a long name the identity stacks
+ * (photo on top), so a 28 px name never breaks into three lines beside the photo. Logout is a quiet action; there is no
+ * primary action here.
  * Presentation only: the route owns the reads, the single-flight guard and logout.
  */
 export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, onBack, onLogout, logoutError, stacked: forced }: {
@@ -40,7 +43,11 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
   /** A fixed layout for the design gallery; otherwise it follows the width and the rounded text scale. */ stacked?: boolean;
 }) {
   const { width } = useWindowDimensions(), textScale = useTextScale();
-  const stacked = forced ?? (width < 360 || textScale >= 1.3);
+  // A long name stacks too: beside the photo a 28 px name of more than about 24 letters needs three lines at 390 dp, and a
+  // person's own name is never cut with an ellipsis (review of step 9, 2026-09-24).
+  const longName = identity.state === 'ready' && (identity.name?.length ?? 0) > LONG_NAME;
+  const stacked = forced ?? (width < 360 || textScale >= 1.3 || longName);
+  const nameLines = stacked ? 3 : 2;
   const row = [s.identity, stacked && s.stacked];
   const copy = [s.copy, stacked && s.copyStacked];
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>
@@ -65,8 +72,8 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
           {identity.photoReady ? <View style={[styles.avatarBadge, BADGE]}><Camera size={14} color={sys.color.ink} /></View> : null}
         </Press>
         <View style={copy}>
-          {identity.name ? <T variant="display" accessibilityRole="header" style={styles.name} numberOfLines={2}>{identity.name}</T>
-            : <T variant="display" tone="muted" accessibilityRole="header" style={styles.name} numberOfLines={2}>Ime još nije uneto</T>}
+          {identity.name ? <T variant="display" accessibilityRole="header" style={styles.name} numberOfLines={nameLines}>{identity.name}</T>
+            : <T variant="display" tone="muted" accessibilityRole="header" style={styles.name} numberOfLines={nameLines}>Ime još nije uneto</T>}
           {identity.place ? <View style={styles.identityCity}><FactArt kind="pin" size={18} />
             <T variant="copy" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
           {identity.reputation}

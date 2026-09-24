@@ -123,13 +123,15 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen, va
 /**
  * How many people the person can bring, 1 to 50, with a minus and a plus beside the number. Every press goes through the
  * same change as typing, so the route's guards decide it exactly as they decide a typed number; nothing fills the field
- * by itself, and an empty field stays empty until the person presses or types.
+ * by itself, and an empty field stays empty until the person presses or types. A typed number above 50 (the field takes
+ * three digits) is still read as that number: minus brings it back to 50 and plus stays grey.
  */
-function CountStepper({ value, revision, change, disabled, inputRef }: {
-  value: string; revision: string | null; change: (capacity: string) => void; disabled: boolean; inputRef?: RefObject<TextInput | null>;
+function CountStepper({ value, revision, saved, change, disabled, inputRef }: {
+  value: string; revision: string | null; /** The profile exists (it has been saved once). */ saved: boolean;
+  change: (capacity: string) => void; disabled: boolean; inputRef?: RefObject<TextInput | null>;
 }) {
   const locked = disabled || revision === null;
-  const n = /^[0-9]{1,2}$/.test(value) ? Number(value) : null;
+  const n = /^[0-9]{1,3}$/.test(value) ? Number(value) : null;
   const unit = n === null ? 'osoba' : plural(n, 'osoba', 'osobe', 'osoba').replace(/^\S+ /, '');
   return <View style={s.section}>
     <SectionHead art="users" title="Koliko ljudi možeš da obezbediš" />
@@ -143,7 +145,8 @@ function CountStepper({ value, revision, change, disabled, inputRef }: {
         onPress={() => { if (!locked && (n === null || n < 50)) change(n === null || n < 1 ? '1' : String(n + 1)); }} />
       <T variant="copy" tone="muted" style={s.shrink}>{unit}</T>
     </View>
-    <T variant="note" tone="muted">{revision === null ? 'Sačuvaj profil da bi se broj ljudi potvrdio.'
+    {/* A saved profile without a capacity revision is loaded, not saved, first: the note says what the primary does. */}
+    <T variant="note" tone="muted">{revision === null ? saved ? 'Kapacitet profila još nije učitan.' : 'Sačuvaj profil da bi se broj ljudi potvrdio.'
       : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'}</T>
   </View>;
 }
@@ -156,10 +159,13 @@ type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/podrska';
 /**
  * Whether tasks can be offered to you, first. Active is one green line. A draft (or no profile yet) is a flat note with
  * the three things activation waits for, each marked ready or missing; they are not buttons, because the footer's
- * primary already leads to the first missing one. A suspension says so and offers support.
+ * primary already leads to the first missing one. "Ready" is said only when the route's primary really is the
+ * activation (the three checks can pass while the capacity revision still has to be loaded or a change saved). A
+ * suspension says so and offers support.
  */
-function ActivationStatus({ status, checks, disabled, navigate }: {
-  status: StanjeProfila | null; checks?: WorkerActivationChecks; disabled: boolean; navigate: (path: WorkerNavigation) => void;
+function ActivationStatus({ status, checks, readyToActivate, disabled, navigate }: {
+  status: StanjeProfila | null; checks?: WorkerActivationChecks; readyToActivate: boolean; disabled: boolean;
+  navigate: (path: WorkerNavigation) => void;
 }) {
   if (status === 'ACTIVE') return <View style={s.activeLine}>
     <FactArt kind="check" size={20} /><T variant="bodyStrong" style={[s.grow, s.green]}>Profil je aktivan</T>
@@ -171,7 +177,6 @@ function ActivationStatus({ status, checks, disabled, navigate }: {
     <V2Action label="Piši podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
   </View>;
   const draft = status === 'DRAFT';
-  const ready = !!checks && CHECKS.every(([key]) => checks[key]);
   return <View style={s.status}>
     <View style={s.titleLine}><View style={s.dot} />
       <T variant="bodyStrong" style={[s.grow, s.ink]}>{draft ? 'Radni profil je još nacrt' : 'Radni profil još nije podešen'}</T></View>
@@ -181,7 +186,7 @@ function ActivationStatus({ status, checks, disabled, navigate }: {
       {checks[key] ? <FactArt kind="check" size={20} /> : <View style={s.emptyCheck} />}
       <T variant="note" style={[s.grow, s.ink]}>{label}</T>
     </View>)}</View> : null}
-    {ready ? <T variant="note" tone="muted">Sve je spremno za aktivaciju.</T> : null}
+    {draft && readyToActivate ? <T variant="note" tone="muted">Sve je spremno za aktivaciju.</T> : null}
   </View>;
 }
 
@@ -192,11 +197,13 @@ export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity';
  * conversation as another way to fill it in. Skills, tools and vehicles take chips, typing or pictures. Every field
  * keeps its label as the input's spoken name; the route owns saving and every guard.
  */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, openConversation }: { draft: WorkerDraft;
-  change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null; navigate: (path: WorkerNavigation) => void;
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation }: {
+  draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null; navigate: (path: WorkerNavigation) => void;
   focusRequest?: WorkerProfileFocusRequest | null;
   /** What activation is actually waiting for, from the same checks that gate it. */
   checks?: WorkerActivationChecks;
+  /** The route's primary action is the activation itself: only then does the note say everything is ready. */
+  readyToActivate?: boolean;
   /** The AI conversation, behind the route's own guards. */
   openConversation?: () => void }) {
   // Where the lists stood when the screen opened decides only which quick pick starts open: an empty skill list opens its
@@ -212,12 +219,12 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const grad = draft.grad.trim();
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Nije podešeno';
   return <View style={s.form}>
-    <ActivationStatus status={status} checks={checks} disabled={disabled} navigate={navigate} />
+    <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
     <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
     <TermsPicker label="Veštine i usluge" art="tasks" group="usluge" placeholder="Dodaj veštinu" quickLabel="Brzi izbor veština" quickOpen={skillsOpen}
       values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
       change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
-    <CountStepper value={draft.capacity} revision={draft.capacityRevision} change={capacity => patch({ capacity })}
+    <CountStepper value={draft.capacity} revision={draft.capacityRevision} saved={status !== null} change={capacity => patch({ capacity })}
       disabled={disabled} inputRef={capacityRef} />
     {/* Where and when are set in their own editors, each with its own save; here they are read and opened. */}
     <View style={s.rows}>
@@ -252,15 +259,15 @@ const s = StyleSheet.create({
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // A note inside the screen is a flat tint, never a card (the one card rule): wash for a draft, danger-soft for a suspension.
-  status: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, padding: 16, gap: 10 },
+  status: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, padding: sys.space.base, gap: sys.space.md },
   suspended: { backgroundColor: sys.color.dangerSoft },
-  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   checklist: { gap: 4 },
-  checkItem: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  checkItem: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   emptyCheck: { width: 20, height: 20, borderRadius: sys.radius.pill, borderWidth: 1.5, borderColor: sys.color.lineStrong },
   section: { gap: 12 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   field: { gap: 6 },
   input: { ...field },
   multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },

@@ -16,9 +16,10 @@ export function DisplayNameForm(p: { savedName: string; busy: boolean; uncertain
   const [name, setName] = useState(p.savedName), request = useRef<{ name: string; id: string } | null>(null);
   const unchanged = name.trim() === p.savedName;
   // A grey button says why it is grey (owner rule, 2026-09-23). Busy and unconfirmed states are named by the action
-  // itself; right after a save "Ime je sačuvano." already says the rest.
+  // itself; right after a save "Ime je sačuvano." already says the rest. While the saved name is read again (the form
+  // stays on screen) the save waits: the editor would refuse it without a word (review of step 9, 2026-09-24).
   const reason = p.busy || p.uncertain || (p.saved && unchanged) ? null : !name.trim() ? 'Ime ne može da ostane prazno.'
-    : unchanged ? 'Ovo ime je već sačuvano.' : null;
+    : unchanged ? 'Ovo ime je već sačuvano.' : p.checking ? 'Učitavamo sačuvano ime…' : null;
   const reconcile = p.uncertain || !!p.error;
   return <View style={{ gap: 12 }}>
     <T variant="meta" tone="muted">Ime za prikaz</T>
@@ -26,7 +27,7 @@ export function DisplayNameForm(p: { savedName: string; busy: boolean; uncertain
       editable={!p.busy && !p.uncertain} onChangeText={value => { request.current = null; setName(value); }} style={field} />
     <T variant="note" tone="muted">Ovo ime vide ljudi sa kojima dogovaraš pomoć za svoje zadatke.</T>
     {reconcile ? <SettingsAction label="Proveri sačuvane podatke" disabled={p.checking} onPress={p.check} />
-      : <SettingsAction label="Sačuvaj ime" loading={p.busy} disabled={p.busy || p.uncertain || !name.trim() || unchanged} reason={reason}
+      : <SettingsAction label="Sačuvaj ime" loading={p.busy} disabled={p.checking || p.uncertain || !name.trim() || unchanged} reason={reason}
         onPress={() => { const command = request.current ?? { name: name.trim(), id: noviUuidZahtevId() }; request.current = command; void p.save(command.name, command.id); }} />}
     {p.saved ? <T accessibilityLiveRegion="polite">Ime je sačuvano.</T> : null}
     {p.error ? <T accessibilityRole="alert" tone="danger">{p.error}</T> : null}

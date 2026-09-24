@@ -38,12 +38,18 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   const focus = useRef<object | null>(null), bytes = useRef<PreparedPhoto | null>(null), abort = useRef<AbortController | null>(null);
   const intent = useRef<Intent | null>(null), readAttempted = useRef(false), navigating = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // A refusal on the phone itself, before anything is journaled or sent (camera permission, a file over 10 MB, a picture
+  // that could not be prepared): there is nothing to reconcile, so the choice stays open under the message, which names
+  // what still works (review of step 9, 2026-09-24). The next command or a read clears it.
+  const [pickError, setPickError] = useState<string | null>(null);
   // Presentation only: which button shows its spinner. A newer command owns it, so an older one finishing late cannot clear it.
   const [running, setRunning] = useState<Running>(null), runSeq = useRef(0);
+  // Presentation only: the chosen picture is journaled and on its way, so the circle can say so while the spinner runs.
+  const [sending, setSending] = useState(false);
   const confirm = useConfirmSheet();
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision,
     [accountId, accountRevision]);
-  useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false;
+  useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false; setPickError(null);
     return () => { if (focus.current === token) focus.current = null; bytes.current = null; abort.current?.abort(); };
   }, [owns, profileId]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
@@ -87,8 +93,8 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     if (!current()) return false; intent.current = next; readAttempted.current = false; return true;
   };
   const track = async (kind: Exclude<Running, null>, command: () => Promise<void>) => {
-    const run = ++runSeq.current; setRunning(kind);
-    try { await command(); } finally { if (runSeq.current === run) setRunning(null); }
+    const run = ++runSeq.current; setRunning(kind); setPickError(null);
+    try { await command(); } finally { if (runSeq.current === run) { setRunning(null); setSending(false); } }
   };
   const finishCommand = async (): Promise<Ishod<Snapshot>> => {
     if (!key || !current()) return changed();
@@ -98,6 +104,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   };
   const upload = async (command: Intent, photo: PreparedPhoto): Promise<Ishod<Snapshot>> => {
     if (!profileId || !command.requestId || !(await persist(command))) return changed();
+    setSending(true);
     const controller = new AbortController(); abort.current = controller;
     const result = await mediaClientService.uploadAvatar({ profileId, clientRequestId: command.requestId,
       bytes: photo.bytes, contentType: photo.contentType }, { signal: controller.signal });
@@ -112,8 +119,15 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
         setNotice(null); const photo = await pickPreparedPhoto(source, current);
         if (!current()) return changed(); if (!photo) return { ok: true, podatak: snapshot };
         bytes.current = photo; readAttempted.current = false;
+        // Not awaited here: a failed upload rejects into the editor's own catch, never into the picker's below.
         return upload({ phase: 'UPLOAD', requestId: noviUuidZahtevId(), assetId: null, expectedPath: null }, photo);
-      } catch (error) { return failure('MEDIA_PREPARE_FAILED', photoSelectionMessage(error)); }
+      } catch (error) {
+        // The picker refused on the phone (every error it throws is a PhotoSelectionError, raised before persist() and
+        // before any request): nothing was written, so this settles like a cancelled pick and the choice stays open. It
+        // used to settle as a failed command, which demanded a read and hid the gallery the message pointed to.
+        if (!current()) return changed();
+        setPickError(photoSelectionMessage(error)); return { ok: true, podatak: snapshot };
+      }
     }));
   };
   const apply = async () => {
@@ -165,15 +179,18 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   const staged = candidate?.state === 'READY' && snapshot?.intent?.phase === 'UPLOAD' ? candidate : null;
   const waiting = editor.busy || editor.loading, trouble = !!editor.error || editor.uncertain;
   // One set of actions at a time, the ones that can work now (2026-09-24). An unconfirmed change is read first; after a
-  // refusal the editor requires a read before any new command, so the read is the one action then.
-  const mode: ProfilePhotoMode = !profileId ? 'none' : intent.current && (trouble || !staged) ? 'unresolved'
+  // refusal the editor requires a read before any new command, so the read is the one action then. A pick in flight
+  // journals its intent before the upload settles; while its own spinner runs, that is sending, not an unknown outcome.
+  const picking = (running === 'LIBRARY' || running === 'CAMERA') && !trouble;
+  const mode: ProfilePhotoMode = !profileId ? 'none' : intent.current && !picking && (trouble || !staged) ? 'unresolved'
     : trouble ? 'reconcile' : staged ? 'staged' : 'pick';
   const stage: ProfilePhotoStage | null = !profileId ? null : !snapshot ? { kind: editor.loading ? 'loading' : 'unavailable' }
     : staged ? { kind: 'photo', assetId: staged.assetId, staged: true }
       : existing ? { kind: 'photo', assetId: existing, staged: false } : { kind: 'none' };
-  return <ProfilePhotoEditor stage={stage} notice={notice} error={editor.error} permissionDenied={editor.error === PHOTO_PERMISSION_MESSAGE}
+  const error = editor.error ?? pickError;
+  return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE}
     mode={mode} retryable={!trouble && !!intent.current && readAttempted.current && (intent.current.phase !== 'UPLOAD' || !!bytes.current)}
-    running={running} canAct={canAct()} waiting={waiting} hasPhoto={!!snapshot?.profile.avatarPath}
+    running={running} sending={sending && waiting} canAct={canAct()} waiting={waiting} hasPhoto={!!snapshot?.profile.avatarPath}
     onBack={() => { if (!current()) return; navigating.current = true;
       if (router.canGoBack()) router.back(); else router.replace('/profil'); }}
     onLibrary={() => { void pick('LIBRARY'); }} onCamera={() => { void pick('CAMERA'); }}
@@ -181,5 +198,5 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izabereš novu.',
       confirmLabel: 'Ukloni fotografiju', tone: 'danger', onConfirm: () => { void clear(); } })}
     onApply={() => { void apply(); }} onDiscard={() => { void discard(); }} onRetry={() => { void retry(); }}
-    onCheck={() => { if (current()) void editor.refresh(); }} sheet={confirm.sheet} />;
+    onCheck={() => { if (current()) { setPickError(null); void editor.refresh(); } }} sheet={confirm.sheet} />;
 }

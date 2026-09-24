@@ -32,10 +32,13 @@ import { workerDraft, type WorkerDraft } from '../ui/workerProfile/workerProfile
  * emulator. Reached only by its address (uskociapp://dizajn-profil) in the internal build; the store package shows
  * nothing. The real presentation components draw fixture data: nothing here reads or writes an account, and every
  * command is a no-op (a form edits only its local copy). The first screen lists the scenes by name; every scene has a
- * "Nazad" at the bottom (and the screen's own arrow, and Android Back) that returns to the list.
+ * "Nazad" laid over the top bar's empty right side (and the screen's own arrow, and Android Back) that returns to the
+ * list. It floats rather than standing in a strip at the bottom, so the scene keeps the real screen's height and its
+ * sticky footer sits where the real one does (review of step 9, 2026-09-24).
  *
- * Two things still come from outside the phone: the map tiles of "Područje rada: sa mapom", as on the real screen, and
- * nothing else — the countries are fixtures and the area search is a stand-in that answers without a request.
+ * One thing still comes from outside the phone: the map style and tiles, which load in every "Područje rada" scene that
+ * has a country and a city (sačuvano, sa mapom, čuva se, ishod nepoznat, ponovno čitanje), as on the real screen. The
+ * countries are fixtures and the area search is a stand-in that answers without a request.
  */
 const noop = () => {};
 const REVISION = 'a'.repeat(64);
@@ -85,11 +88,12 @@ const RATED = { accountId: 'galerija', reviewCount: 12, averageRating: 4.8, stat
 const UNRATED = { accountId: 'galerija', reviewCount: 0, averageRating: null, state: 'NO_REVIEWS', authoritative: true };
 
 /** The worker profile as the route composes it: the form edits a local copy; the footer shows one state. */
-function Worker({ initial, status, checks, disabled = false, footer }: { initial: WorkerDraft; status: StanjeProfila | null;
-  checks?: WorkerActivationChecks; disabled?: boolean; footer: ReactNode }) {
+function Worker({ initial, status, checks, readyToActivate = false, disabled = false, footer }: { initial: WorkerDraft; status: StanjeProfila | null;
+  checks?: WorkerActivationChecks; readyToActivate?: boolean; disabled?: boolean; footer: ReactNode }) {
   const [value, setValue] = useState(initial);
   return <WorkerProfileFrame back={toList.current} footer={footer}>
-    <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks} openConversation={noop} />
+    <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks}
+      readyToActivate={readyToActivate} openConversation={noop} />
   </WorkerProfileFrame>;
 }
 const primary = (label: string, extra: { disabled?: boolean; loading?: boolean; success?: boolean } = {}) =>
@@ -97,12 +101,13 @@ const primary = (label: string, extra: { disabled?: boolean; loading?: boolean; 
 const quiet = (label: string) => <V2Action label={label} kind="quiet" onPress={noop} />;
 
 /** The photo screen with the entry photograph standing in for a stored one. */
-function Photo({ stage, mode, error = null, notice = null, permission = false, retryable = false, running = null, canAct = true, hasPhoto = false }: {
+function Photo({ stage, mode, error = null, notice = null, permission = false, retryable = false, running = null, sending = false, canAct = true,
+  hasPhoto = false }: {
   stage: ProfilePhotoStage | null; mode: ProfilePhotoMode; error?: string | null; notice?: string | null; permission?: boolean; retryable?: boolean;
-  running?: ProfilePhotoRunning; canAct?: boolean; hasPhoto?: boolean }) {
+  running?: ProfilePhotoRunning; sending?: boolean; canAct?: boolean; hasPhoto?: boolean }) {
   const confirm = useConfirmSheet();
   return <ProfilePhotoEditor onBack={toList.current} stage={stage} notice={notice} error={error} permissionDenied={permission} mode={mode}
-    retryable={retryable} running={running} canAct={canAct && !running} waiting={!!running} hasPhoto={hasPhoto}
+    retryable={retryable} running={running} sending={sending} canAct={canAct && !running} waiting={!!running} hasPhoto={hasPhoto}
     onLibrary={noop} onCamera={noop} onApply={noop} onDiscard={noop} onRetry={noop} onCheck={noop}
     onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izabereš novu.',
       confirmLabel: 'Ukloni fotografiju', tone: 'danger', onConfirm: noop })}
@@ -110,23 +115,20 @@ function Photo({ stage, mode, error = null, notice = null, permission = false, r
     sheet={confirm.sheet} />;
 }
 
-/** The work-area form as the route places it: the confirmation and the save in the sticky footer. */
-function Area({ location, busy = false, uncertain = false, error = null, saved = false }: { location: WorkerLocation; busy?: boolean;
-  uncertain?: boolean; error?: string | null; saved?: boolean }) {
-  return <WorkerLocationForm location={location} busy={busy} uncertain={uncertain} onSave={noop} error={error} onRetry={noop}
-    countryOptions={COUNTRIES} resolver={NO_SEARCH}>
-    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={toList.current} footer={footer}>
-      {saved ? <T accessibilityRole="alert" tone="success">Područje rada je sačuvano.</T> : null}
-      {body}
-    </WorkerProfileFrame>}
+/** The work-area form as the route places it: the confirmation (or, right after a save, the saved line) and the save in the sticky footer. */
+function Area({ location, busy = false, uncertain = false, reading = false, error = null, saved = false }: { location: WorkerLocation; busy?: boolean;
+  uncertain?: boolean; reading?: boolean; error?: string | null; saved?: boolean }) {
+  return <WorkerLocationForm location={location} busy={busy} uncertain={uncertain} reading={reading} saved={saved} onSave={noop} error={error}
+    onRetry={noop} countryOptions={COUNTRIES} resolver={NO_SEARCH}>
+    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={toList.current} footer={footer}>{body}</WorkerProfileFrame>}
   </WorkerLocationForm>;
 }
 const areaFrame = (children: ReactNode) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={toList.current}>{children}</WorkerProfileFrame>;
 
-function Name({ savedName, uncertain = false, error = null, saved = false, busy = false }: { savedName: string; uncertain?: boolean;
-  error?: string | null; saved?: boolean; busy?: boolean }) {
+function Name({ savedName, uncertain = false, error = null, saved = false, busy = false, reading = false }: { savedName: string; uncertain?: boolean;
+  error?: string | null; saved?: boolean; busy?: boolean; reading?: boolean }) {
   return <SettingsScreen title="Ime na profilu" onBack={toList.current}>
-    <DisplayNameForm savedName={savedName} busy={busy} uncertain={uncertain} saved={saved} error={error} checking={busy} check={noop}
+    <DisplayNameForm savedName={savedName} busy={busy} uncertain={uncertain} saved={saved} error={error} checking={busy || reading} check={noop}
       save={async () => {}} />
   </SettingsScreen>;
 }
@@ -145,7 +147,8 @@ const GROUPS: Group[] = [
     { key: 'hub-long', label: 'Profil: dugo ime', draw: () => <Hub identity={ready('Aleksandra Stefanović-Radosavljević', 'Sremska Kamenica, Novi Sad', rating('error'))}
       capabilityDetail="Profil je nacrt — dok je nacrt, zadaci ti se ne nude." workArea="Sremska Kamenica" /> },
     { key: 'hub-photo', label: 'Profil: sa fotografijom', draw: () => <Hub identity={ready('Marko Marić', 'Novi Sad', rating('loading'),
-      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail="Profil je obustavljen. Piši podršci." /> },
+      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail="Profil je obustavljen. Piši podršci."
+      workArea="Nije podešeno" /> },
     { key: 'hub-stacked', label: 'Profil: uzan ekran (složeno)', draw: () => <Hub stacked identity={ready('Aleksandra Stefanović-Radosavljević', 'Novi Sad', rating(RATED))}
       capabilityDetail="Profil je aktivan." workArea="Novi Sad" /> },
     { key: 'hub-busy', label: 'Profil: radnja u toku', draw: () => <Hub busy identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
@@ -162,8 +165,10 @@ const GROUPS: Group[] = [
       checks={{ basics: false, area: true, capacity: false }}
       footer={<WorkerProfileFooter error="Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.">
         {primary('Dopuni osnovne podatke')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
-    { key: 'worker-ready', label: 'Radni profil: spreman za aktivaciju', draw: () => <Worker initial={draft()} status="DRAFT" checks={READY}
+    { key: 'worker-ready', label: 'Radni profil: spreman za aktivaciju', draw: () => <Worker initial={draft()} status="DRAFT" checks={READY} readyToActivate
       footer={<WorkerProfileFooter>{primary('Proveri i aktiviraj profil')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
+    { key: 'worker-capacity', label: 'Radni profil: nacrt bez učitanog kapaciteta', draw: () => <Worker initial={draft({ capacityRevision: null })}
+      status="DRAFT" checks={READY} footer={<WorkerProfileFooter>{primary('Učitaj kapacitet profila')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-active', label: 'Radni profil: aktivan', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
       footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
     { key: 'worker-saved', label: 'Radni profil: sačuvano', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
@@ -191,13 +196,18 @@ const GROUPS: Group[] = [
     { key: 'photo-none', label: 'Fotografija: bez fotografije', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" /> },
     { key: 'photo-saved', label: 'Fotografija: sačuvana', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }} mode="pick" hasPhoto
       notice="Fotografija profila je sačuvana." /> },
-    { key: 'photo-picking', label: 'Fotografija: slanje', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" running="LIBRARY" /> },
+    { key: 'photo-picking', label: 'Fotografija: slanje', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" running="LIBRARY" sending /> },
     { key: 'photo-staged', label: 'Fotografija: izabrana', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: true }} mode="staged" /> },
-    { key: 'photo-unresolved', label: 'Fotografija: nepotvrđeno', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
+    { key: 'photo-unresolved', label: 'Fotografija: nepotvrđeno, može ponovo', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
       mode="unresolved" retryable hasPhoto /> },
-    { key: 'photo-denied', label: 'Fotografija: kamera odbijena', draw: () => <Photo stage={{ kind: 'none' }} mode="reconcile" permission
+    { key: 'photo-unchecked', label: 'Fotografija: nepotvrđeno, pre provere', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
+      mode="unresolved" hasPhoto /> },
+    // A refusal on the phone before anything is sent keeps the choice open under its message (review of step 9, 2026-09-24).
+    { key: 'photo-denied', label: 'Fotografija: kamera odbijena', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" permission
       error="Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije." /> },
-    { key: 'photo-large', label: 'Fotografija: prevelika', draw: () => <Photo stage={{ kind: 'none' }} mode="reconcile" error="Izaberi fotografiju do 10 MB." /> },
+    { key: 'photo-large', label: 'Fotografija: prevelika', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" error="Izaberi fotografiju do 10 MB." /> },
+    { key: 'photo-back', label: 'Fotografija: povratak na izbor', draw: () => <Photo stage={{ kind: 'none' }} mode="reconcile"
+      error="Ponovo otvori fotografiju za trenutni profil." /> },
     { key: 'photo-unavailable', label: 'Fotografija: nije dostupna', draw: () => <Photo stage={{ kind: 'unavailable' }} mode="reconcile"
       error="Sačuvana fotografija nije potvrđena. Proveri ishod." /> },
     { key: 'photo-remove', label: 'Fotografija: uklanjanje (dodirni Ukloni)', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
@@ -212,6 +222,7 @@ const GROUPS: Group[] = [
     { key: 'area-saved', label: 'Područje rada: sačuvano', draw: () => <Area location={PLACE({ radiusKm: 50 })} saved /> },
     { key: 'area-map', label: 'Područje rada: sa mapom', draw: () => <Area location={PLACE({ approximatePosition: { latitude: 45.25, longitude: 19.84 } })} /> },
     { key: 'area-saving', label: 'Područje rada: čuva se', draw: () => <Area location={PLACE()} busy /> },
+    { key: 'area-reading', label: 'Područje rada: ponovno čitanje (potvrdi)', draw: () => <Area location={PLACE()} reading /> },
     { key: 'area-unknown', label: 'Područje rada: ishod nepoznat', draw: () => <Area location={PLACE()} uncertain
       error="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." /> },
   ] },
@@ -224,6 +235,7 @@ const GROUPS: Group[] = [
     { key: 'name-edit', label: 'Ime: izmena', draw: () => <Name savedName="Ana Petrović" /> },
     { key: 'name-empty', label: 'Ime: prazno (obriši polje)', draw: () => <Name savedName="" /> },
     { key: 'name-saved', label: 'Ime: sačuvano', draw: () => <Name savedName="Ana Petrović" saved /> },
+    { key: 'name-reading', label: 'Ime: ponovno čitanje (promeni ime)', draw: () => <Name savedName="Ana Petrović" reading /> },
     { key: 'name-unknown', label: 'Ime: ishod nepoznat', draw: () => <Name savedName="Ana Petrović" uncertain error="Čuvanje nije potvrđeno." /> },
   ] },
 ];
@@ -243,11 +255,13 @@ export default function DizajnProfil() {
   const current = SCENES.find(item => item.key === scene);
   if (current) return <View style={s.screen}>
     <View style={s.grow}>{current.draw()}</View>
-    <SafeAreaView edges={['bottom']} style={s.strip}>
-      <Press accessibilityRole="button" accessibilityLabel="Nazad na listu scena" haptic="select" onPress={() => setScene(null)} style={s.back}>
+    {/* Over the top bar's empty right side, not in a strip under the scene: a bottom strip added its own height and a
+        second bottom inset, so every sticky footer sat higher than on the real screen. The scene's name is its hint. */}
+    <SafeAreaView edges={['top']} pointerEvents="box-none" style={s.overlay}>
+      <Press accessibilityRole="button" accessibilityLabel="Nazad na listu scena" accessibilityHint={current.label} haptic="select"
+        onPress={() => setScene(null)} style={s.back}>
         <T variant="action" style={s.backText}>Nazad</T>
       </Press>
-      <T variant="note" tone="muted" numberOfLines={2} style={s.grow}>{current.label}</T>
     </SafeAreaView>
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
@@ -268,13 +282,12 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink },
-  content: { padding: 20, gap: 28, paddingBottom: 40 },
-  group: { gap: 4 },
+  content: { padding: sys.space.lg, gap: sys.space.xxl, paddingBottom: sys.space.xxl },
+  group: { gap: sys.space.xs },
   row: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8,
-    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
-  back: { minHeight: 48, paddingHorizontal: 16, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
-    alignItems: 'center', justifyContent: 'center' },
+  overlay: { position: 'absolute', top: 0, right: 0, paddingTop: sys.space.xs, paddingRight: sys.space.base },
+  back: { minHeight: 48, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
+    backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   backText: { color: sys.color.green },
   photo: { width: 160, height: 160, borderRadius: sys.radius.pill },
   face: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill },

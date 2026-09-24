@@ -13,6 +13,8 @@ import { osoba, plural } from '../system/plural';
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
 const list=(values:readonly string[])=>values.length?values.join(' · '):EMPTY;
+/** A rule's day as "5. jan", with the year only when it is not the current one (the one time format, src/lib/vreme.ts). */
+const ruleDate=(day:string)=>{const year=day.slice(0,4);return year===String(new Date().getFullYear())?displayDate(day):`${displayDate(day)} ${year}`;};
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
   // No eyebrow: the chrome above already says "Tvoj radni profil" (round 4 review ra, outside-unit note).
@@ -32,7 +34,8 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
       <T variant="meta" tone="muted">Proveri sve podatke. Završno dugme prihvata ovaj pregled i čuva profil.</T></View>
     <View style={s.section}>
       <Row label="Veštine i usluge" value={list(p.skills)} /><Row label="Alat i oprema" value={list(p.tools)} />
-      <Row label="Vozila" value={list(p.vehicles)} /><Row label="Licence koje navodiš" value={list(p.licenses)} />
+      {/* Licences are the owner's wording to decide, so their empty word stays as it was ("Nisu navedene"). */}
+      <Row label="Vozila" value={list(p.vehicles)} /><Row label="Licence koje navodiš" value={p.licenses.length?p.licenses.join(' · '):'Nisu navedene'} />
       <Row label="Broj ljudi, uključujući tebe" value={String(p.teamCapacity)} /><Row label="Kratko predstavljanje" value={p.bio||EMPTY} />
       <Row label="Područje rada" value={`${p.location.city||EMPTY}${p.location.operatingCountryCode?' · '+p.location.operatingCountryCode:''} · ${p.location.radiusKm} km`} />
       <T variant="meta" tone="muted">{p.location.approximatePosition?'Približna tačka radnog područja je sačuvana.':'Približna tačka nije uneta. Možeš je podesiti kroz postojeće područje rada.'}</T>
@@ -42,7 +45,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
     </View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Redovna nedelja</T>
       {weekdays.map(day=><Row key={day.day} label={day.name} value={p.availability.rules.filter(r=>r.weekdays.includes(day.day)).map(r=>
-        `${r.startTime}–${r.endTime} · od ${displayDate(r.startsOn)}${r.endsOn?' do '+displayDate(r.endsOn):''}${r.active?'':' · pauzirano'}${r.label?' · '+r.label:''}`).join('\n')||'Nema redovnih termina'} />)}</View>
+        `${r.startTime}–${r.endTime} · od ${ruleDate(r.startsOn)}${r.endsOn?' do '+ruleDate(r.endsOn):''}${r.active?'':' · pauzirano'}${r.label?' · '+r.label:''}`).join('\n')||'Nema redovnih termina'} />)}</View>
     <View style={s.section}><T accessibilityRole="header" variant="heading" style={s.ink}>Posebni datumi</T>
       {p.availability.windows.length?p.availability.windows.map(w=><Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'}
         value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />):<T variant="body" style={s.ink}>Nema posebnih datuma.</T>}</View>

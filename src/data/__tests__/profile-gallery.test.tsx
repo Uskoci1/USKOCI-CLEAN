@@ -16,7 +16,19 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-router', () => ({ router: { back: (...a: unknown[]) => mockBack(...a), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn(), push: jest.fn() },
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
-jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('The gallery must not reach the data layer.'); } }));
+// Review of step 9 (2026-09-24): a thrown client alone could not catch a read, because the services turn the throw into an
+// error state and the scene still draws. Every call is counted and must stay at zero, and nothing may be stored.
+const mockClient = jest.fn(() => { throw new Error('The gallery must not reach the data layer.'); });
+const mockStore = { getItem: jest.fn(async () => null), setItem: jest.fn(async () => {}), removeItem: jest.fn(async () => {}) };
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: (...a: unknown[]) => (mockClient as (...args: unknown[]) => unknown)(...a) }));
+jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
+  getItem: (...a: unknown[]) => (mockStore.getItem as (...args: unknown[]) => unknown)(...a),
+  setItem: (...a: unknown[]) => (mockStore.setItem as (...args: unknown[]) => unknown)(...a),
+  removeItem: (...a: unknown[]) => (mockStore.removeItem as (...args: unknown[]) => unknown)(...a) } }));
+const nothingReadOrWritten = () => {
+  expect(mockClient).not.toHaveBeenCalled();
+  expect(mockStore.setItem).not.toHaveBeenCalled(); expect(mockStore.removeItem).not.toHaveBeenCalled();
+};
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
@@ -41,7 +53,8 @@ it('lists every scene by its visible name and draws each one, with Nazad back to
     expect(presses().some(node => node.props.accessibilityLabel === label)).toBe(true);
   }
   expect(mockBack).not.toHaveBeenCalled();
-  // Forty-five scenes in one walk: under the full parallel run this takes longer than the 5 s default.
+  nothingReadOrWritten();
+  // About fifty scenes in one walk: under the full parallel run this takes longer than the 5 s default.
 }, 60_000);
 
 it('a scene edits only its own copy: a quick pick changes the tile, and nothing is sent', async () => {
@@ -52,4 +65,5 @@ it('a scene edits only its own copy: a quick pick changes the tile, and nothing 
   expect(tile().props.accessibilityState.checked).toBe(false);
   await act(async () => tile().props.onPress());
   expect(tile().props.accessibilityState.checked).toBe(true);
+  nothingReadOrWritten();
 });

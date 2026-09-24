@@ -27,7 +27,7 @@ jest.mock('../../../data/reviewsClientService',()=>({
  reputation:(...args:unknown[])=>mockReputation(...args)}
 }));
 import ReviewRoute from '../../../app/(app)/oceni-dogovor';
-import { AccountReputation } from '../AccountReputation';
+import { AccountReputation, ReputationLine } from '../AccountReputation';
 import { REVIEW_TAGS } from '../../../data/reviewsClientService';
 const context=()=>({accountId:A,agreementId:D,targetAccountId:B,eligible:true,review:null,
  tagCatalog:{version:'PRE_V3_REVIEW_TAGS_V1',maxTags:3,tags:[...REVIEW_TAGS]},authoritative:true});
@@ -136,4 +136,15 @@ it('an unavailable reputation offers one row that reads it again',async()=>{
  expect(texts()).toContain('Ocene trenutno nisu dostupne');expect(button('Osveži ocene').props.accessibilityRole).toBe('button');
  await act(async()=>{button('Osveži ocene').props.onPress();});
  expect(mockReputation).toHaveBeenCalledTimes(2);expect(texts()).toContain('Još nema ocena');expect(texts()).not.toContain('0,0');
+});
+// Review of step 9 (2026-09-24): the line is tested on its own for data that is not a reputation. It used to be tested
+// only through the profile hub, whose suite-wide resource mock happened to hand it the profile object.
+it.each([
+ ['a profile object',{identity:{ime:'Ana'},capability:null}],
+ ['a count of reviews without an average',{accountId:A,reviewCount:3,averageRating:null,state:'RATED',authoritative:true}],
+ ['a count of reviews with an average that is not a number',{accountId:A,reviewCount:3,averageRating:'4,8',state:'RATED',authoritative:true}],
+ ['nothing',null],
+])('the reputation line draws nothing for %s, never "undefined"',async(_name,state)=>{
+ await act(async()=>{tree=create(<ReputationLine state={state} onRetry={()=>{}}/>);});
+ expect(tree.toJSON()).toBeNull();
 });
