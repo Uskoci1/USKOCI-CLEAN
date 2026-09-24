@@ -269,6 +269,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     } : undefined}
     voice={stanje.status === 'OPEN' ? <VoiceComposer controller={voice.controller} state={voice.state} disabled={!canSubmit || !!request.current}
       onKeepText={keepTranscript} /> : undefined}
+    voiceActive={voiceBusy}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
     showReadback={!!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}
