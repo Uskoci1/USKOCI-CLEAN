@@ -1,6 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
+import { CaretDown, CaretRight } from 'phosphor-react-native';
 import type { NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceView';
@@ -274,6 +274,57 @@ export function WaitingDot() {
   return <View style={faceStyles.ownerFootDot} />;
 }
 
+/* ------------------------------------------------------------------ parts other faces share (step 5c, 2026-09-24) */
+
+/**
+ * How a status line speaks, for a face whose states are not the task's (an application: Poslata, Izabrana, Povučena).
+ * `ink` is a state in progress, `green` a good outcome, `muted` one that is over, and `waiting` something that waits for
+ * me (the orange dot and the `warn` words of the waiting foot). The state is said by the dot and the word, never by a
+ * coloured card edge.
+ */
+export type StatusTone = 'ink' | 'green' | 'muted' | 'waiting';
+const STATUS_TONES: Record<StatusTone, { dot: string; text: string }> = {
+  ink: { dot: sys.color.ink, text: sys.color.ink },
+  green: { dot: sys.color.green, text: sys.color.green },
+  muted: { dot: sys.color.muted, text: sys.color.muted },
+  waiting: { dot: sys.color.orange, text: sys.color.warn },
+};
+
+/** Line 1 of a face with its own states: the dot and the word, on the task card's status geometry. */
+export function CardStatusLine({ text, tone }: { text: string; tone: StatusTone }) {
+  const ink = STATUS_TONES[tone];
+  return <View style={s.status}>
+    <View testID="card-status-dot" style={[s.dot, { backgroundColor: ink.dot }]} />
+    <T variant="label" numberOfLines={1} style={[s.statusText, { color: ink.text }]}>{text}</T>
+  </View>;
+}
+
+/** The title alone, in the task card's title type, for a face whose value is not beside it. */
+export function CardTitle({ title, lines = 2 }: { title: string; lines?: number }) {
+  return <T style={s.title} numberOfLines={lines}>{title}</T>;
+}
+
+/**
+ * The words of a card's one foot action, a quiet row link at the bottom of the card and never a button inside it. The
+ * card that draws it puts it in its own press, a sibling of the body, on `faceStyles.footLink` (or `ownerFoot` for what
+ * waits for me), so no target sits inside another:
+ * - `green`   goes somewhere (a caret to the right);
+ * - `danger`  asks before it ends something (no caret: it opens a question, not a screen);
+ * - `waiting` is what waits for me: the orange dot and the `warn` words, as the own-task foot.
+ * Disabled draws the words muted, never faded.
+ */
+export type FootTone = 'green' | 'danger' | 'waiting';
+export function CardFootLine({ label, tone, caret = 'none', disabled = false }: { label: string; tone: FootTone;
+  caret?: 'right' | 'down' | 'none'; disabled?: boolean }) {
+  const color = disabled ? sys.color.muted : tone === 'green' ? sys.color.green : tone === 'danger' ? sys.color.danger : sys.color.warn;
+  const Caret = caret === 'down' ? CaretDown : CaretRight;
+  return <>
+    {tone === 'waiting' ? <WaitingDot /> : null}
+    <T style={[s.footLinkText, { color }]} numberOfLines={2}>{label}</T>
+    {caret !== 'none' ? <Caret size={18} weight="bold" color={color} /> : null}
+  </>;
+}
+
 export const faceStyles = StyleSheet.create({
   /**
    * The own-task foot (R1 critique B1, card review r3 item 6): the bottom strip of the card on the quiet wash under one
@@ -285,6 +336,12 @@ export const faceStyles = StyleSheet.create({
     borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
   ownerFootDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   ownerFootText: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
+  /**
+   * A quiet foot link (`CardFootLine` green or danger): the own-task foot's geometry, one hairline above and 48 px of
+   * touch, on the card's own white. The hairline is the border between the two targets, as there.
+   */
+  footLink: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: sys.color.line },
 });
 
 const s = StyleSheet.create({
@@ -327,4 +384,5 @@ const s = StyleSheet.create({
   note: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.muted },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   waitingLine: { flexShrink: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
+  footLinkText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: '700' },
 });

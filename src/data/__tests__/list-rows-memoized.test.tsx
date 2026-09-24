@@ -167,7 +167,9 @@ describe('Moje prijave', () => {
     expect(written('Novi Sad')).toBe(2);
     await act(async () => field('Otvori zadatak: Unos ormara y').props.onPress());
     expect(task).toHaveBeenCalledWith(rows[1]);
-    await act(async () => tree.root.findByProps({ label: 'Povuci prijavu', accessibilityLabel: 'Povuci prijavu: Unos ormara x' }).props.onPress());
+    // Step 5c: withdrawing is the card's quiet foot link (its own press), no longer a V2Action button inside the card,
+    // so it is found by its spoken name alone.
+    await act(async () => field('Povuci prijavu: Unos ormara x').props.onPress());
     expect(withdraw).toHaveBeenCalledWith(rows[0]);
     expect(list().props).toMatchObject({ initialNumToRender: 6, maxToRenderPerBatch: 6, windowSize: 7 });
     // Android FlatList detaches off-screen cells by default; the expanded review holds text inputs, so it says no.

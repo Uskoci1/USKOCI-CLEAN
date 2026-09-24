@@ -50,9 +50,10 @@ test('Moje prijave names no app mode, offers tabs with counts as real tabs, and 
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');
   expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene: Unos ormara c');
-  // Every card is reachable as its own Task, and a list of applications spends no orange: the card
-  // that wants you already carries an orange border, and one orange button per card would be five
-  // of them on the "Čeka te" tab. The screen's one brand action lives in its empty state below.
+  // Every card is reachable as its own Task, and a list of applications spends no orange fill: the card
+  // that wants you says so with its status line and its foot's orange dot (step 5c: no coloured card edge),
+  // and one orange button per card would be five of them on the "Čeka te" tab. The screen's one brand
+  // action lives in its empty state below.
   expect(labels()).toContain('Otvori zadatak: Unos ormara a');
   expect(brand()).toEqual([]);
 });
@@ -61,7 +62,9 @@ test('Prijave loading shows placeholders and a spoken status; the empty state ha
   expect(labels().some(label => String(label).startsWith('Povuci'))).toBe(false); expect(texts()).toContain('Učitavamo tvoje Prijave…');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Applications rows={[]} />); });
-  expect(texts()).toContain('Tvoja sledeća prilika.'); expect(brand()).toEqual(['Istraži zadatke']);
+  // Step 5c (2026-09-24) pinned the old first-run title "Tvoja sledeća prilika."; the empty state is now the one
+  // StateView, in the words every list uses for its first run ("Još nemaš Dogovor", "Još nemaš Zadatak").
+  expect(texts()).toContain('Još nemaš prijavu'); expect(brand()).toEqual(['Istraži zadatke']);
 });
 
 const need: PrilikaProjekcija = { id: 'need', naslov: 'Selidba stana', statusTekst: 'Traži ponude', primaNovePrijave: true, rokZaPrijaveIso: null, podrucjeTekst: 'Beograd, Vračar',

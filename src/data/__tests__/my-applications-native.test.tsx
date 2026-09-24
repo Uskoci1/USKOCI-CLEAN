@@ -80,7 +80,8 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
-  mockRows = []; await render(); expect(text()).toContain('Tvoja sledeća prilika.'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
+  // Step 5c: the old title "Tvoja sledeća prilika." was the pinned look; the first run is now the one StateView.
+  mockRows = []; await render(); expect(text()).toContain('Još nemaš prijavu'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
 });
 
 
@@ -158,6 +159,30 @@ it('routes only a selected row to its exact existing Agreement', async () => {
   mockRows = [row({ stanje: 'SELECTED', dogovorId: 'agreement-123', mozePovuci: false, traziPaznju: true })]; await render();
   const old = press('Otvori Dogovor: Unos ormara'); await tap('Otvori Dogovor: Unos ormara'); expect(mockRouter.push).toHaveBeenCalledWith('/dogovor/agreement-123');
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; await update(); await act(async () => old()); expect(mockRouter.push).toHaveBeenCalledTimes(1);
+});
+// Step 5c: the card's one foot action is a quiet row link beside its body. These pin that the new link still reaches the
+// screen's own confirmation and guards, not a shortcut around them.
+it('the withdraw foot link still reaches its confirmation; nothing is sent until it is confirmed', async () => {
+  await render(); expect(sheets()).toHaveLength(0);
+  await tap('Povuci prijavu: Unos ormara');
+  expect(sheets()).toHaveLength(1); expect(mockWithdraw).not.toHaveBeenCalled();
+  await act(async () => confirm()());
+  expect(mockWithdraw).toHaveBeenCalledTimes(1); expect(mockWithdraw.mock.calls[0][0]).toMatchObject({ prijavaId: row().prijavaId, prijavaVerzija: 2 });
+});
+it('the Dogovor foot link uses the existing guard: refused while another command waits for its readback, then opens its own Dogovor', async () => {
+  const held = deferred(); mockWithdraw.mockReturnValueOnce(held.promise);
+  mockRows = [row({ prijavaId: 'chosen', naslov: 'Izabrani posao', stanje: 'SELECTED', dogovorId: 'agreement-9', mozePovuci: false, traziPaznju: true }), row()];
+  await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
+  // The command is in flight: the link is drawn disabled, and even its handler, called anyway, is refused by the screen.
+  const link = tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === 'Otvori Dogovor: Izabrani posao')[0];
+  expect(link.props.disabled).toBe(true);
+  await act(async () => link.props.onPress()); expect(mockRouter.push).not.toHaveBeenCalled();
+  await act(async () => { mockRows = [mockRows[0], row({ stanje: 'WITHDRAWN', mozePovuci: false })]; held.resolve({ ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }); });
+  await tap('Otvori Dogovor: Izabrani posao'); expect(mockRouter.push).toHaveBeenCalledWith('/dogovor/agreement-9');
+  // A chosen application whose Dogovor the read did not name offers no link at all.
+  mockRows = [row({ stanje: 'SELECTED', dogovorId: null, mozePovuci: false, traziPaznju: true })];
+  await act(async () => tree!.root.findByType('FlatList' as any).props.onRefresh());
+  expect(press('Otvori Dogovor: Unos ormara')).toBeUndefined();
 });
 it('requires a visible stale review, then KEEP preserves null-ignored fields and exact versions', async () => {
   mockRows = [stale()]; await render(); expect(press('Zadrži prijavu')).toBeUndefined(); await tap('Pregledaj izmene: Unos ormara');
