@@ -230,6 +230,40 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     expect(texts()).not.toContain('0 RSD');
   });
 });
+// Review r4 rd ("Poruke no longer says when a Dogovor waits for me"): the bar used to say the state above Poruke. The
+// summary there now says what waits for ME, in the step's own words, as its second line and in its spoken name; what waits
+// for the other side, and a rating the read could not answer for, claim nothing and keep the terms.
+describe('the summary above Poruke says what waits for me', () => {
+  const summary = () => presses().filter(node => String(node.props.accessibilityLabel).startsWith('Pregled uslova Dogovora'))[0];
+  const copyOf = (node: ReturnType<typeof summary>) => node.findAll(child => String(child.type) === 'T')
+    .flatMap(child => child.children.filter(text => typeof text === 'string')).join(' ');
+  beforeEach(() => { mockParams = { id: mockAgreementId, tab: 'poruke' }; });
+  // The fixtures are built when each test runs (`proposal` is declared further down this file).
+  test.each([
+    ['a completion the other side marked, as the requester', () => base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }),
+      'Završetak je označen i čeka tvoju potvrdu'],
+    ['a change the other side proposed', () => base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
+      predlogIzmene: proposal() } }), 'Predlog izmene čeka tvoj odgovor'],
+    ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka tvoju ocenu'],
+  ])('%s', async (_name, workspace, words) => {
+    await render(workspace());
+    expect(summary().props.accessibilityLabel).toBe(`Pregled uslova Dogovora. ${words}`);
+    // The line takes the price's place; the terms are one press away.
+    expect(copyOf(summary())).toContain(words); expect(copyOf(summary())).not.toContain('3.000 RSD');
+  });
+  test.each([
+    ['the worker, whose completion waits for the other side', () => base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer')],
+    ['my own proposal', () => base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
+      predlogIzmene: proposal({ moj: true, mozeOdgovoriti: false, mozePovuci: true }) } })],
+    ['a rating the read could not answer for', () => { mockReviewContext.mockResolvedValue({ ok: false, kod: 'REVIEW_READ_UNAVAILABLE', poruka: 'x' });
+      return base({ stanje: 'COMPLETED', chatDostupan: false }); }],
+    ['a confirmed Dogovor with nothing to do', () => base()],
+  ])('%s: no waiting line, and the terms stay', async (_name, workspace) => {
+    await render(workspace());
+    expect(summary().props.accessibilityLabel).toBe('Pregled uslova Dogovora');
+    expect(copyOf(summary())).toContain('3.000 RSD');
+  });
+});
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));
   expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.');

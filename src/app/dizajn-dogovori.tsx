@@ -7,7 +7,7 @@ import { Bell } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep } from '../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
 import { Press } from '../ui/Press';
 import { ProductHeader } from '../ui/product/ProductDetails';
 import { ChromeIconButton, ScreenChrome } from '../ui/system/ScreenChrome';
@@ -104,12 +104,12 @@ const PHOTOS = { agreementId: 'zona', loaded: true, busy: false, ready: false, h
   restore: later, reserved: () => false, canRetry: () => false } as unknown as AgreementPhotosController;
 
 type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker'
-  | 'chat' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed';
+  | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
   { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'done', label: 'Pregled · završen' },
-  { key: 'chat', label: 'Poruke' }, { key: 'chat-empty', label: 'Poruke · prazne' }, { key: 'chat-loading', label: 'Poruke · učitavanje' },
+  { key: 'chat', label: 'Poruke' }, { key: 'chat-waiting', label: 'Poruke · čeka te' }, { key: 'chat-empty', label: 'Poruke · prazne' }, { key: 'chat-loading', label: 'Poruke · učitavanje' },
   { key: 'chat-error', label: 'Poruke · greška' }, { key: 'chat-closed', label: 'Poruke · zatvoren' },
 ];
 
@@ -153,11 +153,13 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   const step = agreementNextStep({ state: item.stanje, party: true, worker: isWorker, change, ownRating,
     problemOpen: item.problemOtvoren, deadline: 'Do 27. sep · 17:00' });
   const proposal = change.waits ? PROPOSALS[item.id] ?? null : null;
+  // What waits for me, at the head of Poruke, as the route says it.
+  const waiting = agreementWaitsForMe({ state: item.stanje, requester: isRequester, change, ownRating });
   return <View style={s.fill}>
     {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
     <View style={s.tabs}>
       <AgreementTabs tab={tab} onChange={setTab} />
-      {tab === 'poruke' ? <AgreementHero agreement={item} compact onOpen={() => setTab('pregled')} /> : null}
+      {tab === 'poruke' ? <AgreementHero agreement={item} compact waiting={waiting} onOpen={() => setTab('pregled')} /> : null}
     </View>
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan} /> : <>
       <ScrollView contentContainerStyle={s.content}>
@@ -228,6 +230,7 @@ function Scene({ scene }: { scene: SceneKey }) {
     case 'waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" />;
     case 'done': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" />;
     case 'chat': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" />;
+    case 'chat-waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" initialTab="poruke" />;
     case 'chat-empty': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [] }} />;
     case 'chat-loading': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [], loading: true }} />;
     case 'chat-error': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ error: true, entries: [] }} />;

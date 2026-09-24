@@ -49,19 +49,42 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   problemOpen: boolean; deadline: string;
 }): AgreementStep {
   if (change.waits) return { tone: 'warn',
-    title: change.mine === true ? 'Tvoj predlog izmene čeka odgovor' : change.mine === false ? 'Predlog izmene čeka tvoj odgovor' : 'Predlog izmene čeka odgovor',
+    title: change.mine === true ? 'Tvoj predlog izmene čeka odgovor' : change.mine === false ? CHANGE_WAITS_FOR_ME : 'Predlog izmene čeka odgovor',
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' };
   if (state === 'COMPLETED') return { tone: 'green', title: 'Dogovor je završen', body: !party ? null
     : ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
       : ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' };
   if (state === 'CANCELLED') return { tone: 'muted', title: 'Dogovor je otkazan.', body: null };
-  if (state === 'AWAITING_REQUESTER') return { tone: 'warn', title: worker ? 'Čeka se potvrda druge strane' : 'Završetak je označen i čeka tvoju potvrdu',
+  if (state === 'AWAITING_REQUESTER') return { tone: 'warn', title: worker ? 'Čeka se potvrda druge strane' : CONFIRM_WAITS_FOR_ME,
     body: problemOpen ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` };
   // Confirmed: the state is the title and the next step its sentence. The title used to be the step, and the body
   // then said the same step again ("Kada završiš, označi završetak. Kada završiš, označi završetak…").
   return { tone: 'green', title: 'Dogovoreno', body: !party ? null : worker
     ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
     : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.' };
+}
+
+/** The step's own words where the step is mine, shared by the step card and the head of Poruke. */
+const CHANGE_WAITS_FOR_ME = 'Predlog izmene čeka tvoj odgovor';
+const CONFIRM_WAITS_FOR_ME = 'Završetak je označen i čeka tvoju potvrdu';
+/** A finished Dogovor while my rating is due, in the Dogovori list's words for it (owner, 2026-09-23). */
+export const RATING_WAITS_FOR_ME = 'Čeka tvoju ocenu';
+
+/**
+ * What this Dogovor waits for from ME, if anything, in the step's order and words: a change the other side proposed (it
+ * blocks both completions, so it comes first), then a completion the other side marked, which I as the requester
+ * confirm, then my rating once the review read says it is due. A change I proposed, a completion the other side has to
+ * confirm, or a rating the read could not answer for ("UNKNOWN" is no claim that it waits) gives null. The head of Poruke
+ * says it (review r4 rd: the bar used to show the state there, and Poruke no longer said that the Dogovor waits for me).
+ */
+export function agreementWaitsForMe({ state, requester, change, ownRating }: {
+  state: DogovorProjekcija['stanje']; requester: boolean;
+  change: { waits: boolean; mine: boolean | null };
+  ownRating: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE';
+}): string | null {
+  if (change.waits) return change.mine === false ? CHANGE_WAITS_FOR_ME : null;
+  if (state === 'AWAITING_REQUESTER') return requester ? CONFIRM_WAITS_FOR_ME : null;
+  return state === 'COMPLETED' && ownRating === 'DUE' ? RATING_WAITS_FOR_ME : null;
 }
 
 /**

@@ -9,7 +9,7 @@ import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, agreementNextStep } from '../../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
@@ -293,8 +293,11 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
         : { label: 'Otvori poruke', onPress: openMessages };
   // The one place the state is said (round-1 critique A13); the words live beside the step card.
-  const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null },
+  const stepChange = { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null };
+  const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: stepChange,
     ownRating: dogovor.ownRating, problemOpen: dogovor.problemOtvoren, deadline });
+  // The same step, said at the head of Poruke only when it is mine (review r4 rd): words, never an action.
+  const waitingForMe = me ? agreementWaitsForMe({ state: dogovor.stanje, requester, change: stepChange, ownRating: dogovor.ownRating }) : null;
   const problemPanel = report ? <WorkspaceCard tone="warn">
     <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
     <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
@@ -342,7 +345,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           conversation's own head, under them. */}
       <View style={s.tabs}>
         <AgreementTabs tab={tab} onChange={setTab} />
-        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact onOpen={() => setTab('pregled')} /> : null}
+        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact waiting={waitingForMe} onOpen={() => setTab('pregled')} /> : null}
       </View>
       {tab === 'poruke' ? <AgreementChat messages={namedMessages} loading={messages.loading} error={messages.error}
         writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}

@@ -15,6 +15,7 @@ import { sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
+import { WaitingDot } from './TaskFace';
 
 export type AgreementTab = 'pregled' | 'poruke';
 const TABS = [{ key: 'pregled', label: 'Pregled' }, { key: 'poruke', label: 'Poruke' }] as const;
@@ -104,16 +105,26 @@ export function AgreementFact({ art, label, value, note, basis, money = false }:
  * Accepted terms, never copied from the current Task. Compact form under the tabs of Poruke leads back to the overview.
  * The state itself is said once, by the step under these facts.
  */
-export function AgreementHero({ agreement: a, compact = false, onOpen }: {
+export function AgreementHero({ agreement: a, compact = false, onOpen, waiting = null }: {
   agreement: DogovorProjekcija; compact?: boolean; onOpen?: () => void;
+  /**
+   * Compact only: what the Dogovor waits for from me (`agreementWaitsForMe`), or null. It takes the summary's second
+   * line, with the waiting dot, and is heard after the summary's name.
+   */
+  waiting?: string | null;
 }) {
   const people = agreementPeople(a);
-  if (compact) return <Press accessibilityRole="button" accessibilityLabel="Pregled uslova Dogovora" onPress={onOpen} haptic="select" style={s.compact}>
+  if (compact) return <Press accessibilityRole="button" accessibilityLabel={waiting ? `Pregled uslova Dogovora. ${waiting}` : 'Pregled uslova Dogovora'}
+    onPress={onOpen} haptic="select" style={s.compact}>
     <FactArt kind="agreements" size={24} />
     <View style={s.grow}>
       <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{readableTitle(a.naslov)}</T>
-      {/* The person is in the bar right above; "1 osoba" beside them said them twice. */}
-      <T variant="note" tone="muted" numberOfLines={1}>{a.cena.prikaz || BEZ_IZNOSA}{people ? ` · ${people}` : ''}</T>
+      {/* When the Dogovor waits for me, that is the line (review r4 rd: the bar used to say the state above Poruke, and
+          the conversation then no longer said it): the waiting foot's orange dot and words, up to two lines. The terms
+          are one press away. Otherwise the price, and the people beyond one; the person is in the bar right above, so
+          "1 osoba" beside them said them twice. */}
+      {waiting ? <View style={s.waiting}><WaitingDot /><T variant="note" style={s.waitingText} numberOfLines={2}>{waiting}</T></View>
+        : <T variant="note" tone="muted" numberOfLines={1}>{a.cena.prikaz || BEZ_IZNOSA}{people ? ` · ${people}` : ''}</T>}
     </View>
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
@@ -173,6 +184,9 @@ const s = StyleSheet.create({
   // Inside the conversation's head it is a flat tint at the control corner, never a card with its own edge.
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: 12,
     borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+  // The waiting foot's line (TaskFace `CardWaitingLine`), allowed a second line: a whole step does not fit one.
+  waiting: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  waitingText: { flexShrink: 1, fontWeight: '700', color: sys.color.warn },
   people: { borderTopWidth: 1, borderTopColor: sys.color.line },
   person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
 });
