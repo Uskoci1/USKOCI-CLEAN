@@ -12,8 +12,10 @@ jest.mock('../../../data/qaSubmissionClientService',()=>({qaSubmissionClientServ
 jest.mock('../qaIntent',()=>({...jest.requireActual('../qaIntent'),qaIntentJournal:{load:(...a:unknown[])=>mockLoad(...a),save:(...a:unknown[])=>mockSave(...a),clear:(...a:unknown[])=>mockClear(...a)}}));
 jest.mock('@react-native-async-storage/async-storage',()=>({}));
 jest.mock('../../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockKey}));
-jest.mock('../../settings/SettingsPresentation',()=>{const c=(name:string)=>({children,...props}:any)=>require('react').createElement(name,props,children);return Object.fromEntries(['SettingsScreen','SettingsIntro','SettingsPanel','SettingsText','SettingsAction'].map(n=>[n,c(n)]));});
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 import {TaskQaScreen} from '../TaskQaScreen';
+import {TaskQaPresentation} from '../TaskQaPresentation';
+import {ConfirmSheet} from '../../system/ConfirmSheet';
 import {qaTextHash} from '../qaTextHash';
 const ok=(podatak:unknown)=>({ok:true,podatak});
 const context=(patch={})=>({accountId:A,needId:N,needRevision:2,title:'Montaža police',mode:'PUBLIC',publicRevision:true,activeWorker:true,canAsk:false,canComposeAnswer:false,ratePolicyState:'NOT_READY',questionMaxChars:null,answerMaxChars:null,...patch});
@@ -29,7 +31,9 @@ it('technical classification cancellation explains failure and unlocks only expl
  expect(mockAiSubmit).not.toHaveBeenCalled();expect(button('Pošalji pitanje')).toBeDefined();
 });
 let tree:ReactTestRenderer;
-const button=(label:string)=>tree.root.findAll(n=>n.type==='SettingsAction' as React.ElementType).find(n=>n.props.label===label);
+// Round 6: commands are V2Action, the chrome's icon buttons and the pill's send; each is found by the name it is pressed
+// and heard by, on the outermost element that carries it.
+const button=(label:string)=>tree.root.findAll(n=>typeof n.type!=='string'&&(n.props.label===label||n.props.accessibilityLabel===label))[0];
 const allText=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');
 async function render(){await act(async()=>{tree=create(<TaskQaScreen needId={N} onBack={jest.fn()}/>);});}
 async function type(value:string,label='Tekst pitanja'){await act(async()=>tree.root.findByProps({accessibilityLabel:label}).props.onChangeText(value));}
@@ -42,7 +46,7 @@ it('durable storage failure and account ABA each prevent dispatch',async()=>{moc
 it('background during persistence prevents any late send; resume only reads',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');let done!:()=>void;mockSave.mockReturnValue(new Promise<void>(r=>{done=r;}));await act(async()=>button('Pošalji pitanje')!.props.onPress());await act(async()=>{mockApp('background');done();});expect(mockAiSubmit).not.toHaveBeenCalled();mockLoad.mockResolvedValue(pending());await act(async()=>mockApp('active'));expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockRead).toHaveBeenCalled();});
 it('restores only exact receipt and states question is still awaiting answer',async()=>{mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,command:{type:'ASK',needRevision:2,textSha256:pending().textSha256,receipt:{questionId:mockKey,status:'PENDING_ANSWER',needRevision:2,idempotentReplay:true}}}));await render();expect(allText()).toContain('Javno se prikazuje kada stigne odgovor');expect(mockClear).toHaveBeenCalledWith(A,N,mockKey);expect(mockAiSubmit).not.toHaveBeenCalled();});
 it('does not leak non-current answered feed when task changed during read',async()=>{mockPublicFeed.mockResolvedValue(ok([{questionId:mockKey,needRevision:1,questionText:'OLD_SECRET',answerText:'OLD',edited:false}]));await render();expect(allText()).not.toContain('OLD_SECRET');expect(allText()).toContain('Zadatak je izmenjen');});
-it('owner sees pending first and explicit old revision without an answer action',async()=>{mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true})));mockOwnerFeed.mockResolvedValue(ok([{questionId:mockKey,needRevision:1,questionText:'OLD',status:'PENDING_ANSWER',answerText:null,edited:false},{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));await render();expect(allText().indexOf('CURRENT')).toBeLessThan(allText().indexOf('OLD'));expect(allText()).toContain('ne opisuju aktuelne uslove');expect(tree.root.findAll(n=>n.type==='SettingsAction' as React.ElementType&&n.props.label==='Odgovori')).toHaveLength(1);});
+it('owner sees pending first and explicit old revision without an answer action',async()=>{mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true})));mockOwnerFeed.mockResolvedValue(ok([{questionId:mockKey,needRevision:1,questionText:'OLD',status:'PENDING_ANSWER',answerText:null,edited:false},{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));await render();expect(allText().indexOf('CURRENT')).toBeLessThan(allText().indexOf('OLD'));expect(allText()).toContain('ne opisuju aktuelne uslove');expect(tree.root.findAll(n=>typeof n.type!=='string'&&n.props.label==='Odgovori')).toHaveLength(1);});
 it('saved submit closure is retired after refresh',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');const old=button('Pošalji pitanje')!.props.onPress;await act(async()=>button('Osveži pitanja i ishod radnje')!.props.onPress());await act(async()=>old());expect(mockAiSubmit).not.toHaveBeenCalled();});
 it('restored provider processing never offers replay and cancellation is explicit',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));await render();
@@ -78,12 +82,43 @@ it('material answer rejection directs the owner back to canonical Task edit with
 });
 it('a grey send button says why, and the reason leaves once the question is written',async()=>{
  mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();
- expect(button('Pošalji pitanje')!.props.disabled).toBe(true);expect(allText()).toContain('Upiši pitanje pre slanja.');
- await type('Da li ima lift?');expect(button('Pošalji pitanje')!.props.disabled).toBe(false);expect(allText()).not.toContain('Upiši pitanje pre slanja.');
+ // The reason rides on the grey send as its spoken hint (the pill of Poruke draws no line for an empty field).
+ expect(button('Pošalji pitanje')!.props.disabled).toBe(true);expect(button('Pošalji pitanje')!.props.accessibilityHint).toBe('Upiši pitanje pre slanja.');
+ await type('Da li ima lift?');expect(button('Pošalji pitanje')!.props.disabled).toBe(false);expect(button('Pošalji pitanje')!.props.accessibilityHint).toBeUndefined();
  expect(mockAiSubmit).not.toHaveBeenCalled();
 });
 it('leaving while cancellation awaits a receipt cannot clear newer local state',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));let resolve!:(v:unknown)=>void;
  mockAiCancel.mockReturnValue(new Promise(r=>{resolve=r;}));await render();await act(async()=>button('Odustani od ovog slanja')!.props.onPress());
  await act(async()=>{mockApp('background');resolve(ok(status({state:'CANCELLED',canCancel:false})));});expect(mockClear).not.toHaveBeenCalled();
+});
+it('skip and report ask through the confirm sheet first; only the confirm journals and sends the disposition',async()=>{
+ mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true})));
+ mockOwnerFeed.mockResolvedValue(ok([{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));
+ mockDisposition.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Nepotvrđeno'});await render();
+ await act(async()=>button('Prijavi pitanje')!.props.onPress());
+ expect(mockSave).not.toHaveBeenCalled();expect(mockDisposition).not.toHaveBeenCalled();
+ const sheet=tree.root.findByType(ConfirmSheet);expect(sheet.props.tone).toBe('danger');
+ await act(async()=>sheet.findByProps({testID:'confirm-sheet-cancel'}).props.onPress());expect(mockDisposition).not.toHaveBeenCalled();
+ await act(async()=>button('Preskoči pitanje')!.props.onPress());expect(mockDisposition).not.toHaveBeenCalled();
+ await act(async()=>tree.root.findByType(ConfirmSheet).findByProps({testID:'confirm-sheet-confirm'}).props.onPress());
+ expect(mockSave).toHaveBeenCalledTimes(1);expect(mockDisposition).toHaveBeenCalledWith(N,'IGNORE',mockKey);
+});
+it('an over-long text greys the send and says why above the pill',async()=>{
+ mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:5})));await render();await type('Da li ima lift?');
+ expect(button('Pošalji pitanje')!.props.disabled).toBe(true);expect(allText()).toContain('skrati tekst');expect(mockSave).not.toHaveBeenCalled();
+});
+it('a failed first read offers one retry and says so as an alert',async()=>{
+ mockContext.mockResolvedValue({ok:false,kod:'UNAVAILABLE',poruka:'Proveri vezu i pokušaj ponovo.'});await render();
+ expect(allText()).toContain('Pitanja nisu učitana');expect(allText()).toContain('Proveri vezu');
+ mockContext.mockResolvedValue(ok(context()));await act(async()=>button('Pokušaj ponovo')!.props.onPress());expect(allText()).toContain('Još nema objavljenih odgovora');
+});
+it('the presentation alone reads nothing and draws the thread with the answer behind its label',async()=>{
+ const noop=()=>{};
+ await act(async()=>{tree=create(<TaskQaPresentation title="Montaža police" mode="PUBLIC" loaded busy={false} message="" receipt="" canRetryRead material={false}
+  recovery={null} cannotAsk={null} composer={{answering:null,revisionChanged:false,maxChars:500}} text="" canAnswer={false} pending={[]} set={[]} historical={[]}
+  answered={[{questionId:N,needRevision:2,questionText:'Da li ima lift?',answerVersion:1,answerText:'Nema, treći sprat.',edited:true} as never]}
+  onBack={noop} onRefresh={noop} onText={noop} onSend={noop} onRetry={noop} onCancel={noop} onChoose={noop} onDispose={noop} onCloseAnswer={noop} onEditTask={noop}/>);});
+ expect(allText()).toContain('Da li ima lift?');expect(allText()).toContain('Odgovor · izmenjen');expect(allText()).not.toContain('Anonimno pitanje');
+ expect(mockContext).not.toHaveBeenCalled();expect(mockLoad).not.toHaveBeenCalled();
 });

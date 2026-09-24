@@ -2,7 +2,8 @@ import React from 'react';
 import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='10000000-0000-4000-8000-000000000001',B='10000000-0000-4000-8000-000000000002',ID='20000000-0000-4000-8000-000000000001',G='30000000-0000-4000-8000-000000000001',KEY='40000000-0000-4000-8000-000000000001',M='50000000-0000-4000-8000-000000000001';
 let mockSession={user:{id:A},accountRevision:1},mockIntent='uskocer',mockFocused=true,mockForeground='active';
-const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()},mockPush=jest.fn();
+const mockListeners=new Set<(value:string)=>void>(),mockStorage={getItem:jest.fn(),setItem:jest.fn(),removeItem:jest.fn()},mockPush=jest.fn(),mockBack=jest.fn(),mockReplace=jest.fn();
+let mockCanGoBack=true;
 const mockService={context:jest.fn(),messages:jest.fn(),recover:jest.fn(),send:jest.fn(),markRead:jest.fn()};
 jest.mock('../groupConversationService',()=>{const actual=jest.requireActual('../groupConversationService');return{...actual,groupConversationService:{
  context:(...args:unknown[])=>mockService.context(...args),messages:(...args:unknown[])=>mockService.messages(...args),recover:(...args:unknown[])=>mockService.recover(...args),
@@ -13,7 +14,7 @@ jest.mock('../../store/uloga',()=>({useUloga:()=>mockIntent,ulogaSada:()=>mockIn
 jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=>'40000000-0000-4000-8000-000000000001'}));
 jest.mock('@react-native-async-storage/async-storage',()=>({__esModule:true,default:{getItem:(...args:unknown[])=>mockStorage.getItem(...args),
  setItem:(...args:unknown[])=>mockStorage.setItem(...args),removeItem:(...args:unknown[])=>mockStorage.removeItem(...args)}}));
-jest.mock('expo-router',()=>({router:{push:(...args:unknown[])=>mockPush(...args)},useFocusEffect:(effect:()=>void)=>require('react').useEffect(()=>mockFocused?effect():undefined,[effect,mockFocused])}));
+jest.mock('expo-router',()=>({router:{push:(...args:unknown[])=>mockPush(...args),canGoBack:()=>mockCanGoBack,back:()=>mockBack(),replace:(...args:unknown[])=>mockReplace(...args)},useFocusEffect:(effect:()=>void)=>require('react').useEffect(()=>mockFocused?effect():undefined,[effect,mockFocused])}));
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
  if(['View','TextInput','KeyboardAvoidingView'].includes(String(key)))return String(key);
@@ -35,6 +36,10 @@ let tree:ReactTestRenderer|undefined,entry=false;
 const page=()=>entry?<GroupConversationEntry agreementId={ID}/>:<GroupConversationScreen agreementId={ID}/>;
 const render=async()=>{await act(async()=>{tree=create(page());});};
 const action=(label:string)=>tree!.root.findByProps({label}).props;
+// Round 6: the send is the pill's round button, named by what it does; found on the outermost element that carries the name.
+const send=(label:string)=>tree!.root.findAll(node=>typeof node.type!=='string'&&node.props.accessibilityLabel===label)[0]?.props;
+// A message is held (long press) to offer it to support, as in Poruke.
+const hold=async(body:string)=>{await act(async()=>tree!.root.findAll(node=>typeof node.type!=='string'&&String(node.props.accessibilityLabel??'').includes(body))[0].props.onLongPress());};
 const tap=async(label:string)=>{await act(async()=>action(label).onPress());};
 const change=async(value:string)=>{await act(async()=>tree!.root.findByType('TextInput' as never).props.onChangeText(value));};
 const text=()=>tree!.toJSON()===null?'null':tree!.root.findAllByType('T' as never).map(node=>node.children.filter(child=>typeof child==='string').join('')).join(' ');
@@ -55,18 +60,18 @@ it('shows only requester management and routes to the exact canonical individual
  await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
 });
 it('has one send action, latches concurrent retained callbacks and persists no plaintext',async()=>{
- await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=action('Pošalji poruku grupi').onPress;
+ await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress;
  await act(async()=>{old();old();});expect(mockStorage.setItem).toHaveBeenCalledTimes(1);expect(mockService.send).not.toHaveBeenCalled();
  await act(async()=>gate.resolve());expect(mockService.send).toHaveBeenCalledTimes(1);expect(mockStorage.setItem.mock.calls[0][1]).not.toContain('Prvobitna poruka');
- expect(action('Proveri prvobitno slanje')).toBeDefined();expect(tree!.root.findAllByProps({label:'Pošalji poruku grupi'})).toHaveLength(0);
+ expect(action('Proveri prvobitno slanje')).toBeDefined();expect(send('Pošalji poruku grupi')).toBeUndefined();
 });
 it('restart reads original key and requires exact re-entry before same-key retry',async()=>{
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journal));await render();expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
- await change('Promenjena poruka');await tap('Ponovi slanje iste poruke');expect(mockService.send).not.toHaveBeenCalled();expect(text()).toContain('razlikuje');
- await change('Prvobitna poruka');await tap('Ponovi slanje iste poruke');expect(mockService.send.mock.calls[0][0]).toEqual(journal);expect(mockStorage.setItem).not.toHaveBeenCalled();
+ await change('Promenjena poruka');await act(async()=>send('Ponovi slanje iste poruke').onPress());expect(mockService.send).not.toHaveBeenCalled();expect(text()).toContain('razlikuje');
+ await change('Prvobitna poruka');await act(async()=>send('Ponovi slanje iste poruke').onPress());expect(mockService.send.mock.calls[0][0]).toEqual(journal);expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('confirmed receipt clears composer but displays real message page only after explicit acknowledgement',async()=>{
- await render();await change('Prvobitna poruka');mockService.send.mockResolvedValue(ok({...journal,messageId:KEY}));await tap('Pošalji poruku grupi');
+ await render();await change('Prvobitna poruka');mockService.send.mockResolvedValue(ok({...journal,messageId:KEY}));await act(async()=>send('Pošalji poruku grupi').onPress());
  expect(text()).toContain('Poruka je sačuvana');expect(text()).not.toContain('Prvobitna poruka');expect(mockStorage.removeItem).not.toHaveBeenCalled();
  await tap('Prikaži razgovor');expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(tree!.root.findByType('TextInput' as never).props.value).toBe('');
 });
@@ -82,7 +87,7 @@ it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard av
  expect(tree!.root.findByType('KeyboardAvoidingView' as never).parent!.type).toBe('SafeAreaView');expect(tree!.root.findByType('TextInput' as never).props.multiline).toBe(true);
 });
 it.each(['blur','account','ABA','background'])('fences retained send/read-marker callbacks and late responses after %s',async kind=>{
- await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=action('Pošalji poruku grupi').onPress,visible=tree!.root.findByType('List' as never).props.onViewableItemsChanged;
+ await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress,visible=tree!.root.findByType('List' as never).props.onViewableItemsChanged;
  await act(async()=>old());await act(async()=>{if(kind==='blur')mockFocused=false;else if(kind==='account')mockSession={user:{id:B},accountRevision:2};else if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
  else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
  await act(async()=>{gate.resolve();old();visible({viewableItems:[{item:message,isViewable:true}]});});expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
@@ -90,7 +95,7 @@ it.each(['blur','account','ABA','background'])('fences retained send/read-marker
 // Owner decision 1 (2026-09-19): the app has no global mode, and a Dogovor works the same for both of its
 // sides from the relation it carries itself. 'role' used to be a row of the table above.
 it('a flip of the retired app mode retires nothing: the retained send still goes out to this group',async()=>{
- await render();await change('Prvobitna poruka');const old=action('Pošalji poruku grupi').onPress;
+ await render();await change('Prvobitna poruka');const old=send('Pošalji poruku grupi').onPress;
  await act(async()=>{mockIntent='narucilac';tree!.update(page());});
  await act(async()=>old());expect(mockService.send).toHaveBeenCalledTimes(1);
 });
@@ -108,6 +113,7 @@ it('entry hides unsupported group and discards late availability after account t
 });
 it('selects only an actually visible group message and preserves the read-only support exit',async()=>{
  mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true}}));await render();
+ expect(tree!.root.findAllByType('SupportContextEntry' as never)).toHaveLength(0);await hold(message.body);
  const entry=tree!.root.findByType('SupportContextEntry' as never).props;
  expect(entry.reference).toEqual({kind:'GROUP_MESSAGE',id:M,revision:null});expect(entry.previewText).toBe(message.body);
  expect(entry.canAct()).toBe(true);expect(mockService.send).not.toHaveBeenCalled();
@@ -115,8 +121,18 @@ it('selects only an actually visible group message and preserves the read-only s
  expect(entry.canAct()).toBe(false);expect(mockService.send).not.toHaveBeenCalled();
 });
 it('removes support choices when an authoritative refresh withdraws message visibility',async()=>{
- await render();const entry=tree!.root.findByType('SupportContextEntry' as never).props;
+ await render();await hold(message.body);const entry=tree!.root.findByType('SupportContextEntry' as never).props;
  mockService.messages.mockResolvedValue(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));await tap('Osveži poruke');
  expect(tree!.root.findAllByType('SupportContextEntry' as never)).toHaveLength(0);expect(entry.canAct()).toBe(false);
  await act(async()=>entry.navigate(()=>mockPush('/must-not-open')));expect(mockPush).not.toHaveBeenCalled();
+});
+it('back returns to the Dogovor it came from, and opens it anew only without a stack',async()=>{
+ await render();await act(async()=>tree!.root.findByProps({label:'Nazad na Dogovor'}).props.onPress());expect(mockBack).toHaveBeenCalledTimes(1);expect(mockPush).not.toHaveBeenCalled();
+ mockCanGoBack=false;await act(async()=>tree!.root.findByProps({label:'Nazad na Dogovor'}).props.onPress());
+ expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});mockCanGoBack=true;
+});
+it('names the sender once at the start of their turn and speaks each message with who and when',async()=>{
+ mockService.messages.mockResolvedValue(ok({messages:[message,{...message,messageId:KEY,sequence:'2',body:'Ja sam tu.'}],nextBeforeSequence:null,nextAfterSequence:null}));
+ await render();expect(text().split('Bojana').length-1).toBe(1);
+ expect(tree!.root.findAll(node=>typeof node.type!=='string'&&String(node.props.accessibilityLabel??'').startsWith('Bojana: Ja sam tu.'))).not.toHaveLength(0);
 });

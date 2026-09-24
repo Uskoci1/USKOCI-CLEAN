@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import type { DogovorProjekcija } from '../contracts/projections';
 import type { ExactLocationReveal, LocationGrant, LocationGrantState } from '../contracts/contact';
 import type { Ishod } from '../data/ports';
@@ -7,6 +7,8 @@ import { useOwnedEditor } from '../hooks/useOwnedEditor';
 import { useSesija } from '../store/sesija';
 import { useIzvor } from '../store/uloga';
 import { sys } from './system/tokens';
+import { FactArt } from './system/FactArt';
+import { vreme } from '../lib/vreme';
 import { V2Action } from './v2/V2Action';
 import { T } from './Text';
 import { ResolvedPinMap } from './location/ResolvedPinMap';
@@ -93,20 +95,32 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
     return { ok: true, podatak: { ...current.podatak, revealed: value } };
   });
   const locked = editor.loading || editor.busy || editor.uncertain || !editor.data;
-  return <View style={{ paddingVertical: sys.space.md, gap: sys.space.md }}>
-    <T variant="bodyStrong">Privatna lokacija</T>
-    <T variant="meta" tone="muted">{accountId === requesterId
-      ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
-      : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
+  const requester = accountId === requesterId;
+  // How long the access lasts, when the read says so: a grant with an end names it; one without lasts until it is
+  // revoked or the Dogovor ends (this section closes then).
+  const lasts = granted ? grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.` : 'Važi dok je ne opozoveš ili dok se Dogovor ne završi.' : null;
+  // The section above carries the title ("Lokacija i pristup"); this part starts with the state of the access.
+  return <View style={s.stack}>
+    <View style={s.status}>
+      <FactArt kind={granted ? 'eye' : 'lock'} size={24} muted={!granted} />
+      <View style={s.statusCopy}>
+        <T variant="bodyStrong">{requester
+          ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
+          : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
+        {lasts ? <T variant="meta" tone="muted">{lasts}</T> : null}
+      </View>
+    </View>
     {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
-    {accountId === requesterId ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
+    {requester ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
       kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
       : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} /> : null}
-    <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
-    <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
+    <View style={s.refresh}>
+      <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
+      <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
+    </View>
   </View>;
 }
 
@@ -119,17 +133,26 @@ function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: st
   const [selected, setSelected] = useState(points[0]?.slot);
   const point = points.find(item => item.slot === selected);
   const position = point ? { latitude: point.latitudeE6 / 1e6, longitude: point.longitudeE6 / 1e6 } : value.exactPosition;
-  return <View style={{ gap: sys.space.md }}>
+  return <View style={s.stack}>
     {value.adresa ? <T>{value.adresa}</T> : null}
     {value.accessNotes ? <T variant="meta">{value.accessNotes}</T> : null}
-    {points.map(item => <View key={item.slot} style={{ gap: sys.space.xs }}>
+    {/* Each point is a bare row parted by a hairline; the section around it is the only box. */}
+    {points.map(item => <View key={item.slot} style={s.point}>
       <T variant="bodyStrong">{slotLabel(item.slot)}</T>
       {item.address ? <T>{item.address}</T> : null}
       {item.accessNotes ? <T variant="meta">{item.accessNotes}</T> : null}
-      <T variant="meta" selectable>{(item.latitudeE6 / 1e6).toFixed(6)}, {(item.longitudeE6 / 1e6).toFixed(6)}</T>
+      <T variant="meta" tone="muted" selectable>{(item.latitudeE6 / 1e6).toFixed(6)}, {(item.longitudeE6 / 1e6).toFixed(6)}</T>
       {points.length > 1 ? <V2Action label={`Prikaži na mapi: ${slotLabel(item.slot)}`} kind="quiet" style={quietStart}
         disabled={selected === item.slot} onPress={() => setSelected(item.slot)} /> : null}
     </View>)}
     {position ? <ResolvedPinMap position={position} onChoose={() => {}} disabled scopeKey={`${scope}:${selected ?? 'legacy'}`} /> : null}
   </View>;
 }
+
+const s = StyleSheet.create({
+  stack: { paddingVertical: sys.space.md, gap: sys.space.md },
+  status: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  statusCopy: { flex: 1, gap: 2 },
+  point: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine },
+  refresh: { gap: sys.space.xs },
+});

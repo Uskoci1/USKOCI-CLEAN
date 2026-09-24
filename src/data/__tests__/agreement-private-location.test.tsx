@@ -150,4 +150,10 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     agreement = status === 'REMOTE' ? { ...agreement, rezim: 'DALJINSKI' } : { ...agreement, stanje: status };
     await update(); expect(tree.toJSON()).toBeNull();
   });
+  it('says how long the access lasts: until its end when the grant has one, else until revoked or the Dogovor ends', async () => {
+    await render(); expect(content()).toContain('Važi dok je ne opozoveš ili dok se Dogovor ne završi.');
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(true, '2099-10-01T10:00:00Z') }));
+    await press('Osveži dozvolu za lokaciju'); expect(content()).toContain('Važi do ');
+    expect(content()).not.toContain('Privatna lokacija'); expect(mockReveal).not.toHaveBeenCalled();
+  });
 });
