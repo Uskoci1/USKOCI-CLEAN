@@ -75,10 +75,6 @@ export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCo
 /** The one brand action on a screen: orange surface with ink text. Pass as `style` to a secondary V2Action. */
 export const brandAction: ViewStyle = { backgroundColor: sys.color.orange, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
 
-/** Shared icon control. The visible glyph stays quiet; the touch target never drops below 48dp. */
-export const iconButton: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.control, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
-
-/** Root account control: a round, stable target used consistently on primary surfaces. */
-export const accountButton: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft,
-  borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center' };
+/** 44px icon control in a quiet well (V5 head icon button). */
+export const iconButton: ViewStyle = { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
 
