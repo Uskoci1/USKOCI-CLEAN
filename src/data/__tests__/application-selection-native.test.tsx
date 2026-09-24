@@ -43,6 +43,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
   removeItem: jest.fn(async (key: string) => { mockStorage.delete(key); }) } }));
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
+import { sys } from '../../ui/system/tokens';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
   stanje: 'CEKA_PRIJAVE', pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade',
   schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T08:00:00.123456Z', endsAt: '2026-09-20T09:00:00.654321Z' } });
@@ -82,7 +83,14 @@ async function reviewOffer() {
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
 async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Ljudi', '2'); }
-async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
+// Step 7 (2026-09-24): an offer opens as a sheet over the list and its one green action, "Izaberi ovu ponudu", asks in an
+// in-app confirmation whose confirm is still "Izaberi ovu Prijavu". It was a page with "Pregledaj povezivanje" and a
+// review page behind it; these helpers pinned that look. Android Back on the sheet (its Modal's request) is how an offer
+// is closed now, where the offer page had its own back arrow.
+async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Izaberi ovu ponudu'); }
+const sheets = () => tree!.root.findAll(node => String(node.type) === 'Modal');
+async function closeOffer() { const offerSheet = sheets()[0]; expect(offerSheet).toBeDefined(); await act(async () => offerSheet.props.onRequestClose()); }
+const person = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityHint === 'Otvara javni profil')[0]?.props.onPress;
 
 it('previews the actual offer message without marking it viewed; opening keeps the full message', async () => {
   const message = 'Dolazimo nas dvojica. Donosimo trake. Kombi je veliki i može da stane ispred ulaza.';
@@ -170,7 +178,8 @@ it('marks only an intentionally opened offer, never the list, comparison or focu
   await tap('Uporedi'); await tap('Otvori prijavu: Milan');
   expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
   expect(mockSelect).not.toHaveBeenCalled();
-  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  await closeOffer(); expect(sheets()).toHaveLength(0);
+  await tap('Prikaži ponude'); await tap('Pogledaj ponudu: Milan');
   expect(mockViewed).toHaveBeenCalledTimes(1);
 });
 it('deduplicates pending double opens without blocking offer reading or selecting', async () => {
@@ -178,18 +187,18 @@ it('deduplicates pending double opens without blocking offer reading or selectin
   await act(async () => { open(); open(); });
   expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
   expect(text()).toContain('Dolazimo sa trakama.');
-  expect(press('Pregledaj povezivanje')).toBeDefined();
-  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  expect(press('Izaberi ovu ponudu')).toBeDefined();
+  await closeOffer(); await tap('Pogledaj ponudu: Milan');
   expect(mockViewed).toHaveBeenCalledTimes(1);
   await act(async () => d.resolve({ ok: true, podatak: null }));
-  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan');
+  await closeOffer(); await tap('Pogledaj ponudu: Milan');
   expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
 });
 it('shows safe unconfirmed view status and repeats only on another explicit exact offer opening', async () => {
   mockViewed.mockRejectedValueOnce(new Error('PRIVATE_SQL_DETAILS'));   await render(Candidates); await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain('oznaka viđenosti nije potvrđena'); expect(text()).not.toContain('PRIVATE_SQL_DETAILS');
   await update(); expect(mockViewed).toHaveBeenCalledTimes(1);
-  await tap('Nazad na zadatak'); mockFocused = false; await update(); mockFocused = true; await update();
+  await closeOffer(); mockFocused = false; await update(); mockFocused = true; await update();
   expect(mockViewed).toHaveBeenCalledTimes(1);
   await tap('Pogledaj ponudu: Milan');
   expect(mockViewed.mock.calls).toEqual([[k().prijavaId], [k().prijavaId]]);
@@ -273,11 +282,46 @@ it('shows specific candidate evidence, then confirms once and opens the exact ex
   await render(Candidates);
   expect(press('Izaberi ovu Prijavu')).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan'); expect(text()).toContain('Nošenje · Trake · Kombi');
-  expect(text()).toContain('Sačuvana samoizjava'); await tap('Pregledaj povezivanje');
+  expect(text()).toContain('Sačuvana samoizjava'); await tap('Izaberi ovu ponudu');
   expect(text()).toContain('Jedan izbor sklapa Dogovor'); const choose = press('Izaberi ovu Prijavu');
   await act(async () => { choose(); choose(); }); expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, prijavaVerzija: 2, prijavaHash: k().hash, mesta: 2 });
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
+});
+// Step 7 (2026-09-24): the offer's one green action asks first, in the app's own confirmation, with the words that always
+// stood before this choice; only its confirm runs the route's choose, whose guards are unchanged.
+const brand = () => tree!.root.findAll(node => String(node.type) === 'Press' && [node.props.style].flat(3).filter(Boolean)
+  .map((style: { backgroundColor?: string }) => style.backgroundColor).filter(Boolean).pop() === sys.color.green).map(node => node.props.accessibilityLabel);
+it('choose reaches its confirmation with the exact words; a cancel sends nothing and one confirm sends the exact command once', async () => {
+  await render(Candidates); expect(brand()).toEqual([]);
+  await tap('Pogledaj ponudu: Milan'); expect(brand()).toEqual(['Izaberi ovu ponudu']);
+  await tap('Izaberi ovu ponudu');
+  expect(text()).toContain('Jedan izbor sklapa Dogovor.');
+  expect(text()).toContain('Izborom prihvataš ovu ponudu: 4.500 RSD ukupno, dolaze 2 osobe. Dogovor odmah važi za obe strane. '
+    + 'Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.');
+  expect(mockSelect).not.toHaveBeenCalled();
+  await tap('Odustani'); expect(press('Izaberi ovu Prijavu')).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
+  await tap('Izaberi ovu ponudu'); const confirm = press('Izaberi ovu Prijavu');
+  await act(async () => { confirm(); confirm(); });
+  expect(mockSelect).toHaveBeenCalledTimes(1);
+  expect(mockSelect.mock.calls[0][0]).toEqual({ potrebaId: mockId, potrebaRevizija: 3, prijavaId: k().prijavaId, prijavaVerzija: 2,
+    prijavaHash: k().hash, mesta: 2, clientRequestId: expect.any(String) });
+  expect(text()).toContain('Dogovor je sklopljen.'); expect(brand()).toEqual(['Otvori Dogovor']);
+});
+it('a question retained across a fresh read is retired and cannot choose; while the choice runs nothing closes the offer or sends twice', async () => {
+  await selection(); const retained = press('Izaberi ovu Prijavu');
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(press('Izaberi ovu Prijavu')).toBeUndefined();
+  await act(async () => retained()); expect(mockSelect).not.toHaveBeenCalled();
+  const d = deferred(); mockSelect.mockReturnValueOnce(d.promise);
+  await tap('Pogledaj ponudu: Milan'); await tap('Izaberi ovu ponudu'); await tap('Izaberi ovu Prijavu');
+  // The confirm says it is at work and cannot be pressed again; Back on the offer underneath does nothing meanwhile.
+  expect(tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Izaberi ovu Prijavu')[0].props.accessibilityState)
+    .toEqual({ disabled: true, busy: true });
+  await act(async () => sheets()[0].props.onRequestClose());
+  expect(mockRouter.back).not.toHaveBeenCalled(); expect(sheets()).not.toHaveLength(0);
+  await act(async () => d.resolve({ ok: true, podatak: { dogovorId: agreement } }));
+  expect(mockSelect).toHaveBeenCalledTimes(1); expect(press('Otvori Dogovor')).toBeDefined();
 });
 it('stale candidate/Need read pair does not expose selection', async () => {
   mockCandidates.mockResolvedValue([{ ...k(), potrebaRevizija: 2 }]); await render(Candidates);
@@ -298,10 +342,10 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   expect(text()).toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
   expect(press('Pogledaj ponudu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj ponudu: Milan')).toBeDefined();
   await tap('Pogledaj ponudu: Ranija ponuda'); expect(text()).toContain('Potrebna nova provera');
-  expect(press('Pregledaj povezivanje')).toBeUndefined(); expect(press('Izaberi ovu Prijavu')).toBeUndefined();
+  expect(press('Izaberi ovu ponudu')).toBeUndefined(); expect(press('Izaberi ovu Prijavu')).toBeUndefined();
   // An offer that cannot be chosen says so and carries the refresh it names, instead of ending there.
   expect(press('Osveži prijave')).toBeDefined();
-  await tap('Nazad na zadatak'); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); await tap('Izaberi ovu Prijavu');
+  await closeOffer(); await tap('Pogledaj ponudu: Milan'); await tap('Izaberi ovu ponudu'); await tap('Izaberi ovu Prijavu');
   expect(mockSelect).toHaveBeenCalledTimes(1); expect(mockSelect.mock.calls[0][0]).toMatchObject({ prijavaId: k().prijavaId, potrebaRevizija: 3 });
 });
 it('retains exact selection on unknown even when fresh candidate state is SELECTED', async () => {
@@ -358,7 +402,9 @@ it('rejects newly elapsed deadline on tap and exposes a fresh read, without disp
   expect(text()).toContain('Rok za prijave je istekao'); expect(press('Osveži Zadatak')).toBeDefined();
 });
 it('public profile panel uses the real public port and drops a late prior-account response', async () => {
-  const d = deferred(); mockPublic.mockReturnValueOnce(d.promise); await selection(); await tap('Javni profil');
+  // The person at the head of the offer opens the profile (heard as the person, "Otvara javni profil" as its hint).
+  const d = deferred(); mockPublic.mockReturnValueOnce(d.promise); await render(Candidates); await tap('Pogledaj ponudu: Milan');
+  const open = person(); expect(open).toBeDefined(); await act(async () => { open(); });
   expect(mockPublic).toHaveBeenCalledWith(k().radnikProfilId);
   mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
   await act(async () => d.resolve({ profilId: k().radnikProfilId, ime: 'Late prior-account profile', poverenje: {} }));
@@ -432,7 +478,7 @@ it('orders the loaded offers by the lowest total without a new read, keeps ties 
   await tap('Redosled prijava: Redom pristizanja'); await tap('Najniža cena');
   expect(order()).toEqual(['Druga', 'Treća', 'Prva']);
   expect(mockCandidates).toHaveBeenCalledTimes(reads); expect(mockViewed).not.toHaveBeenCalled();
-  await tap('Pogledaj ponudu: Prva'); await tap('Nazad na zadatak');
+  await tap('Pogledaj ponudu: Prva'); await closeOffer();
   expect(order()).toEqual(['Druga', 'Treća', 'Prva']); expect(press('Redosled prijava: Najniža cena')).toBeDefined();
   await tap('Redosled prijava: Najniža cena'); await tap('Redom pristizanja');
   expect(order()).toEqual(['Prva', 'Druga', 'Treća']);

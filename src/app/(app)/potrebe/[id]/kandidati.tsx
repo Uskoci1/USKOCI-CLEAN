@@ -10,6 +10,7 @@ import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
 import { useSafetyEntry } from '../../../../ui/safety/useSafetyEntry';
+import { Avatar, type AvatarSize } from '../../../../ui/system/Avatar';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
 type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; receipt: Receipt | null };
@@ -26,6 +27,10 @@ export default function Kandidati() {
   // this account only, and it is a view of rows already read, never a new request.
   const sortScope = `${id ?? ''}:${user?.id ?? ''}:${accountRevision}`;
   const [sorted, setSorted] = useState<{ scope: string; sort: CandidateSort } | null>(null);
+  // A person's photo by their verified public profile id; without one (or while it cannot be read) the one Avatar with the
+  // letters the candidate read already carries. One function for the life of the screen, so the memoised rows keep.
+  const photo = useCallback((k: KandidatProjekcija, size: AvatarSize) => <ProfilePhoto profileId={k.radnikProfilId} size={size} initial={null}
+    fallback={<Avatar size={size} initials={k.inicijali || null} />} />, []);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -64,10 +69,11 @@ export default function Kandidati() {
     if (router.canGoBack()) router.back(); else if (id) router.replace({ pathname: '/potrebe/[id]/pregled', params: { id } });
     else router.replace('/potrebe');
   };
+  // The offer's confirmation waits on the returned command; every guard below still decides alone whether it runs.
   const choose = () => {
     const k = candidate;
     if (!current() || session.pending?.inFlight || !data || !k || (!pending && (!k.mozeIzabrati || k.stanje !== 'SELECTABLE' || k.potrebaRevizija !== data.need.revizija))) return;
-    void editor.save(async () => {
+    return editor.save(async () => {
       if (!session.pending) session.pending = { need: data.need, candidate: k, result: null, inFlight: false, reconciled: false,
         command: Object.freeze({ potrebaId: data.need.id, potrebaRevizija: data.need.revizija, prijavaId: k.prijavaId,
           prijavaVerzija: k.verzija, prijavaHash: k.hash, mesta: k.pokrivaMesta, clientRequestId: noviZahtevId('izbor') }) };
@@ -108,12 +114,16 @@ export default function Kandidati() {
     session.navigated = true; router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id } });
   };
   if (!data) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
-  if (!candidate) return <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
+  // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
+  const list = <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
     open={openOffer} openTask={openTask} sort={sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL'}
-    onSort={sort => setSorted({ scope: sortScope, sort })} />;
+    onSort={sort => setSorted({ scope: sortScope, sort })} photo={photo} />;
+  if (!candidate) return list;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
-  return <CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
-    publicPhoto={profileId => <ProfilePhoto profileId={profileId} initial={null} />} safety={safety}
+  return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
+    photo={photo(candidate, 56)} safety={safety}
+    // The profile sheet's 96 px portrait, as the task's poster sheet draws it: the photo or its own large stand-in.
+    publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />}
     readAgreement={async () => {
       if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
       const result = await readSelectedAgreement(data.need.id, candidate.prijavaId);
@@ -130,12 +140,12 @@ export default function Kandidati() {
     choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} refresh={refresh}
     error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovi isti zahtev.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
-        ? 'Ponuda je otvorena, ali oznaka viđenosti nije potvrđena. Vrati se na Prijave i ponovo otvori ovu ponudu da pokušaš još jednom.' : null)}
+        ? 'Ponuda je otvorena, ali oznaka viđenosti nije potvrđena. Zatvori ponudu i otvori je ponovo da pokušaš još jednom.' : null)}
     confirmed={!!data.receipt} openAgreement={() => {
       if (!current() || !data.receipt || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });
     }} reset={rejection && !editor.uncertain ? () => {
       if (!current() || editor.busy || !pending || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
       session.pending = null; setOpened(null); void editor.refresh();
-    } : undefined} />;
+    } : undefined} /></>;
 }

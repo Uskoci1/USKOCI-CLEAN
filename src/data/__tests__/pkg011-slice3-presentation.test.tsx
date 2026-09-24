@@ -136,7 +136,8 @@ test('closed applications remove the brand action and say so; the requester prof
   await act(async () => tree.update(<Detail canApply={false} profile={{ loading: false, data: { profilId: 'profile-1', uloga: 'narucilac', ime: 'Ana Anić', avatarPutanja: null, grad: 'Beograd', naslov: null, biografija: 'Volim red.',
     poverenje: { ocenaProsek: 4.8, brojRecenzija: 3, zavrseniBroj: 5, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false } } }} />));
   const copy = texts();
-  expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('4.8'); expect(copy).toContain('3 recenzije'); expect(copy).toContain('Volim red.');
+  // Step 7 (2026-09-24): the sheet wrote the raw number ("4.8"); a rating is written the Serbian way, as on every row.
+  expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('Ocena 4,8 3 recenzije'); expect(copy).toContain('Volim red.');
   expect(copy).not.toContain('Identitet je potvrđen');
   await act(async () => byLabel('Zatvori javni profil').props.onPress()); expect(close).toHaveBeenCalledTimes(1);
 });

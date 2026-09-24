@@ -13,15 +13,19 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, displayDate, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import type { AvatarSize } from '../system/Avatar';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
-import { ProfilePhoto } from '../media/ContextPhotos';
-import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { DetailSection, ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, osobuAkuz, prijava } from '../system/plural';
-import { SkeletonList } from '../system/Skeleton';
+import { StateView } from '../system/StateView';
+import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
 import { brandAction, card, cardCompact, sys, inset, field } from '../system/tokens';
 import { T } from '../Text';
+import { CandidateCard, CandidateCompareCard, CandidatePerson, CandidateStatusLine, UNPRICED, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
 import { V2Action } from './V2Action';
 
 export type ApplicationDraft = { price: string; people: string; note: string; start: string | null; end: string | null };
@@ -34,12 +38,6 @@ function applicationInterval(start: string | null | undefined, end: string | nul
     return `${displayDate(a.date)} · ${a.time.slice(0, 5)}–${a.date === b.date ? '' : `${displayDate(b.date)} · `}${b.time.slice(0, 5)} (${zone === 'Europe/Belgrade' ? 'po vremenu u Srbiji' : zone})`;
   } catch { return null; }
 }
-function candidateState(k: KandidatProjekcija): string {
-  return ({ SELECTABLE: 'Poslata prijava', STALE: 'Potrebna nova provera', OVERFILL: 'Više ljudi nego što je preostalo',
-    SELECTED: 'Izabrana prijava', WITHDRAWN: 'Povučena prijava', CLOSED: 'Zadatak je zatvoren', FULL: 'Sva mesta su popunjena' })[k.stanje];
-}
-const candidateTone = (k: KandidatProjekcija) => k.stanje === 'SELECTABLE' ? sys.color.green : k.stanje === 'SELECTED' ? sys.color.green
-  : k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? sys.color.warn : sys.color.muted;
 
 /** Shared identity, keyboard-safe body and one next action. */
 function SelectionFrame({ title, back, children, footer, scroll = true, backLabel = 'Nazad na zadatak', right }: {
@@ -57,16 +55,22 @@ function SelectionFrame({ title, back, children, footer, scroll = true, backLabe
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
-/** While the read runs, the shape of what is coming stands in for it — cards, not a spinner — so nothing jumps when the rows arrive. */
+/**
+ * While the read runs, the shape of what is coming stands in for it — cards, not a spinner — so nothing jumps when the rows
+ * arrive; a read that failed says so the one way every screen does (`StateView`): its first sentence as the title, the
+ * rest under it, and the retry as the green action.
+ */
 export function SelectionUnavailable({ loading, message, retry, back }: { loading: boolean; message: string; retry?: () => void; back: () => void }) {
+  const [title, body] = splitFirstSentence(message);
   return <SelectionFrame title="Prijave" back={back}>
-    {loading ? <View accessibilityLiveRegion="polite" style={s.loading}><SkeletonList count={3} rows={2} />
-      <T variant="meta" tone="muted" style={s.center}>Učitavamo aktuelne podatke…</T></View>
-      : <View style={s.card}>
-        <T accessibilityRole="alert" variant="body" style={s.ink}>{message}</T>
-        {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} style={brandAction} /> : null}
-      </View>}
+    {loading ? <StateView kind="loading" title="Učitavamo aktuelne podatke…" skeleton={{ count: 3, rows: 2 }} />
+      : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
   </SelectionFrame>;
+}
+/** "Zadatak se upravo promenio. Učitaj Prijave ponovo." → the first sentence and the rest; one sentence stays whole. */
+function splitFirstSentence(message: string): [string, string | null] {
+  const match = /^(.+?[.!?])\s+(\S[\s\S]*)$/.exec(message.trim());
+  return match ? [match[1], match[2]] : [message.trim(), null];
 }
 /** The Task the offer belongs to, as a compact context card. The green title is the task; no word
  *  above it says so (owner's rule, 2026-09-23: nothing explains where you are). */
@@ -240,96 +244,29 @@ export function ApplicationSelectionPresentation({ need, opportunity, draft, cha
     </Modal> : null}
   </SelectionFrame>;
 }
-/** A missing rating reads as missing; the count beside it (reviews, or finished jobs when there are no
- *  reviews) is the server's real number and is still worth reading. Never an invented figure. */
-function candidateTrustText(k: KandidatProjekcija): string {
-  const count = k.recenzijeTekst.trim();
-  if (k.ocenaTekst === '—') return count ? `Ocena nije dostupna · ${count}` : 'Ocena nije dostupna';
-  return count ? `${k.ocenaTekst} · ${count}` : k.ocenaTekst;
-}
-/** The same public-profile photo follows the person from list to full offer. */
-function CandidateIdentity({ candidate, publicProfile }: { candidate: KandidatProjekcija; publicProfile: () => void }) {
-  return <View style={s.identity}><ProfilePhoto profileId={candidate.radnikProfilId} size={80} initial={candidate.inicijali} />
-    <View style={[s.grow, { gap: 3 }]}>
-      <T style={s.candidateName}>{candidate.ime}</T>
-      {candidate.ocenaTekst !== '—' ? <View style={s.inline}><FactArt kind="star" size={15} />
-        <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T></View>
-        : <T variant="meta" tone="muted">{candidateTrustText(candidate)}</T>}
-      <V2Action label="Javni profil" kind="quiet" onPress={publicProfile} style={s.quietLeft} />
-    </View></View>;
-}
-/**
- * One offer as the owner's V41 reference sets it (2026-09-23): the person and their record on the left,
- * the total and the people it covers on the right, the message in two lines, and one bottom line — the
- * proposed time when the offer can be chosen, or the server's reason when it cannot.
- */
-const CandidateRow = memo(function CandidateRow({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
-  const time = applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst;
-  const message = k.napomena?.trim() ?? '';
-  const messagePreview = Array.from(message).slice(0, 180).join('');
-  const selectable = k.stanje === 'SELECTABLE', tone = candidateTone(k);
-  // This card is one accessible button: its explicit name replaces child text, so expose the
-  // same offer facts and a bounded message before opening the offer marks it viewed. An offer that
-  // cannot be chosen also says why, which the card now shows only in its bottom line.
-  const hint = `Ukupno ${k.cena.prikaz}; ${osoba(k.pokrivaMesta)}; termin ${time}.${message
-    ? ` Poruka: „${messagePreview}${messagePreview.length < message.length ? '…' : ''}“. Otvori ponudu za celu poruku.` : ''}${selectable ? '' : ` ${candidateState(k)}.`}`;
-  return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} haptic="select" scaleTo={0.985}
-    accessibilityHint={hint} onPress={open} style={[s.candidate, k.stanje === 'SELECTED' && s.candidateChosen]}>
-    <View style={s.candidateTop}>
-      <ProfilePhoto profileId={k.radnikProfilId} size={44} initial={k.inicijali} />
-      <View style={s.candidateId}>
-        <T style={s.candidateListName}>{k.ime}</T>
-        {k.ocenaTekst === '—' ? <T variant="meta" tone="muted">{candidateTrustText(k)}</T>
-          : <View style={s.inline}><FactArt kind="star" size={15} />
-            <T variant="meta" tone="muted" style={s.shrink}>{candidateTrustText(k)}</T></View>}
-      </View>
-      <View style={s.candidateOffer}>
-        <T style={s.candidatePrice}>{k.cena.prikaz}</T>
-        <T variant="meta" tone="muted" style={s.alignEnd}>{`ukupno · ${osoba(k.pokrivaMesta)}`}</T>
-      </View>
-    </View>
-    <T variant="note" tone={message ? 'ink' : 'muted'} numberOfLines={2} ellipsizeMode="tail">{message || 'Nema dodatne poruke.'}</T>
-    <View style={s.candidateBottom}>
-      {selectable ? <FactArt kind="calendar" size={22} />
-        : k.stanje === 'SELECTED' ? <FactArt kind="check" size={20} /> : <FactArt kind="info" size={20} muted />}
-      <T variant="meta" tone="muted" style={[s.grow, !selectable && { color: tone, fontWeight: '600' }]}>{selectable ? time : candidateState(k)}</T>
-      <CaretRight size={18} color={sys.color.muted} />
-    </View>
-  </Press>;
-});
+/** A person's picture at the size its place asks for, handed in by the screen; the Avatar with their letters when absent. */
+export type CandidatePhoto = (candidate: KandidatProjekcija, size: AvatarSize) => ReactNode;
 
-/** Two offers side by side. A comparison only compares if the same three cells line up in both
- *  columns, so the free-text capabilities line — which is a different length for everyone — moved
- *  to the offer screen where it can have the room it needs. */
-const CompareCell = memo(function CompareCell({ candidate: k, need, open }: { candidate: KandidatProjekcija; need: PotrebaProjekcija; open: () => void }) {
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} haptic="select" scaleTo={0.985}
-    onPress={open} style={s.comparison}>
-    <View style={s.compareIdentity}><ProfilePhoto profileId={k.radnikProfilId} size={64} initial={k.inicijali} />
-      <T variant="bodyStrong" style={s.ink}>{k.ime}</T>
-      <T variant="meta" tone="muted">{candidateTrustText(k)}</T></View>
-    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ukupno</T><T style={s.comparePrice}>{k.cena.prikaz}</T></View>
-    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
-    <View style={s.compareCell}><T variant="label" tone="muted" style={s.compareLabel}>Termin</T>
-      <T variant="meta" style={s.ink}>{applicationInterval(k.predlozeniPocetak, k.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst}</T></View>
-    {k.stanje === 'SELECTABLE' ? null : <T variant="meta" style={{ color: candidateTone(k), fontWeight: '600' }}>{candidateState(k)}</T>}
-  </Press>;
-});
-
+/** The side padding of a screen body here (the list and the composer). */
+const LIST_PADDING = 20;
 const candidateKey = (k: KandidatProjekcija) => k.prijavaId;
-const CandidateSeparator = () => <View style={{ height: 12 }} />;
+const CandidateSeparator = () => <View style={s.separator} />;
 /**
  * One candidate in the list, as a card or as a comparison column. Memoised on the row's own object
  * and primitives so a re-render of the screen touches only the rows whose offer changed; the
  * closure over `candidate` is made here, from the list's one stable `open`.
  */
-const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columns, open }: {
-  candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean; columns: number;
-  open: (candidate: KandidatProjekcija) => void;
+const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo }: {
+  candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean;
+  /** The width of one of two comparison columns; null in one column. A lone last offer keeps it instead of the whole row. */
+  columnWidth: number | null; large: boolean; narrow: boolean; open: (candidate: KandidatProjekcija) => void; photo?: CandidatePhoto;
 }) {
   const openThis = useCallback(() => open(candidate), [open, candidate]);
-  return <Appear index={index} animate={animate} style={columns === 2 ? s.comparisonColumn : undefined}>
-    {compare ? <CompareCell candidate={candidate} need={need} open={openThis} />
-      : <CandidateRow candidate={candidate} need={need} open={openThis} />}
+  const face = photo?.(candidate, 40);
+  return <Appear index={index} animate={animate} style={columnWidth ? { width: columnWidth } : undefined}>
+    {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} onOpen={openThis}
+      photo={face} aligned={columnWidth !== null} />
+      : <CandidateCard candidate={candidate} timezone={need.taskTimezone} onOpen={openThis} photo={face} large={large} narrow={narrow} />}
   </Appear>;
 });
 
@@ -360,13 +297,23 @@ function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void 
     : <View accessible accessibilityLabel={`${title}. ${places}`} style={s.brief}>{body}</View>;
 }
 
-/** Candidates of one Task: offers as cards, or side by side for a fast decision (owner decision 3, TARG-034). */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort }: {
+/**
+ * Candidates of one Task (owner's step 7, 2026-09-24): the offers as person-first cards (`CandidateFace`), or side by
+ * side for a fast decision (owner decision 3, TARG-034). Two columns only while they fit: a phone at least 360 wide and a
+ * text size under the owner's Large (read rounded, since Android hands Large over as 1.2999999523); the same two conditions
+ * move a card's total under the person. An offer opens as a sheet over this list, so the list is still where the person
+ * left it when they close it.
+ */
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, photo, textScale: forcedScale }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
   /** The row at the top opens the Task these offers answer. */
   openTask?: () => void;
   /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
   sort?: CandidateSort; onSort?: (sort: CandidateSort) => void;
+  /** The person's photo in a row; the Avatar with their letters when absent. */
+  photo?: CandidatePhoto;
+  /** The text size the layout follows; the phone's own (rounded) when absent. Only the internal gallery sets it. */
+  textScale?: number;
 }) {
   const [compare, setCompare] = useState(false);
   const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
@@ -374,8 +321,12 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const sort = chosenSort ?? ownSort;
   const { width } = useWindowDimensions();
   // Rounded: Android's "Large" arrives as 1.2999999523 and must count as the 1.3 it is.
-  const textScale = useTextScale();
-  const columns = compare && width >= 360 && textScale < 1.3 ? 2 : 1;
+  const phoneScale = useTextScale();
+  const textScale = forcedScale ?? phoneScale;
+  const large = textScale >= 1.3, narrow = width < 360;
+  const columns = compare && !narrow && !large ? 2 : 1;
+  // Two columns share the list's width less its side padding and the gap between them.
+  const columnWidth = columns === 2 ? Math.floor((width - 2 * LIST_PADDING - sys.space.md) / 2) : null;
   // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
   // The list that was already there settles silently, and switching to the comparison and back is
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.
@@ -387,8 +338,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const openRef = useRef(open); openRef.current = open;
   const openCandidate = useCallback((k: KandidatProjekcija) => openRef.current(k), []);
   const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
-    <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columns={columns} open={openCandidate} />,
-  [need, compare, columns, openCandidate]);
+    <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columnWidth={columnWidth}
+      large={large} narrow={narrow} open={openCandidate} photo={photo} />,
+  [need, compare, columnWidth, large, narrow, openCandidate, photo]);
   // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
   const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
@@ -401,7 +353,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}
     right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(v => !v)} /> : undefined}>
     <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
-      contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator}
+      contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
       ListHeaderComponent={<View style={s.listHeader}><TaskBrief need={need} open={openTask} />
         {candidates.length ? <View style={s.toolbar}><T variant="meta" tone="muted" style={s.grow}>{counts}</T>
           {candidates.length > 1 ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}
@@ -415,13 +367,16 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
             <T variant="body" style={[s.grow, s.ink]}>{SORT_LABEL[option]}</T>{sort === option ? <Check size={18} weight="bold" color={sys.color.green} /> : null}
           </Press>)}</View> : null}
       </View>}
-      ListEmptyComponent={<View style={s.card}><T accessibilityRole="header" variant="title" style={s.ink}>Još nema prijava.</T><T variant="body" tone="muted">Kada neko pošalje ponudu za ovaj Zadatak, pojaviće se ovde.</T></View>}
+      // What happens next, without promising that anyone will apply.
+      ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava"
+        body="Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde i moći ćeš da je uporediš pre izbora."
+        quiet={{ label: 'Osveži prijave', onPress: refresh }} />}
       renderItem={renderItem}
-      ListFooterComponent={<View style={s.listFooter}>
+      ListFooterComponent={candidates.length ? <View style={s.listFooter}>
         {unavailable ? <View style={s.footnote}><FactArt kind="info" size={20} muted />
           <T variant="note" tone="muted" style={s.grow}>Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš. Razlog piše na njenoj kartici.</T></View> : null}
         <V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />
-      </View>} />
+      </View> : null} />
   </SelectionFrame>;
 }
 function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ dogovorId: string | null }>>; open: (id: string) => void }) {
@@ -437,20 +392,43 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
   };
   useEffect(() => { void read(); return () => { request.current++; }; }, [load]);
   if (state.id) return <BrandAction label="Otvori Dogovor" onPress={() => { if (state.id) open(state.id); }} />;
-  return <><T variant="meta" tone="muted">{state.loading ? 'Proveravamo Dogovor uz ovu Prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
+  return <><T variant="meta" tone="muted" style={s.center}>{state.loading ? 'Proveravamo Dogovor uz ovu Prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
     <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} loading={state.loading} /></>;
 }
-/** One offer in full, the public profile as a sheet, and the one choice that forms the Agreement. */
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety }: {
-  need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>; choose: () => void;
+
+/** The words that stand before the one choice that forms the Agreement; the same in the question and while it is retried. */
+const CHOICE_TITLE = 'Jedan izbor sklapa Dogovor.';
+const choiceTerms = (candidate: KandidatProjekcija) =>
+  `Izborom prihvataš ovu ponudu: ${candidate.cena.prikaz} ukupno, ${dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.`;
+const CHOICE_NOTE = 'Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.';
+
+/**
+ * One offer in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
+ * behind it). The person leads — their picture, name and rating, which open their public profile — then the offer: the
+ * total and whom it is for, the time, their whole message and what they declared with it.
+ *
+ * The sheet's pinned footer holds the ONE green action. "Izaberi ovu ponudu" asks first, in an in-app confirmation with
+ * the words that always stood before this choice; only its confirm runs the route's `choose`, which keeps every guard it
+ * had (the read revision and account, the offer's own version and hash, the selectable classifier, one idempotent
+ * command). A retained confirmation is retired the moment the offer it asked about changes. After a choice the footer
+ * carries its outcome: the Dogovor, a check of an unknown outcome, or the same command again.
+ *
+ * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
+ * Nothing closes it while the choice runs.
+ */
+export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo }: {
+  need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>;
+  /** The route's one choice. A returned promise keeps the confirmation busy until the command settles. */
+  choose: () => void | Promise<unknown>;
   busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void; error: string | null; confirmed: boolean;
   openAgreement: () => void; reset?: () => void;
   readAgreement: () => Promise<Ishod<{ dogovorId: string | null }>>; openLinkedAgreement: (id: string) => void;
-  publicPhoto?: (profileId: string) => ReactNode;
+  publicPhoto?: (profileId: string, size?: number) => ReactNode;
   /** PKG-047 (F05): report or block this candidate from their own public profile. */
   safety?: SafetyEntry;
+  /** The person's picture at the head of the offer (56); the Avatar with their letters when absent. */
+  photo?: ReactNode;
 }) {
-  const [review, setReview] = useState(false);
   const [profile, setProfile] = useState<PublicProfileState>(null);
   const profileRequest = useRef(0);
   useEffect(() => () => { profileRequest.current++; }, []);
@@ -464,47 +442,67 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       if (request === profileRequest.current) setProfile({ loading: false, data: value?.profilId === candidate.radnikProfilId ? value : null });
     } catch { if (request === profileRequest.current) setProfile({ loading: false, data: null }); }
   };
+  const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
+  // A question asked about one exact offer is not an answer about a changed one.
+  const offerKey = [need.id, need.revizija, candidate.prijavaId, candidate.verzija, candidate.hash, candidate.stanje, candidate.mozeIzabrati].join(':');
+  useEffect(() => { retireConfirmation(); }, [offerKey, retireConfirmation]);
+  const askToChoose = () => {
+    if (!candidate.mozeIzabrati || busy || pending || confirmed) return;
+    confirmation.ask({ title: CHOICE_TITLE, message: `${choiceTerms(candidate)} ${CHOICE_NOTE}`, confirmLabel: 'Izaberi ovu Prijavu',
+      onConfirm: () => choose() });
+  };
+  const value = candidateValue(candidate), time = candidateTime(candidate, need.taskTimezone), status = candidateStatus(candidate);
   const evidence = candidate.dokazPrijave;
-  return <SelectionFrame title={review || pending ? 'Pregled izbora' : 'Ponuda'} back={back}
-    footer={confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
-      : candidate.stanje === 'SELECTED' && !pending ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
-      : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-      : review || pending ? <BrandAction label={busy ? 'Povezivanje…' : pending ? 'Ponovi isti izbor' : 'Izaberi ovu Prijavu'} onPress={choose}
-        disabled={busy || (!pending && !candidate.mozeIzabrati)} loading={busy} />
-      : candidate.mozeIzabrati ? <BrandAction label="Pregledaj povezivanje" onPress={() => setReview(true)} /> : undefined}>
-    <TaskContext need={need} />
-    <View style={s.card}><CandidateIdentity candidate={candidate} publicProfile={() => { void openProfile(); }} />
+  const declared = evidence.sema === 'APPLICATION_V1_SELF_DECLARED'
+    ? [...(evidence.vestine ?? []), ...(evidence.alati ?? []), ...(evidence.vozila ?? []), ...(evidence.licence ?? [])].join(' · ') : null;
+  const message = candidate.napomena?.trim() ?? '';
+  const selected = candidate.stanje === 'SELECTED' && !pending;
+  // An offer that cannot be chosen has no green action; the band says so and carries the one thing to do about it.
+  const blocked = !candidate.mozeIzabrati && !pending && !confirmed && !selected;
+  const primary = confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
+    : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
+    : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
+    : pending || busy ? <BrandAction label={busy ? 'Povezivanje…' : 'Ponovi isti izbor'} onPress={() => { void choose(); }} disabled={busy} loading={busy} />
+    : candidate.mozeIzabrati ? <BrandAction label="Izaberi ovu ponudu" onPress={askToChoose} />
+    : null;
+  const quiet = reset ? <V2Action label="Pregledaj aktuelne prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
+  return <ProductSheet label={`Ponuda: ${candidate.ime}`} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
+    backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
+    footer={primary || quiet ? () => <View style={s.sheetFooter}>{primary}{quiet}</View> : undefined}>
+    {() => <>
+      <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
+      {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
+        {status ? <CandidateStatusLine status={status} /> : null}
+        {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>
+          <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.bandAction} /></> : null}
+      </View> : null}
       <ProductFacts>
-        <ProductFact art="money" label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={candidate.cena.prikaz} prominent />
-        <ProductFact art="users" label="Ljudi" value={osoba(candidate.pokrivaMesta)} />
-        <ProductFact art="calendar" label="Termin" value={applicationInterval(candidate.predlozeniPocetak, candidate.predlozeniKraj, need.taskTimezone) ?? need.vremeTekst} />
+        <ProductFact art="money" label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={value.kind === 'amount' ? value.amount : UNPRICED}
+          prominent prominentAs={value.kind === 'amount' ? 'amount' : 'label'} />
+        <ProductFact art="calendar" label="Termin" value={time ?? need.vremeTekst} note={time ? undefined : 'Termin zadatka'} />
       </ProductFacts>
-      {candidate.stanje === 'SELECTABLE' ? null
-        : <View style={s.stateBand}><T variant="bodyStrong" style={{ color: candidateTone(candidate) }}>{candidateState(candidate)}</T></View>}</View>
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Poruka uz prijavu</T><T variant="body" style={s.ink}>{candidate.napomena || 'Nema dodatne poruke.'}</T></View>
-    <View style={s.card}><T variant="meta" style={s.eyebrow}>Uslovi uz ovu prijavu</T>
-      {evidence.sema === 'APPLICATION_V1_SELF_DECLARED' ? <><T variant="body" style={s.ink}>{[...(evidence.vestine ?? []), ...(evidence.alati ?? []),
-        ...(evidence.vozila ?? []), ...(evidence.licence ?? [])].join(' · ') || 'Nema dodatno navedenih sposobnosti.'}</T>
-        <T variant="meta" tone="muted">Sačuvana samoizjava uz ovu Prijavu. Kasnija izmena radnog profila je ne prepisuje.</T></>
-        : <T variant="meta" tone="muted">Za ovu stariju Prijavu sačuvani dokazi o sposobnostima nisu dostupni.</T>}
-    </View>
-    {review || pending ? <View style={s.warnCard}><T accessibilityRole="alert" variant="title" style={s.ink}>Jedan izbor sklapa Dogovor.</T><T variant="body" style={s.ink}>
-      Izborom prihvataš ovu ponudu: {candidate.cena.prikaz} ukupno, {dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.</T>
-      <T variant="meta" tone="muted">Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.</T></View> : null}
-    {confirmed ? <T accessibilityRole="alert" variant="title" style={s.ink}>Dogovor je sklopljen.</T> : candidate.stanje === 'SELECTED' && !pending ? <T variant="body" style={s.ink}>Ova ponuda je izabrana.</T>
-      // An offer that cannot be chosen has no brand action; the sentence that says why also carries
-      // the one thing to do about it, instead of naming a refresh that was nowhere on the screen.
-      : !candidate.mozeIzabrati && !pending ? <View style={s.card}><T variant="body" tone="muted">{candidateState(candidate)}. Osveži Prijave da proveriš aktuelno stanje.</T>
-        <V2Action label="Osveži prijave" onPress={refresh} disabled={busy} /></View> : null}
-    <ErrorMessage error={error} />{reset ? <V2Action label="Pregledaj aktuelne prijave" onPress={reset} disabled={busy} /> : null}
-    <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />
-  </SelectionFrame>;
+      <DetailSection title="Poruka">
+        {message ? <T selectable variant="body" style={s.ink}>{candidate.napomena}</T> : <T variant="body" tone="muted">Bez poruke.</T>}
+      </DetailSection>
+      <DetailSection title="Sposobnosti">
+        {declared !== null ? <><T variant="body" tone={declared ? 'ink' : 'muted'}>{declared || 'Nema dodatno navedenih sposobnosti.'}</T>
+          <T variant="meta" tone="muted">Sačuvana samoizjava uz ovu Prijavu. Kasnija izmena radnog profila je ne prepisuje.</T></>
+          : <T variant="meta" tone="muted">Za ovu stariju Prijavu sačuvani dokazi o sposobnostima nisu dostupni.</T>}
+      </DetailSection>
+      {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
+        <T variant="body" style={s.ink}>{choiceTerms(candidate)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
+      {confirmed ? <View style={s.done}><SuccessMark fresh size={48} />
+        <T accessibilityRole="alert" variant="title" style={[s.ink, s.grow]}>Dogovor je sklopljen.</T></View> : null}
+      <ErrorMessage error={error} />
+      {confirmation.sheet}
+      <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />
+    </>}
+  </ProductSheet>;
 }
 const s = StyleSheet.create({
-  compareIdentity: { minHeight: 156, gap: 8 },
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
   eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 }, ink: { color: sys.color.ink },
-  content: { padding: 20, paddingTop: 16, paddingBottom: 28 },
+  content: { padding: LIST_PADDING, paddingTop: 16, paddingBottom: 28 },
   card: { ...card, gap: 10 },
   cardSuccess: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   warnCard: { ...inset, backgroundColor: sys.color.warnSoft, padding: 16, gap: 8 },
@@ -521,41 +519,31 @@ const s = StyleSheet.create({
   inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }, summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
-  loading: { gap: 16 },
   blocked: { alignItems: 'center', gap: 2, paddingTop: 4 },
   listHeader: { gap: 4, marginBottom: 12 },
-  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: sys.touch.min, paddingTop: 4, paddingBottom: 14,
+  // A row that opens something is a command: never under 48.
+  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingTop: 4, paddingBottom: 14,
     borderBottomWidth: 1, borderColor: sys.color.line },
   briefCopy: { flex: 1, minWidth: 0, gap: 2 },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 },
-  sortButton: { minHeight: sys.touch.min, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
+  sortButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
   sortText: { color: sys.color.ink, fontWeight: '600' },
   sortMenu: { ...cardCompact, padding: 0, marginBottom: 8, overflow: 'hidden' },
   sortOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   sortDivider: { borderTopWidth: 1, borderColor: sys.color.line },
-  // V41's offer card: the compact 20px corner, a hairline edge, the same soft shadow as every card.
-  candidate: { ...cardCompact, gap: 12 },
-  candidateChosen: { borderColor: sys.color.lineStrong, backgroundColor: sys.color.greenSoft },
-  candidateTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  candidateId: { flex: 1, minWidth: 0, gap: 2 },
-  candidateName: { ...sys.type.cardTitle, color: sys.color.ink },
-  candidateListName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
-  candidateOffer: { alignItems: 'flex-end', gap: 2, maxWidth: '48%' },
-  candidatePrice: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'right' },
-  alignEnd: { textAlign: 'right' },
-  candidateBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: sys.color.line },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  shrink: { flexShrink: 1 },
-  stateBand: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingHorizontal: 12, paddingVertical: 8 },
-  comparison: { ...cardCompact, flex: 1, minWidth: 0, padding: 14, marginHorizontal: 4, gap: 8 },
-  comparisonColumn: { flex: 1, minWidth: 0 },
-  compareCell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line }, compareLabel: { letterSpacing: 0.2 },
-  comparePrice: { ...sys.type.priceSmall, color: sys.color.money },
+  separator: { height: sys.space.md },
+  columnRow: { gap: sys.space.md },
   listFooter: { gap: 4, paddingTop: 12 },
   footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8 },
-  quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 }, footerAction: { alignSelf: 'center', marginTop: 8 },
+  footerAction: { alignSelf: 'center', marginTop: 8 },
+  // The offer sheet: its pinned actions, a state band on a flat tint (never a card inside the sheet), the outcome.
+  sheetFooter: { gap: sys.space.xs },
+  band: { ...inset, backgroundColor: sys.color.wash, gap: sys.space.sm },
+  bandWarn: { backgroundColor: sys.color.warnSoft },
+  bandGreen: { backgroundColor: sys.color.greenSoft },
+  bandAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
+  done: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });
