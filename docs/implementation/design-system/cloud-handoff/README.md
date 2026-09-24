@@ -87,7 +87,9 @@ See the last section of this file (updated at handoff).
 
 - Branch `work/uskoci-ui-unification-20260924` at `bc127755` (rounds 1–5 and the round-5 review fixes integrated).
 - `npx tsc --noEmit` clean; full Jest **297 suites / 5,707 tests** pass on `bc127755`.
-- Emulator build `36015751245` was dispatched on `bc127755`; the owner's PC photographs it.
+- Emulator build `36015751245` on `bc127755` was installed and photographed on the owner's PC (receipt
+  `docs/implementation/design-system/r5-emulator-bc127755/`). Proofs green on this code: PKG-005, 006, 007, 048 and
+  PKG-010 (after `45d49581` declared the two new pure helpers `tacanTermin` and `inicijali` in its allowlists).
 - **Do first in the cloud (round 5c):** the independent verifiers of the round-5 fixes left small items, all "fix first"
   or low. Read `round5b/*-verify-*.md` (profil: keyboard footer dead tap and two photo fixes that clash; kalendar: the
   overnight-copy one-line regression and two accessibility fixes; obavestenja: the inbox filter rebuilding the whole
