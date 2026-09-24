@@ -18,6 +18,12 @@ bell), warm strips, underlined tabs with quiet counts, person-first Dogovori car
 Prijave, Profil identity row, bell swing / arriving art / breathing skeletons. Final code 6f084f95: Jest 251/4,816, proofs
 green, emulator regression 24/24 without a crash (docs/implementation/design-audit-20260923/final-6f084f95-v41/).
 
+CLOUD HANDOFF (2026-09-24, owner: continue in the cloud to use the cloud session credits): read
+`docs/implementation/design-system/cloud-handoff/README.md` first. It carries the working rules copied from the local
+agent memory (`cloud-handoff/rules/`), where rounds 1-5 stand (steps 1-11 built and emulator-checked; receipts in
+`docs/implementation/design-system/r1-…` to `r5-…`), the round-5 verifier leftovers to apply first, and the cloud-ready
+round-6 workflow (remaining screens plus a whole-app sweep). The emulator screenshot loop stays on the owner's PC.
+
 MASTER DESIGN PLAN (2026-09-24): read `USKOCI_MASTER_PLAN_DIZAJNA.md` first for all UI/UX work. It holds the audit, the shared
 components that replace the conflicting ones, and the owner's 12-step order. Work branch: `work/uskoci-ui-unification-20260924`.
 
