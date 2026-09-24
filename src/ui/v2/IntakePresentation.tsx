@@ -156,7 +156,7 @@ export function IntakePresentation(props: Props) {
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
-    welcomeDetail="Ispričaj svojim rečima — glasom ili kucanjem. Ja hvatam detalje sa strane, ti potvrđuješ šta je tačno."
+    welcomeDetail="Piši ili drži mikrofon. Detalje slažemo usput, a ti ih potvrđuješ pre objave."
     openings={OPENINGS}
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={() => { Keyboard.dismiss(); setPanel('options'); }} voice={props.voice}
@@ -171,8 +171,8 @@ export function IntakePresentation(props: Props) {
       style={[s.taskCard, compact && s.taskCardCompact, !conversation.facts.length && s.taskCardEmpty]}>
       <View style={s.row}>
         <View style={[s.dot, busy && s.dotBusy]} />
-        <T variant="label" style={s.kicker}>TVOJ ZADATAK · {busy ? 'USKLAĐUJEM' : 'NACRT'}</T>
-        {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Detalji</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
+        <T variant="label" style={s.kicker}>{busy ? 'Usklađujem nacrt' : 'Nacrt zadatka'}</T>
+        {props.canReview ? <View style={s.detailLink}><T variant="meta" tone="muted">Pregled</T><CaretRight size={14} color={sys.color.muted} /></View> : null}
       </View>
       <T style={[s.cardTitle, compact && s.cardTitleCompact, !conversation.facts.length && s.cardTitleEmpty]} numberOfLines={compact ? 1 : 2}>{summary.title}</T>
       {conversation.status === 'OPEN' ? <T variant="meta" tone="muted" numberOfLines={2}>
