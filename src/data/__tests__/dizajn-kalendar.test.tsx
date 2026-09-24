@@ -34,7 +34,8 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   await act(async () => { tree = create(<DizajnKalendar />); });
   const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Kalendar|Dostupnost|List) · /.test(String(node.props.accessibilityLabel)))
     .map(node => String(node.props.accessibilityLabel));
-  expect(labels).toHaveLength(19);
+  // 21 since the review of step 10: the list that does not say the exact time, and availability without a work profile.
+  expect(labels).toHaveLength(21);
   for (const label of labels) {
     await pressHost(label);
     expect(text()).not.toContain('Kalendar · galerija');
@@ -49,4 +50,24 @@ it('draws both sides, a finished Dogovor and the row of Dogovori without an exac
   expect(text()).toContain('Uskačeš · Ana'); expect(text()).toContain('Tvoj zadatak · Marko');
   expect(text()).toContain('Završeno'); expect(text()).toContain('Čeka se potvrda završetka');
   expect(text()).toContain('Bez tačnog termina');
+  // My own work, marked done, waits for the other side's confirmation (review of step 10).
+  expect(text()).toContain('Uskačeš · Nikola');
+});
+
+it('draws what a list read without the exact window leaves: only my work, and a line that says so', async () => {
+  await act(async () => { tree = create(<DizajnKalendar />); });
+  await pressHost('Kalendar · lista ne kaže tačno vreme');
+  expect(text()).toContain('Učitani su samo termini u kojima uskačeš.');
+  expect(text()).not.toContain('Tvoj zadatak');
+  expect(text()).not.toContain('Bez tačnog termina');
+});
+
+it('goes home from the list when it was opened cold by its address', async () => {
+  const router = jest.requireMock('expo-router').router as { canGoBack: () => boolean; back: jest.Mock; replace: jest.Mock };
+  const canGoBack = router.canGoBack;
+  router.canGoBack = () => false;
+  await act(async () => { tree = create(<DizajnKalendar />); });
+  await pressHost('Nazad');
+  expect(router.replace).toHaveBeenCalledWith('/'); expect(router.back).not.toHaveBeenCalled();
+  router.canGoBack = canGoBack;
 });

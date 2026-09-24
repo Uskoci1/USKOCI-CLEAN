@@ -27,16 +27,18 @@ import { V2Action } from '../ui/v2/V2Action';
  * save does nothing. Each scene is chosen from the list by its label; "Nazad" (the strip at the bottom, or the top bar's
  * arrow) returns to the list.
  */
-type SceneKey = 'dan' | 'prazno' | 'ucitava' | 'greska' | 'delimicno' | 'dugi' | 'zona'
-  | 'nedeljaPrazna' | 'nedelja' | 'dUcitava' | 'dGreska' | 'cuva' | 'nepoznato' | 'razlog' | 'sacuvano' | 'dZona'
+type SceneKey = 'dan' | 'prazno' | 'ucitava' | 'greska' | 'delimicno' | 'bezVremena' | 'dugi' | 'zona'
+  | 'nedeljaPrazna' | 'nedelja' | 'dUcitava' | 'dGreska' | 'bezProfila' | 'cuva' | 'nepoznato' | 'razlog' | 'sacuvano' | 'dZona'
   | 'termin' | 'poseban' | 'kopiraj';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'dan', label: 'Kalendar · dan sa Dogovorima' }, { key: 'prazno', label: 'Kalendar · prazan dan' },
   { key: 'ucitava', label: 'Kalendar · učitava' }, { key: 'greska', label: 'Kalendar · greška' },
-  { key: 'delimicno', label: 'Kalendar · samo termini u kojima uskačeš' }, { key: 'dugi', label: 'Kalendar · dugi nazivi' },
+  { key: 'delimicno', label: 'Kalendar · samo termini u kojima uskačeš' },
+  { key: 'bezVremena', label: 'Kalendar · lista ne kaže tačno vreme' }, { key: 'dugi', label: 'Kalendar · dugi nazivi' },
   { key: 'zona', label: 'Kalendar · telefon van Srbije' },
   { key: 'nedeljaPrazna', label: 'Dostupnost · prazna nedelja' }, { key: 'nedelja', label: 'Dostupnost · radna nedelja' },
   { key: 'dUcitava', label: 'Dostupnost · učitava' }, { key: 'dGreska', label: 'Dostupnost · greška' },
+  { key: 'bezProfila', label: 'Dostupnost · bez radnog profila' },
   { key: 'cuva', label: 'Dostupnost · čuva se' }, { key: 'nepoznato', label: 'Dostupnost · ishod nije potvrđen' },
   { key: 'razlog', label: 'Dostupnost · profil, dugme sa razlogom' }, { key: 'sacuvano', label: 'Dostupnost · sačuvano' },
   { key: 'dZona', label: 'Dostupnost · druga vremenska zona' },
@@ -57,15 +59,19 @@ const agreement = (id: string, patch: Partial<AgendaAgreement>): AgendaAgreement
   pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 }, ucesnici: people('narucilac', 'Marko'), rezim: 'FIZICKI',
   kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null,
-  izmenaCeka: null, izvor: { zadatakId: null, prijavaId: null }, tacanTermin: null, ...patch } as AgendaAgreement);
+  izmenaCeka: null, izvor: { zadatakId: null, prijavaId: null }, tacanTermin: null, ...patch });
+/** The same Dogovor as an older list read gives it: without saying whether it has an exact time (no `tacanTermin` key). */
+const unsaid = ({ tacanTermin: _unsaid, ...rest }: AgendaAgreement): AgendaAgreement => rest;
 const event = (id: string, agreementId: string, start: string, end: string): WorkerCalendarEvent =>
   ({ eventId: id, agreementId, agreementVersion: 1, startsAt: start, endsAt: end, agreementStatus: 'CONFIRMED', source: 'AGREEMENT' });
 
-const EVENTS = [event('e1', 'w1', at('08:00'), at('10:30')), event('e2', 'w2', at('18:00', 2), at('20:00', 2))];
+const EVENTS = [event('e1', 'w1', at('08:00'), at('10:30')), event('e2', 'w2', at('19:30'), at('21:00'))];
 const AGREEMENTS: AgendaAgreement[] = [
   agreement('w1', { naslov: 'Montaža police u hodniku', ucesnici: people('uskocer', 'Ana'), cena: { iznos: 2000, valuta: 'RSD', prikaz: '2.000 RSD' },
     putanjaTekst: 'Grbavica, Novi Sad' }),
-  agreement('w2', { naslov: 'Prenos ormara do kombija', ucesnici: people('uskocer', 'Nikola'), cena: { iznos: 0, valuta: 'RSD', prikaz: '' } }),
+  // My own work, marked done and waiting for Nikola: the schedule keeps it and says it waits.
+  agreement('w2', { naslov: 'Prenos ormara do kombija', stanje: 'AWAITING_REQUESTER', ucesnici: people('uskocer', 'Nikola'),
+    cena: { iznos: 0, valuta: 'RSD', prikaz: '' } }),
   agreement('r1', { tacanTermin: { pocetak: at('12:00'), kraj: at('19:00') }, stanje: 'COMPLETED' }),
   agreement('r2', { naslov: 'Čišćenje stana posle krečenja', tacanTermin: { pocetak: at('11:00'), kraj: at('13:00') }, stanje: 'AWAITING_REQUESTER',
     ucesnici: people('narucilac', 'Jelena'), putanjaTekst: 'Detelinara, Novi Sad' }),
@@ -99,11 +105,12 @@ function Calendar({ schedule, list, phoneZone, back }: { schedule: AgendaSchedul
     onBack={back} onRefresh={noop} onRetry={noop} onRetryList={noop} onOpen={noop} onWithoutTerm={noop} onAvailability={noop}
     phoneZone={phoneZone ?? 'Europe/Belgrade'} />;
 }
-function Availability({ value, back, loading = false, error, ...form }: { value: WorkerAvailabilityInput; back: () => void; loading?: boolean;
-  error?: string } & Partial<React.ComponentProps<typeof AvailabilityForm>>) {
+function Availability({ value, back, loading = false, error, errorAction = 'Učitaj sačuvano stanje', ...form }: {
+  value: WorkerAvailabilityInput; back: () => void; loading?: boolean; error?: string; errorAction?: string;
+} & Partial<React.ComponentProps<typeof AvailabilityForm>>) {
   return <CalendarScreen title="Dostupnost za rad" back={back} loading={loading} scroll={false}>
     {error ? <View style={s.pad}><StateView kind="error" art="clock" title="Dostupnost nije učitana." body={error}
-      primary={{ label: 'Učitaj sačuvano stanje', onPress: noop }} /></View>
+      primary={{ label: errorAction, onPress: noop }} /></View>
       : <AvailabilityForm availability={value} busy={false} uncertain={false} onSave={noop} onRefresh={noop} phoneZone="Europe/Belgrade" {...form} />}
   </CalendarScreen>;
 }
@@ -116,12 +123,15 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
     case 'ucitava': return <Calendar back={back} schedule={{ state: 'loading' }} list={{ state: 'loading' }} />;
     case 'greska': return <Calendar back={back} schedule={{ state: 'error', message: null }} list={{ state: 'ready', agreements: AGREEMENTS }} />;
     case 'delimicno': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'error' }} />;
+    // What a list read that does not carry the exact window shows: only my own work, and a line that says so.
+    case 'bezVremena': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS.map(unsaid) }} />;
     case 'dugi': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: LONG }} />;
     case 'zona': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }} phoneZone="America/New_York" />;
     case 'nedeljaPrazna': return <Availability back={back} value={EMPTY} />;
     case 'nedelja': return <Availability back={back} value={WEEK} />;
     case 'dUcitava': return <Availability back={back} value={EMPTY} loading />;
     case 'dGreska': return <Availability back={back} value={EMPTY} error="Podaci nisu učitani. Proveri vezu i pokušaj ponovo." />;
+    case 'bezProfila': return <Availability back={back} value={EMPTY} error="Najpre sačuvaj svoj radni profil." errorAction="Dopuni radni profil" />;
     case 'cuva': return <Availability back={back} value={WEEK} busy />;
     case 'nepoznato': return <Availability back={back} value={WEEK} uncertain onReconcile={noop}
       problem="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." />;
@@ -143,7 +153,8 @@ export default function DizajnKalendar() {
   const [scene, setScene] = useState<SceneKey | null>(null);
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar title="Kalendar · galerija" onBack={() => router.back()} />
+    {/* Opened cold by its address there is no history to go back to. */}
+    <DetailTopBar title="Kalendar · galerija" onBack={() => router.canGoBack() ? router.back() : router.replace('/')} />
     <ScrollView contentContainerStyle={s.list}>
       {SCENES.map(option => <Press key={option.key} accessibilityRole="button" accessibilityLabel={option.label} haptic="select"
         onPress={() => setScene(option.key)} style={s.row}>
@@ -165,8 +176,8 @@ export default function DizajnKalendar() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1, minWidth: 0 },
-  pad: { paddingHorizontal: 20 },
-  list: { paddingHorizontal: 20, paddingBottom: 32 },
-  row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  strip: { paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  pad: { paddingHorizontal: sys.space.lg },
+  list: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.xxl },
+  row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  strip: { paddingHorizontal: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
 });

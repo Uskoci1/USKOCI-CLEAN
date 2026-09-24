@@ -1,4 +1,6 @@
 import React from 'react';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
 
@@ -8,11 +10,12 @@ import type { WorkerAvailability } from '../../contracts/workerAvailability';
  * screen with unsaved changes asks first (A17).
  */
 const mockBack: { handlers: (() => boolean)[] } = { handlers: [] };
+let mockFontScale = 1;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
-    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
+    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: mockFontScale });
     if (key === 'BackHandler') return { addEventListener: (_: string, handler: () => boolean) => {
       mockBack.handlers.push(handler);
       return { remove: () => { mockBack.handlers = mockBack.handlers.filter(item => item !== handler); } };
@@ -25,7 +28,7 @@ jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTi
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() },
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, []) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: 'owned-account' }, accountRevision: 0 }) }));
 jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: { read: jest.fn(), save: jest.fn() } }));
@@ -48,6 +51,14 @@ let tree: ReactTestRenderer;
 const all = (label: string) => tree.root.findAll(node => node.props.label === label || node.props.accessibilityLabel === label);
 const host = (label: string) => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === label)[0];
 const press = async (label: string) => { await act(async () => all(label)[0].props.onPress()); };
+// Updated deliberately (review of owner step 10): a day row with slots is named by its day and speaks its slots as its
+// value ("Prikaži termine — Ponedeljak" was wrong once the day was open), so it is found by its name and its `expanded`.
+const dayRow = (name: string) => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === name
+  && node.props.accessibilityRole === 'button' && node.props.accessibilityState && 'expanded' in node.props.accessibilityState)[0];
+const openDay = async (name: string) => { await act(async () => dayRow(name).props.onPress()); };
+/** A day of a sheet's day picker (a checkbox), not the day row of the week behind the sheet. */
+const pick = async (name: string) => { await act(async () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
+  && node.props.accessibilityRole === 'checkbox' && node.props.accessibilityLabel === name)[0].props.onPress()); };
 const edit = async (label: string, value: string) => { await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onChangeText(value)); };
 const text = () => tree.root.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const form = async (value = availability(), extra: Partial<React.ComponentProps<typeof AvailabilityForm>> = {}) => {
@@ -55,7 +66,7 @@ const form = async (value = availability(), extra: Partial<React.ComponentProps<
   await act(async () => { tree = create(<AvailabilityForm availability={value} busy={false} uncertain={false} onSave={onSave} {...extra} />); });
   return onSave;
 };
-afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.clearAllMocks(); mockBack.handlers = []; });
+afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.clearAllMocks(); mockBack.handlers = []; mockFontScale = 1; });
 
 describe('the Termin sheet', () => {
   it('explains work over midnight only when the end is before the start', async () => {
@@ -91,7 +102,7 @@ describe('the Termin sheet', () => {
     await press('Dodaj — Utorak');
     await edit('Početak termina', '09:00'); await edit('Kraj termina', '17:00');
     await press('Primeni termin');
-    expect(host('Prikaži termine — Utorak').props.accessibilityState.expanded).toBe(true);
+    expect(dayRow('Utorak').props.accessibilityState.expanded).toBe(true);
     expect(all('Isto za sve radne dane kao Utorak')).not.toHaveLength(0);
   });
 });
@@ -150,17 +161,18 @@ describe('copying a day', () => {
 
   it('asks before "Isto za sve radne dane" replaces a day\'s own slots, and replaces them only on yes', async () => {
     const onSave = await form(week());
-    await press('Prikaži termine — Ponedeljak');
+    await openDay('Ponedeljak');
     await press('Isto za sve radne dane kao Ponedeljak');
     const ask = tree.root.findByType(ConfirmSheet);
+    // Updated deliberately (review of owner step 10): weekdays are lower-case inside a Serbian sentence.
     expect(ask.props).toMatchObject({ title: 'Zameniti termine?', confirmLabel: 'Zameni', cancelLabel: 'Odustani',
-      message: 'Utorak, Sreda, Četvrtak i Petak dobijaju termine kao Ponedeljak. Promena će se sačuvati tek kada sačuvaš dostupnost.' });
+      message: 'Utorak, sreda, četvrtak i petak dobijaju iste termine kao ponedeljak. Promena će se sačuvati tek kada sačuvaš dostupnost.' });
     await act(async () => ask.findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
     expect(text()).toContain('13:00–15:00'); expect(text()).not.toContain('Imaš nesačuvane izmene.');
     await press('Isto za sve radne dane kao Ponedeljak');
     await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
     expect(text()).not.toContain('13:00–15:00');
-    for (const day of ['Utorak', 'Sreda', 'Četvrtak', 'Petak']) expect(host(`Prikaži termine — ${day}`)).toBeTruthy();
+    for (const day of ['Utorak', 'Sreda', 'Četvrtak', 'Petak']) expect(dayRow(day)).toBeTruthy();
     expect(host('Dodaj — Subota')).toBeTruthy();
     await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0].rules).toEqual([rule(ids[0], [1, 2, 3, 4, 5], '09:00:00', '12:00:00')]);
@@ -168,28 +180,28 @@ describe('copying a day', () => {
 
   it('copies at once when no chosen day loses a slot of its own', async () => {
     await form(availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00')] }));
-    await press('Prikaži termine — Ponedeljak');
+    await openDay('Ponedeljak');
     await press('Isto za sve radne dane kao Ponedeljak');
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-    expect(host('Prikaži termine — Petak')).toBeTruthy();
+    expect(dayRow('Petak')).toBeTruthy();
   });
 
   it('holds "Kopiraj" until a day is chosen, says why, and copies onto the chosen days', async () => {
     await form(week());
-    await press('Prikaži termine — Ponedeljak');
+    await openDay('Ponedeljak');
     await press('Kopiraj Ponedeljak na druge dane');
     expect(text()).toContain('Ponedeljak: 09:00–12:00');
     const copy = () => all('Kopiraj')[0];
     expect(copy().props).toMatchObject({ disabled: true, reason: 'Izaberi bar jedan dan.' });
     await act(async () => copy().props.onPress());
     expect(tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Subota')).toHaveLength(1);
-    await press('Subota');
+    await pick('Subota');
     expect(copy().props.disabled).toBe(false);
     expect(text()).not.toContain('Postojeći termini izabranih dana se zamenjuju.');
-    await press('Sreda');
+    await pick('Sreda');
     expect(text()).toContain('Postojeći termini izabranih dana se zamenjuju.');
     await press('Kopiraj');
-    expect(host('Prikaži termine — Subota')).toBeTruthy(); expect(text()).not.toContain('13:00–15:00');
+    expect(dayRow('Subota')).toBeTruthy(); expect(text()).not.toContain('13:00–15:00');
     expect(text()).toContain('Imaš nesačuvane izmene.');
   });
 });
@@ -246,5 +258,129 @@ describe('leaving Dostupnost', () => {
     expect(text()).toContain('Dostupnost nije učitana.'); expect(text()).toContain('Podaci nisu učitani.');
     await press('Učitaj sačuvano stanje');
     expect(mockEditor.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  // Review of owner step 10: after a save whose outcome was not confirmed, "Unete izmene neće biti sačuvane." could be
+  // untrue (the save may have gone through), so Back leaves without that question; the next visit reads the saved state.
+  it('does not claim the changes will be lost after a save that was not confirmed', async () => {
+    mockEditor = editor(); await screen();
+    await toggle();
+    mockEditor = editor({ uncertain: true, error: 'Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja.' });
+    await act(async () => tree.update(<Dostupnost />));
+    expect(mockBack.handlers[0]()).toBe(false);
+    await back();
+    expect(router.back).toHaveBeenCalledTimes(1); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  });
+
+  // Review of owner step 10: without a work profile, reading again cannot help; the one action leads to the profile.
+  it('leads to the work profile when there is none to read availability from', async () => {
+    mockEditor = editor({ data: null, error: 'Najpre sačuvaj svoj radni profil.' }); await screen();
+    expect(text()).toContain('Dostupnost nije učitana.');
+    expect(all('Učitaj sačuvano stanje')).toHaveLength(0);
+    await press('Dopuni radni profil');
+    expect(router.navigate).toHaveBeenCalledWith('/profil/radnik'); expect(mockEditor.refresh).not.toHaveBeenCalled();
+    // The screen matches the words of the availability read's WORKER_PROFILE_REQUIRED; the two copies stay one.
+    const service = readFileSync(join(__dirname, '../workerAvailabilityClientService.ts'), 'utf8');
+    expect(service).toContain("WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj svoj radni profil.'");
+  });
+});
+
+// Review of owner step 10: a slot over midnight is two rules (22:00–24:00, then 00:00–06:00 on the next day). Copying the
+// day used to end every night at midnight without saying so.
+describe('copying a day with a slot over midnight', () => {
+  const night = () => availability({ rules: [rule(ids[0], [1], '22:00:00', '24:00:00'),
+    { ...rule(ids[1], [2], '00:00:00', '06:00:00'), startsOn: '2026-09-02' }] });
+
+  it('copies the whole night onto the working days at once, since no day loses a slot of its own', async () => {
+    const onSave = await form(night());
+    await openDay('Ponedeljak');
+    await press('Isto za sve radne dane kao Ponedeljak');
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+    await press('Sačuvaj dostupnost');
+    expect(onSave.mock.calls[0][0].rules).toEqual([rule(ids[0], [1, 2, 3, 4, 5], '22:00:00', '24:00:00'),
+      { ...rule(ids[1], [2, 3, 4, 5, 6], '00:00:00', '06:00:00'), startsOn: '2026-09-02' }]);
+  });
+
+  it('does not say Utorak is replaced when it only holds the rest of Monday\'s night', async () => {
+    await form(night());
+    await openDay('Ponedeljak');
+    await press('Kopiraj Ponedeljak na druge dane');
+    await pick('Utorak');
+    expect(text()).not.toContain('Postojeći termini izabranih dana se zamenjuju.');
+  });
+});
+
+describe('what a screen reader hears', () => {
+  it('names a day by its day and speaks its slots as the value, open or not', async () => {
+    await form(availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00')] }));
+    expect(dayRow('Ponedeljak').props.accessibilityValue).toEqual({ text: '09:00–12:00' });
+    expect(dayRow('Ponedeljak').props.accessibilityHint).toBeUndefined();
+    await openDay('Ponedeljak');
+    expect(dayRow('Ponedeljak').props.accessibilityState.expanded).toBe(true);
+    expect(dayRow('Ponedeljak').props.accessibilityValue).toEqual({ text: '09:00–12:00' });
+  });
+
+  it('speaks every fact of a slot row and of a special-date row', async () => {
+    await form(availability({
+      rules: [{ ...rule(ids[0], [1, 3], '09:00:00', '12:00:00'), label: 'Jutro', active: false }],
+      windows: [{ id: ids[1], startsAt: '2099-01-10T08:00:00Z', endsAt: '2099-01-10T10:00:00Z', state: 'AVAILABLE', label: 'Sajam' }],
+    }));
+    await openDay('Ponedeljak');
+    expect(host('Uredi Ponedeljak 09:00').props.accessibilityValue.text)
+      .toMatch(/^09:00–12:00, Jutro, Od 1\. sep( 2026)? · bez završnog datuma, Zajednički termin: ponedeljak, sreda, Pauzirano$/);
+    expect(host('Uredi izuzetak 10. jan 2099').props.accessibilityValue.text).toBe('10. jan 2099 · 09:00–11:00, Slobodno za rad · Sajam');
+  });
+
+  it('hears the "Mogu odmah" switch once, and its words switch it too', async () => {
+    await form();
+    const words = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.importantForAccessibility === 'no-hide-descendants');
+    expect(words[0].props.accessible).toBe(false);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mogu odmah')).toHaveLength(1);
+    await act(async () => words[0].props.onPress());
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(true);
+    expect(text()).toContain('Imaš nesačuvane izmene.');
+    expect(text()).toContain('važi kada sačuvaš dostupnost');
+  });
+
+  it('says a confirmed save out loud, since the focused Save leaves with its footer', async () => {
+    const announce = jest.spyOn(jest.requireActual('react-native').AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    await form();
+    await act(async () => tree.update(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} saved />));
+    expect(announce).toHaveBeenCalledWith('Dostupnost je sačuvana.');
+    announce.mockRestore();
+  });
+
+  it('draws a sheet\'s error with its button, announced as it appears', async () => {
+    await form();
+    await press('Dodaj — Ponedeljak');
+    await press('Primeni termin');
+    const primary = all('Primeni termin').find(node => node.props.error !== undefined)!;
+    expect(primary.props.error).toBe('Izaberi različito vreme početka i kraja.');
+  });
+
+  it('marks the chosen state of a special date as checked', async () => {
+    await form();
+    await press('Dodaj izuzetak');
+    expect(host('Zauzeto').props.accessibilityState).toEqual({ checked: true });
+    expect(host('Slobodno za rad').props.accessibilityState).toEqual({ checked: false });
+  });
+});
+
+describe('the profile conversation', () => {
+  it('names the way forward that screen has when the outcome of a change is not confirmed', async () => {
+    await form(availability(), { uncertain: true, candidateMode: true });
+    expect(all('Primeni na pregled profila')[0].props.reason).toBe('Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.');
+    expect(text()).toContain('važi kada sačuvaš profil');
+  });
+});
+
+describe('a very large text size', () => {
+  it('writes one letter in each day circle, and keeps the whole name spoken', async () => {
+    mockFontScale = 2;
+    await form();
+    await press('Dodaj — Sreda');
+    const days = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityRole === 'checkbox');
+    expect(days.map(day => day.findByType('T' as React.ElementType).props.children)).toEqual(['P', 'U', 'S', 'Č', 'P', 'S', 'N']);
+    expect(days[0].props.accessibilityLabel).toBe('Ponedeljak');
   });
 });

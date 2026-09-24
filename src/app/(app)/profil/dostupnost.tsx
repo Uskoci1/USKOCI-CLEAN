@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { BackHandler, View } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
@@ -10,8 +10,14 @@ import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { StateView } from '../../../ui/system/StateView';
+import { sys } from '../../../ui/system/tokens';
 
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
+/** What the availability read says when there is no saved work profile (WORKER_PROFILE_REQUIRED). */
+const PROFILE_REQUIRED = 'Najpre sačuvaj svoj radni profil.';
+const s = StyleSheet.create({ pad: { paddingHorizontal: sys.space.lg } });
+/** Whether leaving drops something the person could still keep: unsaved changes, with no write running or unconfirmed. */
+const asks = (state: { dirty: boolean; busy: boolean; uncertain: boolean }) => state.dirty && !state.busy && !state.uncertain;
 function OwnedAvailability() {
   const editor = useOwnedEditor(useCallback(() => workerAvailabilityClientService.read(), []));
   // "Dostupan sada" is the loudest thing on this screen and it can be on while the work profile is
@@ -27,20 +33,23 @@ function OwnedAvailability() {
   // loading card; only the first read, with nothing yet to show, is a loading screen.
   const refreshing = editor.loading && !!editor.data;
   // Unsaved changes are asked about before they are dropped (critique A17): Back used to throw every edit away. While a
-  // save runs there is nothing to ask; the editor settles the write whether the screen stays or not.
+  // save runs there is nothing to ask; the editor settles the write whether the screen stays or not. After a save whose
+  // outcome was not confirmed there is nothing to ask either: the changes may already be saved, so "they will not be
+  // saved" would be untrue, and the next visit reads the saved state (review of owner step 10).
   const [dirty, setDirty] = useState(false);
   const confirm = useConfirmSheet();
   const leave = () => {
-    if (dirty && !editor.busy) confirm.ask({ title: 'Odbaciti izmene?', message: 'Unete izmene neće biti sačuvane.',
-      confirmLabel: 'Odbaci izmene', cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: back });
+    if (asks({ dirty, busy: editor.busy, uncertain: editor.uncertain })) confirm.ask({ title: 'Odbaciti izmene?',
+      message: 'Unete izmene neće biti sačuvane.', confirmLabel: 'Odbaci izmene', cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: back });
     else back();
   };
   // The (app) navigator is Tabs with a history back behaviour, so a screen being removed is never announced there: the
   // hardware Back is heard directly while this screen has focus. An open sheet's own Modal takes Back before this does.
-  const latest = useRef({ dirty, busy: editor.busy, leave }); latest.current = { dirty, busy: editor.busy, leave };
+  const latest = useRef({ dirty, busy: editor.busy, uncertain: editor.uncertain, leave });
+  latest.current = { dirty, busy: editor.busy, uncertain: editor.uncertain, leave };
   useFocusEffect(useCallback(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!latest.current.dirty || latest.current.busy) return false;
+      if (!asks(latest.current)) return false;
       latest.current.leave();
       return true;
     });
@@ -56,9 +65,12 @@ function OwnedAvailability() {
         const result = await workerAvailabilityClientService.save({ expectedRevision: editor.data!.revision, value });
         return result.ok ? { ok: true, podatak: result.podatak.availability } : result;
       })} />
-      : editor.error ? <View style={{ paddingHorizontal: 20 }}>
+      : editor.error ? <View style={s.pad}>
+        {/* Without a saved work profile there is no availability to read, and reading again cannot help: the one action
+            leads to the work profile (review of owner step 10). */}
         <StateView kind="error" art="clock" title="Dostupnost nije učitana." body={editor.error}
-          primary={{ label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />
+          primary={editor.error === PROFILE_REQUIRED ? { label: 'Dopuni radni profil', onPress: () => router.navigate('/profil/radnik') }
+            : { label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />
       </View> : null}
     {confirm.sheet}
   </CalendarScreen>;

@@ -45,8 +45,11 @@ export function Disclosure({ label, hint, art, expanded, defaultExpanded = false
   </View>;
 }
 
-/** Down when closed, up when open. */
-function TurningCaret({ open }: { open: boolean }) {
+/**
+ * Down when closed, up when open; it turns in 180 ms on a real change and at once under reduced motion. Exported for a
+ * row that opens in place but is not a Disclosure (the day rows of Dostupnost), so there is one caret.
+ */
+export function TurningCaret({ open }: { open: boolean }) {
   const reduced = useReducedMotion();
   const turn = useRef(new Animated.Value(open ? 1 : 0)).current;
   useEffect(() => {

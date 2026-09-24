@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Easing, RefreshControl, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
-import { CaretDown, Check, Plus, Trash } from 'phosphor-react-native';
+import { Check, Plus, Trash } from 'phosphor-react-native';
 import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
 import { calendarInstant } from '../../lib/calendarTime';
 import { normalizeWorkerAvailability, sameWorkerAvailability } from '../../lib/workerAvailability';
@@ -10,14 +10,14 @@ import { brandAction, card, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { Disclosure } from '../system/Disclosure';
+import { Disclosure, TurningCaret } from '../system/Disclosure';
 import { ProductSheet } from '../product/ProductSheet';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { CalendarField, CivilField, calendarStyles } from './CalendarControls';
 import { civilClock, civilDay, civilInstant, scheduleZone, shiftDate, showScheduleZone, weekdays, zonedParts } from './calendarPresentation';
-import { copyDay } from './weekCopy';
+import { copyDay, copyTakesAway } from './weekCopy';
 
 type Weekday = (typeof weekdays)[number];
 const WORKDAYS = [1, 2, 3, 4, 5];
@@ -27,9 +27,20 @@ const clocks = (rule: AvailabilityRule) => `${civilClock(rule.startTime)}–${ci
 const range = (rule: AvailabilityRule) => `${clocks(rule)}${!rule.active ? ' · Pauzirano' : ''}`;
 const validity = (rule: Pick<AvailabilityRule, 'startsOn' | 'endsOn'>) =>
   `Od ${civilDay(rule.startsOn)}${rule.endsOn ? ` do ${civilDay(rule.endsOn)}` : ' · bez završnog datuma'}`;
-/** "Utorak", "Utorak i Sreda", "Utorak, Sreda i Četvrtak". */
-const names = (days: readonly Weekday[]) => days.length < 2 ? days[0]?.name ?? ''
-  : `${days.slice(0, -1).map(day => day.name).join(', ')} i ${days[days.length - 1].name}`;
+/** "Zajednički termin: Pon, Sre" for the eye; the spoken form names the days in full ("ponedeljak, sreda"). */
+const shared = (rule: AvailabilityRule, spoken = false) => `Zajednički termin: ${weekdays.filter(item => rule.weekdays.includes(item.day))
+  .map(item => spoken ? item.name.toLowerCase() : item.short).join(', ')}`;
+/** Everything a slot's row shows, as one spoken value (the row's label is the command, "Uredi Ponedeljak 09:00"). */
+const ruleFacts = (rule: AvailabilityRule) => [clocks(rule), rule.label || null, validity(rule),
+  rule.weekdays.length > 1 ? shared(rule, true) : null, rule.active ? null : 'Pauzirano'].filter((part): part is string => !!part).join(', ');
+/**
+ * Days as they open a Serbian sentence: "Utorak", "Utorak i sreda", "Utorak, sreda i četvrtak". Inside a sentence a
+ * weekday is lower-case; only the first word takes a capital.
+ */
+const names = (days: readonly Weekday[]) => {
+  const words = days.map((day, index) => index ? day.name.toLowerCase() : day.name);
+  return words.length < 2 ? words[0] ?? '' : `${words.slice(0, -1).join(', ')} i ${words[words.length - 1]}`;
+};
 const dayOf = (value: number) => weekdays.find(day => day.day === value) ?? weekdays[0];
 function seconds(value: string) {
   const match = /^(\d{2}):(\d{2})(?::(\d{2}(?:\.\d{1,6})?))?$/.exec(value);
@@ -46,8 +57,21 @@ function FormSwitch({ label, hint, value, change, disabled }: {
   return <Switch accessibilityLabel={label} accessibilityHint={hint} value={value} onValueChange={change} disabled={disabled}
     trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} thumbColor={sys.color.surface} ios_backgroundColor={sys.color.lineStrong} />;
 }
-function ToggleRow({ label, value, change, disabled }: { label: string; value: boolean; change: (value: boolean) => void; disabled?: boolean }) {
-  return <View style={s.toggleRow}><T style={s.grow}>{label}</T><FormSwitch label={label} value={value} change={change} disabled={disabled} /></View>;
+/**
+ * A switch with its words beside it. The words are part of the touch area (the switch alone was a small target), and a
+ * screen reader hears the switch once, by its name and hint, instead of the words and then the switch again.
+ */
+function SwitchRow({ label, hint, strong = false, value, change, disabled }: {
+  label: string; hint?: string; strong?: boolean; value: boolean; change: (value: boolean) => void; disabled?: boolean;
+}) {
+  return <View style={hint ? s.status : s.toggleRow}>
+    <Press accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden disabled={disabled}
+      scaleTo={1} haptic="select" onPress={() => change(!value)} style={s.switchCopy}>
+      <T variant={strong ? 'bodyStrong' : 'body'}>{label}</T>
+      {hint ? <T variant="note" tone="muted">{hint}</T> : null}
+    </Press>
+    <FormSwitch label={label} hint={hint} value={value} change={change} disabled={disabled} />
+  </View>;
 }
 /** Two fields side by side where they fit, one under the other on a narrow screen or at a large text size. */
 function Pair({ children }: { children: [ReactNode, ReactNode] }) {
@@ -55,20 +79,17 @@ function Pair({ children }: { children: [ReactNode, ReactNode] }) {
   const side = width >= 360 && scale < 1.3;
   return <View style={side ? s.pair : s.stack}>{children.map((child, index) => <View key={index} style={side ? s.grow : null}>{child}</View>)}</View>;
 }
-/** The footer of a sheet: its error said where the command is, the one primary, and a quiet way out that discards. */
+/**
+ * The footer of a sheet: the one primary, with its error drawn under it by the button itself (announced as it appears),
+ * and a quiet way out that discards.
+ */
 function SheetFooter({ error, primary, onPrimary, cancel, onCancel, disabled, reason }: {
   error?: string | null; primary: string; onPrimary: () => void; cancel: string; onCancel: () => void; disabled?: boolean; reason?: string | null;
 }) {
   return <>
-    {error ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
-    <V2Action label={primary} style={brandAction} onPress={onPrimary} disabled={disabled} reason={reason} />
+    <V2Action label={primary} style={brandAction} onPress={onPrimary} disabled={disabled} reason={reason} error={error} />
     <V2Action label={cancel} kind="quiet" onPress={onCancel} />
   </>;
-}
-
-/** Down when closed, up when open. The shared turning caret lives in Disclosure and is not exported yet. */
-function Caret({ open }: { open: boolean }) {
-  return <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}><CaretDown size={20} color={sys.color.muted} /></View>;
 }
 
 /**
@@ -81,6 +102,9 @@ export function RuleSheet({ rule, isNew, timezone, phoneZone, close, accept }: {
   close: () => void; accept: (rules: readonly AvailabilityRule[]) => void;
 }) {
   const reduced = useReducedMotion();
+  // At a very large text size a 48 px circle holds one letter ("P", "U"), as the calendar's week strip does; the spoken
+  // name stays whole.
+  const scale = useTextScale();
   const [draft, setDraft] = useState(rule);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof AvailabilityRule>(key: K, value: AvailabilityRule[K]) => { setError(null); setDraft(current => ({ ...current, [key]: value })); };
@@ -113,7 +137,7 @@ export function RuleSheet({ rule, isNew, timezone, phoneZone, close, accept }: {
     const on = draft.weekdays.includes(day.day);
     return <Press key={day.day} accessibilityRole="checkbox" accessibilityLabel={day.name} accessibilityState={{ checked: on }}
       haptic="select" onPress={() => toggleDay(day.day)} style={[s.circle, on ? s.circleOn : s.circleOff]}>
-      <T variant="tab" style={{ color: on ? sys.color.onDark : sys.color.ink }}>{day.short}</T>
+      <T variant="tab" numberOfLines={1} style={{ color: on ? sys.color.onDark : sys.color.ink }}>{scale >= 1.5 ? day.short.charAt(0) : day.short}</T>
     </Press>;
   };
   return <ProductSheet title={isNew ? 'Novi termin' : 'Izmeni termin'} closeButton={false} reduced={reduced} dirty={draft !== rule} onClose={close}
@@ -130,10 +154,10 @@ export function RuleSheet({ rule, isNew, timezone, phoneZone, close, accept }: {
       {showScheduleZone(timezone, phoneZone) ? <T variant="note" tone="muted">{`${scheduleZone(timezone)}.`}</T> : null}
       <Disclosure label="Više podešavanja" hint={`${validity(draft)}${draft.active ? '' : ' · Pauzirano'}`} divider>
         <CivilField label="Važi od" mode="date" value={draft.startsOn} onChange={value => set('startsOn', value)} />
-        <ToggleRow label="Bez završnog datuma" value={draft.endsOn === null} change={value => set('endsOn', value ? null : draft.startsOn)} />
+        <SwitchRow label="Bez završnog datuma" value={draft.endsOn === null} change={value => set('endsOn', value ? null : draft.startsOn)} />
         {draft.endsOn !== null ? <CivilField label="Važi do, uključujući datum" mode="date" value={draft.endsOn} onChange={value => set('endsOn', value)} /> : null}
         <CalendarField label="Naziv termina (opciono)" value={draft.label} onChange={value => set('label', value)} />
-        <ToggleRow label="Termin je aktivan" value={draft.active} change={value => set('active', value)} />
+        <SwitchRow label="Termin je aktivan" value={draft.active} change={value => set('active', value)} />
       </Disclosure>
     </>}
   </ProductSheet>;
@@ -175,7 +199,7 @@ export function WindowSheet({ window, timezone, phoneZone, close, accept }: {
   };
   const option = (value: AvailabilityWindow['state']) => {
     const chosen = state === value, text = value === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto';
-    return <Press key={value} accessibilityRole="radio" accessibilityLabel={text} accessibilityState={{ selected: chosen }} haptic="select"
+    return <Press key={value} accessibilityRole="radio" accessibilityLabel={text} accessibilityState={{ checked: chosen }} haptic="select"
       onPress={() => { setError(null); setState(value); }} style={[calendarStyles.option, s.grow, chosen && s.optionOn]}>
       <T variant={chosen ? 'bodyStrong' : 'body'} style={{ color: chosen ? sys.color.green : sys.color.ink }}>{text}</T>
     </Press>;
@@ -205,7 +229,8 @@ export function CopySheet({ source, rules, close, apply }: {
   const reduced = useReducedMotion();
   const [chosen, setChosen] = useState<number[]>([]);
   const summary = rules.filter(rule => rule.weekdays.includes(source.day)).map(range).join(' · ');
-  const replacing = chosen.some(day => rules.some(rule => rule.weekdays.includes(day) && !rule.weekdays.includes(source.day)));
+  // Read from the copy itself: the part after midnight of the source's own night is not a chosen day's own slot.
+  const replacing = copyTakesAway(rules, source.day, chosen);
   const toggle = (day: number) => setChosen(list => list.includes(day) ? list.filter(value => value !== day) : [...list, day]);
   return <ProductSheet title="Kopiraj termine" closeButton={false} reduced={reduced} dirty={chosen.length > 0} onClose={close}
     footer={dismiss => <SheetFooter primary="Kopiraj" disabled={!chosen.length} reason={chosen.length ? null : 'Izaberi bar jedan dan.'}
@@ -290,6 +315,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   useEffect(() => {
     if (!saved) { setShowSaved(false); return; }
     setShowSaved(true);
+    // The focused Save leaves with the footer it stood in, and a role alone is not read on Android: the outcome is said.
+    AccessibilityInfo.announceForAccessibility('Dostupnost je sačuvana.');
     const timer = setTimeout(() => setShowSaved(false), 3000);
     return () => clearTimeout(timer);
   }, [saved]);
@@ -324,11 +351,10 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   const sameForWorkdays = (source: Weekday) => {
     if (blocked) return;
     const targets = WORKDAYS.filter(day => day !== source.day);
-    const replaces = targets.some(day => draft.rules.some(rule => rule.weekdays.includes(day) && !rule.weekdays.includes(source.day)));
     const apply = () => copy(source, targets, 'Termini su kopirani na radne dane.');
-    if (!replaces) { apply(); return; }
+    if (!copyTakesAway(draft.rules, source.day, targets)) { apply(); return; }
     confirmation.ask({ title: 'Zameniti termine?', confirmLabel: 'Zameni', cancelLabel: 'Odustani', onConfirm: apply,
-      message: `${names(targets.map(dayOf))} ${targets.length === 1 ? 'dobija' : 'dobijaju'} termine kao ${source.name}. Promena će se sačuvati tek kada sačuvaš dostupnost.` });
+      message: `${names(targets.map(dayOf))} ${targets.length === 1 ? 'dobija' : 'dobijaju'} iste termine kao ${source.name.toLowerCase()}. Promena će se sačuvati tek kada sačuvaš dostupnost.` });
   };
   // A pull reads the saved state again, and the new value resets the form (the effect above). With unsaved edits, a
   // pull made while scrolling up would throw them away unasked, so it does nothing until they are saved or discarded.
@@ -336,9 +362,11 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // stops the Android gesture, the check in reload() stops an iOS pull. A screen reader reaches the same read as an
   // action on the list, since the standing refresh button is gone.
   const reload = () => { if (!dirty) onRefresh?.(); };
+  // The switch changes the draft only, so its hint says when it starts to count (review of owner step 10: a switch looks
+  // as if it took effect at once). Whether it should be saved on its own is an open owner decision.
   const hint = profileDraft
     ? 'Radni profil je nacrt, pa ovaj status još nikome ništa ne govori. Aktiviraj profil da počne da važi.'
-    : 'Ručni status: važi dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.';
+    : `Ručni status: važi kada sačuvaš ${candidateMode ? 'profil' : 'dostupnost'}, dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.`;
   const now = BigInt(Date.now()) * 1000n;
   const past = (window: AvailabilityWindow) => (calendarInstant(window.endsAt) ?? 0n) <= now;
   const start = (window: AvailabilityWindow) => calendarInstant(window.startsAt) ?? 0n;
@@ -347,11 +375,14 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     : past(a) ? (start(a) < start(b) ? 1 : start(a) > start(b) ? -1 : 0) : (start(a) < start(b) ? -1 : start(a) > start(b) ? 1 : 0));
   const saveLabel = candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost';
   const footer = uncertain && onReconcile ? <FooterIn key="reconcile" reduced={reduced}>
-    <T variant="note" tone="danger" accessibilityRole="alert">{problem ?? 'Ishod izmene još nije potvrđen.'}</T>
+    <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{problem ?? 'Ishod izmene još nije potvrđen.'}</T>
     {/* The explicit read bypasses the unsaved-changes gate on purpose: until it answers, nothing here can be trusted. */}
     <V2Action label="Učitaj sačuvano stanje" kind="secondary" disabled={busy || refreshing} onPress={onReconcile} />
   </FooterIn> : uncertain ? <FooterIn key="uncertain" reduced={reduced}>
-    <V2Action label={saveLabel} style={brandAction} disabled reason="Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen." onPress={save} />
+    {/* Without a read of its own here, the reason names the way forward the surrounding screen offers: in the profile
+        conversation that is its own check of the conversation (review of owner step 10). */}
+    <V2Action label={saveLabel} style={brandAction} disabled onPress={save} reason={candidateMode
+      ? 'Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.' : 'Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.'} />
   </FooterIn> : dirty || busy ? <FooterIn key="form" reduced={reduced}>
     {dirty ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T> : null}
     <V2Action label={saveLabel} style={brandAction} loading={busy} disabled={blocked || sheetOpen} error={error} onPress={save} />
@@ -367,15 +398,9 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
       refreshControl={onRefresh ? <RefreshControl enabled={!dirty} refreshing={refreshing} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
       <View style={s.group}>
         {candidateMode ? <T variant="note" tone="muted">Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.</T> : null}
-        {problem && !uncertain ? <T variant="note" tone="danger" accessibilityRole="alert">{problem}</T> : null}
+        {problem && !uncertain ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{problem}</T> : null}
         {/* A flat row, not a box (B19): the status, what it means, and the switch. It changes the draft only. */}
-        <View style={s.status}>
-          <View style={s.statusCopy}>
-            <T variant="bodyStrong">Mogu odmah</T>
-            <T variant="note" tone="muted">{hint}</T>
-          </View>
-          <FormSwitch label="Mogu odmah" hint={hint} value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
-        </View>
+        <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
       </View>
       <View style={s.section}>
         <View style={s.sectionHead}>
@@ -387,13 +412,15 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           const expanded = expandedDay === day.day && rules.length > 0;
           const summary = rules.map(range).join(' · ');
           return <View key={day.day} style={index ? s.divided : null}>
-            {rules.length ? <Press accessibilityRole="button" accessibilityLabel={`Prikaži termine — ${day.name}`} accessibilityHint={summary}
+            {/* The day is the row's name and its slots are its value, whether it is open or not (a hint can be turned
+                off, and "Prikaži termine" was wrong once the day was open); `expanded` says the rest. */}
+            {rules.length ? <Press accessibilityRole="button" accessibilityLabel={day.name} accessibilityValue={{ text: summary }}
               accessibilityState={{ expanded }} haptic="select" scaleTo={0.99} onPress={() => setExpandedDay(expanded ? null : day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
                 <T variant="bodyStrong" style={s.dayName}>{day.name}</T>
                 <T variant="note" numberOfLines={expanded ? undefined : 2} style={[s.summary, stacked && s.summaryStacked]}>{summary}</T>
               </View>
-              <Caret open={expanded} />
+              <TurningCaret open={expanded} />
             </Press> : <Press accessibilityRole="button" accessibilityLabel={`Dodaj — ${day.name}`} accessibilityState={{ disabled: blocked }}
               disabled={blocked} haptic="select" scaleTo={0.99} onPress={() => editRule(undefined, day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
@@ -404,12 +431,14 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
             </Press>}
             {expanded ? <View style={s.expanded}>
               {rules.map(rule => <View key={rule.id} style={s.ruleRow}>
+                {/* The label names the command; every fact the row shows is its spoken value. */}
                 <Press accessibilityRole="button" accessibilityLabel={`Uredi ${day.name} ${civilClock(rule.startTime)}`} accessibilityState={{ disabled: blocked }}
+                  accessibilityValue={{ text: ruleFacts(rule) }}
                   disabled={blocked} haptic="select" scaleTo={0.99} onPress={() => editRule(rule)} style={s.ruleBody}>
                   <T variant="bodyStrong" tone={rule.active ? 'ink' : 'muted'}>{clocks(rule)}</T>
                   {rule.label ? <T variant="note" tone="muted">{rule.label}</T> : null}
                   <T variant="note" tone="muted">{validity(rule)}</T>
-                  {rule.weekdays.length > 1 ? <T variant="note" tone="muted">{`Zajednički termin: ${weekdays.filter(item => rule.weekdays.includes(item.day)).map(item => item.short).join(', ')}`}</T> : null}
+                  {rule.weekdays.length > 1 ? <T variant="note" tone="muted">{shared(rule)}</T> : null}
                   {!rule.active ? <T variant="note" tone="muted">Pauzirano</T> : null}
                 </Press>
                 <Press accessibilityRole="button" accessibilityLabel={`Ukloni ${day.name} ${civilClock(rule.startTime)}`} accessibilityState={{ disabled: blocked }}
@@ -436,10 +465,12 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           const over = past(window);
           const line = [over ? 'Prošlo' : null, window.state === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto', window.label || null]
             .filter((part): part is string => !!part).join(' · ');
+          const when = raspon(window.startsAt, window.endsAt, { zona: draft.timezone });
           return <View key={window.id} style={[s.windowRow, index ? s.divided : null]}>
             <Press accessibilityRole="button" accessibilityLabel={`Uredi izuzetak ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
+              accessibilityValue={{ text: `${when}, ${line}` }}
               haptic="select" scaleTo={0.99} onPress={() => { if (!blocked) setWindowEditor({ value: window }); }} style={s.windowBody}>
-              <T variant="bodyStrong" tone={over ? 'muted' : 'ink'}>{raspon(window.startsAt, window.endsAt, { zona: draft.timezone })}</T>
+              <T variant="bodyStrong" tone={over ? 'muted' : 'ink'}>{when}</T>
               <T variant="note" tone="muted">{line}</T>
             </Press>
             <Press accessibilityRole="button" accessibilityLabel={`Ukloni izuzetak ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
@@ -470,41 +501,43 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
 const s = StyleSheet.create({
   fill: { flex: 1 },
   grow: { flex: 1, minWidth: 0 },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 32 },
-  group: { gap: 12 },
-  status: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  statusCopy: { flex: 1, minWidth: 0, gap: 2 },
-  section: { gap: 12 },
-  sectionHead: { gap: 2 },
+  // Every inset, gap and margin is a step of sys.space (4 is the smallest); the 48 and 56 below are touch heights.
+  content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm, paddingBottom: sys.space.xxl, gap: sys.space.xxl },
+  group: { gap: sys.space.md },
+  status: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  switchCopy: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', gap: sys.space.xs },
+  section: { gap: sys.space.md },
+  sectionHead: { gap: sys.space.xs },
   // One card for the list, rows divided by a hairline; every inset is 16 (B19: the uneven bottom gap).
   list: { ...card, padding: 0, overflow: 'hidden' },
   divided: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  dayRow: { minHeight: 56, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dayLine: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dayStack: { flex: 1, minWidth: 0, gap: 2 },
+  dayRow: { minHeight: 56, paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  dayLine: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  dayStack: { flex: 1, minWidth: 0, gap: sys.space.xs },
   dayName: { flexShrink: 0 },
   summary: { flex: 1, minWidth: 0, textAlign: 'right', color: sys.color.fact },
   summaryStacked: { flex: 0, textAlign: 'left' },
-  add: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  add: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.xs },
   addStacked: { flex: 0, justifyContent: 'flex-start' },
-  expanded: { paddingHorizontal: 16, paddingBottom: 12 },
-  ruleRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ruleBody: { flex: 1, minWidth: 0, paddingVertical: 8, gap: 2 },
-  dayActions: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -16, marginTop: 4 },
-  windowRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 16, paddingRight: 4 },
-  windowBody: { flex: 1, minWidth: 0, paddingVertical: 12, gap: 2 },
-  saved: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toggleRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  pair: { flexDirection: 'row', gap: 12 },
-  stack: { gap: 12 },
-  days: { gap: 8 },
-  circles: { flexDirection: 'row', gap: 8 },
+  expanded: { paddingHorizontal: sys.space.base, paddingBottom: sys.space.md },
+  ruleRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  ruleBody: { flex: 1, minWidth: 0, paddingVertical: sys.space.sm, gap: sys.space.xs },
+  // A quiet action's own inset is pulled back, so its words line up with the slots above it.
+  dayActions: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -sys.space.base, marginTop: sys.space.xs },
+  windowRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingLeft: sys.space.base, paddingRight: sys.space.xs },
+  windowBody: { flex: 1, minWidth: 0, paddingVertical: sys.space.md, gap: sys.space.xs },
+  saved: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  toggleRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  pair: { flexDirection: 'row', gap: sys.space.md },
+  stack: { gap: sys.space.md },
+  days: { gap: sys.space.sm },
+  circles: { flexDirection: 'row', gap: sys.space.sm },
   circle: { width: 48, height: 48, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   circleOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
   circleOff: { backgroundColor: sys.color.surface, borderColor: sys.color.lineStrong },
-  options: { flexDirection: 'row', gap: 8 },
+  options: { flexDirection: 'row', gap: sys.space.sm },
   optionOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
-  check: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  check: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   box: { width: 24, height: 24, borderRadius: sys.radius.check, borderWidth: 1.5, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
 });

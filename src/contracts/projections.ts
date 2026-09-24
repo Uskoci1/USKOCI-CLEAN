@@ -385,6 +385,12 @@ export type DogovorProjekcija = {
    * stariji odgovor ne sme da napravi dugme koje ne vodi nigde.
    */
   izvor: { zadatakId: string | null; prijavaId: string | null };
+  /**
+   * Tačan dogovoreni termin iz prihvaćenih uslova (`proposed_start_at` / `proposed_end_at`): oba kraja kao tačni
+   * trenuci, početak pre kraja. `null` kada Dogovor nema tačan termin; polje izostaje kada čitač to nije rekao, pa
+   * Kalendar tada ne tvrdi da je dan prazan (vlasnikov korak 10, kritika A15).
+   */
+  tacanTermin?: { pocetak: string; kraj: string } | null;
 };
 
 /* ------------------------------------------------- AI nacrt Potrebe (R02) */

@@ -5,6 +5,7 @@ import type { Ishod, IzmenaKomanda, Izvor, PotvrdaZavrsetka } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
+import { tacanTermin } from '../lib/tacanTermin';
 import { needScheduleText } from './needDetailPresentation';
 import { DOGOVORENA_ZONA } from '../lib/dogovorenoVreme';
 import { supabaseKlijent } from './supabaseClient';
@@ -128,6 +129,11 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       zadatakId: uuid(raw.needId) ? String(raw.needId) : null,
       prijavaId: uuid(raw.applicationId) ? String(raw.applicationId) : null,
     },
+    // Owner step 10 (critique A15): the accepted exact window, read from the same accepted terms as `vremeTekst`, so
+    // the calendar can place my own tasks and finished Dogovori. A read without terms leaves the field out: the
+    // calendar then says it shows only my work instead of calling a day empty.
+    ...(raw.terms !== null && typeof raw.terms === 'object' && !Array.isArray(raw.terms)
+      ? { tacanTermin: tacanTermin(terms.proposed_start_at, terms.proposed_end_at) } : {}),
   };
 }
 

@@ -51,7 +51,7 @@ describe('agendaItems', () => {
     expect(items).toHaveLength(1); expect(items[0].key).toBe('event:e1');
   });
 
-  it('takes a schedule row\'s facts only from the same Dogovor at the same version, still confirmed', () => {
+  it('takes a schedule row\'s facts only from the same Dogovor at the same version, still active', () => {
     const events = [event('e1', 'A-1', 2, '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')];
     const older = agendaItems({ events, from, to, agreements: [worker('a-1', { verzija: 1, naslov: 'Stari naslov' })] });
     expect(older[0]).toEqual(expect.objectContaining({ title: null, fallbackTitle: 'Potvrđen Dogovor', amount: null, person: null, role: 'Uskačeš' }));
@@ -59,6 +59,19 @@ describe('agendaItems', () => {
     expect(same[0]).toEqual(expect.objectContaining({ title: 'Selidba', amount: '', person: 'Ana' }));
     const unread = agendaItems({ events, from, to, agreements: null });
     expect(unread[0]).toEqual(expect.objectContaining({ title: null, amount: null }));
+  });
+
+  // Review of owner step 10: after I mark my work done the Dogovor waits for the requester, at the same version, and the
+  // schedule keeps the event while the Dogovor is agreed. The row said only "Potvrđen Dogovor", untitled.
+  it('says that my own work waits for the completion to be confirmed, from the list at the same version', () => {
+    const events = [event('e1', 'a-1', 3, '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')];
+    const waiting = agendaItems({ events, from, to, agreements: [worker('a-1', { verzija: 3, stanje: 'AWAITING_REQUESTER', naslov: 'Selidba' })] });
+    expect(waiting).toEqual([expect.objectContaining({ key: 'event:e1', state: 'AWAITING_REQUESTER', title: 'Selidba', person: 'Ana', role: 'Uskačeš' })]);
+    // Any other state, or another version, adds nothing to the schedule's row.
+    for (const patch of [{ verzija: 3, stanje: 'COMPLETED' as const }, { verzija: 3, stanje: 'CANCELLED' as const }, { verzija: 2, stanje: 'AWAITING_REQUESTER' as const }]) {
+      const [row] = agendaItems({ events, from, to, agreements: [worker('a-1', { naslov: 'Selidba', ...patch })] });
+      expect(row).toEqual(expect.objectContaining({ state: 'CONFIRMED', title: null, amount: null, fallbackTitle: 'Potvrđen Dogovor' }));
+    }
   });
 
   it('leaves out a window outside the week and a Dogovor whose window the list did not give', () => {

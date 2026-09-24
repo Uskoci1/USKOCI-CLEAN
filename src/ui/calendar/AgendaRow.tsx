@@ -4,7 +4,7 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { useTextScale } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
-import { STATUS_WORDS, agendaClock, agendaWindow, withinDay, type AgendaItem } from './agenda';
+import { SCHEDULE_FALLBACK_TITLE, STATUS_WORDS, agendaClock, agendaWindow, withinDay, type AgendaItem } from './agenda';
 
 /** The rail's width: the clock column beside a row, at a normal text size. */
 const RAIL = 56;
@@ -39,13 +39,17 @@ export function AgendaRow({ item, day, onOpen, zoneNote = false }: {
   const spoken = [status, item.role, zoneNote ? `${time}, po vremenu u Srbiji` : time, item.person,
     item.amount === null ? null : item.amount || BEZ_IZNOSA, item.place || null]
     .filter((part): part is string => !!part).join(', ');
+  // An untitled row names what it is: a term from the schedule is a confirmed one; a Dogovor from the list may be finished
+  // or waiting, so it is not called confirmed (review of owner step 10).
+  const name = item.title ? `Otvori Dogovor ${item.title}`
+    : item.fallbackTitle === SCHEDULE_FALLBACK_TITLE ? 'Otvori Dogovor sa potvrđenim terminom' : 'Otvori Dogovor';
   return <View style={{ flexDirection: rail ? 'row' : 'column', gap: sys.space.md, alignItems: 'stretch' }}>
     {rail ? <View style={s.rail} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <T variant="meta" tone={tone} style={s.start}>{agendaClock(item.startsAt)}</T>
       <T variant="meta" tone="muted">{agendaClock(item.endsAt)}</T>
       <View style={s.railLine} />
     </View> : null}
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${item.title || 'sa potvrđenim terminom'}`}
+    <Press accessibilityRole="button" accessibilityLabel={name}
       accessibilityValue={{ text: spoken }} haptic="select" onPress={() => onOpen(item.agreementId)} style={s.card}>
       {timeLine ? <T variant="bodyStrong" tone={tone}>{time}</T> : null}
       <View style={beside ? s.titleRow : s.titleColumn}>

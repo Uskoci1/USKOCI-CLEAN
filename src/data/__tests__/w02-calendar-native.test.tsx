@@ -35,6 +35,7 @@ import { AvailabilityForm } from '../../ui/calendar/AvailabilityForm';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { sys } from '../../ui/system/tokens';
 import Raspored from '../../app/(app)/raspored';
+import { AgendaScreen } from '../../ui/calendar/AgendaScreen';
 import { workerCalendarClientService } from '../workerCalendarClientService';
 import { agreementClientService } from '../agreementClientService';
 const ruleId = '00000000-0000-4000-8000-000000000001';
@@ -44,6 +45,11 @@ const availability = (): WorkerAvailability => ({ accountId: 'owned-account', pr
 let tree: ReactTestRenderer;
 const button = (label: string) => tree.root.findAll(node => node.props.label === label || node.props.accessibilityLabel === label)[0];
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
+// Updated deliberately (review of owner step 10): a day row with slots is named by its day and speaks its slots as its
+// value, so it is found by its name and its `expanded` state instead of "Prikaži termine — <dan>".
+const dayRow = (name: string) => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === name
+  && node.props.accessibilityState && 'expanded' in node.props.accessibilityState)[0];
+const openDay = async (name: string) => { await act(async () => dayRow(name).props.onPress()); };
 const edit = async (label: string, value: string) => {
   await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onChangeText(value));
 };
@@ -89,12 +95,12 @@ describe('actual availability editor interactions', () => {
     // The labels speak minutes since 2026-09-23 ("Uredi Ponedeljak 09:00", not "09:00:00.123456"); the saved rule below
     // still carries its exact stored times.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00' })).toHaveLength(0);
-    await press('Prikaži termine — Ponedeljak');
-    expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(true);
+    await openDay('Ponedeljak');
+    expect(dayRow('Ponedeljak').props.accessibilityState.expanded).toBe(true);
     expect(button('Uredi Ponedeljak 09:00')).toBeTruthy();
-    await press('Prikaži termine — Sreda');
-    expect(button('Prikaži termine — Ponedeljak').props.accessibilityState.expanded).toBe(false);
-    expect(button('Prikaži termine — Sreda').props.accessibilityState.expanded).toBe(true);
+    await openDay('Sreda');
+    expect(dayRow('Ponedeljak').props.accessibilityState.expanded).toBe(false);
+    expect(dayRow('Sreda').props.accessibilityState.expanded).toBe(true);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi Ponedeljak 09:00' })).toHaveLength(0);
     expect(button('Uredi Sreda 09:00')).toBeTruthy();
     // Opening days changes nothing, so there is nothing to save (owner step 10: no footer on a clean form).
@@ -308,8 +314,9 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Dogovori za tvoje zadatke i fleksibilni termini su u Dogovorima.');
     expect(button('Otvori sve Dogovore')).toBeUndefined();
     // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The editor used to
-    // be withheld from a person standing in the other app mode.
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toHaveLength(1);
+    // be withheld from a person standing in the other app mode. Updated deliberately (review of owner step 10): the row is
+    // spoken by its visible words, so voice control finds it.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Moja dostupnost za rad' })).toHaveLength(1);
   });
   it('does not show empty success or fabricated dates when the calendar receipt fails', async () => {
     (workerCalendarClientService.readRange as jest.Mock).mockReturnValue({ ok: false, poruka: 'Kalendar nije učitan.' });
@@ -464,6 +471,52 @@ describe('actual agenda screen', () => {
     expect(text()).toContain('Nema termina u kojima uskačeš.'); expect(text()).not.toContain('Nema zakazanih Dogovora');
     expect(button('Pokušaj ponovo')).toBeUndefined();
   });
+
+  // Review of owner step 10: a finished or waiting Dogovor from the list is not called confirmed when it has no title.
+  it('names an untitled Dogovor from the list without calling it confirmed', async () => {
+    const day = deviceDate(new Date());
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-9', { naslov: '', stanje: 'COMPLETED', tacanTermin: span(day, '10:00', '11:00') })]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Otvori Dogovor')).toHaveLength(1);
+    expect(button('Otvori Dogovor sa potvrđenim terminom')).toBeUndefined();
+  });
+
+  it('marks a day with only finished work by the muted grey, which reads on white', async () => {
+    const today = deviceDate(new Date()), other = weekDates(today).find(day => day !== today)!;
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-10', { stanje: 'COMPLETED', tacanTermin: span(other, '10:00', '11:00') })]);
+    await act(async () => { tree = create(<Raspored />); });
+    const marked = tree.root.findAll(node => node.type === 'Press' as React.ElementType && / ima Dogovor$/.test(String(node.props.accessibilityLabel)));
+    expect(marked[0].findByProps({ testID: 'day-dot' }).props.style.backgroundColor).toBe(sys.color.muted);
+  });
+});
+
+// Review of owner step 10: the calendar's own presentation, drawn without the route.
+describe('the agenda screen', () => {
+  const draw = async (patch: Partial<React.ComponentProps<typeof AgendaScreen>> = {}) => {
+    const onRefresh = jest.fn();
+    await act(async () => { tree = create(<AgendaScreen selected="2026-09-24" today="2026-09-24" schedule={{ state: 'ready', events: [] }}
+      list={{ state: 'ready', agreements: [] }} refreshing={false} onSelect={jest.fn()} onBack={jest.fn()} onRefresh={onRefresh} onRetry={jest.fn()}
+      onRetryList={jest.fn()} onOpen={jest.fn()} onWithoutTerm={jest.fn()} onAvailability={jest.fn()} phoneZone="Europe/Belgrade" {...patch} />); });
+    return onRefresh;
+  };
+
+  it('lets a screen reader read the calendar again, as the pull does', async () => {
+    const onRefresh = await draw();
+    const list = tree.root.findByType('ScrollView' as React.ElementType);
+    expect(list.props.accessibilityActions).toEqual([{ name: 'activate', label: 'Osveži raspored' }]);
+    await act(async () => list.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([[1, true], [1.3, false]])('never cuts the week label, and moves "Danas" under it on a narrow row (text size %s)', async (scale, beside) => {
+    mockFontScale = scale;
+    await draw({ selected: '2026-12-31', today: '2026-09-24' });
+    // The week that crosses the new year, the longest label there is.
+    const label = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === '28. dec 2026 – 3. jan 2027')[0];
+    expect(label.props.accessibilityRole).toBe('header'); expect(label.props.numberOfLines).toBeUndefined();
+    const today = tree.root.findAll(node => node.props.label === 'Danas' && typeof node.type !== 'string')[0];
+    expect(today.parent!.findAll(node => node.props.label === 'Sledeća nedelja').length > 0).toBe(beside);
+  });
 });
 
 // Dostupnost on the phone (2026-09-23) read "16:00:00", "2026-09-23" and "Europe/Belgrade". The stored values stay exact;
@@ -477,7 +530,7 @@ describe('availability reads the way the rest of the app writes time', () => {
     await render(jest.fn(), loaded());
     expect(text()).toContain('16:00–20:30'); expect(text()).not.toMatch(/\d{2}:\d{2}:\d{2}/);
     expect(text()).toContain('Po vremenu u Srbiji.'); expect(text()).not.toContain('Europe/Belgrade');
-    await press('Prikaži termine — Ponedeljak');
+    await openDay('Ponedeljak');
     expect(text()).toContain(`Od ${civilDay('2026-09-23')} do ${civilDay('2027-01-05')}`); expect(text()).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(button('Uredi Ponedeljak 16:00')).toBeTruthy();
   });
@@ -492,7 +545,7 @@ describe('availability reads the way the rest of the app writes time', () => {
 
   it('asks in the app before removing a slot, and removing one only changes the unsaved draft', async () => {
     const onSave = await render(jest.fn(), loaded());
-    await press('Prikaži termine — Ponedeljak'); await press('Ukloni Ponedeljak 16:00');
+    await openDay('Ponedeljak'); await press('Ukloni Ponedeljak 16:00');
     const ask = () => tree.root.findByType(ConfirmSheet);
     expect(ask().props).toMatchObject({ title: 'Ukloniti termin?', cancelLabel: 'Odustani', confirmLabel: 'Ukloni', tone: 'danger',
       message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.' });

@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, CaretRight } from 'phosphor-react-native';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
@@ -45,6 +45,10 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
   phoneZone?: string; now?: Date;
 }) {
   const scale = useTextScale();
+  const { width } = useWindowDimensions();
+  // At 320 dp or a large text size the week label shares its row with only the two arrows; "Danas" gets its own line
+  // under it (review of owner step 10: "28. dec 2026 – 3. jan 2027" was cut off beside "Danas" and the arrows).
+  const narrow = width < 360 || scale >= 1.3;
   const days = useMemo(() => weekDates(selected), [selected]);
   const from = localDayRange(days[0]).from, to = localDayRange(days[6]).to;
   const events = schedule.state === 'ready' ? schedule.events : NO_EVENTS;
@@ -75,19 +79,24 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
     {partial ? partialLine('Učitani su samo termini u kojima uskačeš.') : null}
     {day.map(item => <AgendaRow key={item.key} item={item} day={selected} onOpen={onOpen} zoneNote={zoneNote} />)}
   </View>;
+  const toToday = days.includes(today) ? null : <V2Action label="Danas" kind="quiet" compact onPress={() => onSelect(today)} />;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Kalendar obaveza" onBack={onBack} />
-    <ScrollView contentContainerStyle={s.content}
+    {/* A screen reader reaches the same read as the pull, as an action on the list (review of owner step 10). */}
+    <ScrollView contentContainerStyle={s.content} accessibilityActions={[{ name: 'activate', label: 'Osveži raspored' }]}
+      onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'activate') onRefresh(); }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-      {/* The week names itself; "Danas" only when today is in another week; the two arrows stay together. */}
+      {/* The week names itself; "Danas" only when today is in another week; the two arrows stay together. The label is
+          never cut: it wraps, and on a narrow row "Danas" moves under it. */}
       <View style={s.weekRow}>
-        <T variant="bodyStrong" accessibilityRole="header" numberOfLines={2} style={s.weekLabel}>{weekLabel(days, now)}</T>
-        {days.includes(today) ? null : <V2Action label="Danas" kind="quiet" compact onPress={() => onSelect(today)} />}
+        <T variant="bodyStrong" accessibilityRole="header" style={s.weekLabel}>{weekLabel(days, now)}</T>
+        {narrow ? null : toToday}
         <View style={s.arrows}>
           <ChromeIconButton label="Prethodna nedelja" icon={ArrowLeft} onPress={() => onSelect(shiftDate(selected, -7))} />
           <ChromeIconButton label="Sledeća nedelja" icon={ArrowRight} onPress={() => onSelect(shiftDate(selected, 7))} />
         </View>
       </View>
+      {narrow && toToday ? <View style={s.todayLine}>{toToday}</View> : null}
       {/* Seven equal columns that always fit (the seventh day was cut off by a sideways scroll on the phone): about 38 dp
           wide at 320 and 56 tall, an accepted exception to the 48 rule with the full name spoken. At a very large text
           the weekday shrinks to its letter. Unselected days are not filled (B18); today wears a green ring. */}
@@ -104,7 +113,8 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
           <T variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
             style={{ color: chosen ? sys.color.onDark : isToday ? sys.color.green : sys.color.ink }}>{Number(date.slice(-2))}</T>
           <View testID="day-dot" style={{ width: 6, height: 6, borderRadius: sys.radius.pill,
-            backgroundColor: !mark ? 'transparent' : chosen ? sys.color.onDark : mark === 'active' ? sys.color.green : sys.color.lineStrong }} />
+            // A day with only finished work: the muted grey, which reads on white (the hairline grey was about 1.4:1).
+            backgroundColor: !mark ? 'transparent' : chosen ? sys.color.onDark : mark === 'active' ? sys.color.green : sys.color.muted }} />
         </Press>;
       })}</View>
       <View style={s.heading}>
@@ -116,15 +126,18 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
       <View style={s.foot}>
         {list.state === 'ready' && withoutTerm > 0 ? <LinkRow art="agreements" label="Bez tačnog termina" detail={dogovora(withoutTerm)}
           onPress={onWithoutTerm} /> : null}
-        <LinkRow art="clock" label="Moja dostupnost za rad" spoken="Uredi dostupnost za rad" onPress={onAvailability} />
+        <LinkRow art="clock" label="Moja dostupnost za rad" onPress={onAvailability} />
       </View>
     </ScrollView>
   </SafeAreaView>;
 }
 
-/** A quiet row that leads elsewhere: a hairline above, the picture, the words, and the arrow. */
-function LinkRow({ art, label, detail, spoken, onPress }: { art: FactArtKind; label: string; detail?: string; spoken?: string; onPress: () => void }) {
-  return <Press accessibilityRole="button" accessibilityLabel={spoken ?? label} accessibilityValue={detail ? { text: detail } : undefined}
+/**
+ * A quiet row that leads elsewhere: a hairline above, the picture, the words, and the arrow. Its spoken name is its
+ * visible words, so voice control finds it by what it says.
+ */
+function LinkRow({ art, label, detail, onPress }: { art: FactArtKind; label: string; detail?: string; onPress: () => void }) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={detail ? { text: detail } : undefined}
     haptic="select" scaleTo={0.99} onPress={onPress} style={s.link}>
     <FactArt kind={art} size={26} />
     <View style={s.linkCopy}>
@@ -141,8 +154,11 @@ const s = StyleSheet.create({
   weekRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   weekLabel: { flex: 1, minWidth: 0 },
   arrows: { flexDirection: 'row', gap: sys.space.xs },
-  strip: { flexDirection: 'row', gap: 2, marginTop: sys.space.md },
-  heading: { marginTop: sys.space.xl, gap: 2 },
+  todayLine: { flexDirection: 'row' },
+  // Half the smallest step, on purpose: seven columns must fit at 320 dp, and every dp between them is taken from a day
+  // (about 38 dp wide there; with a 4 dp gap, 36.6). The only spacing here that is off the scale.
+  strip: { flexDirection: 'row', gap: sys.space.xs / 2, marginTop: sys.space.md },
+  heading: { marginTop: sys.space.xl, gap: sys.space.xs },
   day: { marginTop: sys.space.sm },
   list: { gap: sys.space.md },
   partial: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
@@ -150,5 +166,5 @@ const s = StyleSheet.create({
   foot: { marginTop: sys.space.xxl },
   link: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.md,
     borderTopWidth: 1, borderTopColor: sys.color.line },
-  linkCopy: { flex: 1, minWidth: 0, gap: 2 },
+  linkCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

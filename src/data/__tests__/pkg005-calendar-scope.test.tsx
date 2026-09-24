@@ -59,12 +59,14 @@ describe('PKG-005 calendar scope', () => {
     // rule. The scope itself is unchanged: one calendar read, the availability editor, no app mode.
     expect(text()).not.toContain('uskočio');
     expect(text()).not.toContain('oni te ovde ne blokiraju');
-    // Updated deliberately (owner step 10, 2026-09-24, critique A15/B18): the calendar now places the Dogovori about my
-    // own tasks and finished ones too, so an empty day is simply empty, in one quiet line, for either side.
+    // Updated deliberately (owner step 10, 2026-09-24, critique A15/B18): the calendar places the Dogovori about my own
+    // tasks and finished ones too, from the exact window the Dogovori list carries (`tacanTermin`, wired in the review
+    // of step 10), so a day with none of them is simply empty, in one quiet line, for either side.
     expect(text()).toContain('Nema zakazanih Dogovora.');
     expect(text()).not.toContain('Dogovori za tvoje zadatke');
     expect(text()).toContain('Moja dostupnost za rad');
     expect(text()).not.toMatch(/JA MOGU|MENI TREBA/);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Uredi dostupnost za rad' })).toBeTruthy();
+    // The availability row is spoken by its visible words since the review of step 10.
+    expect(tree.root.findByProps({ accessibilityLabel: 'Moja dostupnost za rad' })).toBeTruthy();
   });
 });

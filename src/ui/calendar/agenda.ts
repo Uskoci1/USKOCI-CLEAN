@@ -2,7 +2,6 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
-import type { TacanTermin } from '../../lib/tacanTermin';
 import { raspon, vreme } from '../../lib/vreme';
 import { localDayRange, overlapsInterval, zonedParts } from './calendarPresentation';
 
@@ -16,9 +15,10 @@ import { localDayRange, overlapsInterval, zonedParts } from './calendarPresentat
 /**
  * A Dogovor as the calendar reads it. `tacanTermin` is the accepted exact window: an object when there is one, `null`
  * when the Dogovor has none, and absent when the list did not say (then the calendar cannot place the Dogovor and says
- * that it shows only the work I do, instead of calling the day empty).
+ * that it shows only the work I do, instead of calling the day empty). The Dogovori list carries it since the review of
+ * owner step 10 (agreementClientService maps it from the accepted terms through lib/tacanTermin).
  */
-export type AgendaAgreement = DogovorProjekcija & { tacanTermin?: TacanTermin | null };
+export type AgendaAgreement = DogovorProjekcija;
 export type AgendaState = 'CONFIRMED' | 'AWAITING_REQUESTER' | 'COMPLETED';
 
 export const ROLE_WORKER = 'Uskačeš';
@@ -75,21 +75,24 @@ function candidate(agreement: AgendaAgreement, schedule: ReadonlySet<string>): b
 }
 
 /**
- * Every item of one week, in start order. (a) Every schedule event is an item of mine ('Uskačeš', confirmed); it takes
- * its title, amount, person and place only from the Dogovor with the same id, the same version and still CONFIRMED,
- * and otherwise stays a confirmed term without a title or an amount. (b) When the list is loaded, it adds each other
- * Dogovor with an exact accepted window that overlaps the week.
+ * Every item of one week, in start order. (a) Every schedule event is an item of mine ('Uskačeš'); it takes its title,
+ * amount, person, place and state only from the Dogovor with the same id and the same version that is still active
+ * (agreed, or waiting for the completion to be confirmed), and otherwise stays a confirmed term without a title or an
+ * amount. Marking the work done changes the Dogovor's execution state, not its version, and the schedule keeps the
+ * event while the Dogovor is agreed (rpc_mark_work_done, 20260908120000; the calendar authority, 20260909110000), so my
+ * own waiting Dogovor is the same version and says it waits, as the requester's side does. (b) When the list is loaded,
+ * it adds each other Dogovor with an exact accepted window that overlaps the week.
  */
 export function agendaItems({ events, agreements, from, to }: {
   events: readonly WorkerCalendarEvent[]; agreements: readonly AgendaAgreement[] | null; from: string; to: string;
 }): AgendaItem[] {
   const items: AgendaItem[] = events.map(event => {
     const match = agreements?.find(item => same(item.id, event.agreementId) && item.verzija === event.agreementVersion
-      && item.stanje === 'CONFIRMED');
+      && (ACTIVE as readonly string[]).includes(item.stanje));
     const known = match ? facts(match) : null;
     return { key: `event:${event.eventId}`, agreementId: event.agreementId, startsAt: event.startsAt, endsAt: event.endsAt,
-      state: 'CONFIRMED', role: ROLE_WORKER, title: known?.title ?? null, fallbackTitle: SCHEDULE_FALLBACK_TITLE,
-      amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '' };
+      state: match ? match.stanje as AgendaState : 'CONFIRMED', role: ROLE_WORKER, title: known?.title ?? null,
+      fallbackTitle: SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '' };
   });
   if (agreements) {
     const schedule = new Set(events.map(event => event.agreementId.toLowerCase()));

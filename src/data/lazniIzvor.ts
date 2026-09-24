@@ -288,6 +288,9 @@ function dogovorIz(a: Alokacija): DogovorProjekcija {
     izmenaCeka: null,
     // PKG-048: the double's Dogovor also comes from a Zadatak and a Prijava, so the source rows appear here too.
     izvor: { zadatakId: 'ormar', prijavaId: a.prijavaId },
+    // Owner step 10: the double's term is the candidate's arrival in words (`vremeTekst`), never an exact window, so the
+    // calendar counts this Dogovor under "Bez tačnog termina" instead of placing it on a day.
+    tacanTermin: null,
   };
 }
 
