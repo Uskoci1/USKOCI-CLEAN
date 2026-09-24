@@ -41,39 +41,42 @@ the cloud session needs that used to live only on the owner's PC.
 | 1 Audit | done |
 | 2 Design system and shared components | done, emulator-verified |
 | 3 Navigation, headers, bottom bar | done, emulator-verified |
-| 4 Map, pins, filters | done, emulator-verified |
+| 4 Map, pins, filters | done, emulator-verified; rebuilt 24.09 as Discovery V47 (Airbnb model) — in code, emulator check pending |
 | 5 Task card, task detail, Moje prijave | done, emulator-verified |
 | 6 AI conversation (Gemini-style) | done, emulator-verified through the `dizajn-ai` gallery |
 | 7 Incoming applications, candidate choice | done, emulator-verified through `dizajn-kandidati` |
 | 8 Dogovori, Pregled, Poruke | done, emulator-verified through `dizajn-dogovori` and the real screens |
-| 9–11 Profile, calendar, notifications/settings, privacy/support | built and emulator-checked on 644cab09; review fixes (round 5b) — see "Current head" below |
-| 12 Remaining screens and whole-app regression | next: `round6.workflow.js` |
+| 9–11 Profile, calendar, notifications/settings, privacy/support | built and emulator-checked on 644cab09; round 5b and 5c review fixes in code (5c emulator check pending) |
+| 12 Remaining screens and whole-app regression | round 6 screens done in code (emulator check pending); whole-app sweep paused with 181 findings in `../r6-sweep/FINDINGS.json` |
 
-Proof workflows green on f88216cd: PKG-003, 004, 005, 006, 007, 047. RU-2 Edge RN source proof fails for a
+Proof workflows green on b4531ef: PKG-004, 005, 006, 007, 008, 010, 042, 046, 050 (earlier on f88216cd: PKG-003, 047). RU-2 Edge RN source proof fails for a
 pre-existing reason (its pinned strings were removed before this branch; last green 2026-09-03).
 
 ## Current head
 
 See the last section of this file (updated at handoff).
 
-## How to continue in the cloud
+## How to continue (any agent: Claude Code, Codex or a person)
 
-1. Integrate anything the handoff lists as pending, run `npx tsc --noEmit -p tsconfig.json` and the full `npx jest`
-   (expect ~300 suites, ~5,600+ tests; a 5 s first-run timeout of `my-applications-native`, `firebase-config`,
-   `w02-location-native` or `v5-need-lifecycle-screen` under load passes when re-run alone).
-2. Run round 6 with the Workflow tool: `scriptPath: docs/implementation/design-system/cloud-handoff/round6.workflow.js`,
-   `args: { repo: '<absolute path of this checkout>', base: '<full sha of the head>' }`. It rebuilds the remaining
-   screens (application composer and rating; publish review, place and photos; Q&A and Dogovor sub-screens) as
-   audit → build → three-lens review, and runs a whole-app consistency sweep whose findings are each checked by a
-   skeptic. Then integrate the branches (cherry-pick), apply the reviews with one fixer per area, verify, run the full
-   Jest, push.
-3. Each finished round: push, then dispatch the APK build for the emulator:
-   `gh workflow run "Build Android development APK" --ref work/uskoci-ui-unification-20260924 -f target=emulator`, and
-   the proof workflows whose `paths` match the changed files (`pkg003`…`pkg007`, `pkg047`). The owner's PC does the
-   emulator screenshot loop (install with `adb install -r`, galleries `uskociapp://dizajn-*`, emulator in
-   Europe/Belgrade); the cloud cannot run the emulator.
-4. Record evidence in `docs/implementation/design-system/r<N>-…/` and update `docs/control/redovi.json`
-   (`node scripts/control/osvezi.mjs`).
+Round 6 is done; `round6.workflow.js` is kept as history (it needs Claude's Workflow tool). Everything below works
+with a plain shell.
+
+1. `git fetch origin && git checkout work/uskoci-ui-unification-20260924 && git pull`, then `npm ci` (its postinstall
+   generates the gitignored `src/ui/referenceEntry/entryReferenceData.ts`; with `--ignore-scripts` run
+   `node scripts/sync-entry-reference-assets.cjs` yourself).
+2. Work the "Next, in this order" list in the "Current head" section below. One writer per file; the owner's local
+   session owns payments and PKG-051.
+3. Verify every change: `npx tsc --noEmit -p tsconfig.json` and the full Jest
+   `npx jest -w 3 --testTimeout=30000 --testPathIgnorePatterns '<rootDir>/.claude/' '/node_modules/'` (expect about
+   302 suites / 5,882 tests; a first-run 5 s timeout under load passes when re-run alone). Read the rules in
+   `rules/` first (text scale via `useTextScale()`, the route test harness traps, LF line endings).
+4. Push, then dispatch the emulator APK (`gh workflow run build-android-dev-apk.yml --ref
+   work/uskoci-ui-unification-20260924 -f target=emulator`) and every `pkg0*` proof workflow whose `push.paths` match
+   the changed files (they run only on `work/pre-v3-engine-integration-20260911` by themselves, so dispatch them on
+   this branch). The owner's PC does the emulator screenshots (`adb install -r`, galleries `uskociapp://dizajn-*`,
+   emulator in Europe/Belgrade).
+5. Record evidence in `docs/implementation/design-system/r<N>-…/`, update `docs/control/redovi.json`, run
+   `node scripts/control/osvezi.mjs`, commit, and republish `docs/control/out/tabla.html` to the control table page.
 
 ## Open owner items
 

@@ -24,6 +24,7 @@ and round 6 are in code on `work/uskoci-ui-unification-20260924` (Jest 302/5,882
 `docs/implementation/design-system/cloud-handoff/README.md`: emulator loop, the owner's evening decisions ("U blizini"
 now, remove "Trenutna lokacija", rating comment server package, no place checkbox), then the sweep findings in
 `docs/implementation/design-system/r6-sweep/FINDINGS.json`. Payments/price list (PKG-051) belong to the owner's local session.
+The owner's Serbian summary of the day: `docs/implementation/design-system/IZVESTAJ_20260924_OBLAK.md`.
 
 CLOUD HANDOFF (2026-09-24, owner: continue in the cloud to use the cloud session credits): read
 `docs/implementation/design-system/cloud-handoff/README.md` first. It carries the working rules copied from the local
