@@ -4,45 +4,47 @@ import { User, type Icon } from 'phosphor-react-native';
 import { InboxBell } from '../InboxBell';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { accountButton, iconButton, sys } from './tokens';
+import { iconButton, sys } from './tokens';
 
-/** Shared 48dp icon control. Selected state is expressed by colour and weight, not a second badge. */
+/** 44px icon control in a quiet well; `active` is shown by weight and colour together. */
 export function HeaderIconButton({ label, hint, icon: IconComponent, active = false, onPress, children }: {
   label: string; hint?: string; icon: Icon; active?: boolean; onPress: () => void; children?: ReactNode;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ selected: active }}
     onPress={onPress} haptic="select" style={[iconButton, active && s.active]}>
-    <IconComponent size={24} color={active ? sys.color.green : sys.color.ink} weight={active ? 'fill' : 'regular'} />
+    <IconComponent size={22} color={active ? sys.color.green : sys.color.ink} weight={active ? 'fill' : 'regular'} />
     {children}
   </Press>;
 }
 
 /**
- * Shared top chrome for primary list surfaces.
+ * Top bar of a tab surface (V5 head): a quiet eyebrow that names the intent you are in (owner
+ * decision 2, 2026-09-16), the screen title, bell to the inbox, avatar to the profile.
  *
- * The account entry is stable on the left and the inbox is stable on the right. Screen identity
- * stays in the middle; optional view controls are grouped after the title without changing the
- * meaning of the account or inbox controls. There is no global role/intent switch here.
+ * `right` is for the controls that narrow what the screen shows — search, filters, the worker
+ * calendar. They used to sit in a row beside the segmented control, which left the segment 217dp on
+ * a 361dp phone: enough at the default text size and not enough once the reader has enlarged it, so
+ * a section was cut through the middle. Up here they cost no vertical band at all, and the segment
+ * has its row to itself at every text size.
  */
 export function ScreenHeader({ eyebrow, title, onProfile, right }: { eyebrow: string; title: string; onProfile: () => void; right?: ReactNode }) {
   return <View style={s.header}>
-    <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={onProfile} haptic="select" style={accountButton}>
-      <User size={25} color={sys.color.green} weight="bold" />
-    </Press>
     <View style={s.copy}>
-      <T variant="label" style={s.eyebrow} numberOfLines={1}>{eyebrow}</T>
-      <T accessibilityRole="header" variant="title" style={s.title} numberOfLines={2}>{title}</T>
+      <T variant="label" style={s.eyebrow}>{eyebrow}</T>
+      <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
     </View>
-    {right ? <View style={s.tools}>{right}</View> : null}
+    {right}
     <InboxBell />
+    <Press accessibilityRole="button" accessibilityLabel="Moj profil" onPress={onProfile} haptic="select" style={iconButton}>
+      <User size={22} color={sys.color.ink} />
+    </Press>
   </View>;
 }
 
 const s = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 72, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 },
-  copy: { flex: 1, minWidth: 0, paddingHorizontal: 2 },
-  eyebrow: { color: sys.color.muted, fontWeight: '600', letterSpacing: 0.25, marginBottom: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 62, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
+  copy: { flex: 1, minWidth: 0 },
+  eyebrow: { color: sys.color.muted, fontWeight: '600', letterSpacing: 0.4, marginBottom: 2 },
   title: { color: sys.color.ink },
-  tools: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   active: { backgroundColor: sys.color.greenSoft },
 });
