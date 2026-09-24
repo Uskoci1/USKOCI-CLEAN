@@ -254,11 +254,13 @@ describe('actual availability editor interactions', () => {
     expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(text()).not.toContain('Imaš nesačuvane izmene.');
   });
 
-  it('draws the switch with a white thumb in both states (B19: not the platform teal)', async () => {
+  // Round-5c: the off track was the hairline grey, about 1.4:1 on white; it is the muted grey now.
+  it('draws the switch with a white thumb in both states (B19: not the platform teal), and a visible off track', async () => {
     await render();
     const toggle = tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' });
     expect(toggle.props.thumbColor).toBe(sys.color.surface);
-    expect(toggle.props.trackColor).toEqual({ true: sys.color.green, false: sys.color.lineStrong });
+    expect(toggle.props.trackColor).toEqual({ true: sys.color.green, false: sys.color.muted });
+    expect(toggle.props.ios_backgroundColor).toBe(sys.color.muted);
   });
 
   it('tells the screen whether there are unsaved changes, and false when it goes away', async () => {
@@ -500,12 +502,25 @@ describe('the agenda screen', () => {
     return onRefresh;
   };
 
-  it('lets a screen reader read the calendar again, as the pull does', async () => {
+  // Round-5c: the action sat on the ScrollView, which TalkBack and VoiceOver never offer it on. It is on the day's heading,
+  // a focusable element, under its own name, so the heading does not become a button.
+  it('lets a screen reader read the calendar again from the day heading, as the pull does', async () => {
     const onRefresh = await draw();
-    const list = tree.root.findByType('ScrollView' as React.ElementType);
-    expect(list.props.accessibilityActions).toEqual([{ name: 'activate', label: 'Osveži raspored' }]);
-    await act(async () => list.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(tree.root.findByType('ScrollView' as React.ElementType).props.accessibilityActions).toBeUndefined();
+    const heading = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityActions)[0];
+    expect(heading.props.accessibilityRole).toBe('header');
+    expect(heading.props.accessibilityActions).toEqual([{ name: 'refresh', label: 'Osveži raspored' }]);
+    await act(async () => heading.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(onRefresh).not.toHaveBeenCalled();
+    await act(async () => heading.props.onAccessibilityAction({ nativeEvent: { actionName: 'refresh' } }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('lines "Danas" up with the week label when it moves under it', async () => {
+    mockFontScale = 1.3;
+    await draw({ selected: '2026-12-31', today: '2026-09-24' });
+    const today = tree.root.findAll(node => node.props.label === 'Danas' && typeof node.type !== 'string')[0];
+    expect(today.parent!.props.style).toEqual(expect.objectContaining({ marginLeft: -sys.space.base }));
   });
 
   it.each([[1, true], [1.3, false]])('never cuts the week label, and moves "Danas" under it on a narrow row (text size %s)', async (scale, beside) => {
@@ -602,17 +617,20 @@ describe('availability reads the way the rest of the app writes time', () => {
     expect(onRefresh).toHaveBeenCalledTimes(1); expect(onSave).not.toHaveBeenCalled();
   });
 
-  // The standing "Osveži dostupnost" button was the only way a screen reader could read the saved state again.
-  it('lets a screen reader reach the same read as an action on the list, never over unsaved edits', async () => {
+  // The standing "Osveži dostupnost" button was the only way a screen reader could read the saved state again. Round-5c:
+  // on the ScrollView the action was never offered (Android's scroll view keeps its own delegate); it is on the heading.
+  it('lets a screen reader reach the same read as an action on the week heading, never over unsaved edits', async () => {
     const onRefresh = jest.fn();
     await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} onRefresh={onRefresh} />); });
-    const list = () => tree.root.findByType('ScrollView' as React.ElementType);
-    expect(list().props.accessibilityActions).toEqual([{ name: 'activate', label: 'Učitaj sačuvano stanje' }]);
-    await act(async () => list().props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(tree.root.findByType('ScrollView' as React.ElementType).props.accessibilityActions).toBeUndefined();
+    const heading = () => tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Redovna nedelja')[0];
+    expect(heading().props.accessibilityRole).toBe('header');
+    expect(heading().props.accessibilityActions).toEqual([{ name: 'refresh', label: 'Učitaj sačuvano stanje' }]);
+    await act(async () => heading().props.onAccessibilityAction({ nativeEvent: { actionName: 'refresh' } }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
-    expect(list().props.accessibilityActions).toBeUndefined();
-    await act(async () => list().props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(heading().props.accessibilityActions).toBeUndefined();
+    await act(async () => heading().props.onAccessibilityAction({ nativeEvent: { actionName: 'refresh' } }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(text()).toContain('Imaš nesačuvane izmene.');
   });

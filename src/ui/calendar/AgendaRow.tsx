@@ -58,7 +58,7 @@ export function AgendaRow({ item, day, onOpen, zoneNote = false }: {
         {value}
       </View>
       {status || others ? <View style={s.facts}>
-        {status ? <View style={[s.dot, { backgroundColor: waiting ? sys.color.orange : sys.color.lineStrong }]} /> : null}
+        {status ? <View style={[s.dot, { backgroundColor: waiting ? sys.color.orange : sys.color.muted }]} /> : null}
         <T variant="note" style={[s.factText, { color: done ? sys.color.muted : sys.color.fact }]}>
           {status ? <T variant="note" style={{ color: waiting ? sys.color.warn : sys.color.muted }}>{status}</T> : null}
           {status && others ? ' · ' : null}{others || null}

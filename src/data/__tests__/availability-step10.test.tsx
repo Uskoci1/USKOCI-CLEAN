@@ -275,7 +275,11 @@ describe('leaving Dostupnost', () => {
   // Review of owner step 10: without a work profile, reading again cannot help; the one action leads to the profile.
   it('leads to the work profile when there is none to read availability from', async () => {
     mockEditor = editor({ data: null, error: 'Najpre sačuvaj svoj radni profil.' }); await screen();
-    expect(text()).toContain('Dostupnost nije učitana.');
+    // Round-5c: a precondition, not a failed read. Drawn as an empty state whose title is the whole message, said once.
+    expect(text()).not.toContain('Dostupnost nije učitana.');
+    expect(text().split('Najpre sačuvaj svoj radni profil.')).toHaveLength(2);
+    expect(tree.root.findAll(node => node.props.kind === 'empty' && node.props.title === 'Najpre sačuvaj svoj radni profil.').length).toBeGreaterThan(0);
+    expect(tree.root.findAll(node => node.props.kind === 'error')).toHaveLength(0);
     expect(all('Učitaj sačuvano stanje')).toHaveLength(0);
     await press('Dopuni radni profil');
     expect(router.navigate).toHaveBeenCalledWith('/profil/radnik'); expect(mockEditor.refresh).not.toHaveBeenCalled();
@@ -308,6 +312,54 @@ describe('copying a day with a slot over midnight', () => {
     await pick('Utorak');
     expect(text()).not.toContain('Postojeći termini izabranih dana se zamenjuju.');
   });
+
+  // Round-5c: copying a night puts its after-midnight part on the day after each chosen day, which "22:00–24:00" did not
+  // show; the sheet, the question and the announcement say it.
+  it('says the copied night goes on to the next day, in the sheet, the question and the announcement', async () => {
+    const note = 'Noćni termin se nastavlja do 06:00 sledećeg dana.';
+    const announce = jest.spyOn(jest.requireActual('react-native').AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    try {
+      const week = availability({ rules: [...night().rules, rule(ids[2], [3], '09:00:00', '12:00:00')] });
+      await form(week);
+      await openDay('Ponedeljak');
+      await press('Kopiraj Ponedeljak na druge dane');
+      expect(text()).toContain(note);
+      await act(async () => tree.unmount());
+      await form(week);
+      await openDay('Ponedeljak');
+      await press('Isto za sve radne dane kao Ponedeljak');
+      expect(tree.root.findByType(ConfirmSheet).props.message).toContain(`kao ponedeljak. ${note}`);
+      await act(async () => tree.root.findByType(ConfirmSheet).props.onConfirm());
+      expect(announce).toHaveBeenCalledWith(`Termini su kopirani na radne dane. ${note}`);
+    } finally { announce.mockRestore(); }
+  });
+
+  it('says nothing of a night when the copied day has none', async () => {
+    await form(availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00')] }));
+    await openDay('Ponedeljak');
+    await press('Kopiraj Ponedeljak na druge dane');
+    expect(text()).not.toContain('Noćni termin');
+  });
+});
+
+// Round-5c: a failed read says "…pokušaj ponovo", and the way to do it stands beside it while nothing is unsaved.
+describe('a failed read', () => {
+  const problem = 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.';
+  it('offers "Pokušaj ponovo" beside the line, which reads again', async () => {
+    const onRefresh = jest.fn();
+    await form(availability(), { problem, onRefresh });
+    await press('Pokušaj ponovo');
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+  it('hides it over unsaved edits, and without a way to read', async () => {
+    const onRefresh = jest.fn();
+    await form(availability(), { problem, onRefresh });
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    expect(all('Pokušaj ponovo')).toHaveLength(0);
+    await act(async () => tree.unmount());
+    await form(availability(), { problem });
+    expect(all('Pokušaj ponovo')).toHaveLength(0);
+  });
 });
 
 describe('what a screen reader hears', () => {
@@ -331,12 +383,20 @@ describe('what a screen reader hears', () => {
     expect(host('Uredi izuzetak 10. jan 2099').props.accessibilityValue.text).toBe('10. jan 2099 · 09:00–11:00, Slobodno za rad · Sajam');
   });
 
-  it('hears the "Mogu odmah" switch once, and its words switch it too', async () => {
+  // Round-5c: the explanation is read as its own line, not as the switch's hint, which goes unheard with hints off.
+  it('hears the "Mogu odmah" switch once, its explanation as a line of its own, and its words switch it too', async () => {
     await form();
-    const words = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.importantForAccessibility === 'no-hide-descendants');
-    expect(words[0].props.accessible).toBe(false);
+    const words = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.importantForAccessibility === 'no')[0];
+    expect(words.props.accessible).toBe(false); expect(words.props.accessibilityElementsHidden).toBeFalsy();
+    const [label, explanation] = words.findAll(node => node.type === ('T' as React.ElementType));
+    expect(label.props.children).toBe('Mogu odmah');
+    expect(label.props.importantForAccessibility).toBe('no'); expect(label.props.accessibilityElementsHidden).toBe(true);
+    expect(explanation.props.children).toContain('važi kada sačuvaš dostupnost');
+    expect(explanation.props.importantForAccessibility).toBeUndefined(); expect(explanation.props.accessibilityElementsHidden).toBeUndefined();
+    const toggle = tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' });
+    expect(toggle.props.accessibilityHint).toBeUndefined();
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mogu odmah')).toHaveLength(1);
-    await act(async () => words[0].props.onPress());
+    await act(async () => words.props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(true);
     expect(text()).toContain('Imaš nesačuvane izmene.');
     expect(text()).toContain('važi kada sačuvaš dostupnost');

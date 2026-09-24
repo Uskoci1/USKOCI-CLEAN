@@ -17,7 +17,7 @@ import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { CalendarField, CivilField, calendarStyles } from './CalendarControls';
 import { civilClock, civilDay, civilInstant, scheduleZone, shiftDate, showScheduleZone, weekdays, zonedParts } from './calendarPresentation';
-import { copyDay, copyTakesAway } from './weekCopy';
+import { copyDay, copyTakesAway, nightContinuation } from './weekCopy';
 
 type Weekday = (typeof weekdays)[number];
 const WORKDAYS = [1, 2, 3, 4, 5];
@@ -41,6 +41,14 @@ const names = (days: readonly Weekday[]) => {
   const words = days.map((day, index) => index ? day.name.toLowerCase() : day.name);
   return words.length < 2 ? words[0] ?? '' : `${words.slice(0, -1).join(', ')} i ${words[words.length - 1]}`;
 };
+/**
+ * A copied night goes on past midnight onto the day after each chosen day, which the day's own summary ("22:00–24:00")
+ * does not show (round-5c), so the copy says it.
+ */
+const nightNote = (rules: readonly AvailabilityRule[], day: number) => {
+  const after = nightContinuation(rules, day);
+  return after ? `Noćni termin se nastavlja do ${civilClock(after.endTime)} sledećeg dana.` : null;
+};
 const dayOf = (value: number) => weekdays.find(day => day.day === value) ?? weekdays[0];
 function seconds(value: string) {
   const match = /^(\d{2}):(\d{2})(?::(\d{2}(?:\.\d{1,6})?))?$/.exec(value);
@@ -50,27 +58,32 @@ function seconds(value: string) {
 const fields = (value: WorkerAvailabilityInput): WorkerAvailabilityInput =>
   ({ timezone: value.timezone, availableNow: value.availableNow, rules: value.rules, windows: value.windows });
 
-/** The one switch look: green track when on, the strong hairline when off, and a white thumb in both (B19: not teal). */
-function FormSwitch({ label, hint, value, change, disabled }: {
-  label: string; hint?: string; value: boolean; change: (value: boolean) => void; disabled?: boolean;
+/**
+ * The one switch look: green track when on, the muted grey when off (the hairline grey was about 1.4:1 on white, round-5c),
+ * and a white thumb in both (B19: not teal).
+ */
+function FormSwitch({ label, value, change, disabled }: {
+  label: string; value: boolean; change: (value: boolean) => void; disabled?: boolean;
 }) {
-  return <Switch accessibilityLabel={label} accessibilityHint={hint} value={value} onValueChange={change} disabled={disabled}
-    trackColor={{ true: sys.color.green, false: sys.color.lineStrong }} thumbColor={sys.color.surface} ios_backgroundColor={sys.color.lineStrong} />;
+  return <Switch accessibilityLabel={label} value={value} onValueChange={change} disabled={disabled}
+    trackColor={{ true: sys.color.green, false: sys.color.muted }} thumbColor={sys.color.surface} ios_backgroundColor={sys.color.muted} />;
 }
 /**
  * A switch with its words beside it. The words are part of the touch area (the switch alone was a small target), and a
- * screen reader hears the switch once, by its name and hint, instead of the words and then the switch again.
+ * screen reader hears the switch once, by its name: the label beside it is hidden. The explanation under the label is read
+ * as its own line (round-5c: as the switch's hint it went unheard with hints off, and TalkBack reads a hint only as a
+ * usage tip), so the switch carries no hint and nothing is said twice.
  */
 function SwitchRow({ label, hint, strong = false, value, change, disabled }: {
   label: string; hint?: string; strong?: boolean; value: boolean; change: (value: boolean) => void; disabled?: boolean;
 }) {
   return <View style={hint ? s.status : s.toggleRow}>
-    <Press accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden disabled={disabled}
+    <Press accessible={false} importantForAccessibility="no" disabled={disabled}
       scaleTo={1} haptic="select" onPress={() => change(!value)} style={s.switchCopy}>
-      <T variant={strong ? 'bodyStrong' : 'body'}>{label}</T>
+      <T variant={strong ? 'bodyStrong' : 'body'} accessibilityElementsHidden importantForAccessibility="no">{label}</T>
       {hint ? <T variant="note" tone="muted">{hint}</T> : null}
     </Press>
-    <FormSwitch label={label} hint={hint} value={value} change={change} disabled={disabled} />
+    <FormSwitch label={label} value={value} change={change} disabled={disabled} />
   </View>;
 }
 /** Two fields side by side where they fit, one under the other on a narrow screen or at a large text size. */
@@ -229,6 +242,7 @@ export function CopySheet({ source, rules, close, apply }: {
   const reduced = useReducedMotion();
   const [chosen, setChosen] = useState<number[]>([]);
   const summary = rules.filter(rule => rule.weekdays.includes(source.day)).map(range).join(' · ');
+  const night = nightNote(rules, source.day);
   // Read from the copy itself: the part after midnight of the source's own night is not a chosen day's own slot.
   const replacing = copyTakesAway(rules, source.day, chosen);
   const toggle = (day: number) => setChosen(list => list.includes(day) ? list.filter(value => value !== day) : [...list, day]);
@@ -237,6 +251,7 @@ export function CopySheet({ source, rules, close, apply }: {
       onPrimary={() => { if (!chosen.length) return; apply(chosen); dismiss(); }} cancel="Odustani" onCancel={dismiss} />}>
     {() => <>
       <T variant="note" tone="muted">{`${source.name}: ${summary}`}</T>
+      {night ? <T variant="note" tone="muted">{night}</T> : null}
       <View>{weekdays.filter(day => day.day !== source.day).map(day => {
         const on = chosen.includes(day.day);
         return <Press key={day.day} accessibilityRole="checkbox" accessibilityLabel={day.name} accessibilityState={{ checked: on }}
@@ -345,22 +360,26 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
       endsOn: null, label: '', active: true } });
   };
   const copy = (source: Weekday, targets: readonly number[], announce: string) => {
+    const night = nightNote(draft.rules, source.day);
     update({ rules: copyDay(draft.rules, source.day, targets) });
-    AccessibilityInfo.announceForAccessibility(announce);
+    AccessibilityInfo.announceForAccessibility(night ? `${announce} ${night}` : announce);
   };
   const sameForWorkdays = (source: Weekday) => {
     if (blocked) return;
     const targets = WORKDAYS.filter(day => day !== source.day);
     const apply = () => copy(source, targets, 'Termini su kopirani na radne dane.');
     if (!copyTakesAway(draft.rules, source.day, targets)) { apply(); return; }
+    const night = nightNote(draft.rules, source.day);
     confirmation.ask({ title: 'Zameniti termine?', confirmLabel: 'Zameni', cancelLabel: 'Odustani', onConfirm: apply,
-      message: `${names(targets.map(dayOf))} ${targets.length === 1 ? 'dobija' : 'dobijaju'} iste termine kao ${source.name.toLowerCase()}. Promena će se sačuvati tek kada sačuvaš dostupnost.` });
+      message: `${names(targets.map(dayOf))} ${targets.length === 1 ? 'dobija' : 'dobijaju'} iste termine kao ${source.name.toLowerCase()}.${night ? ` ${night}` : ''} Promena će se sačuvati tek kada sačuvaš dostupnost.` });
   };
   // A pull reads the saved state again, and the new value resets the form (the effect above). With unsaved edits, a
   // pull made while scrolling up would throw them away unasked, so it does nothing until they are saved or discarded.
   // The control stays mounted (removing it re-creates the Android scroll view and loses the position): `enabled`
   // stops the Android gesture, the check in reload() stops an iOS pull. A screen reader reaches the same read as an
-  // action on the list, since the standing refresh button is gone.
+  // action on the "Redovna nedelja" heading, since the standing refresh button is gone (round-5c: on the ScrollView the
+  // action was never offered: Android's scroll view keeps its own accessibility delegate, and VoiceOver does not focus it).
+  const canReload = !!onRefresh && !dirty;
   const reload = () => { if (!dirty) onRefresh?.(); };
   // The switch changes the draft only, so its hint says when it starts to count (review of owner step 10: a switch looks
   // as if it took effect at once). Whether it should be saved on its own is an open owner decision.
@@ -393,18 +412,22 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   </FooterIn> : null;
   return <View style={s.fill}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}
-      accessibilityActions={onRefresh && !dirty ? [{ name: 'activate', label: 'Učitaj sačuvano stanje' }] : undefined}
-      onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'activate') reload(); }}
       refreshControl={onRefresh ? <RefreshControl enabled={!dirty} refreshing={refreshing} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
       <View style={s.group}>
         {candidateMode ? <T variant="note" tone="muted">Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.</T> : null}
-        {problem && !uncertain ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{problem}</T> : null}
+        {/* A failed read says "…pokušaj ponovo", so the way to do it stands beside it while nothing is unsaved. */}
+        {problem && !uncertain ? <View style={s.problem}>
+          <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite" style={s.problemText}>{problem}</T>
+          {canReload ? <V2Action label="Pokušaj ponovo" kind="quiet" compact disabled={refreshing} onPress={reload} /> : null}
+        </View> : null}
         {/* A flat row, not a box (B19): the status, what it means, and the switch. It changes the draft only. */}
         <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
       </View>
       <View style={s.section}>
         <View style={s.sectionHead}>
-          <T variant="heading" accessibilityRole="header">Redovna nedelja</T>
+          <T variant="heading" accessibilityRole="header"
+            accessibilityActions={canReload ? [{ name: 'refresh', label: 'Učitaj sačuvano stanje' }] : undefined}
+            onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') reload(); }}>Redovna nedelja</T>
           {showScheduleZone(draft.timezone, phoneZone) ? <T variant="note" tone="muted">{`${scheduleZone(draft.timezone)}.`}</T> : null}
         </View>
         <View style={s.list}>{weekdays.map((day, index) => {
@@ -526,6 +549,8 @@ const s = StyleSheet.create({
   dayActions: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -sys.space.base, marginTop: sys.space.xs },
   windowRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingLeft: sys.space.base, paddingRight: sys.space.xs },
   windowBody: { flex: 1, minWidth: 0, paddingVertical: sys.space.md, gap: sys.space.xs },
+  problem: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
+  problemText: { flexShrink: 1 },
   saved: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   toggleRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   pair: { flexDirection: 'row', gap: sys.space.md },

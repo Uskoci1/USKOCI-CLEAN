@@ -82,9 +82,7 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
   const toToday = days.includes(today) ? null : <V2Action label="Danas" kind="quiet" compact onPress={() => onSelect(today)} />;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Kalendar obaveza" onBack={onBack} />
-    {/* A screen reader reaches the same read as the pull, as an action on the list (review of owner step 10). */}
-    <ScrollView contentContainerStyle={s.content} accessibilityActions={[{ name: 'activate', label: 'Osveži raspored' }]}
-      onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'activate') onRefresh(); }}
+    <ScrollView contentContainerStyle={s.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
       {/* The week names itself; "Danas" only when today is in another week; the two arrows stay together. The label is
           never cut: it wraps, and on a narrow row "Danas" moves under it. */}
@@ -118,7 +116,11 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
         </Press>;
       })}</View>
       <View style={s.heading}>
-        <T variant="heading" accessibilityRole="header">{dayHeading(selected, now)}</T>
+        {/* A screen reader reaches the same read as the pull as an action of the day's heading (round-5c: an action on the
+            ScrollView was never offered, since Android's scroll view keeps its own accessibility delegate and VoiceOver does
+            not focus a scroll view). A named action, not "activate", so the heading does not become a button. */}
+        <T variant="heading" accessibilityRole="header" accessibilityActions={[{ name: 'refresh', label: 'Osveži raspored' }]}
+          onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') onRefresh(); }}>{dayHeading(selected, now)}</T>
         {zoneNote ? <T variant="note" tone="muted">Po vremenu u Srbiji</T> : null}
       </View>
       <View style={s.day}>{content}</View>
@@ -154,7 +156,8 @@ const s = StyleSheet.create({
   weekRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   weekLabel: { flex: 1, minWidth: 0 },
   arrows: { flexDirection: 'row', gap: sys.space.xs },
-  todayLine: { flexDirection: 'row' },
+  // A quiet action's own inset is pulled back, so "Danas" lines up with the week label above it (as dayActions does).
+  todayLine: { flexDirection: 'row', marginLeft: -sys.space.base },
   // The smallest step of the scale (theme/tokens: no value off the 4/8 rhythm). Seven columns still fit at 320 dp, each
   // about 36 dp wide, with the weekday at 13 px and the date shrinking to fit.
   strip: { flexDirection: 'row', gap: sys.space.xs, marginTop: sys.space.md },

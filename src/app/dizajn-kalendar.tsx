@@ -106,11 +106,15 @@ function Calendar({ schedule, list, phoneZone, back }: { schedule: AgendaSchedul
     onBack={back} onRefresh={noop} onRetry={noop} onRetryList={noop} onOpen={noop} onWithoutTerm={noop} onAvailability={noop}
     phoneZone={phoneZone ?? 'Europe/Belgrade'} />;
 }
-function Availability({ value, back, loading = false, error, errorAction = 'Učitaj sačuvano stanje', ...form }: {
+function Availability({ value, back, loading = false, error, errorAction = 'Učitaj sačuvano stanje', noProfile = false, below, ...form }: {
   value: WorkerAvailabilityInput; back: () => void; loading?: boolean; error?: string; errorAction?: string;
+  /** No saved work profile: a precondition, drawn as the route draws it, not as an error. */ noProfile?: boolean;
+  /** What the surrounding screen shows under the form (the profile conversation's own check). */ below?: React.ReactNode;
 } & Partial<React.ComponentProps<typeof AvailabilityForm>>) {
-  return <CalendarScreen title="Dostupnost za rad" back={back} loading={loading} scroll={false}>
-    {error ? <View style={s.pad}><StateView kind="error" art="clock" title="Dostupnost nije učitana." body={error}
+  return <CalendarScreen title="Dostupnost za rad" back={back} loading={loading} scroll={false} footer={below}>
+    {noProfile ? <View style={s.pad}><StateView kind="empty" art="clock" title="Najpre sačuvaj svoj radni profil."
+      primary={{ label: 'Dopuni radni profil', onPress: noop }} /></View>
+      : error ? <View style={s.pad}><StateView kind="error" art="clock" title="Dostupnost nije učitana." body={error}
       primary={{ label: errorAction, onPress: noop }} /></View>
       : <AvailabilityForm availability={value} busy={false} uncertain={false} onSave={noop} onRefresh={noop} phoneZone="Europe/Belgrade" {...form} />}
   </CalendarScreen>;
@@ -132,11 +136,13 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
     case 'nedelja': return <Availability back={back} value={WEEK} />;
     case 'dUcitava': return <Availability back={back} value={EMPTY} loading />;
     case 'dGreska': return <Availability back={back} value={EMPTY} error="Podaci nisu učitani. Proveri vezu i pokušaj ponovo." />;
-    case 'bezProfila': return <Availability back={back} value={EMPTY} error="Najpre sačuvaj svoj radni profil." errorAction="Dopuni radni profil" />;
+    case 'bezProfila': return <Availability back={back} value={EMPTY} noProfile />;
     case 'cuva': return <Availability back={back} value={WEEK} busy />;
     case 'nepoznato': return <Availability back={back} value={WEEK} uncertain onReconcile={noop}
       problem="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." />;
-    case 'razlog': return <Availability back={back} value={WEEK} uncertain candidateMode />;
+    // The reason names the conversation's own check, which the profile conversation draws under the form.
+    case 'razlog': return <Availability back={back} value={WEEK} uncertain candidateMode
+      below={<V2Action label="Proveri stanje razgovora" onPress={noop} />} />;
     case 'sacuvano': return <Availability back={back} value={WEEK} saved />;
     case 'dZona': return <Availability back={back} value={{ ...WEEK, timezone: 'Asia/Kathmandu' }} />;
     case 'termin': return <><Availability back={back} value={EMPTY} />

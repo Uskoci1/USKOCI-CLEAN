@@ -74,6 +74,15 @@ describe('agendaItems', () => {
     }
   });
 
+  // Round-5c: an untitled waiting row said "Potvrđen Dogovor" beside "Čeka se potvrda završetka".
+  it('does not call an untitled waiting row confirmed', () => {
+    const events = [event('e1', 'a-1', 3, '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')];
+    const [waiting] = agendaItems({ events, from, to, agreements: [worker('a-1', { verzija: 3, stanje: 'AWAITING_REQUESTER', naslov: '' })] });
+    expect(waiting).toEqual(expect.objectContaining({ state: 'AWAITING_REQUESTER', title: null, fallbackTitle: 'Dogovor' }));
+    const [confirmed] = agendaItems({ events, from, to, agreements: [worker('a-1', { verzija: 3, naslov: '' })] });
+    expect(confirmed).toEqual(expect.objectContaining({ state: 'CONFIRMED', title: null, fallbackTitle: 'Potvrđen Dogovor' }));
+  });
+
   it('leaves out a window outside the week and a Dogovor whose window the list did not give', () => {
     const items = agendaItems({ events: [], from, to, agreements: [
       agreement('later', { tacanTermin: window('2026-10-02T10:00:00Z', '2026-10-02T11:00:00Z') }),

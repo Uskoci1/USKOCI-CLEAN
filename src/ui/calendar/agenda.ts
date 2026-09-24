@@ -92,7 +92,8 @@ export function agendaItems({ events, agreements, from, to }: {
     const known = match ? facts(match) : null;
     return { key: `event:${event.eventId}`, agreementId: event.agreementId, startsAt: event.startsAt, endsAt: event.endsAt,
       state: match ? match.stanje as AgendaState : 'CONFIRMED', role: ROLE_WORKER, title: known?.title ?? null,
-      fallbackTitle: SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '' };
+      // A waiting row without a title is not called confirmed (round-5c): only a confirmed term takes that name.
+      fallbackTitle: match && match.stanje !== 'CONFIRMED' ? LIST_FALLBACK_TITLE : SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '' };
   });
   if (agreements) {
     const schedule = new Set(events.map(event => event.agreementId.toLowerCase()));

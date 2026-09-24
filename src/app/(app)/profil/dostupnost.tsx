@@ -67,10 +67,12 @@ function OwnedAvailability() {
       })} />
       : editor.error ? <View style={s.pad}>
         {/* Without a saved work profile there is no availability to read, and reading again cannot help: the one action
-            leads to the work profile (review of owner step 10). */}
-        <StateView kind="error" art="clock" title="Dostupnost nije učitana." body={editor.error}
-          primary={editor.error === PROFILE_REQUIRED ? { label: 'Dopuni radni profil', onPress: () => router.navigate('/profil/radnik') }
-            : { label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />
+            leads to the work profile (review of owner step 10). It is a precondition, not a failure, so it is not drawn as
+            an error and does not say the read failed (round-5c); its title is the whole message. */}
+        {editor.error === PROFILE_REQUIRED
+          ? <StateView kind="empty" art="clock" title={PROFILE_REQUIRED} primary={{ label: 'Dopuni radni profil', onPress: () => router.navigate('/profil/radnik') }} />
+          : <StateView kind="error" art="clock" title="Dostupnost nije učitana." body={editor.error}
+            primary={{ label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />}
       </View> : null}
     {confirm.sheet}
   </CalendarScreen>;

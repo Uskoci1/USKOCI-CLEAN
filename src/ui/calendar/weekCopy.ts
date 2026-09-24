@@ -39,9 +39,11 @@ export function copyDay(rules: readonly AvailabilityRule[], source: number, targ
     else {
       const owned = new Set(own.flatMap(night => night.weekdays.map(next)).filter(day => rule.weekdays.includes(day)));
       days = [
-        // Its own days, which a target loses, and what the source shows at 00:00, which the targets gain.
+        // Its own days, which a target loses, and what the source shows at 00:00, which the targets gain. The source
+        // keeps its 00:00 slot even when that slot ends a target's night (round-5c: copying Tuesday onto Monday used to
+        // take Tuesday's own 00:00–06:00 away with Monday's replaced night).
         ...rule.weekdays.filter(day => !owned.has(day) && !into.includes(day)),
-        ...(rule.weekdays.includes(source) ? into : []),
+        ...(rule.weekdays.includes(source) ? [source, ...into] : []),
         // The part after midnight stays wherever its night stays.
         ...own.flatMap(night => plain(night).map(next).filter(day => owned.has(day))),
         // A night copied from the source continues on the day after each target.
@@ -65,6 +67,17 @@ export function copyTakesAway(rules: readonly AvailabilityRule[], source: number
   if (!into.length) return false;
   const after = new Map(copyDay(rules, source, into).map(rule => [rule.id, rule]));
   return into.some(day => rules.some(rule => rule.weekdays.includes(day) && !after.get(rule.id)?.weekdays.includes(day)));
+}
+
+/**
+ * The part after midnight of the day's own night, when the day has one: a copy carries it onto the day after each target,
+ * which the day's own summary ("22:00–24:00") does not show, so the copy sheet and its question say it (round-5c).
+ */
+export function nightContinuation(rules: readonly AvailabilityRule[], day: number): AvailabilityRule | undefined {
+  for (const [id, nights] of nightsOf(rules)) {
+    if (nights.some(night => night.weekdays.includes(day))) return rules.find(rule => rule.id === id);
+  }
+  return undefined;
 }
 
 const next = (day: number) => (day + 1) % 7;

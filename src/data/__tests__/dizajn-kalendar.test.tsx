@@ -22,6 +22,7 @@ jest.mock('../agreementClientService', () => { throw new Error('the gallery must
 jest.mock('../workerAvailabilityClientService', () => { throw new Error('the gallery must not reach a data service'); });
 
 import DizajnKalendar from '../../app/dizajn-kalendar';
+import { sys } from '../../ui/system/tokens';
 
 let tree: ReactTestRenderer;
 const pressHost = async (label: string) => {
@@ -52,6 +53,10 @@ it('draws both sides, a finished Dogovor and the row of Dogovori without an exac
   expect(text()).toContain('Bez tačnog termina');
   // My own work, marked done, waits for the other side's confirmation (review of step 10).
   expect(text()).toContain('Uskačeš · Nikola');
+  // Round-5c: a finished row's dot is the muted grey, as in the week strip (the hairline grey was about 1.4:1).
+  const dots = tree.root.findAll(node => node.type === ('View' as React.ElementType) && Array.isArray(node.props.style)
+    && node.props.style[0]?.width === 6 && node.props.style[1]?.backgroundColor).map(node => node.props.style[1].backgroundColor);
+  expect(dots).toContain(sys.color.muted); expect(dots).not.toContain(sys.color.lineStrong);
 });
 
 it('draws what a list read without the exact window leaves: only my work, and a line that says so', async () => {
@@ -66,8 +71,27 @@ it('goes home from the list when it was opened cold by its address', async () =>
   const router = jest.requireMock('expo-router').router as { canGoBack: () => boolean; back: jest.Mock; replace: jest.Mock };
   const canGoBack = router.canGoBack;
   router.canGoBack = () => false;
+  // Restored whatever the assertions say, so a failure here cannot leak into the next test.
+  try {
+    await act(async () => { tree = create(<DizajnKalendar />); });
+    await pressHost('Nazad');
+    expect(router.replace).toHaveBeenCalledWith('/'); expect(router.back).not.toHaveBeenCalled();
+  } finally { router.canGoBack = canGoBack; }
+});
+
+// Round-5c: a missing work profile is a precondition, drawn as the route draws it; and the "razlog" scene shows the button
+// its reason points at.
+it('draws a missing work profile as a step to take, not as a failed read', async () => {
   await act(async () => { tree = create(<DizajnKalendar />); });
-  await pressHost('Nazad');
-  expect(router.replace).toHaveBeenCalledWith('/'); expect(router.back).not.toHaveBeenCalled();
-  router.canGoBack = canGoBack;
+  await pressHost('Dostupnost · bez radnog profila');
+  expect(text()).toContain('Najpre sačuvaj svoj radni profil.'); expect(text()).not.toContain('Dostupnost nije učitana.');
+  expect(tree.root.findAll(node => node.props.kind === 'error')).toHaveLength(0);
+  expect(tree.root.findAll(node => node.props.label === 'Dopuni radni profil').length).toBeGreaterThan(0);
+});
+
+it('shows the conversation check that the reason of the "razlog" scene names', async () => {
+  await act(async () => { tree = create(<DizajnKalendar />); });
+  await pressHost('Dostupnost · profil, dugme sa razlogom');
+  expect(tree.root.findAll(node => node.props.reason === 'Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.').length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => node.props.label === 'Proveri stanje razgovora').length).toBeGreaterThan(0);
 });

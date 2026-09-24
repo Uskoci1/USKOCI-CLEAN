@@ -1,5 +1,5 @@
 import type { AvailabilityRule } from '../../../contracts/workerAvailability';
-import { copyDay, copyTakesAway } from '../weekCopy';
+import { copyDay, copyTakesAway, nightContinuation } from '../weekCopy';
 
 // Owner step 10 (critique A18): a Monday-to-Friday week was five complete flows. Copying a day shares its slots.
 const rule = (id: string, weekdays: number[], startTime: string, endTime: string, patch: Partial<AvailabilityRule> = {}): AvailabilityRule =>
@@ -77,6 +77,22 @@ describe('copyDay with a slot over midnight', () => {
       rule('sat', [6], '00:00:00', '02:00:00', { startsOn: '2026-09-02' })];
     expect(copied(week, 1, [2, 3, 4, 5])).toEqual({ day: [1, 2, 3, 4, 5] });
     expect(copyTakesAway(week, 1, [2, 3, 4, 5])).toBe(true);
+  });
+
+  it("never changes the source day, even when its 00:00 slot ends a target's night", () => {
+    const week = [night([1]), after([2]), rule('day', [2], '09:00:00', '17:00:00')];
+    expect(copied(week, 2, [1, 3, 4, 5])).toEqual({ cont: [1, 2, 3, 4, 5], day: [1, 2, 3, 4, 5] });
+    expect(copyTakesAway(week, 2, [1, 3, 4, 5])).toBe(true);
+    const once = copyDay(week, 2, [1, 3, 4, 5]);
+    expect(copyDay(once, 2, [1, 3, 4, 5])).toEqual(once);
+  });
+
+  it("finds the part after midnight of a day's own night, and nothing for a day without one", () => {
+    const week = [night([1]), after([2]), rule('day', [2], '09:00:00', '17:00:00')];
+    expect(nightContinuation(week, 1)?.id).toBe('cont');
+    expect(nightContinuation(week, 2)).toBeUndefined();
+    // An early slot that does not continue a night is not one.
+    expect(nightContinuation([night([1]), after([2], { startsOn: '2026-09-01' })], 1)).toBeUndefined();
   });
 
   it('pairs a night only with its own continuation: the next dates, the same name and pause', () => {
