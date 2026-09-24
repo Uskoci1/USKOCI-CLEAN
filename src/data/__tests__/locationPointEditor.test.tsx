@@ -8,7 +8,7 @@ jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails', locationStyles: { card: {} } }));
+jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
 jest.mock('../nativeCurrentLocation', () => ({ captureCurrentLocation: jest.fn() }));
 jest.mock('react-native', () => {
@@ -29,7 +29,9 @@ const deferred = <T,>() => {
 };
 const configured = (result: ConfiguredLocationResolution = proposals) => ({ search: jest.fn().mockResolvedValue(result), reverse: jest.fn().mockResolvedValue(result), cancel: jest.fn() });
 const buttons = () => tree.root.findAllByType('Button' as React.ElementType);
-const button = (label: string) => buttons().find(node => node.props.label === label)!;
+// A proposal shows the address and is named by what the tap does: find actions by their spoken name.
+const named = (node: { props: { [key: string]: unknown } }) => String(node.props.accessibilityLabel ?? node.props.label);
+const button = (label: string) => buttons().find(node => named(node) === label)!;
 const field = (suffix: string) => tree.root.findAllByType('LocationField' as React.ElementType).find(node => node.props.label.endsWith(suffix))!;
 const map = () => tree.root.findByType('PinMap' as React.ElementType);
 const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -100,7 +102,7 @@ it('shows loading and ignores a late result after explicit cancellation even if 
   expect(text()).toContain('Tražimo predloge');expect(button('Tražimo mesto…').props.disabled).toBe(true);
   await press('Otkaži pretragu');
   await act(async () => result.resolve(proposals));
-  expect(buttons().some(node => node.props.label.startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
+  expect(buttons().some(node => named(node).startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
 });
 
 it('text edits retire the selected candidate and reject its retained confirmation callback', async () => {
@@ -114,7 +116,7 @@ it('editing private text invalidates pending lookup and an unconfirmed provider 
   const pending = deferred<ConfiguredLocationResolution>(), resolver = configured();resolver.search.mockReturnValueOnce(pending.promise);
   await render({ resolver, initialQuery: 'Place' });await press('Pronađi na mapi');
   await change('privatna adresa (opciono)', 'Another private address');await act(async () => pending.resolve(proposals));
-  expect(buttons().some(node => node.props.label.startsWith('Izaberi predlog'))).toBe(false);
+  expect(buttons().some(node => named(node).startsWith('Izaberi predlog'))).toBe(false);
   await press('Pronađi na mapi');await press(`Izaberi predlog: ${candidate.label}`);
   await change('privatne napomene za pristup (opciono)', 'Private note');expect(map().props.position).toBeNull();
   expect(button('Potvrdi tačku: Početak').props.disabled).toBe(true);
@@ -148,7 +150,7 @@ it('country changes discard a pending result from the old country', async () => 
   const result = deferred<ConfiguredLocationResolution>(), resolver = configured();resolver.search.mockReturnValue(result.promise);
   await render({ resolver, initialQuery: 'Place' });await press('Pronađi na mapi');await update({ countryCode: 'BA' });
   await act(async () => result.resolve(proposals));
-  expect(buttons().some(node => node.props.label.startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
+  expect(buttons().some(node => named(node).startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
 });
 
 it('blur/refocus clears candidates and prevents retained clicks and confirmation', async () => {
@@ -167,7 +169,7 @@ it('a temporary disabled state invalidates an in-flight lookup before the editor
   const result = deferred<ConfiguredLocationResolution>(), resolver = configured();resolver.search.mockReturnValue(result.promise);
   await render({ resolver, initialQuery: 'Place' });await press('Pronađi na mapi');
   await update({ disabled: true });await update({ disabled: false });await act(async () => result.resolve(proposals));
-  expect(buttons().some(node => node.props.label.startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
+  expect(buttons().some(node => named(node).startsWith('Izaberi predlog'))).toBe(false);expect(map().props.position).toBeNull();
 });
 
 

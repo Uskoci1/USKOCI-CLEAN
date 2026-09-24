@@ -1,0 +1,230 @@
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { CaretRight } from 'phosphor-react-native';
+import { T } from '../Text';
+import { Press } from '../Press';
+import { FactArt } from '../system/FactArt';
+import { SuccessMark } from '../system/SuccessMark';
+import { TurningCaret } from '../system/Disclosure';
+import { brandAction, cardCompact, inset, sys } from '../system/tokens';
+import { CardFact, CardTitle, CardValue, WaitingDot, valueSpoken, type TaskValue } from '../v2/TaskFace';
+import { ResolvedPinMap } from '../location/ResolvedPinMap';
+import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
+import type { Summary } from '../v2/draftSummary';
+import type { PublicAnchor } from './reviewFacts';
+
+/**
+ * The parts of the publish review (/pregled-zadatka), drawings only: the route owns every command, guard and read, and
+ * the design gallery (/dizajn-objava) draws the same parts from fixtures. The review is the moment of truth: the task as
+ * others will see it, what still stands in the way, the place split into what everybody sees and what only a Dogovor
+ * reveals, the photos, the deadline, and one green "Objavi zadatak".
+ */
+
+/** What the stored command ended in, said once at the top. Only a publication confirmed here and now springs. */
+export function ReviewStatus({ published, fresh, text }: { published: boolean; fresh: boolean; text: string }) {
+  if (published) return <View style={[s.status, s.statusDone]}>
+    <SuccessMark fresh={fresh} size={40} />
+    <T accessibilityLiveRegion="polite" variant="body" style={s.grow}>{text}</T>
+  </View>;
+  return <View style={[s.status, s.statusQuiet]}>
+    <FactArt kind="info" size={20} />
+    <T accessibilityLiveRegion="polite" variant="body" style={s.grow}>{text}</T>
+  </View>;
+}
+
+/**
+ * The task as others will see it: the task card's own parts (title with the value slot, where, when, how many people),
+ * bare on one compact card. Not a target; it is heard once as a whole. The description and the photos are not repeated
+ * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24).
+ */
+export function ReviewPreview({ summary, unpriced, large }: { summary: Summary; unpriced: boolean; large: boolean }) {
+  const value: TaskValue | null = summary.value ?? (unpriced ? { kind: 'unpriced' } : null);
+  const spoken = [summary.title, value ? valueSpoken(value) : null, summary.zone || null, summary.schedule ?? null, summary.people]
+    .filter(Boolean).join(', ');
+  return <View style={s.section}>
+    <T variant="meta" tone="muted">Ovako će drugi videti zadatak</T>
+    <View style={s.card} accessible accessibilityLabel={spoken || 'Zadatak još nema javnih podataka'}>
+      {summary.title || value ? <View style={large ? s.headStacked : s.head}>
+        {summary.title ? <CardTitle title={summary.title} lines={3} style={!large && s.titleSide} /> : null}
+        {value ? <CardValue value={value} large={large} /> : null}
+      </View> : null}
+      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={16} />} text={summary.zone} /> : null}
+      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={16} />} text={summary.schedule} lines={2} /> : null}
+      {summary.people ? <CardFact art={<FactArt kind="users" size={16} />} text={summary.people} /> : null}
+    </View>
+  </View>;
+}
+
+export type TodoRow = { key: string; text: string; onPress?: () => void };
+
+/** "Još treba": each blocker as a white row with the orange dot, and a caret where a tap leads to the fix. */
+export function ReviewTodoList({ items, disabled, children }: { items: readonly TodoRow[]; disabled: boolean; children?: ReactNode }) {
+  return <View style={s.section}>
+    <T variant="heading" accessibilityRole="header" style={s.ink}>Još treba</T>
+    <View>
+      {items.map(item => {
+        const body = <>
+          <WaitingDot />
+          <T variant="body" style={s.grow}>{item.text}</T>
+          {item.onPress ? <CaretRight size={18} weight="bold" color={disabled ? sys.color.muted : sys.color.green} /> : null}
+        </>;
+        return item.onPress ? <Press key={item.key} accessibilityRole="button" accessibilityLabel={item.text}
+          accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={item.onPress} style={s.todo}>{body}</Press>
+          : <View key={item.key} style={s.todo}>{body}</View>;
+      })}
+    </View>
+    {children}
+  </View>;
+}
+
+/** A section of the review: its name, and at most one quiet action beside it that changes what the section holds. */
+export function ReviewSection({ title, action, children }: { title: string; action?: ReactNode; children?: ReactNode }) {
+  return <View style={s.section}>
+    <View style={s.sectionHead}>
+      <T variant="heading" accessibilityRole="header" style={[s.ink, s.grow]}>{title}</T>
+      {action}
+    </View>
+    {children}
+  </View>;
+}
+
+/** One of the two halves of the place: what everybody sees, and what only a Dogovor reveals. */
+export function PlaceGroup({ kind, children }: { kind: 'public' | 'private'; children: ReactNode }) {
+  return <View style={[s.group, kind === 'private' && s.groupDivided]}>
+    <View style={s.groupHead}>
+      <FactArt kind={kind === 'public' ? 'eye' : 'lock'} size={18} />
+      <T variant="bodyStrong" style={s.ink}>{kind === 'public' ? 'Vide svi' : 'Privatni podaci'}</T>
+    </View>
+    {children}
+  </View>;
+}
+
+/**
+ * The public place: the area line, the route's stops, and the approximate point the public map will show (never the
+ * exact one). With no confirmed point there is no map and no invented point.
+ */
+export function PublicPlace({ zone, lines, anchor, scopeKey }: { zone: string | null; lines: readonly string[];
+  anchor: PublicAnchor | null; scopeKey: string }) {
+  return <PlaceGroup kind="public">
+    <T variant="body">{zone || 'Mesto još nije navedeno.'}</T>
+    {lines.map((line, index) => <T key={index} variant="note" tone="muted">{line}</T>)}
+    {anchor ? <ResolvedPinMap position={anchor} coarse disabled height={160} scopeKey={scopeKey} onChoose={() => {}} /> : null}
+    {anchor ? <T variant="note" tone="muted">Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
+  </PlaceGroup>;
+}
+
+/** The private half of the place, with the privacy sentence word for word. */
+export function PrivatePlace({ children }: { children: ReactNode }) {
+  return <PlaceGroup kind="private">
+    <T variant="note" tone="muted">Ovi podaci nisu deo javnog zadatka. Pristup ostaje prema pravilima Dogovora.</T>
+    <View>{children}</View>
+  </PlaceGroup>;
+}
+
+/** The photos as square tiles, three to a row, or one quiet line when there are none. */
+export function ReviewPhotos({ assetIds, picture }: { assetIds: readonly string[];
+  /** The design gallery's stand-in for a photo, so it reads nothing. */ picture?: (index: number, size: number) => ReactNode }) {
+  // Three tiles and two 8 px gaps fill the width exactly; a percentage width wrapped the third tile at 320 dp.
+  const [width, setWidth] = useState(0);
+  const tile = width ? Math.floor((width - 2 * sys.space.sm) / 3) : 0;
+  return assetIds.length ? <View style={s.photoGrid} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
+    {tile ? assetIds.map((assetId, i) => picture ? <View key={assetId}>{picture(i, tile)}</View>
+      : <AuthorizedPhoto key={assetId} assetId={assetId} label={`Fotografija zadatka ${i + 1}`} contentFit="cover" style={{ width: tile, aspectRatio: 1 }} />) : null}
+  </View> : <T variant="note" tone="muted">Fotografije nisu dodate.</T>;
+}
+
+/** When applications close: the deadline in Serbian time, or the rule when there is none. */
+export function ReviewDeadline({ text }: { text: string | null }) {
+  return <>
+    <T variant="body">{text ? `Rok: ${text}` : 'Bez posebnog roka — do popune ili dok ne zaustaviš potragu.'}</T>
+    <T variant="note" tone="muted">Zadatak sa tačnim terminom se zatvara kad termin prođe.</T>
+  </>;
+}
+
+/**
+ * One fact's row: its label, its value (beside the label when it is short and the text is not large, under it
+ * otherwise), and a 48 px "Izmeni". An open correction replaces the value with its editor (`children`).
+ */
+export function ReviewFactRow({ label, value, large, system, edit, editDisabled, children, rowRef }: {
+  label: string; value: string; large: boolean; system: boolean;
+  edit?: () => void; editDisabled: boolean; children?: ReactNode; rowRef?: (node: View | null) => void;
+}) {
+  const inline = !children && !large && value.length <= 16;
+  return <View ref={rowRef} style={s.field}>
+    <View style={s.row}><T style={[s.meta, inline ? undefined : s.grow]}>{label}</T>
+      {inline ? <T selectable style={[s.body, s.inlineValue]}>{value}</T> : null}
+      {edit ? <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${label}`}
+        disabled={editDisabled} style={s.editButton} onPress={edit}><T style={[s.editLabel, editDisabled && s.editLabelResting]}>Izmeni</T></Press> : null}</View>
+    {children ?? (inline ? null : <T selectable style={s.body}>{value}</T>)}
+    {system ? <T style={s.meta}>Podrazumevana vrednost</T> : null}
+  </View>;
+}
+
+/** The facts with nothing in them, named in one line that opens them. */
+export function ReviewEmptyFacts({ labels, onOpen }: { labels: readonly string[]; onOpen: () => void }) {
+  return <Press accessibilityRole="button" style={[s.field, s.row]}
+    accessibilityLabel={`Prikaži šta nije navedeno: ${labels.join(', ')}`} onPress={onOpen}>
+    <T style={[s.meta, s.grow]}>Nije navedeno: {labels.join(' · ')}</T>
+    <TurningCaret open={false} />
+  </Press>;
+}
+
+/**
+ * The one brand action of the review. Its states are the V2Action states: at work it keeps its green and its words with
+ * a spinner before them; unavailable it is the quiet wash with muted words, never a faded copy of the live button.
+ */
+export function PublishButton({ label, blocked, working, onPress }: { label: string; blocked: boolean; working: boolean; onPress: () => void }) {
+  const resting = blocked && !working;
+  return <Press accessibilityRole="button" accessibilityLabel={label} disabled={blocked}
+    accessibilityState={working ? { disabled: true, busy: true } : { disabled: blocked }} onPress={onPress}
+    style={[s.publish, resting && s.publishResting]}>
+    {working ? <ActivityIndicator color={sys.color.onGreen} /> : null}
+    <T style={[s.publishLabel, resting && s.publishLabelResting]}>{label}</T>
+  </Press>;
+}
+
+export const reviewStyles = StyleSheet.create({
+  canvas: { flex: 1, backgroundColor: sys.color.surface },
+  content: { padding: sys.space.lg, gap: sys.space.xl, paddingBottom: sys.space.xxl },
+  footer: { padding: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line, gap: sys.space.sm, backgroundColor: sys.color.surface },
+  caption: { ...sys.type.meta, color: sys.color.muted, textAlign: 'center' },
+  error: { ...sys.type.meta, color: sys.color.danger },
+  input: { ...sys.type.body, padding: 12, borderWidth: 1, borderColor: sys.color.green, borderRadius: sys.radius.control, minHeight: 56, color: sys.color.ink },
+  warn: { ...inset, backgroundColor: sys.color.warnSoft },
+  warnText: { ...sys.type.note, color: sys.color.warn },
+  danger: { ...inset, backgroundColor: sys.color.dangerSoft, gap: sys.space.sm },
+  identity: { gap: sys.space.sm, paddingTop: sys.space.sm },
+});
+
+const s = StyleSheet.create({
+  ink: { color: sys.color.ink },
+  grow: { flex: 1 },
+  section: { gap: sys.space.md },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, flexWrap: 'wrap' },
+  status: { ...inset, padding: sys.space.base, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  statusDone: { backgroundColor: sys.color.greenSoft },
+  statusQuiet: { backgroundColor: sys.color.wash },
+  card: { ...cardCompact, gap: sys.space.sm },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  headStacked: { gap: sys.space.xs },
+  titleSide: { flex: 1, minWidth: 0 },
+  todo: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.sm,
+    borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  group: { gap: sys.space.sm },
+  groupDivided: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },
+  groupHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  meta: { ...sys.type.meta, color: sys.color.muted }, body: { ...sys.type.body, color: sys.color.ink },
+  inlineValue: { flexShrink: 1, textAlign: 'right' },
+  field: { borderBottomWidth: 1, borderBottomColor: sys.color.line, paddingVertical: sys.space.md, gap: sys.space.xs, minHeight: 56 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  editButton: { minHeight: 48, minWidth: 48, justifyContent: 'center', alignItems: 'flex-end' },
+  editLabel: { ...sys.type.meta, fontWeight: '600', color: sys.color.green },
+  editLabelResting: { color: sys.color.muted },
+  publish: { ...brandAction, flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
+  // Shrinks and wraps beside the spinner rather than running out of the button ("Potvrdi izmene i objavi" at 320 dp
+  // with large text).
+  publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen, flexShrink: 1, textAlign: 'center' },
+  publishResting: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
+  publishLabelResting: { color: sys.color.muted },
+});

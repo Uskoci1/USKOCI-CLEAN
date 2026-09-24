@@ -29,7 +29,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
-import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
+import { NeedLocationForm, saveBlockReason } from '../../ui/location/NeedLocationForm';
 import { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
 import { StyleSheet } from 'react-native';
 import { sys } from '../../ui/system/tokens';
@@ -118,7 +118,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={{ ...historical, value: { ...historical.value, taskCountryCode: null } }} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByProps({ accessibilityLabel: 'Država Zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
     await check(); await save(); expect(onSave).not.toHaveBeenCalled();
-    expect(text()).toContain('Izaberi državu u „Država i način rada"');
+    expect(saveButton().props.reason).toContain('Izaberi državu u „Država i način rada"');
     await chooseMode('Srbija'); await check(); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ taskCountryCode: 'RS' }));
   });
@@ -129,12 +129,12 @@ describe('actual native Need location form', () => {
     expect(confirm().props.accessibilityState.checked).toBe(false);
     expect(saveButton().props.disabled).toBe(true);
     // The grey save says why it is grey (owner rule, 2026-09-23).
-    expect(text()).toContain('Označi potvrdu iznad da bi sačuvao mesto.');
+    expect(saveButton().props.reason).toBe('Označi potvrdu iznad, pa sačuvaj mesto.');
     await save();
     expect(onSave).not.toHaveBeenCalled();
     await check();
     expect(saveButton().props.disabled).toBe(false);
-    expect(text()).not.toContain('Označi potvrdu iznad');
+    expect(saveButton().props.reason).toBeNull();
     expect(text()).toContain('Čuva se mesto u istom pregledu.');
     await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
@@ -233,11 +233,27 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     await check();
     await act(async () => tree.update(<NeedLocationForm review={{ ...loaded, editable: state !== 'read-only' }} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
-    const button = tree.root.findByProps({ label: state === 'busy' ? 'Pripremamo mesto…' : 'Potvrdi i sačuvaj mesto' });
-    expect(button.props.kind).toBe('primary');
+    // The one green save keeps its words; at work it spins (loading) instead of changing its label.
+    const button = tree.root.findByProps({ label: 'Potvrdi i sačuvaj mesto' });
+    expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(sys.color.green);
+    expect(button.props.loading).toBe(state === 'busy');
     expect(button.props.disabled).toBe(true);
     await act(async () => button.props.onPress());
     expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
+describe('saveBlockReason (round 6)', () => {
+  const live = { busy: false, uncertain: false, editable: true, pendingPoint: false, confirmed: true, countryChosen: true, countrySelectable: true };
+  it('says a pending point is the reason, and nothing while the save is at work', () => {
+    expect(saveBlockReason({ ...live, pendingPoint: true })).toBe('Potvrdi tačku na mapi, pa sačuvaj mesto.');
+    expect(saveBlockReason({ ...live, busy: true, pendingPoint: true })).toBeNull();
+    expect(saveBlockReason(live)).toBeNull();
+  });
+  it('speaks without grammatical gender', () => {
+    const all = [{ ...live, editable: false }, { ...live, uncertain: true }, { ...live, pendingPoint: true }, { ...live, countryChosen: false },
+      { ...live, countrySelectable: false }, { ...live, confirmed: false }].map(state => saveBlockReason(state) ?? '').join(' ');
+    expect(all).not.toMatch(/sačuvao|\/la\b/);
   });
 });
 

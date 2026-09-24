@@ -19,8 +19,12 @@ jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Photo' }));
-jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsAction: 'Action' }));
+// The screen keeps its add actions in the footer: the harness draws it next to the content so they stay findable.
+jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsPanel: 'Panel', SettingsAction: 'Action',
+  SettingsScreen: ({ footer, children, ...p }: { footer?: unknown; children?: unknown }) => require('react').createElement('Screen', p, children, footer) }));
 jest.mock('../../ui/system/PermissionRecovery', () => ({ PermissionRecovery: 'PermissionRecovery' }));
+const mockAsk = jest.fn();
+jest.mock('../../ui/system/ConfirmSheet', () => ({ useConfirmSheet: () => ({ ask: (...a: unknown[]) => mockAsk(...a), close: jest.fn(), open: false, sheet: null }) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(t, k) { return k === 'View' ? 'View' : Reflect.get(t, k); } }); });
 import Route from '../../app/(app)/fotografije-zadatka';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
@@ -185,5 +189,39 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
     mockGet.mockResolvedValue('not-a-command-id'); await render();
     expect(mockReceipt).not.toHaveBeenCalled(); expect(mockRemoveJournal).toHaveBeenCalledWith(JOURNAL);
     expect(action('Izaberi iz galerije').disabled).toBe(false); expect(shown()).toContain('nije čitljiv');
+  });
+});
+
+// Round 6 (objava): a photo is removed from its own tile after a question, never at once; every way out of an
+// unconfirmed send is on screen at most once.
+describe('round 6: the photo grid', () => {
+  const READY = '77777777-7777-4777-8777-777777777777';
+  // Tiles are measured: the harness gives the grid a width so the tiles are drawn.
+  const lay = async () => { for (const node of tree.root.findAll(n => typeof n.props.onLayout === 'function'))
+    await act(async () => node.props.onLayout({ nativeEvent: { layout: { width: 320, height: 0 } } })); };
+  it('asks before removing a photo and removes it only on the confirm', async () => {
+    mockRead.mockResolvedValue(ok({ ...listing(), photos: [{ assetId: READY, state: 'READY' }] }));
+    mockRemove.mockResolvedValue(ok({ ...listing(), photos: [] }));
+    await render(); await lay();
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ukloni fotografiju 1' }).props.onPress());
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockAsk).toHaveBeenCalledTimes(1);
+    expect(mockAsk.mock.calls[0][0]).toMatchObject({ title: 'Ukloniti fotografiju?', confirmLabel: 'Ukloni', tone: 'danger' });
+    await act(async () => { await mockAsk.mock.calls[0][0].onConfirm(); });
+    expect(mockRemove).toHaveBeenCalledWith({ conversationId: CID, assetId: READY });
+    expect(JSON.stringify(tree.toJSON())).toContain('Fotografija je uklonjena iz nacrta.');
+  });
+  it('draws each way out of an unconfirmed send at most once, with a tile of its own', async () => {
+    mockGet.mockResolvedValue(REQUEST); await render(); await lay();
+    for (const label of ['Odustani od nepotvrđenog slanja', 'Osveži i proveri fotografije', 'Nastavi slanje iste fotografije'])
+      expect(tree.root.findAllByProps({ label }).length).toBeLessThanOrEqual(1);
+    expect(JSON.stringify(tree.toJSON())).toContain('Slanje nije potvrđeno');
+    expect(action('Izaberi iz galerije').reason).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
+  });
+  it('an empty draft says so and leaves both add actions live', async () => {
+    await render();
+    expect(JSON.stringify(tree.toJSON())).toContain('Još nema fotografija');
+    expect(action('Izaberi iz galerije').disabled).toBe(false); expect(action('Fotografiši').disabled).toBe(false);
+    expect(tree.root.findAllByProps({ label: 'Osveži i proveri fotografije' })).toHaveLength(0);
   });
 });

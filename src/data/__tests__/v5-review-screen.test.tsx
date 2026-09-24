@@ -11,7 +11,8 @@ let mockParams: { conversationId?: string | string[] } = { conversationId: CONVE
 const mockLatest = jest.fn(), mockRead = jest.fn(), mockPrepare = jest.fn(), mockAccept = jest.fn(), mockResume = jest.fn();
 const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), mockAlert = jest.fn(), mockDraft = jest.fn();
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
-const mockRouter = { replace: jest.fn() };
+const mockRouter = { replace: jest.fn(), push: jest.fn() };
+const mockHardwareBack = new Set<() => boolean>();
 jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
   readLatest: (...args: unknown[]) => mockLatest(...args), read: (...args: unknown[]) => mockRead(...args),
   prepare: (...args: unknown[]) => mockPrepare(...args), acceptAndPublish: (...args: unknown[]) => mockAccept(...args),
@@ -27,6 +28,9 @@ jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'Loca
 jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
 jest.mock('../../ui/calendar/CalendarControls', () => ({ CivilField: 'CivilField' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: () => null }));
+// The preview's read-only public map is MapLibre; the harness draws it as a host element.
+jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
+jest.mock('../../ui/system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -35,6 +39,8 @@ jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: (
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Alert') return { alert: (...args: unknown[]) => mockAlert(...args) };
+  if (key === 'BackHandler') return { addEventListener: (_: string, handler: () => boolean) => {
+    mockHardwareBack.add(handler); return { remove: () => mockHardwareBack.delete(handler) }; } };
   return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -239,9 +245,14 @@ it('refocuses after a lost acceptance using its retained review identity without
 });
 
 it('passes reviewOnly to the location editor and prepares the proposed location without saving canonical facts', async () => {
-  await render(); await act(async () => action('Dodaj mesto').onPress());
+  await render();
+  const retainedPublish = publish().onPress;
+  await act(async () => action('Dodaj mesto').onPress());
   const form = tree.root.findByType('LocationForm' as React.ElementType).props;
-  expect(form.reviewOnly).toBe(true); expect(form.review.revision).toBe('location-r1'); expect(publish().disabled).toBe(true);
+  expect(form.reviewOnly).toBe(true); expect(form.review.revision).toBe('location-r1');
+  // The place is its own step: no publish is drawn under it, and one kept from before still publishes nothing.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
+  await act(async () => retainedPublish()); expect(mockAccept).not.toHaveBeenCalled();
   const value = { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
   await act(async () => form.onSave(value));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
@@ -630,4 +641,66 @@ it('a flip of the retired app mode retires nothing: a publish in flight still la
   const reads = mockRead.mock.calls.length;
   await act(async () => { held.resolve(ok(command('PUBLISHED'))); });
   expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockRead.mock.calls.length).toBeGreaterThan(reads);
+});
+
+// Round 6 (objava): the review as the moment of truth. What still blocks publication is listed with its way to the fix,
+// the category is never named, the conversation is reached by the arrow or a "Još treba" row, the success spring is
+// kept for a publication confirmed on this screen, and the place is its own step that Android Back leaves.
+describe('round 6: the publish review', () => {
+  it('never names the category; a hidden missing fact reads as more about the work, and its row returns to the conversation', async () => {
+    mockPrepare.mockResolvedValue(ok({ ...review(), canAccept: false, missingRequired: ['need.category'] }));
+    await render();
+    expect(text()).not.toContain('Kategorija');
+    expect(text()).toContain('Treba još malo o samom poslu.');
+    expect(text()).toContain('Prvo reši ono što još treba.');
+    expect(publish().disabled).toBe(true);
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Treba još malo o samom poslu.' }).props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+  });
+
+  it('lists a missing place as a row that opens the place step, and draws no second way back to the conversation', async () => {
+    await render();
+    expect(text()).toContain('Mesto na mapi nije potvrđeno.');
+    expect(tree.root.findAllByProps({ label: 'Izmeni u razgovoru' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Dopuni u razgovoru' })).toHaveLength(0);
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mesto na mapi nije potvrđeno.' }).props.onPress());
+    expect(mockLocationRead).toHaveBeenCalledWith(CONVERSATION);
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
+  });
+
+  it('shows a restored publication still, and springs only for a publication confirmed on this screen', async () => {
+    mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') }));
+    await render();
+    expect(text()).toContain('Zadatak je objavljen.');
+    expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(false);
+    await act(async () => tree.unmount());
+    mockLatest.mockResolvedValue(ok(null));
+    mockAccept.mockImplementation(async () => { mockRead.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); return ok(command('PUBLISHED')); });
+    await render();
+    await act(async () => publish().onPress());
+    expect(text()).toContain('Zadatak je objavljen.');
+    expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(true);
+  });
+
+  it('Android Back in the place step closes it without saving, and is released afterwards', async () => {
+    await render(); await act(async () => action('Dodaj mesto').onPress());
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
+    expect(mockHardwareBack.size).toBe(1);
+    await act(async () => { for (const handler of [...mockHardwareBack]) expect(handler()).toBe(true); });
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+    expect(mockCancelResolver).toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockPrepare).toHaveBeenCalledTimes(1);
+    expect(mockHardwareBack.size).toBe(0);
+  });
+
+  it('shows the time rows without seconds and money with its grouping and currency', async () => {
+    const base = review();
+    mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [...base.publicProjection,
+      { id: 'mode', key: 'need.price_mode', value: 'MY_PRICE', displayValue: 'Moja cena', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' },
+      { id: 'price', key: 'need.price_rsd', value: 1500, displayValue: '1500', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' },
+      { id: 'start', key: 'need.starts_at', value: '2026-10-03T15:00:00.000Z', displayValue: 'subota', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' }] }));
+    await render();
+    expect(text()).toContain('1.500 RSD');
+    expect(text()).not.toMatch(/17:00:00/);
+    expect(text()).toMatch(/3\. okt( \d{4})? · 17:00/);
+  });
 });
