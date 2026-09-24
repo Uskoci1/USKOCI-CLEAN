@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-24T15:00:27Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "38f199bc",
-  "head_poruka": "docs: cloud handoff current head, round-5 fixer and verifier reports",
+  "osvezeno": "2026-09-24T19:30:13Z",
+  "grana": "work/uskoci-ui-unification-20260924-poazkl",
+  "head": "b4531ef4",
+  "head_poruka": "ui: one clear reset label, \"Obriši uslove\" (search panel, empty discovery list, Moji zadaci)",
   "server": {
    "snimljeno": "2026-09-23T06:51:11Z",
    "migracije": 201,
@@ -338,7 +338,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: mesto zadatka prerađeno („Vide svi“ / „Samo u Dogovoru“). Odluka vlasnika 24.09: IZBACITI KVAČICU potvrde; „Sačuvaj mesto“ je potvrda (važi i za rad na daljinu i područje rada izvršioca). Nije urađeno. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -406,11 +406,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Audit 24.09: RC-02: moguće uzajamno čekanje pri paralelnom otkazivanju READY slike i uklanjanju/završavanju; red zaključavanja je obrnut. Dokazano iz koda, još ne konkurentnim izvršavanjem.",
-   "sledece": "PKG-046a je na DEV-u; nedostajuća funkcija otkazivanja je rešena. Audit 24.09 nalazi obrnut red zaključavanja READY slike: prvo dokaz konkurentnog otkazivanja i uklanjanja na probnoj bazi. Safe-error dopuna Edge media još nije objavljena; potpuni tok na novom uređaju nije prihvaćen.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: fotografije zadatka prerađene (mreža, uklanjanje uz potvrdu, stanja slanja, otkazivanje nepotvrđenog kao PKG-046). Galerija uskociapp://dizajn-objava. PKG-046a je na DEV-u; nedostajuća funkcija otkazivanja je rešena. Audit 24.09 nalazi obrnut red zaključavanja READY slike: prvo dokaz konkurentnog otkazivanja i uklanjanja na probnoj bazi. Safe-error dopuna Edge media još nije objavljena; potpuni tok na novom uređaju nije prihvaćen.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -488,7 +488,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pregled pre objave prerađen (zadatak kako ga drugi vide, „Još treba“, jedno „Objavi zadatak“ sa razlogom). Galerija uskociapp://dizajn-objava. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -771,11 +771,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pitanja i odgovori kao mirna javna nit sa istim poljem kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -847,7 +847,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac (uskocibusiness, telefon) otvorio prijavu izvođača — server je upisao RESPONSE_VIEWED. Ekran prijava nije snimljen (telefon nije bio priključen).",
    "problem": "",
-   "sledece": "Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): ponuda više ne prikazuje veštine kandidata kao oznake („Sposobnosti“ uklonjeno). Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -910,11 +910,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "2 test fajl(ova)"
+    "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac izabrao ponudu na telefonu → Dogovor f14625e8 CONFIRMED, RESPONSE_SELECTED izvođaču. Dogovor viđen sa strane izvođača na emulatoru.",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): bez veština kao oznaka u ponudi; četiri obavezne rečenice potvrde izbora nepromenjene. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1335,8 +1335,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Audit 24.09: DN-06: tastatura sakriva donji deo u kom je jedino objašnjenje zašto napuštanje izmena nije dozvoljeno; iz koda potvrđeno, nativni trenutak proveriti.",
-   "sledece": " Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka.",
+   "problem": "Audit 24.09: DN-06: tastatura sakriva donji deo u kom je jedino objašnjenje zašto napuštanje izmena nije dozvoljeno; iz koda potvrđeno, nativni trenutak proveriti. → Ispravljeno u kodu (round 5c): DN-06, poruke ostaju vidljive dok je tastatura otvorena. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti DN-06 na emulatoru (radnik, tastatura, 320 dp). Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1479,8 +1479,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana.",
-   "sledece": " Dopuna 24.09: završiti nalaze DN-05, DN-10, DN-11 iz nezavisnog audita pre prihvatanja ovog toka.",
+   "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana. → Ispravljeno u kodu (round 5c): DN-05, DN-10, DN-11. „Mogu odmah“ se čuva odmah (odluka vlasnika 2). 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti kopiranje dana, „Osveži raspored“ za čitač ekrana i „Mogu odmah“ na emulatoru. Dopuna 24.09: završiti nalaze DN-05, DN-10, DN-11 iz nezavisnog audita pre prihvatanja ovog toka.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1547,11 +1547,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "17 test fajl(ova)"
+    "test": "18 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Mapa i lista su sada jedan ekran sa panelom, tačkama i cenama. Čitanje i dalje uzima do 25 × 200 javnih zadataka i filtrira lokalno. Audit 24.09: lista ne čeka podatke o vlasništvu; posle njihove greške prikazuje i svoje zadatke, a obično osvežavanje istih ID-jeva ne ponavlja tu proveru.",
-   "sledece": "Prvo DN-01: stanje učitavanja/greške vlasništva i zajedničko osvežavanje. Zatim proveriti visoku karticu tačke sa velikim fontom (DN-02, još nije ponovljeno na uređaju). Serversko filtriranje/straničenje F06/F07 ostaje poseban ugovor. Stariji dokaz izgleda: R3_RECEIPT, 09dc6877.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Discovery V47 (Airbnb model): mapa stalno ispod, lista prati mapu posle pokreta (450 ms), zadaci bez tačke ostaju u „Bez tačke na mapi“, jedna plutajuća kartica pina sa ×, dugme „Mapa“, pamćenje panela/liste/kamere; 3 nezavisna pregleda, 21 ispravka (brojevi dok se učitava, jedna tačka nije oblast, miran panel). Čitanje i dalje lokalno (do 25 × 200). Proveriti na emulatoru; zatim DN-02. Prvo DN-01: stanje učitavanja/greške vlasništva i zajedničko osvežavanje. Zatim proveriti visoku karticu tačke sa velikim fontom (DN-02, još nije ponovljeno na uređaju). Serversko filtriranje/straničenje F06/F07 ostaje poseban ugovor. Stariji dokaz izgleda: R3_RECEIPT, 09dc6877.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1625,11 +1625,11 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "12 test fajl(ova)"
+    "test": "13 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri Kada, Gde se radi, Cena i Slobodna mesta postoje u novom panelu, sa stvarnim lokalnim brojem. Serveru se i dalje ne šalju svi izabrani filteri; broj nije serverski ukupan rezultat.",
-   "sledece": "Uskladiti F07/D7 ugovor: fleksibilni datumi, oblast, na daljinu, slobodna mesta, sortiranje i ukupan rezultat; zatim dokazati primenu/reset i povratak sa novim APK-om. Ne vraćati stari prekidač Lista/Mapa.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Novi panel pretrage po koracima: Gde (samo stvarna područja iz zadataka), Kada (Datumi kalendar | Fleksibilno), Kako se radi, Koliko vas dolazi (brojač), Cena; brzi filteri; „Obriši uslove“; tačan broj. Filtriranje i dalje lokalno; serverski F07/D7 ugovor ostaje otvoren. Odluka vlasnika: „U blizini“ (expo-location + dozvola) UVODI SE ODMAH (još nije urađeno). Uskladiti F07/D7 ugovor: fleksibilni datumi, oblast, na daljinu, slobodna mesta, sortiranje i ukupan rezultat; zatim dokazati primenu/reset i povratak sa novim APK-om. Ne vraćati stari prekidač Lista/Mapa.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1762,11 +1762,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: postavljanje pitanja kroz isto polje kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1908,7 +1908,7 @@
    },
    "telefon_dokaz": "Dva stvarna slanja 23.09: tvoje sa telefona (2.000 RSD, adversarial_a) i jedno sa emulatora na tvoju reč (3.000 RSD, zadatak uskocibusiness-a, tvoj lični nalog). Oba su na serveru kao SUBMITTED i oba su napravila obaveštenje drugoj strani. Emulator: docs/implementation/functional-audit-20260922/device-20260923/ponuda-emulator/. Viđeno: zaključana cena kad naručilac zada iznos, pregled pre slanja, imenovano sletanje „Tvoja prijava“.",
    "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server.",
-   "sledece": "Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: slanje ponude prerađeno kao korak plaćanja (zadatak na vrhu, cena, broj ljudi, termin, napomena, jedno zeleno dugme sa razlogom); sve zaštite, revizija, idempotencija i pregled pre slanja nepromenjeni. Galerija uskociapp://dizajn-prijava. Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2180,7 +2180,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno.",
    "problem": "Audit 24.09: RC-03: za svaki završen Dogovor ide dodatni RPC ocene, bez ograničenja paralelizma; sve se čeka zajedno.",
@@ -2256,7 +2256,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-23: novi pregled Dogovora viđen na telefonu (build 077fd648, docs/implementation/design-system/g7-dogovor/G7_RECEIPT.json), samo Pregled; Poruke nisu otvarane. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor.",
    "problem": "23.09.: završen ili otkazan Dogovor više ne nudi „Izmene i otkazivanje“ (red je vodio na ekran bez moguće radnje); Početna imenuje Dogovore koji čekaju ocenu.",
@@ -2473,11 +2473,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: grupni razgovor u izgledu Poruka; Nazad vraća na isti Dogovor. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2547,11 +2547,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: izmene Dogovora kao tok u dva koraka; obavezne reči nepromenjene. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2627,11 +2627,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: otkazivanje kao korak pregleda sa jasnim upozorenjem; razlog i zaštite nepromenjeni. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2709,11 +2709,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: deljenje lokacije jasno kaže šta, kome i koliko. ODLUKA VLASNIKA 24.09: IZBACITI „Trenutnu lokaciju“ (deljenje gde sam sada) iz Dogovora; TAČNA ADRESA zadatka i dalje se otkriva posle Dogovora; na serveru ništa ne brisati. Nije urađeno. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2783,7 +2783,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -2859,7 +2859,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: „Završio sam“ nije pritisnuto — naručilac je završio Dogovor pre toga; put izvođač-javlja-završetak ostaje neproveren na uređaju.",
    "problem": "",
@@ -2938,7 +2938,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "20 test fajl(ova)"
+    "test": "21 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac potvrdio završetak na telefonu (server COMPLETED 08:38, bez prethodnog „Završio sam“ izvođača); izvođač na emulatoru vidi „Završeno“, „Dogovor je završen“ i „Oceni saradnju“ (zavrseno-08). Automatsko završavanje viđeno na jučerašnjem stvarnom Dogovoru („Rok za potvrdu je istekao…“, 22.09 12:41) u obaveštenjima (zavrseno-12). Ekran naručioca nije snimljen.",
    "problem": "",
@@ -3017,11 +3017,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Ekran ocene je na uređaju bio mrtav (zvezde i oznake nisu reagovale; RATING-DEAD-STARS-01). Uzrok: čuvar je poredio token fokusa kovan posle crtanja. Popravljeno 23.09. (4e864a08, 5e415f1a): na emulatoru zvezda, oznaka i „Sačuvaj ocenu“ rade na prvi dodir; ocena nije sačuvana. Server pri oceni i dalje šalje „Dobili ste…“ (Audit F15).",
-   "sledece": "Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15).",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: ocena prerađena (osoba prva, velike zvezde, oznake, iskren uspeh, tačan „Nazad“). Odluka vlasnika 24.09: PISANI KOMENTAR UZ OCENU — DA (traži serverski paket: kolona, dužina, prijava, vidljivost, čuvanje; na DEV tek na „primeni“). Nije urađeno. Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3146,7 +3146,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka.",
    "problem": "PKG-050a je na DEV-u i u trenutnom APK-u. Audit 24.09: potvrda čitanja bez granice može označiti i tek pristiglu neviđenu poruku pročitanom. Dve ranije nedokazane vrste odredišta i dalje ostaju posebno otvorene. Audit 24.09: DN-07: promena filtera ponovo pravi i samu aktiviranu karticu filtera; rizik gubitka fokusa čitača ekrana, konkretno ponašanje na uređaju još čeka.",
-   "sledece": "Dodati i dokazati granicu pročitanog za RC-01. Ne menjati već ispravno otvaranje kartice Poruke. Zasebno dokazati odredišta „dobio si ocenu“ i „oporavak otvoren“. Dopuna 24.09: završiti nalaze RC-01, DN-07 iz nezavisnog audita pre prihvatanja ovog toka.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 5c: promena filtera u zvoncetu više ne gradi listu iznova (fokus čitača ekrana ostaje). Dodati i dokazati granicu pročitanog za RC-01. Ne menjati već ispravno otvaranje kartice Poruke. Zasebno dokazati odredišta „dobio si ocenu“ i „oporavak otvoren“. Dopuna 24.09: završiti nalaze RC-01, DN-07 iz nezavisnog audita pre prihvatanja ovog toka.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3217,7 +3217,7 @@
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Zaključano dugme za proveru stanja ispravljeno u kodu i dokazano testovima. Provera nove verzije na telefonu još nije završena.",
-   "sledece": "CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. Novi APK je napravljen; proveriti ekran posle prijave u emulatoru i na telefonu.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 5c: rečenice o obaveštenjima na telefon usklađene sa proverom slanja; „Nazad“ posle nepotvrđenog čuvanja ne tvrdi da izmene nisu sačuvane; pristupačnost. CLIENT_FOUNDATION.md: ponovni pokušaj samo čita stanje; upisi ostaju zaključani do potvrde. Novi APK je napravljen; proveriti ekran posle prijave u emulatoru i na telefonu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3717,11 +3717,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Audit 24.09: DN-08/09: provera sačuvane fotografije ima naziv za povratak, a ponavljanje slanja gubi sopstveni prikaz obrade. Komanda i zaštite ostaju; prikaz treba uskladiti.",
-   "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu. Dopuna 24.09: završiti nalaze DN-08, DN-09 iz nezavisnog audita pre prihvatanja ovog toka.",
+   "problem": "Audit 24.09: DN-08/09: provera sačuvane fotografije ima naziv za povratak, a ponavljanje slanja gubi sopstveni prikaz obrade. Komanda i zaštite ostaju; prikaz treba uskladiti. → Ispravljeno u kodu (round 5c): DN-08/09. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti fotografiju profila (provera i ponovno slanje) na emulatoru. Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu. Dopuna 24.09: završiti nalaze DN-08, DN-09 iz nezavisnog audita pre prihvatanja ovog toka.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3957,11 +3957,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Audit 24.09: RC-05/06: potvrda odbacivanja može ostati bez dejstva kada se čitanje u međuvremenu završi; neuspeh oznake pročitanog izgleda kao čekanje ako postoji nepotvrđen odgovor. Ponovljeno izolovanim izvršavanjem bez pravog naloga.",
-   "sledece": " Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka.",
+   "problem": "Audit 24.09: RC-05/06: potvrda odbacivanja može ostati bez dejstva kada se čitanje u međuvremenu završi; neuspeh oznake pročitanog izgleda kao čekanje ako postoji nepotvrđen odgovor. Ponovljeno izolovanim izvršavanjem bez pravog naloga. → Ispravljeno u kodu (round 5c): RC-05, RC-06. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti podršku (odbacivanje, oznaka pročitanog, zaustavljanje slanja) na emulatoru. Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4042,7 +4042,7 @@
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-   "sledece": "Tvoj deo: rokovi čuvanja od pravnika. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 5c: dugmad izvoza zadržavaju reči uz spinner; korak za nedostupnu kopiju: „Ova kopija se ne može sačuvati.“ Tvoj deo: rokovi čuvanja od pravnika. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4115,7 +4115,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-   "sledece": "Posebno dokazati bezbedan serverski oporavak bez lokalnog traga. Sertifikovani čitač/zaštita zahtevaju posebno odobrenje promene otiska. Ne brisati pravi nalog za probu. CLIENT_ENGINE_RECONCILIATION.md §7. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 5c: poruka koja čeka više se ne crta kao greška. Posebno dokazati bezbedan serverski oporavak bez lokalnog traga. Sertifikovani čitač/zaštita zahtevaju posebno odobrenje promene otiska. Ne brisati pravi nalog za probu. CLIENT_ENGINE_RECONCILIATION.md §7. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4248,7 +4248,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "106 test fajl(ova)"
+    "test": "108 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -4370,7 +4370,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "1 test fajl(ova)"
+    "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -5623,102 +5623,5 @@
   ]
  ],
  "test_dva_telefona_izvrseno": {},
- "ci": [
-  {
-   "id": 36016637126,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "38f199bc",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:57:53Z"
-  },
-  {
-   "id": 36016632361,
-   "ime": "PKG-010 system contracts proof",
-   "sha": "38f199bc",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:57:51Z"
-  },
-  {
-   "id": 36016627760,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "38f199bc",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:57:48Z"
-  },
-  {
-   "id": 36016622629,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "38f199bc",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:57:46Z"
-  },
-  {
-   "id": 36016618120,
-   "ime": "PKG-005 Worker onboarding proof",
-   "sha": "38f199bc",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:57:44Z"
-  },
-  {
-   "id": 36015751245,
-   "ime": "Build Android development APK",
-   "sha": "bc127755",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-24T14:50:42Z"
-  },
-  {
-   "id": 36013854412,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "b1da968c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T14:35:16Z"
-  },
-  {
-   "id": 35964962961,
-   "ime": "Build Android development APK",
-   "sha": "644cab09",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T06:32:14Z"
-  },
-  {
-   "id": 35964180094,
-   "ime": "PRE-P4 integrity",
-   "sha": "42f69cf2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T06:22:33Z"
-  },
-  {
-   "id": 35964174994,
-   "ime": "CodeQL",
-   "sha": "42f69cf2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T06:22:29Z"
-  },
-  {
-   "id": 35964027481,
-   "ime": "PRE-P4 integrity",
-   "sha": "66347d62",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-24T06:20:36Z"
-  },
-  {
-   "id": 35964024201,
-   "ime": "CodeQL",
-   "sha": "66347d62",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T06:20:34Z"
-  }
- ]
+ "ci": null
 }
