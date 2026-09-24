@@ -286,7 +286,7 @@ const s = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },
   // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
-  // card stays one target up to its edge; the foot lies on the card's own white under one hairline.
+  // card stays one target up to its edge; the foot is the wash under one hairline (`ownerFoot`).
   card: { ...cardCompact, padding: 0 },
   body: { borderRadius: sys.radius.cardCompact },
   main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, gap: 10 },

@@ -211,6 +211,8 @@ describe('the offer sheet', () => {
     const person = tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType) && node.props.accessibilityHint === 'Otvara javni profil')[0];
     expect(person.props.accessibilityLabel).toMatch(/^Milan Petrović, /);
     expect(texts(person)).not.toContain('Milan Petrović');
+    // Verify r4c item 3: the row has a visible word, so it never reads as a dead row or a link to the rating.
+    expect(texts(person)).toContain('Pogledaj profil');
     expect(person.findAll(node => node.props.accessibilityRole === 'header')).toHaveLength(0);
     expect(pressNamed('Zatvori ponudu')).toBeDefined();
   });

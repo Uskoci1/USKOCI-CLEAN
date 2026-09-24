@@ -86,7 +86,7 @@ export default function DizajnPrijave() {
         </ScrollView>
       </SafeAreaView>
         : <MyApplicationsPresentation rows={rows} loading={scene === 'ucitava'} unavailable={scene === 'greska'}
-          message={scene === 'greska' ? 'Prijave nisu učitane. Pokušaj ponovo za trenutak.' : null}
+          message={scene === 'greska' ? 'Pokušaj ponovo za trenutak.' : null}
           notice={scene === 'ceka' ? 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.' : null}
           tab={tab} onTab={setTab} expanded={expanded} draft={draft}
           busy={false} editingLoading={false} pending={scene === 'ceka'} canRetry={scene === 'ceka'} canReset={false}

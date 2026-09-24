@@ -310,6 +310,9 @@ describe('D03 actual message component', () => {
       expect(props.refresh).toHaveBeenCalledTimes(1);
       await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
       expect(texts()).toContain('Napiši prvu poruku');
+      // Verify r4c item 2: in the empty thread the action stands under the empty state's words, never above its drawing.
+      expect(texts().indexOf('Osveži poruke')).toBeGreaterThan(texts().indexOf('Poruke vide samo učesnici ovog Dogovora.'));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' }).filter(node => String(node.type) === 'Press')).toHaveLength(1);
       await act(async () => button('Osveži poruke').props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(2);
       await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} messages={[message('1', false, 'Zdravo', '10:00')]} />));

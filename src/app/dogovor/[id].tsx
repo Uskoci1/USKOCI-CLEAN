@@ -398,7 +398,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           </WorkspaceRows> : null}
           <AgreementSection art="phone" label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Podeli svoj broj kada ti odgovara'}>
             <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
-            <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'Nisu podelili svoj broj'}</T>
+            <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'još nije podeljen'}</T>
             {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
               onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}
           </AgreementSection>

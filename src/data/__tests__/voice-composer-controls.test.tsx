@@ -164,6 +164,27 @@ describe('voice mode', () => {
     await act(async () => tree.update(mode(c, { ...idle, session: reviewed }, { onClose })));
     expect(onClose).toHaveBeenCalledWith('review');
   });
+  // Verify r4c (zaštite item 7): FINALIZING and IDLE can arrive in one render. A reviewed capture that goes from LISTENING
+  // straight to IDLE with its session kept still closes voice mode for review; a cancel (session cleared) does not.
+  it('closes for review when a reviewed capture goes from LISTENING straight to IDLE with its session kept', async () => {
+    const c = controller(), onClose = jest.fn();
+    await act(async () => { tree = create(mode(c, idle, { onClose })); });
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' }).props.onPress());
+    await act(async () => mic().props.onPress());
+    const reviewed = { ...session, mode: 'accessible' as const };
+    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: reviewed }, { onClose })));
+    await act(async () => tree.update(mode(c, { ...idle, session: reviewed }, { onClose })));
+    expect(onClose).toHaveBeenCalledTimes(1); expect(onClose).toHaveBeenCalledWith('review');
+  });
+  it('stays open when a reviewed capture is cancelled from LISTENING (session cleared)', async () => {
+    const c = controller(), onClose = jest.fn();
+    await act(async () => { tree = create(mode(c, idle, { onClose })); });
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' }).props.onPress());
+    await act(async () => mic().props.onPress());
+    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'accessible' as const } }, { onClose })));
+    await act(async () => tree.update(mode(c, idle, { onClose })));
+    expect(onClose).not.toHaveBeenCalled();
+  });
   it('a failed capture keeps voice mode open with the error and the way to the kept text', async () => {
     const c = controller(), onClose = jest.fn();
     await act(async () => { tree = create(mode(c, idle, { onClose })); });

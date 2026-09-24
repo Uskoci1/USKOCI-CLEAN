@@ -216,7 +216,7 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
   test('the summary above Poruke writes it in words too', async () => {
     mockParams = { id: mockAgreementId, tab: 'poruke' };
     await render(base({ cena: missing }));
-    const summary = tree.root.findByProps({ accessibilityLabel: 'Pregled uslova Dogovora' });
+    const summary = tree.root.findByProps({ accessibilityLabel: 'Pregled uslova: Pomoć pri selidbi' });
     const copy = summary.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join('');
     expect(copy).toContain('Iznos nije sačuvan'); expect(copy).not.toContain('0 RSD');
   });
@@ -234,7 +234,7 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
 // summary there now says what waits for ME, in the step's own words, as its second line and in its spoken name; what waits
 // for the other side, and a rating the read could not answer for, claim nothing and keep the terms.
 describe('the summary above Poruke says what waits for me', () => {
-  const summary = () => presses().filter(node => String(node.props.accessibilityLabel).startsWith('Pregled uslova Dogovora'))[0];
+  const summary = () => presses().filter(node => String(node.props.accessibilityLabel).startsWith('Pregled uslova: '))[0];
   const copyOf = (node: ReturnType<typeof summary>) => node.findAll(child => String(child.type) === 'T')
     .flatMap(child => child.children.filter(text => typeof text === 'string')).join(' ');
   beforeEach(() => { mockParams = { id: mockAgreementId, tab: 'poruke' }; });
@@ -247,7 +247,7 @@ describe('the summary above Poruke says what waits for me', () => {
     ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka tvoju ocenu'],
   ])('%s', async (_name, workspace, words) => {
     await render(workspace());
-    expect(summary().props.accessibilityLabel).toBe(`Pregled uslova Dogovora. ${words}`);
+    expect(summary().props.accessibilityLabel).toBe(`Pregled uslova: Pomoć pri selidbi. ${words}`);
     // The line takes the price's place; the terms are one press away.
     expect(copyOf(summary())).toContain(words); expect(copyOf(summary())).not.toContain('3.000 RSD');
   });
@@ -260,7 +260,7 @@ describe('the summary above Poruke says what waits for me', () => {
     ['a confirmed Dogovor with nothing to do', () => base()],
   ])('%s: no waiting line, and the terms stay', async (_name, workspace) => {
     await render(workspace());
-    expect(summary().props.accessibilityLabel).toBe('Pregled uslova Dogovora');
+    expect(summary().props.accessibilityLabel).toBe('Pregled uslova: Pomoć pri selidbi');
     expect(copyOf(summary())).toContain('3.000 RSD');
   });
 });

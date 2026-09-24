@@ -190,7 +190,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         </WorkspaceRows>
         <AgreementSection art="phone" label="Kontakt" summary="Podeli svoj broj kada ti odgovara">
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
-          <T variant="body" style={s.ink}>Broj druge strane: Nisu podelili svoj broj</T>
+          <T variant="body" style={s.ink}>Broj druge strane: još nije podeljen</T>
           {active ? <V2Action label="Podeli svoj broj" onPress={noop} /> : null}
         </AgreementSection>
         {/* The rest of the route's Pregled, still: the location section (its grant is not read here, so only its

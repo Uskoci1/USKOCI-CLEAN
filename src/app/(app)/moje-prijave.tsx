@@ -28,11 +28,11 @@ function pricedOffer(draft: OfferEdit): OfferEdit {
   return { ...draft, people, price };
 }
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
-  FORBIDDEN: 'Ova Prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova Prijava nije dostupna na ovom nalogu.',
+  FORBIDDEN: 'Ova prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova prijava nije dostupna na ovom nalogu.',
   RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.',
   RESPONSE_NOT_AWAITING_REVIEW: 'Prijava više ne čeka ovu proveru. Učitaj aktuelno stanje.',
   RESPONSE_ALREADY_CURRENT: 'Prijava je već usklađena. Učitaj aktuelno stanje.',
-  INVALID_PROPOSED_WINDOW: 'Sačuvani termin nije prihvaćen. Proveri aktuelnu Prijavu.',
+  INVALID_PROPOSED_WINDOW: 'Sačuvani termin nije prihvaćen. Proveri aktuelnu prijavu.',
   SCOPE_NOTE_TOO_LONG: 'Napomena može imati najviše 1.200 znakova.',
 };
 const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ishod radnje nije potvrđen. Proveri sačuvano stanje pre ponavljanja.' });
@@ -113,7 +113,7 @@ export default function MojePrijave() {
       }
       return { ok: true, podatak: { rows, notice } };
     // The failure's cause is not known here, so the words do not guess one (verify r4b item B).
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Pokušaj ponovo za trenutak.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Pokušaj ponovo za trenutak.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
   }, [session, izvor, accountCurrent, clearReview, resume]);

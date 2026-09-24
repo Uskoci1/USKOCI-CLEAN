@@ -285,7 +285,7 @@ it('a valid receipt plus failed readback says refresh is needed without an optim
 });
 it('bounds a hanging initial read; retry works and its late result cannot replace the current list', async () => {
   jest.useFakeTimers(); const d = deferred(); mockRead.mockReturnValueOnce(d.promise); await render(); await act(async () => jest.advanceTimersByTime(15001));
-  expect(text()).toContain('Prijave nisu učitane'); await tap('Pokušaj ponovo'); await act(async () => d.resolve([row({ naslov: 'Retired private row' })]));
+  expect(text()).toContain('Prijave trenutno nisu dostupne'); expect(text()).toContain('Pokušaj ponovo za trenutak.'); await tap('Pokušaj ponovo'); await act(async () => d.resolve([row({ naslov: 'Retired private row' })]));
   expect(text()).toContain('Unos ormara'); expect(text()).not.toContain('Retired private row');
 });
 it('bounds a hanging write, discards its late completion and reuses the same key after owned read', async () => {

@@ -163,8 +163,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
             thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
             empty thread too, where someone waits for the other side's first message, and not on a closed Dogovor, where
-            nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. */}
-        {!error && !terminal && !(loading && !shown.length) ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
+            nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. In the empty thread it
+            stands under the empty state's words, as the error state's action does, not above its drawing (verify r4c
+            item 2). */}
+        {!error && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
+          ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
           <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
@@ -176,7 +179,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
           {terminal ? <T variant="copy" tone="muted" style={s.centerText}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
-            <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T></>}
+            <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T>
+            <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /></>}
         </View> : null}
         {shown.map((message, index) => {
           const moment = messageMoment(message.vremeTekst);

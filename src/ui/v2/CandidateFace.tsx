@@ -236,6 +236,9 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
     <CandidateAvatar candidate={k} size={56} photo={photo} />
     <View style={s.identity}>
       <CandidateTrustLine candidate={k} lines={3} />
+      {/* A visible word for the row (verify r4c item 3): with only the picture and "Ocena nije dostupna" beside the caret,
+          the row read as dead or as a link to the rating. It stays while a command runs, as the caret does. */}
+      <T style={s.personAction}>Pogledaj profil</T>
     </View>
     <CaretRight size={20} color={sys.color.muted} />
   </Press>;
@@ -243,6 +246,7 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
+  personAction: { ...sys.type.note, fontWeight: '600', color: sys.color.green },
   // Type and spacing from the tokens (review r4 rk item 6): the spacing scale's 8, the compact card title, the note.
   card: { ...cardCompact, gap: sys.space.sm },
   // Selection is green (owner, 2026-09-24): the chosen offer keeps the white card and takes the green edge.

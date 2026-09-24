@@ -313,13 +313,13 @@ export function CardTitle({ title, lines = 2, style }: { title: string; lines?: 
  * waits for me), so no target sits inside another:
  * - `green`   goes somewhere (a caret to the right);
  * - `ink`     a rare step that asks before it ends something, drawn quietly on every card that allows it (no caret: it
- *             opens a question, not a screen; the question itself carries the danger colour);
- * - `danger`  the same step where it must stand out;
+ *             opens a question, not a screen; the question itself carries the danger colour; a red foot tone had no
+ *             caller and was removed, verify r4c);
  * - `waiting` is what waits for me: the orange dot and the `warn` words, as the own-task foot.
  * Disabled draws the words muted, never faded.
  */
-export type FootTone = 'green' | 'ink' | 'danger' | 'waiting';
-const FOOT_TONES: Record<FootTone, string> = { green: sys.color.green, ink: sys.color.ink, danger: sys.color.danger, waiting: sys.color.warn };
+export type FootTone = 'green' | 'ink' | 'waiting';
+const FOOT_TONES: Record<FootTone, string> = { green: sys.color.green, ink: sys.color.ink, waiting: sys.color.warn };
 export function CardFootLine({ label, tone, caret = 'none', disabled = false }: { label: string; tone: FootTone;
   caret?: 'right' | 'down' | 'none'; disabled?: boolean }) {
   const color = disabled ? sys.color.muted : FOOT_TONES[tone];
@@ -358,7 +358,7 @@ export const faceStyles = StyleSheet.create({
     borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
   ownerFootDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   /**
-   * A quiet foot link (`CardFootLine` green, ink or danger): the own-task foot's geometry, one hairline above and 48 px of
+   * A quiet foot link (`CardFootLine` green or ink): the own-task foot's geometry, one hairline above and 48 px of
    * touch, on the card's own white. The hairline is the border between the two targets, as there.
    */
   footLink: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,

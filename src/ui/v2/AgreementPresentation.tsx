@@ -12,6 +12,7 @@ import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
+import { useTextScale } from '../system/textScale';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
@@ -114,16 +115,22 @@ export function AgreementHero({ agreement: a, compact = false, onOpen, waiting =
   waiting?: string | null;
 }) {
   const people = agreementPeople(a);
-  if (compact) return <Press accessibilityRole="button" accessibilityLabel={waiting ? `Pregled uslova Dogovora. ${waiting}` : 'Pregled uslova Dogovora'}
+  const scale = useTextScale();
+  // The spoken name carries the visible title, so a Voice Access user can say what they see (verify r4c item 7).
+  const title = readableTitle(a.naslov);
+  if (compact) return <Press accessibilityRole="button" accessibilityLabel={`Pregled uslova: ${title}${waiting ? `. ${waiting}` : ''}`}
     onPress={onOpen} haptic="select" style={s.compact}>
     <FactArt kind="agreements" size={24} />
     <View style={s.grow}>
-      <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{readableTitle(a.naslov)}</T>
+      <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{title}</T>
       {/* When the Dogovor waits for me, that is the line (review r4 rd: the bar used to say the state above Poruke, and
           the conversation then no longer said it): the waiting foot's orange dot and words, up to two lines. The terms
           are one press away. Otherwise the price, and the people beyond one; the person is in the bar right above, so
-          "1 osoba" beside them said them twice. */}
-      {waiting ? <View style={s.waiting}><WaitingDot /><T variant="note" style={s.waitingText} numberOfLines={2}>{waiting}</T></View>
+          "1 osoba" beside them said them twice. At large text the sentence gets four lines, so it is never cut to "…"
+          at 320 dp, and the dot stands beside its first line (verify r4c item 1). */}
+      {waiting ? <View style={s.waiting}>
+        <View style={{ height: Math.round(sys.type.note.lineHeight * scale), justifyContent: 'center' }}><WaitingDot /></View>
+        <T variant="note" style={s.waitingText} numberOfLines={scale >= 1.3 ? 4 : 2}>{waiting}</T></View>
         : <T variant="note" tone="muted" numberOfLines={1}>{a.cena.prikaz || BEZ_IZNOSA}{people ? ` · ${people}` : ''}</T>}
     </View>
     <CaretRight size={18} color={sys.color.muted} />
@@ -185,7 +192,7 @@ const s = StyleSheet.create({
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: 12,
     borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   // The waiting foot's line (TaskFace `CardWaitingLine`), allowed a second line: a whole step does not fit one.
-  waiting: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  waiting: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   waitingText: { flexShrink: 1, fontWeight: '700', color: sys.color.warn },
   people: { borderTopWidth: 1, borderTopColor: sys.color.line },
   person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },

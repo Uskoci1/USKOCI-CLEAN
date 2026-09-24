@@ -134,14 +134,17 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
           footerComponent={pinned ? PinnedFooter : undefined}
           keyboardBehavior="interactive" keyboardBlurBehavior="restore" enableBlurKeyboardOnGesture>
           <BottomSheetScrollView keyboardShouldPersistTaps="handled"
+            // The title and its × stay at the top while a long content scrolls under them (verify r4c: the × of a long
+            // offer scrolled away). The heading stays inside the content, so the sheet's dynamic height still counts it.
+            stickyHeaderIndices={title ? [0] : undefined}
             // The pinned actions sit over the end of the content; the content makes room for them, so the last line
             // is never hidden under a button.
             contentContainerStyle={[s.content, pinned ? { paddingBottom: footerHeight + sys.space.sm } : null]}>
+            {title ? <View style={s.heading}><T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
+              {closeButton ? <Press accessibilityRole="button" accessibilityLabel={closeLabel} accessibilityState={{ disabled: !dismissible }}
+                disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
+                <X size={22} color={sys.color.ink} /></Press> : null}</View> : null}
             <SafeAreaView edges={pinned ? [] : ['bottom']} style={s.stack}>
-              {title ? <View style={s.heading}><T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
-                {closeButton ? <Press accessibilityRole="button" accessibilityLabel={closeLabel} accessibilityState={{ disabled: !dismissible }}
-                  disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
-                  <X size={22} color={sys.color.ink} /></Press> : null}</View> : null}
               {children(dismiss)}
             </SafeAreaView>
           </BottomSheetScrollView>
@@ -155,7 +158,8 @@ const s = StyleSheet.create({
   handleArea: { height: 24, alignItems: 'center', justifyContent: 'center' },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong },
   content: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base }, stack: { gap: sys.space.md },
-  heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md }, title: { flex: 1, color: sys.color.green },
+  // On the sheet's white, so what scrolls under the pinned title does not show through it; the padding is the stack's gap.
+  heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingBottom: sys.space.md, backgroundColor: sys.color.surface }, title: { flex: 1, color: sys.color.green },
   close: { width: SHEET_TOUCH, height: SHEET_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface },
   discard: { gap: sys.space.sm }, discardTitle: { color: sys.color.ink },
