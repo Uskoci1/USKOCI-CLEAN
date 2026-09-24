@@ -99,3 +99,9 @@ it('says what is shared and with whom before the one action, and never implies a
  expect(text()).toContain('samo kada pritisneš dugme');expect(text()).not.toMatch(/uživo|u realnom vremenu|prati(?!\s+putovanje)/i);
  expect(tree!.root.findAllByProps({label:'Zatraži trenutnu lokaciju'})).toHaveLength(0);expect(mockCapture).not.toHaveBeenCalled();
 });
+it('keeps the last point, still and disabled, on screen while a new one is being taken',async()=>{
+ mockService.read.mockResolvedValue(ok({...context(),point}));await render();const gate=deferred<unknown>();mockCapture.mockReturnValue(gate.promise);
+ await tap('Podeli jednu trenutnu lokaciju');expect(action('Prekini deljenje')).toBeDefined();
+ expect(tree!.root.findByType('PinMap' as never).props.disabled).toBe(true);expect(text()).toContain('Ne potvrđuje sadašnji položaj');
+ await tap('Prekini deljenje');
+});

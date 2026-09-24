@@ -122,3 +122,10 @@ it('the presentation alone reads nothing and draws the thread with the answer be
  expect(allText()).toContain('Da li ima lift?');expect(allText()).toContain('Odgovor · izmenjen');expect(allText()).not.toContain('Anonimno pitanje');
  expect(mockContext).not.toHaveBeenCalled();expect(mockLoad).not.toHaveBeenCalled();
 });
+it('a skip confirmed after the questions were read again writes nothing',async()=>{
+ mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true})));
+ mockOwnerFeed.mockResolvedValue(ok([{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));await render();
+ await act(async()=>button('Preskoči pitanje')!.props.onPress());const confirm=tree.root.findByType(ConfirmSheet).findByProps({testID:'confirm-sheet-confirm'}).props.onPress;
+ await act(async()=>button('Osveži pitanja i ishod radnje')!.props.onPress());await act(async()=>confirm());
+ expect(mockSave).not.toHaveBeenCalled();expect(mockDisposition).not.toHaveBeenCalled();
+});

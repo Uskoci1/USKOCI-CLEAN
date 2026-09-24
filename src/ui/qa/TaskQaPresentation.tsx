@@ -30,8 +30,8 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
   const confirm=useConfirmSheet();
   const owner=p.mode==='OWNER',locked=p.busy||!!p.recovery;
   const ask=(action:'IGNORE'|'REPORT',q:OwnerPreselectionQuestion)=>confirm.ask(action==='IGNORE'
-    ?{title:'Preskočiti pitanje?',message:'Pitanje se sklanja iz neodgovorenih i ne objavljuje se.',confirmLabel:'Preskoči',onConfirm:()=>p.onDispose(action,q)}
-    :{title:'Prijaviti pitanje?',message:'Pitanje ide na proveru i sklanja se iz neodgovorenih.',confirmLabel:'Prijavi',tone:'danger',onConfirm:()=>p.onDispose(action,q)});
+    ?{title:'Preskočiti pitanje?',message:'Pitanje se sklanja iz neodgovorenih i ne objavljuje se. Ovo se ne može vratiti.',confirmLabel:'Preskoči',onConfirm:()=>p.onDispose(action,q)}
+    :{title:'Prijaviti pitanje?',message:'Pitanje se označava kao prijavljeno i sklanja se iz neodgovorenih. Ovo se ne može vratiti.',confirmLabel:'Prijavi',tone:'danger',onConfirm:()=>p.onDispose(action,q)});
   const item=(q:Question,history=false)=>{
     const status='status'in q?q.status:null;
     return <View key={q.questionId} style={s.item}>
@@ -90,7 +90,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
       {c?<PillComposer value={p.text} onChange={p.onText} label={c.answering!==null?'Tekst odgovora':'Tekst pitanja'}
         placeholder={c.answering!==null?'Napiši odgovor…':'Napiši pitanje…'} sendLabel={c.answering!==null?'Objavi odgovor':'Pošalji pitanje'}
         canSend={canSend} editable={!p.busy} onSend={p.onSend}
-        reason={length===0?(c.answering!==null?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'):null}
+        reason={length===0?(c.answering!==null?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'):over?'Tekst je duži od dozvoljenog.':c.revisionChanged?'Zadatak je izmenjen.':null}
         above={<>
           {c.answering!==null?<View style={s.answering}>
             <View style={s.answeringText}><T variant="meta" tone="muted">Odgovor na</T><T variant="bodyStrong" numberOfLines={3}>{c.answering}</T></View>

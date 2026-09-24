@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import type { AgreementChangeTerms } from '../../data/agreementClientService';
@@ -104,12 +104,24 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
   else if (review?.kind === 'RESPOND' || review?.kind === 'WITHDRAW') proposed = review.proposal.terms;
   // The screen came from its Dogovor; with no stack under it (a cold start), it goes to that Dogovor.
   const back = () => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } };
+  const closeForm = () => { if (current() && formRef.current === form) { formRef.current = null; setForm(null); setError(null); } };
+  const closeReview = () => { if (current() && reviewRef.current === review && !submitting.current) { reviewRef.current = null; setReview(null); setError(null); } };
+  // A step of the flow is closed by the system Back as by its X, so a typed proposal or reason is never lost to a whole-
+  // screen exit; while a command runs, Back waits with the step (review r6).
+  const stepBack = useRef<() => boolean>(() => false);
+  stepBack.current = () => { if (!form && !review) return false; if (!busy && !submitting.current) { if (form) closeForm(); else closeReview(); } return true; };
+  const inStep = !!form || !!review;
+  useEffect(() => {
+    if (!inStep) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => stepBack.current());
+    return () => subscription.remove();
+  }, [inStep]);
   return <AgreementActionsPresentation phase={state.phase} snapshot={snapshot} accountId={accountId} error={error || state.error} message={state.message}
     canRetry={state.canRetry} needsReentry={state.needsReentry} journalKind={state.journal?.kind ?? null}
     form={form} review={review} proposed={proposed}
     onBack={back} onRefresh={() => run('refresh')} onOpenForm={openForm} onEdit={edit} onPrepareForm={prepareForm}
-    onCloseForm={() => { if (current() && formRef.current === form) { formRef.current = null; setForm(null); setError(null); } }}
+    onCloseForm={closeForm}
     onPrepare={command => prepare(command)} onSend={() => { void send(); }}
-    onCloseReview={() => { if (current() && reviewRef.current === review && !submitting.current) { reviewRef.current = null; setReview(null); setError(null); } }}
+    onCloseReview={closeReview}
     onRetry={() => run('retry')} onAcknowledge={() => run('acknowledge')} />;
 }

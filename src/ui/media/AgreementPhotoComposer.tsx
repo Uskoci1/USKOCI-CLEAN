@@ -38,14 +38,16 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
       </Press>
       <Press accessibilityRole="button" accessibilityLabel="Proveri fotografije poruke" accessibilityState={{ disabled }} disabled={disabled}
         onPress={() => { void photos.refresh(); }} style={s.text}>
-        <T variant="meta" tone="muted">Proveri ishod</T>
+        <T variant="meta" style={disabled ? s.toolOff : s.toolOn}>Proveri ishod</T>
       </Press>
     </View>
     <T variant="meta" tone="muted">Do 6 fotografija uz poruku · do 10 MB po slici. Fotografije su privatne za ovaj Dogovor; uklanjamo metapodatke.</T>
     {photos.message === PHOTO_PERMISSION_MESSAGE ? <PermissionRecovery compact message={photos.message} alternative="Dodaj fotografiju iz galerije" onAlternative={() => { void photos.pick('LIBRARY'); }} />
       : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
     {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Ukloni fotografije pripremljene za raniju verziju i ponovo ih izaberi uz važeće uslove.</T> : null}
-    {photos.items.length ? <ScrollView horizontal keyboardShouldPersistTaps="handled" style={{ maxHeight: 180 }} contentContainerStyle={s.row}>
+    {/* A row scrolls sideways, so it takes the height of its tallest photo and its actions: a height cap would clip the
+        retry of a photo still on its way (review r6). */}
+    {photos.items.length ? <ScrollView horizontal keyboardShouldPersistTaps="handled" contentContainerStyle={s.row}>
       {photos.items.map((item, index) => <View key={item.ref.clientRequestId} style={s.item}>
         {item.receipt?.photo ? <AuthorizedPhoto assetId={item.receipt.photo.assetId} agreementId={photos.agreementId}
           label={`Pripremljena fotografija ${index + 1}`} contentFit="cover" style={s.thumb} />
@@ -69,9 +71,11 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
         <T variant="meta" tone="muted" style={s.flex}>Ranije pripremljene fotografije ({photos.saved.length})</T>
         <TurningCaret open={showSaved} />
       </Press>
+      {showSaved && photos.items.length >= 6 ? <T variant="meta" tone="muted">Već je izabrano 6 fotografija.</T> : null}
       {showSaved ? <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 160 }}>
         {photos.saved.map((item, index) => <Press key={item.clientRequestId} accessibilityRole="button"
           accessibilityLabel={`Vrati sačuvanu fotografiju ${index + 1}`} disabled={disabled || photos.items.length >= 6}
+          accessibilityHint={photos.items.length >= 6 ? 'Već je izabrano 6 fotografija.' : undefined}
           accessibilityState={{ disabled: disabled || photos.items.length >= 6 }}
           onPress={() => { void photos.restore(item.clientRequestId); }} style={s.text}>
           <T variant="meta">Fotografija {index + 1} · {item.photo ? `${item.photo.width} × ${item.photo.height}` : 'obrada nije potvrđena'} · Vrati u izbor</T>

@@ -26,7 +26,8 @@ it('starts only an explicit picker, keeps media uncertainty recoverable, and bou
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.refresh).not.toHaveBeenCalled();
   expect(button('Dodaj fotografiju iz galerije').props.disabled).toBe(true);
   expect(button('Fotografiši za poruku').props.disabled).toBe(true);
-  expect(tree.root.findByType('ScrollView' as React.ElementType).props.style.maxHeight).toBe(180);
+  // The prepared photos are a sideways row: it takes the height of its tallest item, so no action under a photo is clipped.
+  const row = tree.root.findByType('ScrollView' as React.ElementType).props; expect(row.horizontal).toBe(true); expect(row.style?.maxHeight).toBeUndefined();
   await act(async () => button('Ukloni pripremljenu fotografiju 1').props.onPress()); expect(photos.remove).toHaveBeenCalledWith(ref);
   await act(async () => button('Proveri fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
 });
@@ -44,4 +45,14 @@ it('does not load or attach all server inventory pictures when offering recovery
   await act(async () => button('Prikaži ranije pripremljene fotografije').props.onPress());
   await act(async () => button('Vrati sačuvanu fotografiju 1').props.onPress()); expect(photos.restore).toHaveBeenCalledWith(rid);
   expect(photos.pick).not.toHaveBeenCalled(); expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+});
+it('keeps the retry of a photo still on its way drawn and pressable, and says why a saved photo cannot come back at six', async () => {
+  photos.items = Array.from({ length: 6 }, (_, n) => ({ ref: { ...ref, clientRequestId: `${rid.slice(0, -1)}${n}` }, receipt: null }));
+  photos.canRetry = () => true; photos.saved = [receipt];
+  await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  await act(async () => button('Ponovi istu fotografiju 1').props.onPress()); expect(photos.retry).toHaveBeenCalledWith(photos.items[0].ref);
+  await act(async () => button('Prikaži ranije pripremljene fotografije').props.onPress());
+  expect(button('Vrati sačuvanu fotografiju 1').props.disabled).toBe(true);
+  expect(button('Vrati sačuvanu fotografiju 1').props.accessibilityHint).toBe('Već je izabrano 6 fotografija.');
+  expect(texts()).toContain('Već je izabrano 6 fotografija.'); expect(photos.restore).not.toHaveBeenCalled();
 });

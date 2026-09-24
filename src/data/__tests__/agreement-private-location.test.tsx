@@ -151,9 +151,15 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     await update(); expect(tree.toJSON()).toBeNull();
   });
   it('says how long the access lasts: until its end when the grant has one, else until revoked or the Dogovor ends', async () => {
-    await render(); expect(content()).toContain('Važi dok je ne opozoveš ili dok se Dogovor ne završi.');
+    // The worker cannot revoke; they are told the other side can.
+    await render(); expect(content()).toContain('Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.');
+    expect(content()).not.toContain('dok je ne opozoveš');
     mockRead.mockImplementation(async () => ({ ok: true, podatak: state(true, '2099-10-01T10:00:00Z') }));
     await press('Osveži dozvolu za lokaciju'); expect(content()).toContain('Važi do ');
     expect(content()).not.toContain('Privatna lokacija'); expect(mockReveal).not.toHaveBeenCalled();
+  });
+  it('tells the requester, who can revoke, that the access lasts until they revoke it', async () => {
+    mockSession = { user: { id: ownerId }, accountRevision: 1 }; agreement.ucesnici = agreement.ucesnici.map(party => ({ ...party, viSte: party.id === ownerId }));
+    await render(); expect(content()).toContain('Važi dok je ne opozoveš ili dok se Dogovor ne završi.'); expect(mockGrant).not.toHaveBeenCalled();
   });
 });

@@ -51,6 +51,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const appear = useAppear();
   // Which message the person is holding, for the support path (as in Poruke: it stood under every message).
   const [chosen, setChosen] = useState<string | null>(null);
+  const toggle = (id: string) => setChosen(current => current === id ? null : id);
   appear.settle(state.messages.map(message => message.messageId));
   const length = p.draftLength;
   const composer = (ready && group?.canSend) || retry;
@@ -61,7 +62,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
       primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
     {group ? <>
       <T variant="copy" tone="muted">Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
-      {group.terminal ? <T variant="meta" tone="muted">Razgovor je završen</T> : !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
+      {/* A finished conversation says so once, where the pill would be. */}
+      {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
       {p.showPeople ? <View style={s.people}>
         {group.members.map(member => {
           const fallback = <Avatar initials={inicijali(member.displayName)} size={40} />;
@@ -102,12 +104,18 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
           // Messages of one person in a row sit close, and only the first of another person's turn carries the name.
           const run = !!before && before.senderAccountId === item.senderAccountId;
           return <Appear index={index} animate={appear.isNew(item.messageId)}>
-            <Press accessibilityRole="button" accessibilityLabel={`${name(item)}: ${item.body}, ${time(item.createdAt)}`}
-              accessibilityHint={p.support ? 'Dugi pritisak nudi prijavu podršci.' : undefined} haptic="select" scaleTo={1}
-              onLongPress={p.support ? () => setChosen(current => current === item.messageId ? null : item.messageId) : undefined}
+            {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
+                under every message is one step away, never behind a gesture alone (review r6). Without support the
+                bubble is text, not a button. */}
+            <Press accessibilityRole={p.support ? 'button' : 'text'} accessibilityLabel={`${name(item)}: ${item.body}, ${time(item.createdAt)}`}
+              accessibilityHint={p.support ? 'Dodir nudi prijavu podršci.' : undefined} haptic={p.support ? 'select' : 'none'} scaleTo={1}
+              disabled={!p.support} onPress={p.support ? () => toggle(item.messageId) : undefined}
+              onLongPress={p.support ? () => toggle(item.messageId) : undefined}
+              accessibilityActions={p.support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined}
+              onAccessibilityAction={p.support ? () => toggle(item.messageId) : undefined}
               style={[s.bubble, item.mine ? s.mine : s.theirs, run ? s.run : s.turn]}>
               {!item.mine && !run ? <T variant="meta" style={s.sender}>{name(item)}</T> : null}
-              <T variant="body" selectable>{item.body}</T>
+              <T variant="body">{item.body}</T>
               <T variant="meta" tone="muted" style={s.time}>{time(item.createdAt)}</T>
             </Press>
             {p.support && chosen === item.messageId ? <View style={[s.support, item.mine ? s.supportMine : s.supportTheirs]}>{p.support(item)}</View> : null}

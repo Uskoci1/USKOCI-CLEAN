@@ -145,3 +145,16 @@ it('form and review are two steps of one flow whose X leaves the step without an
  expect(action('Otkaži Dogovor').kind).toBe('destructive');
  await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkazivanje Dogovora')).toBeDefined();
 });
+it('the system Back closes a step of the flow like its X, and leaves the screen only from the hub',async()=>{
+ const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
+ const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};}) as never);
+ try{
+  await render();expect(handlers).toHaveLength(0);await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Razlog');
+  expect(handlers).toHaveLength(1);let handled=false;await act(async()=>{handled=handlers[0]();});expect(handled).toBe(true);
+  expect(action('Otkazivanje Dogovora')).toBeDefined();expect(handlers).toHaveLength(0);expect(mockService.cancel).not.toHaveBeenCalled();expect(mockReplace).not.toHaveBeenCalled();
+ }finally{spy.mockRestore();}
+});
+it('after a failed refresh with terms on screen, the refresh stays offered in the bar',async()=>{
+ await render();mockService.read.mockResolvedValue({ok:false,kod:'UNAVAILABLE',poruka:'Proveri vezu.'});
+ await tap('Osveži uslove Dogovora');expect(text()).toContain('Proveri vezu.');expect(action('Osveži uslove Dogovora').disabled).toBe(false);
+});
