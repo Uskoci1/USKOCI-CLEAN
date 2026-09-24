@@ -9,8 +9,7 @@ import type { TaskValue } from './TaskFace';
 
 /**
  * The public face of a task that is still a draft, in the words the task card draws. Pure: no service, no Supabase, so
- * a screen suite can import it. The same rules as the conversation's live card (`IntakePresentation`), which still keeps
- * its own copy until the /nova owner points it here (round 6 objava report).
+ * a screen suite can import it. The conversation's live card (`IntakePresentation`) and the publish review both use it.
  */
 export const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Bilo kada',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };

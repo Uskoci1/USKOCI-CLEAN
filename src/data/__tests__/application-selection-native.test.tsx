@@ -306,11 +306,13 @@ it('old-account completion and retained callbacks cannot send or navigate after 
   expect(mockSubmit).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(text()).not.toContain('Prijava je poslata.');
 });
-it('shows specific candidate evidence, then confirms once and opens the exact existing Agreement route', async () => {
+// Updated deliberately (owner decision 2026-09-24, "1 DA"): the offer no longer lists the applicant's self-declared
+// skills as labels; the rest of the path is unchanged.
+it('shows the offer without skill labels, then confirms once and opens the exact existing Agreement route', async () => {
   await render(Candidates);
   expect(confirmChoice()).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
-  await tap('Pogledaj ponudu: Milan'); expect(text()).toContain('Nošenje · Trake · Kombi');
-  expect(text()).toContain('Sačuvana samoizjava'); await tap('Izaberi ovu ponudu');
+  await tap('Pogledaj ponudu: Milan'); expect(text()).not.toContain('Nošenje · Trake · Kombi');
+  expect(text()).not.toContain('Sposobnosti'); expect(text()).not.toContain('Sačuvana samoizjava'); await tap('Izaberi ovu ponudu');
   expect(text()).toContain('Jedan izbor sklapa Dogovor'); const choose = confirmChoice();
   await act(async () => { choose(); choose(); }); expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, prijavaVerzija: 2, prijavaHash: k().hash, mesta: 2 });

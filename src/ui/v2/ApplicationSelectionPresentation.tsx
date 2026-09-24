@@ -282,9 +282,6 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       onConfirm: () => choose() });
   };
   const value = candidateValue(candidate), time = candidateTime(candidate, need.taskTimezone), status = candidateStatus(candidate);
-  const evidence = candidate.dokazPrijave;
-  const declared = evidence.sema === 'APPLICATION_V1_SELF_DECLARED'
-    ? [...(evidence.vestine ?? []), ...(evidence.alati ?? []), ...(evidence.vozila ?? []), ...(evidence.licence ?? [])].join(' · ') : null;
   const message = candidate.napomena?.trim() ?? '';
   const selected = candidate.stanje === 'SELECTED' && !pending;
   // An offer that cannot be chosen has no green action; the band says so and carries the one thing to do about it.
@@ -317,11 +314,8 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       <DetailSection title="Poruka">
         {message ? <T selectable variant="body" style={s.ink}>{candidate.napomena}</T> : <T variant="body" tone="muted">Bez poruke.</T>}
       </DetailSection>
-      <DetailSection title="Sposobnosti">
-        {declared !== null ? <><T variant="body" tone={declared ? 'ink' : 'muted'}>{declared || 'Nema dodatno navedenih sposobnosti.'}</T>
-          <T variant="meta" tone="muted">Sačuvana samoizjava uz ovu Prijavu. Kasnija izmena radnog profila je ne prepisuje.</T></>
-          : <T variant="meta" tone="muted">Za ovu stariju Prijavu sačuvani dokazi o sposobnostima nisu dostupni.</T>}
-      </DetailSection>
+      {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
+          owner as labels; what the applicant wants to say is in the message above. */}
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
         <T variant="body" style={s.ink}>{choiceTerms(candidate)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
       {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
