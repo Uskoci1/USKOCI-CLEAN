@@ -44,7 +44,7 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
     {(p.state.finalText || p.state.interimText) && active ? <T selectable style={s.transcript}>{p.state.finalText}{p.state.finalText && p.state.interimText ? ' ' : ''}{p.state.interimText}</T> : null}
     {/* Idle, the microphone speaks for itself; its accessibility label still says what it does. */}
     {p.state.phase !== 'IDLE' ? <T variant="label" style={[s.caption, listening && s.captionActive]}>{label}</T> : null}
-    <View style={[s.stage, active && s.stageActive]}>
+    <View style={[s.stage, (active || (!reader && p.state.phase === 'IDLE')) && s.stageInline]}>
       <View style={listening ? s.ringActive : undefined}>
         <Pressable accessibilityRole="button" accessibilityLabel={label}
           accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.' : 'Drži tokom govora. Puštanje priprema tekst za pregled i izmenu. Povuci prst naviše da otkažeš.'}
@@ -64,10 +64,10 @@ export function VoiceComposer(p: { controller: HoldToTalkController; state: Voic
           style={{ width: 3, height: 6 + i * 4, borderRadius: sys.radius.pill, backgroundColor: p.state.audioLevel! >= threshold ? a.color.green : a.color.lineStrong }} />)}
       </View> : null}
       {active ? <V2Action kind="quiet" compact label="Otkaži govor" onPress={() => { gesture.current = null; p.controller.cancel('gesture'); }} /> : null}
+      {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact
+        label={accessibleMode ? 'Drži mikrofon' : 'Bez držanja'}
+        onPress={() => setAccessibleMode(value => !value)} /> : null}
     </View>
-    {!active && !reader && p.state.phase === 'IDLE' ? <V2Action kind="quiet" compact
-      label={accessibleMode ? 'Koristi držanje mikrofona' : 'Govor bez držanja'}
-      onPress={() => setAccessibleMode(value => !value)} /> : null}
     {active && explicit ? <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>
       Zaustavi, pregledaj tekst i izaberi Pošalji.
     </T> : null}
@@ -82,7 +82,7 @@ const s = StyleSheet.create({
   // conversation, which is what it used to do.
   wrap: { gap: 1, alignItems: 'center', justifyContent: 'center', minWidth: 0 }, center: { textAlign: 'center' },
   stage: { alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0 },
-  stageActive: { flexDirection: 'row', gap: 8 },
+  stageInline: { flexDirection: 'row', gap: 8 },
   // The idle ring was decoration that widened the control to 80px, and the microphone
   // itself was 66. Together they took half the screen on a real phone. The halo now
   // appears only while listening, when it actually says something.
