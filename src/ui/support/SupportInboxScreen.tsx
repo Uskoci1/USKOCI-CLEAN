@@ -8,6 +8,7 @@ import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { SupportCaseRow, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportStyles, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
+import { supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
 
 export function SupportInboxScreen({ mode = 'OWN', onMode }: { mode?: SupportMode; onMode?: (mode: 'OPERATOR' | 'SAFETY') => void }) {
@@ -34,9 +35,12 @@ export function SupportInboxView({ model, mode, onMode }: {
     void controller?.page(cursor, state);
   };
   const reload = () => { if (current()) void controller?.load(); };
+  const messageTone = supportMessageTone(state);
   return <SupportFrame title={mode === 'OWN' ? 'Podrška' : mode === 'SAFETY' ? 'Bezbednosni predmeti' : 'Operaterski inbox'}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}
-    footer={mode === 'OWN' && state.capabilities?.canCreate && !state.pending ?
+    // A failed list read has its own green retry in the error state; the footer's green action waits for the list, so the
+    // screen never shows two primaries (round 5 review).
+    footer={mode === 'OWN' && state.capabilities?.canCreate && !state.pending && state.phase !== 'ERROR' ?
       <SettingsAction label="Novi privatni zahtev" disabled={busy} onPress={() => navigate(() => router.push('/podrska/novi'))} /> : undefined}>
     {mode !== 'OWN' && inbox?.operatorAvailable && onMode ? <Segmented appearance="underline" value={mode === 'SAFETY' ? 'SAFETY' : 'OPERATOR'}
       options={[{ key: 'OPERATOR', label: 'Svi operaterski predmeti' }, { key: 'SAFETY', label: 'Bezbednosni predmeti' }]}
@@ -44,7 +48,7 @@ export function SupportInboxView({ model, mode, onMode }: {
     {/* Staff need the rule of the list; a person's own list explains itself. */}
     {mode !== 'OWN' ? <SettingsIntro>Otvaranje predmeta ne znači da je obrada preuzeta. Preuzmi ga iz detalja kada započneš pregled.</SettingsIntro> : null}
     <SupportRecoveryPanel model={model} />
-    {state.message && !state.pending && state.phase !== 'ERROR' ? <SupportNote>{state.message}</SupportNote> : null}
+    {state.message && !state.pending && state.phase !== 'ERROR' ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     {state.phase === 'LOADING' ? <SupportLoading />
       : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtevi nisu učitani" body={state.message ?? undefined}
         primary={{ label: 'Osveži zahteve', onPress: reload, disabled: busy }} />

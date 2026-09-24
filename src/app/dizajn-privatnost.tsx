@@ -41,6 +41,7 @@ const SCENES: Scene[] = [
   ['privatnost-objavljeno', 'Privatnost', 'Objavljeni rokovi i brisanje'], ['privatnost-greska', 'Privatnost', 'Greška čitanja'],
   ['izvoz-ucitavanje', 'Izvoz', 'Učitavanje'], ['izvoz-bez-zahteva', 'Izvoz', 'Bez zahteva'], ['izvoz-zahtev', 'Izvoz', 'Zahtev zabeležen'],
   ['izvoz-nije-spremno', 'Izvoz', 'Priprema nije dostupna'], ['izvoz-spremno', 'Izvoz', 'Kopija spremna, sačuvana'],
+  ['izvoz-kopija-nedostupna', 'Izvoz', 'Kopija nije dostupna'],
   ['izvoz-u-toku', 'Izvoz', 'Čuvanje u toku (onemogućeno)'], ['izvoz-isteklo', 'Izvoz', 'Kopija istekla'], ['izvoz-otkazano', 'Izvoz', 'Zahtev otkazan'],
   ['izvoz-neuspeh', 'Izvoz', 'Priprema nije završena'], ['izvoz-greska', 'Izvoz', 'Greška čitanja'],
   ['pravila-ucitavanje', 'Pravila', 'Učitavanje'], ['pravila-nije-objavljeno', 'Pravila', 'Nisu objavljena'],
@@ -128,16 +129,17 @@ const INBOX: SupportInbox = { accountId: 'galerija', mode: 'OWN', operatorAvaila
 const CASE = '00000000-0000-4000-8000-0000000000aa', DECISION = '00000000-0000-4000-8000-0000000000bb';
 const detail = (patch: Partial<SupportDetail> = {}, status: SupportDetail['case']['status'] = 'IN_REVIEW'): SupportDetail => ({ accountId: 'galerija',
   viewerRole: 'AUTHOR', operatorAvailable: false, allowedActions: ['AUTHOR_REPLY', 'APPEAL'], authoritative: true, nextAfterSequence: null,
-  case: { id: CASE, caseNumber: '71', authorAccountId: 'galerija', title: 'Saradnik nije došao na dogovoreni termin, a Dogovor i dalje stoji kao aktivan',
+  // Fixture words without grammatical gender (owner rule): these screenshots go to the owner.
+  case: { id: CASE, caseNumber: '71', authorAccountId: 'galerija', title: 'Niko se nije pojavio u dogovoreni termin, a Dogovor i dalje stoji kao aktivan',
     desiredOutcome: 'Da se Dogovor zatvori bez ocene.', channel: 'TASK', topic: 'NO_SHOW', status, revision: 3, lastSequence: '6',
     createdAt: iso(-30 * hour), updatedAt: iso(-hour), context: {} },
   events: [
     { id: 'e1', caseId: CASE, sequence: '1', kind: 'CREATED', authorRole: 'AUTHOR', body: null, createdAt: iso(-30 * hour), decisionId: null, appealId: null },
     { id: 'e2', caseId: CASE, sequence: '2', kind: 'CLAIM', authorRole: 'OPERATOR', body: null, createdAt: iso(-28 * hour), decisionId: null, appealId: null },
-    { id: 'e3', caseId: CASE, sequence: '3', kind: 'REQUEST_INFO', authorRole: 'OPERATOR', body: 'Možeš li da napišeš u koliko sati ste se dogovorili i da li si pokušao da ga pozoveš?',
+    { id: 'e3', caseId: CASE, sequence: '3', kind: 'REQUEST_INFO', authorRole: 'OPERATOR', body: 'Možeš li da napišeš za koliko sati je bio dogovor i da li je bilo poziva?',
       createdAt: iso(-27 * hour), decisionId: null, appealId: null },
-    { id: 'e4', caseId: CASE, sequence: '4', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'U 10:00. Zvao sam dva puta, nije se javio.', createdAt: iso(-26 * hour), decisionId: null, appealId: null },
-    { id: 'e5', caseId: CASE, sequence: '5', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'Čekao sam do 11.', createdAt: iso(-26 * hour + 60_000), decisionId: null, appealId: null },
+    { id: 'e4', caseId: CASE, sequence: '4', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'Za 10:00. Dva poziva su ostala bez odgovora.', createdAt: iso(-26 * hour), decisionId: null, appealId: null },
+    { id: 'e5', caseId: CASE, sequence: '5', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'Čekanje je trajalo do 11.', createdAt: iso(-26 * hour + 60_000), decisionId: null, appealId: null },
     { id: 'e6', caseId: CASE, sequence: '6', kind: 'DECIDE', authorRole: 'OPERATOR', body: null, createdAt: iso(-2 * hour), decisionId: DECISION, appealId: null },
   ],
   decisions: [{ id: DECISION, caseId: CASE, caseRevision: 3, outcome: 'ACCEPTED', reasonCode: 'NO_SHOW_CONFIRMED', explanation: 'Primer obrazloženja odluke.',
@@ -145,8 +147,9 @@ const detail = (patch: Partial<SupportDetail> = {}, status: SupportDetail['case'
   appeals: [], evidence: [], ...patch });
 const OPERATOR = detail({ viewerRole: 'OPERATOR', operatorAvailable: true, allowedActions: ['OPERATOR_REPLY', 'REQUEST_INFO', 'DECIDE', 'CLOSE', 'CLAIM_APPEAL'],
   appeals: [{ id: 'a1', caseId: CASE, decisionId: DECISION, status: 'RECEIVED', decisionResultId: null, createdAt: iso(-hour) }] });
-const AGREEMENTS = [{ id: '00000000-0000-4000-8000-0000000000c1', verzija: 2, naslov: 'Unos ormara na treći sprat' },
-  { id: '00000000-0000-4000-8000-0000000000c2', verzija: 1, naslov: 'Selidba garsonjere sa Limana na Grbavicu, subota pre podne' }] as unknown as DogovorProjekcija[];
+const AGREEMENTS = [{ id: '00000000-0000-4000-8000-0000000000c1', verzija: 2, naslov: 'Unos ormara na treći sprat', vremeTekst: '27. sep · 10:00–12:00' },
+  { id: '00000000-0000-4000-8000-0000000000c2', verzija: 1, naslov: 'Selidba garsonjere sa Limana na Grbavicu, subota pre podne',
+    vremeTekst: '4. okt · 09:00–13:00' }] as unknown as DogovorProjekcija[];
 
 export default function DizajnPrivatnost() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
@@ -201,6 +204,8 @@ export default function DizajnPrivatnost() {
     : scene === 'izvoz-nije-spremno' ? exportView(exportStatus('REQUESTED'), { notReady: true, primary: <SettingsAction label="Pripremi kopiju" onPress={noop} /> })
     : scene === 'izvoz-spremno' ? exportView(exportStatus('READY', 20 * hour), { notice: { text: 'Kopija je sačuvana u izabranoj fascikli.', tone: 'success' },
       primary: <SettingsAction label="Preuzmi i sačuvaj" onPress={noop} /> })
+    // READY with no verified copy: the last step is stopped and the footer offers a new copy.
+    : scene === 'izvoz-kopija-nedostupna' ? exportView(exportStatus('READY'), { primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
     : scene === 'izvoz-u-toku' ? exportView(exportStatus('READY', 20 * hour), { busy: true,
       primary: <SettingsAction label="Preuzimanje i čuvanje…" loading disabled onPress={noop} /> })
     : scene === 'izvoz-isteklo' ? exportView(exportStatus('READY', -hour), { primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
@@ -234,7 +239,9 @@ export default function DizajnPrivatnost() {
     : scene === 'podrska-lista' ? <SupportInboxView mode="OWN" model={model({ capabilities: CAPS, inbox: INBOX })} />
     : scene === 'podrska-prazno' ? <SupportInboxView mode="OWN" model={model({ capabilities: CAPS, inbox: { ...INBOX, cases: [], nextBeforeCaseNumber: null } })} />
     : scene === 'podrska-ucitavanje' ? <SupportInboxView mode="OWN" model={model({ phase: 'LOADING' })} />
-    : scene === 'podrska-greska' ? <SupportInboxView mode="OWN" model={model({ phase: 'ERROR', message: 'Zahtevi trenutno nisu dostupni. Proveri vezu.' })} />
+    // The list read failed after the capabilities loaded: the error's own retry is the one green action.
+    : scene === 'podrska-greska' ? <SupportInboxView mode="OWN" model={model({ phase: 'ERROR', capabilities: CAPS,
+      message: 'Zahtevi trenutno nisu dostupni. Proveri vezu.' })} />
     : scene === 'podrska-operater' ? <SupportInboxView mode="OPERATOR" onMode={noop} model={model({ capabilities: { ...CAPS, operatorAvailable: true },
       inbox: { ...INBOX, mode: 'OPERATOR', operatorAvailable: true } })} />
     : scene === 'novi-forma' ? <SupportNewView reference={null} model={model({ capabilities: CAPS })} readAgreements={async () => AGREEMENTS} />
@@ -255,7 +262,7 @@ export default function DizajnPrivatnost() {
     : scene === 'zahtev-ucitavanje' ? <SupportDetailView caseId={CASE} model={model({ phase: 'LOADING' })} />
     : scene === 'zahtev-greska' ? <SupportDetailView caseId={CASE} model={model({ phase: 'ERROR', message: 'Zahtev trenutno nije dostupan. Proveri vezu.' })} />
     : scene === 'poruka-podrska' ? <View style={s.screen}>
-      <SupportMessagePreviewSheet previewText="Stigao sam u 10:00, niko nije otvorio. Zvao sam dva puta." busy={false} disabled={false} error={null}
+      <SupportMessagePreviewSheet previewText="U 10:00 niko nije otvorio vrata. Dva poziva su ostala bez odgovora." busy={false} disabled={false} error={null}
         onContinue={noop} onCancel={toList} />
     </View>
     : null;
@@ -263,7 +270,8 @@ export default function DizajnPrivatnost() {
   return <View style={s.screen}>
     <View style={s.grow}>{body}</View>
     {confirm.sheet}
-    {/* The scene's own arrow returns here too; this bar says which scene is shown and is always one tap back. */}
+    {/* The arrow of the privacy, export, legal and closure scenes returns here; in the support scenes every command,
+        the arrow included, is a no-op stand-in. This bar says which scene is shown and is always one tap back. */}
     <SafeAreaView edges={['bottom']} style={s.strip}>
       <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={toList} style={s.back}>
         <T variant="action" style={s.backText}>Nazad</T>
@@ -277,11 +285,11 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1, minWidth: 0 },
   list: { paddingHorizontal: 20, paddingVertical: 16, gap: 4 },
-  group: { color: sys.color.muted, marginTop: 20, marginBottom: 6 },
+  group: { color: sys.color.muted, marginTop: sys.space.lg, marginBottom: sys.space.sm },
   row: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 6, borderTopWidth: 1, borderTopColor: sys.color.line,
-    backgroundColor: sys.color.surface },
-  back: { minHeight: 48, minWidth: 96, paddingHorizontal: 16, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.sm,
+    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  back: { minHeight: 48, minWidth: 96, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
+    alignItems: 'center', justifyContent: 'center', marginBottom: sys.space.sm },
   backText: { color: sys.color.green },
 });

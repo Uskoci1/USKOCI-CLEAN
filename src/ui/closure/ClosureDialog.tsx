@@ -11,7 +11,7 @@ import { closureIntentJournal, type ClosureIntent } from './closureIntent';
 import { SettingsRow } from '../settings/SettingsPresentation';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
-import { ClosureView, type ClosureBlockerPlace, type ClosureModel } from './ClosurePresentation';
+import { ClosureView, closureUnconfirmedCopy, type ClosureBlockerPlace, type ClosureModel } from './ClosurePresentation';
 
 /**
  * The entry on Privatnost i podaci: a quiet row for something done once in a long while, with no red (the seriousness is
@@ -57,11 +57,11 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
       const result = await closureExecutionClientService.read(i.clientRequestId, owner); if (!live(token)) return;
       if (!result.ok) { setMessage(result.poruka); return; }
       setAbsent(!result.podatak.found); setState(result.podatak.execution);
-      setMessage(result.podatak.found ? '' : 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.');
+      setMessage(result.podatak.found ? '' : closureUnconfirmedCopy.START);
     } else {
       const result = await accountClosureClientService.readReceipt(i.clientRequestId, owner); if (!live(token)) return;
       if (!result.ok) { setMessage(result.poruka); return; }
-      if (!result.podatak.found) { setAbsent(true); setMessage('Priprema još nema potvrdu. Možeš ponoviti isti zahtev.'); return; }
+      if (!result.podatak.found) { setAbsent(true); setMessage(closureUnconfirmedCopy.PREPARE); return; }
       await closureIntentJournal.clear(i.accountId, i.clientRequestId); if (!live(token)) return;
       setIntent(null); setAbsent(false); await readReview(token);
     }
@@ -90,7 +90,9 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
     const subscription = AppState.addEventListener('change', next => {
       active.current = next === 'active';
       if (!active.current) { focus.current = null; locked.current = false; retireQuestion(); }
-      else if (focus.current === null) { focus.current = {}; void run(restore); }
+      // Back in the foreground the flow reads again, and says so on its own check button (round 5 review: every button
+      // went grey with no spinner and no words).
+      else if (focus.current === null) { focus.current = {}; void run(restore, 'refresh'); }
     });
     return () => { focus.current = null; locked.current = false; retireQuestion(); subscription.remove(); };
   // Scope follows account incarnation; token refresh leaves the pending intent intact.

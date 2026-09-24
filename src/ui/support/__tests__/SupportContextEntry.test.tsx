@@ -111,6 +111,22 @@ it.each(['cancel', 'blur/focus', 'ABA', 'changed text'] as const)('a selected me
   await act(async () => retained()); expect(mockFind).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
   expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
 });
+// Round 5 review: the sheet's close cleared the choice only while the parent guard allowed a new one, so after a failed
+// refresh the sheet slid away but its invisible Modal stayed over the conversation and blocked every touch.
+it('a sheet that closes while the parent guard says no still takes its choice with it', async () => {
+  previewText = 'Izabrana poruka'; await render(); await act(async () => press()());
+  expect(tree.root.findAllByType(ProductSheet)).toHaveLength(1);
+  allowed = false; await act(async () => tree.root.findByType(ProductSheet).props.onClose());
+  expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
+  expect(mockFind).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
+  // Starting a choice again stays fenced by the guard.
+  await act(async () => press()()); expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
+});
+it('the entry keeps its words while it checks, with a spinner', async () => {
+  const held = deferred(); mockFind.mockReturnValue(held.promise); await render(); await act(async () => press()());
+  expect(tree.root.findByType('Action' as React.ElementType).props).toMatchObject({ label: 'Zatraži pregled podrške', loading: true, disabled: true });
+  await act(async () => held.resolve(ok(C)));
+});
 it('the continuation leaves with the sheet: it is gone before the next screen opens', async () => {
   previewText = 'Izabrana poruka'; await render(); await act(async () => press()());
   expect(tree.root.findAllByType(ProductSheet)).toHaveLength(1);

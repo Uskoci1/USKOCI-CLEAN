@@ -61,15 +61,20 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
     // the rejected result or updating another account/focus/context.
     finally { if (lock.current === operation) { lock.current = null; if (ownLease()) setBusy(false); } }
   };
-  const cancelSelection = () => { if (canSelect() && !lock.current) { selection.current = null; setSelected(false); } };
+  // The sheet has closed (its own way out, Back, a tap outside): the local choice goes with it, whatever the parent's
+  // guard says now. Clearing a choice writes nothing; only starting one and continuing are fenced by `canSelect()`.
+  // Gating this on `canSelect()` left the sheet's invisible Modal mounted over the conversation after a failed refresh
+  // (round 5 review), blocking every touch.
+  const closePreview = () => { selection.current = null; setSelected(false); };
   const previewing = selectedForView && previewText !== undefined;
   return <>
-    {!selectedForView ? <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : label} kind="quiet" disabled={disabled || busy || !previewValid}
+    {/* The button keeps its words while it checks, with a spinner (the V2Action loading rule). */}
+    {!selectedForView ? <SettingsAction label={label} kind="quiet" loading={busy} disabled={disabled || busy || !previewValid}
       onPress={() => { if (!canSelect() || lock.current) return; if (previewText !== undefined && renderedFocus) {
         selection.current = { focus: renderedFocus, view, accountId, accountRevision }; setSelected(true);
       } else void open(); }} /> : null}
     {previewing && previewText !== undefined ? <SupportMessagePreviewSheet previewText={previewText} busy={busy} disabled={disabled} error={error}
-      onContinue={() => { void open(); }} onCancel={cancelSelection} /> : null}
+      onContinue={() => { void open(); }} onCancel={closePreview} /> : null}
     {error && !previewing ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
   </>;
 }
@@ -84,7 +89,7 @@ export function SupportMessagePreviewSheet({ previewText, busy, disabled, error,
 }) {
   return <ProductSheet title="Izabrana poruka za privatnu podršku" closeLabel="Odustani od izbora poruke" dismissible={!busy} onClose={onCancel}
     footer={dismiss => <>
-      <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : 'Nastavi sa izabranom porukom'} disabled={disabled || busy} onPress={onContinue} />
+      <SettingsAction label="Nastavi sa izabranom porukom" loading={busy} disabled={disabled || busy} onPress={onContinue} />
       <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
     </>}>
     {() => <View style={styles.preview}>

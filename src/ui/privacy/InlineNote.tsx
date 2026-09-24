@@ -36,17 +36,22 @@ export function InlineNote({ tone = 'neutral', art = 'info', artMuted, alert, ch
 }
 
 /**
- * The header of a settings group without its card: the same small muted label `SettingsGroup` draws, for a group whose
+ * The header of a settings group without its card: the same small muted header `SettingsGroup` draws, for a group whose
  * content is not a list (a loading placeholder, a note), where a card around it would be a card around a card.
+ *
+ * It copies SettingsGroup's measure as it stands since step 11a (the `meta` size, muted, semibold, 4 in from the edge,
+ * 8 above the content, no margin of its own: the screen's gap separates groups), so "Rokovi čuvanja" reads the same
+ * loading, unpublished or published. SettingsPresentation belongs to another unit and exports no header; when it does,
+ * this should draw that one instead of a copy.
  */
 export function PlainSection({ title, children }: { title: string; children: ReactNode }) {
   return <View style={s.section}>
-    <T variant="label" accessibilityRole="header" style={s.sectionTitle}>{title}</T>
+    <T variant="meta" tone="muted" accessibilityRole="header" style={s.sectionTitle}>{title}</T>
     {children}
   </View>;
 }
 
-/** One line of a list that opens nothing: the settings row's measure, with no caret and no press. */
+/** One line of a list that opens nothing: the settings row's measure (56 high, 12 above and below), no caret, no press. */
 export function PlainRow({ label, detail, last = false }: { label: string; detail?: string; last?: boolean }) {
   return <View style={[s.row, last && s.last]}>
     <T variant="bodyStrong">{label}</T>
@@ -70,9 +75,9 @@ const s = StyleSheet.create({
   art: { paddingTop: 1 },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // SettingsGroup's own header measure, so a group with a card and one without read as one family.
-  section: { marginBottom: 20, gap: 10 },
-  sectionTitle: { color: sys.color.muted, letterSpacing: 0.4, paddingHorizontal: 2 },
-  row: { minHeight: 54, paddingVertical: 13, gap: 2, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  section: { gap: sys.space.sm },
+  sectionTitle: { fontWeight: '600', paddingHorizontal: sys.space.xs },
+  row: { minHeight: 56, paddingVertical: sys.space.md, gap: 2, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
   last: { borderBottomWidth: 0 },
   line: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   lineCopy: { flex: 1, minWidth: 0 },

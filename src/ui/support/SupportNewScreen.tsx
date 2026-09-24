@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { agreementClientService } from '../../data/agreementClientService';
 import type { SupportPayloads, SupportReference, SupportTopic } from '../../data/supportCaseTypes';
@@ -14,6 +14,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { sys } from '../system/tokens';
 import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
+import { supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
 
 type CreateTopic = SupportPayloads['CREATE']['topic'];
@@ -57,8 +58,9 @@ export function SupportNewView({ model, reference, readAgreements = () => agreem
   </SupportFrame>;
   if (state.receipt) {
     const receipt = state.receipt;
+    // Replace, not push: this screen resets on its next focus, so Back from the case would land on an empty form.
     return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvori potvrđeni predmet" disabled={busy}
-      onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: receipt.caseId } }))} />}>
+      onPress={() => navigate(() => router.replace({ pathname: '/podrska/[id]', params: { id: receipt.caseId } }))} />}>
       <View style={s.receipt}>
         <SuccessMark fresh size={64} />
         <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">{`Potvrđen zahtev #${receipt.caseNumber}`}</T>
@@ -104,11 +106,21 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const valid = !!title.trim() && Array.from(title).length <= 200 && !!body.trim() && Array.from(body).length <= 4000
     && Array.from(desired).length <= 1000 && (!requiresAgreement || context?.kind === 'AGREEMENT')
     && (topic !== 'PUBLICATION_REVIEW' || context?.kind === 'TASK_REVIEW');
-  // The send button is grey until the form is complete; its reason says what is still missing.
-  const missing = disabled || valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
+  // The send button is grey until the form is complete, and a grey button always says why (round 5 review): first what
+  // holds the whole screen (an unconfirmed send, a read in progress or failed), then what the form still lacks. While it
+  // sends it is not grey: it keeps its words with a spinner.
+  const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
     : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o Zadatku.'
       : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
+  const missing = state.phase === 'SENDING' || (!disabled && valid) ? null
+    : state.pending ? 'Najpre proveri prethodno slanje.'
+      : state.phase === 'LOADING' ? 'Učitavamo sačuvano stanje…'
+        : state.phase === 'ERROR' ? 'Stanje zahteva nije učitano.'
+          : lacking ?? (choosing ? 'Učitavamo tvoje Dogovore…' : null);
   const dirty = !!title || !!body || !!desired;
+  // Leaving with typed words asks first, in every state that keeps them on screen. Not while a send is running or
+  // unconfirmed: those words may already have reached support, so "neće biti sačuvan" would not be true.
+  const guarded = dirty && !state.pending && state.phase !== 'SENDING';
   // While the screen reads, an untouched form waits behind a placeholder; typed words stay in sight (and in memory).
   const hideForm = (state.phase === 'LOADING' || state.phase === 'ERROR') && !dirty && !state.pending;
   async function loadAgreements() {
@@ -121,12 +133,25 @@ function NewContents({ model, initialReference, readAgreements, back }: {
     finally { if (current()) setChoosing(false); }
   }
   // The words exist only in memory: leaving with some asks first. An unsent form with nothing typed leaves at once.
-  const leave = () => {
+  const discard = (go: () => void) => {
     if (!current()) return;
-    if (dirty && state.phase === 'READY' && !state.pending) confirm.ask({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.',
-      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: back });
-    else back();
+    if (guarded) confirm.ask({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.',
+      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: go });
+    else go();
   };
+  const leave = () => discard(back);
+  // The (app) navigator is Tabs with a history back behaviour, so a screen being removed is never announced there: the
+  // hardware Back (and Android's back gesture) is heard directly while this screen has focus, as on Dostupnost. The
+  // question's own sheet takes Back before this does.
+  const latest = useRef({ guarded, leave }); latest.current = { guarded, leave };
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!latest.current.guarded) return false;
+      latest.current.leave();
+      return true;
+    });
+    return () => subscription.remove();
+  }, []));
   const send = () => { if (current() && latestDraft.current === draftView && !disabled && valid) void controller?.submit('CREATE', {
     channel: channel(topic), topic, title, body, desiredOutcome: desired.trim() ? desired : null, context,
     evidence: selectedEvidence ? [selectedEvidence] : [],
@@ -134,8 +159,14 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const contextName = (kind: SupportReference['kind']) => kind === 'TASK_REVIEW' ? 'Pregledana odluka o Zadatku' : kind === 'TASK' ? 'Izabrani Zadatak'
     : kind === 'AGREEMENT_MESSAGE' ? 'Izabrana poruka iz Dogovora' : kind === 'GROUP_MESSAGE' ? 'Izabrana grupna poruka' : 'Namerno izabrana referenca';
   const sameAsEvidence = !!context && !!selectedEvidence && context.kind === selectedEvidence.kind && context.id === selectedEvidence.id;
-  const showContext = !requiresAgreement && !!context && !sameAsEvidence;
+  // The context is said once as an attachment row (not twice when it is the chosen message itself), but the sentence
+  // about what is and is not attached stays whenever a context goes with the request (round 5 review: it had vanished
+  // in the usual case, a request opened from a Dogovor message).
+  const contextNote = !requiresAgreement && !!context;
+  const showContext = contextNote && !sameAsEvidence;
   const page = choices?.slice(choicePage * PAGE, (choicePage + 1) * PAGE) ?? [];
+  // A refused or failed command is drawn as failed, a confirmation still to find as waiting (round 5 review).
+  const messageTone = supportMessageTone(state);
   return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
     : <SettingsAction label="Pošalji privatni zahtev" loading={state.phase === 'SENDING'} disabled={disabled || !valid} reason={missing} onPress={send} />}>
     <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
@@ -146,14 +177,16 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       : state.phase === 'ERROR' ? <>
         {state.message ? <SupportNote tone="danger">{state.message}</SupportNote> : null}
         <SettingsAction label="Proveri dostupnost" kind="quiet" onPress={() => { if (model.current()) void controller?.load(); }} />
-      </> : state.message ? <SupportNote>{state.message}</SupportNote> : null}
+      </> : state.message ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     <View style={hideForm ? s.hidden : s.form}>
       <SupportPrivacy />
-      <SettingsGroup title="Tema zahteva">{(initialReference?.kind === 'TASK_REVIEW' ? ['PUBLICATION_REVIEW' as const, ...topics] : topics).map((value, index, all) =>
-        <SupportChoiceRow key={value} kind="radio" label={supportLabel(value)} selected={topic === value} last={index === all.length - 1} disabled={disabled}
-          onPress={() => { if (current() && !disabled) { setTopic(value); setChoices(null);
-            if ((value === 'COLLABORATION' || value === 'NO_SHOW') && context?.kind !== 'AGREEMENT') setContext(null);
-            else if (value === 'PUBLICATION_REVIEW') setContext(initialReference); } }} />)}</SettingsGroup>
+      <SettingsGroup title="Tema zahteva"><View accessibilityRole="radiogroup" accessibilityLabel="Tema zahteva">
+        {(initialReference?.kind === 'TASK_REVIEW' ? ['PUBLICATION_REVIEW' as const, ...topics] : topics).map((value, index, all) =>
+          <SupportChoiceRow key={value} kind="radio" label={supportLabel(value)} selected={topic === value} last={index === all.length - 1} disabled={disabled}
+            onPress={() => { if (current() && !disabled) { setTopic(value); setChoices(null);
+              if ((value === 'COLLABORATION' || value === 'NO_SHOW') && context?.kind !== 'AGREEMENT') setContext(null);
+              else if (value === 'PUBLICATION_REVIEW') setContext(initialReference); } }} />)}
+      </View></SettingsGroup>
       {requiresAgreement ? <SettingsGroup title="Dogovor na koji se zahtev odnosi"><View style={s.inCard}>
         {context?.kind === 'AGREEMENT' ? <T variant="bodyStrong">{contextTitle ?? 'Izabran Dogovor'}</T>
           : <T tone="muted">Izaberi jedan od svojih Dogovora.</T>}
@@ -168,12 +201,12 @@ function NewContents({ model, initialReference, readAgreements, back }: {
             onPress={() => { if (current() && !disabled) { setTopic('OTHER'); setContext(null); setContextTitle(null); setChoices(null); } }} />
         </> : null}
       </View></SettingsGroup> : null}
-      {showContext || selectedEvidence ? <SettingsGroup title="Prilog"><View style={s.inCardList}>
+      {contextNote || selectedEvidence ? <SettingsGroup title="Prilog"><View style={s.inCardList}>
         {showContext ? <Attachment art={context!.kind === 'TASK' || context!.kind === 'TASK_REVIEW' ? 'document' : 'chat'}
           label={contextName(context!.kind)} last={!selectedEvidence} /> : null}
         {selectedEvidence ? <Attachment art="chat" label={selectedEvidence.kind === 'AGREEMENT_MESSAGE' ? 'Poruka iz privatnog Dogovora' : 'Poruka iz grupnog razgovora'} last /> : null}
         <View style={s.inCard}>
-          {showContext ? <T variant="note" tone="muted">Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.</T> : null}
+          {contextNote ? <T variant="note" tone="muted">Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.</T> : null}
           {selectedEvidence ? <>
             <T variant="note" tone="muted">Prilaže se samo namerno izabrana poruka, čak i ako zahtev povežeš sa Dogovorom.</T>
             <SettingsAction label="Ukloni izabranu poruku iz zahteva" kind="quiet" disabled={disabled}
@@ -186,7 +219,9 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       </View></SettingsGroup> : null}
       {topic === 'PRIVACY_RIGHTS' ? <View style={s.rights}>
         <SupportNote>Ovde možeš da pošalješ zahtev u vezi sa svojim pravima. Slobodna poruka ne izvršava izvoz ili zatvaranje naloga.</SupportNote>
-        <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled} onPress={() => navigate(() => router.push('/profil/privatnost'))} />
+        {/* This screen starts empty on its next focus, so leaving it here with typed words asks first, as Back does. */}
+        <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled}
+          onPress={() => discard(() => navigate(() => router.push('/profil/privatnost')))} />
       </View> : null}
       <SupportField label="Kratak naslov" value={title} onChange={value => { if (current() && !disabled) setTitle(value); }} maximum={200} disabled={disabled} />
       <SupportField label="Opis zahteva" value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
@@ -194,7 +229,9 @@ function NewContents({ model, initialReference, readAgreements, back }: {
     </View>
     {choices && choices.length ? <ProductSheet title="Tvoji Dogovori" onClose={() => { if (alive.current) setChoices(null); }}>
       {dismiss => <View>
-        {page.map((item, index) => <SettingsRow key={item.id} label={item.naslov || 'Dogovor'} last={index === page.length - 1} disabled={disabled}
+        {/* The agreed time under the title, as the Dogovor itself shows it: two Dogovori with one title differ by it. */}
+        {page.map((item, index) => <SettingsRow key={item.id} label={item.naslov || 'Dogovor'} detail={item.vremeTekst || undefined}
+          last={index === page.length - 1} disabled={disabled}
           onPress={() => { if (current() && !disabled) { setContext({ kind: 'AGREEMENT', id: item.id.toLowerCase(), revision: item.verzija });
             setContextTitle(item.naslov || 'Dogovor'); dismiss(); } }} />)}
         <View style={s.pager}>
@@ -212,7 +249,7 @@ const s = StyleSheet.create({
   receipt: { alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xl },
   form: { gap: sys.space.base },
   hidden: { display: 'none' },
-  inCard: { paddingVertical: 14, gap: sys.space.sm },
+  inCard: { paddingVertical: sys.space.md, gap: sys.space.sm },
   inCardList: { paddingTop: 2 },
   attachment: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   line: { borderBottomWidth: 1, borderBottomColor: sys.color.line },

@@ -222,3 +222,11 @@ it('the steps never call a cancelled request the active step', async () => {
   expect(steps[0]).toMatch(/^Zahtev, zaustavljeno. Zahtev je otkazan. /); expect(steps.slice(1).every(label => label.includes(', sledi.'))).toBe(true);
   expect(button('Zatraži novu kopiju')).toBeTruthy();
 });
+// Round 5 review: a preparation that has not started was spoken "u toku".
+it('the step that waits for the person is spoken as next, never as running', async () => {
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render();
+  const labels = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && /^Priprema kopije, /.test(node.props.accessibilityLabel))
+    .map(node => node.props.accessibilityLabel as string);
+  expect(labels).toEqual(['Priprema kopije, na redu. Priprema još nije pokrenuta.']);
+  expect(labels.join(' ')).not.toContain('u toku');
+});

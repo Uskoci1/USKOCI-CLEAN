@@ -18,6 +18,7 @@ jest.mock('../../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockKey}));
 jest.mock('../../settings/SettingsPresentation',()=>{const component=(name:string)=>({children,...props}:any)=>require('react').createElement(name,props,children);return Object.fromEntries(['SettingsScreen','SettingsIntro','SettingsPanel','SettingsInfo','SettingsText','SettingsAction','SettingsGroup','SettingsRow'].map(n=>[n,component(n)]));});
 import {ClosureDialog} from '../ClosureDialog';
 import {ConfirmSheet} from '../../system/ConfirmSheet';
+import {InlineNote} from '../../privacy/InlineNote';
 const ok=(podatak:unknown)=>({ok:true,podatak}),ready=()=>({accountId:A,requestId:R,revision:1,ready:true,policySha256:'a'.repeat(64),blockers:[],code:null,retainedDatasets:[],authoritative:true});
 const pending=()=>({kind:'START',accountId:A,requestId:R,expectedRevision:1,clientRequestId:mockKey,policySha256:'a'.repeat(64)});
 let tree:ReactTestRenderer;
@@ -82,6 +83,19 @@ it.each([['ACTIVE_AGREEMENT','/dogovori'],['OPEN_TASK','/potrebe'],['ACTIVE_APPL
  const go=button(require('../../../data/closureExecutionClientService').closureBlockerLabels[code]).props.onPress;
  await act(async()=>go());expect(mockNavigate).toHaveBeenCalledWith(path);
  mockNavigate.mockClear();mockOwner={user:{id:A},accountRevision:3};await act(async()=>go());expect(mockNavigate).not.toHaveBeenCalled();
+});
+// Round 5 review: one look for "failed". An unconfirmed request waits for the person; a failed read is a failure.
+it('an unconfirmed request is drawn as waiting, a failed read as failed',async()=>{
+ mockLoad.mockResolvedValue(pending());await render();
+ const note=()=>tree.root.findAllByType(InlineNote).find(n=>n.props.alert);
+ expect(note()?.props).toMatchObject({tone:'warn',children:'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.'});
+ mockRead.mockResolvedValue({ok:false,kod:'X',poruka:'Stanje trenutno nije dostupno.'});
+ await act(async()=>button('Proveri stanje zahteva').props.onPress());
+ expect(note()?.props).toMatchObject({tone:'danger',children:'Stanje trenutno nije dostupno.'});
+});
+it('the flow\'s X is spoken as leaving the review, never as the closing itself',async()=>{
+ await render();expect(tree.root.findAll(n=>n.props.label==='Zatvori pregled'&&typeof n.props.onPress==='function').length).toBeGreaterThan(0);
+ expect(tree.root.findAll(n=>n.props.label==='Zatvori')).toHaveLength(0);
 });
 it('a read that fails before anything is known says so, with the check as its one way forward',async()=>{
  mockReview.mockResolvedValue({ok:false,kod:'X',poruka:'Pregled trenutno nije dostupan.'});await render();

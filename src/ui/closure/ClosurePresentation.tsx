@@ -17,6 +17,15 @@ import type { ClosureIntent } from './closureIntent';
 export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400, 'dan', 'dana', 'dana')
   : n % 3600 === 0 ? plural(n / 3600, 'sat', 'sata', 'sati') : plural(n, 'sekunda', 'sekunde', 'sekundi');
 
+/**
+ * The two messages that mean "not confirmed yet, the same request waits" (the owner's closure copy, word for word). They
+ * wait for the person, so they are drawn as waiting; every other message of the flow is a failed read or command.
+ */
+export const closureUnconfirmedCopy = {
+  START: 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.',
+  PREPARE: 'Priprema još nema potvrdu. Možeš ponoviti isti zahtev.',
+} as const;
+
 /** Where a blocker can be resolved. A blocker with no place of its own is a plain line. */
 export type ClosureBlockerPlace = 'dogovori' | 'zadaci' | 'prijave';
 const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGREEMENT: 'dogovori', OPEN_TASK: 'zadaci', ACTIVE_APPLICATION: 'prijave' };
@@ -25,12 +34,15 @@ const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGR
  * The frame of the closure flow: one job, one way out (the X), the flow's name, the scroll and an optional pinned footer
  * with the SettingsScreen footer's own measure. SettingsScreen has no flow variant and belongs to another unit, so the
  * flow draws its frame here from the same system pieces.
+ *
+ * The X is spoken "Zatvori pregled": a bare "Zatvori" inside "Zatvaranje naloga" could be heard as the closing itself
+ * (round 5 review). It only leaves the flow.
  */
 export function ClosureFrame({ onClose, closeDisabled = false, footer, children }: {
   onClose: () => void; closeDisabled?: boolean; footer?: ReactNode; children: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori" disabled={closeDisabled} onClose={onClose} />
+    <ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori pregled" disabled={closeDisabled} onClose={onClose} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
     {footer ? <View testID="closure-footer" style={s.footer}>{footer}</View> : null}
   </SafeAreaView>;
@@ -89,7 +101,10 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       : state ? 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'
         : 'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}</T>
   </View>;
-  const note = message ? <InlineNote tone="neutral" alert>{message}</InlineNote> : null;
+  // One look for "failed" (round 5 review): the two "not confirmed yet" messages wait for the person; every other
+  // message here is a read or a command that failed.
+  const waiting = message === closureUnconfirmedCopy.START || message === closureUnconfirmedCopy.PREPARE;
+  const note = message ? <InlineNote tone={waiting ? 'warn' : 'danger'} alert>{message}</InlineNote> : null;
   const retention = retained.length ? <SettingsGroup title="Rokovi čuvanja">
     {retained.map((d, index) => <SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last={index === retained.length - 1}>
       {`Ograničeno čuvanje: ${closureDuration(d.retentionSeconds)} od pokretanja zahteva.`}
@@ -188,9 +203,9 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, gap: 16, flexGrow: 1 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: sys.color.line,
-    backgroundColor: sys.color.surface, gap: 8 },
+  content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.xxl, gap: sys.space.base, flexGrow: 1 },
+  footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line,
+    backgroundColor: sys.color.surface, gap: sys.space.sm },
   header: { gap: sys.space.sm, paddingBottom: sys.space.xs },
   well: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center',
     marginBottom: sys.space.xs },

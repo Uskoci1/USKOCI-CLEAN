@@ -10,6 +10,7 @@ import { supportActionAllowed } from './SupportController';
 import { SupportBubble, SupportChoiceRow, SupportComposer, SupportDecisionBlock, SupportField, SupportLoading, SupportPrivacy, SupportStatusChip,
   SupportSystemLine, SupportThreadFrame, supportLabel, supportStyles, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
+import { supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
 import { SupportReferenceView, supportReferenceNames } from './SupportReferenceView';
 
@@ -44,6 +45,9 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   const replyText = detail && reply.key === key ? reply.text : '';
   // A confirmed reply moved the case to a new revision: its words are not kept in memory under the old one.
   useEffect(() => { if (detail) setReply(previous => previous.key === key ? previous : { key, text: '' }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A read that drops the case (a reload, a failed read after a send) takes the form sheet with it, so the sheet does
+  // not come back by itself, empty, when the same revision returns (round 5 review).
+  useEffect(() => { if (!detail) setForm(null); }, [detail]);
   const scroll = useRef<ScrollView>(null), scrolledTo = useRef<string | null>(null);
   const page = (cursor: string, back = false) => {
     if (!current() || busy) return;
@@ -70,7 +74,10 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
     if (replyKind === 'AUTHOR_REPLY') void controller?.submit('AUTHOR_REPLY', { body: replyText, evidence: [] }, state);
     else void controller?.submit('OPERATOR_REPLY', { body: replyText }, state);
   };
-  const messageTone = state.phase === 'ERROR' ? 'danger' : state.message === 'Radnja je potvrđena.' ? 'success' : 'ink';
+  // One look for "failed": a refused reply or a failed mark is danger, as a failed read is (round 5 review).
+  const tone = supportMessageTone(state), messageTone = tone === 'success' ? 'success' : tone === 'danger' ? 'danger' : 'ink';
+  // The grey send area says why a written reply cannot go now.
+  const replyReason = replyTooLong ? 'Skrati tekst pre slanja.' : state.pending ? 'Najpre proveri prethodno slanje.' : null;
 
   const thread: ReactNode[] = [];
   if (detail) {
@@ -118,8 +125,10 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
       accessibilityRole={messageTone === 'danger' ? 'alert' : undefined} accessibilityLiveRegion="polite">{state.message}</T> : null}
     {detail && canReply ? <>
       {replyTooLong ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{`${Array.from(replyText).length} / ${REPLY_LIMIT} · Skrati tekst pre slanja.`}</T> : null}
+      {/* The spinner is this reply's own: marking as read, a claim or a close run without it. */}
       <SupportComposer value={replyText} placeholder={author ? 'Napiši dopunu…' : 'Napiši odgovor…'} editable={!actionsDisabled}
-        canSend={canSend} sending={state.phase === 'SENDING'} onSend={send}
+        canSend={canSend} sending={state.phase === 'SENDING' && state.pending?.kind === replyKind} onSend={send}
+        reason={replyReason} maxLength={REPLY_LIMIT * 2}
         onChange={value => { if (current() && !actionsDisabled) setReply({ key, text: value }); }} />
     </> : detail ? <T variant="meta" tone="muted" style={supportStyles.center}>{detail.case.status === 'CLOSED' ? 'Predmet je zatvoren.'
       : author ? 'Dopuna trenutno nije moguća.' : 'Odgovor trenutno nije moguć.'}</T> : null}
@@ -218,7 +227,7 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
     {() => <View style={s.sheet}>
       {action === 'APPEAL' ? <T variant="note" tone="muted">Žalba se odnosi na izabranu stvarnu odluku. Ovo je ponovni pregled podrške; ne predstavlja nezavisan žalbeni organ.</T> : null}
       {deciding ? <>
-        <View style={supportStyles.list}>
+        <View style={supportStyles.list} accessibilityRole="radiogroup" accessibilityLabel="Odluka o zahtevu">
           <SupportChoiceRow kind="radio" label="Prihvati zahtev" selected={outcome === 'ACCEPTED'} disabled={disabled} onPress={() => { if (current()) setOutcome('ACCEPTED'); }} />
           <SupportChoiceRow kind="radio" label="Odbij zahtev" selected={outcome === 'REJECTED'} disabled={disabled} last onPress={() => { if (current()) setOutcome('REJECTED'); }} />
         </View>
@@ -234,7 +243,7 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
       </> : null}
       <SupportField label={deciding ? 'Obrazloženje' : action === 'APPEAL' ? 'Razlog i nove činjenice' : 'Tekst poruke'} value={body}
         onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
-      {state.message && (state.phase === 'ERROR' || state.pending) ? <T variant="note" tone={state.phase === 'ERROR' ? 'danger' : 'ink'}
+      {state.message && (state.phase === 'ERROR' || state.pending) ? <T variant="note" tone={supportMessageTone(state) === 'danger' ? 'danger' : 'ink'}
         accessibilityRole="alert" accessibilityLiveRegion="polite">{state.message}</T> : null}
     </View>}
   </ProductSheet>;

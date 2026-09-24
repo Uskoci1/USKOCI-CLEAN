@@ -103,6 +103,23 @@ it('the screen is named as the entries that open it, and a running acceptance ke
   await act(async () => resolve(ok(receipt)));
   expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
 });
+// Round 5 review: the read and the replay keep their own words while they run, as the first acceptance does.
+it('a running readback and a running replay each keep their words with a spinner', async () => {
+  mockAccept.mockResolvedValueOnce({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
+  let found!: (value: unknown) => void; mockOutcome.mockReturnValueOnce(new Promise(done => { found = done; }));
+  await act(async () => { tree = create(<LegalRoute />); });
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
+  await act(async () => { action('Proveri ishod prihvatanja').props.onPress(); });
+  expect(action('Proveri ishod prihvatanja').props).toMatchObject({ loading: true, disabled: true });
+  expect(action('Ponovi isto prihvatanje')).toBeUndefined();
+  await act(async () => found(ok({ found: false, receipt: null })));
+  let accepted!: (value: unknown) => void; mockAccept.mockReturnValueOnce(new Promise(done => { accepted = done; }));
+  await act(async () => { action('Ponovi isto prihvatanje').props.onPress(); });
+  expect(action('Ponovi isto prihvatanje').props).toMatchObject({ loading: true, disabled: true });
+  expect(action('Proveri ishod prihvatanja')).toBeUndefined(); expect(mockAccept).toHaveBeenCalledTimes(2);
+  await act(async () => accepted(ok(receipt)));
+  expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+});
 it('an acceptance failure is said right above the button that failed', async () => {
   mockAccept.mockResolvedValue({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
   await act(async () => { tree = create(<LegalRoute />); });

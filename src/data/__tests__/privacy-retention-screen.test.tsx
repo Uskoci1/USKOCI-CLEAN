@@ -18,6 +18,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Privacy from '../../app/(app)/profil/privatnost';
+import { InlineNote } from '../../ui/privacy/InlineNote';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const policy = (version = 'fixture-v1') => ({ ready: true, policyVersion: version, effectiveAt: '2026-09-10T00:00:00Z',
@@ -52,8 +53,10 @@ it('keeps unpublished retention explicit and opens closure through a separate re
   await render(); expect(texts()).toContain('Potpun raspored rokova čuvanja još nije dostupan.');
   expect(texts()).toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
+  // Round 5 review: the order pinned the old layout; the two account-data rows now sit right under the visibility, above
+  // the retention list, because support's "Izvoz i zatvaranje naloga" leads here. The refresh closes the read blocks.
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
-    .toEqual(['Osveži stanje', 'Izvoz podataka', 'Zatvaranje naloga']);
+    .toEqual(['Izvoz podataka', 'Zatvaranje naloga', 'Osveži stanje']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
@@ -154,4 +157,21 @@ it('keeps the unpublished and failed retention states off the green confirmation
   expect(texts()).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
   const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert');
   expect(alert.map(node => node.props.children)).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+});
+// Round 5 review: the retry of a failed retention read stands right under its note, and there is one refresh on screen.
+it('a failed retention read has its retry right under its own note', async () => {
+  mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
+  const note = tree.root.findAllByType(InlineNote).find(node => node.props.tone === 'danger')!;
+  expect(note.props.children).toBe('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+  const section = note.parent!;
+  expect(section.findAllByProps({ label: 'Osveži stanje' }).length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje')).toHaveLength(1);
+});
+it('a failed deletion read takes the danger note; a version mismatch stays a plain note', async () => {
+  mockExecution.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
+  const block = () => tree.root.findAllByType(InlineNote).find(node => node.props.art === 'clock')!;
+  expect(block().props.tone).toBe('danger');
+  mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1')));
+  await act(async () => button('Osveži stanje').onPress());
+  expect(block().props.tone).toBe('neutral'); expect(texts()).toContain('Dostupnost automatskog brisanja nije potvrđena');
 });

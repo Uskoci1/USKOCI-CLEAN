@@ -129,8 +129,10 @@ export function SupportStatusChip({ status }: { status: SupportStatus }) {
 
 const channelArt: Record<SupportChannel, FactArtKind> = { SERVICE: 'chat', TASK: 'agreements', LEGAL_PRIVACY: 'shield', SAFETY: 'lock' };
 /**
- * One request in the list: what it is about (the name), its state and when it last moved; the case number is said, not
- * shown (support uses it; a person recognises the topic). News is an orange dot and the word "novo", never colour alone.
+ * One request in the list: what it is about (the name), its state, when it last moved and its number. The number is
+ * shown beside the time (round 5 review): two requests on the same topic differ by it, and it is the number the
+ * confirmation ("Potvrđen zahtev #12") and the request's own screen ("Zahtev #12") name. News is an orange dot, a shape
+ * that is there or not (never a colour change alone); a screen reader hears it as the word "novo".
  */
 export function SupportCaseRow({ topic, status, channel, time, caseNumber, unread, disabled, last, onPress }: {
   topic: string; status: SupportStatus; channel: SupportChannel; time: string; caseNumber: string; unread: boolean;
@@ -144,7 +146,7 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
       <T variant="bodyStrong" numberOfLines={2}>{topic}</T>
       <View style={supportStyles.caseMeta}>
         <SupportStatusChip status={status} />
-        <T variant="meta" tone="muted" style={supportStyles.tabular}>{time}</T>
+        <T variant="meta" tone="muted" style={supportStyles.tabular}>{`${time} · #${caseNumber}`}</T>
       </View>
     </View>
     <View style={supportStyles.caseEnd}>
@@ -215,16 +217,19 @@ export function SupportDecisionBlock({ reconsideration, outcome, explanation, ti
 /**
  * The reply field of a case: the pill of Poruke (copied, not imported: the conversation belongs to another unit) with
  * the text and a 48 px send area. The send is green only when there is something to send; otherwise a grey well that
- * says why.
+ * says why: an empty field, or the caller's `reason` (a text over the limit). The field takes at most `maxLength`
+ * characters, so a huge paste is cut before it is counted on every render (the old field's cap, twice the limit).
  */
-export function SupportComposer({ value, onChange, placeholder, editable, canSend, sending, onSend }: {
+export function SupportComposer({ value, onChange, placeholder, editable, canSend, sending, onSend, reason, maxLength }: {
   value: string; onChange: (value: string) => void; placeholder: string; editable: boolean; canSend: boolean; sending: boolean; onSend: () => void;
+  /** Why a written text cannot be sent now, spoken as the send area's hint. */ reason?: string | null; maxLength?: number;
 }) {
   const empty = !value.trim();
+  const why = sending || canSend ? undefined : empty ? 'Unesi tekst pre slanja.' : reason ?? undefined;
   return <View style={supportStyles.pill}>
     <TextInput accessibilityLabel="Tekst poruke" placeholder={placeholder} placeholderTextColor={sys.color.muted} value={value}
-      onChangeText={onChange} editable={editable} multiline textAlignVertical="center" style={supportStyles.pillInput} />
-    <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" accessibilityHint={empty ? 'Unesi tekst pre slanja.' : undefined}
+      onChangeText={onChange} editable={editable} multiline textAlignVertical="center" maxLength={maxLength} style={supportStyles.pillInput} />
+    <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" accessibilityHint={why}
       accessibilityState={{ disabled: !canSend || sending, busy: sending }} disabled={!canSend || sending} haptic={canSend ? 'light' : 'none'}
       onPress={onSend} style={supportStyles.sendArea}>
       <View style={[supportStyles.send, canSend || sending ? supportStyles.sendOn : supportStyles.sendOff]}>
@@ -240,23 +245,22 @@ export const supportStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   strip: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
   thread: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1, justifyContent: 'flex-end', gap: 0 },
-  composerArea: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: sys.color.surface,
-    borderTopWidth: 1, borderTopColor: sys.color.line },
+  composerArea: { paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: sys.space.sm,
+    backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
   field: { gap: 8, marginBottom: 20 },
   input: { ...field },
   inputDisabled: { backgroundColor: sys.color.wash },
   multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
-  row: { gap: 6, paddingVertical: 12 },
   recovery: { gap: 8 },
   recoveryActions: { gap: 4 },
   chip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: sys.radius.pill },
   chipText: { fontWeight: '600' },
   tabular: { fontVariant: ['tabular-nums'] },
-  caseRow: { minHeight: 72, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  caseRow: { minHeight: 72, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   rowLine: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
   faded: { opacity: 0.45 },
   caseArt: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
-  caseCopy: { flex: 1, minWidth: 0, gap: 6 },
+  caseCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   caseMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   caseEnd: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   unread: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
@@ -271,17 +275,18 @@ export const supportStyles = StyleSheet.create({
   mineColumn: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   theirsColumn: { alignSelf: 'flex-start', alignItems: 'flex-start' },
   sender: { paddingHorizontal: 4 },
-  bubble: { borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
+  bubble: { borderRadius: sys.radius.card, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, gap: sys.space.xs },
   mine: { backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 8 },
   theirs: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: 8 },
   bubbleText: { ...sys.type.body, color: sys.color.ink, lineHeight: 22 },
-  bubbleTime: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] },
+  // The meta token (13 px), not a raw size: the time is a one-word label (round 5 review).
+  bubbleTime: { ...sys.type.meta, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   system: { textAlign: 'center', marginVertical: 8 },
   decision: { ...cardCompact, gap: 8, marginTop: 12 },
-  decisionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  decisionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   summary: { ...inset, backgroundColor: sys.color.wash, gap: 8, marginBottom: 4 },
   pill: { flexDirection: 'row', alignItems: 'flex-end', padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
-  pillInput: { flex: 1, minHeight: 48, maxHeight: 140, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12,
+  pillInput: { flex: 1, minHeight: 48, maxHeight: 140, paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md,
     ...sys.type.body, lineHeight: 22, color: sys.color.ink },
   sendArea: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },

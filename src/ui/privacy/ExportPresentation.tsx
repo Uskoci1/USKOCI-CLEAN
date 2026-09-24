@@ -50,7 +50,9 @@ export function exportPhase(status: DataExportStatus | null | undefined, now: nu
 
 type StepState = 'done' | 'current' | 'pending' | 'stopped';
 type Step = { label: string; state: StepState; copy: string; meta?: string[] };
-const spoken: Record<StepState, string> = { done: 'završeno', current: 'u toku', pending: 'sledi', stopped: 'zaustavljeno' };
+// "na redu", not "u toku": the current step is also a preparation not started yet ("Priprema još nije pokrenuta.") and a
+// copy waiting to be saved, where "u toku" would state something that is not happening (round 5 review).
+const spoken: Record<StepState, string> = { done: 'završeno', current: 'na redu', pending: 'sledi', stopped: 'zaustavljeno' };
 
 /** The three steps of a phase, in the owner's words. */
 export function exportSteps(phase: ExportPhase, status: DataExportStatus | null | undefined): Step[] {
@@ -64,7 +66,8 @@ export function exportSteps(phase: ExportPhase, status: DataExportStatus | null 
     case 'PROCESSING': return [requested, { label: 'Priprema kopije', state: 'current', copy: 'Kopija se priprema.' }, waiting];
     case 'READY_AVAILABLE': return [requested, prepared, { label: 'Preuzimanje', state: 'current', copy: 'Kopija je dostupna. Izaberi fasciklu za čuvanje.',
       meta: artifact ? [`Dostupno do ${vreme(Date.parse(artifact.artifactExpiresAt))}.`, `Datoteka JSON · ${exportSizeLabel(artifact.byteLength)}`] : undefined }];
-    case 'READY_UNAVAILABLE': return [requested, prepared, waiting];
+    // Not a step still to come: this copy cannot be saved and the footer offers a new one (round 5 review).
+    case 'READY_UNAVAILABLE': return [requested, prepared, { label: 'Preuzimanje', state: 'stopped', copy: exportPreparationCopy.NOT_AVAILABLE }];
     case 'EXPIRED': return [requested, prepared, { label: 'Preuzimanje', state: 'stopped', copy: 'Dostupnost kopije je istekla.' }];
     case 'FAILED': return [requested, { label: 'Priprema kopije', state: 'stopped', copy: 'Priprema nije završena.' }, waiting];
     case 'CANCELLED': return [{ ...requested, state: 'stopped', copy: 'Zahtev je otkazan.' },

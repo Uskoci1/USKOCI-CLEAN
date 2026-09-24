@@ -5,7 +5,7 @@ import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsTex
 import { Disclosure } from '../system/Disclosure';
 import { FactArt } from '../system/FactArt';
 import { StateView } from '../system/StateView';
-import { inset, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { InlineNote, PlainSection } from './InlineNote';
 
 /** The person's names for the published data classes (owner's wording, kept verbatim). */
@@ -24,8 +24,11 @@ export type PrivacyRead<T> = { loading: boolean; error: boolean; data: T | null 
 
 /**
  * Privatnost i podaci, drawn from what the two readers hold (round 5, owner step 11b). Calm and in the order a person
- * asks: who sees what, how long each kind is kept, whether abandoned AI conversations are removed on their own, and,
- * last, the two rare account-data actions. It has no primary action: nothing here is done every day.
+ * asks: who sees what, the two account-data actions, how long each kind is kept and whether abandoned AI conversations
+ * are removed on their own. It has no primary action: nothing here is done every day.
+ *
+ * The two actions sit right under the visibility (round 5 review): support's "Izvoz i zatvaranje naloga" leads here, and
+ * under up to fourteen retention rows they were below the fold. A failed read has its retry right under its own note.
  *
  * Presentation only. The route owns the reads, the focus fence and every navigation; `dataRows` are its two rows.
  */
@@ -36,6 +39,7 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
   onRefresh: () => void; dataRows: ReactNode;
 }) {
   const published = policy.data?.ready ? policy.data : null;
+  const refresh = <SettingsAction label="Osveži stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={onRefresh} />;
   return <>
     <SettingsIntro>
       Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možeš pregledati ispod.
@@ -49,10 +53,13 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
       </SettingsInfo>
     </SettingsGroup>
 
+    <SettingsGroup title="Tvoji podaci">{dataRows}</SettingsGroup>
+
     {policy.loading ? <PlainSection title="Rokovi čuvanja">
       <StateView kind="loading" title="Učitavamo rokove čuvanja…" skeleton={{ count: 1, rows: 3 }} />
     </PlainSection> : policy.error ? <PlainSection title="Rokovi čuvanja">
       <InlineNote tone="danger">Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.</InlineNote>
+      {refresh}
     </PlainSection> : published ? <SettingsGroup title="Rokovi čuvanja">
       {published.rules.map((rule, index) => {
         const key = ruleKey(published.policyVersion, rule);
@@ -71,21 +78,18 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
       <InlineNote tone="quiet">Potpun raspored rokova čuvanja još nije dostupan.</InlineNote>
     </PlainSection>}
 
-    {/* Not green: the line under it may say the feature is off or not confirmed, and green would read "all good". */}
-    <View style={s.auto}>
-      <FactArt kind="clock" size={22} />
-      <View style={s.autoCopy}>
-        <T variant="bodyStrong">Automatsko brisanje napuštenih razgovora</T>
-        {execution.loading ? <T variant="note" tone="muted">Proveravamo dostupnost…</T>
-          : execution.error || (execution.data?.executionAdmitted && !admitted)
-            ? <T variant="note" accessibilityRole="alert">Dostupnost automatskog brisanja nije potvrđena.</T>
-            : admitted ? <T variant="note" tone="muted">Automatsko brisanje je omogućeno samo za napuštene AI razgovore bez Zadatka i sačuvanih podataka. Primenjuju se objavljena pravila i izuzeci. Ovo nije potvrda da je određeni razgovor obrisan.</T>
-              : <T variant="note" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
-      </View>
-    </View>
-    <SettingsAction label="Osveži stanje" kind="quiet" disabled={policy.loading || execution.loading} onPress={onRefresh} />
-
-    <View style={s.data}><SettingsGroup title="Tvoji podaci">{dataRows}</SettingsGroup></View>
+    {/* Not green: the line under it may say the feature is off or not confirmed, and green would read "all good". A read
+        that failed takes the one look for "failed", the danger note (round 5 review); every other state is the wash. */}
+    <InlineNote tone={execution.error ? 'danger' : 'neutral'} art="clock">
+      <T variant="bodyStrong">Automatsko brisanje napuštenih razgovora</T>
+      {execution.loading ? <T variant="note" tone="muted">Proveravamo dostupnost…</T>
+        : execution.error || (execution.data?.executionAdmitted && !admitted)
+          ? <T variant="note" tone={execution.error ? 'danger' : 'ink'} accessibilityRole="alert">Dostupnost automatskog brisanja nije potvrđena.</T>
+          : admitted ? <T variant="note" tone="muted">Automatsko brisanje je omogućeno samo za napuštene AI razgovore bez Zadatka i sačuvanih podataka. Primenjuju se objavljena pravila i izuzeci. Ovo nije potvrda da je određeni razgovor obrisan.</T>
+            : <T variant="note" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
+    </InlineNote>
+    {/* The retry of a failed retention read stands under its note above; one refresh on the screen at a time. */}
+    {policy.error && !policy.loading ? null : refresh}
   </>;
 }
 
@@ -100,8 +104,4 @@ function Fact({ label, value }: { label: string; value: string }) {
 const s = StyleSheet.create({
   fact: { gap: 2 },
   version: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingVertical: sys.space.md },
-  auto: { ...inset, backgroundColor: sys.color.wash, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  autoCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // The rare account-data rows stand apart from the refresh above them, which belongs to the two blocks it re-reads.
-  data: { marginTop: sys.space.sm },
 });

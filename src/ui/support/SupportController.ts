@@ -1,6 +1,7 @@
 import { supportCaseClientService } from '../../data/supportCaseClientService';
 import type { PreparedSupportCommand, SupportCapabilities, SupportCommand, SupportDetail, SupportInbox,
   SupportIntent, SupportKind, SupportMode, SupportPayloads, SupportReceipt, SupportScope } from '../../data/supportCaseTypes';
+import { supportCopy } from './supportCopy';
 
 export type SupportTarget = { type: 'NEW' } | { type: 'INBOX'; mode: SupportMode } | { type: 'DETAIL'; caseId: string };
 export type SupportState = {
@@ -44,14 +45,13 @@ export class SupportController {
   }
   private consume(command: SupportCommand) {
     if (command.state === 'ABSENT') {
-      this.update({ absent: true, canReplay: !!this.prepared, message: 'Potvrda prethodne radnje još nije pronađena.' });
+      this.update({ absent: true, canReplay: !!this.prepared, message: supportCopy.absent });
       return;
     }
     this.prepared = null;
     this.update({ pending: null, absent: false, canReplay: false,
       receipt: command.state === 'COMMITTED' ? command.receipt : null,
-      message: command.state === 'COMMITTED' ? 'Radnja je potvrđena.'
-        : 'Prvobitno slanje je zaustavljeno. Ranije primljen predmet ostaje sačuvan.' });
+      message: command.state === 'COMMITTED' ? supportCopy.committed : supportCopy.cancelled });
   }
   private async recoverPending() {
     const intent = this.state.pending; if (!intent) return;
@@ -132,6 +132,6 @@ export class SupportController {
     this.update({ phase: 'SENDING', message: null });
     const result = await this.service.markRead(detail.case.id, sequence, this.deps.scope);
     if (!this.current()) return;
-    this.update({ phase: 'READY', message: result.ok ? 'Prikazani događaji su označeni kao pročitani.' : result.poruka });
+    this.update({ phase: 'READY', message: result.ok ? supportCopy.markedRead : result.poruka });
   });
 }

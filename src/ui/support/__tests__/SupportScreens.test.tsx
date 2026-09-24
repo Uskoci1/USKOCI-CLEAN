@@ -7,6 +7,7 @@ const D = '50000000-0000-4000-8000-000000000001', AP = '60000000-0000-4000-8000-
 const time = '2026-09-13T05:00:00Z';
 let mockSession = { user: { id: A }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true, mockAppState = 'active';
 const mockListeners = new Set<(value: string) => void>();
+const mockBack: { handlers: (() => boolean)[] } = { handlers: [] };
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false };
 const mockService = { capabilities: jest.fn(), inbox: jest.fn(), detail: jest.fn(), loadPending: jest.fn(), prepare: jest.fn(),
   submit: jest.fn(), recover: jest.fn(), cancel: jest.fn(), markRead: jest.fn() }, mockAgreements = jest.fn();
@@ -20,6 +21,8 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; },
 jest.mock('react-native', () => { const rn = jest.requireActual('react-native'); return new Proxy(rn, { get(target, key) {
   if (key === 'AppState') return { get currentState() { return mockAppState; }, addEventListener: (_: string, fn: (value: string) => void) => {
     mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) }; } };
+  if (key === 'BackHandler') return { addEventListener: (_: string, handler: () => boolean) => {
+    mockBack.handlers.push(handler); return { remove: () => { mockBack.handlers = mockBack.handlers.filter(item => item !== handler); } }; } };
   return ['View', 'TextInput', 'ActivityIndicator', 'KeyboardAvoidingView', 'ScrollView', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 // The screen renders its footer (the one primary action) as a child, as the real one pins it under the scroll.
@@ -35,6 +38,7 @@ import { SupportDetailScreen } from '../SupportDetailScreen';
 import { SupportInboxScreen } from '../SupportInboxScreen';
 import { SupportReferenceView } from '../SupportReferenceView';
 import { ConfirmSheet } from '../../system/ConfirmSheet';
+import { InlineNote } from '../../privacy/InlineNote';
 const ok = (podatak: unknown) => ({ ok: true, podatak }), unknown = { ok: false, kod: 'UNKNOWN', poruka: 'Sačekaj proveru.' };
 const journal = (kind: SupportKind = 'CREATE'): SupportIntent => ({ version: 1, accountId: A, clientRequestId: K, kind, caseId: kind === 'CREATE' ? null : C,
   expectedRevision: kind === 'CREATE' ? null : 2, inputSha256: 'a'.repeat(64) });
@@ -60,6 +64,7 @@ function deferred() { let resolve!: (value: unknown) => void; const promise = ne
 beforeEach(() => {
   jest.clearAllMocks(); Object.values(mockService).forEach(fn => fn.mockReset()); mockAgreements.mockReset();
   screen = 'NEW'; reference = null; routeKey = true; mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockAppState = 'active';
+  mockBack.handlers = [];
   mockService.capabilities.mockResolvedValue(ok({ accountId: A, operatorAvailable: false, canCreate: true, authoritative: true }));
   mockService.loadPending.mockResolvedValue(null); mockService.recover.mockResolvedValue(absent()); mockService.submit.mockResolvedValue(unknown); mockService.cancel.mockResolvedValue(unknown);
   mockService.detail.mockResolvedValue(ok(detail())); mockService.markRead.mockResolvedValue(ok({ sequence: '9' }));
@@ -68,7 +73,7 @@ beforeEach(() => {
     intent: { ...journal(kind), caseId, expectedRevision: revision }, payloadText: JSON.stringify(payload) }));
   mockAgreements.mockResolvedValue([{ id: C, verzija: 4, naslov: 'Stvarni sopstveni Dogovor' }]);
 });
-afterEach(async () => { await act(async () => tree?.unmount()); expect(mockListeners.size).toBe(0); });
+afterEach(async () => { await act(async () => tree?.unmount()); expect(mockListeners.size).toBe(0); expect(mockBack.handlers).toHaveLength(0); });
 
 it('uses a private create form with optional outcome, scalar limits and no safety category replacement', async () => {
   await render(); expect(text()).toContain('Zahtev vide podnosilac'); expect(actions('Pošalji privatni zahtev')[0].props.disabled).toBe(true);
@@ -277,7 +282,7 @@ it('the topics are one radio group: the chosen one is said as checked, never by 
   expect(action('Drugo').selected).toBe(true); expect(action('Tehnička pomoć').selected).toBe(false);
   expect(text()).not.toContain('Izabrano:');
 });
-it('an inbox row says what the request is about, its state and news in words, and keeps the number for the spoken label', async () => {
+it('an inbox row says what the request is about, its state and news in words, and shows its number beside the time', async () => {
   screen = 'INBOX';
   mockService.inbox.mockResolvedValue(ok({ accountId: A, mode: 'OWN', operatorAvailable: false, authoritative: true, nextBeforeCaseNumber: null,
     cases: [{ id: C, caseNumber: '71', channel: 'SERVICE', topic: 'TECHNICAL', status: 'WAITING_FOR_AUTHOR', revision: 2, lastSequence: '9',
@@ -287,7 +292,9 @@ it('an inbox row says what the request is about, its state and news in words, an
   expect(row.props).toMatchObject({ status: 'WAITING_FOR_AUTHOR', unread: true, caseNumber: '71' });
   const press = row.findByType('Press' as React.ElementType);
   expect(press.props.accessibilityLabel).toMatch(/^Tehnička pomoć, Čeka tvoju dopunu, novo, .+, zahtev #71$/);
-  expect(text()).toContain('Čeka tvoju dopunu'); expect(text()).not.toContain('#71');
+  // Round 5 review: the number is shown again (it pinned the old look, number only spoken). Two requests on one topic
+  // differ by it, and it is the number the confirmation and the request's own screen name.
+  expect(text()).toContain('Čeka tvoju dopunu'); expect(text()).toMatch(/ · #71/);
   await act(async () => press.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/podrska/[id]', params: { id: C } });
 });
@@ -295,6 +302,9 @@ it('a failed inbox read is one state with its own retry, not a second refresh be
   screen = 'INBOX'; mockService.inbox.mockResolvedValue({ ok: false, poruka: 'Zahtevi trenutno nisu dostupni.' }); await render();
   expect(text()).toContain('Zahtevi nisu učitani'); expect(text()).toContain('Zahtevi trenutno nisu dostupni.');
   expect(actions('Osveži zahteve')).toHaveLength(1);
+  // Round 5 review: the capabilities loaded (canCreate), yet the footer's green action waits for the list, so the error's
+  // own retry is the screen's one primary.
+  expect(actions('Novi privatni zahtev')).toHaveLength(0);
   await act(async () => action('Osveži zahteve').onPress()); expect(mockService.inbox).toHaveBeenCalledTimes(2);
 });
 it('a decision stands where the thread is, with the appeal beside it and its limits said', async () => {
@@ -304,4 +314,90 @@ it('a decision stands where the thread is, with the appeal beside it and its lim
   expect(actions('Zatraži ponovni pregled')).toHaveLength(1);
   // The chrome names the case by its title; the number is under it.
   expect(tree.root.findByProps({ variant: 'detail' }).props).toMatchObject({ title: 'Problem sa prikazom', subtitle: 'Zahtev #71' });
+});
+// Round 5 review fixes (privatnost-review-tok / -izgled / -zastite).
+const committed = (kind: SupportKind, caseRevision: number) => ok({ accountId: A, clientRequestId: K, authoritative: true, state: 'COMMITTED', kind,
+  caseId: C, expectedRevision: kind === 'CREATE' ? null : 2, inputSha256: 'a'.repeat(64), receipt: { accountId: A, clientRequestId: K, kind, caseId: C,
+    caseNumber: '71', expectedRevision: kind === 'CREATE' ? null : 2, inputSha256: 'a'.repeat(64), eventId: E, sequence: '10', caseRevision, createdAt: time, authoritative: true } });
+const hardwareBack = () => mockBack.handlers[mockBack.handlers.length - 1]();
+const notes = () => tree.root.findAllByType(InlineNote).map(node => ({ tone: node.props.tone, text: node.props.children }));
+it('Android Back with typed words asks first; an empty form lets the system Back through', async () => {
+  await render(); expect(mockBack.handlers).toHaveLength(1);
+  let handled = false; await act(async () => { handled = hardwareBack(); }); expect(handled).toBe(false);
+  await type('Opis zahteva', 'Nesačuvan tekst');
+  await act(async () => { handled = hardwareBack(); }); expect(handled).toBe(true);
+  expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Odbaciti zahtev?', confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje' });
+  expect(mockRouter.replace).not.toHaveBeenCalled(); expect(field('Opis zahteva').value).toBe('Nesačuvan tekst');
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+});
+it('leaving for export and closure with typed words asks first, and goes once confirmed', async () => {
+  await render(); await act(async () => action('Privatnost i prava').onPress()); await type('Opis zahteva', 'Nesačuvan tekst');
+  await act(async () => action('Otvori izvoz i zatvaranje naloga').onPress());
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(1);
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith('/profil/privatnost');
+});
+it('the confirmed request replaces this form, so Back from the case does not land on an empty form', async () => {
+  mockService.submit.mockResolvedValue(committed('CREATE', 1)); await render();
+  await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis'); await act(async () => action('Pošalji privatni zahtev').onPress());
+  expect(text()).toContain('Potvrđen zahtev #71');
+  await act(async () => action('Otvori potvrđeni predmet').onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/podrska/[id]', params: { id: C } }); expect(mockRouter.push).not.toHaveBeenCalled();
+});
+it('an unconfirmed send says why the send is grey, and its refusal is drawn as failed', async () => {
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true, reason: 'Najpre proveri prethodno slanje.' });
+  expect(notes()).toContainEqual({ tone: 'danger', text: 'Sačekaj proveru.' });
+  // Unconfirmed words may already be with support: leaving does not claim they will be lost.
+  let handled = true; await act(async () => { handled = hardwareBack(); }); expect(handled).toBe(false);
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+});
+it('a stopped send is drawn as plain information, not as a failure', async () => {
+  mockService.cancel.mockResolvedValue(ok({ accountId: A, clientRequestId: K, authoritative: true, state: 'CANCELLED', kind: null, caseId: null,
+    expectedRevision: null, inputSha256: null, receipt: null }));
+  await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
+  await act(async () => action('Pošalji privatni zahtev').onPress()); await act(async () => action('Zaustavi prethodno slanje').onPress());
+  expect(notes()).toContainEqual({ tone: 'neutral', text: 'Prvobitno slanje je zaustavljeno. Ranije primljen predmet ostaje sačuvan.' });
+});
+it('a request opened from a Dogovor message says once what it attaches, and keeps the sentence about what it does not', async () => {
+  reference = { kind: 'AGREEMENT_MESSAGE', id: E, revision: 2 }; await render();
+  expect(text()).toContain('Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.');
+  expect(text()).toContain('Prilaže se samo namerno izabrana poruka');
+  expect(text().match(/Poruka iz privatnog Dogovora/g)).toHaveLength(1); expect(text()).not.toContain('Izabrana poruka iz Dogovora');
+});
+it('the topics and the decision are each one radio group for a screen reader', async () => {
+  await render();
+  const group = tree.root.findByProps({ accessibilityRole: 'radiogroup' });
+  expect(group.props.accessibilityLabel).toBe('Tema zahteva'); expect(group.findAllByProps({ kind: 'radio' }).length).toBeGreaterThan(5);
+});
+it('a confirmed reply clears its words with the new revision; a reload at the same revision keeps them', async () => {
+  screen = 'DETAIL'; await render(); await type('Tekst poruke', 'Uneta dopuna');
+  await act(async () => field('Pošalji poruku').onPress());
+  await act(async () => action('Proveri ishod').onPress());
+  expect(field('Tekst poruke').value).toBe('Uneta dopuna');
+  mockService.cancel.mockResolvedValue(ok({ accountId: A, clientRequestId: K, authoritative: true, state: 'CANCELLED', kind: null, caseId: null,
+    expectedRevision: null, inputSha256: null, receipt: null }));
+  await act(async () => action('Zaustavi prethodno slanje').onPress());
+  expect(field('Tekst poruke').value).toBe('Uneta dopuna');
+  mockService.submit.mockResolvedValue(committed('AUTHOR_REPLY', 3));
+  mockService.detail.mockResolvedValue(ok({ ...detail(), case: { ...detail().case, revision: 3 } }));
+  await act(async () => field('Pošalji poruku').onPress());
+  expect(field('Tekst poruke').value).toBe('');
+});
+it('the send spins only for its own reply, and a text over the limit says why it is grey', async () => {
+  screen = 'DETAIL'; const held = deferred(); mockService.markRead.mockReturnValue(held.promise); await render();
+  await act(async () => action('Označi prikazane događaje kao pročitane').onPress());
+  expect(field('Pošalji poruku').accessibilityState.busy).toBe(false);
+  await act(async () => held.resolve(ok({ sequence: '9' })));
+  expect(field('Tekst poruke').maxLength).toBe(8000);
+  await type('Tekst poruke', 'a'.repeat(4001));
+  expect(field('Pošalji poruku')).toMatchObject({ disabled: true, accessibilityHint: 'Skrati tekst pre slanja.' });
+});
+it('a reload closes the decision sheet, so it does not come back by itself when the same revision returns', async () => {
+  screen = 'DETAIL'; await render();
+  await act(async () => action('Zatraži ponovni pregled').onPress()); expect(actions('Pošalji zahtev za ponovni pregled')).toHaveLength(1);
+  await act(async () => action('Osveži predmet').onPress());
+  expect(mockService.detail).toHaveBeenCalledTimes(2); expect(actions('Pošalji zahtev za ponovni pregled')).toHaveLength(0);
 });
