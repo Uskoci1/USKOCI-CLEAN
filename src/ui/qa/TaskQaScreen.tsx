@@ -1,18 +1,16 @@
 import {useCallback,useRef,useState} from 'react';
-import {ActivityIndicator,AppState,KeyboardAvoidingView,Platform,TextInput,View} from 'react-native';
+import {AppState} from 'react-native';
 import {useFocusEffect} from 'expo-router';
 import {sesijaSada,useSesija} from '../../store/sesija';
 import {qaRecoveryClientService,type QaContext,type QaRecoveredCommand} from '../../data/qaRecoveryClientService';
 import {qaSubmissionClientService as ai,type QaSubmissionStatus,type QaSubmissionIdentity} from '../../data/qaSubmissionClientService';
 import {preselectionQaClientService as qa} from '../../data/preselectionQaClientService';
-import type {OwnerPreselectionQuestion,PublicPreselectionQa} from '../../contracts/preselectionQa';
+import type {OwnerPreselectionQuestion} from '../../contracts/preselectionQa';
 import {noviUuidZahtevId} from '../../lib/idempotencija';
 import {qaIntentJournal,matchesQaReceipt,type QaIntent} from './qaIntent';
 import {qaTextHash} from './qaTextHash';
-import {SettingsScreen,SettingsIntro,SettingsPanel,SettingsText as T,SettingsAction} from '../settings/SettingsPresentation';
-import { sys } from '../system/tokens';
+import {TaskQaPresentation,type Question} from './TaskQaPresentation';
 
-type Question=OwnerPreselectionQuestion|PublicPreselectionQa;
 // These are explicit transactional SQL rejections, never a transport/decoder
 // failure. An absent read alone is not evidence that a write was rejected.
 const rejected=new Set(['RU4B_BLOCK_AUTHORITY_NOT_READY','RU4B_RATE_POLICY_NOT_READY','PRESELECTION_QA_POLICY_NOT_READY','RU4B_MATERIALITY_NOT_READY','EMPTY_CONTENT','QUESTION_REQUIRED','ANSWER_REQUIRED','EMAIL_NOT_PUBLIC','PHONE_NOT_PUBLIC','OFF_PLATFORM_LINK_NOT_PUBLIC','SOCIAL_HANDLE_NOT_PUBLIC','STALE_NEED_REVISION','QUESTION_STALE_AFTER_NEED_REVISION','NEED_NOT_FOUND','NEED_NOT_PUBLIC','REQUESTER_CANNOT_ASK_OWN_TASK','ACTIVE_WORKER_REQUIRED','RU4B_MATERIAL_REQUIRES_RU4_EDIT','QUESTION_NOT_FOUND','QUESTION_NOT_ANSWERABLE','QUESTION_NOT_PENDING','NOT_NEED_OWNER','RU4B_DISPOSITION_INVALID']);
@@ -183,48 +181,16 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   const pending=current.filter((q):q is OwnerPreselectionQuestion=>'status'in q&&q.status==='PENDING_ANSWER');
   const answered=current.filter(q=>!('status'in q)||q.status==='ANSWERED_PUBLIC');
   const historical=rows.filter(q=>q.needRevision!==context?.needRevision);
-  const renderQuestion=(q:Question,history=false)=><SettingsPanel key={q.questionId}>
-    <T variant="label" tone="muted">{history?`Ranija verzija zadatka · ${q.needRevision}`:'Anonimno pitanje'}</T><T variant="bodyStrong">{q.questionText}</T>
-    {q.answerText!==null?<><T variant="label" tone="muted">Odgovor{q.edited?' · izmenjen':''}</T><T>{q.answerText}</T></>:null}
-    {'status'in q&&q.status==='IGNORED'?<T tone="muted">Sklonjeno iz neodgovorenih</T>:null}
-    {'status'in q&&q.status==='REPORTED'?<T tone="muted">Prijava zabeležena</T>:null}
-    {!history&&context?.mode==='OWNER'&&'status'in q&&(q.status==='PENDING_ANSWER'||q.status==='ANSWERED_PUBLIC')?<>
-      {context.canComposeAnswer?<SettingsAction label={q.status==='ANSWERED_PUBLIC'?'Izmeni odgovor':'Odgovori'} kind="secondary" disabled={busy||!!intent} onPress={()=>choose(q)}/>:null}
-      {q.status==='PENDING_ANSWER'?<><SettingsAction label="Preskoči pitanje" kind="quiet" disabled={busy||!!intent} onPress={()=>submit('IGNORE',q)}/><SettingsAction label="Prijavi pitanje" kind="quiet" disabled={busy||!!intent} onPress={()=>submit('REPORT',q)}/></>:null}
-    </>:null}
-  </SettingsPanel>;
-
-  return <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
-    <SettingsScreen title="Pitanja o zadatku" onBack={()=>{if(live(focus.current))onBack();}}>
-      {/* The task's own title carries information; the tagline that stood in for it while loading did not (owner, 2026-09-23). */}
-      <SettingsIntro title={context?.title}>Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</SettingsIntro>
-      {busy?<ActivityIndicator color={sys.color.green} accessibilityLabel="Proveravamo pitanja"/>:null}
-      {message?<T accessibilityRole="alert">{message}</T>:null}
-      {receipt?<T accessibilityLiveRegion="polite">{receipt}</T>:null}
-      {material?<SettingsAction label="Nazad na zadatak radi izmene" kind="secondary" onPress={()=>{if(live(focus.current)&&!lock.current)onBack();}} disabled={busy}/>:null}
-      {intent?<SettingsPanel soft><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što je već u obradi.</T>
-        {intent.type!=='DISPOSITION'?<><T>Za ručno ponavljanje unesi isti tekst. Tekst se ne čuva na uređaju.</T><TextInput accessibilityLabel="Isti tekst prethodne radnje" value={text} onChangeText={setText} editable={!busy} multiline style={input}/></>:null}
-        {absent?<SettingsAction label="Ponovi isti zahtev" kind="secondary" disabled={busy} onPress={()=>void retry()}/>:null}
-        {classification?.canCancel?<SettingsAction label="Odustani od ovog slanja" kind="quiet" disabled={busy} onPress={()=>void cancel()}/>:null}
-      </SettingsPanel>:null}
-      {context?.mode==='PUBLIC'&&!context.canAsk?<SettingsPanel soft><T>{!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}</T></SettingsPanel>:null}
-      {!intent&&(target||context?.canAsk)?<SettingsPanel soft><T variant="heading">{target?'Tvoj odgovor':'Tvoje pitanje'}</T>
-        {target?<T>{target.questionText}</T>:null}
-        {target?<T tone="muted">Odgovor razjašnjava postojeće uslove. Za promenu uslova vrati se na zadatak i izmeni ga kroz pregled i objavu.</T>:null}
-        <TextInput accessibilityLabel={target?'Tekst odgovora':'Tekst pitanja'} value={text} onChangeText={setText} editable={!busy} multiline textAlignVertical="top" style={input}/>
-        {target&&target.needRevision!==context?.needRevision?<T accessibilityRole="alert">Zadatak je izmenjen. Zatvori odgovor i pregledaj aktuelna pitanja pre slanja.</T>:null}
-        <SettingsAction label={target?'Objavi odgovor':'Pošalji pitanje'} disabled={busy||!text.trim()||!!target&&target.needRevision!==context?.needRevision} onPress={()=>submit()}/>
-        {/* A grey button says why (owner's rule): the revision case has its alert above; the empty field is the other reason. */}
-        {!busy&&!text.trim()?<T variant="meta" tone="muted">{target?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'}</T>:null}
-        {target?<SettingsAction label="Zatvori odgovor" kind="quiet" disabled={busy} onPress={()=>{setTarget(null);setText('');}}/>:null}
-      </SettingsPanel>:null}
-      {context?.mode==='OWNER'&&pending.length?<><T variant="heading">Čekaju odgovor</T>{pending.map(q=>renderQuestion(q))}</>:null}
-      {context?<><T variant="heading">Objavljena pitanja i odgovori</T>{answered.length?answered.map(q=>renderQuestion(q)):<SettingsPanel><T tone="muted">Još nema objavljenih odgovora za ovu verziju zadatka.</T></SettingsPanel>}</>:null}
-      {context?.mode==='OWNER'?current.filter(q=>'status'in q&&['IGNORED','REPORTED'].includes(q.status)).map(q=>renderQuestion(q)):null}
-      {context?.mode==='OWNER'&&historical.length?<><T variant="heading">Prethodne verzije</T><T tone="muted">Ovi odgovori ne opisuju aktuelne uslove zadatka.</T>{historical.map(q=>renderQuestion(q,true))}</>:null}
-      <View style={{marginVertical:sys.space.base}}><SettingsAction label="Osveži pitanja i ishod radnje" kind="secondary" disabled={busy} onPress={()=>void run(restore)}/></View>
-    </SettingsScreen>
-  </KeyboardAvoidingView>;
+  const set=current.filter(q=>'status'in q&&['IGNORED','REPORTED'].includes(q.status));
+  return <TaskQaPresentation
+    title={context?.title??null} mode={context?.mode??null} loaded={!!context} busy={busy} message={message} receipt={receipt}
+    canRetryRead={!!needId&&!!accountId} material={material}
+    recovery={intent?{kind:intent.type==='DISPOSITION'?'DISPOSITION':'TEXT',absent,canCancel:!!classification?.canCancel}:null}
+    cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'):null}
+    composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,
+      maxChars:(target?context?.answerMaxChars:context?.questionMaxChars)??null}:null}
+    text={text} canAnswer={!!context?.canComposeAnswer} pending={pending} answered={answered} set={set} historical={historical}
+    onBack={()=>{if(live(focus.current))onBack();}} onRefresh={()=>void run(restore)} onText={setText} onSend={()=>submit()}
+    onRetry={()=>void retry()} onCancel={()=>void cancel()} onChoose={choose} onDispose={(action,q)=>submit(action,q)}
+    onCloseAnswer={()=>{setTarget(null);setText('');}} onEditTask={()=>{if(live(focus.current)&&!lock.current)onBack();}}/>;
 }
-// Body type and the control radius from the system, not numbers of their own (rule: no raw sizes in screens).
-const input={minHeight:120,borderWidth:1,borderColor:sys.color.line,borderRadius:sys.radius.control,padding:14,...sys.type.body,color:sys.color.ink,backgroundColor:sys.color.surface};

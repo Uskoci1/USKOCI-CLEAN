@@ -56,7 +56,7 @@ it('offers one explicit share, deduplicates retained taps, then exposes only rea
 });
 it('renders a static disabled last-shared map with explicit capture and server times, never tracks on read',async()=>{
  mockService.read.mockResolvedValue(ok({...context(),point}));await render();expect(text()).toContain('ranije zabeležena tačka');expect(text()).toContain('Ne potvrđuje sadašnji položaj');
- expect(text()).toContain('Zabeležena: ');expect(text()).toContain('poslata: ');expect(text()).not.toContain('server');expect(text()).toContain('10');
+ expect(text()).toContain('Zabeležena: ');expect(text()).toContain('Poslata: ');expect(text()).not.toContain('server');expect(text()).toContain('10');
  const map=tree!.root.findByType('PinMap' as never).props;expect(map.disabled).toBe(true);expect(map.position).toEqual({latitude:point.latitude,longitude:point.longitude});
  expect(mockCapture).not.toHaveBeenCalled();expect(mockService.write).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
@@ -93,4 +93,9 @@ it('has a deterministic back fallback and removes its AppState observation on un
  await render();expect(mockListeners.size).toBe(1);
  await act(async()=>tree!.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress());expect(mockReplace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
  await act(async()=>tree!.unmount());tree=undefined;expect(mockListeners.size).toBe(0);
+});
+it('says what is shared and with whom before the one action, and never implies a live position',async()=>{
+ await render();expect(text()).toContain('Jedna tačka, ne praćenje');expect(text()).toContain('Vide je samo učesnici ovog Dogovora');
+ expect(text()).toContain('samo kada pritisneš dugme');expect(text()).not.toMatch(/uživo|u realnom vremenu|prati(?!\s+putovanje)/i);
+ expect(tree!.root.findAllByProps({label:'Zatraži trenutnu lokaciju'})).toHaveLength(0);expect(mockCapture).not.toHaveBeenCalled();
 });
