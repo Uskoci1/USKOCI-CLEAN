@@ -86,14 +86,15 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
 
   it('shows the tab bar only on the three root screens', () => {
     // Owner's master UI/UX directive, 2026-09-23, supersedes the lists of 2026-09-18 and 2026-09-20: a detail, a flow, a
-    // conversation or a setting is "in this job", not in the main menu, so it hides the bar. One documented exception
-    // waits for its own step: profil/razgovor (its composer gets a keyboard-aware bottom inset first). The other,
-    // prilike (a root-like copy of Mapa), is a redirect to Zadaci since 2026-09-23 and hides the bar like mapa.
+    // conversation or a setting is "in this job", not in the main menu, so it hides the bar. The last documented
+    // exception, profil/razgovor, waited for its composer's keyboard-aware bottom inset; the AI conversation shell has it
+    // now (round 4 review ra), so this list pinned the exception until then and hides that conversation too. prilike (a
+    // root-like copy of Mapa) is a redirect to Zadaci since 2026-09-23 and hides the bar like mapa.
     const { screens } = configuration();
     const shown = screens.filter((screen) => (screen.options as { tabBarStyle?: { display?: string } })
       .tabBarStyle?.display !== 'none').map((screen) => screen.name).sort();
-    expect(shown).toEqual(['dogovori', 'index', 'profil/razgovor', 'zadaci']);
-    for (const name of ['mapa', 'prilike', 'potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil', 'profil/obavestenja', 'podrska/index', 'oceni-dogovor', 'raspored']) {
+    expect(shown).toEqual(['dogovori', 'index', 'zadaci']);
+    for (const name of ['mapa', 'prilike', 'potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil', 'profil/obavestenja', 'profil/razgovor', 'podrska/index', 'oceni-dogovor', 'raspored']) {
       const screen = screens.find((candidate) => candidate.name === name)!;
       expect((screen.options as { tabBarStyle?: { display?: string } }).tabBarStyle?.display).toBe('none');
     }
