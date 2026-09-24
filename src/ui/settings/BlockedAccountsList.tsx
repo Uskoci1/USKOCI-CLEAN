@@ -23,9 +23,12 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
   onPage: (cursor: string | null) => void;
 }) {
   const items = data?.items ?? [];
-  // An empty FIRST page with another after it is not "nobody blocked": only the way to the next page is offered. A later
-  // page that is empty keeps "Na ovoj stranici nema više korisnika." with its way back to the start of the list.
-  const empty = !loading && !error && data?.items.length === 0 && !(!cursor && data.nextCursor);
+  // An empty FIRST page with another after it is not "nobody blocked" (it happens after unblocking the only person on it
+  // when the re-read got no answer): it says the page is empty, and the way to the next page follows; "Početak liste"
+  // would lead to itself. A later page that is empty keeps the same sentence with its way back to the start of the list.
+  const emptyPage = !loading && !error && data?.items.length === 0;
+  const firstWithMore = emptyPage && !cursor && !!data?.nextCursor;
+  const empty = emptyPage && !firstWithMore;
   const reading = busy || loading;
   // A refused or unknown outcome keeps every unblock waiting until the list is read again; the alert above says why. So
   // does a re-read that got no answer: the list stays on screen under its error, but it is not confirmed, and the
@@ -41,6 +44,7 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
       ? <StateView kind="error" title="Lista nije učitana" body={error} primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: reading }} />
       : <StateView kind="loading" title="Učitavamo blokirane korisnike…" skeleton={{ count: 3, rows: 1, variant: 'plain' }} /> : null}
     {/* Nobody blocked is the good case. It says how a block happens, since nothing on this screen can start one. */}
+    {firstWithMore ? <StateView kind="empty" art="shield" title="Na ovoj stranici nema više korisnika." /> : null}
     {empty ? cursor
       ? <StateView kind="empty" art="shield" title="Na ovoj stranici nema više korisnika."
           quiet={{ label: 'Početak liste', onPress: () => onPage(null), disabled: busy }} />

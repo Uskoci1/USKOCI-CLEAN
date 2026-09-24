@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { BackHandler } from 'react-native';
+import { AccessibilityInfo, BackHandler } from 'react-native';
 import PushSettings from '../../app/(app)/profil/obavestenja';
 const mockBack = jest.fn(), mockReplace = jest.fn(), mockCanBack = jest.fn();
 let mockIntent = 'narucilac'; let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
@@ -99,6 +99,19 @@ it('while a save of the shown set runs, the set switch waits and nothing is aske
  act(() => shown().props.onWritingChange(false));
  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
  expect(shown().props.role).toBe('WORKER');
+});
+// Round 5c (2026-09-24): a screen reader's double tap still reaches a waiting tab; it used to do nothing without a word.
+it('a set tab pressed while a write runs says why it waits, and does not switch', () => {
+ const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+ try {
+  act(() => shown().props.onWritingChange(true));
+  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+  expect(shown().props.role).toBe('REQUESTER');
+  expect(announce).toHaveBeenCalledWith('Sačekaj da se čuvanje završi.');
+  act(() => shown().props.onWritingChange(false)); announce.mockClear();
+  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+  expect(shown().props.role).toBe('WORKER'); expect(announce).not.toHaveBeenCalled();
+ } finally { announce.mockRestore(); }
 });
 // Round-5 review (2026-09-24): the gear of an inbox filtered to "Moje prijave" used to open "Moji zadaci".
 it('opens on the set the inbox names, ignores anything else it is handed, and takes a new name on the next visit', () => {

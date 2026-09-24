@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, FlatList, StyleSheet, View, type TextStyle } from 'react-native';
 import { Check } from 'phosphor-react-native';
 import type { InboxItem, InboxRole } from '../../contracts/inbox';
@@ -152,10 +152,17 @@ const occurredMs = (item: InboxItem): number | null => { const ms = Date.parse(i
  * older page ("Učitaj starija obaveštenja") is also made of ids it has not seen, and those did not arrive, they were
  * fetched. So an unseen event is an arrival only when it is newer than the newest one already on screen; every other
  * unseen event is marked seen here, before the rows ask, and stays still. Called once per render, before the rows.
+ *
+ * `list` names the list being shown (the filter). Another filter is another list, so its first page is what was there,
+ * not news: the newest moment is forgotten, and every event of that filter's first page is then marked seen. The list
+ * itself stays mounted across a filter switch (round 5c, 2026-09-24): remounting it threw away the tab a screen reader
+ * had just pressed, and rebuilt every row and the header for nothing.
  */
-function useArrivals(items: readonly InboxItem[]) {
+function useArrivals(items: readonly InboxItem[], list: string) {
   const appear = useAppear();
   const newest = useRef<number | null>(null);
+  const shown = useRef(list);
+  if (shown.current !== list) { shown.current = list; newest.current = null; }
   appear.settle(items.map(item => item.id));
   const before = newest.current;
   for (const item of items) {
@@ -178,8 +185,8 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
   const rows = useMemo(() => inboxRows(items ?? [], { zona, sada }), [items, zona, sada]);
   // An event that arrives while the Inbox is open is worth a moment of motion; the ones that were there when it opened,
   // the ones a refresh returns unchanged and an older page are not. Only event rows take part, never a day header. Each
-  // filter is its own list (the route keys this component by it), so a filter's first page is what was there, too.
-  const appear = useArrivals(items ?? []);
+  // filter is its own list, so a filter's first page is what was there, too.
+  const appear = useArrivals(items ?? [], role ?? 'ALL');
   const unreadCount = page?.unreadCount;
   useReadAllAnnouncement(unreadCount);
 
@@ -216,16 +223,21 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
     {page?.hasMore ? <V2Action kind="secondary" label="Učitaj starija obaveštenja" loading={paging} disabled={busy && !paging} onPress={onMore} /> : null}
   </View> : null;
 
-  return <FlatList data={rows} keyExtractor={row => row.id}
+  // One stable row renderer while nothing a row draws has changed, so a switch of the filter or a refresh does not
+  // re-render every row the list already holds.
+  const renderItem = useCallback(({ item: row }: { item: InboxRowModel }) => row.kind === 'day' ? <DayHeader label={row.label} first={row.first} />
+    : <Appear animate={appear.isNew(row.item.id)}>
+      <InboxRow item={row.item} moment={row.moment} last={row.last} acting={acting === row.item.id} disabled={busy}
+        large={large} onOpen={onOpen} />
+    </Appear>, [appear, acting, busy, large, onOpen]);
+
+  return <FlatList data={rows} keyExtractor={rowKey}
     contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
     refreshing={loading && !!page} onRefresh={onRefresh}
     ListHeaderComponent={header} ListEmptyComponent={empty} ListFooterComponent={footer}
-    renderItem={({ item: row }) => row.kind === 'day' ? <DayHeader label={row.label} first={row.first} />
-      : <Appear animate={appear.isNew(row.item.id)}>
-        <InboxRow item={row.item} moment={row.moment} last={row.last} acting={acting === row.item.id} disabled={busy}
-          large={large} onOpen={onOpen} />
-      </Appear>} />;
+    renderItem={renderItem} />;
 }
+const rowKey = (row: InboxRowModel) => row.id;
 
 /** Said once when the last unread notification is read while the list is open: the count row and the dots leave quietly. */
 function useReadAllAnnouncement(unreadCount: number | undefined) {
@@ -254,8 +266,9 @@ const s = StyleSheet.create({
   rowLast: { borderBottomWidth: 0 },
   dotColumn: { width: 8, marginTop: 8 },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  // On the 4/8 scale (src/theme/tokens.ts): the smallest step is `space.xs`.
-  art: { width: 32, alignItems: 'center', paddingTop: sys.space.xs },
+  // No top padding: the icon's centre then sits 2 dp from the unread dot's, which stands on the title's first line
+  // (with `space.xs` it hung 6 dp below it).
+  art: { width: 32, alignItems: 'center', paddingTop: 0 },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   firstLine: { flexDirection: 'row', alignItems: 'flex-start' },
   primary: { flex: 1, minWidth: 0, color: sys.color.ink },

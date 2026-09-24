@@ -6,7 +6,6 @@ import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
-import { useTextScale } from '../system/textScale';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -126,24 +125,24 @@ export function SettingsSwitchRow({ label, help, value, disabled = false, reason
 }
 
 /**
- * A person with one action beside them (the blocked list). Two focus stops, side by side: the person, which opens
- * them, and the action. At a large text size the action moves under the name, so neither is squeezed. The person's
- * part ends in the settings chevron, so it reads as a way onward and not as a label beside a button.
+ * A person with one action (the blocked list). Two focus stops: the person, which opens them, and the action under the
+ * name. The person's part ends in the settings chevron at the row's edge, so it reads as a way onward. The action used
+ * to stand beside the name at the usual text size, and the chevron then sat mid-row, pointing at the bordered button
+ * (round 5c, 2026-09-24); under the name, at every text size, neither is squeezed and the chevron ends the row.
  */
 export function SettingsPersonRow({ name, initials, onOpen, openHint, action, last = false }: {
   name: string; initials: string | null; onOpen: () => void; openHint?: string;
   action: { label: string; accessibilityLabel?: string; onPress: () => void; disabled?: boolean; loading?: boolean };
   last?: boolean;
 }) {
-  const large = useTextScale() >= 1.3;
-  return <View style={[styles.person, large && styles.personLarge, last && styles.last]}>
+  return <View style={[styles.person, last && styles.last]}>
     <Press accessibilityRole="button" accessibilityLabel={name} accessibilityHint={openHint} haptic="select" scaleTo={0.99}
       onPress={onOpen} style={styles.personOpen}>
       <Avatar initials={initials} size={40} />
       <SettingsText variant="bodyStrong" numberOfLines={2} style={styles.personName}>{name}</SettingsText>
       <CaretRight size={18} color={sys.color.muted} />
     </Press>
-    <View style={large ? styles.personActionLarge : undefined}>
+    <View style={styles.personAction}>
       <V2Action label={action.label} accessibilityLabel={action.accessibilityLabel} onPress={action.onPress}
         disabled={action.disabled} loading={action.loading} kind="secondary" compact />
     </View>
@@ -217,12 +216,11 @@ const styles = StyleSheet.create({
   rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
   rowIconDanger: { backgroundColor: sys.color.dangerSoft },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
-  person: { minHeight: 56, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  personLarge: { flexWrap: 'wrap' },
-  personOpen: { flex: 1, minWidth: 0, minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  person: { minHeight: 56, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  personOpen: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
   personName: { flex: 1, minWidth: 0 },
-  // At a large text size the action takes its own line under the name, starting where the name starts.
-  personActionLarge: { width: '100%', paddingLeft: 52, paddingBottom: 4, alignItems: 'flex-start' },
+  // The action takes its own line under the name, starting where the name starts (avatar 40 + gap 12).
+  personAction: { paddingLeft: 52, paddingBottom: 4, alignItems: 'flex-start' },
   flat: { ...card, gap: 12 },
   soft: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, padding: 20, gap: 12 },
   info: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', gap: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },

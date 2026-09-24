@@ -84,6 +84,8 @@ it('an empty first page with more after it says nothing about nobody; an empty l
   mockList.mockResolvedValueOnce(ok([], C)).mockResolvedValueOnce(ok([], 'third'));
   await render();
   expect(text()).not.toContain('Još nema blokiranih korisnika.');
+  // Round 5c: not a lone button either; the page says it is empty, and the way on follows (no way back to itself).
+  expect(text()).toContain('Na ovoj stranici nema više korisnika.');
   expect(actions('Sledeći korisnici')).toHaveLength(1); expect(actions('Početak liste')).toHaveLength(0);
   await act(async () => action('Sledeći korisnici').onPress());
   expect(mockList).toHaveBeenLastCalledWith(C);

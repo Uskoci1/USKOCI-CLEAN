@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { PushPreferences } from '../../../ui/notifications/PushPreferences';
@@ -15,6 +15,7 @@ const CAPTION: Record<SetKey, string> = {
  REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
  WORKER: 'Obaveštenja o poslovima na koje se prijavljuješ.',
 };
+const WAIT_FOR_WRITE = 'Sačekaj da se čuvanje završi.';
 export default function PushSettings() {
  const { user, accountRevision } = useSesija(); const accountId = user?.id;
  // The server keeps two sets of notification settings for one account: one for the tasks it
@@ -53,7 +54,13 @@ export default function PushSettings() {
    cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: proceed });
  }
  const requestBack = () => discardThen(back);
- const requestRole = (next: SetKey) => { if (next !== role && !writing) discardThen(() => { setDirty(false); setWriting(false); setRole(next); }); };
+ const requestRole = (next: SetKey) => {
+  if (next === role) return;
+  // A finger cannot reach the tabs while a write runs (they wait under `pointerEvents`), but a screen reader's double tap
+  // still does; it used to do nothing without a word. `Segmented` has no disabled state to draw yet.
+  if (writing) { AccessibilityInfo.announceForAccessibility(WAIT_FOR_WRITE); return; }
+  discardThen(() => { setDirty(false); setWriting(false); setRole(next); });
+ };
  // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.
  const latestBack = useRef({ dirty, requestBack }); latestBack.current = { dirty, requestBack };
  useFocusEffect(useCallback(() => {

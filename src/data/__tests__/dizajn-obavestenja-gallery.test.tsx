@@ -42,3 +42,14 @@ it('opens every scene from its visible name, draws it, and comes back with "Naza
 // It walks every scene (about 30) in one test, as the other boards' suites do: a longer budget than a single screen, so a
 // loaded machine does not fail it at Jest's 5 s default (seen twice in the round-5 review).
 }, 60_000);
+// Round 5c (2026-09-24): the state DEV shows today (the sender off, a set's choice on, on the emulator) is on the board, and
+// its two sentences no longer contradict each other: the choice is "obaveštenja na telefon", "slanje" is the send check.
+it('draws a device without notifications whose set is on while sending is not yet on', async () => {
+  await act(async () => { tree = create(<Gallery />); });
+  await act(async () => press('Podešavanja · uključeno, slanje još nije uključeno')!.props.onPress());
+  expect(text()).toContain('Nije dostupno na ovom uređaju');
+  expect(text()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
+  expect(text()).toContain('Slanje obaveštenja na telefon još nije uključeno.');
+  expect(text()).not.toContain('Slanje na telefon je uključeno');
+  expect(mockData).not.toHaveBeenCalled();
+});

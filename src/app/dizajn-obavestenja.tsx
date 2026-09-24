@@ -55,6 +55,8 @@ const SETTINGS: NotificationSettings = { in_app_enabled: true, push_enabled: tru
   dogovor_enabled: true, execution_enabled: true, recovery_enabled: true, account_enabled: true, quiet_hours_enabled: true,
   quiet_start: '22:00:00', quiet_end: '07:00:00', quiet_timezone: 'Europe/Belgrade', urgent_overrides_quiet_hours: false };
 const READINESS = { state: 'OPERATIONAL', checkedAt: ago(12) } as PushReadiness;
+/** DEV today: the sender is switched off (PKG-030), so the send check reads NOT_READY while a set's choice is on. */
+const NOT_READY = { state: 'NOT_READY', checkedAt: ago(3) } as PushReadiness;
 
 const blocked = (targetAccountId: string, displayName: string | null) =>
   ({ accountId: 'g', targetAccountId, blocked: true, revision: 1, authoritative: true as const, displayName });
@@ -83,6 +85,7 @@ const SCENES: Scene[] = [
   { key: 'push-uncertain', label: 'Podešavanja · stanje nije potvrđeno', group: 'Podešavanja obaveštenja' },
   { key: 'push-invalid', label: 'Podešavanja · vreme nije ispravno', group: 'Podešavanja obaveštenja' },
   { key: 'push-emulator', label: 'Podešavanja · uređaj bez obaveštenja', group: 'Podešavanja obaveštenja' },
+  { key: 'push-emulator-on', label: 'Podešavanja · uključeno, slanje još nije uključeno', group: 'Podešavanja obaveštenja' },
   { key: 'push-loading', label: 'Podešavanja · učitavanje', group: 'Podešavanja obaveštenja' },
   { key: 'push-failed', label: 'Podešavanja · nisu učitana', group: 'Podešavanja obaveštenja' },
   { key: 'blocked', label: 'Blokirani · spisak', group: 'Blokirani korisnici' },
@@ -152,7 +155,7 @@ function InboxScene({ state, role: initial, back }: { state: InboxView; role: In
   const [role, setRole] = useState(initial);
   return <SafeAreaView edges={['top']} style={s.screen}>
     <DetailTopBar title="Obaveštenja" onBack={back} right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={noop} />} />
-    <InboxList key={role ?? 'ALL'} state={state} role={role} onRole={setRole} onOpen={noop} onReadAll={noop} onRefresh={noop} onMore={noop} onSettings={noop} />
+    <InboxList state={state} role={role} onRole={setRole} onOpen={noop} onReadAll={noop} onRefresh={noop} onMore={noop} onSettings={noop} />
   </SafeAreaView>;
 }
 
@@ -163,13 +166,15 @@ function PushScene({ scene, back }: { scene: string; back: () => void }) {
   const [draft, setDraft] = useState<NotificationSettings>(scene === 'push-dirty' || scene === 'push-saving' || scene === 'push-invalid'
     ? { ...saved, dogovor_enabled: false } : saved);
   const dirty = (Object.keys(saved) as (keyof NotificationSettings)[]).some(key => saved[key] !== draft[key]);
-  const native: NonNullable<PushPreferencesViewProps['data']>['native'] = scene === 'push-denied' ? 'DENIED' : scene === 'push-emulator' ? 'UNSUPPORTED'
+  const native: NonNullable<PushPreferencesViewProps['data']>['native'] = scene === 'push-denied' ? 'DENIED'
+    : scene === 'push-emulator' || scene === 'push-emulator-on' ? 'UNSUPPORTED'
     : scene === 'push-dirty' ? 'PERMISSION_REQUIRED' : 'READY';
   const busy = scene === 'push-saving', error = scene === 'push-uncertain' || scene === 'push-failed';
   // Only "telefon nije povezan" draws a phone that has not been connected; every other ready phone is connected.
   const props: PushPreferencesViewProps = { role, signedIn: true,
-    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, enabled: native === 'READY',
-      registered: native === 'READY' && scene !== 'push-unlinked', readiness: scene === 'push' || scene === 'push-saved' ? READINESS : null },
+    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, enabled: native === 'READY' || scene === 'push-emulator-on',
+      registered: native === 'READY' && scene !== 'push-unlinked',
+      readiness: scene === 'push' || scene === 'push-saved' ? READINESS : scene === 'push-emulator-on' ? NOT_READY : null },
     busy, error, locked: busy || error, dirty, validation: scene === 'push-invalid' ? 'Vreme tihih sati nije ispravno. Izaberi ga ponovo.' : null,
     working: busy ? 'save' : null, justSaved: scene === 'push-saved' && !dirty, deviceZone: 'Europe/Belgrade',
     onEdit: (key, value) => setDraft(current => ({ ...current, [key]: value })), onSave: noop, onEnable: noop, onDisable: noop, onRefresh: noop,
@@ -218,7 +223,7 @@ function RowsScene({ back }: { back: () => void }) {
         reason="Prvo sačuvaj izmene kategorija i tihih sati." onChange={noop} last />
     </SettingsGroup>
     <SettingsGroup title="Stanje i osobe">
-      <SettingsInfo title="Obaveštenja na telefon su uključena." icon={<FactArt kind="phone" size={26} />}>Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>
+      <SettingsInfo title="Obaveštenja na telefon su uključena" icon={<FactArt kind="phone" size={26} />}>Važi za Moje zadatke. Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>
       <SettingsPersonRow name="Aleksandra Stojanović-Radovanović iz Novog Sada" initials="AS" onOpen={noop}
         action={{ label: 'Odblokiraj', onPress: noop }} />
       <SettingsPersonRow name="USKOČI korisnik" initials={null} onOpen={noop} action={{ label: 'Odblokiraj', onPress: noop, loading: true }} last />

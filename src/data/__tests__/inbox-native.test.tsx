@@ -10,11 +10,16 @@ let mockIntent='narucilac';
 const at='2026-09-10T12:00:00Z';
 const item={id:'event',eventType:'RESPONSE_SELECTED',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
 let mockState:any;
-jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),React=require('react');return new Proxy(native,{get(target,key){
-  if(['View','ActivityIndicator'].includes(String(key)))return key;
-  if(key==='Modal')return ({visible,children,...props}:any)=>visible?React.createElement('Modal',props,children):null;
-  if(key==='FlatList')return ({data,renderItem,ListHeaderComponent,ListEmptyComponent,ListFooterComponent,...props}:any)=>React.createElement('FlatList',props,ListHeaderComponent,
+// The list and the sheet are made once: a component made anew on every property read is a new type on every render, which
+// remounted the whole list each time and hid whether the screen keeps its nodes (round 5c, 2026-09-24).
+jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),React=require('react');
+  const Modal=({visible,children,...props}:any)=>visible?React.createElement('Modal',props,children):null;
+  const FlatList=({data,renderItem,ListHeaderComponent,ListEmptyComponent,ListFooterComponent,...props}:any)=>React.createElement('FlatList',props,ListHeaderComponent,
     data.length?data.map((item:any)=>React.createElement(React.Fragment,{key:item.id},renderItem({item}))):ListEmptyComponent,ListFooterComponent);
+  return new Proxy(native,{get(target,key){
+  if(['View','ActivityIndicator'].includes(String(key)))return key;
+  if(key==='Modal')return Modal;
+  if(key==='FlatList')return FlatList;
   return Reflect.get(target,key);
 }});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
@@ -109,6 +114,30 @@ test('only an event newer than the list moves; an older page and a new filter\'s
   mockState={...mockState,page:{...mockState.page,items:[{...item,id:'requester',occurredAt:minutesAgo(0)},{...item,id:'r2',occurredAt:minutesAgo(30)}]}};
   await act(async()=>press('Moji zadaci').props.onPress());
   expect(moving()).toEqual([]);
+});
+// Round 5c (2026-09-24): the list stays mounted across a filter switch. Keying it by the filter threw away the tab a
+// screen reader had just pressed (its focus was lost and "izabrano" never spoken) and rebuilt every row and the header.
+test('switching the filter keeps the same tab control and list, and the new filter\'s first page still stays still',async()=>{
+  const minutesAgo=(minutes:number)=>new Date(Date.parse(at)-minutes*60_000).toISOString();
+  const moving=()=>tree.root.findAllByType(Appear).filter(node=>node.props.animate).map(node=>node.props.children.props.item.id);
+  mockState.page={...mockState.page,items:[{...item,id:'a',occurredAt:minutesAgo(10)}],unreadCount:1};
+  // The renderer's own host node (shared by a fiber and its alternate) is made once per mount: the same object after the
+  // switch means the same mounted node.
+  const host=(node:ReactTestInstance)=>(node as unknown as {_fiber:{stateNode:object}})._fiber.stateNode;
+  await render();
+  const tab=host(press('Moje prijave')), list=host(tree.root.findByType('FlatList' as React.ElementType));
+  expect(tab).toBeTruthy();
+  mockState={...mockState,page:{...mockState.page,items:[{...item,id:'worker',occurredAt:minutesAgo(0)}]}};
+  await act(async()=>press('Moje prijave').props.onPress());
+  // Compared as booleans: a failing `toBe` on host nodes would try to print the whole renderer tree.
+  expect(host(press('Moje prijave'))===tab).toBe(true);
+  expect(host(tree.root.findByType('FlatList' as React.ElementType))===list).toBe(true);
+  expect(press('Moje prijave').props.accessibilityState).toEqual(expect.objectContaining({selected:true}));
+  expect(moving()).toEqual([]);
+  // A newer event arriving in that filter while it is open is news again.
+  mockState={...mockState,page:{...mockState.page,items:[{...item,id:'fresh',occurredAt:new Date(Date.parse(at)+60_000).toISOString()},...mockState.page.items]}};
+  await act(async()=>tree.update(<Inbox/>));
+  expect(moving()).toEqual(['fresh']);
 });
 test('events are grouped under their day, the day said once',async()=>{
   const now=new Date(), today=now.toISOString(), earlier=new Date(now.getTime()-60_000).toISOString();

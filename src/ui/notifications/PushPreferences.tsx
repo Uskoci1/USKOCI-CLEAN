@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Linking, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { AuthAccountScope } from '../../contracts/auth';
 import type { NotificationPreferences, NotificationRole, NotificationSettings } from '../../contracts/notificationPreferences';
@@ -160,8 +160,10 @@ export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role
  const registered = snapshot?.native.kind === 'READY' && snapshot.device?.active && snapshot.device.sessionBound;
  const dirty = !!snapshot && !!settings && !sameSettings(snapshot.preferences.settings, settings);
  latest.current = { snapshot, busy, dirty };
- // While "Sačuvaj podešavanja" runs the changes are on their way, so Back must not offer to throw them away.
- const unsaved = dirty && !busy;
+ // While "Sačuvaj podešavanja" runs the changes are on their way, so Back must not offer to throw them away. After an
+ // unconfirmed outcome it is not known whether they were saved, so Back must not say they were not: until "Proveri
+ // stanje" reads the state again, every control is locked and nothing on screen is a draft worth keeping.
+ const unsaved = dirty && !busy && !error;
  useEffect(() => { onDirtyChange?.(unsaved); }, [unsaved, onDirtyChange]);
  const writing = busy && (working === 'save' || working === 'enable' || working === 'disable');
  useEffect(() => { onWritingChange?.(writing); }, [writing, onWritingChange]);
@@ -239,12 +241,17 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  // Reading again is offered only where it can change something, and not beside "Proveri stanje", which already does it.
  if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
  const firstGuarded = phoneActions.findIndex(action => action.guarded);
- const waitReason = error ? CHECK_FIRST : dirty ? SAVE_FIRST : null;
+ // While the state is unconfirmed the alert and "Proveri stanje" stand directly above the phone buttons, and Save says
+ // "Prvo proveri stanje." already; a second copy here was spoken twice in a row.
+ const waitReason = dirty && !error ? SAVE_FIRST : null;
  const showZone = settings.quiet_timezone !== zone && (settings.quiet_hours_enabled || !settings.quiet_timezone.trim());
- // After a confirmed save the grey button's reason gives way to the saved line above it, which is said once.
- const saveReason = error ? CHECK_FIRST : busy || dirty || justSaved ? null : 'Dugme se uključuje kad promeniš neko podešavanje.';
+ // After a confirmed save the grey button's reason gives way to the saved line above it, which is said once. Another
+ // command (a phone button, "Osveži stanje", the re-read on return) keeps the reason as it was: dropping it while that
+ // command ran made it come back afterwards, and a changed reason is spoken again.
+ const saveReason = error ? CHECK_FIRST : dirty || justSaved || working === 'save' ? null : 'Dugme se uključuje kad promeniš neko podešavanje.';
  const stackTimes = large || narrow;
  return <View style={styles.fill}>
+  <SavedAnnouncement justSaved={justSaved} />
   <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
    {busy && working !== 'save' ? <View style={styles.checking}>
     <ActivityIndicator size="small" accessibilityLabel="Provera obaveštenja na telefonu" color={sys.color.green} />
@@ -340,15 +347,25 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  * choice follows. The choice names its set, because turning it off leaves the other set as it is.
  */
 function phoneStatus(native: NativePushState['kind'], enabled: boolean, registered: boolean, set: string): { title: string; body: string } {
- const choice = enabled ? `Slanje na telefon je uključeno za ${set}.` : `Slanje na telefon je isključeno za ${set}.`;
+ // The account's choice is said with the buttons' own noun ("obaveštenja na telefon"). "Slanje" belongs to the send check
+ // at the foot of the screen, which can say sending is not on while this set's choice is.
+ const choice = enabled ? `Obaveštenja na telefon su uključena za ${set}.` : `Obaveštenja na telefon su isključena za ${set}.`;
  // On a device that cannot show anything the account's choice matters only when it is on (other phones still receive).
  const onElsewhere = enabled ? ` ${choice}` : '';
  if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Obaveštenja na telefon rade samo na pravom telefonu.${onElsewhere}` };
  if (native === 'UNCONFIGURED') return { title: 'Još nije dostupno', body: `Obaveštenja na telefon još nisu dostupna u ovoj verziji aplikacije.${onElsewhere}` };
  if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: `Dozvoli obaveštenja u podešavanjima telefona.${onElsewhere}` };
  if (!registered) return { title: 'Ovaj telefon još nije povezan', body: choice };
- return { title: enabled ? `Obaveštenja na telefon su uključena za ${set}.` : `Obaveštenja na telefon su isključena za ${set}.`,
-  body: 'Ovaj telefon je povezan sa tvojim nalogom. Povezan telefon ne znači da je svako obaveštenje stiglo.' };
+ // A short headline without a period, like the others; the set it belongs to is already the selected tab, and the body
+ // names it again for a screen reader.
+ return { title: enabled ? 'Obaveštenja na telefon su uključena' : 'Obaveštenja na telefon su isključena',
+  body: `Važi za ${set}. Ovaj telefon je povezan sa tvojim nalogom. Povezan telefon ne znači da je svako obaveštenje stiglo.` };
+}
+
+/** iOS ignores `accessibilityLiveRegion`, so there the saved line is also said once, when it appears. */
+function SavedAnnouncement({ justSaved }: { justSaved: boolean }) {
+ useEffect(() => { if (justSaved && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(SAVED); }, [justSaved]);
+ return null;
 }
 
 const deviceZone = (): string | null => {

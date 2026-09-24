@@ -111,6 +111,22 @@ test('the person part of a person row ends in the chevron; the action has none',
   expect(byLabel('Marko Marković').findAllByType('CaretRight' as React.ElementType)).toHaveLength(1);
   expect(byLabel('Odblokiraj, Marko Marković').findAllByType('CaretRight' as React.ElementType)).toHaveLength(0);
 });
+// Round 5c (2026-09-24): beside the name, the chevron sat mid-row and pointed at the bordered button. The action now stands
+// under the name at every text size, so the chevron ends the person's line.
+test('the action of a person row stands under the name at the usual text size, not beside the chevron', async () => {
+  await act(async () => { tree = create(<SettingsPersonRow name="Marko Marković" initials="MM" onOpen={() => {}}
+    action={{ label: 'Odblokiraj', accessibilityLabel: 'Odblokiraj, Marko Marković', onPress: () => {} }} last />); });
+  const person = byLabel('Marko Marković');
+  const row = person.parent!;
+  expect(row.type).toBe('View');
+  // The row is a column: the person's line, then the action's line.
+  expect(flat(row.props.style).flexDirection).toBeUndefined();
+  const lines = row.children as unknown as { type: unknown }[];
+  expect(lines[0]).toBe(person); expect(lines[1].type).toBe('View');
+  // The chevron is the last thing on the person's line.
+  const line = person.children as unknown as { type: unknown }[];
+  expect(line[line.length - 1].type).toBe('CaretRight');
+});
 test('the footer band is reusable and keeps its test id; a screen can name where its arrow goes', async () => {
   const back = jest.fn();
   await act(async () => { tree = create(<SettingsScreen title="Podešavanja obaveštenja" backLabel="Nazad na profil" onBack={back}>{null}</SettingsScreen>); });

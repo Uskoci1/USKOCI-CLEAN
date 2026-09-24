@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { AppState, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, Platform, StyleSheet } from 'react-native';
 import { PushPreferences, PushPreferencesView } from '../../ui/notifications/PushPreferences';
 const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn(), mockReadiness = jest.fn();
 let mockAccount = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
@@ -157,7 +157,9 @@ it('saves overnight quiet hours, timezone and explicit HITNO override through th
   ...settings, quiet_start: '23:15', quiet_end: '06:45', urgent_overrides_quiet_hours: true,
  }, 2);
  expect(mockSet).not.toHaveBeenCalled();
-});
+// Two picker round trips and a save: an explicit budget, so a loaded machine does not fail it at Jest's 5 s default
+// (seen in the round-5 review at 4.8 s).
+}, 30_000);
 it('enabled quiet hours refuse incomplete or malformed local times before any write', async () => {
  // A time can no longer be typed; a malformed one can still come back from the server, and it is never written on.
  mockRead.mockResolvedValue({ ...preferences, settings: { ...settings, quiet_start: '25:99' } }); await mount();
@@ -271,13 +273,14 @@ it('coming back to the app never reads over unsaved changes', async () => {
  } finally { spy.mockRestore(); }
 });
 
-// Round-5 review (2026-09-24): the phone section never claims what this phone does not do, and names its set.
+// Round-5 review (2026-09-24): the phone section never claims what this phone does not do, and names its set. Round 5c:
+// the set's choice is said with the buttons' noun ("Obaveštenja na telefon"); "slanje" is left to the send check.
 const on = { ...preferences, settings: { ...settings, push_enabled: true } };
 it('sending on for the set but this phone not connected says the phone first, and the step is to connect it', async () => {
  mockRead.mockResolvedValue(on); await mount();
  expect(screenText()).toContain('Ovaj telefon još nije povezan');
- expect(screenText()).toContain('Slanje na telefon je uključeno za Moje zadatke.');
- expect(screenText()).not.toContain('Obaveštenja na telefon su uključena');
+ expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
+ expect(screenText()).not.toContain('Ovaj telefon je povezan');
  expect(button('Uključi obaveštenja na telefonu')).toBeUndefined();
  expect(button('Poveži ovaj telefon').props.disabled).toBe(false);
  // Connecting is the same explicit command: it asks the phone once, registers it and writes nothing else.
@@ -287,31 +290,62 @@ it('sending on for the set but this phone not connected says the phone first, an
 it('a connected phone names the set its choice belongs to', async () => {
  mockRead.mockResolvedValue(on); mockGet.mockResolvedValue({ ok: true, podatak: { exists: true, revision: 1, active: true, sessionBound: true } });
  await mount('WORKER');
- expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje prijave.');
- expect(screenText()).toContain('Ovaj telefon je povezan sa tvojim nalogom.');
+ // A short headline without a period, like the others; the set is in the sentence under it.
+ const titles = tree.root.findAllByType('Text' as never).map(node => node.props.children);
+ expect(titles).toContain('Obaveštenja na telefon su uključena');
+ expect(screenText()).toContain('Važi za Moje prijave. Ovaj telefon je povezan sa tvojim nalogom.');
  expect(button('Isključi obaveštenja na telefonu')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
 });
 it('on a device without notifications there is still nothing to press, and a set that sends elsewhere says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
- expect(screenText()).toContain('Slanje na telefon je uključeno za Moje zadatke.');
+ expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
  for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi obaveštenja na telefonu', 'Osveži stanje']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications keeps the switch-off for a set that is on, under a headline that says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
  expect(screenText()).toContain('Telefon ne dozvoljava obaveštenja');
- expect(screenText()).toContain('Slanje na telefon je uključeno za Moje zadatke.');
+ expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
  expect(button('Isključi obaveštenja na telefonu')).toBeDefined();
 });
-it('an unconfirmed state offers one re-read, and the waiting phone button says why', async () => {
+it('an unconfirmed state offers one re-read, and says "Prvo proveri stanje." once, on Save', async () => {
  await mount(); act(() => control('Dogovor i poruke').props.onPress());
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Proveri stanje').props.disabled).toBe(false);
  expect(button('Osveži stanje')).toBeUndefined();
- // The save cannot be the way forward (it is locked too), so the wait points at the check.
- expect(button('Uključi obaveštenja na telefonu').props.reason).toBe('Prvo proveri stanje.');
+ // The save cannot be the way forward (it is locked too), so the wait points at the check. Round 5c: only Save says it;
+ // the phone button stands right under the alert and "Proveri stanje", and a second copy was spoken twice in a row.
+ expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
+ expect(button('Uključi obaveštenja na telefonu').props.reason).toBeNull();
  expect(button('Sačuvaj podešavanja').props.reason).toBe('Prvo proveri stanje.');
+});
+// Round 5c (2026-09-24): after an unconfirmed save it is not known whether the changes were saved.
+it('after an unconfirmed save the route is not told the changes are unsaved, so Back does not claim they are', async () => {
+ const dirty = jest.fn(); await mount('REQUESTER', dirty);
+ act(() => control('Dogovor i poruke').props.onPress());
+ expect(dirty).toHaveBeenLastCalledWith(true);
+ mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(button('Proveri stanje')).toBeDefined();
+ expect(dirty).toHaveBeenLastCalledWith(false);
+});
+// Round 5c (2026-09-24): a reason that disappears while a command runs comes back afterwards and is spoken again.
+it('Save keeps the same reason through a phone command, so nothing is spoken again after it', async () => {
+ await mount();
+ const reason = 'Dugme se uključuje kad promeniš neko podešavanje.';
+ expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
+ await act(async () => { button('Osveži stanje').props.onPress(); await flush(); });
+ expect(button('Osveži stanje').props.loading).toBe(true);
+ expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ await act(async () => { answer(preferences); await flush(); });
+ expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ // While Save itself runs it has no reason: the spinner is the answer.
+ act(() => control('Dogovor i poruke').props.onPress());
+ mockSave.mockReturnValueOnce(new Promise(() => undefined));
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(button('Sačuvaj podešavanja').props.reason).toBeNull();
 });
 it('a retained press that is refused while another command runs does not take that command\'s spinner', async () => {
  await mount();
@@ -383,4 +417,26 @@ it('an empty zone (the reader refuses one, so only a draft could hold it) says "
  expect(screenText()).toContain('Nije izabrana.');
  await act(async () => { button('Koristi zonu telefona (Vreme u Srbiji)').props.onPress(); });
  expect(onEdit).toHaveBeenCalledWith('quiet_timezone', 'Europe/Belgrade');
+});
+// Round 5c (2026-09-24): iOS ignores the live region, so there the saved line is said once when it appears; Android keeps
+// only the live region, so it is not heard twice.
+it('the saved line is announced once on iOS and left to the live region on Android', async () => {
+ const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+ const view = (justSaved: boolean) => <PushPreferencesView role="REQUESTER" signedIn deviceZone="Europe/Belgrade"
+  data={{ settings, native: 'READY', enabled: false, registered: false, readiness: null }}
+  busy={false} error={false} locked={false} dirty={false} validation={null} working={null} justSaved={justSaved}
+  onEdit={jest.fn()} onSave={jest.fn()} onEnable={jest.fn()} onDisable={jest.fn()} onRefresh={jest.fn()} onOpenSystemSettings={jest.fn()} />;
+ const os = Platform.OS;
+ try {
+  (Platform as { OS: string }).OS = 'android';
+  await act(async () => { tree = Renderer.create(view(false)); });
+  await act(async () => { tree.update(view(true)); });
+  expect(announce).not.toHaveBeenCalled();
+  act(() => tree.unmount());
+  (Platform as { OS: string }).OS = 'ios';
+  await act(async () => { tree = Renderer.create(view(false)); });
+  await act(async () => { tree.update(view(true)); });
+  await act(async () => { tree.update(view(true)); });
+  expect(announce).toHaveBeenCalledTimes(1); expect(announce).toHaveBeenCalledWith('Podešavanja su sačuvana.');
+ } finally { (Platform as { OS: string }).OS = os; announce.mockRestore(); }
 });
