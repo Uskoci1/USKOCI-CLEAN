@@ -11,7 +11,9 @@ const COMMAND = 48;
 /**
  * The floating pill to write in (the look of Poruke and the AI conversation, round 6): one soft capsule on white with the
  * text field and a round send, and an optional tool before the text (Poruke's "+"). Above it, only when there is one, a
- * line that belongs to the pill: what the text answers, or why it cannot go.
+ * line that belongs to the pill: what the text answers, or why it cannot go. The capsule keeps the area's 12 px inset; a
+ * `PillNote` steps 8 px further in so it lands on the page's 20 px gutter (r6 emulator critique, "Odgovor na" 8 dp off).
+ * A caller's own line in `above` takes that step itself.
  *
  * The send is a 48 px target around a 40 px circle: green with a white glyph when the text can go, a grey well with a
  * muted glyph when it cannot (never faded), a spinner while the screen is sending. A grey send says why to a screen
@@ -54,9 +56,9 @@ export function PillComposer({ value, onChange, label, placeholder, sendLabel, c
   </View>;
 }
 
-/** A line above the pill: muted by default, danger for a reason that stops the send. */
+/** A line above the pill, on the page gutter: muted by default, danger for a reason that stops the send. */
 export function PillNote({ children, tone = 'muted', alert = false }: { children: ReactNode; tone?: 'muted' | 'danger'; alert?: boolean }) {
-  return <T variant="meta" tone={tone} accessibilityRole={alert ? 'alert' : undefined} accessibilityLiveRegion="polite">{children}</T>;
+  return <T variant="meta" tone={tone} accessibilityRole={alert ? 'alert' : undefined} accessibilityLiveRegion="polite" style={s.note}>{children}</T>;
 }
 
 export const pillCommand = COMMAND;
@@ -65,6 +67,9 @@ const s = StyleSheet.create({
   // The pill floats: no rule above it, only air around one soft capsule.
   area: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm,
     backgroundColor: sys.color.surface },
+  // 12 (the area) + 8 = the page's 20 px gutter. On the line, not on a wrapper around `above`: an empty fragment in a
+  // wrapper would still take the area's gap and push every caller's capsule 8 px down when there is no line.
+  note: { paddingHorizontal: sys.space.sm },
   pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, padding: sys.space.xs, borderRadius: sys.radius.sheet,
     backgroundColor: sys.color.wash },
   input: { flex: 1, minHeight: COMMAND, maxHeight: 140, ...sys.type.body, lineHeight: 22, color: sys.color.ink,

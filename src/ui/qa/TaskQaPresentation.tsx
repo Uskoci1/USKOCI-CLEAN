@@ -12,10 +12,16 @@ import {brandAction,field,inset,sys} from '../system/tokens';
 
 export type Question=OwnerPreselectionQuestion|PublicPreselectionQa;
 type Recovery={kind:'TEXT'|'DISPOSITION';absent:boolean;canCancel:boolean};
-type Composer={answering:string|null;revisionChanged:boolean;maxChars:number|null};
+/** `answeringId` is the question the text answers: its row says "Odgovaraš" instead of offering its actions. */
+type Composer={answering:string|null;answeringId?:string|null;revisionChanged:boolean;maxChars:number|null};
+/** Why the viewer cannot ask, with the way forward when the app has one ("Dopuni radni profil"). */
+export type CannotAsk={text:string;action?:{label:string;onPress:()=>void}};
 export type TaskQaPresentationProps={
-  title:string|null;mode:'OWNER'|'PUBLIC'|null;loaded:boolean;busy:boolean;message:string;receipt:string;canRetryRead:boolean;material:boolean;
-  recovery:Recovery|null;cannotAsk:string|null;composer:Composer|null;text:string;canAnswer:boolean;
+  title:string|null;mode:'OWNER'|'PUBLIC'|null;loaded:boolean;busy:boolean;message:string;
+  /** Only a real problem is red and announced as an alert; a fact about the thread (a version filter, a checked text) is plain. */
+  messageTone?:'danger'|'info';
+  receipt:string;canRetryRead:boolean;material:boolean;
+  recovery:Recovery|null;cannotAsk:CannotAsk|null;composer:Composer|null;text:string;canAnswer:boolean;
   pending:OwnerPreselectionQuestion[];answered:Question[];set:Question[];historical:Question[];
   onBack:()=>void;onRefresh:()=>void;onText:(value:string)=>void;onSend:()=>void;onRetry:()=>void;onCancel:()=>void;
   onChoose:(q:OwnerPreselectionQuestion)=>void;onDispose:(action:'IGNORE'|'REPORT',q:OwnerPreselectionQuestion)=>void;onCloseAnswer:()=>void;onEditTask:()=>void;
@@ -29,6 +35,10 @@ export type TaskQaPresentationProps={
 export function TaskQaPresentation(p:TaskQaPresentationProps) {
   const confirm=useConfirmSheet();
   const owner=p.mode==='OWNER',locked=p.busy||!!p.recovery;
+  const c=p.composer,length=Array.from(p.text.trim()).length,over=!!c&&c.maxChars!==null&&length>c.maxChars;
+  const canSend=!!c&&!p.busy&&length>0&&!over&&!c.revisionChanged;
+  // The saved text is not on the phone: until it is written again the retry is grey and says so.
+  const sameTextMissing=p.recovery?.kind==='TEXT'&&length===0;
   const ask=(action:'IGNORE'|'REPORT',q:OwnerPreselectionQuestion)=>confirm.ask(action==='IGNORE'
     ?{title:'Preskočiti pitanje?',message:'Pitanje se sklanja iz neodgovorenih i ne objavljuje se. Ovo se ne može vratiti.',confirmLabel:'Preskoči',onConfirm:()=>p.onDispose(action,q)}
     :{title:'Prijaviti pitanje?',message:'Pitanje se označava kao prijavljeno i sklanja se iz neodgovorenih. Ovo se ne može vratiti.',confirmLabel:'Prijavi',tone:'danger',onConfirm:()=>p.onDispose(action,q)});
@@ -40,21 +50,23 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
       {q.answerText!==null?<View style={s.answer}><T variant="meta" tone="muted">{q.edited?'Odgovor · izmenjen':'Odgovor'}</T><T>{q.answerText}</T></View>:null}
       {status==='IGNORED'?<T variant="meta" tone="muted">Sklonjeno iz neodgovorenih</T>:null}
       {status==='REPORTED'?<T variant="meta" tone="muted">Prijava zabeležena</T>:null}
-      {!history&&owner&&'status'in q&&(q.status==='PENDING_ANSWER'||q.status==='ANSWERED_PUBLIC')?<View style={s.actions}>
-        {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmeni odgovor':'Odgovori'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
-        {q.status==='PENDING_ANSWER'?<>
-          <V2Action label="Preskoči pitanje" kind="quiet" compact disabled={locked} onPress={()=>ask('IGNORE',q)}/>
-          <V2Action label="Prijavi pitanje" kind="destructive" compact disabled={locked} onPress={()=>ask('REPORT',q)}/></>:null}
-      </View>:null}
+      {!history&&owner&&'status'in q&&(q.status==='PENDING_ANSWER'||q.status==='ANSWERED_PUBLIC')?c?.answeringId===q.questionId
+        // The row whose answer is being written says so; its commands wait in the pill below, not beside it.
+        ?<T variant="meta" tone="muted">Odgovaraš</T>
+        :<View style={s.actions}>
+          {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmeni odgovor':'Odgovori'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
+          {q.status==='PENDING_ANSWER'?<>
+            <V2Action label="Preskoči pitanje" kind="quiet" compact disabled={locked} onPress={()=>ask('IGNORE',q)}/>
+            <V2Action label="Prijavi pitanje" kind="destructive" compact disabled={locked} onPress={()=>ask('REPORT',q)}/></>:null}
+        </View>:null}
     </View>;
   };
-  const c=p.composer,length=Array.from(p.text.trim()).length,over=!!c&&c.maxChars!==null&&length>c.maxChars;
-  const canSend=!!c&&!p.busy&&length>0&&!over&&!c.revisionChanged;
   // A failed read with nothing else to show; a saved action in doubt keeps its own panel, which carries the message.
   const trouble=!p.loaded&&!p.busy&&!!p.message&&!p.recovery;
   return <KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SafeAreaView edges={['top','bottom']} style={s.screen}>
-      <ScreenChrome variant="detail" onBack={p.onBack} title={p.title??'Pitanja o zadatku'} subtitle={p.title?'Pitanja o zadatku':undefined}
+      {/* One title in every state, so the bar does not re-lay out once the task is known; the task's name is its quiet line. */}
+      <ScreenChrome variant="detail" onBack={p.onBack} title="Pitanja o zadatku" subtitle={p.title??undefined}
         right={<ChromeIconButton label="Osveži pitanja i ishod radnje" icon={ArrowClockwise} disabled={p.busy} onPress={p.onRefresh}/>}/>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {!p.loaded&&p.busy?<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{count:3,rows:2}}/>
@@ -64,16 +76,24 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
           {/* The rule of the thread, said once: it holds for reading as much as for writing. */}
           <T variant="copy" tone="muted">Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</T>
           {p.busy?<T variant="meta" tone="muted" accessibilityLiveRegion="polite">Proveravamo pitanja…</T>:null}
-          {p.message?<T tone="danger" accessibilityRole="alert">{p.message}</T>:null}
+          {p.message?p.messageTone==='info'
+            ?<T accessibilityLiveRegion="polite">{p.message}</T>
+            :<T tone="danger" accessibilityRole="alert">{p.message}</T>:null}
           {p.receipt?<T accessibilityLiveRegion="polite">{p.receipt}</T>:null}
           {p.material?<V2Action label="Nazad na zadatak radi izmene" onPress={p.onEditTask} disabled={p.busy}/>:null}
-          {p.recovery?<View style={s.notice}><T variant="bodyStrong">Provera prethodne radnje</T><T>Sačuvan je identifikator zahteva. Izlazak iz prikaza ne šalje ponovo radnju i ne poništava ono što je već u obradi.</T>
-            {p.recovery.kind==='TEXT'?<><T>Za ručno ponavljanje unesi isti tekst. Tekst se ne čuva na uređaju.</T>
-              <TextInput accessibilityLabel="Isti tekst prethodne radnje" value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></>:null}
-            {p.recovery.absent?<V2Action label="Ponovi isti zahtev" style={brandAction} disabled={p.busy} onPress={p.onRetry}/>:null}
+          {p.recovery?<View style={s.notice}><T variant="bodyStrong">Provera prethodnog slanja</T>
+            <T>Nismo dobili potvrdu da je prethodno slanje stiglo. Ako izađeš odavde, ništa se ne šalje ponovo i ništa što je već u toku se ne poništava.</T>
+            {p.recovery.kind==='TEXT'?<><T>Za ponavljanje upiši potpuno isti tekst — nije sačuvan na telefonu.</T>
+              <View style={s.fieldBlock}><T variant="label" tone="muted">Isti tekst kao ranije</T>
+                <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napiši isti tekst…" placeholderTextColor={sys.color.muted}
+                  value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></View></>:null}
+            {p.recovery.absent?<V2Action label="Ponovi isti zahtev" style={brandAction} disabled={p.busy||sameTextMissing}
+              reason={sameTextMissing?'Upiši isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
             {p.recovery.canCancel?<V2Action label="Odustani od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
           </View>:null}
-          {p.cannotAsk?<View style={s.notice}><T>{p.cannotAsk}</T></View>:null}
+          {p.cannotAsk?<View style={s.notice}><T>{p.cannotAsk.text}</T>
+            {p.cannotAsk.action?<V2Action label={p.cannotAsk.action.label} kind="quiet" disabled={p.busy} onPress={p.cannotAsk.action.onPress} style={s.noticeAction}/>:null}
+          </View>:null}
         </>:null}
         {p.loaded&&owner&&p.pending.length?<View style={s.section}>
           <T variant="heading" accessibilityRole="header">Čekaju odgovor <T variant="heading" tone="muted">· {p.pending.length}</T></T>
@@ -115,7 +135,11 @@ const s=StyleSheet.create({
   answer:{gap:sys.space.xs,paddingLeft:sys.space.md,borderLeftWidth:3,borderLeftColor:sys.color.green},
   actions:{flexDirection:'row',flexWrap:'wrap',gap:sys.space.sm},
   notice:{...inset,gap:sys.space.sm,backgroundColor:sys.color.wash},
+  // The way out of a notice stands under its sentence, at the sentence's own left edge, sized to its words.
+  noticeAction:{alignSelf:'flex-start',paddingHorizontal:0},
+  fieldBlock:{gap:sys.space.xs},
   field:{...field,minHeight:96,textAlignVertical:'top'},
-  answering:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
+  // The pill area is 12 in from the edge; this row steps 8 further so "Odgovor na" lands on the page's 20 dp gutter.
+  answering:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm,paddingHorizontal:sys.space.sm},
   answeringText:{flex:1,gap:2,paddingTop:sys.space.xs},
 });

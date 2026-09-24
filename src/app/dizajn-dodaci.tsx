@@ -136,16 +136,18 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
       answered: [ownerQuestion('q1', 'Da li zgrada ima lift?', 'ANSWERED_PUBLIC', 'Nema lifta, stan je na trećem spratu.')],
       set: [ownerQuestion('s1', 'Pošalji mi broj telefona.', 'REPORTED')], historical: [ownerQuestion('h1', 'Koliko je ormana?', 'ANSWERED_PUBLIC', 'Jedan.', 1)] })} />;
     case 'qa-answer': return <TaskQaPresentation {...qa({ onBack: back, mode: 'OWNER', canAnswer: true, text: draft, onText: setDraft,
-      composer: { answering: 'Da li se parking plaća?', revisionChanged: false, maxChars: 1000 },
+      composer: { answering: 'Da li se parking plaća?', answeringId: 'p1', revisionChanged: false, maxChars: 1000 },
       pending: [ownerQuestion('p1', 'Da li se parking plaća?', 'PENDING_ANSWER')], answered: [] })} />;
     case 'qa-empty': return <TaskQaPresentation {...qa({ onBack: back, answered: [], text: draft, onText: setDraft })} />;
     case 'qa-loading': return <TaskQaPresentation {...qa({ onBack: back, loaded: false, busy: true, title: null, composer: null, answered: [] })} />;
     case 'qa-error': return <TaskQaPresentation {...qa({ onBack: back, loaded: false, title: null, composer: null, answered: [],
       message: 'Proveri vezu i pokušaj ponovo.' })} />;
     case 'qa-closed': return <TaskQaPresentation {...qa({ onBack: back, composer: null,
-      cannotAsk: 'Za postavljanje pitanja potreban je aktivan Radni profil.' })} />;
+      cannotAsk: { text: 'Za postavljanje pitanja potreban je aktivan Radni profil.', action: { label: 'Dopuni radni profil', onPress: noop } } })} />;
     case 'qa-recovery': return <TaskQaPresentation {...qa({ onBack: back, composer: null, text: draft, onText: setDraft,
-      recovery: { kind: 'TEXT', absent: true, canCancel: true }, message: 'Prethodni zahtev se obrađuje. Proveri ishod ili izričito otkaži slanje.' })} />;
+      // A checked text that is not yet published (READY): the screen offers the retry and the cancel together, and says so plainly.
+      recovery: { kind: 'TEXT', absent: true, canCancel: true }, messageTone: 'info',
+      message: 'Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa ponovi isti zahtev.' })} />;
     case 'ch-hub': return <AgreementActionsPresentation {...changes({ onBack: back, snapshot: snapshot({ proposals: [proposal(ME)] }, { canWithdrawChange: true, canProposeChange: false }) })} />;
     case 'ch-other': return <AgreementActionsPresentation {...changes({ onBack: back, snapshot: snapshot({ proposals: [proposal(OTHER)] }, { canRespondChange: true }) })} />;
     case 'ch-form': return <AgreementActionsPresentation {...changes({ onBack: back, onCloseForm: back,

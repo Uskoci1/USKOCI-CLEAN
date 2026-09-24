@@ -15,7 +15,9 @@ import {TaskQaPresentation,type Question} from './TaskQaPresentation';
 // failure. An absent read alone is not evidence that a write was rejected.
 const rejected=new Set(['RU4B_BLOCK_AUTHORITY_NOT_READY','RU4B_RATE_POLICY_NOT_READY','PRESELECTION_QA_POLICY_NOT_READY','RU4B_MATERIALITY_NOT_READY','EMPTY_CONTENT','QUESTION_REQUIRED','ANSWER_REQUIRED','EMAIL_NOT_PUBLIC','PHONE_NOT_PUBLIC','OFF_PLATFORM_LINK_NOT_PUBLIC','SOCIAL_HANDLE_NOT_PUBLIC','STALE_NEED_REVISION','QUESTION_STALE_AFTER_NEED_REVISION','NEED_NOT_FOUND','NEED_NOT_PUBLIC','REQUESTER_CANNOT_ASK_OWN_TASK','ACTIVE_WORKER_REQUIRED','RU4B_MATERIAL_REQUIRES_RU4_EDIT','QUESTION_NOT_FOUND','QUESTION_NOT_ANSWERABLE','QUESTION_NOT_PENDING','NOT_NEED_OWNER','RU4B_DISPOSITION_INVALID']);
 
-export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void}) {
+export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null;onBack:()=>void;
+  /** Where the route sends someone whose Radni profil is not active yet; without it the notice is a sentence alone. */
+  onWorkerProfile?:()=>void}) {
   const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;
   const account={accountId:accountId??'',accountRevision};
   const focus=useRef<object|null>(null),active=useRef(AppState.currentState==='active'),lock=useRef(false);
@@ -24,18 +26,20 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   const [intent,setIntent]=useState<QaIntent|null>(null),[absent,setAbsent]=useState(false);
   const [classification,setClassification]=useState<QaSubmissionStatus|null>(null),[material,setMaterial]=useState(false);
   const [target,setTarget]=useState<OwnerPreselectionQuestion|null>(null),[text,setText]=useState('');
-  const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[receipt,setReceipt]=useState('');
+  const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[messageTone,setMessageTone]=useState<'danger'|'info'>('danger'),[receipt,setReceipt]=useState('');
+  // Only a real problem is red: a fact about the thread (a version filter, a checked text, a send still being checked) is said plainly.
+  const say=(text:string,tone:'danger'|'info'='danger')=>{setMessage(text);setMessageTone(tone);};
   const live=(token:object|null)=>!!token&&token===focus.current&&active.current&&!!needId&&!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
 
   async function readFeed(token:object) {
     viewGeneration.current++;
     const result=await qaRecoveryClientService.context(needId!,account);
     if(!live(token))return;
-    if(!result.ok){setContext(null);setRows([]);setMessage(result.poruka);return;}
+    if(!result.ok){setContext(null);setRows([]);say(result.poruka);return;}
     const c=result.podatak;
     const feed=c.mode==='OWNER'?await qa.ownerQuestions(needId!):await qa.publicQa(needId!);
     if(!live(token))return;
-    if(!feed.ok){setContext(null);setRows([]);setMessage(feed.poruka);return;}
+    if(!feed.ok){setContext(null);setRows([]);say(feed.poruka);return;}
     if(c.mode==='PUBLIC'&&feed.podatak.some(q=>q.needRevision!==c.needRevision)) {
       // One answer belonging to an older revision used to blank the whole public feed: every
       // question and every answer vanished, including the asker's own, with a message offering no
@@ -43,15 +47,15 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       // answer; it is the ones that do not match the version on screen that are set aside.
       const current=feed.podatak.filter(q=>q.needRevision===c.needRevision);
       setContext(c);setRows(current);
-      setMessage(current.length
+      say(current.length
         ?'Zadatak je izmenjen posle nekih pitanja. Prikazana su ona koja pripadaju važećoj verziji.'
-        :'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.');
+        :'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.','info');
       return;
     }
     setContext(c);setRows(feed.podatak);
   }
   async function finish(i:QaIntent,c:QaRecoveredCommand,token:object):Promise<'FOUND'|'UNKNOWN'> {
-    if(!matchesQaReceipt(i,c)){setAbsent(false);setMessage('Potvrda se ne podudara sa sačuvanom radnjom. Slanje ostaje zaustavljeno.');return 'UNKNOWN';}
+    if(!matchesQaReceipt(i,c)){setAbsent(false);say('Potvrda se ne podudara sa sačuvanom radnjom. Slanje ostaje zaustavljeno.');return 'UNKNOWN';}
     await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);
     if(!live(token))return 'UNKNOWN';
     setIntent(null);setAbsent(false);setClassification(null);setMaterial(false);setTarget(null);setText('');
@@ -61,7 +65,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   async function consumeAi(i:Exclude<QaIntent,{type:'DISPOSITION'}>,s:QaSubmissionStatus,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
     if(!live(token))return 'UNKNOWN';
     if(s.state!=='ABSENT'&&(s.type!==i.type||s.needRevision!==i.needRevision||s.textSha256!==i.textSha256||s.questionId!==(i.type==='ANSWER'?i.questionId:null))){
-      setClassification(null);setAbsent(false);setMessage('Potvrda obrade ne odgovara sačuvanom zahtevu. Proveri stanje ponovo.');return 'UNKNOWN';
+      setClassification(null);setAbsent(false);say('Potvrda obrade ne odgovara sačuvanom zahtevu. Proveri stanje ponovo.');return 'UNKNOWN';
     }
     setClassification(s);setAbsent(s.state==='ABSENT'||s.state==='READY');
     if(s.state==='COMMITTED')return finish(i,{type:i.type,needRevision:i.needRevision,textSha256:i.textSha256,receipt:s.receipt!},token);
@@ -79,20 +83,20 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
               :'Predloženi tekst nije objavljen. Pregledaj ga pre novog slanja.');
       return 'TERMINAL';
     }
-    if(s.state==='PROCESSING'){setMessage('Prethodni zahtev se obrađuje. Proveri ishod ili izričito otkaži slanje.');return 'UNKNOWN';}
-    if(s.state==='READY')setMessage('Provera teksta je završena. Isti zahtev možeš ručno nastaviti do objave.');
+    if(s.state==='PROCESSING'){say('Prethodno slanje se još proverava. Sačekaj ishod ili odustani od ovog slanja.','info');return 'UNKNOWN';}
+    if(s.state==='READY')say('Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa ponovi isti zahtev.','info');
     return 'ABSENT';
   }
   async function readIntent(i:QaIntent,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
     setClassification(null);setAbsent(false);
     const result=await qaRecoveryClientService.read(i.needId,i.clientRequestId,account);
     if(!live(token))return 'UNKNOWN';
-    if(!result.ok){setMessage(result.poruka);return 'UNKNOWN';}
+    if(!result.ok){say(result.poruka);return 'UNKNOWN';}
     if(result.podatak.found)return finish(i,result.podatak.command!,token);
     if(i.type==='DISPOSITION'){setAbsent(true);return 'ABSENT';}
     const status=await ai.recover(i.needId,i.clientRequestId,account);
     if(!live(token))return 'UNKNOWN';
-    if(!status.ok){setMessage(status.poruka);return 'UNKNOWN';}
+    if(!status.ok){say(status.poruka);return 'UNKNOWN';}
     return consumeAi(i,status.podatak,token);
   }
   async function restore(token:object) {
@@ -104,13 +108,13 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   }
   async function run(work:(token:object)=>Promise<void>) {
     const token=focus.current;if(!live(token)||lock.current)return;
-    lock.current=true;setBusy(true);setMessage('');
-    try{await work(token!);}catch{if(live(token))setMessage('Stanje radnje nije potvrđeno. Proveri ponovo pre slanja.');}
+    lock.current=true;setBusy(true);say('');
+    try{await work(token!);}catch{if(live(token))say('Stanje radnje nije potvrđeno. Proveri ponovo pre slanja.');}
     finally{if(live(token)){lock.current=false;setBusy(false);}}
   }
   useFocusEffect(useCallback(()=>{
     const token={};focus.current=token;active.current=AppState.currentState==='active';lock.current=false;
-    if(needId&&accountId)void run(restore);else{setBusy(false);setMessage('Ponovo otvori zadatak sa prijavljenog naloga.');}
+    if(needId&&accountId)void run(restore);else{setBusy(false);say('Ponovo otvori zadatak sa prijavljenog naloga.');}
     const subscription=AppState.addEventListener('change',next=>{
       active.current=next==='active';
       if(!active.current){focus.current=null;lock.current=false;}
@@ -128,12 +132,12 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       const result=await ai.submit({type:i.type,needId:i.needId,needRevision:i.needRevision,clientRequestId:i.clientRequestId,
         ...(i.type==='ANSWER'?{questionId:i.questionId}:{}),text:body},account);
       if(!live(token))return;
-      if(result.ok)await consumeAi(i,result.podatak,token);else{setMessage(result.poruka);await readIntent(i,token);}
+      if(result.ok)await consumeAi(i,result.podatak,token);else{say(result.poruka);await readIntent(i,token);}
       if(live(token))await readFeed(token);return;
     }
     const result=await qa.dispositionQuestion(i.questionId,i.action,i.clientRequestId);
     if(!live(token))return;
-    if(!result.ok)setMessage(result.poruka);
+    if(!result.ok)say(result.poruka);
     const outcome=await readIntent(i,token);
     if(!live(token))return;
     if(!result.ok&&rejected.has(result.kod)&&outcome==='ABSENT') {
@@ -150,7 +154,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
       if(action?context.mode!=='OWNER'||q?.status!=='PENDING_ANSWER'
         :q?(!context.canComposeAnswer||q.needRevision!==context.needRevision||!body)
         :(!context.canAsk||!body))return;
-      if(!action&&((q?context.answerMaxChars:context.questionMaxChars)??Infinity)<Array.from(body).length){setMessage('Tekst je duži od dozvoljenog. Skrati ga pre slanja.');return;}
+      if(!action&&((q?context.answerMaxChars:context.questionMaxChars)??Infinity)<Array.from(body).length){say('Tekst je duži od dozvoljenog. Skrati ga pre slanja.');return;}
       const common={accountId:accountId!,needId:needId!,needRevision:q?.needRevision??context.needRevision,clientRequestId:noviUuidZahtevId()};
       const i:QaIntent=action?{...common,type:'DISPOSITION',questionId:q!.questionId,action,textSha256:null}
         :q?{...common,type:'ANSWER',questionId:q.questionId,textSha256:qaTextHash(body)}
@@ -163,7 +167,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     if(renderGeneration!==viewGeneration.current)return;
     if(!intent||!absent)return;
     const body=text.trim();
-    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){setMessage('Za isti zahtev unesi potpuno isti tekst. Prethodni tekst se ne čuva na uređaju.');return;}
+    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){say('Za isti zahtev unesi potpuno isti tekst. Prethodni tekst nije sačuvan na telefonu.');return;}
     if(await readIntent(intent,token)!=='ABSENT'||!live(token))return;
     await send(intent,body,token);
   });
@@ -173,7 +177,7 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
     const identity:QaSubmissionIdentity={type:intent.type,needId:intent.needId,needRevision:intent.needRevision,clientRequestId:intent.clientRequestId,textSha256:intent.textSha256,
       ...(intent.type==='ANSWER'?{questionId:intent.questionId}:{})};
     const result=await ai.cancel(identity,account);if(!live(token))return;
-    if(result.ok)await consumeAi(intent,result.podatak,token);else{setMessage(result.poruka);await readIntent(intent,token);}
+    if(result.ok)await consumeAi(intent,result.podatak,token);else{say(result.poruka);await readIntent(intent,token);}
     if(live(token))await readFeed(token);
   });
   const choose=(q:OwnerPreselectionQuestion)=>{if(renderGeneration===viewGeneration.current&&live(focus.current)&&!lock.current&&!intent){setTarget(q);setText(q.answerText??'');setReceipt('');}};
@@ -183,11 +187,15 @@ export function TaskQaScreen({needId,onBack}:{needId:string|null;onBack:()=>void
   const historical=rows.filter(q=>q.needRevision!==context?.needRevision);
   const set=current.filter(q=>'status'in q&&['IGNORED','REPORTED'].includes(q.status));
   return <TaskQaPresentation
-    title={context?.title??null} mode={context?.mode??null} loaded={!!context} busy={busy} message={message} receipt={receipt}
+    title={context?.title??null} mode={context?.mode??null} loaded={!!context} busy={busy} message={message} messageTone={messageTone} receipt={receipt}
     canRetryRead={!!needId&&!!accountId} material={material}
     recovery={intent?{kind:intent.type==='DISPOSITION'?'DISPOSITION':'TEXT',absent,canCancel:!!classification?.canCancel}:null}
-    cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker?'Za postavljanje pitanja potreban je aktivan Radni profil.':context.ratePolicyState==='NOT_READY'?'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.':'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'):null}
-    composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,
+    cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker
+      ?{text:'Za postavljanje pitanja potreban je aktivan Radni profil.',
+        ...(onWorkerProfile?{action:{label:'Dopuni radni profil',onPress:()=>{if(live(focus.current)&&!lock.current)onWorkerProfile();}}}:{})}
+      :context.ratePolicyState==='NOT_READY'?{text:'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.'}
+        :{text:'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}):null}
+    composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,answeringId:target?.questionId??null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,
       maxChars:(target?context?.answerMaxChars:context?.questionMaxChars)??null}:null}
     text={text} canAnswer={!!context?.canComposeAnswer} pending={pending} answered={answered} set={set} historical={historical}
     onBack={()=>{if(live(focus.current))onBack();}} onRefresh={()=>void run(restore)} onText={setText} onSend={()=>submit()}

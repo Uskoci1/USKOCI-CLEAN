@@ -17,5 +17,7 @@ export default function TaskQuestionsRoute() {
     onBack={()=>router.canGoBack()?router.back()
       :uuid(needId)&&own!==null?router.replace(own?{pathname:'/potrebe/[id]/pregled',params:{id:String(needId)}}
         :{pathname:'/prilike/[id]',params:{id:String(needId)}})
-      :router.replace('/')}/>;
+      :router.replace('/')}
+    // A missing Radni profil is not a dead end: the notice offers the same way there as an application does.
+    onWorkerProfile={()=>router.push('/profil/radnik')}/>;
 }
