@@ -59,7 +59,7 @@ const proposal = (proposedBy: string): AgreementChangeProposal => ({ proposalId:
   createdAt: '2026-09-24T09:00:00Z', reason: 'Orman je teži nego što je opisano, treba nam još sat vremena.', respondedAt: null, respondedBy: null, termsAvailable: true,
   terms: { ...terms, priceRsd: 6500, endsAt: '2026-09-26T18:00:00Z' } });
 const snapshot = (patch: Partial<AgreementChangeSnapshot> = {}, actions: Partial<AgreementChangeSnapshot['actions']> = {}): AgreementChangeSnapshot => ({
-  agreementId: AGREEMENT, agreementVersion: 3, agreementStatus: 'CONFIRMED', requesterAccountId: ME, workerAccountId: OTHER, terms, proposals: [], ...patch,
+  agreementId: AGREEMENT, agreementVersion: 3, agreementStatus: 'CONFIRMED', requesterAccountId: ME, workerAccountId: OTHER, counterpartName: 'Marko Jovanović', terms, proposals: [], ...patch,
   actions: { agreementId: AGREEMENT, agreementVersion: 3, accountId: ME, authoritative: true, canProposeChange: true, canRespondChange: false,
     canWithdrawChange: false, canMarkWorkDone: false, canConfirmCompletion: false, canCancel: true, ...actions } });
 const form = (kind: AgreementActionForm['kind'], patch: Partial<AgreementActionForm> = {}): AgreementActionForm => ({ token: {}, kind, reentry: false, key: 'galerija',
@@ -149,7 +149,7 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
       review: { kind: 'CANCEL', agreementId: AGREEMENT, version: 3, reason: 'Kombi se pokvario, ne mogu da stignem u dogovoreno vreme.' } })} />;
     case 'ch-unknown': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'UNKNOWN', error: 'Ishod nije potvrđen. Proveri vezu.',
       canRetry: true, needsReentry: true, journalKind: 'PROPOSE' })} />;
-    case 'ch-done': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'CONFIRMED', message: 'Predlog izmene je sačuvan.' })} />;
+    case 'ch-done': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'CONFIRMED', journalKind: 'PROPOSE', message: 'Predlog izmene je sačuvan.' })} />;
     case 'ch-loading': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'LOADING', snapshot: null })} />;
     case 'loc-worker': return <AgreementLocationPresentation state={location({ context: locationContext('WORKER', { requestedAt: '2026-09-24T10:02:00Z' }) })}
       accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;

@@ -12,7 +12,7 @@ const proposal: AgreementChangeProposal={proposalId:PID,agreementId:ID,baseVersi
 const propose: AgreementActionCommand={kind:'PROPOSE',value:{dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,razlog:'Privatan razlog',izmena:{cenaIznos:4200,obim:'Privatan sadržaj'}}};
 const cancel: AgreementActionCommand={kind:'CANCEL',agreementId:ID,version:7,reason:'Privatan razlog otkazivanja'};
 const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
-const base=():AgreementChangeSnapshot=>({agreementId:ID,agreementVersion:7,agreementStatus:'CONFIRMED',requesterAccountId:A,workerAccountId:B,terms,proposals:[],
+const base=():AgreementChangeSnapshot=>({agreementId:ID,agreementVersion:7,agreementStatus:'CONFIRMED',requesterAccountId:A,workerAccountId:B,counterpartName:null,terms,proposals:[],
  actions:{agreementId:ID,agreementVersion:7,accountId:A,authoritative:true,canProposeChange:true,canRespondChange:false,canWithdrawChange:false,
   canMarkWorkDone:false,canConfirmCompletion:false,canCancel:true}});
 const receipt=(status='PENDING',proposedBy=A)=>ok({found:true,proposalId:PID,agreementId:ID,baseVersion:7,proposedBy,status});
