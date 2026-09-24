@@ -21,17 +21,13 @@ const pixel = (value: unknown): Pixel | null => Array.isArray(value) && value.le
 /**
  * The one attribution (r6 rows 8 and 15, 2026-09-24). MapLibre's own "i" button is a foreign glyph with an English
  * spoken name that opens an English dialog, so the map no longer shows it; these three links are the whole credit
- * OpenFreeMap asks for (its tiles, © OpenMapTiles, data from © OpenStreetMap), in the app's chrome, in the map's
- * bottom-left corner as on Zadaci.
+ * OpenFreeMap asks for (its tiles, © OpenMapTiles, data from © OpenStreetMap), in a wrapping row below the map.
  */
 const CREDITS = [
   { text: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
   { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
   { text: 'OpenFreeMap', url: 'https://openfreemap.org/' },
 ] as const;
-/** A link's touch box is 48 dp tall; a touch box never reaches past its parent, so the band is that tall and box-none. */
-const CREDIT_BAND = 56;
-const CREDIT_HIT = { top: 16, bottom: 16, left: 5, right: 5 } as const;
 /** The public approximate area: a soft disc, no tail, so the picture promises no more than the two-decimal point does. */
 const AREA = 56;
 
@@ -163,7 +159,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const mapName = area ? 'Mapa približnog područja' : disabled ? 'Mapa prikazane tačke'
     : coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije';
   return <View style={styles.container}>
-    {/* The stage holds the frame and the credits side by side, so the links stay outside the accessible frame node. */}
+    {/* Credits stay outside the accessible frame and do not cover the map on narrow screens. */}
     <View>
     <View style={[styles.frame, props.height ? { height: props.height } : null]}
       accessible={spokenByFrame} accessibilityRole={spokenByFrame ? 'image' : undefined}
@@ -214,16 +210,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
     </View>
-    {/* The credits appear with the tiles they credit. The band is box-none: a tap beside the capsule still reaches the
-        map; a tap on a link opens its page. The capsule is the veil the Zadaci search lies on, so the words stay legible
-        over any place name; a text halo alone did not separate them from a map label. */}
-    {status === 'ready' ? <View pointerEvents="box-none" style={styles.creditBand}>
-      <View pointerEvents="box-none" style={styles.creditCapsule}>
-        {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={CREDIT_HIT}
+    {/* Real 48 dp targets: hitSlop alone is clipped by a smaller parent. Wrapping also keeps all credits available
+        at 320 dp and with large text, without reducing the map's usable area. */}
+    {status === 'ready' ? <View style={styles.creditBand}>
+        {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0}
+          style={styles.creditLink}
           onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}>
-          <T variant="label" tone="muted" style={styles.credit} maxFontSizeMultiplier={1}>{credit.text}</T>
+          <T variant="label" tone="muted" style={styles.credit}>{credit.text}</T>
         </Press>)}
-      </View>
     </View> : null}
     </View>
     {/* Everything below is the picker talking to the person choosing a point: the live coordinate
@@ -270,10 +264,8 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
     gap: sys.space.md, backgroundColor: sys.color.surface },
-  creditBand: { position: 'absolute', left: 0, bottom: 0, height: CREDIT_BAND, paddingLeft: sys.space.md, paddingBottom: sys.space.sm,
-    justifyContent: 'flex-end', alignItems: 'flex-start' },
-  creditCapsule: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
-    borderRadius: sys.radius.pill, backgroundColor: sys.color.veil },
+  creditBand: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
+  creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
   area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge, overflow: 'hidden' },

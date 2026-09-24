@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+R6 RECOVERY (2026-09-25): Codex recovered the four interrupted local fix commits through `25dd5d13`, integrated
+`r6fix-pinmap` and the uncommitted `r6fix-izmene`, and connected all six pending Skeleton callers. Read
+`docs/implementation/design-system/r6-integration-20260925/REPORT.md` for scope, evidence and open work. Types clean;
+305 suites / 5,921 tests passed (worker teardown warning). The report separates source, CI and emulator acceptance.
+The original Claude checkout is intact; this package changes no DEV/Edge, payments, migrations or dependencies.
+
 SHIP PASS (2026-09-23 evening, owner: "večeras šaljem app na Google Play", ship mode). Read
 `docs/implementation/RELEASE_CHECKLIST_GOOGLE_PLAY_20260923.md` first: only an internal-testing upload is realistic
 tonight, and its remaining steps are the owner's (package name, which is permanent in Play Console; EAS `production`

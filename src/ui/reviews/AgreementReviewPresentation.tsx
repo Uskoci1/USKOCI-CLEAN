@@ -76,7 +76,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
     <ScrollView contentContainerStyle={s.content}>
-      {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, rows: 3 }} />
+      {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, variant: 'person' }} />
         : view.kind === 'error' ? <StateView kind="error" title={errorTitle} body={errorBody ?? undefined}
           primary={{ label: retry.label, onPress: retry.onPress, disabled: retry.disabled }} />
         : view.kind === 'saved' ? <View style={s.saved}>

@@ -288,6 +288,9 @@ export type AgreementChangeSnapshot = {
   agreementId: string; agreementVersion: number;
   agreementStatus: 'CONFIRMED' | 'SUPERSEDED' | 'COMPLETED' | 'CANCELLED';
   requesterAccountId: string; workerAccountId: string;
+  /** The other party's name as the workspace reply already carries it (its requesterName / workerName); null when it
+   * names none, so a screen says "Predlog druge strane" instead of inventing one (round 6, Izmene scene 10). */
+  counterpartName: string | null;
   terms: AgreementChangeTerms | null; proposals: AgreementChangeProposal[];
   actions: AgreementActionState;
 };
@@ -404,9 +407,12 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
     if (!proposal) return null;
     proposals.push(proposal);
   }
+  // The same two name fields the Dogovor projection reads (mapAgreement); a missing or blank one is null, never a label.
+  const counterpart = sameId(row.requesterAccountId, accountId) ? row.workerName : row.requesterName;
   return { agreementId, agreementVersion: row.currentVersion,
     agreementStatus: row.agreementStatus as AgreementChangeSnapshot['agreementStatus'],
     requesterAccountId: row.requesterAccountId, workerAccountId: row.workerAccountId,
+    counterpartName: typeof counterpart === 'string' && counterpart.trim() ? counterpart.trim() : null,
     terms: decodeChangeTerms(row.terms), proposals,
     actions: { agreementId, agreementVersion: row.currentVersion, accountId, authoritative: true,
       canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,

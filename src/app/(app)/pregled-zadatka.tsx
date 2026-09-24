@@ -400,7 +400,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <View ref={content} style={s.stack}>
         {!review || !summary ? editor.loading
-          ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 4, variant: 'task' }} />
+          ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 3, variant: 'preview' }} />
           : <StateView kind="error" art="document" title="Pregled nije učitan" body={editor.error ?? 'Pokušaj ponovo.'}
             primary={{ label: 'Učitaj pregled i proveri ishod', onPress: refresh, disabled: editor.busy || editor.loading }} />
         : <>

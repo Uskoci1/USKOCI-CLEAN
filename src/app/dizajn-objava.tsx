@@ -112,7 +112,7 @@ export default function DizajnObjava() {
   const review = (options: { todos?: TodoRow[]; status?: { published: boolean; text: string }; command?: ReactNode; working?: boolean;
     large?: boolean; loading?: boolean; failure?: boolean; error?: string }) => {
     const blocked = !!options.todos?.length || !!options.working;
-    const body = options.loading ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 4, variant: 'task' }} />
+    const body = options.loading ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 3, variant: 'preview' }} />
       : options.failure ? <StateView kind="error" art="document" title="Pregled nije učitan" body="Pregled trenutno nije dostupan. Proveri vezu i pokušaj ponovo."
         primary={{ label: 'Učitaj pregled i proveri ishod', onPress: noop }} />
       : <>

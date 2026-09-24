@@ -33,7 +33,7 @@ import { AgreementActionsScreen } from '../../ui/agreements/AgreementActionsScre
 const terms={priceRsd:3500,currency:'RSD' as const,scopeNote:'Važeći obim',startsAt:null,endsAt:null};
 const proposal:AgreementChangeProposal={proposalId:PID,agreementId:ID,baseVersion:7,proposedBy:B,status:'PENDING',createdAt:'2026-09-13T10:00:00Z',
  reason:'Dodatni posao',respondedAt:null,respondedBy:null,termsAvailable:true,terms:{...terms,priceRsd:4000}};
-const initial=():AgreementChangeSnapshot=>({agreementId:ID,agreementVersion:7,agreementStatus:'CONFIRMED',requesterAccountId:A,workerAccountId:B,terms,proposals:[],
+const initial=():AgreementChangeSnapshot=>({agreementId:ID,agreementVersion:7,agreementStatus:'CONFIRMED',requesterAccountId:A,workerAccountId:B,counterpartName:'Bojan Petrović',terms,proposals:[],
  actions:{agreementId:ID,agreementVersion:7,accountId:A,authoritative:true,canProposeChange:true,canRespondChange:false,canWithdrawChange:false,canMarkWorkDone:false,canConfirmCompletion:false,canCancel:true}});
 const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
 const stored=(status='PENDING',proposedBy=A)=>ok({found:true,proposalId:PID,agreementId:ID,baseVersion:7,proposedBy,status});
@@ -54,11 +54,11 @@ beforeEach(()=>{
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());mockListeners.clear();});
 it('shows current accepted terms and offers existing authoritative actions without any write on entry',async()=>{
- await render();expect(text()).toContain('Važeći obim');expect(action('Predloži izmenu uslova')).toBeDefined();expect(action('Otkazivanje Dogovora')).toBeDefined();
+ await render();expect(text()).toContain('Važeći obim');expect(action('Predloži izmenu')).toBeDefined();expect(action('Otkaži Dogovor')).toBeDefined();
  expect(mockService.propose).not.toHaveBeenCalled();expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('reviews actual entered terms and reason once, persists opaque metadata and deduplicates retained final taps',async()=>{
- await render();await tap('Predloži izmenu uslova');await type('Predložena cena u RSD','4200');await type('Predloženi obim posla','Novi privatni obim');
+ await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');await type('Predloženi obim posla','Novi privatni obim');
  await type('Razlog predloga — opciono','Privatan razlog');await tap('Pregledaj predlog');
  expect(text()).toContain('Novi privatni obim');expect(text()).toContain('Uslovi se menjaju tek');expect(mockService.propose).not.toHaveBeenCalled();
  const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const send=action('Pošalji predlog izmene').onPress;
@@ -70,24 +70,24 @@ it('reviews actual entered terms and reason once, persists opaque metadata and d
 });
 const mockSessionAccount=()=>({accountId:A,accountRevision:1});
 it('requires a positive bounded price and a real change before review',async()=>{
- await render();await tap('Predloži izmenu uslova');await tap('Pregledaj predlog');expect(text()).toContain('Izmeni bar jedan');
+ await render();await tap('Predloži izmenu');await tap('Pregledaj predlog');expect(text()).toContain('Izmeni bar jedan');
  await type('Predložena cena u RSD','-5');await tap('Pregledaj predlog');expect(text()).toContain('pozitivan ceo iznos');
  expect(mockService.propose).not.toHaveBeenCalled();expect(tree.root.findAllByProps({label:'Pošalji predlog izmene'})).toHaveLength(0);
 });
 it('preserves accepted microsecond precision of an endpoint that was not edited',async()=>{
  snapshot={...snapshot,terms:{...terms,startsAt:'2026-09-15T10:00:00.123456Z',endsAt:'2026-09-15T15:00:00.654321Z'}};
- await render();await tap('Predloži izmenu uslova');
+ await render();await tap('Predloži izmenu');
  await act(async()=>tree.root.findByProps({label:'Vreme početka'}).props.onChange('10:30'));
  await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
  expect(mockService.propose).toHaveBeenCalledTimes(1);expect(mockService.propose.mock.calls[0][0].izmena.krajIso).toBe('2026-09-15T15:00:00.654321Z');
 });
 it('retires the final callback immediately after canceling its review, including same-turn retained invocation',async()=>{
- await render();await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Privatan razlog');await tap('Pregledaj otkazivanje');
+ await render();await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Privatan razlog');await tap('Pregledaj otkazivanje');
  const old=action('Otkaži Dogovor').onPress,cancel=action('Odustani od radnje').onPress;
  await act(async()=>{cancel();old();});expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('cancel reason is required and a transport ACK remains unknown until canonical CANCELLED',async()=>{
- await render();await tap('Otkazivanje Dogovora');await tap('Pregledaj otkazivanje');expect(text()).toContain('Unesi razlog otkazivanja');
+ await render();await tap('Otkaži Dogovor');await tap('Pregledaj otkazivanje');expect(text()).toContain('Unesi razlog otkazivanja');
  await type('Razlog otkazivanja Dogovora','Otkazujem');await tap('Pregledaj otkazivanje');expect(text()).toContain('precizna lokacija se opozivaju');
  mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri ishod radnje')).toBeDefined();
  expect(text()).not.toContain('Dogovor je otkazan.');snapshot={...snapshot,agreementStatus:'CANCELLED'};
@@ -95,31 +95,31 @@ it('cancel reason is required and a transport ACK remains unknown until canonica
 });
 it.each([true,false])('reviews the exact other-party proposal before accepting=%s and confirms its immutable persisted status',async accept=>{
  snapshot={...snapshot,proposals:[proposal],actions:{...snapshot.actions,canProposeChange:false,canRespondChange:true}};
- await render();await tap(accept?'Pregledaj prihvatanje izmene':'Pregledaj odbijanje predloga');expect(text()).toContain('Dodatni posao');
+ await render();await tap(accept?'Prihvati izmenu':'Odbij predlog');expect(text()).toContain('Dodatni posao');
  expect(mockService.respond).not.toHaveBeenCalled();mockService.readCommand.mockResolvedValue(stored(accept?'ACCEPTED':'REJECTED',B));
  await tap(accept?'Prihvati izmenu':'Odbij predlog');expect(mockService.respond).toHaveBeenCalledWith(proposal,accept,mockSessionAccount());
  expect(action('Prikaži aktuelni Dogovor')).toBeDefined();
 });
 it('withdraws only the author’s pending proposal through its existing writer',async()=>{
  const own={...proposal,proposedBy:A};snapshot={...snapshot,proposals:[own],actions:{...snapshot.actions,canProposeChange:false,canWithdrawChange:true}};
- await render();await tap('Pregledaj povlačenje predloga');mockService.readCommand.mockResolvedValue(stored('WITHDRAWN'));
+ await render();await tap('Povuci predlog');mockService.readCommand.mockResolvedValue(stored('WITHDRAWN'));
  await tap('Povuci predlog');expect(mockService.withdraw).toHaveBeenCalledWith(PID,mockSessionAccount());expect(text()).toContain('Predlog izmene je povučen.');
 });
 it('hides unauthorized actions and keeps acceptance unavailable when terms cannot be reviewed',async()=>{
  snapshot={...snapshot,terms:null,proposals:[{...proposal,terms:null,termsAvailable:false}],actions:{...snapshot.actions,canProposeChange:false,canCancel:false,canRespondChange:true}};
- await render();expect(tree.root.findAllByProps({label:'Predloži izmenu uslova'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Otkazivanje Dogovora'})).toHaveLength(0);
- expect(action('Pregledaj prihvatanje izmene').disabled).toBe(true);
+ await render();expect(tree.root.findAllByProps({label:'Predloži izmenu'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Otkaži Dogovor'})).toHaveLength(0);
+ expect(action('Prihvati izmenu').disabled).toBe(true);
 });
 it('restores unknown proposal read-only and demands exact body re-entry under the old key without generating another key',async()=>{
  const original:AgreementActionCommand={kind:'PROPOSE',value:{dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,izmena:{cenaIznos:4200},razlog:'Isti razlog'}};
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journalFor(original)));await render();expect(mockService.propose).not.toHaveBeenCalled();
- await tap('Unesi prvobitni zahtev');expect(mockUuid).not.toHaveBeenCalled();await type('Predložena cena u RSD','4300');await type('Razlog predloga — opciono','Isti razlog');
+ await tap('Ponovo unesi predlog');expect(mockUuid).not.toHaveBeenCalled();await type('Predložena cena u RSD','4300');await type('Razlog predloga — opciono','Isti razlog');
  await tap('Pregledaj predlog');expect(text()).toContain('razlikuje od prvobitnog');expect(mockStorage.setItem).not.toHaveBeenCalled();
  await type('Predložena cena u RSD','4200');await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
  expect(mockService.propose.mock.calls[0][0].clientRequestId).toBe(KEY);expect(mockUuid).not.toHaveBeenCalled();
 });
 it.each(['blur','account','background'])('blocks a late %s response and retained final callback from updating another scope',async change=>{
- await render();await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');
+ await render();await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');
  const gate=deferred<unknown>();mockService.cancel.mockReturnValue(gate.promise);const old=action('Otkaži Dogovor').onPress;
  await act(async()=>old());
  await act(async()=>{if(change==='blur')mockFocused=false;else if(change==='account')mockSession={user:{id:B},accountRevision:2};else {mockForeground='background';mockListeners.forEach(fn=>fn('background'));}tree.update(page());});
@@ -132,26 +132,31 @@ it('uses whole-screen keyboard avoidance and a scroll container, and has a deter
 });
 it('the hub has one green action: the other side\'s proposal when it waits, else proposing; a changed value says what it replaces',async()=>{
  const green=(label:string)=>action(label).style?.backgroundColor===require('../../ui/system/tokens').sys.color.green;
- await render();expect(green('Predloži izmenu uslova')).toBe(true);await act(async()=>tree.unmount());
+ await render();expect(green('Predloži izmenu')).toBe(true);await act(async()=>tree.unmount());
  snapshot={...snapshot,proposals:[proposal],actions:{...snapshot.actions,canRespondChange:true}};await render();
- expect(green('Pregledaj prihvatanje izmene')).toBe(true);expect(green('Predloži izmenu uslova')).toBe(false);
- expect(text()).toContain('4.000 RSD');expect(text()).toContain('umesto 3.500 RSD');
+ expect(green('Prihvati izmenu')).toBe(true);expect(green('Predloži izmenu')).toBe(false);
+ expect(text()).toContain('4.000 RSD');expect(text()).toContain('umesto 3.500 RSD');expect(text()).toContain('bez promene');
+ // The proposal is headed by the person who made it, from the same reply the Dogovor already names them in (round 6).
+ expect(text()).toContain('Bojan Petrović predlaže');expect(text()).not.toContain('Predlog druge strane');
 });
 it('form and review are two steps of one flow whose X leaves the step without any write',async()=>{
- await render();await tap('Otkazivanje Dogovora');expect(text()).toContain('Korak 1 od 2');
- await tap('Odustani od unosa');expect(action('Predloži izmenu uslova')).toBeDefined();
- await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');expect(text()).toContain('Korak 2 od 2');
+ await render();await tap('Otkaži Dogovor');expect(text()).toContain('Korak 1 od 2');
+ // The step's one action is pinned in the flow's foot under the scroll, never at the end of the form (round 6, scene 11).
+ expect(tree.root.findByType('ScrollView' as never).findAllByProps({label:'Pregledaj otkazivanje'})).toHaveLength(0);
+ expect(tree.root.findByProps({testID:'flow-footer'}).findAllByProps({label:'Pregledaj otkazivanje'}).length).toBeGreaterThan(0);
+ await tap('Odustani od unosa');expect(action('Predloži izmenu')).toBeDefined();
+ await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');expect(text()).toContain('Korak 2 od 2');
  expect(text()).toContain('Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.');
  expect(action('Otkaži Dogovor').kind).toBe('destructive');
- await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkazivanje Dogovora')).toBeDefined();
+ await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkaži Dogovor')).toBeDefined();
 });
 it('the system Back closes a step of the flow like its X, and leaves the screen only from the hub',async()=>{
  const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
  const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};}) as never);
  try{
-  await render();expect(handlers).toHaveLength(0);await tap('Otkazivanje Dogovora');await type('Razlog otkazivanja Dogovora','Razlog');
+  await render();expect(handlers).toHaveLength(0);await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');
   expect(handlers).toHaveLength(1);let handled=false;await act(async()=>{handled=handlers[0]();});expect(handled).toBe(true);
-  expect(action('Otkazivanje Dogovora')).toBeDefined();expect(handlers).toHaveLength(0);expect(mockService.cancel).not.toHaveBeenCalled();expect(mockReplace).not.toHaveBeenCalled();
+  expect(action('Otkaži Dogovor')).toBeDefined();expect(handlers).toHaveLength(0);expect(mockService.cancel).not.toHaveBeenCalled();expect(mockReplace).not.toHaveBeenCalled();
  }finally{spy.mockRestore();}
 });
 it('after a failed refresh with terms on screen, the refresh stays offered in the bar',async()=>{

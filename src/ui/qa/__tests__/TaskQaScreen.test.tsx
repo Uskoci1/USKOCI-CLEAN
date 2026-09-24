@@ -51,6 +51,7 @@ it('owner sees pending first and explicit old revision without an answer action'
 it('saved submit closure is retired after refresh',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');const old=button('Pošalji pitanje')!.props.onPress;await act(async()=>button('Osveži pitanja i ishod radnje')!.props.onPress());await act(async()=>old());expect(mockAiSubmit).not.toHaveBeenCalled();});
 it('restored provider processing never offers replay and cancellation is explicit',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));await render();
+ expect(allText()).toContain('Konačan ishod prethodnog slanja još nije potvrđen');expect(allText()).not.toContain('potvrdu da je prethodno slanje stiglo');
  expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockAiCancel).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev')).toBeUndefined();
  await act(async()=>button('Odustani od ovog slanja')!.props.onPress());
  expect(mockAiCancel).toHaveBeenCalledWith({type:'ASK',needId:N,needRevision:2,clientRequestId:mockKey,textSha256:pending().textSha256},{accountId:A,accountRevision:1});
@@ -69,6 +70,7 @@ it('unknown cancellation keeps persisted intent and reads again without a new su
 });
 it('ready classification only continues the same key with explicitly re-entered matching text',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status({state:'READY',outcome:'ALLOW'})));await render();
+ expect(allText()).toContain('Tekst je proveren, ali još nije objavljen');expect(allText()).not.toContain('potvrdu da je prethodno slanje stiglo');
  expect(mockAiSubmit).not.toHaveBeenCalled();await type('Da li ima lift?','Isti tekst kao ranije');await act(async()=>button('Ponovi isti zahtev')!.props.onPress());
  expect(mockAiSubmit).toHaveBeenCalledTimes(1);expect(mockAsk).not.toHaveBeenCalled();
 });

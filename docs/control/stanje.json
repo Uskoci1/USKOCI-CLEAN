@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-24T20:26:10Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "0db57f50",
-  "head_poruka": "Merge remote-tracking branch 'origin/work/uskoci-ui-unification-20260924' into work/uskoci-ui-unification-20260924",
+  "osvezeno": "2026-09-24T22:34:40Z",
+  "grana": "HEAD",
+  "head": "b9aed185",
+  "head_poruka": "fix(ui): recover interrupted R6 map and agreement changes with verified integration",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -338,7 +338,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: mesto zadatka prerađeno („Vide svi“ / „Samo u Dogovoru“). Odluka vlasnika 24.09: IZBACITI KVAČICU potvrde; „Sačuvaj mesto“ je potvrda (važi i za rad na daljinu i područje rada izvršioca). Nije urađeno. ",
+   "sledece": "25.09. integracija prekinutog rada: Približna mapa prikazuje područje, uz čitljive izvore i odvojene dodirne površine. Kvačica potvrde još nije uklonjena. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: mesto zadatka prerađeno („Vide svi“ / „Samo u Dogovoru“). Odluka vlasnika 24.09: IZBACITI KVAČICU potvrde; „Sačuvaj mesto“ je potvrda (važi i za rad na daljinu i područje rada izvršioca). Nije urađeno. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -488,7 +488,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pregled pre objave prerađen (zadatak kako ga drugi vide, „Još treba“, jedno „Objavi zadatak“ sa razlogom). Galerija uskociapp://dizajn-objava. ",
+   "sledece": "25.09. integracija prekinutog rada: Učitavanje pregleda prati oblik zadatka; ostali nalazi pregleda ostaju otvoreni. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pregled pre objave prerađen (zadatak kako ga drugi vide, „Još treba“, jedno „Objavi zadatak“ sa razlogom). Galerija uskociapp://dizajn-objava. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -775,7 +775,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pitanja i odgovori kao mirna javna nit sa istim poljem kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
+   "sledece": "25.09. integracija prekinutog rada: Oporavak pitanja razlikuje nepotvrđen konačan ishod od već primljenog teksta. Učitavanje je prikaz niti. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: pitanja i odgovori kao mirna javna nit sa istim poljem kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1766,7 +1766,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: postavljanje pitanja kroz isto polje kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
+   "sledece": "25.09. integracija prekinutog rada: Pitanja: jasniji oporavak, razlog ponavljanja, ulaz u Radni profil i polje poruke. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: postavljanje pitanja kroz isto polje kao Poruke. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1908,7 +1908,7 @@
    },
    "telefon_dokaz": "Dva stvarna slanja 23.09: tvoje sa telefona (2.000 RSD, adversarial_a) i jedno sa emulatora na tvoju reč (3.000 RSD, zadatak uskocibusiness-a, tvoj lični nalog). Oba su na serveru kao SUBMITTED i oba su napravila obaveštenje drugoj strani. Emulator: docs/implementation/functional-audit-20260922/device-20260923/ponuda-emulator/. Viđeno: zaključana cena kad naručilac zada iznos, pregled pre slanja, imenovano sletanje „Tvoja prijava“.",
    "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server.",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: slanje ponude prerađeno kao korak plaćanja (zadatak na vrhu, cena, broj ljudi, termin, napomena, jedno zeleno dugme sa razlogom); sve zaštite, revizija, idempotencija i pregled pre slanja nepromenjeni. Galerija uskociapp://dizajn-prijava. Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“.",
+   "sledece": "25.09. integracija prekinutog rada: Objedinjene Claude-ove dorade ponude, prikaza osobe i učitavanja. Serversko pravilo cene nije menjano. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: slanje ponude prerađeno kao korak plaćanja (zadatak na vrhu, cena, broj ljudi, termin, napomena, jedno zeleno dugme sa razlogom); sve zaštite, revizija, idempotencija i pregled pre slanja nepromenjeni. Galerija uskociapp://dizajn-prijava. Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2407,7 +2407,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Audit 24.09: CF02: kada Dogovor postane završen/otkazan, nestaju uklanjanje i provera neposlate fotografije, iako server dozvoljava čišćenje. Ponovljeno i na bc127755.",
-   "sledece": "Audit 24.09 je ponovio gubitak kontrola za neposlatu fotografiju kada Dogovor pređe u završeno/otkazano stanje. Zadržati proveru ishoda i uklanjanje postojeće fotografije, uz zabranu novog slanja. CF02; test stvarnih komponenti pada na sadašnjem kodu.",
+   "sledece": "25.09. integracija prekinutog rada: Preuzete dorade objašnjenja komandi fotografije; to nije potvrda zatvaranja nalaza CF02. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: Audit 24.09 je ponovio gubitak kontrola za neposlatu fotografiju kada Dogovor pređe u završeno/otkazano stanje. Zadržati proveru ishoda i uklanjanje postojeće fotografije, uz zabranu novog slanja. CF02; test stvarnih komponenti pada na sadašnjem kodu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2477,7 +2477,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: grupni razgovor u izgledu Poruka; Nazad vraća na isti Dogovor. Galerija uskociapp://dizajn-dodaci. ",
+   "sledece": "25.09. integracija prekinutog rada: Preuzeto ujednačavanje grupnog razgovora sa izgledom Poruka. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: grupni razgovor u izgledu Poruka; Nazad vraća na isti Dogovor. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2551,7 +2551,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: izmene Dogovora kao tok u dva koraka; obavezne reči nepromenjene. Galerija uskociapp://dizajn-dodaci. ",
+   "sledece": "25.09. integracija prekinutog rada: Predlog i pregled imaju fiksno glavno dugme, jasno poređenje uslova i ime druge osobe iz postojećeg odgovora. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: izmene Dogovora kao tok u dva koraka; obavezne reči nepromenjene. Galerija uskociapp://dizajn-dodaci. ",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3021,7 +3021,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Ekran ocene je na uređaju bio mrtav (zvezde i oznake nisu reagovale; RATING-DEAD-STARS-01). Uzrok: čuvar je poredio token fokusa kovan posle crtanja. Popravljeno 23.09. (4e864a08, 5e415f1a): na emulatoru zvezda, oznaka i „Sačuvaj ocenu“ rade na prvi dodir; ocena nije sačuvana. Server pri oceni i dalje šalje „Dobili ste…“ (Audit F15).",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: ocena prerađena (osoba prva, velike zvezde, oznake, iskren uspeh, tačan „Nazad“). Odluka vlasnika 24.09: PISANI KOMENTAR UZ OCENU — DA (traži serverski paket: kolona, dužina, prijava, vidljivost, čuvanje; na DEV tek na „primeni“). Nije urađeno. Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15).",
+   "sledece": "25.09. integracija prekinutog rada: Preuzete dorade ocene i učitavanja osobe. Pisani komentar ostaje zaseban serverski posao. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: ocena prerađena (osoba prva, velike zvezde, oznake, iskren uspeh, tačan „Nazad“). Odluka vlasnika 24.09: PISANI KOMENTAR UZ OCENU — DA (traži serverski paket: kolona, dužina, prijava, vidljivost, čuvanje; na DEV tek na „primeni“). Nije urađeno. Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15).",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5625,6 +5625,54 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 36065619683,
+   "ime": "PKG-048 agreement source links proof",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:23Z"
+  },
+  {
+   "id": 36065615010,
+   "ime": "PKG-008 task photo recovery proof",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:20Z"
+  },
+  {
+   "id": 36065611427,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:18Z"
+  },
+  {
+   "id": 36065607281,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:15Z"
+  },
+  {
+   "id": 36065603432,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:13Z"
+  },
+  {
+   "id": 36065599150,
+   "ime": "Build Android development APK",
+   "sha": "b9aed185",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-24T22:07:10Z"
+  },
+  {
    "id": 36053060680,
    "ime": "PKG-051 platform price list proof",
    "sha": "0db57f50",
@@ -5671,54 +5719,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-24T18:04:43Z"
-  },
-  {
-   "id": 36038730320,
-   "ime": "PKG-008 task photo recovery proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:41Z"
-  },
-  {
-   "id": 36038727516,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:40Z"
-  },
-  {
-   "id": 36038724509,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:38Z"
-  },
-  {
-   "id": 36038721320,
-   "ime": "PKG-005 Worker onboarding proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:36Z"
-  },
-  {
-   "id": 36038717500,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:35Z"
-  },
-  {
-   "id": 36038648243,
-   "ime": "Build Android development APK",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:00Z"
   }
  ]
 }

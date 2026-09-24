@@ -82,10 +82,11 @@ it('credits the map once, through the app\x27s own links, with no SDK ornament',
   expect(links().map(link => [link.props.accessibilityRole, link.props.accessibilityLabel])).toEqual([
     ['link', '© OpenStreetMap'], ['link', '© OpenMapTiles'], ['link', 'OpenFreeMap']]);
   expect(frame().findAllByType('Press' as React.ElementType)).toHaveLength(0);
-  const band = links()[0].parent!.parent!;
-  expect(band.props).toMatchObject({ pointerEvents: 'box-none', style: expect.objectContaining({ position: 'absolute', height: 56 }) });
+  const band = links()[0].parent!;
+  expect(band.props.style).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
   for (const link of links()) {
-    expect(link.props.hitSlop).toMatchObject({ top: 16, bottom: 16 });
+    expect(link.props.style).toMatchObject({ minHeight: 48, maxWidth: '100%' });
+    expect(link.props.hitSlop).toBe(0);
     await act(async () => link.props.onPress());
   }
   expect(openURL.mock.calls.map(([url]) => url)).toEqual(['https://www.openstreetmap.org/copyright', 'https://www.openmaptiles.org/', 'https://openfreemap.org/']);

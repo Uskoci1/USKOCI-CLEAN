@@ -151,7 +151,14 @@ the production database, Play Console and the closed test.
 
 ## Handoff to Codex — 2026-09-24, 23:55 (owner: "Codex takes over what was not finished, from this moment")
 
-**Where the branch stands** (`git log -1`; everything below is pushed once the full Jest is green on it):
+> **Update 2026-09-25 (local session, on return):** this section is history. Codex's recovery
+> (`../r6-integration-20260925/REPORT.md`, commit `b9aed185`) integrated the four fix groups, the ResolvedPinMap
+> branch and the Izmene work (branch `wip/r6fix-izmene` is therefore integrated and may be deleted), connected the
+> six Skeleton callers, and verified 305 suites / 5,921 tests, an APK (run 36065599150) and the emulator at
+> 320–430 dp with font scale 1.3. The local session's own ResolvedPinMap cherry-pick was dropped in favour of
+> Codex's reviewed version at merge. What remains is Codex's "Still separate work" list below.
+
+**Historical interruption state** (the following was left locally; see the 2026-09-25 integration update below):
 
 - PKG-051a (platform price list at 0 RSD) is proven and APPLIED to DEV (ledger 202); nothing more to do there.
 - Round-6 emulator check of build b4531ef4: `../r6-emulator-b4531ef/` (contact sheets, `FINDINGS.json` with 113
@@ -169,18 +176,11 @@ the production database, Play Console and the closed test.
   - `94a550d7` dodaci: group conversation in the Poruke look, photo tray commands that say why.
   - `25dd5d13` dodaci: Q&A recovery panel in plain Serbian, reasoned retry, a way to the Radni profil, honest message
     tones, PillComposer `above` slot on the page gutter.
-  - `45f34a4d` ResolvedPinMap (rows 8 and 15): the public approximate map draws a translucent green area instead of
-    an exact-looking pin; the SDK attribution/compass/logo are off and the three credits (© OpenStreetMap,
-    © OpenMapTiles, OpenFreeMap) sit in a capsule with 48 dp targets; the spoken name follows the mode. Note: at
-    HEAD DiscoveryMap still shows the SDK "i" — align it the same way (Codex, row 16 / 15).
-  - **Izmene (row 12 + the Izmene lows) is NOT on the branch.** The agent was cut off by the session limit before
-    verification; its work is pushed as branch **`wip/r6fix-izmene`** (commit `6976f960`, "WIP (unverified)"):
-    a new shared `src/ui/system/FlowFooter.tsx` + test, `AgreementActionsPresentation.tsx`, `counterpartName` in
-    `decodeChangeWorkspace`, the izmene fixtures and three test files. Codex: check it out, finish the test updates,
-    run tsc + the focused suites (`src/ui/agreements`, `agreementClientService`, `dizajn-dodaci`, `flow-footer`,
-    `pkg036-lifecycle-refusals`), then merge it; or redo row 12 from `FINDINGS.json` if it is easier.
-  - Full Jest on `25dd5d13` (the first four groups): 303 suites pass + the known `firebase-config` first-run timeout,
-    which passes alone; `tsc` clean. The ResolvedPinMap commit adds 41/41 in `src/ui/location`.
+  - Izmene (rows 12 + lows: FlowFooter, AgreementActionsPresentation, `counterpartName` in decodeChangeWorkspace) and
+    ResolvedPinMap (rows 8 and 15: approximate area instead of an exact pin, muted attribution tint, mode-specific
+    label) were being finished by two agents when the owner stopped the session; if their commits are on the branch,
+    `git log` shows them right after `25dd5d13`; if not, their work is on local branches `r6fix-izmene` /
+    `r6fix-pinmap` in the owner's PC checkout and Codex should redo those two rows from `FINDINGS.json`.
 
 **Codex takes, from this moment (one writer per file, `git fetch` + merge before every push, no rebase, no force):**
 
@@ -202,3 +202,22 @@ the production database, Play Console and the closed test.
    `USKOCI-CLEAN` or your own worktree. Never commit the untracked
    `supabase/migrations/20260913090000_clean_v5_fix_application_spam_and_resolution.sql`, `.impeccable/` or
    `outputs/…` scratch files; payments and the price list stay with the owner's Claude session.
+
+## Codex integration — 2026-09-25
+
+The four local commits through `25dd5d13` are preserved, together with the interrupted `r6fix-pinmap` and
+`r6fix-izmene` work. All six Skeleton call sites are now switched. Do not redo these two agents' work from scratch.
+Review found and corrected two additional issues: map credit touch targets and misleading Q&A recovery text for
+acknowledged processing. TypeScript is clean; full Jest: **305 suites / 5,921 tests passed**, with a worker teardown
+warning. Report and exact-build verification status:
+`../r6-integration-20260925/REPORT.md`. CI/build/device evidence is separate from this source result.
+
+Work is in a separate Codex worktree, pushed to the same working branch; the original Claude checkout is intact.
+Remaining owner decisions a–d, other R6 findings and release gates remain open. No DEV/Edge, payment, key, frozen
+migration or dependency change was made in this integration.
+
+Completion of this bounded recovery: source `b9aed185`, APK `36065599150` and all five matched proofs passed.
+The APK is installed on the emulator and the selected gallery/large-text checks are documented in
+`../r6-integration-20260925/RECEIPT.json`. Phone, full keyboard, TalkBack and live write journeys are not accepted.
+The control state is regenerated; external artifact upload remains pending because filechooser automation timed out.
+Continue with the report's Next bounded package, not another import of the recovered agents.
