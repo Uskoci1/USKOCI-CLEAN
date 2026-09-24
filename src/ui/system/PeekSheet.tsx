@@ -8,6 +8,8 @@ import { sheetLift, sys } from './tokens';
 const PeekBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
   importantForAccessibility="no" style={[style, s.background]} />;
 const PeekHandle = () => <View accessible={false} importantForAccessibility="no" style={s.handleArea}><View style={s.handle} /></View>;
+/** The card is as tall as what it says, up to this share of the window; past it gorhom cuts the content off. */
+export const PEEK_MAX_SHARE = 0.5;
 
 /**
  * A card that peeks up over a screen without taking it over: no backdrop, no dimming, no modal focus trap, detached
@@ -16,7 +18,8 @@ const PeekHandle = () => <View accessible={false} importantForAccessibility="no"
  * its own touches. Render it as the last child of a full-screen container. `handle={false}` leaves the grab bar out
  * for a card that carries its own close button (Discovery V47); a drag down still closes it.
  */
-export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced, handle = true }: {
+export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced, handle = true,
+  maxShare = PEEK_MAX_SHARE }: {
   /** What assistive technology calls the card. */
   label: string;
   /** True while the screen that hosts the card is the one in front (the map passes `useIsFocused()`). Only then does
@@ -30,6 +33,11 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   reduced?: boolean;
   /** The grab bar above the content; a card with its own × leaves it out. */
   handle?: boolean;
+  /**
+   * How much of the window the card may take. A card whose words grow with the person's text size (the pin card at large
+   * text) raises it for itself rather than be cut off; every other card keeps `PEEK_MAX_SHARE`.
+   */
+  maxShare?: number;
 }) {
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
@@ -48,7 +56,7 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   }, [active, dismiss]);
   return <BottomSheet ref={sheet} index={0} enableDynamicSizing enablePanDownToClose detached bottomInset={bottomInset}
     style={s.sheet} accessible={false} accessibilityRole="none" accessibilityLabel={label}
-    maxDynamicContentSize={height * 0.5} animateOnMount={!reduced} onClose={onClose}
+    maxDynamicContentSize={height * maxShare} animateOnMount={!reduced} onClose={onClose}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING}
     backgroundComponent={PeekBackground} handleComponent={handle ? PeekHandle : null}>
     <BottomSheetView style={[s.content, !handle && s.unhandled]}>{children(dismiss)}</BottomSheetView>

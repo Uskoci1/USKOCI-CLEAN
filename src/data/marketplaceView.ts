@@ -34,16 +34,30 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
   /** A chosen place on the map where several tasks share one public point (its `pointKey`); null when none. */
   selectedPlace?: string | null;
   /**
+   * Zadaci only (Discovery V47 review): the list narrowed to the tasks on one public point (its `pointKey`), from a place's
+   * "Prikaži sve u listi". It is not an area: the tasks without a point are not added to it, and it never moves `area`.
+   * The next move of the map the person makes takes it away, as does the search pill's "Prikaži sve zadatke".
+   */
+  pinPlace?: string | null;
+  /**
    * Zadaci only, in memory (Discovery V47): where the list sheet rests and how far its list is scrolled, kept with the
    * camera (`viewport`) in the route's view so a return to the tab finds all three where they were.
    */
   sheet?: DiscoverySnap; listOffset?: number };
 export const initialMarketplaceView = (): MarketplaceView => ({ query: '', section: 'active', attention: false,
   price: 'all', mode: 'list', area: null, viewport: null, selectedId: null, when: 'any', where: 'any', places: 1, selectedPlace: null,
-  place: null, dates: null });
+  place: null, dates: null, pinPlace: null });
 /** "At least n places": a whole number from 1 to `PLACES_MAX`; anything else is 1, every open task. */
 export function atLeast(value: unknown): number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? Math.min(value, PLACES_MAX) : 1;
+}
+/**
+ * How many places the task still has open, when the read says: a finite count from 0 up. A read without the slot
+ * counts leaves it unknown (null), which is never read as "none left" and never as "room for n".
+ */
+export function openPlaces(item: MarketplaceItem): number | null {
+  const left = item.pokrivenost?.preostalo;
+  return typeof left === 'number' && Number.isFinite(left) && left >= 0 ? left : null;
 }
 /** A civil date written as the calendar writes one ("2026-09-24"), and a real day of that calendar. */
 export function civilDate(value: unknown): value is string {
@@ -96,7 +110,10 @@ export function marketplaceItems(items: readonly MarketplaceItem[], view: Market
     // Dates and the flexible words are one choice; a range wins over a stale word.
     if (dates ? !happensBetween(item, dates, now) : when !== 'any' && !happensIn(item, when, now)) return false;
     if (where !== 'any' && workMode(item) !== where) return false;
-    if (places > 1 && !((item.pokrivenost?.preostalo ?? 0) >= places)) return false;
+    // "Koliko vas dolazi": a task that says it has fewer open places than people coming is left out. A task whose open
+    // places are unknown is KEPT (a count the read did not give is not "full", so it is never hidden silently); it is
+    // simply never counted as having room for n: the "N+ mesta" chip is offered only on a known count (`openPlaces`).
+    if (places > 1) { const left = openPlaces(item); if (left !== null && left < places) return false; }
     if (place !== null) { const area = publicArea(item); if (area === null || placeKey(area) !== place) return false; }
     if (owned) {
       if (!isOwnedNeed(item)) return false;
@@ -166,14 +183,15 @@ const FIRST_DAY = '0000-01-01', LAST_DAY = '9999-12-31';
  * The days a task can be done on, in its own zone, as an inclusive [first, last] pair of civil dates; null when its
  * schedule does not say. A saved window or range is read as it is. Without dates, "danas / sutra / ove nedelje" mean
  * what the card says they mean, and a task that is flexible or remote at any time can be done on any day. A fixed
- * window without its start is incomplete ("Tačan termin nije potpun") and matches no particular day.
+ * window without its start is incomplete ("Tačan termin nije potpun") and matches no particular day. A fixed window with
+ * only its start is that one day; a flexible range with only its start is open-ended, as its card says ("Od 26. sep").
  */
 function workDays(item: MarketplaceItem, now: Date): [string, string] | null {
   const schedule = item.schedule;
   if (!schedule) return null;
   const zone = item.taskTimezone ?? 'UTC';
   const first = civilDay(schedule.startsAt, zone, false), last = civilDay(schedule.endsAt, zone, true);
-  if (first) return [first, last && last >= first ? last : first];
+  if (first) return [first, last && last >= first ? last : schedule.kind === 'FIXED_WINDOW' ? first : LAST_DAY];
   if (last) return schedule.kind === 'FIXED_WINDOW' ? null : [FIRST_DAY, last];
   let today: string;
   try { today = zonedParts(now, zone).date; } catch { return null; }
@@ -232,18 +250,19 @@ export function serbianToday(now: Date = new Date()): string {
   try { return zonedParts(now, 'Europe/Belgrade').date; } catch { return now.toISOString().slice(0, 10); }
 }
 
+/** Two spellings of one place ("Novi  Sad", "novi sad") are one place. */
+export const placeKey = (text: string) => text.trim().replace(/\s+/g, ' ').toLocaleLowerCase('sr-Latn-RS');
 /**
- * The public area a task names, as the read wrote it, when it names one: never a remote task's "Na daljinu" and never
- * the "Lokacija nije navedena" the read writes for a task without an area. The one source of "Gde" places.
+ * The public area a task names, as the read wrote it, when it names one: never a remote task's "Na daljinu" (whether the
+ * task's mode says remote or only its words do) and never the "Lokacija nije navedena" the read writes for a task
+ * without an area. The one source of "Gde" places.
  */
-const NO_AREA = podrucjeTekst(null, null);
+const NOT_A_PLACE = new Set([placeKey(podrucjeTekst(null, null)), placeKey('Na daljinu')]);
 export function publicArea(item: MarketplaceItem): string | null {
   if (workMode(item) === 'remote' || typeof item.podrucjeTekst !== 'string') return null;
   const text = item.podrucjeTekst.trim().replace(/\s+/g, ' ');
-  return text && text !== NO_AREA ? text : null;
+  return text && !NOT_A_PLACE.has(placeKey(text)) ? text : null;
 }
-/** Two spellings of one place ("Novi  Sad", "novi sad") are one place. */
-export const placeKey = (text: string) => text.trim().replace(/\s+/g, ' ').toLocaleLowerCase('sr-Latn-RS');
 
 /**
  * Zadaci as the screen shows it (Discovery V47: the list follows the map). `mapped` is what every filter but the map's
@@ -251,12 +270,20 @@ export const placeKey = (text: string) => text.trim().replace(/\s+/g, ' ').toLoc
  * the area: with one, it holds the pinned tasks inside it (`inArea`), then every task that has no public point at all
  * (`withoutPoint`: online work, or a task placed nowhere), which an area can neither hold nor leave out, so they are
  * never lost. Without an area the list is `mapped`, in the read's order. No coordinate is ever invented.
+ *
+ * One public point (`pinPlace`, a place's "Prikaži sve u listi") is narrower than any area: the list is exactly the tasks
+ * on that point (`inArea`), and nothing else joins them, not even the tasks without a point.
  */
 export type DiscoveryShown = { mapped: MarketplaceItem[]; inArea: MarketplaceItem[]; withoutPoint: MarketplaceItem[]; listed: MarketplaceItem[] };
 export function discoveryShown(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): DiscoveryShown {
   const all = marketplaceItems(items, { ...view, area: null }, false, now);
   const mapped = mine?.size ? all.filter(item => !mine.has(item.id)) : all;
+  const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
+  if (pin !== null) {
+    const here = mapped.filter(item => { const point = publicPoint(item); return !!point && pointKey(point) === pin; });
+    return { mapped, inArea: here, withoutPoint: [], listed: here };
+  }
   if (!view.area) return { mapped, inArea: mapped, withoutPoint: [], listed: mapped };
   const inArea: MarketplaceItem[] = [], withoutPoint: MarketplaceItem[] = [];
   for (const item of mapped) {
@@ -302,7 +329,7 @@ export type PlaceSuggestion = { text: string; count: number };
 export function placeSuggestions(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): PlaceSuggestion[] {
   const places = new Map<string, PlaceSuggestion>();
-  for (const item of discoveryItems(items, { ...view, query: '', place: null, area: null }, mine, now)) {
+  for (const item of discoveryItems(items, { ...view, query: '', place: null, area: null, pinPlace: null }, mine, now)) {
     const text = publicArea(item);
     if (text === null) continue;
     const key = placeKey(text), known = places.get(key);

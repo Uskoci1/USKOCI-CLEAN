@@ -1,7 +1,7 @@
-import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryItems, discoveryStartSnap, happensBetween, happensIn,
-  initialMarketplaceView, marketplaceItems, pinLabel, pinPlaces, placeSuggestions, pointKey, publicArea, publicFeatures, saysWhen,
+import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryItems, discoveryShown, discoveryStartSnap, happensBetween, happensIn,
+  initialMarketplaceView, marketplaceItems, openPlaces, pinLabel, pinPlaces, placeSuggestions, pointKey, publicArea, publicFeatures, saysWhen,
   saysWorkMode, serbianToday, undatedCount, workMode, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
-import { conditionsWords, datesWords, placesWords, whenWords, whereWords } from '../../ui/v2/discovery/discoveryWords';
+import { PRICE, WHERE, conditionsWords, countLineWords, datesWords, placesWords, removeWords, whenWords, whereWords } from '../../ui/v2/discovery/discoveryWords';
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24): the pure rules under it. The four filter sections read only facts the
@@ -48,6 +48,17 @@ describe('Kada, read in the task\'s own zone', () => {
     expect(happensIn(range, 'week', NOW)).toBe(false);
     expect(happensIn(range, 'any', NOW)).toBe(true);
   });
+  // Review of V47: a flexible range that names only its start is open from that day on, as its card says ("Od 26. sep");
+  // it was read as that one day. A fixed window that names only its start is still that one day.
+  it('a flexible range with only a start is open-ended; a fixed window with only a start is its one day', () => {
+    const from26 = item('od-26', { schedule: { kind: 'FLEXIBLE', startsAt: '2026-09-26T09:00:00+02:00', endsAt: null } });
+    expect(happensBetween(from26, { from: '2026-09-28', to: '2026-09-30' }, NOW)).toBe(true);
+    expect(happensIn(from26, 'next7', new Date('2026-09-27T08:00:00Z'))).toBe(true);
+    expect(happensBetween(from26, { from: '2026-09-24', to: '2026-09-25' }, NOW)).toBe(false);
+    const fixed26 = item('tacno-26', window('2026-09-26T09:00:00+02:00'));
+    expect(happensBetween(fixed26, { from: '2026-09-28', to: '2026-09-30' }, NOW)).toBe(false);
+    expect(happensBetween(fixed26, { from: '2026-09-26', to: '2026-09-26' }, NOW)).toBe(true);
+  });
   it('an unreadable zone or instant never matches a day and never throws', () => {
     expect(happensIn(item('zone', { ...window('2026-09-24T14:00:00+02:00'), taskTimezone: 'Nije/Zona' }), 'today', NOW)).toBe(false);
     expect(happensIn(item('instant', window('24. 9. 2026')), 'today', NOW)).toBe(false);
@@ -74,6 +85,16 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
     for (const odd of [0, -2, 1.5, Number.NaN, '2', undefined]) expect(atLeast(odd)).toBe(1);
     expect(atLeast(99)).toBe(10);
   });
+  // Review of V47: a read without the slot counts leaves the open places unknown (the mapping writes NaN), and unknown is
+  // neither "full" nor "room for n". The choice made and pinned here: such a task is KEPT under "N+ mesta" (never hidden
+  // silently), and it never counts as having room (the chip is offered on known counts only, through `openPlaces`).
+  it('a task whose open places are unknown is kept under "Koliko vas dolazi" and never counted as having room', () => {
+    const unknown = item('unknown', { pokrivenost: { ukupno: Number.NaN, popunjeno: 0, preostalo: Number.NaN, udeo: 0 } });
+    const absent = item('absent', { pokrivenost: undefined as never });
+    const full = item('full', { pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    expect(ids(marketplaceItems([unknown, absent, full, item('two')], view({ places: 2 }), false, NOW))).toEqual(['unknown', 'absent', 'two']);
+    expect([openPlaces(unknown), openPlaces(absent), openPlaces(full), openPlaces(item('two'))]).toEqual([null, null, 1, 2]);
+  });
   it('the price filter is the existing one, and the filters combine', () => {
     const rows = [item('price'), item('offers', { rezimCene: 'OFFERS', ponudjenaCena: undefined, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] })];
     expect(ids(marketplaceItems(rows, view({ price: 'OFFERS' }), false, NOW))).toEqual(['offers']);
@@ -95,6 +116,20 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
 });
 
 describe('the Zadaci list and its sheet', () => {
+  // Review of V47: "Prikaži sve u listi" narrows the list to one public point. It is not an area: a task without a point
+  // never joins it, the map's area does not widen it, and the map keeps drawing every task.
+  it('one public point lists exactly the tasks on it, never a task without a point, whatever the area', () => {
+    const rows = [item('s1', { priblizno: { lat: 44.7904, lng: 20.4498 } }), item('s2', { priblizno: { lat: 44.79, lng: 20.45 } }),
+      item('near', { priblizno: { lat: 44.8, lng: 20.45 } }), item('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] }),
+      item('nowhere', { priblizno: null }), item('mine', { priblizno: { lat: 44.79, lng: 20.45 } })];
+    const shown = discoveryShown(rows, view({ pinPlace: '44.79,20.45', area: [0, 0, 1, 1] }), new Set(['mine']), NOW);
+    expect(ids(shown.listed)).toEqual(['s1', 's2']); expect(ids(shown.inArea)).toEqual(['s1', 's2']); expect(shown.withoutPoint).toEqual([]);
+    expect(ids(shown.mapped)).toEqual(['s1', 's2', 'near', 'online', 'nowhere']);
+    expect(ids(discoveryItems(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW))).toEqual(['s1', 's2']);
+    // The "Gde" places are counted as if no point were chosen (the remote task names no place; the one placed nowhere does).
+    expect(placeSuggestions(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW)).toEqual([{ text: 'Beograd', count: 4 }]);
+    expect(initialMarketplaceView().pinPlace).toBeNull();
+  });
   it('never lists my own tasks, whatever the filters, and lists everything when nothing is known', () => {
     const rows = [item('mine'), item('other'), item('applied')];
     expect(ids(discoveryItems(rows, view(), new Set(['mine']), NOW))).toEqual(['other', 'applied']);
@@ -204,6 +239,9 @@ describe('Discovery V47: Gde', () => {
     at('e', 'Lokacija nije navedena', { priblizno: null }), at('mine', 'Zemun, Beograd')];
   it('a place is the public area a task names: never a remote task\'s words or the words for no area', () => {
     expect(rows.map(publicArea)).toEqual(['Liman, Novi Sad', 'Liman, Novi Sad', 'Vračar, Beograd', null, null, 'Zemun, Beograd']);
+    // "Na daljinu" is never a place, even on a task whose mode does not say it is remote.
+    expect(publicArea(item('reci', { podrucjeTekst: 'Na daljinu', detalji: undefined }))).toBeNull();
+    expect(publicArea(item('reci-2', { podrucjeTekst: '  na  daljinu ' }))).toBeNull();
   });
   it('the suggestions are only the areas the loaded tasks that are not mine name, each with its count under the other conditions', () => {
     expect(placeSuggestions(rows, view(), new Set(['mine']), NOW)).toEqual([{ text: 'Liman, Novi Sad', count: 2 }, { text: 'Vračar, Beograd', count: 1 }]);
@@ -226,8 +264,32 @@ describe('Discovery V47: the words of the search', () => {
     expect(whereWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('Liman, Novi Sad · „selidba“');
     expect(conditionsWords(view(), NOW)).toBe('Bilo kada · Dodaj uslove');
     expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · 2+ mesta');
-    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Onlajn · Ponude');
+    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Na daljinu · Tražim ponude');
+    expect(conditionsWords(view({ where: 'onsite', price: 'MY_PRICE' }), NOW)).toBe('Bilo kada · Na licu mesta · Navedena cena');
     expect(placesWords(1)).toBe('Bilo koliko'); expect(placesWords(4)).toBe('4+ mesta');
+    // One point of the map (a place's whole set) is said as such, before any searched words.
+    expect(whereWords(view({ pinPlace: '44.79,20.45', area: [19, 45, 20, 46] }))).toBe('Na ovom mestu');
+    expect(whereWords(view({ pinPlace: '44.79,20.45', query: 'selidba' }))).toBe('Na ovom mestu · „selidba“');
+  });
+  // Review of V47: the words are the app's own, and one reset and one "remove" are said the same way everywhere.
+  it('the work-mode and price words are the app\'s own, and a condition is removed by name', () => {
+    expect(WHERE.map(([, words]) => words)).toEqual(['Bilo gde', 'Na licu mesta', 'Na daljinu']);
+    expect(PRICE.map(([, words]) => words)).toEqual(['Sve', 'Navedena cena', 'Tražim ponude']);
+    expect(removeWords('Vračar, Beograd')).toBe('Ukloni uslov: Vračar, Beograd');
+  });
+  it('the top line is never blank and counts in one format, every count through the plural', () => {
+    const ready = { status: 'ready' as const, listed: 0, inArea: 0, withoutPoint: 0, pinless: 0, area: false, pinPlace: false };
+    expect(countLineWords({ ...ready, status: 'loading' })).toEqual({ words: 'Učitavamo zadatke…', extra: '' });
+    expect(countLineWords({ ...ready, status: 'error' })).toEqual({ words: 'Zadaci nisu učitani', extra: '' });
+    expect(countLineWords(ready)).toEqual({ words: 'Nema zadataka', extra: '' });
+    expect(countLineWords({ ...ready, listed: 12, pinless: 3 })).toEqual({ words: '12 zadataka', extra: ' · 3 zadatka bez tačke na mapi' });
+    expect(countLineWords({ ...ready, listed: 21, pinless: 0 })).toEqual({ words: '21 zadatak', extra: '' });
+    expect(countLineWords({ ...ready, area: true, listed: 4, inArea: 2, withoutPoint: 2 }))
+      .toEqual({ words: '2 zadatka u oblasti', extra: ' · 2 zadatka bez tačke na mapi' });
+    expect(countLineWords({ ...ready, area: true, listed: 1, inArea: 0, withoutPoint: 1 })).toEqual({ words: 'U oblasti nema zadataka', extra: ' · 1 zadatak bez tačke na mapi' });
+    expect(countLineWords({ ...ready, area: true })).toEqual({ words: 'U oblasti nema zadataka', extra: '' });
+    expect(countLineWords({ ...ready, pinPlace: true, area: true, listed: 4, inArea: 4 })).toEqual({ words: '4 zadatka na ovom mestu', extra: '' });
+    expect(countLineWords({ ...ready, pinPlace: true })).toEqual({ words: 'Nema zadataka', extra: '' });
   });
   it('a range of days is written once, the month once when it can be', () => {
     expect(datesWords({ from: '2026-09-26', to: '2026-09-26' }, NOW)).toBe('26. sep');

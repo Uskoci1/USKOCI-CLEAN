@@ -81,10 +81,13 @@ test('a word about money never wears the money colour or weight; the amount does
     let pill!: ReactTestRenderer; await act(async () => { pill = create(<PricePill content={content} urgent={urgent} />); });
     const words = pill.root.findAllByType('T' as React.ElementType)[0];
     const frame = pill.root.findByProps({ testID: 'price-pill' });
-    return { words: words && flat(words), frame: flat(frame), lightning: pill.root.findAllByType('Lightning' as React.ElementType) };
+    return { words: words && flat(words), variant: words?.props.variant, frame: flat(frame), lightning: pill.root.findAllByType('Lightning' as React.ElementType) };
   };
   const money = await draw({ text: '6.000 RSD', tone: 'money', spoken: '6.000 RSD' });
-  expect(money.words).toMatchObject({ color: sys.color.money, fontWeight: '600', fontSize: 13, lineHeight: 16 });
+  // The size is the system's meta (13) through the text variant, never a size written by hand; the line is set tighter.
+  expect(money.variant).toBe('meta');
+  expect(money.words).toMatchObject({ color: sys.color.money, fontWeight: '600', lineHeight: 16 });
+  expect(money.words.fontSize).toBeUndefined();
   expect(money.frame).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line });
   const offer = await draw({ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' });
   expect(offer.words.color).toBe(sys.color.muted); expect(offer.words.color).not.toBe(sys.color.money); expect(offer.words.fontWeight).not.toBe('600');
@@ -231,6 +234,22 @@ test('a fit to a chosen place is the camera\'s own move, made once, and never an
   await act(async () => tree.unmount()); mockReduced = true; mockFit.mockReset();
   extra = { fitTo: { key: 2, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 100 } }; await render(); await ready();
   expect(mockFit.mock.calls[0][1].duration).toBe(0);
+});
+
+// Review of V47 (coverage): a zoom tap marks the next settle as the person's. A fit the app makes right after it (a place
+// chosen in the search) is the camera's own move, and its settle must not become the list's area on the zoom's account.
+test('a zoom-button intent followed by a programmatic fit sets no area', async () => {
+  extra = { toolsBottom: 60 };
+  await render(); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+  expect(mockZoom).toHaveBeenCalledTimes(1);
+  extra = { ...extra, fitTo: { key: 7, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 200 } }; await update();
+  expect(mockFit).toHaveBeenCalledTimes(1); expect(fitted).toHaveBeenCalledWith(7);
+  // The fit settles (the map says: not the person's), well inside the time a zoom tap counts for.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.43, 44.8], zoom: 13, bounds: [20.4, 44.78, 20.47, 44.82], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled();
 });
 
 // A tap on a pill may also reach the map as a tap on the ground under it; that one is the pill's, not an empty-map tap.

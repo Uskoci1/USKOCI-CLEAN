@@ -137,6 +137,24 @@ test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin 
  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-3, -3, 3, 3] } })); await wait(AREA_SETTLE_MS);
  expect(search).toHaveBeenCalledTimes(2);
 });
+// Review of V47 (coverage): the wait after a move of the person's own belongs to the map that is on screen. A map taken
+// away, or a screen left for another one, never hands an area up to the list afterwards.
+test('the area wait never fires after the map is unmounted or while its screen is not in front', async () => {
+ await render(); await ready();
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ await wait(AREA_SETTLE_MS - 1);
+ await act(async () => tree.unmount());
+ await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled();
+ // Blurred: the screen is still mounted under the one in front, and its map no longer owns the list.
+ await render(); await ready();
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ mockFocused = false; await update();
+ await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled();
+ // Back in front, a move of the person's own is followed again.
+ mockFocused = true; await update(); await ready();
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ await wait(AREA_SETTLE_MS); expect(search).toHaveBeenCalledTimes(1);
+});
 test('a tap on the empty map closes whatever card is open', async () => {
  await render(); await ready();
  await act(async () => native().props.onPress({ nativeEvent: {} }));

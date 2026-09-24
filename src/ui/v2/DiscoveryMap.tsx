@@ -235,8 +235,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       </View>)}
     </View> : null}
     <View style={s.attribution}>
-      <T style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
-      <T style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
+      <T variant="label" style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
+      <T variant="label" style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
     </View>
   </>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
@@ -308,8 +308,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     {sheetTop && height ? <Animated.View pointerEvents="box-none" style={[s.ride, { height }, ride]}>{controls}</Animated.View>
       : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{controls}</View>}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
-      {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></>
-        : <><T accessibilityRole="alert" style={sys.type.title}>Mapa nije učitana</T><T style={sys.type.body}>Proveri vezu. Zadaci i filteri ostaju u listi.</T>
+      {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>
+        : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proveri vezu. Zadaci i filteri ostaju u listi.</T>
           <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
           {/* A screen whose list is a sheet over the map already offers the list on the sheet's own top line. */}
           {sheetTop ? null : <V2Action label="Pogledaj listu" onPress={props.onList} />}</>}</View> : null}
@@ -325,7 +325,7 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
     return () => { scope.active = false; if (current.current === scope) current.current = null; };
   }, [props.scopeKey]));
   if (!owner?.active || owner.key !== props.scopeKey || current.current !== owner) return <View style={s.feedback}><T>Mapa je dostupna dok je ovaj pregled otvoren.</T></View>;
-  if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /><T style={sys.type.body}>Učitavamo mapu…</T></View>;
+  if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></View>;
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
   return <MapSession key={`${owner.epoch}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
 }
@@ -339,6 +339,6 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // The credits stay visible and linked, as quiet 12 px words with a light halo instead of a white slab (critique B9).
   attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  credit: { fontSize: 12, lineHeight: 16, fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
+  credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

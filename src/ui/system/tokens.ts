@@ -202,6 +202,14 @@ export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.
 export const field = { ...fieldBox, ...sys.type.body, color: sys.color.ink } satisfies TextStyle;
 /** A note inside a screen or a card: a flat tint, no border, no shadow. */
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
+/**
+ * A chosen pill chip (Discovery V47 review: one look over the map and in the search panel): the pale green with a 2 px
+ * green edge, and the caller writes its label in green (5.7:1 on greenSoft) beside a green tick. Never the green fill:
+ * that is the one primary action's. A free chip has a 1 px edge, so a chosen one takes 1 px off its side padding
+ * (`CHIP_CHOSEN_INSET`) and its words do not move.
+ */
+export const chipChosen: ViewStyle = { backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green };
+export const CHIP_CHOSEN_INSET = 1;
 
 /**
  * The one primary action on a screen: green surface with a white label, as V28 and V41 draw it. The owner, looking at

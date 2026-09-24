@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { AccessibilityInfo, BackHandler, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 let mockReduced = false, mockFocused = true;
+// The window: React Native's Jest default (a 2× text size, so "large text") unless a test says otherwise.
+let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
   const List = ({ data, renderItem, ListEmptyComponent, ...props }: any) => React.createElement('List', props,
@@ -11,10 +13,12 @@ jest.mock('react-native', () => {
   // One stable function: a new one on every read would be a new component type, and React would mount the sheet again.
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
   const Keyboard = { dismiss: () => undefined };
+  const useWindowDimensions = () => mockWindow;
   return new Proxy(native, { get(target, key) {
     if (key === 'FlatList') return List;
     if (key === 'Modal') return Modal;
     if (key === 'Keyboard') return Keyboard;
+    if (key === 'useWindowDimensions') return useWindowDimensions;
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -26,7 +30,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
-import { DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
+import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { sys } from '../../ui/system/tokens';
@@ -48,10 +52,13 @@ const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
 let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
 let relationsPending = false;
 let snapshot: MarketplaceView, initial: MarketplaceView;
+/** Set once a task is opened: like the route, the screen then takes no more changes of its view (it is not in front). */
+let navigated = false;
 const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
-  return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey="a:1" view={view} onView={setView}
+  return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey="a:1" view={view}
+    onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} />;
 }
 let tree: ReactTestRenderer;
@@ -78,6 +85,14 @@ const cards = () => listSheet().findAll(node => String(node.type) === 'Press' &&
 // Discovery V47: the search is a panel opened from the pill over the map. Its words are a draft that "Prikaži N zadataka"
 // applies; the one green action is found by its label, which says the count (or that nothing is left).
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
+const list = () => tree.root.findByType('List' as React.ElementType);
+/** The body under the chrome, laid out: the sheet's heights become numbers. */
+const layOutBody = async (height = 800) => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height } } }));
+/** A quick chip over the map (a toggle, spoken as selected or not). */
+const quick = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
+  && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
+const removable = () => tree.root.findAll(node => /^Ukloni /.test(String(node.props.accessibilityLabel ?? '')));
+const tomorrowFlexible = { schedule: { kind: 'TOMORROW_FLEXIBLE', startsAt: null, endsAt: null } };
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
 const radioOf = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === label)[0];
 const search = async (words: string) => {
@@ -87,9 +102,11 @@ const search = async (words: string) => {
 };
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = false; mockFocused = true; relations = undefined;
+  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = navigated = false; mockFocused = true; relations = undefined;
+  mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile, scrollToOffset]) fn.mockReset();
+  (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
 });
 // The sheet's top line: the honest count, which is also the button that opens the list (Discovery V47).
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
@@ -109,7 +126,7 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
   expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada · Dodaj uslove' });
-  await tap('Ukloni filter: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  await tap('Ukloni uslov: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
 });
 
 test('my own tasks are simply not listed, nothing says they are hidden, and a task I applied to says so', async () => {
@@ -121,7 +138,7 @@ test('my own tasks are simply not listed, nothing says they are hidden, and a ta
   expect(texts()).not.toMatch(/sakriven|Prikaži i moje|Sakrij moje|Tvoj zadatak/);
   expect(texts()).toContain('Prijava poslata');
   // The top line counts what is listed, and how many of those the map cannot show.
-  expect(texts()).toContain('3 zadatka'); expect(texts()).toContain(' · 1 bez tačke na mapi');
+  expect(texts()).toContain('3 zadatka'); expect(texts()).toContain(' · 1 zadatak bez tačke na mapi');
 });
 
 test.each([
@@ -138,6 +155,8 @@ test.each([
 test('while reading, the sheet is half open over breathing placeholders; the start is chosen once the read lands', async () => {
   loading = true; rows = []; await render();
   expect(listSheet().props.index).toBe(1); expect(texts()).toContain('Učitavamo zadatke…');
+  // The top line is never blank: while the list is read it says so, and it is still the way into the list.
+  expect(countLine().props.accessibilityLabel).toBe('Učitavamo zadatke…');
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
   loading = false; rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await update();
   expect(listSheet().props.index).toBe(0);
@@ -152,14 +171,17 @@ test('the sheet\'s top line is the button that opens the list: from the top line
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(pressable('Prikaži listu')).toHaveLength(0); expect(pressable('Prikaži mapu')).toHaveLength(0);
   expect(listSheet().props.index).toBe(0);
-  expect(countLine().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '6 zadataka', accessibilityHint: 'Otvara listu zadataka.' });
+  expect(countLine().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '6 zadataka', accessibilityHint: 'Otvara listu zadataka.',
+    accessibilityState: { expanded: false }, accessibilityLiveRegion: 'polite' });
   // Centred, as the one line the top of the sheet says.
   expect(StyleSheet.flatten(countLine().findByType('T' as React.ElementType).props.style).textAlign).toBe('center');
   await act(async () => countLine().props.onPress()); expect(listSheet().props.index).toBe(1);
-  expect(countLine().props.accessibilityHint).toBe('Otvara celu listu.');
+  expect(countLine().props.accessibilityHint).toBe('Otvara celu listu.'); expect(countLine().props.accessibilityState).toEqual({ expanded: true });
   await act(async () => countLine().props.onPress()); expect(listSheet().props.index).toBe(2);
-  // At the full height the count is words, not a button: the way back to the map is "Mapa".
+  // At the full height the count is words, not a button: the way back to the map is "Mapa". They are still heard when
+  // they change (a polite live region).
   expect(countLine()).toBeUndefined(); expect(texts()).toContain('6 zadataka');
+  expect(tree.root.findByProps({ testID: 'list-count-words' }).props.accessibilityLiveRegion).toBe('polite');
   // The map's `onList` still opens the whole list (the prop's contract; the map draws no button for it here).
   await act(async () => listSheet().props.onChange(0)); await act(async () => map().props.onList()); expect(listSheet().props.index).toBe(2);
 });
@@ -180,7 +202,10 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
   expect(pill.findByType('MapTrifold' as React.ElementType).props.color).toBe(sys.color.onGreen);
   expect(StyleSheet.flatten(pill.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.onGreen);
   expect(pill.parent!.props.entering).toBeDefined();
+  // It stands over the list's end, which keeps 80 clear under it (the pill is 48 high, 16 above the bottom).
+  expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBeGreaterThanOrEqual(80);
   await tap('Mapa'); expect(listSheet().props.index).toBe(0); expect(pressable('Mapa')).toHaveLength(0);
+  expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
   // Under reduced motion it is simply there, and simply gone.
   await act(async () => tree.unmount()); mockReduced = true; await render();
   await act(async () => listSheet().props.onChange(2));
@@ -194,8 +219,7 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
 // bar, with the list's top line stepped out of sight behind it. The WHOLE card opens the task; a round × in its corner, a
 // tap on the empty map, a pull up of the list or Back close it, and closing brings the top line back.
 test('a chosen pin opens one floating card whose whole face opens the task; ×, the empty map or a pull up close it and bring the top line back', async () => {
-  const layOut = async () => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOutBody();
   const top = listSheet().props.snapPoints[0];
   expect(top).toBeGreaterThan(HIDDEN);
   await act(async () => map().props.onSelect('t1'));
@@ -203,10 +227,16 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
   expect(map().props.selectedId).toBe('t1');
   expect(peek()!.props).toMatchObject({ detached: true, accessibilityLabel: 'Zadatak na mapi', bottomInset: sys.space.md, handleComponent: null });
   expect(peek()!.props.backdropComponent).toBeUndefined();
-  // The list's top line is not a second strip under the card: it sinks behind it, and a screen reader does not reach it.
+  // The list's top line is not a second strip under the card: it sinks behind it, draws nothing there (no hairline, no
+  // shadow as a sliver under the card), and a screen reader does not reach anything in it.
   expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
-  const header = countLine().parent!;
-  expect(header.props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
+  const content = () => listSheet().findByProps({ testID: 'list-sheet-content' });
+  expect(content().props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
+  const Sunk = listSheet().props.backgroundComponent;
+  let drawn!: ReactTestRenderer; await act(async () => { drawn = create(<Sunk style={{}} />); });
+  expect(StyleSheet.flatten(drawn.root.findByType('View' as React.ElementType).props.style).opacity).toBe(0);
+  // Its coming up is said to a screen reader: the focus stays on the map, so nothing else would tell it.
+  expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Pregled zadatka: Pomoć t1');
   // No separate "Pogledaj zadatak" button: the whole card is the one press, named for what it opens.
   expect(tree.root.findAll(node => node.props.label === 'Pogledaj zadatak')).toHaveLength(0);
   const card = press('Otvori zadatak: Pomoć t1');
@@ -216,7 +246,8 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
   await tap('Zatvori pregled zadatka');
   expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
   expect(listSheet().props.snapPoints[0]).toBe(top);
-  expect(countLine().parent!.props).toMatchObject({ accessibilityElementsHidden: false, importantForAccessibility: 'auto' });
+  expect(content().props).toMatchObject({ accessibilityElementsHidden: false, importantForAccessibility: 'auto' });
+  expect(listSheet().props.backgroundComponent).not.toBe(Sunk);
   // A tap on the empty map closes it too.
   await act(async () => map().props.onSelect('t2')); expect(peek()).toBeDefined();
   await act(async () => map().props.onClear()); expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
@@ -269,16 +300,31 @@ test('tasks on one public point are one place: its card says how many and each r
   await act(async () => map().props.onSelectPlace('44.90,20.50')); expect(snapshot).toMatchObject({ selectedId: 'other', selectedPlace: null });
 });
 
-test('a crowded place offers the whole set in the list instead of a scroll inside its card', async () => {
-  rows = [...['p1', 'p2', 'p3', 'p4'].map(id => row(id, at(44.79, 20.45))), row('far', at(45.2, 19.8))];
+// Review of V47, item 2: "Prikaži sve u listi" was an area around the point, and under an area every task without a point
+// joins the list: the whole set of one place came with every online task. It is now exactly that one point.
+test('a crowded place lists exactly its own tasks: no task without a point joins them, and it is not an area', async () => {
+  rows = [...['p1', 'p2', 'p3', 'p4'].map(id => row(id, at(44.79, 20.45))), row('far', at(45.2, 19.8)),
+    row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
   await render();
   await act(async () => map().props.onSelectPlace('44.79,20.45'));
   expect(texts(peek()!)).toContain('4 zadatka na ovom mestu');
   await click('Prikaži sve u listi');
-  expect(snapshot.selectedPlace).toBeNull(); expect(listSheet().props.index).toBe(2);
+  expect(snapshot).toMatchObject({ pinPlace: '44.79,20.45', area: null, selectedPlace: null }); expect(listSheet().props.index).toBe(2);
   expect(cards()).toEqual(['p1', 'p2', 'p3', 'p4']);
-  // It is an area like any other, and says so under the count, where it can be removed.
-  await tap('Ukloni filter: Oblast sa mape'); expect(snapshot.area).toBeNull(); expect(cards()).toHaveLength(5);
+  expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(0);
+  expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('4 zadatka na ovom mestu');
+  // The map still draws every task.
+  expect(map().props.items).toHaveLength(6);
+  // It is said by the search pill, "Na ovom mestu", and the pill's × takes it away; nothing is added under the count.
+  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Na ovom mestu, /);
+  expect(removable()).toHaveLength(0);
+  await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ pinPlace: null, area: null }); expect(cards()).toHaveLength(6);
+  // The next move of the map the person makes lets it go as well, and the list follows the map's area again.
+  await act(async () => map().props.onSelectPlace('44.79,20.45')); await click('Prikaži sve u listi');
+  expect(snapshot.pinPlace).toBe('44.79,20.45');
+  await act(async () => map().props.onArea([20.4, 44.7, 20.5, 44.9]));
+  expect(snapshot).toMatchObject({ pinPlace: null, area: [20.4, 44.7, 20.5, 44.9] });
+  expect(cards()).toEqual(['p1', 'p2', 'p3', 'p4', 'online']);
 });
 
 describe('Pretraga i uslovi (Discovery V47)', () => {
@@ -295,8 +341,8 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    await tap('Cena'); await choose('Ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
-    expect(radio('Ponude').props.accessibilityState).toEqual({ checked: true });
+    await tap('Cena'); await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
     expect(snapshot).toMatchObject({ when: 'tomorrow', price: 'OFFERS' }); expect(cards()).toEqual(['ponude']);
@@ -307,10 +353,10 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(StyleSheet.flatten(badge.props.style).backgroundColor).toBe(sys.color.green);
     expect(texts(badge)).toBe('2');
     // The pill says them, and each one that is on is a chosen quick chip that takes itself away.
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Sutra · Ponude' });
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Sutra · Tražim ponude' });
     expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true });
     await act(async () => chip('Sutra').props.onPress()); expect(snapshot.when).toBe('any');
-    await act(async () => chip('Ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
+    await act(async () => chip('Tražim ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
     expect(press('Uslovi pretrage')).toBeTruthy();
   });
   test('closing the panel any other way leaves the list exactly as it was; "Obriši sve" empties the draft', async () => {
@@ -321,7 +367,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tap('Uslovi pretrage');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
-    await choose('Danas'); await tap('Cena'); await choose('Moja cena');
+    await choose('Danas'); await tap('Cena'); await choose('Navedena cena');
     await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši sve')!.props.onPress());
     expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
     await tap('Kada'); expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
@@ -330,14 +376,14 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
   test('"Kako se radi" is offered only when a task says how it is done, in the panel and as quick chips', async () => {
     await render(); await tap('Uslovi pretrage');
     expect(texts()).not.toContain('Kako se radi'); expect(texts()).toContain('Kada?'); expect(texts()).toContain('Koliko vas dolazi');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Onlajn')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Na daljinu')).toHaveLength(0);
     await tap('Zatvori pretragu'); await act(async () => tree.unmount());
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tap('Uslovi pretrage');
     expect(texts()).toContain('Kako se radi');
-    await tap('Kako se radi'); await choose('Onlajn'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await tap('Kako se radi'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     await tap('Zatvori pretragu');
-    expect(chip('Onlajn').props.accessibilityState).toEqual({ selected: false });
+    expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
   });
   // Discovery V47: the chips over the map toggle the very filters the panel sets, at once, and only those the loaded tasks
   // can back (a task that says how it is done; a price mode some task uses; a task with two open places).
@@ -345,7 +391,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await render();
     const offered = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState && 'selected' in node.props.accessibilityState
       && !/^Uslovi|^Dodaj/.test(node.props.accessibilityLabel)).map(node => node.props.accessibilityLabel);
-    expect(offered()).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Moja cena', 'Ponude', '2+ mesta']);
+    expect(offered()).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Navedena cena', 'Tražim ponude', '2+ mesta']);
     await act(async () => chip('Danas').props.onPress());
     expect(snapshot.when).toBe('today'); expect(cards()).toEqual(['danas']);
     await tap('Uslovi pretrage, 1 aktivan');
@@ -367,7 +413,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await choose('Vračar, Beograd, 1 zadatak'); await act(async () => showAction().props.onPress());
     expect(snapshot.place).toBe('Vračar, Beograd'); expect(cards()).toEqual(['b']);
     expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd, Bilo kada · Dodaj uslove' });
-    await tap('Ukloni filter: Vračar, Beograd'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
+    await tap('Ukloni uslov: Vračar, Beograd'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
   });
 });
 
@@ -384,9 +430,12 @@ test('"Dodaj zadatak" is the chrome\'s icon button with an orange glyph on white
 test('reading, not read and nothing in this view keep their meanings, through the one state view', async () => {
   error = true; rows = []; await render();
   expect(texts()).toContain('Zadatke trenutno nije moguće učitati'); await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1);
+  // The top line says it too, never a blank.
+  expect(countLine().props.accessibilityLabel).toBe('Zadaci nisu učitani');
   await act(async () => tree.unmount());
   error = false; rows = []; await render();
   expect(texts()).toContain('Trenutno nema otvorenih zadataka'); await click('Dopuni radni profil'); expect(profile).toHaveBeenCalledTimes(1);
+  expect(countLine().props.accessibilityLabel).toBe('Nema zadataka');
   await act(async () => tree.unmount());
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(listSheet().props.index).toBe(0);
@@ -397,17 +446,38 @@ test('reading, not read and nothing in this view keep their meanings, through th
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
   await act(async () => tree.unmount()); initial = { ...initial, query: 'nema takvog' }; await render();
   expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(listSheet().props.index).toBe(1);
-  await click('Poništi filtere'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
+  // The one reset of the app: "Obriši sve", on the empty list as in the panel.
+  expect(tree.root.findAll(node => node.props.label === 'Poništi filtere')).toHaveLength(0);
+  await click('Obriši sve'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
 });
 
-test('pull to refresh is the list\'s own; the list follows the area the map hands up, and its chip takes it away', async () => {
+test('pull to refresh is the list\'s own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {
   refreshing = true; await render();
-  const list = tree.root.findByType('List' as React.ElementType);
-  expect(list.props.refreshing).toBe(true);
-  await act(async () => list.props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(list().props.refreshing).toBe(true);
+  await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);
   await act(async () => map().props.onArea([20, 44, 21, 45])); expect(snapshot.area).toEqual([20, 44, 21, 45]);
-  await tap('Ukloni filter: Oblast sa mape'); expect(snapshot.area).toBeNull();
+  await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
+});
+
+// Review of V47, item 3: the "Oblast sa mape ×" chip under the count came and went with every move of the map, and the
+// sheet's measured top line, and the sheet with it, jumped each time. The area is said by the search pill instead, whose
+// × at its right end takes it away; the × lies over the pill's end, so the pill is exactly as tall with it as without.
+test('a map area adds nothing under the count; the search pill says it, and its × (48 wide, over its end) takes it away', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
+  expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
+  const before = StyleSheet.flatten(press('Pretraži zadatke').props.style);
+  await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
+  expect(removable()).toHaveLength(0);
+  const clear = tree.root.findByProps({ testID: 'clear-where' });
+  expect(clear.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
+  expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ position: 'absolute', top: 0, bottom: 0, width: 48 });
+  const after = StyleSheet.flatten(press('Pretraži zadatke').props.style);
+  expect([after.minHeight, after.paddingVertical, after.borderWidth]).toEqual([before.minHeight, before.paddingVertical, before.borderWidth]);
+  expect(after.paddingRight).toBe(48);
+  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Oblast sa mape, /);
+  await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
+  expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
 });
 
 // Discovery V47: the list follows the map, and the map keeps every pin whatever the area. A task with no public point
@@ -418,7 +488,7 @@ test('under a map area the list holds the area\'s tasks, then those without a po
     row('in2', at(44.82, 20.42)), row('nowhere', { priblizno: null })];
   await render();
   expect(cards()).toEqual(['in1', 'far', 'online', 'in2', 'nowhere']);
-  expect(countLine().props.accessibilityLabel).toBe('5 zadataka · 2 bez tačke na mapi');
+  expect(countLine().props.accessibilityLabel).toBe('5 zadataka · 2 zadatka bez tačke na mapi');
   expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(0);
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   expect(cards()).toEqual(['in1', 'in2', 'online', 'nowhere']);
@@ -430,12 +500,12 @@ test('under a map area the list holds the area\'s tasks, then those without a po
   const order = listSheet().findAll(node => node.props.testID === 'section-without-point'
     || (String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))).map(node => node.props.testID ?? node.props.accessibilityLabel);
   expect(order).toEqual(['Otvori priliku Pomoć in1', 'Otvori priliku Pomoć in2', 'section-without-point', 'Otvori priliku Pomoć online', 'Otvori priliku Pomoć nowhere']);
-  expect(countLine().props.accessibilityLabel).toBe('2 zadatka u oblasti + 2 bez tačke');
+  expect(countLine().props.accessibilityLabel).toBe('2 zadatka u oblasti · 2 zadatka bez tačke na mapi');
   // The map keeps every pin: moving it never takes one away.
   expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['in1', 'far', 'online', 'in2', 'nowhere']);
   // An area with none of its own still keeps the tasks without a point, and says so.
   await act(async () => map().props.onArea([0, 0, 1, 1]));
-  expect(cards()).toEqual(['online', 'nowhere']); expect(countLine().props.accessibilityLabel).toBe('Nema zadataka u oblasti + 2 bez tačke');
+  expect(cards()).toEqual(['online', 'nowhere']); expect(countLine().props.accessibilityLabel).toBe('U oblasti nema zadataka · 2 zadatka bez tačke na mapi');
   // "Prikaži N zadataka" counts the same list.
   await tap('Uslovi pretrage');
   expect(showAction().props.label).toBe('Prikaži 2 zadatka');
@@ -446,7 +516,7 @@ test('an area that holds nothing says so and offers every task back; the sheet t
   expect(listSheet().props.index).toBe(0);
   await act(async () => map().props.onArea([0, 0, 1, 1]));
   // Moving the map never moves the sheet: the reason is on the top line itself.
-  expect(listSheet().props.index).toBe(0); expect(countLine().props.accessibilityLabel).toBe('Nema zadataka u oblasti');
+  expect(listSheet().props.index).toBe(0); expect(countLine().props.accessibilityLabel).toBe('U oblasti nema zadataka');
   expect(texts()).toContain('Nema zadataka u ovoj oblasti');
   await click('Prikaži sve zadatke'); expect(snapshot.area).toBeNull(); expect(cards()).toHaveLength(6);
 });
@@ -502,18 +572,36 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
   } finally { jest.useRealTimers(); }
 });
 
-test('at the full height a scrolled list folds the quick chips away; the search pill stays', async () => {
+// Review of V47, item 13: folding the chips gives the list their room; a list only a little longer than its window then
+// fit, fell back to its top and brought them back, over and over. They now fold only for a list that stays longer than
+// its window without them, and come back only at its very top.
+test('at the full height the quick chips fold only for a list longer than its window without them, and return at its top', async () => {
   jest.useFakeTimers();
   try {
-    rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
+    rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOutBody();
     const chips = () => tree.root.findAllByProps({ accessibilityLabel: 'Brzi filteri' });
-    const list = () => tree.root.findByType('List' as React.ElementType);
-    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 300 } } }));
+    const scroll = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
+    await act(async () => list().props.onContentSizeChange(400, 3000));
+    await scroll(300);
     expect(chips()).toHaveLength(1); // not at the full height
     await act(async () => listSheet().props.onChange(2));
-    expect(chips()).toHaveLength(0); expect(press('Pretraži zadatke')).toBeTruthy();
-    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } }));
+    const [low, , full] = listSheet().props.snapPoints as number[];
+    const window = full - low;
+    // A list only a little longer than its window (less than the chips' room, 56, and 8 more): the chips stay.
+    await scroll(0); await act(async () => list().props.onContentSizeChange(400, window + 60)); await scroll(30);
     expect(chips()).toHaveLength(1);
+    // A long list folds them once scrolled; the pill stays.
+    await act(async () => list().props.onContentSizeChange(400, window + 64)); await scroll(30);
+    expect(chips()).toHaveLength(0); expect(press('Pretraži zadatke')).toBeTruthy();
+    // Back up a little: still folded. At the very top: back.
+    await scroll(4); expect(chips()).toHaveLength(0);
+    await scroll(0); expect(chips()).toHaveLength(1);
+    // The room is the chips' own, as the bar measures it (the row and the gap above it): taller chips need a longer list.
+    await act(async () => chips()[0].props.onLayout({ nativeEvent: { layout: { height: 60 } } }));
+    await act(async () => list().props.onContentSizeChange(400, window + 70)); await scroll(30);
+    expect(chips()).toHaveLength(1);
+    await scroll(0); await act(async () => list().props.onContentSizeChange(400, window + 76)); await scroll(30);
+    expect(chips()).toHaveLength(0);
   } finally { jest.useRealTimers(); }
 });
 
@@ -526,7 +614,7 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
   // A sheet the person has placed elsewhere is left where it is.
-  await tap('Ukloni filter: „prevod“'); await act(async () => listSheet().props.onChange(1));
+  await tap('Ukloni uslov: „prevod“'); await act(async () => listSheet().props.onChange(1));
   await search('prevod'); expect(listSheet().props.index).toBe(1);
 });
 
@@ -592,4 +680,187 @@ test('a chosen pin\'s card tells the map how much it covers, and closing it give
   await act(async () => content[0].props.onLayout({ nativeEvent: { layout: { height: 150 } } }));
   expect(map().props.coverBottom).toBe(2 * sys.space.base + 150 + sys.space.md + sys.space.md);
   await tap('Zatvori pregled zadataka'); expect(peek()).toBeUndefined();
+});
+
+// Review of V47, item 11 (restores the weakened test): a sheet at its top line rises to half when a filter leaves
+// nothing, so the reason can be read. The list here starts at its top line (six tasks, all on the map), and the one
+// thing that changes is a quick chip; without the rise the sheet would stay at its top line.
+test('a sheet resting at its top line rises to half when a quick chip leaves nothing, so the reason is seen', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, { ...at(44.7 + i / 50, 20.4), ...tomorrowFlexible }));
+  await render();
+  expect(listSheet().props.index).toBe(0);
+  await act(async () => quick('Danas').props.onPress());
+  expect(snapshot.when).toBe('today'); expect(cards()).toEqual([]);
+  expect(texts()).toContain('Nema zadataka u ovom prikazu');
+  expect(listSheet().props.index).toBe(1);
+});
+
+// Review of V47, item 10: the empty list's own green action and the floating green "Mapa" must never be on one screen.
+test('an empty list over the map rests at half at most, so its green action and "Mapa" are never on screen together', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, { ...at(44.7 + i / 50, 20.4), ...tomorrowFlexible }));
+  // A camera the person already looked at: the map stays even when the filter leaves no pin on it.
+  initial = { ...initial, viewport: { center: [20.4, 44.8], zoom: 11, bounds: [20.2, 44.6, 20.6, 45] } };
+  await render();
+  await act(async () => listSheet().props.onChange(2)); expect(press('Mapa')).toBeTruthy();
+  await act(async () => quick('Danas').props.onPress());
+  expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
+  expect(action('Obriši sve')).toBeDefined();
+  // Its top line says why and is not a button that would take the list up only to see it come back.
+  expect(countLine()).toBeUndefined(); expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('Nema zadataka');
+  // Pulled up anyway, it comes back to half.
+  await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
+  // With tasks again, the whole list is open to it.
+  await act(async () => quick('Danas').props.onPress()); await act(async () => listSheet().props.onChange(2));
+  expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeTruthy();
+});
+
+// Review of V47, item 14: Back with the whole list up over the map lowers it, as it closes the card and the panel.
+test('Android Back with the whole list up over the map lowers it to its top line, only while the screen is in front', async () => {
+  const listeners: (() => boolean)[] = [], remove = jest.fn();
+  const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(((_event: string, handler: () => boolean) => {
+    listeners.push(handler); return { remove };
+  }) as never);
+  try {
+    rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
+    expect(listeners).toHaveLength(0);
+    await act(async () => listSheet().props.onChange(2));
+    expect(listeners).toHaveLength(1);
+    let consumed = false; await act(async () => { consumed = listeners[0](); });
+    expect(consumed).toBe(true); expect(listSheet().props.index).toBe(0); expect(remove).toHaveBeenCalledTimes(1);
+    // A task opened over the map: Back belongs to it, not to this list.
+    mockFocused = false; await act(async () => listSheet().props.onChange(2));
+    expect(listeners).toHaveLength(1);
+    // A list with nothing on the map takes the whole screen; Back then leaves the screen as usual.
+    mockFocused = true; await act(async () => tree.unmount()); rows = [row('remote', { priblizno: null })]; listeners.length = 0; await render();
+    expect(listSheet().props.index).toBe(2); expect(listeners).toHaveLength(0);
+  } finally { spy.mockRestore(); }
+});
+
+// Review of V47, item 12: a restore still waiting for the rows must not pull the list away from the person, and a scroll
+// not yet written when a task is opened must not be lost (the route takes no changes once the task is in front).
+test('a waiting restore is dropped when the list is taken hold of or refreshed; opening a task writes the scroll first', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+    initial = { ...initial, sheet: 'full', listOffset: 640 }; await render();
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false });
+    // The person takes hold of the list before the rows are long enough: the list is not moved under their finger.
+    scrollToOffset.mockReset();
+    await act(async () => list().props.onScrollBeginDrag({ nativeEvent: {} }));
+    await act(async () => list().props.onContentSizeChange(400, 2000));
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    // A refresh drops it too.
+    await act(async () => tree.unmount()); scrollToOffset.mockReset(); await render();
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false }); scrollToOffset.mockReset();
+    await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
+    await act(async () => list().props.onContentSizeChange(400, 2000));
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    // Scrolled, and a task opened at once: the scroll is written before the task opens.
+    open.mockImplementation(() => { navigated = true; });
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 300 } } }));
+    await tap('Otvori priliku Pomoć t3');
+    expect(open).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS * 2); });
+    expect(snapshot.listOffset).toBe(300);
+  } finally { jest.useRealTimers(); }
+});
+
+// Review of V47, item 9: TalkBack hears the count line (a polite live region); iOS has none, so VoiceOver hears the new
+// count once the list's area has stayed still for a second (a new move inside that second starts it again).
+test('on iOS the new count is said once the list\'s area has stayed still for a second', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = [row('in1', at(44.81, 20.41)), row('in2', at(44.82, 20.42)), row('far', at(45.5, 19.5))]; await render();
+    const announce = AccessibilityInfo.announceForAccessibility as jest.Mock; announce.mockClear();
+    await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
+    await act(async () => { jest.advanceTimersByTime(AREA_ANNOUNCE_MS / 2); });
+    await act(async () => map().props.onArea([20.3, 44.7, 20.6, 44.9]));
+    await act(async () => { jest.advanceTimersByTime(AREA_ANNOUNCE_MS - 1); }); expect(announce).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(announce.mock.calls).toEqual([['2 zadatka u oblasti']]);
+    // A screen left before the second is over says nothing.
+    await act(async () => map().props.onArea([0, 0, 1, 1])); mockFocused = false; await update();
+    await act(async () => { jest.advanceTimersByTime(AREA_ANNOUNCE_MS * 2); }); expect(announce).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+
+// Review of V47, item 1: while the list, or which of its tasks are mine, is still read, the search counts nothing.
+test('the search panel counts nothing while the list or what is mine is still read, and the search never says "0 zadataka"', async () => {
+  loading = true; rows = []; await render();
+  expect(press('Pretraži zadatke').props.accessibilityValue.text).not.toMatch(/\d+ zadat/);
+  await tap('Uslovi pretrage');
+  expect(action('Učitavamo zadatke…').props.disabled).toBe(true);
+  await tap('Gde'); expect(radioOf('Svi zadaci')).toBeDefined();
+  await tap('Zatvori pretragu'); await act(async () => tree.unmount());
+  loading = false; relationsPending = true; rows = [row('a'), row('bb')]; await render();
+  await tap('Pretraži zadatke');
+  expect(action('Prikaži zadatke').props.disabled).toBe(false); expect(radioOf('Svi zadaci')).toBeDefined();
+  await tap('Zatvori pretragu'); await act(async () => tree.unmount());
+  relationsPending = false; error = true; rows = []; await render(); await tap('Uslovi pretrage');
+  expect(action('Zadaci nisu učitani').props.disabled).toBe(true);
+});
+
+// Review of V47, item 20: "now" is read again when the panel opens, so a panel opened after midnight knows the new day.
+test('the search panel reads today again when it opens', async () => {
+  jest.useFakeTimers({ now: new Date('2026-09-24T21:58:00Z') });
+  try {
+    await render();
+    jest.setSystemTime(new Date('2026-09-24T22:02:00Z')); // 00:02 on the 25th in Belgrade
+    await tap('Uslovi pretrage');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
+    const day = (n: number) => tree.root.findAll(node => String(node.type) === 'Press' && new RegExp(`, ${n}\\. sep`).test(node.props.accessibilityLabel ?? ''))[0];
+    expect(day(24).props.accessibilityLabel).toMatch(/prošao dan$/); expect(day(25).props.accessibilityLabel).toMatch(/, danas$/);
+  } finally { jest.useRealTimers(); }
+});
+
+// Review of V47, item 20: a chosen pin whose task a new read no longer has is let go, not kept as a hidden selection.
+test('a chosen pin whose task is gone from a newly landed read is let go', async () => {
+  await render();
+  await act(async () => map().props.onSelect('bb')); expect(peek()).toBeDefined();
+  rows = [row('a'), row('ccc')]; await update();
+  expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
+});
+
+// Review of V47, item 21 (coverage): the note under the list for the tasks a time choice leaves out.
+test('a time choice says under the list how many tasks it leaves out because they name no day', async () => {
+  rows = [row('danas', { schedule: { kind: 'TODAY_FLEXIBLE', startsAt: null, endsAt: null } }), row('bez-datuma'), row('bez-datuma-2')];
+  await render();
+  expect(list().props.ListFooterComponent).toBeNull();
+  await act(async () => quick('Danas').props.onPress());
+  expect(cards()).toEqual(['danas']);
+  expect(list().props.ListFooterComponent.props.children).toBe('2 zadatka bez datuma nisu u ovom izboru.');
+  await act(async () => quick('Danas').props.onPress()); expect(list().props.ListFooterComponent).toBeNull();
+});
+
+// Review of V47, item 16: at large text the search pill's two lines may each take two lines; the pin card may take more
+// of the window rather than be cut off. At the usual text size both keep their compact form.
+test('at large text the search pill\'s lines wrap and the pin card may take more of the window', async () => {
+  mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
+  const lines = () => press('Pretraži zadatke').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
+  expect(lines()).toEqual([1, 1]);
+  await act(async () => map().props.onSelect('bb'));
+  expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
+  await act(async () => tree.unmount());
+  mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
+  expect(lines()).toEqual([2, 2]);
+  await act(async () => map().props.onSelect('bb'));
+  expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
+});
+
+// Review of V47, items 17 and 19: over the map the pill is drawn by the card edge, and the chips carry no shadow that the
+// scrolling row would cut off; a chosen chip is the one chosen-chip look (pale green, green edge and words, a tick).
+test('over the map: the pill has the card edge; a chip has no shadow; a chosen chip is pale green with a tick', async () => {
+  await render();
+  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderColor).toBe(sys.color.cardLine);
+  const free = StyleSheet.flatten(quick('Navedena cena').props.style);
+  expect(free.boxShadow).toBeUndefined(); expect(free.elevation).toBeUndefined();
+  await act(async () => quick('Navedena cena').props.onPress());
+  const chosen = quick('Navedena cena'), style = StyleSheet.flatten(chosen.props.style);
+  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green });
+  expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.green);
+  expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.green);
+  // A condition under the count removes itself by name, and takes 48 to a finger.
+  await act(async () => tree.unmount()); initial = { ...initial, query: 'Pomoć' }; await render();
+  const remove = press('Ukloni uslov: „Pomoć“');
+  expect(StyleSheet.flatten(remove.props.style).minHeight + remove.props.hitSlop.top + remove.props.hitSlop.bottom).toBeGreaterThanOrEqual(48);
 });

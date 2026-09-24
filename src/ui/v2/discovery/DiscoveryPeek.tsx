@@ -1,12 +1,13 @@
-import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { useEffect } from 'react';
+import { AccessibilityInfo, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { CaretRight, X } from 'phosphor-react-native';
 import { pinLabel, type MarketplaceItem } from '../../../data/marketplaceView';
 import { needScheduleText, readableTitle } from '../../../data/needDetailPresentation';
 import { displaysUrgent } from '../../../lib/needUrgency';
 import { Press } from '../../Press';
 import { T } from '../../Text';
-import { PeekSheet } from '../../system/PeekSheet';
-import { ChromeIconButton } from '../../system/ScreenChrome';
+import { PEEK_MAX_SHARE, PeekSheet } from '../../system/PeekSheet';
+import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
@@ -21,11 +22,17 @@ export const PLACE_ROWS = 3;
 const PEEK_FRAME = 2 * sys.space.base;
 /** The × sits this far in from the card's top-right corner, clear of its rounded edge. */
 const CLOSE_INSET = sys.space.sm;
+/**
+ * How much of the window the pin card may take once the words are large (text size 1.3 and up): its title, place and
+ * time, price and poster then need more than the half every other card gets, and a card that is cut off hides the very
+ * facts it is for. At the usual text size it keeps the half.
+ */
+export const PIN_CARD_LARGE_SHARE = 0.75;
 
 /** A task's price as words beside its name in a place's rows: money in the money colour, anything else never so. */
 function PriceWords({ item }: { item: MarketplaceItem }) {
   const label = pinLabel(item);
-  return label.tone === 'money' ? <T style={s.money}>{label.spoken}</T>
+  return label.tone === 'money' ? <T variant="priceRow" style={s.money}>{label.spoken}</T>
     : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? 'Tražim ponude' : 'Cena nije navedena'}</T>;
 }
 
@@ -59,7 +66,7 @@ function PinTask({ item, applied, onOpen, onClose, onLayout }: {
       haptic="select" scaleTo={1} onPress={onOpen} style={s.pinBody}>
       {head ? <View style={s.clearOfClose}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
       <CardTitle title={title} lines={2} style={!head && s.clearOfClose} />
-      <T style={s.meta} numberOfLines={2}>{`${place.text} · ${schedule}`}</T>
+      <T variant="note" style={s.meta} numberOfLines={2}>{`${place.text} · ${schedule}`}</T>
       <CardValue value={value} large />
       {item.pokrivenost || person ? <CardFoot large={large} person={person}
         places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience="worker" large={large} /> : null} /> : null}
@@ -73,7 +80,9 @@ function PinTask({ item, applied, onOpen, onClose, onLayout }: {
  * the tab bar, over the list sheet's top line (which steps out of sight behind it while it shows). A single task is
  * `PinTask`; several tasks on one point say how many and list them as rows, each opening its own task ("Pogledaj
  * zadatak"), up to three, with the whole set offered in the list. ×, a swipe down and Android Back close it; under reduced
- * motion it appears without moving. Every opening goes through the screen's own guarded `onOpen`.
+ * motion it appears without moving. Every opening goes through the screen's own guarded `onOpen`. Its opening is said
+ * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
+ * text it may take more of the window than other cards rather than be cut off.
  */
 export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduced, onOpen, onShowPlace, onClose, onHeight }: {
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
@@ -87,7 +96,11 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
   onHeight?: (height: number) => void;
 }) {
   const { height: windowHeight } = useWindowDimensions();
-  const cap = Math.round(windowHeight * 0.5);
+  const share = useTextScale() >= 1.3 ? PIN_CARD_LARGE_SHARE : PEEK_MAX_SHARE;
+  const cap = Math.round(windowHeight * share);
+  // One card per choice (the screen keys it by the task or the place), so this runs once for each card that comes up.
+  const opened = item ? `Pregled zadatka: ${readableTitle(item.naslov)}` : `${zadataka(place.length)} na ovom mestu`;
+  useEffect(() => { AccessibilityInfo.announceForAccessibility?.(opened); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // The single card reaches the sheet's edges itself (its whole face is the press); a place's rows sit in its padding.
   const measureCard = (event: LayoutChangeEvent) => {
     const whole = Math.ceil(event.nativeEvent.layout.height);
@@ -98,7 +111,7 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
     if (content > 0) onHeight?.(Math.min(PEEK_FRAME + content, cap));
   };
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
-    handle={false} onClose={onClose}>
+    handle={false} maxShare={share} onClose={onClose}>
     {dismiss => item ? <PinTask item={item} applied={applied(item)} onOpen={() => onOpen(item)} onClose={dismiss} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={s.head}>
@@ -108,7 +121,7 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
         {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledaj zadatak ${readableTitle(task.naslov)}`}
           haptic="select" scaleTo={0.98} onPress={() => onOpen(task)} style={s.row}>
           <View style={s.grow}>
-            <T style={s.rowTitle} numberOfLines={2}>{readableTitle(task.naslov)}</T>
+            <T variant="cardTitleCompact" style={s.rowTitle} numberOfLines={2}>{readableTitle(task.naslov)}</T>
             <T variant="note" tone="muted" numberOfLines={1}>{applied(task) ? 'Prijava poslata · ' : ''}{task.schedule ? needScheduleText(task.schedule, task.taskTimezone) : task.vremeTekst}</T>
           </View>
           <PriceWords item={task} />
@@ -122,19 +135,20 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
 const s = StyleSheet.create({
   stack: { gap: sys.space.md },
   grow: { flex: 1, minWidth: 0 },
-  // The single card's face spans the whole card, its padding included, so every part of it opens the task.
+  // The single card's face spans the whole card, its padding included, so every part of it opens the task. Its lines
+  // are as far apart as a task card's.
   pin: { margin: -sys.space.base },
-  pinBody: { padding: sys.space.base, gap: 6, borderRadius: sys.radius.card },
-  // The first line keeps clear of the × in the corner.
-  clearOfClose: { marginRight: 48 },
-  meta: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact },
+  pinBody: { padding: sys.space.base, gap: sys.space.sm, borderRadius: sys.radius.card },
+  // The first line keeps clear of the × in the corner (one chrome control wide).
+  clearOfClose: { marginRight: chrome.control },
+  meta: { fontWeight: '500', color: sys.color.fact },
   close: { position: 'absolute', top: CLOSE_INSET, right: CLOSE_INSET },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   title: { flex: 1, color: sys.color.ink },
   // A row inside the card is a flat tint at the control corner, never another card.
-  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingHorizontal: sys.space.md, paddingVertical: 10,
+  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
     borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
-  rowTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
-  money: { ...sys.type.priceRow, color: sys.color.money },
+  rowTitle: { color: sys.color.ink },
+  money: { color: sys.color.money },
   word: { maxWidth: 110, textAlign: 'right' },
 });
