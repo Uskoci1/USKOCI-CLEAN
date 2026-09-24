@@ -148,3 +148,57 @@ and the price list belong to it; the cloud session did not touch those files. It
 **Still the owner's:** the payment model (free now; later Google Play billing, e.g. via RevenueCat, and/or a web
 "USKOČI kredit" with DinaCard/Visa; KupujemProdajem-style paid visibility discussed), legal documents, the geocoder,
 the production database, Play Console and the closed test.
+
+## Handoff to Codex — 2026-09-24, 23:55 (owner: "Codex takes over what was not finished, from this moment")
+
+**Where the branch stands** (`git log -1`; everything below is pushed once the full Jest is green on it):
+
+- PKG-051a (platform price list at 0 RSD) is proven and APPLIED to DEV (ledger 202); nothing more to do there.
+- Round-6 emulator check of build b4531ef4: `../r6-emulator-b4531ef/` (contact sheets, `FINDINGS.json` with 113
+  confirmed findings, `R6_CRITIQUE.md` with the fix order per file, `R6_RECEIPT.json`).
+- Fixes already integrated from that list (each fixer ran tsc + its focused suites; the combined full Jest result is in
+  the commit that carries this section):
+  - `97653c2d` system: one-row ProductSheet header (the × no longer drops under the title), `clock` FactArt on time
+    fields, Skeleton variants `thread` / `facts` / `preview` / `face` / `person`, StateView on the gutter with a
+    full-width action. **Callers still to switch to the new variants:** `src/ui/qa/TaskQaPresentation.tsx:60` →
+    `{count:3, variant:'thread'}`; `src/ui/agreements/AgreementActionsPresentation.tsx:90` → `{count:1, rows:3,
+    variant:'facts'}`; `src/app/(app)/pregled-zadatka.tsx:403` and `src/app/dizajn-objava.tsx:115` → `{count:1,
+    rows:3, variant:'preview'}`; `src/ui/v2/ApplicationComposerPresentation.tsx:120` → `variant:'face'`;
+    `src/ui/reviews/AgreementReviewPresentation.tsx:79` → `{count:1, variant:'person'}`.
+  - `b1f394e6` prijava: 20 findings in the application composer, its route, the rating screen and the gallery.
+  - `94a550d7` dodaci: group conversation in the Poruke look, photo tray commands that say why.
+  - `25dd5d13` dodaci: Q&A recovery panel in plain Serbian, reasoned retry, a way to the Radni profil, honest message
+    tones, PillComposer `above` slot on the page gutter.
+  - `45f34a4d` ResolvedPinMap (rows 8 and 15): the public approximate map draws a translucent green area instead of
+    an exact-looking pin; the SDK attribution/compass/logo are off and the three credits (© OpenStreetMap,
+    © OpenMapTiles, OpenFreeMap) sit in a capsule with 48 dp targets; the spoken name follows the mode. Note: at
+    HEAD DiscoveryMap still shows the SDK "i" — align it the same way (Codex, row 16 / 15).
+  - **Izmene (row 12 + the Izmene lows) is NOT on the branch.** The agent was cut off by the session limit before
+    verification; its work is pushed as branch **`wip/r6fix-izmene`** (commit `6976f960`, "WIP (unverified)"):
+    a new shared `src/ui/system/FlowFooter.tsx` + test, `AgreementActionsPresentation.tsx`, `counterpartName` in
+    `decodeChangeWorkspace`, the izmene fixtures and three test files. Codex: check it out, finish the test updates,
+    run tsc + the focused suites (`src/ui/agreements`, `agreementClientService`, `dizajn-dodaci`, `flow-footer`,
+    `pkg036-lifecycle-refusals`), then merge it; or redo row 12 from `FINDINGS.json` if it is easier.
+  - Full Jest on `25dd5d13` (the first four groups): 303 suites pass + the known `firebase-config` first-run timeout,
+    which passes alone; `tsc` clean. The ResolvedPinMap commit adds 41/41 in `src/ui/location`.
+
+**Codex takes, from this moment (one writer per file, `git fetch` + merge before every push, no rebase, no force):**
+
+1. The remaining "Fix first" rows of `../r6-emulator-b4531ef/R6_CRITIQUE.md`: 7 (publish review), 9 (place form),
+   10 (task photos), 16 (Zadaci pin card / sunk sheet / cluster), the DiscoveryMap half of 15, plus any of 12 / 8 / 15
+   not on the branch (see above), and the six skeleton-variant caller switches listed above.
+2. The owner's evening decisions a–d (README "Next, in this order", step 2): remove "Trenutna lokacija" (the lokacija
+   skeptic's checklist is the last entry of the dodaci lokacija group in `FINDINGS.json`), no place checkbox,
+   "U blizini" with `expo-location`, the rating-comment server package (candidate + disposable proof + contract; DEV
+   only on the owner's "primeni").
+3. After each step: `npx tsc --noEmit -p tsconfig.json`, full Jest, push, dispatch the emulator APK
+   (`gh workflow run build-android-dev-apk.yml --ref work/uskoci-ui-unification-20260924 -f target=emulator`) and the
+   proofs whose paths match; re-walk the galleries on the emulator (`uskociapp://dizajn-*`; leave a scene with the
+   gallery's own "Nazad na scene" button — Android Back on a scene exits the app; if the emulator turns all black,
+   cold-boot it with `-no-snapshot-load` and set the time zone with `adb shell service call alarm 3 s16
+   Europe/Belgrade`); then the widths 320–430 dp and font scale 1.3, the real flows and TalkBack, which this check did
+   not cover.
+4. Do NOT work inside `.claude/worktrees/uskoci-kompletan-audit-2e715e` (the owner's Claude checkout): use
+   `USKOCI-CLEAN` or your own worktree. Never commit the untracked
+   `supabase/migrations/20260913090000_clean_v5_fix_application_spam_and_resolution.sql`, `.impeccable/` or
+   `outputs/…` scratch files; payments and the price list stay with the owner's Claude session.
