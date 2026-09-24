@@ -16,7 +16,7 @@ export type ConversationMessage = { id: string; fromAi: boolean; body: string;
    *  "zabelezio sam" is a claim; this is the claim made checkable. */
   understood?: readonly { key: string; label: string; value: string }[] };
 export type AiConversationShellProps = {
-  title: string; subtitle: string; card: (compact: boolean) => ReactNode;
+  title: string; subtitle?: string; card: (compact: boolean) => ReactNode;
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void; onOptions: () => void;
@@ -46,11 +46,13 @@ export type AiConversationShellProps = {
 export function AiConversationShell(p: AiConversationShellProps) {
   const { height, fontScale } = useWindowDimensions();
   const [keyboard, setKeyboard] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   // Voice is the default way in; the text row is one tap away and stays open once used.
   const [typing, setTyping] = useState(false);
   const input = useRef<TextInput>(null);
   // A draft has to be readable wherever it came from, so speech opens the field too.
   const draft = typing || !p.voice || p.value.length > 0 || p.pending;
+  const showSend = !p.voice || p.value.trim().length > 0 || p.pending;
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const reduced = useSystemReducedMotion();
@@ -120,20 +122,21 @@ export function AiConversationShell(p: AiConversationShellProps) {
             chosen and the microphone steps aside, rather than the two sharing the screen.
             A draft also opens it unprompted, because speech lands here for review before
             sending and must never end up somewhere the user cannot see it. */}
-        {draft ? <View style={s.composer}>
+        {draft ? <View style={[s.composer, inputFocused && s.composerFocused]}>
           {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
             accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
             haptic={p.addDisabled ? 'none' : 'select'} style={[s.composerWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
             <Plus size={24} color={sys.color.ink} weight="bold" /></Press> : null}
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} onChangeText={p.onChange} editable={p.canEdit}
+            onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             placeholder="Napiši šta ti treba…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
           {p.voice ? <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.voiceSwitch}
             onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
             <Microphone size={22} color={sys.color.green} weight="bold" /></Press> : null}
-          <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
+          {showSend ? <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
-            <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press>
+            <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press> : null}
         </View> : null}
         {p.voice && !draft ? <View testID="ai-composer-bar" style={s.bar}>
           {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
@@ -197,8 +200,8 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: a.color.surface }, flex: { flex: 1, minHeight: 0 },
   body: { ...sys.type.speech, color: sys.color.ink },
   userBody: { ...sys.type.body, color: sys.color.ink },
-  cardArea: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 12 }, cardCompact: { paddingTop: 0, paddingBottom: 8 },
-  thread: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 28, gap: 22 },
+  cardArea: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10 }, cardCompact: { paddingTop: 0, paddingBottom: 8 },
+  thread: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 24, gap: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: 60 },
   welcome: { gap: 12, paddingTop: 14, paddingBottom: 8, maxWidth: 330 },
   welcomeTitle: { color: sys.color.ink },
@@ -207,7 +210,7 @@ const s = StyleSheet.create({
   opening: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.wash },
   openingText: { color: a.color.green, fontWeight: '600' },
-  message: { gap: 8, alignSelf: 'flex-start', maxWidth: '94%' },
+  message: { gap: 8, alignSelf: 'flex-start', maxWidth: '90%' },
   // What the turn took, as a row of quiet chips rather than a bordered table.
   understood: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
   chip: { flexDirection: 'row', alignItems: 'baseline', gap: 5, maxWidth: '100%',
@@ -215,8 +218,8 @@ const s = StyleSheet.create({
   chipValue: { color: sys.color.ink, flexShrink: 1 },
   typing: { flexDirection: 'row', gap: 5, alignItems: 'center', paddingVertical: 8, paddingLeft: 2 },
   dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: a.color.green },
-  userMessage: { alignSelf: 'flex-end', paddingVertical: 12, paddingHorizontal: 16, borderRadius: sys.radius.sheet, borderBottomRightRadius: 8,
-    backgroundColor: a.color.greenSoft, marginLeft: 36 },
+  userMessage: { alignSelf: 'flex-end', paddingVertical: 11, paddingHorizontal: 15, borderRadius: 22, borderBottomRightRadius: 7,
+    backgroundColor: a.color.greenSoft, marginLeft: 40 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: a.color.wash },
   actions: { gap: 10 },
   footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12, gap: 8, backgroundColor: a.color.surface },
@@ -235,6 +238,7 @@ const s = StyleSheet.create({
   composer: { flexDirection: 'row', gap: 6, alignItems: 'flex-end', minHeight: 64, borderRadius: 32,
     borderWidth: 1, borderColor: a.color.cardLine, backgroundColor: a.color.surface, paddingVertical: 6, paddingHorizontal: 7,
     shadowColor: a.color.ink, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
+  composerFocused: { borderColor: a.color.green, shadowOpacity: 0.11 },
   input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 50, maxHeight: 116, paddingHorizontal: 10, paddingVertical: 12, textAlignVertical: 'top' },
   send: { width: 50, height: 50, borderRadius: sys.radius.pill, backgroundColor: a.color.green, alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.4 },
