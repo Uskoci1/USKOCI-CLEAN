@@ -130,9 +130,15 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
 }) {
   const [tab, setTab] = useState<AgreementTab>(initialTab);
   const other = item.ucesnici.find(person => !person.viSte);
-  const isWorker = me.uloga === 'uskocer';
+  const isWorker = me.uloga === 'uskocer', isRequester = me.uloga === 'narucilac';
   const active = item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER';
-  const step = agreementNextStep({ state: item.stanje, party: true, worker: isWorker, change: { waits: false, mine: null }, ownRating,
+  // The scenes compose what the route composes (round 4 review rd item 3: photos of a scene the real screen never draws
+  // would be false evidence). A change that waits is the step card's subject, and one from the other side is answered by
+  // the footer's one action, as `dogovor/[id].tsx` decides; the requester has no change row once the worker said done.
+  const change = { waits: active && !!item.izmenaCeka, mine: active && item.izmenaCeka ? item.izmenaCeka.mojPredlog : null };
+  const footer = change.waits && change.mine === false ? 'Odgovori na predlog' : brand;
+  const changeRow = active && !(isRequester && item.stanje === 'AWAITING_REQUESTER');
+  const step = agreementNextStep({ state: item.stanje, party: true, worker: isWorker, change, ownRating,
     problemOpen: item.problemOtvoren, deadline: 'Do 27. sep · 17:00' });
   return <View style={s.fill}>
     {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
@@ -148,7 +154,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         <WorkspaceRows>
           <WorkspaceRow art="tasks" label="Zadatak" onPress={noop} />
           {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
-          {active ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" onPress={noop} /> : null}
+          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" onPress={noop} /> : null}
           {active && item.rezim !== 'DALJINSKI' ? <WorkspaceRow art="pin" label={isWorker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'}
             hint="Jedna tačka, samo uz pristanak" onPress={noop} /> : null}
           <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
@@ -157,7 +163,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
         </AgreementSection>
       </ScrollView>
-      <WorkspaceFooter brand={{ label: brand, onPress: brand === 'Otvori poruke' ? () => setTab('poruke') : noop }} />
+      <WorkspaceFooter brand={{ label: footer, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }} />
     </>}
   </View>;
 }

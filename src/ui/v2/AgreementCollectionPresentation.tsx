@@ -15,12 +15,12 @@ import { ChromeIconButton } from '../system/ScreenChrome';
 import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
-import { nested, sys, cardCompact } from '../system/tokens';
+import { sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { agreementPeople, agreementRole, agreementStateText, agreementTerm } from './AgreementPresentation';
 import { CARD_PRESS_SCALE } from './TaskCard';
-import { CardFact, WaitingDot } from './TaskFace';
+import { CardFact, WaitingDot, faceStyles } from './TaskFace';
 
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
 export type AgreementCollectionSection = 'active' | 'history';
@@ -286,7 +286,7 @@ const s = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },
   // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
-  // card stays one target up to its edge; the foot follows the card's lower corners inside its 1 px edge.
+  // card stays one target up to its edge; the foot lies on the card's own white under one hairline.
   card: { ...cardCompact, padding: 0 },
   body: { borderRadius: sys.radius.cardCompact },
   main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, gap: 10 },
@@ -309,9 +309,9 @@ const s = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 8 }, noteText: { flexShrink: 1 },
   problem: { alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface,
-    borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
+  // The card system's own white foot (`faceStyles.footLink`, review r4 rd item 7: this was a copy of it with its own
+  // fill and corners), a step taller for its two lines.
+  foot: { ...faceStyles.footLink, minHeight: 52 },
   footCopy: { flex: 1, minWidth: 0, gap: 1 },
   footTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
   footLine: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },

@@ -8,6 +8,7 @@ import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
+import { plural } from './system/plural';
 import { sys } from './system/tokens';
 import { T } from './Text';
 import { positiveInteger, uuid } from '../data/serverReceipt';
@@ -56,6 +57,18 @@ export function messageMoment(text: string): { day: string | null; clock: string
   return CLOCK.test(text.trim()) ? { day: 'Danas', clock: text.trim() } : { day: null, clock: text };
 }
 
+/**
+ * A message as a screen reader hears it, in one stop: who ("Ti" for mine), what (the text, or its photos when it has no
+ * text), and when (the day the read named, then the clock).
+ */
+export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljalacIme' | 'telo' | 'fotografije'>,
+  moment: { day: string | null; clock: string }): string {
+  const who = message.moja ? 'Ti' : message.posiljalacIme;
+  const photoCount = message.fotografije?.length ?? 0;
+  const what = message.telo || (photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : 'poruka bez teksta');
+  return `${who}: ${what}, ${moment.day ? `${moment.day}, ` : ''}${moment.clock}`;
+}
+
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
 function ChatAction({ label, text = label, onPress, tone = 'green', center = false }: { label: string; text?: string; onPress: () => void;
   tone?: 'green' | 'ink'; center?: boolean }) {
@@ -65,8 +78,8 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
 }
 
 /**
- * The conversation of a Dogovor, calm and modern (owner step 8): the other person's messages on the left on the quiet
- * wash, mine on the right on pale green, each with its clock small and muted, a day named once above its messages, and
+ * The conversation of a Dogovor, calm and modern (owner step 8): the other person's messages on the left, white with the
+ * card edge, mine on the right on pale green, each with its clock small and muted, a day named once above its messages, and
  * a floating pill to write in, in the look of the AI conversation's composer (text and send, with the photo tools behind
  * its "+"). Pending sends render under the list with their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
@@ -107,7 +120,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     if (currentPhotos && !currentPhotos.canSubmit()) return;
     const attachments = currentPhotos?.capture();
     if (currentPhotos?.hasSelection && !attachments) return;
-    void outbox.sendDraft(attachments ?? undefined).then(async () => { await refresh(); await currentPhotos?.refresh(); });
+    // The photo tools fold back behind the "+" once the message has gone (review r4 rd item 6).
+    void outbox.sendDraft(attachments ?? undefined).then(async () => { setAttachOpen(false); await refresh(); await currentPhotos?.refresh(); });
   };
   // Reconciliation includes the real sender/key/body in the model. Never use
   // matching text alone to pretend that an uncertain send was accepted.
@@ -118,10 +132,15 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         ? { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } : undefined)
       && (!entry.messageId || message.id === entry.messageId)));
   const denied = state.entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
-  // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists.
-  const photoPanel = !!photos && !terminal && (attachOpen || photos.hasSelection || !!photos.items?.length || !!photos.message || !!photos.versionConflict);
+  // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists, and
+  // then the "+" (drawn as the close X) cannot fold it away, so it says so instead of swapping its icon for nothing
+  // (review r4 rd item 6).
+  const forced = !!photos && (photos.hasSelection || !!photos.items?.length || !!photos.message || !!photos.versionConflict);
+  const photoPanel = !!photos && !terminal && (attachOpen || forced);
   const shown = !error ? messages : [];
   const empty = !loading && !error && messages.length === 0 && local.length === 0;
+  // The first read's spinner stands in the middle like every other state, not on the composer (review r4 rd item 8).
+  const centred = empty || error || (loading && !shown.length && !local.length);
   let previousDay: string | null = null;
   return (
     <View style={s.screen}>
@@ -130,8 +149,12 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
         }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
-        contentContainerStyle={[s.list, empty || error ? s.listCentred : s.listBottom]}>
+        contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
+        {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
+            update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
+            thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). */}
+        {shown.length && !error ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
           <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
@@ -154,7 +177,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           const sameRun = !!before && !newDay && before.moja === message.moja;
           return <Fragment key={message.id}>
             {newDay ? <T accessibilityRole="header" style={s.day}>{moment.day}</T> : null}
-            <Press accessibilityRole="button" accessibilityLabel={`Poruka: ${message.posiljalacIme}`} accessibilityHint="Dugi pritisak nudi prijavu podršci."
+            {/* The bubble is one stop for a screen reader, so its label says the message itself: who, what, when
+                (review r4 rd item 2; it said only "Poruka: <ime>", and the text and the time were never heard). */}
+            <Press accessibilityRole="button" accessibilityLabel={messageSpoken(message, moment)} accessibilityHint="Dugi pritisak nudi prijavu podršci."
               onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
               style={[s.bubble, message.moja ? s.mine : s.theirs, sameRun ? s.run : s.turn]}>
               {message.telo ? <T selectable style={s.body}>{message.telo}</T> : null}
@@ -162,14 +187,17 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
                 agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${photoIndex + 1}`}
                 style={s.photo} /> : null)}
               <T style={s.time}>{moment.clock}</T>
-              {/* This stood under every message, full width, doubling the height of the transcript. It
-                  belongs to the message a person actually wants to report, which is the one they hold. */}
-              {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <SupportContextEntry
+            </Press>
+            {/* This stood under every message, full width, doubling the height of the transcript. It belongs to the
+                message a person actually wants to report, which is the one they hold. It stands under that bubble, on
+                its side, as a sibling: inside the bubble's press its own buttons were a target inside a target, and a
+                screen reader never reached them. */}
+            {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <View
+              style={[s.supportEntry, message.moja ? s.supportMine : s.supportTheirs]}><SupportContextEntry
                 reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
                 label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
                   ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
-                canAct={supportCurrent} navigate={support.navigate} /> : null}
-            </Press>
+                canAct={supportCurrent} navigate={support.navigate} /></View> : null}
           </Fragment>;
         })}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
@@ -202,9 +230,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         {terminal ? null : <View style={s.pill}>
-          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku" accessibilityState={{ expanded: photoPanel }}
-            onPress={() => setAttachOpen(open => !open)} haptic="select" style={s.tool}>
-            {photoPanel && attachOpen ? <X size={22} color={sys.color.ink} /> : <Plus size={22} color={sys.color.ink} />}
+          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
+            accessibilityHint={forced ? 'Ostaje otvoreno dok fotografije čekaju slanje.' : undefined}
+            accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
+            onPress={() => setAttachOpen(open => !open)} haptic={forced ? 'none' : 'select'} style={s.tool}>
+            {photoPanel ? <X size={22} color={forced ? sys.color.muted : sys.color.ink} /> : <Plus size={22} color={sys.color.ink} />}
           </Press> : null}
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
@@ -238,7 +268,12 @@ const s = StyleSheet.create({
   // A turn of the conversation leaves air; the next message of the same person sits close under the last.
   turn: { marginTop: 12 }, run: { marginTop: 4 },
   mine: { alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 8 },
-  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.wash, borderBottomLeftRadius: 8 },
+  // The other person's messages are white with the card edge, so the two sides differ by more than their place: the wash
+  // (#F2F7F4) beside pale green (#EFF6F0) read as one colour (review r4 rd item 5).
+  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: 8 },
+  // The support entry of a held message stands under it, on its side, as wide as a bubble may be.
+  supportEntry: { maxWidth: '82%', marginTop: 4 },
+  supportMine: { alignSelf: 'flex-end' }, supportTheirs: { alignSelf: 'flex-start' },
   failed: { backgroundColor: sys.color.dangerSoft },
   body: { fontSize: 16, lineHeight: 22, color: sys.color.ink },
   photo: { width: 220, maxWidth: '100%' },

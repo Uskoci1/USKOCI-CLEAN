@@ -10,8 +10,10 @@ import { V2Action } from '../../ui/v2/V2Action';
 export default function OceniDogovor() {
   const { agreementId, from } = useLocalSearchParams<{ agreementId: string | string[]; from?: string | string[] }>();
   const session = useSesija();
-  // Opened from Početna's rating strip, Back returns to Početna and its button says so; from a Dogovor it says Dogovor.
-  const fromHome = from === 'pocetna';
+  // Opened from Početna's rating strip, Back returns to Početna and its button says so; from the Dogovori list's strip it
+  // returns to the list and says so (round 4 review rd item 1: it said "Nazad na Dogovor" there); from a Dogovor it says
+  // Dogovor.
+  const fromHome = from === 'pocetna', fromList = from === 'dogovori';
   if (!uuid(agreementId) || !session.user) return <SafeAreaView style={{ flex: 1, padding: 24, gap: 16, backgroundColor: sys.color.ground }}>
     <T accessibilityRole="header" variant="title" style={{ color: sys.color.ink }}>Ocena nije dostupna</T>
     <T variant="body" tone="muted">Otvori završeni Dogovor iz svog naloga.</T>
@@ -19,5 +21,6 @@ export default function OceniDogovor() {
   </SafeAreaView>;
   return <AgreementReviewScreen key={`${session.user.id}:${session.accountRevision}:${agreementId}`}
     agreementId={agreementId} accountId={session.user.id} accountRevision={session.accountRevision}
-    backLabel={fromHome ? 'Nazad na Početnu' : 'Nazad na Dogovor'} onBack={fromHome ? backFromReviewToHome : backFromReview} />;
+    backLabel={fromHome ? 'Nazad na Početnu' : fromList ? 'Nazad na Dogovore' : 'Nazad na Dogovor'}
+    onBack={fromHome ? backFromReviewToHome : backFromReview} />;
 }

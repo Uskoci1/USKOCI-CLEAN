@@ -69,3 +69,15 @@ test('opened from the root-level Dogovor, the review screen takes a star and a t
   expect(byLabel('Po dogovoru').props.accessibilityState.checked).toBe(true);
   expect(tree.root.findByProps({ label: 'Sačuvaj ocenu' }).props.disabled).toBe(false);
 });
+
+// Round 4 review rd item 1: the Dogovori list's rating strip opens the review with `from: 'dogovori'`, and Back returns
+// to the list, so the way back says the list ("Nazad na Dogovore"), not a Dogovor.
+test.each([['dogovori', 'Nazad na Dogovore'], ['pocetna', 'Nazad na Početnu'], [null, 'Nazad na Dogovor']] as const)(
+  'opened from %s, the way back says "%s"', async (from, label) => {
+    mockContext.mockResolvedValue({ ok: true, podatak: { ...context.podatak, eligible: false } });
+    const query = `agreementId=${agreementId}${from ? `&from=${from}` : ''}`;
+    await act(async () => { tree = create(<ExpoRoot context={routes} location={`/oceni-dogovor?${query}`} />); });
+    await settle(); await act(async () => { jest.advanceTimersByTime(600); }); await settle();
+    const backs = tree.root.findAll(node => typeof node.props.label === 'string' && node.props.label.startsWith('Nazad na'));
+    expect(backs.map(node => node.props.label)).toEqual([label]);
+  });

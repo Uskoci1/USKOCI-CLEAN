@@ -164,7 +164,8 @@ const s = StyleSheet.create({
   hero: { gap: 12 },
   facts: { gap: 4 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 7 },
-  factArt: { width: 24, height: 22, alignItems: 'center', justifyContent: 'center' },
+  // The box is the drawing's own 24, so it does not spill 1 px over and under (review r4 rd, small note).
+  factArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
   factValue: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: sys.color.ink },
   factMoney: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },

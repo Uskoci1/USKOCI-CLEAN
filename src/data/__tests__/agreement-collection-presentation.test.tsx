@@ -208,7 +208,10 @@ describe('the rating strip is a press of its own', () => {
     const { sys } = require('../../ui/system/tokens');
     await act(async () => { tree = create(<Rated />); });
     const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
-    expect(flat(strip.props.style)).toMatchObject({ backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line });
+    // Review r4 rd item 7: the strip is the card system's own white foot (`faceStyles.footLink`), lying on the card's
+    // white with no fill of its own; it was a copy with an explicit white fill.
+    expect(flat(strip.props.style)).toMatchObject({ borderTopWidth: 1, borderTopColor: sys.color.line, minHeight: 52 });
+    expect(flat(strip.props.style).backgroundColor ?? sys.color.surface).toBe(sys.color.surface);
     const dots = strip.findAll(node => typeof node.type === 'string' && flat(node.props.style).backgroundColor === sys.color.orange);
     expect(dots).toHaveLength(1); expect(flat(dots[0].props.style)).toMatchObject({ width: 8, height: 8 });
     const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Oceni saradnju'))!;

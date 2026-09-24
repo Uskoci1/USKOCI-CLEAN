@@ -26,6 +26,10 @@ let tree: ReactTestRenderer;
 let props: React.ComponentProps<typeof AgreementChat>;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+// Review r4 rd item 2: a bubble is heard as the message itself ("Ti: <tekst>, Danas, 12:00"); it was "Poruka: <ime>", which
+// hid the text and the time. A bubble is found by who wrote it, the start of that label.
+const held = (who: string) => tree.root.findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string'
+  && node.props.accessibilityLabel.startsWith(`${who}: `))[0];
 const scrollToEnd = jest.fn();
 async function render(overrides: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...overrides} />, {
@@ -73,8 +77,10 @@ describe('D03 actual message component', () => {
       posiljalacAccountId: account, telo: '', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
       fotografije: [{ assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const }] };
     await render({ messages: [read], support: { canAct: () => true, navigate: jest.fn() } });
+    // A photo-only message is heard as its photos, with its day and clock.
+    expect(held('Ti').props.accessibilityLabel).toBe('Ti: 1 fotografija, Danas, 12:00');
     // The support entry no longer stands under every message; it belongs to the one being held.
-    await act(async () => tree.root.findByProps({ accessibilityLabel: `Poruka: ${read.posiljalacIme}` }).props.onLongPress());
+    await act(async () => held('Ti').props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
     expect(entry.previewText).toContain('Privatne fotografije uz ovu poruku: 1');
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
@@ -175,8 +181,12 @@ describe('D03 actual message component', () => {
       posiljalacAccountId: account, telo: 'Samo ova stara poruka.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
     await render({ messages: [read], terminal: true, writable: false, support });
     // The support entry no longer stands under every message; it belongs to the one being held.
-    await act(async () => tree.root.findByProps({ accessibilityLabel: `Poruka: ${read.posiljalacIme}` }).props.onLongPress());
-    const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
+    await act(async () => held('Ti').props.onLongPress());
+    // It stands under the bubble as a sibling, never inside the bubble's press, so a screen reader reaches its buttons.
+    const supportNode = tree.root.findByType('SupportContextEntry' as React.ElementType);
+    expect(held('Ti').findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+    expect(supportNode.props.label).toBe('Izaberi ovu poruku za podršku');
+    const entry = supportNode.props;
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 2 });
     expect(entry.previewText).toBe(read.telo); expect(entry.canAct()).toBe(true);
     expect(outbox.sendDraft).not.toHaveBeenCalled(); expect(support.navigate).not.toHaveBeenCalled();
@@ -193,7 +203,8 @@ describe('D03 actual message component', () => {
     const other = '10000000-0000-4000-8000-000000000002';
     const message = (id: string, moja: boolean, telo: string, vremeTekst: string) => ({ id: `30000000-0000-4000-8000-00000000000${id}`, dogovorVerzija: 1,
       clientMessageId: null, posiljalacAccountId: moja ? account : other, posiljalacIme: moja ? 'Ja' : 'Marko', moja, telo, vremeTekst, procitano: null });
-    const bubble = (sender: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === `Poruka: ${sender}`);
+    const bubble = (sender: string) => tree.root.findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string'
+      && node.props.accessibilityLabel.startsWith(`${sender}: `));
     const lines = () => tree.root.findAll(node => String(node.type) === 'T').map(node => node.children.filter(child => typeof child === 'string').join(''));
     it('reads the day and the clock from the words the read wrote, and invents no day', () => {
       expect(messageMoment('23. sep · 14:05')).toEqual({ day: '23. sep', clock: '14:05' });
@@ -209,11 +220,16 @@ describe('D03 actual message component', () => {
       expect(lines()).toEqual(expect.arrayContaining(['09:40', '09:41', '10:02', '10:03']));
       expect(lines().some(line => line.includes('23. sep ·'))).toBe(false);
     });
-    it('draws the other person left on the wash and mine right on pale green, the clock small and muted, no name in the bubble', async () => {
+    it('draws the other person left in white with the card edge and mine right on pale green, the clock small and muted, no name in the bubble', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00'), message('2', true, 'Ćao', '10:01')] });
-      expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.color.wash });
-      expect(flat(bubble('Ja')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft });
-      // The name is heard with the bubble, not drawn in it: the bar above already names the person.
+      // Review r4 rd item 5 (was: theirs on the wash, #F2F7F4, beside mine on #EFF6F0 — one colour to the eye).
+      expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.color.surface,
+        borderWidth: 1, borderColor: sys.color.cardLine });
+      expect(flat(bubble('Ti')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft });
+      // The name is heard with the bubble, not drawn in it: the bar above already names the person. Review r4 rd item 2:
+      // what the bubble says and when is heard with it too.
+      expect(bubble('Marko')[0].props.accessibilityLabel).toBe('Marko: Zdravo, Danas, 10:00');
+      expect(bubble('Ti')[0].props.accessibilityLabel).toBe('Ti: Ćao, Danas, 10:01');
       expect(lines()).not.toContain('Marko');
       const clock = tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('10:00'))[0];
       expect(flat(clock.props.style)).toMatchObject({ fontSize: 12, color: sys.color.muted });
@@ -237,10 +253,11 @@ describe('D03 actual message component', () => {
         versionConflict: false, canSubmit: () => false, capture: () => null, refresh: jest.fn() } as any;
       await render({ photos });
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false });
+      // Review r4 rd item 6: the state also says whether the control can fold the panel ("disabled" while a photo holds it).
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false, disabled: false });
       await act(async () => button('Fotografije uz poruku').props.onPress());
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true });
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true, disabled: false });
       await act(async () => button('Fotografije uz poruku').props.onPress());
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
@@ -249,6 +266,37 @@ describe('D03 actual message component', () => {
       await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} photos={{ ...photos, hasSelection: true }} />));
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
       expect(tree.root.findAllByProps({ accessibilityLabel: 'Fotografije uz poruku' })).toHaveLength(0);
+    });
+    // Review r4 rd item 6: while a photo is chosen the panel cannot fold away, so the control says so (a disabled X)
+    // instead of swapping its icon for nothing; after a send the tools fold back behind the "+".
+    it('never offers a "+" that does nothing, and folds the photo tools away after a send', async () => {
+      const photos = { loaded: true, busy: false, ready: true, hasSelection: false, agreementId: agreement, items: [], message: null,
+        versionConflict: false, canSubmit: () => true, capture: () => null, refresh: jest.fn().mockResolvedValue(undefined) } as any;
+      await render({ photos });
+      await act(async () => button('Fotografije uz poruku').props.onPress());
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true, disabled: false });
+      await act(async () => button('Pošalji poruku').props.onPress());
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
+      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false, disabled: false });
+      await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
+      expect(button('Fotografije uz poruku').props).toMatchObject({ disabled: true, accessibilityState: { expanded: true, disabled: true } });
+      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
+    });
+    // Review r4 rd item 4: with no live update and a pull a screen reader cannot easily make, the refresh is an action.
+    it('offers a quiet refresh at the head of the thread, and none while there is nothing to refresh into', async () => {
+      await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
+      await act(async () => button('Osveži poruke').props.onPress());
+      expect(props.refresh).toHaveBeenCalledTimes(1);
+      await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+    });
+    // Review r4 rd item 8: the first read's spinner stands in the middle, like every other state.
+    it('centres the first read and sits a read thread on the composer', async () => {
+      const container = () => flat(tree.root.findAll(node => String(node.type) === 'ScrollView')[0].props.contentContainerStyle);
+      await render({ loading: true });
+      expect(container().justifyContent).toBe('center');
+      await act(async () => tree.update(<AgreementChat {...props} messages={[message('1', false, 'Zdravo', '10:00')]} />));
+      expect(container().justifyContent).toBe('flex-end');
     });
     it('keeps a failed send in place with its reason and the retry of that exact message', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')],

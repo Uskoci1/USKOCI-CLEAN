@@ -7,7 +7,8 @@
 #   maestro --device emulator-5554 test -e AGREEMENT=".*krečenja.*" -e TEXT="..." .maestro/send-message.yaml
 #
 # Labels come from src/ui/AgreementChat.tsx: the field is "Napiši poruku" (hint "Napiši poruku…"), the
-# button "Pošalji poruku", and a sent bubble of your own is announced as "Poruka: Ja".
+# button "Pošalji poruku", and a sent bubble of your own is announced as the message itself, "Ti: <tekst>, <dan>, <sat>"
+# (round 4 review rd: it was "Poruka: Ja"). The wait below matches it as a pattern, so keep TEXT free of ( ) [ ] ? * +.
 
 appId: rs.uskoci.dev
 env:
@@ -41,6 +42,6 @@ env:
     text: "Pošalji poruku"
 # The composer clears and the message comes back from the server as a bubble of your own.
 - extendedWaitUntil:
-    visible: "Poruka: Ja"
+    visible: "Ti: ${TEXT}.*"
     timeout: 20000
 - takeScreenshot: 03-poslato
