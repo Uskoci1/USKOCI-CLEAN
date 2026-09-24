@@ -345,11 +345,13 @@ it('the confirmed request replaces this form, so Back from the case does not lan
   await act(async () => action('Otvori potvrđeni predmet').onPress());
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/podrska/[id]', params: { id: C } }); expect(mockRouter.push).not.toHaveBeenCalled();
 });
-it('an unconfirmed send says why the send is grey, and its refusal is drawn as failed', async () => {
+it('an unconfirmed send says why the send is grey, and its words are drawn as waiting, never as failed', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
   await act(async () => action('Pošalji privatni zahtev').onPress());
   expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true, reason: 'Najpre proveri prethodno slanje.' });
-  expect(notes()).toContainEqual({ tone: 'danger', text: 'Sačekaj proveru.' });
+  // The send may already have reached support: while it is unconfirmed its words wait with the check, not as a failure.
+  expect(notes()).toContainEqual({ tone: 'warn', text: 'Sačekaj proveru.' });
+  expect(notes().filter(note => note.tone === 'danger')).toHaveLength(0);
   // Unconfirmed words may already be with support: leaving does not claim they will be lost.
   let handled = true; await act(async () => { handled = hardwareBack(); }); expect(handled).toBe(false);
   expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
@@ -385,6 +387,24 @@ it('a confirmed reply clears its words with the new revision; a reload at the sa
   mockService.detail.mockResolvedValue(ok({ ...detail(), case: { ...detail().case, revision: 3 } }));
   await act(async () => field('Pošalji poruku').onPress());
   expect(field('Tekst poruke').value).toBe('');
+});
+// Round 5 review (tok 11): a new revision the other side made (an operator's reply read on refresh) used to wipe the
+// person's half-typed reply; only their own confirmed reply clears it now.
+it('the other side moving the case on keeps a half-typed reply, and a stale press still sends nothing', async () => {
+  screen = 'DETAIL'; await render(); await type('Tekst poruke', 'Pola dopune');
+  const stale = field('Pošalji poruku').onPress;
+  mockService.detail.mockResolvedValue(ok({ ...detail(), case: { ...detail().case, revision: 3 } }));
+  await act(async () => action('Osveži predmet').onPress());
+  expect(field('Tekst poruke').value).toBe('Pola dopune');
+  await act(async () => stale()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => field('Pošalji poruku').onPress());
+  expect(mockService.prepare).toHaveBeenCalledWith('AUTHOR_REPLY', C, 3, { body: 'Pola dopune', evidence: [] }, expect.objectContaining({ accountId: A }));
+});
+it('a failed mark with nothing unconfirmed is drawn as failed, and spoken as an alert', async () => {
+  screen = 'DETAIL'; mockService.markRead.mockResolvedValue({ ok: false, poruka: 'Označavanje nije potvrđeno.' }); await render();
+  await act(async () => action('Označi prikazane događaje kao pročitane').onPress());
+  const line = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Označavanje nije potvrđeno.');
+  expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'danger', accessibilityRole: 'alert' });
 });
 it('the send spins only for its own reply, and a text over the limit says why it is grey', async () => {
   screen = 'DETAIL'; const held = deferred(); mockService.markRead.mockReturnValue(held.promise); await render();

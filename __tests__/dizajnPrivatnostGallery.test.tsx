@@ -7,6 +7,13 @@ const mockBack = jest.fn(), mockPush = jest.fn(), mockReplace = jest.fn(), mockN
 jest.mock('expo-router', () => ({ router: { back: () => mockBack(), push: (...a: unknown[]) => mockPush(...a), replace: (...a: unknown[]) => mockReplace(...a),
   navigate: (...a: unknown[]) => mockNavigate(...a), canGoBack: () => true }, useFocusEffect: () => undefined }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
+// Only Android Back is replaced, so the scenes' own hardware-back listeners can be heard.
+const mockBackHandlers: { list: (() => boolean)[] } = { list: [] };
+jest.mock('react-native', () => { const rn = jest.requireActual('react-native'); return new Proxy(rn, { get(target, key) {
+  if (key === 'BackHandler') return { addEventListener: (_: string, handler: () => boolean) => {
+    mockBackHandlers.list.push(handler); return { remove: () => { mockBackHandlers.list = mockBackHandlers.list.filter(item => item !== handler); } }; } };
+  return Reflect.get(target, key);
+} }); });
 jest.mock('../src/data/supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('unexpected transport'); } }));
 jest.mock('../src/data/supportCaseClientService', () => ({ supportCaseClientService: new Proxy({}, { get: () => () => { throw new Error('unexpected support read'); } }) }));
 jest.mock('../src/data/agreementClientService', () => ({ agreementClientService: { mojiDogovori: () => { throw new Error('unexpected agreement read'); } } }));
@@ -29,8 +36,19 @@ it('reaches every scene by its visible label and comes back to the list with "Na
     expect(scenes()).toContain(label);
   }
   expect(mockPush).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled(); expect(mockNavigate).not.toHaveBeenCalled();
-// It walks all 45 scenes in one test: a longer budget than a single-screen test, so a loaded machine does not fail it.
+// It walks every scene (46 since the round 5 review) in one test: a longer budget than a single-screen test, so a loaded
+// machine does not fail it.
 }, 60_000);
+
+it('Android Back inside a scene returns to the list, as "Nazad" does, and leaves no listener behind', async () => {
+  await act(async () => { tree = create(<Gallery />); });
+  expect(mockBackHandlers.list).toHaveLength(0);
+  await act(async () => tree.root.findAll(node => node.props.accessibilityLabel === 'Izvoz: Kopija nije dostupna' && typeof node.props.onPress === 'function')[0].props.onPress());
+  expect(mockBackHandlers.list.length).toBeGreaterThan(0);
+  let handled = false; await act(async () => { handled = mockBackHandlers.list[mockBackHandlers.list.length - 1](); });
+  expect(handled).toBe(true); expect(scenes()).toContain('Izvoz: Kopija nije dostupna'); expect(mockBackHandlers.list).toHaveLength(0);
+  expect(mockBack).not.toHaveBeenCalled();
+});
 
 it('the closure start in the gallery asks its real question and starts nothing', async () => {
   await act(async () => { tree = create(<Gallery />); });

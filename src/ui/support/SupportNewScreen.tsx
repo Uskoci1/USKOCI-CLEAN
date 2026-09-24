@@ -165,7 +165,8 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const contextNote = !requiresAgreement && !!context;
   const showContext = contextNote && !sameAsEvidence;
   const page = choices?.slice(choicePage * PAGE, (choicePage + 1) * PAGE) ?? [];
-  // A refused or failed command is drawn as failed, a confirmation still to find as waiting (round 5 review).
+  // A refused or failed command is drawn as failed; a confirmation still to find, or any word about a send whose outcome
+  // is unconfirmed, as waiting (round 5 review).
   const messageTone = supportMessageTone(state);
   return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
     : <SettingsAction label="Pošalji privatni zahtev" loading={state.phase === 'SENDING'} disabled={disabled || !valid} reason={missing} onPress={send} />}>

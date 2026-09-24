@@ -31,8 +31,9 @@ const appealState = (appeal: SupportAppeal) => appeal.status === 'RECEIVED' ? '�
  * the left, a change of state as a quiet line, a decision as a block where it happened with its appeal beside it, and a
  * reply field pinned under the thread. Staff get their commands under the thread and in a sheet.
  *
- * Presentation over the controller's state. The reply's words are kept per case revision: an unconfirmed send keeps
- * them, a confirmed one (the case moves to a new revision) clears them, and a new focus or account forgets them.
+ * Presentation over the controller's state. The reply's words are kept per case: an unconfirmed send keeps them, the
+ * other side moving the case on (a reply, a claim) keeps them, only the person's own confirmed reply clears them (its
+ * receipt names this case), and a new focus or account forgets them.
  */
 export function SupportDetailView({ model, caseId }: { model: Model; caseId: string }) {
   const { state, current, controller, navigate } = model;
@@ -41,10 +42,16 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   const [form, setForm] = useState<{ action: FormAction; targetId: string | null; key: string } | null>(null);
   useEffect(() => { setCursors(['0']); setReply({ key: '', text: '' }); setForm(null); }, [model.incarnation]);
   const detail = state.detail, busy = state.phase === 'LOADING' || state.phase === 'SENDING';
+  // `key` is one revision of the case (a stale press, the form sheet and the scroll follow it); the reply follows the case.
   const key = detail ? `${detail.case.id}:${detail.case.revision}` : '';
-  const replyText = detail && reply.key === key ? reply.text : '';
-  // A confirmed reply moved the case to a new revision: its words are not kept in memory under the old one.
-  useEffect(() => { if (detail) setReply(previous => previous.key === key ? previous : { key, text: '' }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const replyKey = detail?.case.id ?? '';
+  const replyText = detail && reply.key === replyKey ? reply.text : '';
+  // The person's own reply was confirmed: its words are sent, so they leave the field. A revision the other side made
+  // (an operator's reply read on refresh) no longer wipes a half-typed reply (round 5 review).
+  const receipt = state.receipt;
+  useEffect(() => {
+    if (receipt && receipt.caseId === caseId && (receipt.kind === 'AUTHOR_REPLY' || receipt.kind === 'OPERATOR_REPLY')) setReply({ key: '', text: '' });
+  }, [receipt]); // eslint-disable-line react-hooks/exhaustive-deps
   // A read that drops the case (a reload, a failed read after a send) takes the form sheet with it, so the sheet does
   // not come back by itself, empty, when the same revision returns (round 5 review).
   useEffect(() => { if (!detail) setForm(null); }, [detail]);
@@ -129,7 +136,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
       <SupportComposer value={replyText} placeholder={author ? 'Napiši dopunu…' : 'Napiši odgovor…'} editable={!actionsDisabled}
         canSend={canSend} sending={state.phase === 'SENDING' && state.pending?.kind === replyKind} onSend={send}
         reason={replyReason} maxLength={REPLY_LIMIT * 2}
-        onChange={value => { if (current() && !actionsDisabled) setReply({ key, text: value }); }} />
+        onChange={value => { if (current() && !actionsDisabled) setReply({ key: replyKey, text: value }); }} />
     </> : detail ? <T variant="meta" tone="muted" style={supportStyles.center}>{detail.case.status === 'CLOSED' ? 'Predmet je zatvoren.'
       : author ? 'Dopuna trenutno nije moguća.' : 'Odgovor trenutno nije moguć.'}</T> : null}
   </>;

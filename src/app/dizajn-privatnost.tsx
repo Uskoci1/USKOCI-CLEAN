@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -155,7 +155,14 @@ export default function DizajnPrivatnost() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
   const [scene, setScene] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const confirm = useConfirmSheet();
+  const confirm = useConfirmSheet(), closeQuestion = confirm.close;
+  // Android Back inside a scene returns to the list, as "Nazad" does (the sibling galleries do the same). An open sheet
+  // takes Back first (its own Modal); the "Odbaciti zahtev?" question of a typed Novi zahtev is shown by its arrow.
+  useEffect(() => {
+    if (!scene) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closeQuestion(); setExpanded(null); setScene(null); return true; });
+    return () => subscription.remove();
+  }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   const toList = () => { confirm.close(); setExpanded(null); setScene(null); };
   if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>

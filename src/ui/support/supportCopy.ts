@@ -13,14 +13,18 @@ export const supportCopy = {
 
 /**
  * How a message of the support controller reads: `success` a confirmed command, `info` a plain fact the person chose
- * (a stopped send, events marked as read), `warn` something that waits for the person (a confirmation not found yet),
- * `danger` everything else: a failed read or a refused command, in the service's own words.
+ * (a stopped send, events marked as read), `warn` something that waits for the person (a confirmation not found yet,
+ * or any word about a send whose outcome is still unconfirmed), `danger` everything else: a failed read or a refused
+ * command, in the service's own words.
+ *
+ * While a send is unconfirmed (`pending`) its words are never drawn as failed: the send may already have reached
+ * support, and the warn panel above asks the person to check it (round 5 review: "danger only without a pending send").
  */
 export type SupportMessageTone = 'success' | 'info' | 'warn' | 'danger';
-export function supportMessageTone(state: Pick<SupportState, 'phase' | 'message'>): SupportMessageTone {
+export function supportMessageTone(state: Pick<SupportState, 'phase' | 'message' | 'pending'>): SupportMessageTone {
   if (state.phase === 'ERROR') return 'danger';
   if (state.message === supportCopy.committed) return 'success';
   if (state.message === supportCopy.cancelled || state.message === supportCopy.markedRead) return 'info';
-  if (state.message === supportCopy.absent) return 'warn';
+  if (state.message === supportCopy.absent || state.pending) return 'warn';
   return 'danger';
 }
