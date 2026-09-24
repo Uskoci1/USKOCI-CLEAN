@@ -298,7 +298,8 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
     row.measureLayout(host as never, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - 16), animated: !reduced }), () => undefined);
   }, [edit?.fact.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // The place is its own step: the arrow and Android Back both return to the review, and nothing is saved by leaving.
-  const closePlace = () => { if (disabled) return; resolver.cancel(); setLocationEditor(null); };
+  // Leaving saves nothing, so only a write in flight holds it: after an unconfirmed outcome the way out stays open.
+  const closePlace = () => { if (editor.busy) return; resolver.cancel(); setLocationEditor(null); };
   const closePlaceNow = useRef(closePlace); closePlaceNow.current = closePlace;
   const placeOpen = !!locationEditor;
   useFocusEffect(useCallback(() => {
@@ -354,7 +355,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DetailTopBar title="Mesto zadatka" backLabel="Nazad na pregled" disabled={disabled} onBack={closePlace} />
+      <DetailTopBar title="Mesto zadatka" backLabel="Nazad na pregled" disabled={editor.busy} onBack={closePlace} />
       {editor.error || editor.uncertain ? <View style={[s.danger, s.placeAlert]}>
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
         <V2Action label="Učitaj pregled i proveri ishod" disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />
@@ -423,6 +424,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
               Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
             </T></View> : null}
             <PublicPlace zone={summary.zone || null} lines={routeLines} anchor={publicAnchorPoint(review.location)}
+              pointsConfirmed={!!review.location?.resolvedLocation?.points.length}
               scopeKey={`${accountId}:${review.reviewId}:preview`} />
             {review.ownerPrivateProjection.length ? <PrivatePlace>{rows(review.ownerPrivateProjection)}</PrivatePlace> : null}
           </ReviewSection>

@@ -218,6 +218,18 @@ describe('round 6: the photo grid', () => {
     expect(JSON.stringify(tree.toJSON())).toContain('Slanje nije potvrđeno');
     expect(action('Fotografiši').reason).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
   });
+  it('an unconfirmed send keeps the server-owned cancel when the photo list read also fails', async () => {
+    mockRead.mockResolvedValueOnce(ok(listing())).mockResolvedValue({ ok: false, kod: 'MEDIA_READ_FAILED', poruka: 'Fotografije nisu učitane.' });
+    await render();
+    await act(async () => { void action('Izaberi iz galerije').onPress(); });
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ label: 'Odustani od nepotvrđenog slanja' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Osveži i proveri fotografije' })).toHaveLength(1);
+    mockCancel.mockResolvedValueOnce(ok({ accountId: OWNER, conversationId: CID, clientRequestId: REQUEST, previousState: null,
+      assetId: null, selected: false, cancelled: true, authoritative: true }));
+    await act(async () => action('Odustani od nepotvrđenog slanja').onPress());
+    expect(mockCancel).toHaveBeenCalledWith({ conversationId: CID, clientRequestId: REQUEST });
+  });
   it('an empty draft says so and leaves both add actions live', async () => {
     await render();
     expect(JSON.stringify(tree.toJSON())).toContain('Još nema fotografija');
