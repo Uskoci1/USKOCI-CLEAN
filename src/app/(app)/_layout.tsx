@@ -52,28 +52,28 @@ export default function TabLayout() {
       tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
       tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children, color }) => <T variant="label" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}
-        style={{ color, fontSize: 13, lineHeight: 17, fontWeight: '600', letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
+      tabBarLabel: ({ children, color }) => <T variant="label" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+        style={{ color, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label, 'aria-selected': selected }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: selected === true }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
           style={[style, { borderRadius: sys.radius.cardCompact }]}>{children}</Press>,
-      tabBarItemStyle: { borderRadius: sys.radius.control, overflow: 'hidden', marginHorizontal: 2 },
+      tabBarItemStyle: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
       tabBarStyle: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
         borderRadius: sys.radius.card, elevation: 0, shadowOpacity: 0,
-        height: 74 + Math.ceil(Math.max(0, fontScale - 1) * 32), padding: 5,
-        marginHorizontal: 14, marginTop: 8, marginBottom: Math.max(10, insets.bottom) } }}>
+        height: 66 + Math.ceil(Math.max(0, fontScale - 1) * 32), padding: 4,
+        marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna',
-      tabBarIcon: ({ color, focused }) => <House size={28} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ color, focused }) => <House size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="prilike" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarAccessibilityLabel: 'Mapa',
-      tabBarIcon: ({ color, focused }) => <MapPin size={28} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ color, focused }) => <MapPin size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori',
-      tabBarIcon: ({ color, focused }) => <Handshake size={28} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
+      tabBarIcon: ({ color, focused }) => <Handshake size={23} color={color as string} weight={focused ? 'fill' : 'regular'} /> }} />
     <Tabs.Screen name="profil" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...PUSHED }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...PUSHED }} />
