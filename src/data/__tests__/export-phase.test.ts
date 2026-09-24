@@ -41,7 +41,7 @@ it('READY with a copy whose availability has run out is EXPIRED, before the stat
 // that cannot be saved as a step still to come while the footer offered a new copy. It is stopped now, in existing words.
 it('READY without a verified copy is not available: the download step is stopped, never a step still to come', () => {
   expect(exportPhase(status('READY'), NOW)).toBe('READY_UNAVAILABLE');
-  expect(exportSteps('READY_UNAVAILABLE', status('READY'))[2]).toMatchObject({ state: 'stopped', copy: 'Ova kopija trenutno nije dostupna. Proveri stanje zahteva.' });
+  expect(exportSteps('READY_UNAVAILABLE', status('READY'))[2]).toMatchObject({ state: 'stopped', copy: 'Ova kopija se ne može sačuvati.' });
   // A copy with an unreadable expiry is never offered.
   expect(exportPhase(status('READY', artifact('not a time')), NOW)).toBe('READY_UNAVAILABLE');
 });

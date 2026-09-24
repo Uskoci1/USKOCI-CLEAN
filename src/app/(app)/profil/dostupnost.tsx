@@ -61,7 +61,7 @@ function OwnedAvailability() {
       onDirtyChange={setDirty} onReconcile={() => void editor.refresh()}
       // Pull to refresh replaced a standing "Osveži dostupnost" button under the form (plan step 0, 2026-09-23); it calls
       // the same read.
-      refreshing={refreshing} onRefresh={() => { if (!editor.busy) void editor.refresh(); }} onSave={value => void editor.save(async () => {
+      refreshing={refreshing} onRefresh={() => { if (!editor.busy) void editor.refresh(); }} onSave={value => editor.save(async () => {
         const result = await workerAvailabilityClientService.save({ expectedRevision: editor.data!.revision, value });
         return result.ok ? { ok: true, podatak: result.podatak.availability } : result;
       })} />

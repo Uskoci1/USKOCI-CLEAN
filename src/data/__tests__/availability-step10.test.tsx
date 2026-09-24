@@ -214,6 +214,12 @@ describe('leaving Dostupnost', () => {
   const back = async () => { await act(async () => host('Nazad').props.onPress()); };
   const toggle = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true)); };
 
+  it('saves "Mogu odmah" through the editor at once (owner decision 2026-09-24)', async () => {
+    mockEditor = editor(); await screen();
+    await toggle();
+    expect(mockEditor.save).toHaveBeenCalledTimes(1);
+  });
+
   it('goes back at once when nothing has changed', async () => {
     mockEditor = editor(); await screen();
     await back();
@@ -354,7 +360,9 @@ describe('a failed read', () => {
   it('hides it over unsaved edits, and without a way to read', async () => {
     const onRefresh = jest.fn();
     await form(availability(), { problem, onRefresh });
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    // An unsaved edit in the week ("Mogu odmah" saves on its own since the owner's decision of 2026-09-24).
+    await press('Dodaj — Ponedeljak'); await edit('Početak termina', '09:00'); await edit('Kraj termina', '12:00');
+    await press('Primeni termin');
     expect(all('Pokušaj ponovo')).toHaveLength(0);
     await act(async () => tree.unmount());
     await form(availability(), { problem });
@@ -385,21 +393,22 @@ describe('what a screen reader hears', () => {
 
   // Round-5c: the explanation is read as its own line, not as the switch's hint, which goes unheard with hints off.
   it('hears the "Mogu odmah" switch once, its explanation as a line of its own, and its words switch it too', async () => {
-    await form();
+    const onSave = await form();
     const words = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.importantForAccessibility === 'no')[0];
     expect(words.props.accessible).toBe(false); expect(words.props.accessibilityElementsHidden).toBeFalsy();
     const [label, explanation] = words.findAll(node => node.type === ('T' as React.ElementType));
     expect(label.props.children).toBe('Mogu odmah');
     expect(label.props.importantForAccessibility).toBe('no'); expect(label.props.accessibilityElementsHidden).toBe(true);
-    expect(explanation.props.children).toContain('važi kada sačuvaš dostupnost');
+    expect(explanation.props.children).toContain('čuva se čim ga promeniš');
     expect(explanation.props.importantForAccessibility).toBeUndefined(); expect(explanation.props.accessibilityElementsHidden).toBeUndefined();
     const toggle = tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' });
     expect(toggle.props.accessibilityHint).toBeUndefined();
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mogu odmah')).toHaveLength(1);
     await act(async () => words.props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(true);
-    expect(text()).toContain('Imaš nesačuvane izmene.');
-    expect(text()).toContain('važi kada sačuvaš dostupnost');
+    // Updated deliberately (owner decision 2026-09-24): the status saves on its own, from its words as from the switch.
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ availableNow: true }));
   });
 
   it('says a confirmed save out loud, since the focused Save leaves with its footer', async () => {

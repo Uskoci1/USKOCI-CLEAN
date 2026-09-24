@@ -13,7 +13,7 @@ export const exportPreparationCopy: Record<NonNullable<DataExportPreparation['co
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
   BUSY: 'Kopija se priprema. Proveri stanje kasnije.',
   RETRY_REQUIRED: 'Priprema nije završena. Proveri stanje pa probaj ponovo.',
-  NOT_AVAILABLE: 'Ova kopija trenutno nije dostupna. Proveri stanje zahteva.',
+  NOT_AVAILABLE: 'Ova kopija se ne može sačuvati.',
 };
 
 /** A file size as a person reads it, never in bytes (forensic analysis: no technical text): "12 KB", "1,4 MB". */

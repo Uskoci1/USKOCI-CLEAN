@@ -74,8 +74,8 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     }
     const decoded = options.decode(result.data);
     if (decoded === null) return failure(options.invalid, options.write
-      ? 'Server nije vratio potpunu potvrdu radnje. Osveži prikaz pre ponovnog pokušaja.'
-      : 'Server je vratio nečitljive podatke. Pokušaj ponovo.');
+      ? 'Potvrda radnje nije stigla cela. Osveži prikaz pre ponovnog pokušaja.'
+      : 'Podaci nisu stigli u ispravnom obliku. Pokušaj ponovo.');
     return { ok: true, podatak: decoded };
   } catch {
     return current() ? unconfirmed() : changed();

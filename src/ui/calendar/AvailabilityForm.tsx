@@ -281,12 +281,15 @@ function FooterIn({ reduced, children }: { reduced: boolean; children: ReactNode
 /**
  * Dostupnost za rad: the manual "Mogu odmah" status, the regular week and the special dates, saved as ONE whole
  * document with the expected revision. The screen's one primary is Save, and it exists only while something has
- * changed: the footer appears with the first change and goes when the change is undone. Nothing is written by a
- * switch or a sheet; they change the draft.
+ * changed: the footer appears with the first change and goes when the change is undone. The sheets change the draft.
+ * The "Mogu odmah" switch saves on its own (owner decision 2026-09-24) when nothing else is unsaved; in the profile
+ * conversation (`candidateMode`), where the whole profile is saved in one final step, it changes the draft as before.
  */
 export function AvailabilityForm({ availability, busy, uncertain, onSave, candidateMode = false, profileDraft = false, refreshing = false,
   onRefresh, problem = null, onReconcile, saved = false, onDirtyChange, phoneZone = zonaTelefona() }: {
-  availability: WorkerAvailabilityInput; busy: boolean; uncertain: boolean; onSave: (value: WorkerAvailabilityInput) => void;
+  availability: WorkerAvailabilityInput; busy: boolean; uncertain: boolean;
+  /** Starts the save. A returned promise settles when the write has settled (the switch's own save waits for it). */
+  onSave: (value: WorkerAvailabilityInput) => void | Promise<unknown>;
   candidateMode?: boolean;
   /** The work profile is still a draft, so nothing here changes what is offered yet. */
   profileDraft?: boolean;
@@ -324,6 +327,15 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // compared in their normal form (rules and windows sorted by id), as the save would send them.
   const dirty = useMemo(() => !sameWorkerAvailability(normalizeWorkerAvailability(draft) ?? draft,
     normalizeWorkerAvailability(baseline) ?? baseline), [draft, baseline]);
+  // Unsaved edits other than the status itself: while there are any, the switch joins them instead of saving alone.
+  const otherDirty = useMemo(() => {
+    const rest = { ...draft, availableNow: baseline.availableNow };
+    return !sameWorkerAvailability(normalizeWorkerAvailability(rest) ?? rest, normalizeWorkerAvailability(baseline) ?? baseline);
+  }, [draft, baseline]);
+  const instant = !candidateMode;
+  const [statusSaving, setStatusSaving] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   const report = useRef(onDirtyChange); report.current = onDirtyChange;
   useEffect(() => { report.current?.(dirty); }, [dirty]);
   useEffect(() => () => report.current?.(false), []);
@@ -353,6 +365,21 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     onSave(normalized);
   };
   const discard = () => { if (blocked) return; setDraft(baseline); setError(null); };
+  // The status saves on its own: it sends the SAVED week with only the status changed, so it never carries other edits
+  // along. While other edits are unsaved it joins them (the screen keys this form by revision, so a save of its own
+  // would drop them). Every guard of the save stays with the editor; an outcome that is not confirmed ends in the same
+  // "Učitaj sačuvano stanje" as a Save.
+  const changeStatus = (value: boolean) => {
+    if (blocked) return;
+    if (!instant || otherDirty) { update({ availableNow: value }); return; }
+    const next = { ...baseline, availableNow: value };
+    setDraft(next); setError(null);
+    if (value === baseline.availableNow) return;
+    const normalized = normalizeWorkerAvailability(next);
+    if (!normalized) { setError('Proveri unetu vremensku zonu i raspored.'); return; }
+    setStatusSaving(true);
+    void Promise.resolve(onSave(normalized)).finally(() => { if (alive.current) setStatusSaving(false); });
+  };
   const editRule = (rule?: AvailabilityRule, day?: number) => {
     if (blocked) return;
     setEditing(rule ? { rule, isNew: false, day: null } : { isNew: true, day: day ?? null, rule: { id: noviUuidZahtevId(),
@@ -381,11 +408,13 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // action was never offered: Android's scroll view keeps its own accessibility delegate, and VoiceOver does not focus it).
   const canReload = !!onRefresh && !dirty;
   const reload = () => { if (!dirty) onRefresh?.(); };
-  // The switch changes the draft only, so its hint says when it starts to count (review of owner step 10: a switch looks
-  // as if it took effect at once). Whether it should be saved on its own is an open owner decision.
+  // The hint says when the status starts to count: at once on its own, with the other edits while there are any, or with
+  // the profile in the profile conversation.
   const hint = profileDraft
     ? 'Radni profil je nacrt, pa ovaj status još nikome ništa ne govori. Aktiviraj profil da počne da važi.'
-    : `Ručni status: važi kada sačuvaš ${candidateMode ? 'profil' : 'dostupnost'}, dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.`;
+    : candidateMode ? 'Ručni status: važi kada sačuvaš profil, dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.'
+    : otherDirty ? 'Ručni status: sačuvaće se zajedno sa ostalim izmenama. Ne uključuje HITNO i ne potvrđuje novi Dogovor.'
+    : 'Ručni status: čuva se čim ga promeniš i važi dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.';
   const now = BigInt(Date.now()) * 1000n;
   const past = (window: AvailabilityWindow) => (calendarInstant(window.endsAt) ?? 0n) <= now;
   const start = (window: AvailabilityWindow) => calendarInstant(window.startsAt) ?? 0n;
@@ -402,7 +431,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         conversation that is its own check of the conversation (review of owner step 10). */}
     <V2Action label={saveLabel} style={brandAction} disabled onPress={save} reason={candidateMode
       ? 'Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.' : 'Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.'} />
-  </FooterIn> : dirty || busy ? <FooterIn key="form" reduced={reduced}>
+  </FooterIn> : statusSaving ? null : dirty || busy ? <FooterIn key="form" reduced={reduced}>
     {dirty ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T> : null}
     <V2Action label={saveLabel} style={brandAction} loading={busy} disabled={blocked || sheetOpen} error={error} onPress={save} />
     <V2Action label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={discard} />
@@ -420,8 +449,10 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite" style={s.problemText}>{problem}</T>
           {canReload ? <V2Action label="Pokušaj ponovo" kind="quiet" compact disabled={refreshing} onPress={reload} /> : null}
         </View> : null}
-        {/* A flat row, not a box (B19): the status, what it means, and the switch. It changes the draft only. */}
-        <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={value => update({ availableNow: value })} />
+        {/* A flat row, not a box (B19): the status, what it means, and the switch. While its own save runs, the line
+            under it says so; the footer's Save does not appear for it. */}
+        <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={changeStatus} />
+        {statusSaving && busy ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Čuvamo status…</T> : null}
       </View>
       <View style={s.section}>
         <View style={s.sectionHead}>

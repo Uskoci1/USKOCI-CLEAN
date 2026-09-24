@@ -58,6 +58,15 @@ const render = async (onSave = jest.fn(), value = availability()) => {
   await act(async () => { tree = create(<AvailabilityForm availability={value} busy={false} uncertain={false} onSave={onSave} />); });
   return onSave;
 };
+// "Mogu odmah" saves on its own since the owner's decision of 2026-09-24, so a test that needs an unsaved edit makes one
+// in the week: a Monday slot, applied to the draft and not saved.
+const addMonday = async () => {
+  await press('Dodaj — Ponedeljak'); await edit('Početak termina', '09:00'); await edit('Kraj termina', '12:00');
+  await press('Primeni termin');
+};
+const toggleStatus = async (value: boolean) => {
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(value));
+};
 afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; });
 
 it('says that being available now means nothing while the work profile is still a draft', async () => {
@@ -75,18 +84,56 @@ it('says that being available now means nothing while the work profile is still 
 });
 
 describe('actual availability editor interactions', () => {
-  it('saves Available Now only with explicit Save and preserves existing owned data', async () => {
+  // Updated deliberately (owner decision 2026-09-24, "Mogu odmah" saves on its own): the switch used to wait for Save.
+  // The intent kept: the save carries the existing owned data unchanged, and only the status moves.
+  it('saves Mogu odmah on its own, with the saved week unchanged', async () => {
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };
-    const onSave = await render(jest.fn(), loaded);
-    // Updated deliberately (owner step 10, critique A17): Save exists only while something has changed, and what the
-    // status means is its hint from the start instead of a disclosure under it.
+    const pending = jest.fn(() => new Promise<void>(() => {}));
+    const onSave = await render(pending, loaded);
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(button('O statusu Mogu odmah')).toBeUndefined();
+    expect(text()).toContain('čuva se čim ga promeniš');
     expect(text()).toContain('Ne uključuje HITNO');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await toggleStatus(true);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: loaded.rules, windows: [] });
+    // While its own save runs, the line under the switch says so and no Save footer appears for it.
+    await act(async () => tree.update(<AvailabilityForm availability={loaded} busy uncertain={false} onSave={onSave} />));
+    expect(text()).toContain('Čuvamo status…');
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
+    expect(text()).not.toContain('Imaš nesačuvane izmene.');
+  });
+
+  it('lets the status join other unsaved edits, and saves them together with Save', async () => {
+    const onSave = await render();
+    await addMonday();
+    expect(text()).toContain('sačuvaće se zajedno sa ostalim izmenama');
+    await toggleStatus(true);
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
-    expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: loaded.rules, windows: [] });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0]).toMatchObject({ availableNow: true,
+      rules: [expect.objectContaining({ weekdays: [1], startTime: '09:00:00', endTime: '12:00:00' })] });
+  });
+
+  it('keeps the status a draft change in the profile conversation, where the profile is saved in one final step', async () => {
+    const onSave = jest.fn();
+    await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={onSave} candidateMode />); });
+    await toggleStatus(true);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(text()).toContain('važi kada sačuvaš profil');
+    await press('Primeni na pregled profila');
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ availableNow: true }));
+  });
+
+  it('turning the status back before its save starts writes nothing', async () => {
+    // A save refused before it starts (the editor's own guards) leaves the change unsaved; switching it back is no change.
+    const onSave = await render(jest.fn(() => Promise.resolve()));
+    await toggleStatus(true);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    await toggleStatus(false);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(button('Sačuvaj dostupnost')).toBeUndefined();
   });
 
   it('reveals one day at a time without changing a shared weekly rule or saving', async () => {
@@ -106,8 +153,8 @@ describe('actual availability editor interactions', () => {
     // Opening days changes nothing, so there is nothing to save (owner step 10: no footer on a clean form).
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(onSave).not.toHaveBeenCalled();
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
-    await press('Sačuvaj dostupnost');
+    // The status saves on its own (owner decision 2026-09-24); the shared weekly rule goes with it unchanged.
+    await toggleStatus(true);
     expect(onSave).toHaveBeenCalledWith({ timezone: loaded.timezone, availableNow: true, rules: [shared], windows: [] });
   });
 
@@ -117,7 +164,7 @@ describe('actual availability editor interactions', () => {
       for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === 'ScrollView' as React.ElementType) return true;
       return false;
     };
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
     expect(insideScroll(button('Sačuvaj dostupnost'))).toBe(false);
     expect(insideScroll(button('Odustani od izmena'))).toBe(false);
     await press('Dodaj — Ponedeljak');
@@ -212,7 +259,7 @@ describe('actual availability editor interactions', () => {
 
   it.each(['busy', 'uncertain'] as const)('blocks an already edited command while %s', async state => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
     await act(async () => tree.update(<AvailabilityForm availability={loaded} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
     // Updated deliberately (owner step 10): a saving button keeps its words and shows that it works (V2Action loading),
     // instead of swapping its label for "Čuvamo unos…".
@@ -228,7 +275,9 @@ describe('actual availability editor interactions', () => {
 
   it('discard restores the server value without any save', async () => {
     const onSave = await render();
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    // With another edit unsaved, the status joins the draft, so Discard takes both back.
+    await addMonday();
+    await toggleStatus(true);
     await press('Odustani od izmena');
     expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.value).toBe(false);
     expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(onSave).not.toHaveBeenCalled();
@@ -237,20 +286,27 @@ describe('actual availability editor interactions', () => {
   // to save. The intent is kept: an equal receipt at the same revision ends the edit.
   it('accepted idempotent receipt clears dirty edits even if revision is unchanged', async () => {
     const loaded = availability(), onSave = await render(jest.fn(), loaded);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
     await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledTimes(1);
-    await act(async () => tree.update(<AvailabilityForm availability={{ ...loaded, availableNow: true }} busy={false} uncertain={false} onSave={onSave} />));
+    await act(async () => tree.update(<AvailabilityForm availability={{ ...loaded, ...onSave.mock.calls[0][0] }} busy={false} uncertain={false} onSave={onSave} />));
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(text()).not.toContain('nesačuvane');
   });
 
+  // Updated deliberately (owner decision 2026-09-24): the status saves on its own, so the change that is made and then
+  // undone is an exception's name now. The intent is unchanged.
   it('shows the footer only while something has changed, and takes it away when the change is undone', async () => {
-    await render();
+    const loaded = { ...availability(), windows: [{ id: windowId, startsAt: '2026-10-25T08:00:00Z', endsAt: '2026-10-25T10:00:00Z',
+      state: 'UNAVAILABLE' as const, label: 'Staro' }] };
+    await render(jest.fn(), loaded);
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    const rename = async (label: string) => {
+      await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', label); await press('Primeni izuzetak');
+    };
+    await rename('Novo');
     expect(button('Sačuvaj dostupnost')).toBeTruthy(); expect(text()).toContain('Imaš nesačuvane izmene.');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(false));
+    await rename('Staro');
     expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(text()).not.toContain('Imaš nesačuvane izmene.');
   });
 
@@ -267,7 +323,7 @@ describe('actual availability editor interactions', () => {
     const onDirtyChange = jest.fn();
     await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={jest.fn()} onDirtyChange={onDirtyChange} />); });
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
     await act(async () => tree.unmount());
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
@@ -602,7 +658,8 @@ describe('availability reads the way the rest of the app writes time', () => {
   it('refuses a pull while there are unsaved edits, and keeps them', async () => {
     const onRefresh = jest.fn(), onSave = jest.fn();
     await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={onSave} onRefresh={onRefresh} />); });
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
+    await toggleStatus(true);
     const control = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl;
     expect(control.props.enabled).toBe(false);
     await act(async () => control.props.onRefresh());
@@ -628,7 +685,7 @@ describe('availability reads the way the rest of the app writes time', () => {
     expect(heading().props.accessibilityActions).toEqual([{ name: 'refresh', label: 'Učitaj sačuvano stanje' }]);
     await act(async () => heading().props.onAccessibilityAction({ nativeEvent: { actionName: 'refresh' } }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true));
+    await addMonday();
     expect(heading().props.accessibilityActions).toBeUndefined();
     await act(async () => heading().props.onAccessibilityAction({ nativeEvent: { actionName: 'refresh' } }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
