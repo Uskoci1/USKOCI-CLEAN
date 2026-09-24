@@ -44,3 +44,5 @@ docs/implementation/IMPLEMENTATION_CONTINUITY.md text eol=lf
 docs/implementation/NEXT_AI_HANDOFF* text eol=lf
 # Exact text of the dev_alpha rows of the canonical DEV migration ledger; sha256 is verified against the ledger manifest.
 supabase/operations/dev-alpha/ledger/** text eol=lf
+# PKG-051a candidate bytes: its body md5 pins and trimmed sha256 are computed from LF text.
+supabase/candidates/pkg051*.sql text eol=lf

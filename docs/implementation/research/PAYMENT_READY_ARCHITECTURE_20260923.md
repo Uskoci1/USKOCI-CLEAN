@@ -225,6 +225,13 @@ Assumptions to confirm with an accountant: the company is registered for VAT at 
 6. **Charges never write the job price** (`agreement_versions.terms.price_rsd`). Model C reads it once, at quote time.
 7. **Kill switch.** `private.marketplace_config('platform_payments') = {enabled:false, environment:'SANDBOX'}` fails closed. While the current connection policy is `PROMOTIONAL_FREE`, today's path stays byte-for-byte the same.
 
+**Amendment, 2026-09-24 (PKG-051a; written and proof pending, not applied).** The owner asked for the payment settings now, every price 0 RSD, later prices added as new versions. PKG-051a gives the platform price list a server home without a new table: versioned rows `platform_price:<PRODUCT>:<NNNNNN>` plus `platform_price_head` in `private.marketplace_config`, for `CONNECTION` (Povezivanje) and `URGENT_BOOST` (HITNO), written only by `private.platform_price_add_version` as the database owner. Two consequences for this design:
+
+- **Price source.** The payment package should take its amounts, payer role and unit basis from these versions, copying their sha256 chain into its own immutable tables if it wants database-level immutability. It should not add a second, competing price field to `connection_policy_versions` or `platform_product_policies` (§2.5). Until that package exists the versions are advisory: nothing reads or charges from them, and the free ledger stays the only enforced truth.
+- **Switch shape.** PKG-051a seeds the switch as `{"schema":"PLATFORM_PAYMENTS_SWITCH_V1","enabled":false}`. `private.platform_payments_enabled()` accepts only the exact enabled V1 object, and only once `private.platform_charges` exists. The `environment` field above is therefore a switch V2, which means replacing that function in the payment package.
+
+Contract: `docs/implementation/v5-ai-first/pkg051/PKG051_PLATFORM_PRICE_LIST.md`.
+
 ### 2.2 Where the charge sits between selection and Dogovor
 
 ```mermaid
