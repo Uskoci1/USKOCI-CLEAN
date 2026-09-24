@@ -35,6 +35,7 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-aaaa-4aaa-8aaa-${String(++mockCounter).padStart(12, '0')}` }));
+jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options: unknown) => {
   mockVoiceOptions(options);
   if (mockRealVoice) return jest.requireActual('../../features/voice/useHoldToTalk').useHoldToTalk(options);
@@ -92,7 +93,7 @@ const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementT
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
 const openKeyboard = async () => {
   if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za AI' }).length) return;
-  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Piši umesto da govoriš' }).props;
+  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Napiši poruku' }).props;
   await act(async () => keyboard.onPress());
 };
 const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
@@ -426,7 +427,7 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(text()).toContain('Unos ormara'); expect(text()).toContain('NACRT');
+  expect(text()).toContain('Unos ormara'); expect(text()).toContain('Nacrt zadatka');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const card = tree.root.findByProps({ testID: 'intake-task-summary' });
   expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
@@ -468,9 +469,21 @@ it('names the first few missing things and counts the rest instead of a wall tha
   expect(text()).not.toContain('Još treba: Naslov');
 });
 
-it('offers the owned photo route and options without automatic abandonment', async () => {
-  // Photos belong to a conversation, so before the first word there is nothing to attach them to
-  // and the entry is not offered.
+it('puts photos behind the contextual composer plus only after a conversation exists', async () => {
+  await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj fotografiju ili mesto' })).toHaveLength(0);
+
+  await act(async () => tree.unmount());
+  await resume();
+  const add = tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografiju ili mesto' });
+  await act(async () => add.props.onPress());
+  const photo = tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografije zadatka' });
+  await act(async () => photo.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
+  expect(mockSend).not.toHaveBeenCalled();
+});
+
+it('keeps the options sheet focused after attachments move to the composer plus', async () => {
   await render(); await options();
   const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
     .map(node => node.props.accessibilityLabel).join(' ');
@@ -480,15 +493,16 @@ it('offers the owned photo route and options without automatic abandonment', asy
   await act(async () => tree.unmount());
   await resume(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
   await options();
-  expect(optionLabels()).toContain('Fotografije zadatka');
-  expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
+  expect(optionLabels()).not.toContain('Fotografije zadatka');
+  expect(optionLabels()).not.toMatch(/mesto na mapi|mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
   await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });
 
-it('respects reduced motion for screen entry and the options panel', async () => {
+it('respects reduced motion for chat transitions and the options panel', async () => {
   mockReduced = true; await render();
-  expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
+  const animated = tree.root.findAllByType('AnimatedView' as React.ElementType);
+  expect(animated.every(node => node.props.entering === undefined)).toBe(true);
   await options(); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
 });
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 let mockHeight = 844, mockScale = 1;
 const mockKeyboard: Record<string, () => void> = {};
 jest.mock('react-native', () => {
@@ -41,6 +41,35 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(footer.findByProps({accessibilityLabel:'Poruka za AI'}).props.value).toBe('Sačuvana poruka');
   expect(p.card).toHaveBeenLastCalledWith(true);
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
+  expect(p.onSend).not.toHaveBeenCalled();
+});
+it('shows the requested idle chat pattern: add, writing prompt, voice and privacy',async()=>{
+  const p=props();p.value='';p.voice=<View testID="voice-control"/>;p.onAdd=jest.fn();p.addLabel='Dodaj fotografiju ili mesto';
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findByProps({accessibilityLabel:'Dodaj fotografiju ili mesto'})).toBeDefined();
+  expect(tree.root.findByProps({accessibilityLabel:'Napiši poruku'})).toBeDefined();
+  expect(tree.root.findByProps({testID:'voice-control'})).toBeDefined();
+  expect(tree.root.findByProps({accessibilityLabel:'O govornom unosu i privatnosti'})).toBeDefined();
+  expect(tree.root.findAllByProps({accessibilityLabel:'Pošalji poruku'})).toHaveLength(0);
+});
+it('gives active voice the whole composer and restores an existing draft afterwards',async()=>{
+  const p=props();p.voice=<View testID="voice-control"/>;p.voiceActive=true;p.onAdd=jest.fn();
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(tree.root.findByProps({testID:'ai-composer-bar'})).toBeDefined();
+  expect(tree.root.findAllByProps({accessibilityLabel:'Poruka za AI'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({accessibilityLabel:'Dodaj u zadatak'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({accessibilityLabel:'O govornom unosu i privatnosti'})).toHaveLength(0);
+  const resumed={...p,voiceActive:false};
+  await act(async()=>tree.update(<AiConversationShell {...resumed}/>));
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.value).toBe('Sačuvana poruka');
+  expect(p.onSend).not.toHaveBeenCalled();
+});
+it('keeps the contextual add action inside the composer without sending anything',async()=>{
+  const p=props();p.onAdd=jest.fn();p.addLabel='Dodaj fotografiju ili mesto';
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const add=tree.root.findByProps({accessibilityLabel:'Dodaj fotografiju ili mesto'});
+  await act(async()=>add.props.onPress());
+  expect(p.onAdd).toHaveBeenCalledTimes(1);
   expect(p.onSend).not.toHaveBeenCalled();
 });
 it('offers a way in before the first word, and one tap puts it in the message',async()=>{

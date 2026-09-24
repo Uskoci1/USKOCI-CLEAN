@@ -201,6 +201,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>}
     voice={writable?<VoiceComposer controller={voice.controller} state={voice.state} disabled={!enabled||!!pending.current}
       onKeepText={keepTranscript}/>:undefined}
+    voiceActive={voiceBusy}
     actions={<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('manual')}/>
       <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled||!writable} onPress={()=>setPanel('availability')}/>
       {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
