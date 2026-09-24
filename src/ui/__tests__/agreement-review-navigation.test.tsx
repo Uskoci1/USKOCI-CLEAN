@@ -20,7 +20,9 @@ jest.mock('expo-linking', () => ({ ...jest.requireActual('expo-linking'), create
   resolveScheme: () => 'uskoci', addEventListener: () => ({ remove() {} }) }));
 jest.mock('phosphor-react-native', () => new Proxy({}, { get: () => 'Icon' }));
 jest.mock('../system/FactArt', () => ({ FactArt: 'FactArt' }));
-jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => false }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../Text', () => ({ T: 'T' }));
 jest.mock('../v2/V2Action', () => ({ V2Action: 'Action' }));
 

@@ -181,3 +181,31 @@ it('the store itself imports no Reanimated, so every route suite can load it', (
   expect(alias).not.toMatch(/react-native-reanimated/);
   expect(alias).toMatch(/from '\.\.\/ui\/system\/motion'/);
 });
+
+/** The root can leave while a reader deeper in the tree stays, as when the root error boundary takes over. */
+function Host({ withRoot }: { withRoot: boolean }) {
+  return <>{withRoot ? <Root><></></Root> : null}<Other /></>;
+}
+
+// Review r1 item 4 (2026-09-24): releasing the store used to set "not reduced" without telling the readers still
+// mounted, and a retried root then skipped its seed because readers existed, so it read "not reduced" until the query
+// answered. A reader now keeps the last known answer, and a retried root starts from it.
+it('a reader that outlives the root keeps the last known answer, and a retried root starts from it', () => {
+  mount(<Host withRoot />);
+  preference(true); expect(other()).toBe(true);
+  act(() => { tree!.update(<Host withRoot={false} />); });
+  expect(mockPreferences[0].remove).toHaveBeenCalledTimes(1);
+  expect(other()).toBe(true);
+  mockStartup = false;
+  act(() => { tree!.update(<Host withRoot />); });
+  expect(other()).toBe(true);
+  expect(mockCurrent).toHaveBeenCalledTimes(2);
+  preference(false); expect(other()).toBe(false);
+});
+
+it('once no root and no reader is left, nothing is known: the next reader starts from "not reduced"', () => {
+  mount(); preference(true); expect(snapshot()).toBe(true);
+  unmount();
+  mount(<Probe />);
+  expect(snapshot()).toBe(false);
+});

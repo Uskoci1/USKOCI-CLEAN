@@ -8,7 +8,8 @@ import { applicationCounts, type ApplicationCounts } from './myApplicationsView'
  * waits for this account, composed on the phone from the three reads that already exist. No mode is consulted: the
  * same account's own tasks, its applications to other people's, and its Dogovori on either side stand next to each
  * other. My own tasks and my applications are two front doors, "Moji zadaci" and "Moje prijave", each counted by the
- * same rule as the list it opens; the preview of their rows ("Moje aktivnosti") is retired.
+ * same rule as the list it opens; the preview of their rows ("Moje aktivnosti") is retired, and since 2026-09-24 its
+ * address redirects to Početna, so its composition is gone too.
  *
  * PKG-042 supplies server attention separately. The legacy attention composition stays as the
  * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
@@ -23,7 +24,6 @@ export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget };
 export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string };
 export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget };
-export type HomeActivityRow = HomeRow & { relation: 'OWNED' | 'APPLIED' };
 type Preview<Row> = { rows: Row[]; more: number };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<Preview<HomeRow>>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
@@ -32,7 +32,12 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
   /** Every read answered and this account has no task, no application, no Dogovor and nothing waiting. */
   firstRun: boolean;
   /** Completed Dogovori still waiting for this person's rating; 0 when the Dogovori could not be read. */
-  ratingsDue: number };
+  ratingsDue: number;
+  /**
+   * When exactly one Dogovor waits for my rating, its id, as the Dogovori read already gave it: Početna then opens that
+   * rating in one tap (emulator critique A1, 2026-09-24). With none or several it is null and Početna opens Dogovori.
+   */
+  ratingDueAgreementId: string | null };
 
 const READ_TIMEOUT_MS = 15_000;
 /** One read that fails or hangs costs its own section, never the screen, and never reads as empty. */
@@ -60,28 +65,10 @@ const ratingDue = (row: DogovorProjekcija) => row.stanje === 'COMPLETED' && row.
 const mySide = (row: DogovorProjekcija) => row.ucesnici.find(person => person.viSte)?.uloga ?? null;
 const counterpart = (row: DogovorProjekcija) => row.ucesnici.find(person => !person.viSte)?.ime ?? 'Druga strana';
 
-function needRow(need: PotrebaProjekcija): HomeActivityRow {
-  return { id: `need:${need.id}`, relation: 'OWNED', title: need.naslov, target: { kind: 'NEED', needId: need.id },
-    detail: need.stanje === 'NACRT' ? 'Nacrt · nije objavljen'
-      : `Tvoj zadatak · ${need.vremeTekst} · ${need.brojPrijava > 0 ? prijava(need.brojPrijava) : 'još nema prijava'}` };
-}
-function applicationRow(row: MojaPrijavaProjekcija): HomeActivityRow {
-  return { id: `application:${row.prijavaId}`, relation: 'APPLIED', title: row.naslov, target: { kind: 'APPLICATION', applicationId: row.prijavaId },
-    detail: `Tvoja prijava · ${row.cena.prikaz} ukupno · ${staleApplication(row) ? 'zadatak je izmenjen' : 'čeka izbor'}` };
-}
 function agreementRow(row: DogovorProjekcija): HomeRow {
   const side = mySide(row);
   return { id: `agreement:${row.id}`, title: row.naslov, target: { kind: 'AGREEMENT', agreementId: row.id },
     detail: [side === 'narucilac' ? 'Tvoj zadatak' : side === 'uskocer' ? 'Uskačeš' : null, counterpart(row), row.vremeTekst].filter(Boolean).join(' · ') };
-}
-/** Alternate the two sides, so an account busy on one of them still sees the other in five rows. */
-function interleave<T>(first: readonly T[], second: readonly T[]): T[] {
-  const result: T[] = [];
-  for (let index = 0; index < Math.max(first.length, second.length); index++) {
-    if (index < first.length) result.push(first[index]);
-    if (index < second.length) result.push(second[index]);
-  }
-  return result;
 }
 
 export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>): HomeSnapshot {
@@ -121,6 +108,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       return a.index - b.index;
     })
     .map(entry => agreementRow(entry.row));
+  const due = (agreements ?? []).filter(ratingDue);
   const partial = serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   return {
@@ -133,46 +121,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       applications: applications ? { kind: 'known', value: applicationCounts(applications) } : { kind: 'unavailable' } },
     partial,
     firstRun: !partial && !attention.length && !needs?.length && !applications?.length && !agreements?.length,
-    ratingsDue: (agreements ?? []).filter(ratingDue).length,
+    ratingsDue: due.length,
+    ratingDueAgreementId: due.length === 1 ? due[0].id : null,
   };
-}
-
-/**
- * Moje aktivnosti v1: the things this account is part of, as one list filtered by what the person
- * is to them. It is a list of subjects, not of events — the inbox stays the list of events.
- *
- * A selected application belongs to history once its Dogovor has ended; when the Dogovori could
- * not be read that cannot be known, so the row stays under active, where it can still be found.
- */
-export type ActivityFilter = { relation: 'ALL' | 'OWNED' | 'APPLIED'; period: 'ACTIVE' | 'HISTORY' };
-export type ActivityPage = HomeSection<HomeActivityRow[]>
-  | { kind: 'partial'; missing: ('needs' | 'applications')[]; value: HomeActivityRow[] };
-
-export function composeActivities(reads: HomeReads, filter: ActivityFilter): ActivityPage {
-  const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
-  const applications = reads.applications.kind === 'known' ? reads.applications.value : null;
-  const agreements = reads.agreements.kind === 'known' ? new Map(reads.agreements.value.map(row => [row.id, row])) : null;
-  const active = filter.period === 'ACTIVE';
-
-  const over = (row: MojaPrijavaProjekcija) => {
-    if (row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED') return true;
-    if (row.stanje !== 'SELECTED') return false;
-    const agreement = row.dogovorId ? agreements?.get(row.dogovorId) : undefined;
-    return !!agreement && !activeAgreement(agreement);
-  };
-  const appliedRow = (row: MojaPrijavaProjekcija): HomeActivityRow => row.stanje === 'SELECTED'
-    ? { id: `application:${row.prijavaId}`, relation: 'APPLIED', title: row.naslov, detail: 'Tvoja prijava je izabrana · otvori Dogovor',
-      target: row.dogovorId ? { kind: 'AGREEMENT', agreementId: row.dogovorId } : { kind: 'APPLICATION', applicationId: row.prijavaId } }
-    : row.stanje === 'WITHDRAWN' ? { ...applicationRow(row), detail: `Tvoja prijava · ${row.cena.prikaz} ukupno · povučena` }
-      : row.stanje === 'CLOSED' ? { ...applicationRow(row), detail: `Tvoja prijava · ${row.cena.prikaz} ukupno · zatvorena` } : applicationRow(row);
-  const ownedRow = (row: PotrebaProjekcija): HomeActivityRow => row.stanje === 'ZATVORENA'
-    ? { ...needRow(row), detail: `Tvoj zadatak · ${row.vremeTekst} · zatvoren` } : needRow(row);
-
-  const wantsOwned = filter.relation !== 'APPLIED', wantsApplied = filter.relation !== 'OWNED';
-  const missing = [...(wantsOwned && !needs ? ['needs' as const] : []), ...(wantsApplied && !applications ? ['applications' as const] : [])];
-  const owned = wantsOwned && needs ? needs.filter(row => (row.stanje === 'ZATVORENA') !== active).map(ownedRow) : [];
-  const applied = wantsApplied && applications ? applications.filter(row => over(row) !== active).map(appliedRow) : [];
-  const value = interleave(owned, applied);
-  const asked = Number(wantsOwned) + Number(wantsApplied);
-  return missing.length === asked ? { kind: 'unavailable' } : missing.length ? { kind: 'partial', missing, value } : { kind: 'known', value };
 }

@@ -1,5 +1,5 @@
 import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../../contracts/projections';
-import { composeActivities, composeHome, type HomeReads } from '../homeSnapshot';
+import { composeHome, type HomeReads } from '../homeSnapshot';
 
 const ME = 'me', OTHER = 'other';
 const need = (id: string, patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ id, revizija: 1, naslov: `Zadatak ${id}`, opis: '',
@@ -40,7 +40,8 @@ describe('Početna — composed from the reads that already exist, with no mode'
   it('an account with nothing has no attention, no rows and no invented numbers, and is a first run', () => {
     expect(composeHome(reads())).toEqual({ attention: [], attentionMore: 0, agreements: known({ rows: [], more: 0 }),
       mine: { tasks: known({ total: 0, active: 0, waiting: 0, drafts: 0, history: 0 }), applications: known({ total: 0, attention: 0, active: 0, finished: 0 }) },
-      partial: false, firstRun: true, ratingsDue: 0 });
+      // ratingDueAgreementId (2026-09-24): the empty account has no rating to open.
+      partial: false, firstRun: true, ratingsDue: 0, ratingDueAgreementId: null });
   });
 
   it('is a first run only when every read answered and nothing exists at all', () => {
@@ -123,44 +124,18 @@ describe('Početna — composed from the reads that already exist, with no mode'
   });
 });
 
-describe('Moje aktivnosti v1 — the things I am part of, filtered by what I am to them', () => {
-  const all = reads({
-    needs: known([need('open', { brojPrijava: 2 }), need('draft', { stanje: 'NACRT' }), need('closed', { stanje: 'ZATVORENA' })]),
-    applications: known([application('wait'), application('gone', { stanje: 'WITHDRAWN' }),
-      application('won', { stanje: 'SELECTED', dogovorId: 'g-live' }), application('done', { stanje: 'SELECTED', dogovorId: 'g-done' })]),
-    agreements: known([agreement('g-live', 'uskocer'), agreement('g-done', 'uskocer', { stanje: 'COMPLETED' })]) });
+// "Moje aktivnosti" redirects to Početna since 2026-09-24 (it had no entry left), so its composition and the cases
+// that held it are gone; Početna's own doors and "Čeka te" are covered above and in v3-home-screen.
 
-  it('lists both sides together when active, each row saying which side it is', () => {
-    const page = composeActivities(all, { relation: 'ALL', period: 'ACTIVE' });
-    expect(page.kind).toBe('known');
-    expect(page.kind === 'known' ? page.value.map(row => [row.id, row.relation]) : null).toEqual([
-      ['need:open', 'OWNED'], ['application:wait', 'APPLIED'], ['need:draft', 'OWNED'], ['application:won', 'APPLIED']]);
+describe('one completed Dogovor waiting for my rating (emulator critique A1, 2026-09-24)', () => {
+  const done = (id: string, due: boolean) => agreement(id, 'uskocer', { stanje: 'COMPLETED', ocenaMoguca: due });
+  it('names the one Dogovor the read already gave, so Početna can open its rating in one tap', () => {
+    const home = composeHome(reads({ agreements: known([done('only', true), done('rated', false), agreement('soon', 'narucilac')]) }));
+    expect(home.ratingsDue).toBe(1); expect(home.ratingDueAgreementId).toBe('only');
   });
-
-  it('filters by relation without consulting any mode', () => {
-    const owned = composeActivities(all, { relation: 'OWNED', period: 'ACTIVE' });
-    const applied = composeActivities(all, { relation: 'APPLIED', period: 'ACTIVE' });
-    expect(owned.kind === 'known' ? owned.value.map(row => row.id) : null).toEqual(['need:open', 'need:draft']);
-    expect(applied.kind === 'known' ? applied.value.map(row => row.id) : null).toEqual(['application:wait', 'application:won']);
-  });
-
-  it('history holds what is over: a closed task, a withdrawn application, and a selected one whose Dogovor has ended', () => {
-    const page = composeActivities(all, { relation: 'ALL', period: 'HISTORY' });
-    expect(page.kind === 'known' ? page.value.map(row => row.id) : null).toEqual(['need:closed', 'application:gone', 'application:done']);
-  });
-
-  it('a selected application leads to its own Dogovor, and one whose Dogovor cannot be read stays where it can be found', () => {
-    const page = composeActivities(all, { relation: 'APPLIED', period: 'ACTIVE' });
-    expect(page.kind === 'known' ? page.value.find(row => row.id === 'application:won') : null).toEqual({ id: 'application:won', relation: 'APPLIED',
-      title: 'Tuđ zadatak won', detail: 'Tvoja prijava je izabrana · otvori Dogovor', target: { kind: 'AGREEMENT', agreementId: 'g-live' } });
-    const blind = composeActivities({ ...all, agreements: { kind: 'unavailable' } }, { relation: 'APPLIED', period: 'ACTIVE' });
-    expect(blind.kind === 'known' ? blind.value.map(row => row.id) : null).toEqual(['application:wait', 'application:won', 'application:done']);
-  });
-
-  it('never shows a side that could not be read as a side with nothing in it', () => {
-    expect(composeActivities({ ...all, needs: { kind: 'unavailable' } }, { relation: 'OWNED', period: 'ACTIVE' })).toEqual({ kind: 'unavailable' });
-    const mixed = composeActivities({ ...all, needs: { kind: 'unavailable' } }, { relation: 'ALL', period: 'ACTIVE' });
-    expect(mixed).toEqual({ kind: 'partial', missing: ['needs'], value: [expect.objectContaining({ id: 'application:wait' }), expect.objectContaining({ id: 'application:won' })] });
+  it('names none when several wait or the Dogovori could not be read: Početna then opens Dogovori', () => {
+    expect(composeHome(reads({ agreements: known([done('a', true), done('b', true)]) })).ratingDueAgreementId).toBeNull();
+    expect(composeHome(reads({ agreements: { kind: 'unavailable' } })).ratingDueAgreementId).toBeNull();
   });
 });
 

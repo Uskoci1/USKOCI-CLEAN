@@ -1,6 +1,7 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { sys } from '../tokens';
+import { Platform } from 'react-native';
+import { brandAction, card, cardCompact, fieldBox, floating, sys } from '../tokens';
 
 /**
  * One token source and one motion source (2026-09-24). The files below were moved onto `sys` and onto the one
@@ -69,4 +70,27 @@ it('every named colour in sys is a real colour value', () => {
   for (const [name, value] of [...Object.entries(sys.color), ...Object.entries(sys.art)]) {
     expect([name, value]).toEqual([name, expect.stringMatching(/^#(?:[0-9A-F]{6}|[0-9A-F]{8})$/)]);
   }
+});
+
+// Emulator critique B6 (2026-09-24): 16/17, 20/26 and 9/13 were corners that nearly agree, so a field and the button
+// beside it differed by a pixel. Three steps and the capsule; the role names stay and share them.
+it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary action share one corner', () => {
+  expect(sys.radius).toEqual({ badge: 12, chip: 12, control: 12, primary: 12, cardCompact: 24, card: 24, sheet: 28, pill: 999 });
+  expect(new Set(Object.values(sys.radius))).toEqual(new Set([12, 24, 28, 999]));
+  expect(brandAction.borderRadius).toBe(fieldBox.borderRadius);
+});
+
+// Emulator critique B5 (2026-09-24): a list card wore a border and a shadow. A card lying on the white screen is drawn
+// by its hairline; a shadow says "this floats", and only floating layers keep it.
+it.each([['card', card], ['cardCompact', cardCompact]] as const)('%s is a hairline card with no shadow', (_name, style) => {
+  expect(style).toMatchObject({ borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface, borderRadius: 24 });
+  for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity', 'shadowRadius', 'shadowOffset']) expect(style).not.toHaveProperty(key);
+  expect(floating).toEqual(expect.objectContaining(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 1 } : { boxShadow: expect.any(String) }));
+});
+
+it('the second motion scale is gone with the v2 token file, and no tone reads below AA on green', () => {
+  expect(existsSync(join(repo, 'src/ui/v2/tokens.ts'))).toBe(false);
+  // onDarkMuted read 2.4:1 on sys.color.green; it passed only on the retired forest ground.
+  expect(sys.color).not.toHaveProperty('onDarkMuted');
+  expect(read('src/ui/Text.tsx')).not.toMatch(/'onDarkMuted'|onDarkMuted:/);
 });

@@ -13,8 +13,14 @@ import { sys } from '../../ui/system/tokens';
 import { BuildIdentity } from '../../ui/BuildIdentity';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
+import { Avatar } from '../../ui/system/Avatar';
+import { inicijali } from '../../lib/inicijali';
 
 type ActionScope = { accountId: string; accountRevision: number; busy: boolean };
+/** A person's own header uses the Avatar's largest size, for the photo and for what stands in for it alike. */
+const AVATAR = 56;
+/** The camera mark sits on the photo's edge at a size that leaves the face visible. */
+const BADGE = { width: 24, height: 24, right: -2, bottom: -2 } as const;
 
 export default function Profil() {
   const { user, accountRevision } = useSesija();
@@ -82,11 +88,11 @@ export default function Profil() {
     : !capability ? 'Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak.'
       : capability.stanje === 'DRAFT' ? 'Profil je nacrt — dok je nacrt, zadaci ti se ne nude.'
         : capability.stanje === 'SUSPENDED' ? 'Profil je obustavljen. Piši podršci.' : 'Ime, grad i veštine za prijavljivanje na zadatke.';
-  const initials = identity?.ime?.split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase();
   const photoReady = !!identity?.profileId && !profile.loading && !profile.error;
   const openPhoto = () => { const id = identity?.profileId; if (!id || profile.loading || profile.error) return;
     navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };
-  const avatar = <View style={styles.avatar}>{initials ? <T variant="display" tone="success" style={sys.type.monogram}>{initials}</T> : <FactArt kind="person" size={40} />}</View>;
+  // The one Avatar at its header size, with the one way to take letters from a name; no name draws a person.
+  const avatar = <Avatar initials={inicijali(identity?.ime)} size={AVATAR} />;
 
   return <SettingsScreen title="Profil" disabled={busy}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))}>
@@ -102,8 +108,8 @@ export default function Profil() {
         <View style={styles.identityRow}>
           <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
             disabled={!photoReady || busy} accessibilityState={{ disabled: !photoReady || busy }} onPress={openPhoto} haptic="select" scaleTo={0.97}>
-            {identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={80} fallback={avatar} /> : avatar}
-            {photoReady ? <View style={styles.avatarBadge}><Camera size={16} color={sys.color.ink} /></View> : null}
+            {identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={AVATAR} fallback={avatar} /> : avatar}
+            {photoReady ? <View style={[styles.avatarBadge, BADGE]}><Camera size={14} color={sys.color.ink} /></View> : null}
           </Press>
           <View style={styles.identityCopy}>
             <T variant="display" accessibilityRole="header" style={styles.name} numberOfLines={2}>{identity?.ime ?? 'Ime još nije uneto'}</T>

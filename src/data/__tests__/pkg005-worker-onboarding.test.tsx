@@ -29,7 +29,6 @@ jest.mock('../../store/uloga', () => ({
   useIzvor: () => mockSource,
 }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/v2/tokens', () => ({ v2: { text: { body: {}, label: {} }, color: { teal: '#0a0', muted: '#777', danger: '#a00', orange: '#f80' } } }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'V2Action' }));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({
   WorkerProfileFrame: ({ children, footer }: { children: unknown; footer?: unknown }) => require('react').createElement('Frame', null, children, footer),

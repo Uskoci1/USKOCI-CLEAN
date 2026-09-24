@@ -3,7 +3,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { LottieArt } from '../system/LottieArt';
 
 let mockReduced = false;
-jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../system/motion', () => ({ useReducedMotion: () => mockReduced }));
 
 const source = { v: '5.7.4', fr: 30, ip: 0, op: 30, w: 100, h: 100, nm: 'proof', ddd: 0, assets: [], layers: [] };
 let tree: ReactTestRenderer;

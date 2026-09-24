@@ -55,7 +55,10 @@ function Home() {
   return <HomePresentation home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={() => navigate(() => router.navigate('/profil'))} onOpen={open}
-    onAgreements={() => navigate(() => router.navigate('/dogovori'))}
+    // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
+    // 2026-09-24), exactly as the Dogovor screen opens it. Several, or none known: Dogovori, where each one waits.
+    onRatings={agreementId => navigate(() => agreementId
+      ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
     onRefresh={() => { if (current()) void resource.refresh(true); }} />;

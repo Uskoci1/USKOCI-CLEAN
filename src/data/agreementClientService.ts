@@ -10,6 +10,7 @@ import { DOGOVORENA_ZONA } from '../lib/dogovorenoVreme';
 import { supabaseKlijent } from './supabaseClient';
 import { novac as novacTekst } from '../lib/novac';
 import { vreme } from '../lib/vreme';
+import { inicijali } from '../lib/inicijali';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -58,7 +59,8 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       id: myId,
       profilId: uuid(myProfileId) ? String(myProfileId) : null,
       ime: myName || 'Ti',
-      inicijali: (myName || 'TI').slice(0, 2).toUpperCase(),
+      // Letters only from a real name (lib/inicijali); none gives '' and the Avatar draws a person, never "TI".
+      inicijali: inicijali(myName) ?? '',
       uloga: requester ? 'narucilac' : 'uskocer',
       mesta: requester ? null : covered,
       viSte: true,
@@ -68,7 +70,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       id: otherId,
       profilId: uuid(otherProfileId) ? String(otherProfileId) : null,
       ime: otherName || 'Druga strana',
-      inicijali: (otherName || 'DS').slice(0, 2).toUpperCase(),
+      inicijali: inicijali(otherName) ?? '',
       uloga: requester ? 'uskocer' : 'narucilac',
       mesta: requester ? covered : null,
       viSte: false,

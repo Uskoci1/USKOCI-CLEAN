@@ -47,13 +47,13 @@ function sectionOf(state: { index: number; routes: readonly { name: string; key:
 }
 
 /**
- * `/mapa` and `/prilike` only redirect to Zadaci. Inside a tab navigator a redirect is a jump, and with
+ * `/mapa` and `/prilike` only redirect to Zadaci (and `/moje-aktivnosti` to Početna). Inside a tab navigator a redirect is a jump, and with
  * `backBehavior="history"` the jump left the retired route in the history: Back from Zadaci returned to it, it
  * redirected again, and Back could never leave Zadaci (proved on the real router, retired-discovery-routes.test).
  * A retired route therefore stays in the history only while it is the route on screen. Navigation state only; no
  * screen, read or guard is involved.
  */
-const RETIRED = new Set(['mapa', 'prilike']);
+const RETIRED = new Set(['mapa', 'prilike', 'moje-aktivnosti']);
 type TabHistory = { index: number; routes: readonly { name: string; key?: string }[]; history?: readonly { type: string; key?: string }[] };
 function withoutRetired<State>(state: State): State {
   const tabs = state as unknown as TabHistory | null;
@@ -159,8 +159,8 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...FULL }} />
-    {/* Retired as a destination (2026-09-23): nothing links here; a stale deep link still opens it. */}
-    <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...FULL }} />
+    {/* Retired (2026-09-23) and a redirect to Početna since 2026-09-24, registered like the two below. */}
+    <Tabs.Screen name="moje-aktivnosti" options={{ href: null, ...REDIRECT }} />
     {/* Redirects to Zadaci: they never move and never show the bar for the frame before they hand over. */}
     <Tabs.Screen name="prilike" options={{ href: null, ...REDIRECT }} />
     <Tabs.Screen name="mapa" options={{ href: null, ...REDIRECT }} />

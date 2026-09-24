@@ -10,6 +10,8 @@ import { card, sys, field } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
 import { plural } from '../system/plural';
+import { Avatar } from '../system/Avatar';
+import { inicijali } from '../../lib/inicijali';
 
 /** Frame of the worker profile: back, title, keyboard-safe body, sticky footer. */
 export function WorkerProfileFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
@@ -81,14 +83,13 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     (selected as { focus?: () => void } | null)?.focus?.();
   }, [focusRequest, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
-  const initials = draft.ime.trim().split(/\s+/).slice(0, 2).map(part => part.slice(0, 1)).join('').toUpperCase();
   const statusText = status === 'ACTIVE' ? 'Profil je aktivan' : status === 'SUSPENDED' ? 'Profil je trenutno suspendovan' : 'Radni profil je još nacrt';
   const statusTone = status === 'ACTIVE' ? sys.color.green : status === 'SUSPENDED' ? sys.color.danger : sys.color.warn;
   return <>
     <View style={[s.card, s.hero]}>
-      {/* The initials are the avatar drawn as text. The name right below says the same thing, so
-          announcing both makes a screen reader repeat itself. */}
-      <View style={s.avatar}><T accessible={false} variant="title" style={s.initials}>{initials || 'JA'}</T></View>
+      {/* The one Avatar, silent beside the name right below it (a screen reader would otherwise hear the name twice).
+          No name yet draws a person, never "JA". */}
+      <View style={s.avatar}><Avatar initials={inicijali(draft.ime)} size={56} /></View>
       <T accessibilityRole="header" variant="title" style={[s.ink, s.center]}>{draft.ime.trim() || 'Šta možeš da preuzmeš?'}</T>
       <View style={[s.statusChip, { backgroundColor: status === 'ACTIVE' ? sys.color.greenSoft : status === 'SUSPENDED' ? sys.color.dangerSoft : sys.color.warnSoft }]}>
         <T variant="meta" style={{ color: statusTone, fontWeight: '600' }}>{statusText}</T></View>
@@ -148,8 +149,7 @@ eyebrow: { ...sys.type.label, color: sys.color.muted, fontWeight: '600', letterS
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   card: { ...card, gap: 12 },
   hero: { alignItems: 'center', gap: 8, borderWidth: 0, backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0, paddingVertical: 8 },
-  avatar: { width: 96, height: 96, borderRadius: sys.radius.sheet, backgroundColor: sys.color.greenSoft, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  initials: { ...sys.type.monogram, color: sys.color.green },
+  avatar: { marginBottom: 6 },
   statusChip: { borderRadius: sys.radius.badge, paddingHorizontal: 12, paddingVertical: 7 },
   field: { gap: 6 },
   input: { ...field },

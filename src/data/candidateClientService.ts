@@ -5,6 +5,7 @@ import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
 import { calendarInstant } from '../lib/calendarTime';
 import { novac } from '../lib/novac';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
+import { inicijali } from '../lib/inicijali';
 import { plural } from '../ui/system/plural';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -29,12 +30,6 @@ function rsd(iznos: number) {
     valuta: 'RSD',
     prikaz: novac(iznos),
   };
-}
-
-function inicijali(ime: string) {
-  const delovi = ime.trim().split(/\s+/).filter(Boolean);
-  if (!delovi.length) return '?';
-  return delovi.slice(0, 2).map((d) => d[0] ?? '').join('').toUpperCase() || '?';
 }
 
 
@@ -106,7 +101,8 @@ function mapCandidate(raw: any): KandidatProjekcija {
     predlozeniPocetak: raw.proposedStartAt,
     predlozeniKraj: raw.proposedEndAt,
     ime,
-    inicijali: inicijali(ime),
+    // From the published name only: "Ime nije dostupno" is our sentence, not the person's name, so it gives no letters.
+    inicijali: inicijali(typeof profile?.displayName === 'string' ? profile.displayName : null) ?? '',
     ocenaTekst: rating === null ? '—' : rating.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }),
     recenzijeTekst: reviews === null ? plural(completed, 'završen posao', 'završena posla', 'završenih poslova')
       : plural(reviews, 'recenzija', 'recenzije', 'recenzija'),

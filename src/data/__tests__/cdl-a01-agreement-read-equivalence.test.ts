@@ -262,3 +262,16 @@ it('attributes accepted coverage to the worker when the viewing account is the w
     expect.objectContaining({ id: 'requester-1', uloga: 'narucilac', viSte: false, mesta: null }),
   ]);
 });
+
+// One way to write initials (lib/inicijali, 2026-09-24): the emulator showed "MI" for "Milos SLJIVIC" here, where every
+// other screen said "MS", and a missing name became "TI" or "DS", letters of nobody. A missing name now stays empty and
+// the Avatar draws a person; the displayed name keeps its own fallback.
+it('writes each side\'s initials from the real name only, and none for a missing name', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, requesterName: 'Milos SLJIVIC', workerName: 'ana marija' }, error: null });
+  expect((await agreementClientService.dogovor('agr-1'))?.ucesnici.map(person => person.inicijali)).toEqual(['MS', 'AM']);
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, requesterName: null, workerName: '' }, error: null });
+  const missing = await agreementClientService.dogovor('agr-1');
+  expect(missing?.ucesnici.map(person => person.inicijali)).toEqual(['', '']);
+  expect(missing?.ucesnici.map(person => person.ime)).toEqual(['Ti', 'Druga strana']);
+});

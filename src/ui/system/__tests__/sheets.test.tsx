@@ -22,7 +22,9 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
-jest.mock('../../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
 
 /**
  * The one sheet engine and the three sheets built on it. Confirmations used to be system alerts: they could not show

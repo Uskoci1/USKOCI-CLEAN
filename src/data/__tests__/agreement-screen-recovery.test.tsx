@@ -35,7 +35,9 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => false }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 // The Dogovor shows each side's photograph since pkg024a, and that module reaches supabaseClient,
 // which registers an AppState listener the moment it is required — before this suite's own
 // listener set exists. Every screen suite in this repo stubs the media module for that reason.

@@ -3,18 +3,20 @@ import { elevation, palette, radius, space, touch, type } from '../../theme/toke
 
 /**
  * `sys` is the one surface screens and components read for colour, type, space, corners, touch and motion (2026-09-24:
- * the older `theme/tokens`, `aiFirst` and `v2` token files are no longer read by a screen). It may build on the theme
- * scale here, inside the system; nothing outside it imports that scale directly. A nested corner is geometry, not a
- * value, so it is exported beside `sys`.
+ * the `v2` token file with its second motion scale is deleted, and the screens moved that day no longer read
+ * `theme/tokens` or `aiFirst`; the sign-in screens and the AI conversation still do, as views of the same values). It
+ * may build on the theme scale here, inside the system. A nested corner is geometry, not a value, so it is exported
+ * beside `sys`.
  */
 export { nested } from '../../theme/tokens';
 
 /**
- * One light system for every inner screen (PKG-011, redesigned 2026-09-16 against
- * the V5 AI-FIRST reference: white background, deep green as trust and
- * orientation, orange as the single action signal, cards with a soft V4.9 shadow
- * instead of a wireframe outline). The entry/HOME/mascot keep their own locked
- * assets; this file never restyles them.
+ * One light system for every screen (PKG-011, redesigned 2026-09-16 against the V5 AI-FIRST reference: white
+ * background, deep green as trust, orientation and the primary action, orange as a controlled accent). Since
+ * 2026-09-24 the Home drawing's colours live here too (`sys.art`, master design plan: hand-written hex goes into tokens),
+ * so this file does restyle it; only the entry sequence (the V4.9 brand intro, `ui/entry`, with its own locked
+ * `ENTRY_V49` values) and the mascot keep colours of their own. The Home pin is now the palette orange, no longer the
+ * entry orange #FF800A it once copied.
  *
  * Colours are the owner's V28 prototype as it renders (decision 2026-09-22, "identičan izgled";
  * V28's colours, icons and navigation are the ones to keep). Measured from computed styles at
@@ -73,9 +75,11 @@ export const sys = {
     waitingInk: '#874515',
     /** Orange as words. The action orange fails as text (2.5:1), so a word that must read orange uses this. */
     orangeInk: palette.orangeInk,
-    /** Words on a filled green or dark surface that is not the primary action (a chosen day), and their quiet partner. */
+    /**
+     * Words on a filled green surface that is not the primary action (a chosen day). It has no quiet partner: the old
+     * `onDarkMuted` read 2.4:1 on green (it passed only on the retired forest ground), so nothing may say it.
+     */
     onDark: palette.onDark,
-    onDarkMuted: palette.onDarkMuted,
   },
   /**
    * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
@@ -93,7 +97,10 @@ export const sys = {
     spark: '#FFAD60',
     dot: '#AECDBB',
   },
-  /** One scale, defined once in `theme/tokens`. A circle or capsule is `pill`, never half of its own width. */
+  /**
+   * One scale, defined once in `theme/tokens`: 12 for what is touched or sits in a row (control, chip, badge and the
+   * primary action alike), 24 for a card, 28 for a sheet. A circle or capsule is `pill`, never half of its own width.
+   */
   radius,
   space,
   type: {
@@ -147,17 +154,20 @@ export const sys = {
 } as const;
 
 /**
- * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (26px corners, 20px padding);
- * an item in a list is `cardCompact` (20px corners, 16px padding). Both are white with the cardLine hairline and
- * V28's measured two-layer shadow (the TaskCard shadow), so every card on every screen lifts the same way. Something
- * inside a card is never another card: it is a flat tint at control radius.
+ * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (20px padding); an item in a
+ * list is `cardCompact` (16px padding); both have the card corner. Both are white with the `line` hairline and NO
+ * shadow (emulator critique B5, 2026-09-24): a card lying on the white screen is drawn by its edge, and a border plus a
+ * shadow on every card of a list was two outlines for one thing. Shadow means "this floats above the screen", so it is
+ * kept for what really floats (`floating`: sheets, map controls, the tab bar). Something inside a card is never
+ * another card: it is a flat tint at control radius.
  */
-const cardShadow: ViewStyle = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
+export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
+  borderColor: sys.color.line, padding: 20 };
+export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
+/** The lift of a layer that floats over the screen (V28's measured two-layer shadow). Never on a card in a list. */
+export const floating: ViewStyle = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28
   ? { elevation: 1 } // boxShadow needs Android 9+; minSdk is 24.
   : { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
-export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
-  borderColor: sys.color.cardLine, padding: 20, ...cardShadow };
-export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 /** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
 export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
   paddingHorizontal: 14, paddingVertical: 12, backgroundColor: sys.color.surface } satisfies ViewStyle;

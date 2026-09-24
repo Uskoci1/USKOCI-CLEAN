@@ -14,7 +14,8 @@ import { AccessibilityInfo, AppState } from 'react-native';
  *   all of them in the same render.
  *
  * No Reanimated import here: route suites mock `react-native`, and this file must load wherever a screen does. A
- * reader without a mounted root never touches a native API; it reads "not reduced" until a root follows the platform.
+ * reader without a mounted root never touches a native API; it reads "not reduced" until a root follows the platform,
+ * except a reader that outlives a root, which keeps the last answer that root knew (see `forgetWhenUnused`).
  * The motion values themselves are `sys.motion`, with its rule: nothing that states a fact animates.
  */
 
@@ -30,11 +31,16 @@ let holders = 0;
 let stopFollowing: (() => void) | undefined;
 const readers = new Set<() => void>();
 
-function publish(value: boolean) {
-  answered = true;
+/** Every change of the value goes through here, so a mounted reader never keeps a value the store no longer holds. */
+function set(value: boolean) {
   if (value === reduced) return;
   reduced = value;
   readers.forEach(reader => reader());
+}
+
+function publish(value: boolean) {
+  answered = true;
+  set(value);
 }
 
 function ask(isCurrent: () => boolean) {
@@ -81,9 +87,19 @@ function hold(): () => void {
     if (holders > 0) return;
     stopFollowing?.();
     stopFollowing = undefined;
-    // Nothing follows the platform any more, so nothing here is known: the next root starts as a fresh launch.
-    reduced = false; answered = false; seeded = false;
+    // Nothing follows the platform any more: the next root starts as a fresh launch and may seed again.
+    answered = false; seeded = false;
+    forgetWhenUnused();
   };
+}
+
+/**
+ * A reader can outlive the root (the root error boundary took over; a retried root is about to mount). It keeps the
+ * last known answer: dropping it to "not reduced" would start moving things for a person who asked for less motion,
+ * and a retried root skips its seed while readers are mounted. Once no root and no reader is left, nothing is known.
+ */
+function forgetWhenUnused() {
+  if (holders === 0 && readers.size === 0) set(false);
 }
 
 /**
@@ -104,7 +120,7 @@ export function useReducedMotionRoot(launch: boolean): void {
 
 function subscribe(reader: () => void) {
   readers.add(reader);
-  return () => { readers.delete(reader); };
+  return () => { readers.delete(reader); forgetWhenUnused(); };
 }
 const snapshot = () => reduced;
 

@@ -4,6 +4,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let mockSession = { user: { id: A }, accountRevision: 1 };
 let mockFocused = true;
+let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
@@ -12,6 +13,7 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: 'active', addEventListener: () => ({ remove: () => undefined }) };
+  if (key === 'useWindowDimensions') return () => mockWindow;
   return ['View', 'ScrollView', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -22,6 +24,8 @@ jest.mock('../../ui/home/HomeIllustration', () => ({ HomeIllustration: 'HomeIllu
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
+import { StyleSheet } from 'react-native';
+import { sys } from '../../ui/system/tokens';
 import Pocetna from '../../app/(app)/index';
 
 let tree: ReactTestRenderer;
@@ -39,6 +43,7 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 
 beforeEach(() => {
   jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 }; mockFocused = true;
+  mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
 });
@@ -111,17 +116,80 @@ it('the start tiles carry no arrow and the screen no tagline', async () => {
   expect(text()).not.toContain('Manje obaveza');
 });
 
-it('names the completed Dogovori that wait for my rating once, with the count written once, and opens the Dogovori', async () => {
-  mockSource.mojiDogovori.mockResolvedValue([{ ...agreement('d1', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true },
-    { ...agreement('d2', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true }]);
+const tile = (label: string) => StyleSheet.flatten(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props.style);
+it('the earn tile never leaves "i" alone at a line end, and says what it does in three words', async () => {
+  await render();
+  // A no-break space binds "i" to "zaradi"; the spoken name stays plain.
+  expect(text()).toContain('Uskoči i\u00A0zaradi'); expect(text()).not.toContain('Uskoči i zaradi');
+  expect(tile('Uskoči i zaradi')).toBeDefined(); expect(text()).toContain('Nađi posao blizu');
+  expect(text()).not.toContain('Pronađi posao blizu');
+});
+
+it.each([
+  ['side by side on a 390 px phone at normal text', 390, 1, false],
+  ['side by side at text scale 1.2', 390, 1.2, false],
+  // Android reports its "Large" setting as 1.2999999523: the rounded scale must still stack (emulator, 2026-09-24).
+  ['stacked at Android\'s Large text (1.2999999523)', 390, 1.2999999523, true],
+  ['stacked on a 320 px phone', 320, 1, true],
+])('the start tiles are %s', async (_name, width, fontScale, stacked) => {
+  mockWindow = { width, height: 844, scale: 3, fontScale };
+  await render();
+  for (const label of ['Objavi zadatak', 'Uskoči i zaradi']) {
+    const style = tile(label);
+    expect([label, style.flexDirection ?? 'column']).toEqual([label, stacked ? 'row' : 'column']);
+    if (stacked) expect(style.minHeight).toBeGreaterThanOrEqual(72);
+    expect(style.justifyContent ?? 'flex-start').toBe('flex-start');
+  }
+});
+
+// Critique B1/B20 (2026-09-24): one orange fill on the screen (the publish tile); what waits is a pale band with no
+// orange outline; rows are at least 64 tall.
+it('rows on Početna are at least 64 tall, and the publish tile is the one orange surface: nothing else wears an orange edge', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
+  mockSource.mojiDogovori.mockResolvedValue([completed('d1'), completed('d2')]);
+  await render();
+  expect(tile('Moji zadaci. 1 aktivan').minHeight).toBeGreaterThanOrEqual(64);
+  expect(tile('Moje prijave. Još nemaš prijavu').minHeight).toBeGreaterThanOrEqual(64);
+  expect(tile('Objavi zadatak').backgroundColor).toBe(sys.color.orange);
+  expect(tile('Uskoči i zaradi')).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line });
+  const strip = tile('Oceni 2 završena Dogovora');
+  expect(strip.backgroundColor).toBe(sys.color.orangeSoft); expect(strip.borderWidth ?? 0).toBe(0);
+});
+
+const completed = (id: string) => ({ ...agreement(id, 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true });
+
+// Copy updated 2026-09-24 (critique A1): the strip used to say "2 završena Dogovora čekaju tvoju ocenu"; it now leads
+// with the verb. Two due still open the Dogovori, where each one waits.
+it('names the completed Dogovori that wait for my rating once, verb first, with the count written once, and opens the Dogovori', async () => {
+  mockSource.mojiDogovori.mockResolvedValue([completed('d1'), completed('d2')]);
   await render();
   // Seen on the emulator 2026-09-23 as "2 2 završena Dogovora": the count was written by plural() and again in front of it.
-  expect(text()).toContain('2 završena Dogovora čekaju tvoju ocenu'); expect(text()).not.toContain('2 2 ');
+  expect(text()).toContain('Oceni 2 završena Dogovora'); expect(text()).not.toContain('2 2 ');
   // It waits for me, so it stands under "Čeka te"; with no next Dogovor there is no empty "Nemaš zakazan Dogovor." line.
   expect(text()).toContain('Čeka te'); expect(text()).not.toContain('Nemaš zakazan Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
-  await act(async () => row('2 završena Dogovora čekaju tvoju ocenu').onPress());
+  expect(row('Oceni 2 završena Dogovora').accessibilityHint).toBe('Otvara Dogovore.');
+  await act(async () => row('Oceni 2 završena Dogovora').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/dogovori');
 });
+
+// Critique A1 (2026-09-24): the strip opened the Dogovori list, four taps from the rating. With exactly one due, the
+// Dogovori read has already named it, so the rating opens directly, as the Dogovor screen itself opens it.
+it('with exactly one Dogovor waiting for my rating, opens that rating in one tap', async () => {
+  mockSource.mojiDogovori.mockResolvedValue([completed('d1'), { ...agreement('rated', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: false }]);
+  await render();
+  expect(text()).toContain('Oceni završen Dogovor');
+  expect(row('Oceni završen Dogovor').accessibilityHint).toBe('Otvara ocenu saradnje.');
+  await act(async () => row('Oceni završen Dogovor').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: 'd1' } });
+});
+
+it.each([[5, 'Oceni 5 završenih Dogovora'], [21, 'Oceni 21 završen Dogovor'], [22, 'Oceni 22 završena Dogovora']])(
+  'writes %i due ratings in the Serbian form', async (count, expected) => {
+    mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => completed(`d${index}`)));
+    await render();
+    expect(text()).toContain(expected);
+  });
 
 it('a section that failed says so and offers the read again; it is never drawn as nothing', async () => {
   mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman')]);

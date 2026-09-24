@@ -77,23 +77,28 @@ export const space = {
  *
  * Krug i kapsula NISU na lestvici — oni su `pill`, jer polovina širine nije izbor
  * dizajna nego geometrija. Ugnežden ćošak se računa: `nested(spolja, razmak)`.
+ *
+ * 2026-09-24 (kritika emulatora B6): lestvica je i dalje imala parove koji se skoro slažu —
+ * 16/17 (polje i glavna akcija), 20/26 (dve kartice), 9/13 (badž i čip) — pa su se dugme i
+ * polje jedno pored drugog razlikovali za piksel. Sada su tri koraka i kapsula: 12 za sve što
+ * se dodiruje ili stoji u redu, 24 za karticu, 28 za plahtu odozdo, `pill` za krug. Imena
+ * uloga ostaju, da se vidi ČEMU ćošak služi; više uloga deli jedan korak.
  */
 export const radius = {
   /** Sitna oznaka: tačka, brojač, mali badž. */
-  badge: 9,
+  badge: 12,
   /** Čip, ikona u ležištu 36–44px, mali kontrol. */
-  chip: 13,
+  chip: 12,
   /** Polje, red liste, tiha napomena, dugme koje nije glavno. */
-  control: 16,
-  /** Glavna akcija na ekranu. */
-  primary: 17,
-  /** Zbijena kartica i kvadrat od 56px. */
-  cardCompact: 20,
+  control: 12,
+  /** Glavna akcija na ekranu: isti ćošak kao polje i dugme pored nje. */
+  primary: 12,
+  /** Zbijena kartica (stavka liste): isti ćošak kao kartica. */
+  cardCompact: 24,
   /** Kartica. Vlasnikov zahtev 2026-09-20: kartica treba da bude okrugla i mekana, ne oštra. */
-  card: 26,
-  /** Plahta odozdo i velika površina. Podignuta zajedno sa karticom: 26 i 28 se skoro slažu,
-   *  a dva ćoška koja se skoro slažu su gora od dva koja se jasno razlikuju. */
-  sheet: 32,
+  card: 24,
+  /** Plahta odozdo i velika površina: jedan korak iznad kartice. */
+  sheet: 28,
   /** Sve što je krug ili kapsula. */
   pill: 999,
 } as const;

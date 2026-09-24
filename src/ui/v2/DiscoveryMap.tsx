@@ -57,7 +57,16 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
   const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
   const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
-  const changeZoom = (delta: number) => { if (owns() && load.current === 'ready' && viewport) camera.current?.zoomTo(Math.min(18, Math.max(0, viewport.zoom + delta)), { duration: reduced ? 0 : sys.motion.camera }); };
+  // The zoom buttons answer a finger, so they move at the toggle pace, not the camera's flight. `viewport` only
+  // updates when the camera settles, so taps inside one animation build on the target already asked for: three quick
+  // taps on "+" are three levels, not one. The target is forgotten when the map reports where it settled.
+  const zoomTarget = useRef<number | null>(null);
+  const changeZoom = (delta: number) => {
+    if (!owns() || load.current !== 'ready' || !viewport) return;
+    const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
+    zoomTarget.current = next;
+    camera.current?.zoomTo(next, { duration: reduced ? 0 : sys.motion.toggle });
+  };
   return <View style={s.container}>
     <Map style={s.map} mapStyle={RESOLVED_PIN_MAP_STYLE} androidView="texture" attribution attributionPosition={{ bottom: 8, right: 8 }} logo={false}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
@@ -68,7 +77,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // them, on every fresh open of the map until the person happened to drag it. The control now
       // comes alive as soon as the map says where it is; persisting that position upward still
       // waits for ready, so a neutral world overview never becomes the remembered viewport.
-      onRegionDidChange={event => { if (!owns()) return; const value = publicViewport(event.nativeEvent); setViewport(value);
+      onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
         if (value && load.current === 'ready') latest.current.props.onViewport(value); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={48} clusterMaxZoom={16}

@@ -11,7 +11,9 @@ const mockSharedAssignments: Array<() => void> = [];
 // committed native values; tests can also execute its latest mapper without a
 // React update, after delayed shared-value assignments arrive on the UI runtime.
 const mockStyleReaders = new WeakMap<object, () => Record<string, unknown>>();
-jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../../ui/entry/spojBrandMath', () => {
   const actual = jest.requireActual('../../ui/entry/spojBrandMath');
   return { ...actual, brandFrame: (time: number, ...args: unknown[]) => actual.brandFrame(mockFrameTime ?? time, ...args) };

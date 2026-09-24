@@ -13,7 +13,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: (...args: unknown[]) => mockRead(...args),
   setItem: (...args: unknown[]) => mockWrite(...args),
 }));
-jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReduced }));
+// One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
+// component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('expo-splash-screen', () => ({ setOptions: jest.fn() }));
 jest.mock('../../bootstrap/entrySplashBootstrap', () => ({ releaseEntrySplash: () => Promise.resolve() }));
 jest.mock('react-native', () => {

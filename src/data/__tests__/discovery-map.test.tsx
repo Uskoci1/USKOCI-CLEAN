@@ -18,6 +18,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { DiscoveryMap } from '../../ui/v2/DiscoveryMap';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
+import { sys } from '../../ui/system/tokens';
 const row = (id = 'one', lat = 0, lng = 0) => ({ id, naslov: 'Privatan naslov van source properties', priblizno: { lat, lng } } as MarketplaceItem);
 let rows = [row()], key = 'owner:1', viewport: PublicViewport | null = null, selectedId: string | null = null;
 const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn();
@@ -110,4 +111,30 @@ test('bounded native load failure rejects late ready; explicit retry remounts an
 test('web fallback has real List action and creates no schematic map', async () => {
  await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onSearchArea={search} onList={list} />); });
  expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0); await act(async () => tree.root.findByProps({ label: 'Pogledaj listu' }).props.onPress()); expect(list).toHaveBeenCalledTimes(1);
+});
+// Review r1 items 1-2 (2026-09-24): the zoom buttons computed from `viewport`, which updates only when the camera
+// settles, so a second tap inside the animation asked for the same level again; and the motion path had no test.
+const zoomButton = (label: 'Uvećaj mapu' | 'Umanji mapu') => tree.root.findByProps({ accessibilityLabel: label });
+test('two quick taps on "+" before the camera settles zoom two levels, at the toggle pace', async () => {
+ await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ await act(async () => { zoomButton('Uvećaj mapu').props.onPress(); zoomButton('Uvećaj mapu').props.onPress(); });
+ expect(mockZoom.mock.calls).toEqual([[5, { duration: sys.motion.toggle }], [6, { duration: sys.motion.toggle }]]);
+ // Where the camera settled is the new base; the next tap builds on it, and "−" never goes below the world view.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, zoom: 6 } }));
+ await act(async () => zoomButton('Uvećaj mapu').props.onPress());
+ expect(mockZoom).toHaveBeenLastCalledWith(7, { duration: sys.motion.toggle });
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, zoom: 0.5 } }));
+ await act(async () => zoomButton('Umanji mapu').props.onPress());
+ expect(mockZoom).toHaveBeenLastCalledWith(0, { duration: sys.motion.toggle });
+ // The cluster flight keeps the camera pace.
+ expect(sys.motion.toggle).toBeLessThan(sys.motion.camera);
+});
+test('under reduced motion the zoom buttons jump without animation', async () => {
+ mockReduced = true; await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ await act(async () => zoomButton('Umanji mapu').props.onPress());
+ expect(mockZoom).toHaveBeenCalledWith(3, { duration: 0 });
+});
+test('a cluster flies at the camera pace when motion is allowed', async () => {
+ mockExpand.mockResolvedValue(9); await render(); await ready(); await pressFeature([cluster]);
+ expect(mockEase).toHaveBeenCalledWith({ center: [0, 0], zoom: 9, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled();
 });
