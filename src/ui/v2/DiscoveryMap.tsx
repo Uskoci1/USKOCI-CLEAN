@@ -24,6 +24,18 @@ type Owner = { key: string; active: boolean; epoch: number };
 export const PILL_LIMIT = 40;
 /** A changed list reaches the native source a moment later; the visible pins are read after it. */
 const PILL_SETTLE_MS = 300;
+/**
+ * The list follows the map (Discovery V47): this long after a move of the person's own has settled, and only if the map
+ * then stays still, the visible bounds become the list's area. A pan in several strokes asks once, for where it ended.
+ */
+export const AREA_SETTLE_MS = 450;
+/**
+ * A zoom button or a cluster tap moves the camera by the app's hand, so the map reports that move as the app's; it is
+ * still the person's intent, and counts as theirs when it settles within this long.
+ */
+const INTENT_MS = 1_500;
+/** A pill's own press may also reach the map as a tap on empty ground; within this long it is not one. */
+const PILL_TAP_MS = 400;
 const ZOOM_CAPSULE = { width: 44, height: 88 } as const;
 const GAP = sys.space.md;
 
@@ -39,8 +51,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [viewport, setViewport] = useState(props.viewport);
-  // "Pretraži ovu oblast" appears only once the person has moved the map away from what the list shows.
-  const [moved, setMoved] = useState(false);
+  // Discovery V47: there is no "Pretraži ovu oblast" any more. A move of the person's own settles, the map waits
+  // `AREA_SETTLE_MS`, and the list follows the bounds; a new move of theirs before that starts the wait again.
+  const areaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelArea = () => { if (areaTimer.current) { clearTimeout(areaTimer.current); areaTimer.current = null; } };
+  /** When the person last asked the camera to move by a tap (a zoom button, a cluster); 0 when nothing is asked. */
+  const intent = useRef(0);
+  /** When a pill was last pressed, so that the same touch is not also taken as a tap on the empty map. */
+  const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const mounted = useRef(true), load = useRef(status);
@@ -58,7 +76,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   useEffect(() => {
     mounted.current = true;
     const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { load.current = 'failed'; setStatus('failed'); } }, 15_000);
-    return () => { mounted.current = false; clearTimeout(timer); };
+    return () => { mounted.current = false; clearTimeout(timer); cancelArea(); };
   }, []);
   const mark = (value: 'ready' | 'failed') => { if (!owns() || load.current === 'failed') return; load.current = value; setStatus(value); };
   // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
@@ -108,7 +126,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       try {
         const zoom = await source.current?.getClusterExpansionZoom(properties.cluster_id);
         if (!owns() || load.current !== 'ready' || typeof zoom !== 'number' || !Number.isFinite(zoom)) return;
-        setMoved(true);
+        // Opening a cluster is the person's move, though the camera makes it: the list follows where it lands.
+        intent.current = Date.now();
         moveCamera({ center: [coordinates[0], coordinates[1]] as [number, number], zoom: Math.min(18, Math.max(0, zoom)) }, sys.motion.camera);
       } catch { /* Native source may retire during a refresh; no invented selection. */ }
     } else if (typeof properties?.needId === 'string') {
@@ -133,6 +152,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     focus.current = key;
     const target = selectedPlace?.point ?? point;
     if (!key || !target) return;
+    // Bringing the chosen pin into view is the camera's own move: it never becomes the list's area, and a zoom tap the
+    // person made just before it is not carried over onto it.
+    intent.current = 0;
     void (async () => {
       let center: [number, number] = [target.lng, target.lat];
       const nativeMap = map.current, size = frame, top = props.toolsBottom ?? 0, bottom = props.focusBottom ?? 0;
@@ -173,9 +195,21 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!owns() || load.current !== 'ready' || !viewport) return;
     const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
     zoomTarget.current = next;
-    setMoved(true);
+    // A zoom button is the person moving the map, though the camera makes the move: the list follows where it settles.
+    intent.current = Date.now();
     camera.current?.zoomTo(next, { duration: reduced ? 0 : sys.motion.toggle });
   };
+  // A place chosen in the search: the camera brings its pins into view once, as its own move (never an area).
+  const fitted = useRef<number | null>(null);
+  useEffect(() => {
+    const request = props.fitTo;
+    if (status !== 'ready' || !request || fitted.current === request.key || !owns()) return;
+    fitted.current = request.key;
+    intent.current = 0;
+    camera.current?.fitBounds?.(request.bounds, { padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 24 + request.bottom, left: 50 },
+      duration: reduced ? 0 : sys.motion.camera });
+    props.onFitted?.(request.key);
+  }, [props.fitTo?.key, status]); // eslint-disable-line react-hooks/exhaustive-deps
   // The zoom and the credits ride on the list sheet's top edge when the screen has one. When the sheet leaves them no
   // room under the tools they step out of the screen entirely, so an unseen control can never take a touch.
   const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + ZOOM_CAPSULE.height + 2 * GAP;
@@ -210,17 +244,32 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       attribution attributionPosition={{ top: (props.toolsBottom ?? 0) + 8, right: 8 }} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
       onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
+      // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
+      // pill's own press is not taken as a tap on the ground under it.
+      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) latest.current.props.onClear?.(); }}
+      // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
+      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) cancelArea(); }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
-      // phone that left "Pretraži ovu oblast" and both zoom buttons dead, with no reason beside
-      // them, on every fresh open of the map until the person happened to drag it. The control now
-      // comes alive as soon as the map says where it is; persisting that position upward still
-      // waits for ready, so a neutral world overview never becomes the remembered viewport.
+      // phone that left both zoom buttons dead, with no reason beside them, on every fresh open of
+      // the map until the person happened to drag it. The control now comes alive as soon as the
+      // map says where it is; persisting that position upward still waits for ready, so a neutral
+      // world overview never becomes the remembered viewport, nor the list's area.
       onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
         if (value && load.current === 'ready') {
           latest.current.props.onViewport(value);
-          // Only the person's own movement offers a new area; the camera's own flights (a fit, a chosen pin) do not.
-          if (event.nativeEvent?.userInteraction === true) setMoved(true);
+          // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a zoom
+          // button or a cluster they tapped. The camera's own moves (the first fit, a chosen pin, a chosen place) never.
+          const own = event.nativeEvent?.userInteraction === true || (intent.current > 0 && Date.now() - intent.current <= INTENT_MS);
+          intent.current = 0;
+          if (own) {
+            cancelArea();
+            const bounds = value.bounds;
+            areaTimer.current = setTimeout(() => {
+              areaTimer.current = null;
+              if (mounted.current && props.owns() && load.current === 'ready') latest.current.props.onArea(bounds);
+            }, AREA_SETTLE_MS);
+          }
         }
         void readVisiblePins(); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
@@ -240,6 +289,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         // an insert-before-remove in one commit from leaving a dead pill behind (review r3 item 8).
         return <ViewAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} lngLat={[place.point.lng, place.point.lat]} anchor="center"
           onPress={() => { if (!owns() || load.current !== 'ready') return;
+            pillTap.current = Date.now();
             if (place.ids.length > 1 && latest.current.props.onSelectPlace) latest.current.props.onSelectPlace(place.key);
             else latest.current.props.onSelect(place.ids[0]); }}>
           <View collapsable={false} accessible accessibilityRole="button"
@@ -255,12 +305,6 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           <PricePill content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /></View>
       </ViewAnnotation> : null}
     </Map>
-    {status === 'ready' && moved && viewport && !props.busy ? <View pointerEvents="box-none" style={[s.areaRow, { top: (props.toolsBottom ?? 0) + GAP }]}>
-      <Press accessibilityRole="button" accessibilityLabel="Pretraži ovu oblast" hitSlop={{ top: 4, bottom: 4 }} haptic="select" scaleTo={0.97}
-        onPress={() => { if (owns() && viewport) { props.onSearchArea(viewport.bounds); setMoved(false); } }} style={s.areaPill}>
-        <T style={s.areaText}>Pretraži ovu oblast</T>
-      </Press>
-    </View> : null}
     {sheetTop && height ? <Animated.View pointerEvents="box-none" style={[s.ride, { height }, ride]}>{controls}</Animated.View>
       : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{controls}</View>}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
@@ -286,12 +330,6 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
   return <MapSession key={`${owner.epoch}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
-  // An auto-width pill centred under the tools: a quiet offer, never the screen's primary (critique B8).
-  areaRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  // Both float over the map, so both wear the one `floating` lift (review r3 item 5), never a shadow of their own.
-  areaPill: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, ...floating },
-  areaText: { ...sys.type.copy, fontWeight: '600', color: sys.color.green },
   ride: { position: 'absolute', left: 0, right: 0, top: 0 },
   // One capsule with a hairline between its halves (critique B11), bottom-right above the sheet.
   zoom: { position: 'absolute', right: sys.space.base, bottom: GAP, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,

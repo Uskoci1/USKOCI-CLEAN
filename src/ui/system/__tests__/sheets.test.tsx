@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BackHandler, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { ConfirmSheet, SLOW_COMMAND_MS, useConfirmSheet, type ConfirmRequest } from '../ConfirmSheet';
 import { ActionSheet, orderActions, type SheetAction } from '../ActionSheet';
 import { PeekSheet } from '../PeekSheet';
@@ -493,5 +493,18 @@ describe('PeekSheet', () => {
     mockReduced = true;
     await render(<PeekSheet label="Zadatak na mapi" active onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
     expect(sheet().props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
+  });
+
+  // Discovery V47: the pin card is one floating card with its own ×, 16 dp in from both edges.
+  it('floats 16 dp in from both edges, and a card with its own × can leave the grab bar out and keep its top padding', async () => {
+    await render(<PeekSheet label="Zadatak na mapi" active onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
+    expect(flat(sheet().props.style)).toMatchObject({ marginHorizontal: sys.space.base });
+    expect(sheet().props.handleComponent).toEqual(expect.any(Function));
+    await act(async () => tree.unmount());
+    await render(<PeekSheet label="Zadatak na mapi" active handle={false} onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
+    expect(sheet().props.handleComponent).toBeNull();
+    expect(sheet().props.enablePanDownToClose).toBe(true);
+    // Without the handle's 20 px above it, the content keeps the card's own padding at the top.
+    expect(flat(tree.root.findByType(BottomSheetView).props.style)).toMatchObject({ paddingTop: sys.space.base, paddingBottom: sys.space.base });
   });
 });

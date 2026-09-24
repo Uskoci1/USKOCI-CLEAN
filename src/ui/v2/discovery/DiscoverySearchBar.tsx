@@ -25,21 +25,21 @@ const BAR_TOP = sys.space.md;
  * glyph. Under them one row of quick chips toggles real filters at once; a chosen chip is a green outline with a green
  * label. The chips fold away when the caller says so (the list at its full height and scrolled); the pill stays.
  */
-export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onLayout, onPillLayout }: {
+export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onLayout }: {
   /** Line 1: where the search looks. */ where: string;
   /** Line 2: when, and the other conditions (or "Dodaj uslove"). */ conditions: string;
   /** How many conditions are on: the count on "Uslovi pretrage". */ conditionCount: number;
   chips: readonly QuickChip[]; chipsShown: boolean;
   onSearch: () => void; onConditions: () => void; onNew?: () => void;
-  /** The whole bar, chips included: where the list sheet's full height stops. */ onLayout: (bottom: number) => void;
-  /** The pill's row alone: where the full height stops once the chips have folded away. */ onPillLayout?: (bottom: number) => void;
+  /**
+   * The bar's lower edge from the top of the map, chips included while they show: where the list sheet's full height
+   * stops. It moves up when the chips fold away, so the list then gains their room.
+   */
+  onLayout: (bottom: number) => void;
 }) {
-  // Both edges are reported from the top of the map: the bar's own layout is, its row's is from the bar.
-  const bottom = (report: ((value: number) => void) | undefined, offset: number) => (event: LayoutChangeEvent) => {
-    const { y, height } = event.nativeEvent.layout; report?.(Math.ceil(offset + y + height));
-  };
-  return <View pointerEvents="box-none" style={s.bar} onLayout={bottom(onLayout, 0)}>
-    <View pointerEvents="box-none" style={s.row} onLayout={bottom(onPillLayout, BAR_TOP)}>
+  const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
+  return <View pointerEvents="box-none" style={s.bar} onLayout={measure}>
+    <View pointerEvents="box-none" style={s.row}>
       <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
         accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={0.98} onPress={onSearch} style={s.pill}>
         <MagnifyingGlass size={20} color={sys.color.green} />

@@ -16,13 +16,13 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-import { DiscoveryMap } from '../../ui/v2/DiscoveryMap';
+import { AREA_SETTLE_MS, DiscoveryMap } from '../../ui/v2/DiscoveryMap';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
 import { sys } from '../../ui/system/tokens';
 const row = (id = 'one', lat = 0, lng = 0) => ({ id, naslov: 'Privatan naslov van source properties', priblizno: { lat, lng } } as MarketplaceItem);
 let rows = [row()], key = 'owner:1', viewport: PublicViewport | null = null, selectedId: string | null = null;
-const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn();
-function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} onSelect={select} onViewport={setViewport} onSearchArea={search} onList={list} />; }
+const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn(), clear = jest.fn();
+function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} />; }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
@@ -32,7 +32,7 @@ const ready = async () => act(async () => native().props.onDidFinishLoadingMap()
 const region = { center: [0, 0], zoom: 4, bounds: [-1, -1, 1, 1] };
 const cluster = { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { cluster: true, cluster_id: 7 } };
 const pressFeature = async (features: unknown[]) => act(async () => source().props.onPress({ nativeEvent: { features }, stopPropagation: jest.fn() }));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, select, setViewport, search, list]) fn.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, select, setViewport, search, list, clear]) fn.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();
@@ -74,22 +74,73 @@ test.each(['dataset', 'account', 'blur'])('late cluster result is discarded afte
  if (kind === 'dataset') rows = [row('new', 45, 19)]; if (kind === 'account') key = 'owner:2'; if (kind === 'blur') mockFocused = false; await update();
  await act(async () => resolve(10)); expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
 });
-// Critique B8 (2026-09-24): "Pretraži ovu oblast" was a full-width button, disabled until the map settled, that read as
-// the screen's primary. It is now an auto-width pill that appears only once the person has moved the map away from what
-// the list shows, and goes away when that area is applied. These two tests pinned the old always-present button; what
-// they guard is unchanged: panning alone never searches, the area applied is exactly the settled viewport, and a
+// Discovery V47: the list follows the map. Critique B8's "Pretraži ovu oblast" pill (and the button before it) is gone:
+// a move of the person's own settles, the map waits AREA_SETTLE_MS, and hands up exactly the settled bounds. What the old
+// tests guarded still holds: the camera's own moves never become an area, the area is exactly the settled viewport, and a
 // malformed native region offers nothing.
-const areaPill = () => tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' });
 const moved = (value: object) => ({ nativeEvent: { ...value, userInteraction: true } });
-test('observed valid viewport enables explicit area; panning never searches by itself', async () => {
- await render(); await ready(); expect(areaPill()).toHaveLength(0);
- // The camera's own settle (a fit, a chosen pin) is not the person moving the map.
- await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); expect(setViewport).toHaveBeenCalledWith(region); expect(areaPill()).toHaveLength(0);
- await act(async () => native().props.onRegionDidChange(moved(region))); expect(search).not.toHaveBeenCalled();
- await act(async () => areaPill()[0].props.onPress()); expect(search).toHaveBeenCalledWith(region.bounds);
- expect(areaPill()).toHaveLength(0);
+const wait = async (ms: number) => act(async () => { jest.advanceTimersByTime(ms); });
+test('a move of the person\'s own settles, and after a short wait the list follows exactly the bounds the map shows', async () => {
+ await render(); await ready();
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);
+ // The camera's own settle (a fit, a chosen pin) is remembered as where the map stands, and is never an area.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); expect(setViewport).toHaveBeenCalledWith(region);
+ await wait(5_000); expect(search).not.toHaveBeenCalled();
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ await wait(AREA_SETTLE_MS - 1); expect(search).not.toHaveBeenCalled();
+ await wait(1); expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith(region.bounds);
+ expect(AREA_SETTLE_MS).toBe(450);
+ // A malformed region offers nothing.
  await act(async () => native().props.onRegionDidChange(moved({ ...region, bounds: [-181, -1, 1, 1] })));
- expect(areaPill()).toHaveLength(0);
+ await wait(AREA_SETTLE_MS * 2); expect(search).toHaveBeenCalledTimes(1);
+});
+test('a pan in several strokes asks once, for where it ended; taking hold of the map again restarts the wait', async () => {
+ await render(); await ready();
+ const second = { ...region, bounds: [0, 0, 2, 2] }, third = { ...region, bounds: [1, 1, 3, 3] };
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ await wait(AREA_SETTLE_MS - 100);
+ await act(async () => native().props.onRegionDidChange(moved(second)));
+ await wait(AREA_SETTLE_MS - 100); expect(search).not.toHaveBeenCalled();
+ await wait(100); expect(search.mock.calls).toEqual([[second.bounds]]);
+ // The person takes hold of the map before the wait is over: that settle was not where they stopped.
+ await act(async () => native().props.onRegionDidChange(moved(third)));
+ await act(async () => native().props.onRegionWillChange(moved(third)));
+ await wait(AREA_SETTLE_MS * 2); expect(search).toHaveBeenCalledTimes(1);
+ // The app's own move starting does not cancel a wait of the person's.
+ await act(async () => native().props.onRegionDidChange(moved(third)));
+ await act(async () => native().props.onRegionWillChange({ nativeEvent: { ...third, userInteraction: false } }));
+ await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[second.bounds], [third.bounds]]);
+});
+test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin brought into view never does', async () => {
+ await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ // "+" moves the camera by the app's hand; the map reports that settle as the app's, and it is still the person's intent.
+ await act(async () => zoomButton('Uvećaj mapu').props.onPress());
+ const zoomed = { ...region, zoom: 5, bounds: [-0.5, -0.5, 0.5, 0.5] };
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: zoomed }));
+ await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[zoomed.bounds]]);
+ // The intent is used once: the next settle of the app's own is not the person's.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); await wait(AREA_SETTLE_MS * 2);
+ expect(search).toHaveBeenCalledTimes(1);
+ // A cluster tap flies the camera in; where it lands is the person's.
+ mockExpand.mockResolvedValue(9); await pressFeature([cluster]);
+ const opened = { ...region, zoom: 9, bounds: [-0.1, -0.1, 0.1, 0.1] };
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: opened })); await wait(AREA_SETTLE_MS);
+ expect(search.mock.calls[1]).toEqual([opened.bounds]);
+ // A zoom tap that is followed by a chosen pin: the pin is brought into view by the camera, and that is never an area.
+ await act(async () => zoomButton('Uvećaj mapu').props.onPress());
+ selectedId = 'one'; await update();
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-0.2, -0.2, 0.2, 0.2] } }));
+ await wait(AREA_SETTLE_MS * 2); expect(search).toHaveBeenCalledTimes(2);
+ // An intent too old to be this settle's is not carried over either.
+ selectedId = null; await update();
+ await act(async () => zoomButton('Umanji mapu').props.onPress()); await wait(5_000);
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-3, -3, 3, 3] } })); await wait(AREA_SETTLE_MS);
+ expect(search).toHaveBeenCalledTimes(2);
+});
+test('a tap on the empty map closes whatever card is open', async () => {
+ await render(); await ready();
+ await act(async () => native().props.onPress({ nativeEvent: {} }));
+ expect(clear).toHaveBeenCalledTimes(1);
 });
 test('the region the camera settles into on first load arms the area control without being remembered', async () => {
  // On a phone this was the whole map's first impression: "Pretraži ovu oblast" and both zoom
@@ -104,13 +155,14 @@ test('the region the camera settles into on first load arms the area control wit
  // a person returns to.
  expect(setViewport).not.toHaveBeenCalled();
  await ready();
- // The controls appear already armed, instead of dead until the person drags the map. (Since critique B8 the area pill
- // waits for the person's own move; the zoom capsule is what this first region arms.)
+ // The controls appear already armed, instead of dead until the person drags the map. (The zoom capsule is what this
+ // first region arms; that first region is the camera's own and never becomes the list's area.)
  expect(zoomButton('Uvećaj mapu').props.disabled).toBe(false);
- // And from ready on, where the person moves the map is remembered as before, and that area can be applied.
+ await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled();
+ // And from ready on, where the person moves the map is remembered as before, and the list follows it.
  await act(async () => native().props.onRegionDidChange(moved(region)));
  expect(setViewport).toHaveBeenCalledWith(region);
- await act(async () => areaPill()[0].props.onPress());
+ await wait(AREA_SETTLE_MS);
  expect(search).toHaveBeenCalledWith(region.bounds);
 });
 test('bounded native load failure rejects late ready; explicit retry remounts and saved viewport survives', async () => {
@@ -121,7 +173,7 @@ test('bounded native load failure rejects late ready; explicit retry remounts an
  await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' }).props.onPress()); await ready(); expect(zoomButton('Uvećaj mapu')).toBeTruthy();
 });
 test('web fallback has real List action and creates no schematic map', async () => {
- await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onSearchArea={search} onList={list} />); });
+ await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />); });
  expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0); await act(async () => tree.root.findByProps({ label: 'Pogledaj listu' }).props.onPress()); expect(list).toHaveBeenCalledTimes(1);
 });
 // Review r1 items 1-2 (2026-09-24): the zoom buttons computed from `viewport`, which updates only when the camera

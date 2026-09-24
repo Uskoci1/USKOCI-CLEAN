@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
-const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn();
+const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn();
 jest.mock('@maplibre/maplibre-react-native', () => {
   const React = require('react');
   const host = (name: string, handle: () => object) => React.forwardRef(({ children, ...props }: any, ref: any) => {
@@ -11,7 +11,7 @@ jest.mock('@maplibre/maplibre-react-native', () => {
   });
   return { Layer: 'Layer', ViewAnnotation: 'Annotation',
     Map: host('NativeMap', () => ({ queryRenderedFeatures: async () => mockRendered, project: mockProject, unproject: mockUnproject })),
-    Camera: host('Camera', () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom })),
+    Camera: host('Camera', () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom, fitBounds: mockFit })),
     GeoJSONSource: host('Source', () => ({ getClusterExpansionZoom: mockExpand, getClusterLeaves: async () => mockLeaves })) };
 });
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -42,11 +42,11 @@ const HITNO = { urgency: { level: 'HITNO', expiresAt: '2999-01-01T00:00:00Z' } }
 const base = () => [row('money', 44.81, 20.46), row('offer', 44.83, 20.41, { rezimCene: 'OFFERS', ponudjenaCena: undefined }),
   row('stack-1', 44.79, 20.45), row('stack-2', 44.7904, 20.4498), row('urgent', 44.80, 20.50, HITNO), row('noprice', 44.85, 20.40, { ponudjenaCena: undefined })];
 const feature = (needId: string) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { needId } });
-let rows = base(), selectedId: string | null = null, selectedPlace: string | null = null, busy = false, extra: Record<string, unknown> = {};
-const select = jest.fn(), selectPlace = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn();
+let rows = base(), selectedId: string | null = null, selectedPlace: string | null = null, extra: Record<string, unknown> = {};
+const select = jest.fn(), selectPlace = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn(), clear = jest.fn(), fitted = jest.fn();
 function Screen() {
   return <DiscoveryMap items={rows} scopeKey="a:1" viewport={null as PublicViewport | null} selectedId={selectedId} selectedPlace={selectedPlace}
-    onSelect={select} onSelectPlace={selectPlace} onViewport={setViewport} onSearchArea={search} onList={list} busy={busy} {...extra} />;
+    onSelect={select} onSelectPlace={selectPlace} onViewport={setViewport} onArea={search} onList={list} onClear={clear} onFitted={fitted} {...extra} />;
 }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
@@ -59,9 +59,9 @@ const ready = async () => act(async () => { native().props.onDidFinishLoadingMap
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style);
 beforeEach(() => {
   jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {});
-  rows = base(); selectedId = null; selectedPlace = null; busy = false; extra = {}; mockFocused = true; mockReduced = false;
+  rows = base(); selectedId = null; selectedPlace = null; extra = {}; mockFocused = true; mockReduced = false;
   mockRendered = ['money', 'offer', 'stack-1', 'stack-2', 'urgent', 'noprice', 'money'].map(feature); mockLeaves = [];
-  for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockProject, mockUnproject, select, selectPlace, setViewport, search, list]) fn.mockReset();
+  for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockProject, mockUnproject, mockFit, select, selectPlace, setViewport, search, list, clear, fitted]) fn.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
@@ -196,11 +196,51 @@ test('many pins stay a bounded number of pills; the rest remain dots', async () 
   expect(annotations()).toHaveLength(PILL_LIMIT);
 });
 
-test('"Pretraži ovu oblast" waits while the list is being read again', async () => {
-  const region = { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true };
+// Discovery V47 (the selected pin, Airbnb's pattern in USKOČI's look): the chosen pin is the one filled dark-green pill
+// with white words; every other stays white, and HITNO keeps its own marker on either.
+test('the chosen pin is the one filled green pill with white words; every other pill stays white', async () => {
+  rows = [...base(), row('hitno-izabran', 44.9, 20.3, HITNO)];
+  mockRendered = rows.map(item => feature(item.id));
   await render(); await ready();
-  await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(1);
-  busy = true; await update();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);
+  selectedId = 'hitno-izabran'; await update();
+  const drawn = tree.root.findAllByType(PricePill);
+  expect(drawn.filter(pill => pill.props.selected)).toHaveLength(1);
+  const chosen = drawn.find(pill => pill.props.selected)!;
+  expect(chosen.props).toMatchObject({ selected: true, urgent: true });
+  expect(flat(chosen.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.green });
+  expect(flat(chosen.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.onGreen);
+  for (const other of drawn.filter(pill => !pill.props.selected)) {
+    expect(flat(other.findByProps({ testID: 'price-pill' })).backgroundColor).toBe(sys.color.surface);
+  }
+});
+
+// A place chosen in the search: the camera brings its pins into view once, as its own move, and says it did. It never
+// becomes the list's area, and a map mounted again later does not fly there again.
+test('a fit to a chosen place is the camera\'s own move, made once, and never an area', async () => {
+  extra = { toolsBottom: 60, fitTo: { key: 1, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 200 } };
+  await render();
+  expect(mockFit).not.toHaveBeenCalled();
+  await ready();
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.47, 44.82], { padding: { top: 135, right: 50, bottom: 224, left: 50 }, duration: sys.motion.camera });
+  expect(fitted).toHaveBeenCalledWith(1);
+  await update(); expect(mockFit).toHaveBeenCalledTimes(1);
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.43, 44.8], zoom: 13, bounds: [20.4, 44.78, 20.47, 44.82], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled();
+  // Under reduced motion it jumps.
+  await act(async () => tree.unmount()); mockReduced = true; mockFit.mockReset();
+  extra = { fitTo: { key: 2, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 100 } }; await render(); await ready();
+  expect(mockFit.mock.calls[0][1].duration).toBe(0);
+});
+
+// A tap on a pill may also reach the map as a tap on the ground under it; that one is the pill's, not an empty-map tap.
+test('a tap on the empty map closes the card; the tap that chose a pill does not', async () => {
+  await render(); await ready();
+  const byText = (text: string) => annotations().find(node => node.findByType(PricePill).props.content.text === text)!;
+  await act(async () => byText('Ponude').props.onPress());
+  await act(async () => native().props.onPress({ nativeEvent: {} }));
+  expect(select).toHaveBeenCalledWith('offer'); expect(clear).not.toHaveBeenCalled();
+  await act(async () => { jest.advanceTimersByTime(500); });
+  await act(async () => native().props.onPress({ nativeEvent: {} }));
+  expect(clear).toHaveBeenCalledTimes(1);
 });

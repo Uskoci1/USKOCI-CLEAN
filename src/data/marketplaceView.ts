@@ -245,12 +245,34 @@ export function publicArea(item: MarketplaceItem): string | null {
 /** Two spellings of one place ("Novi  Sad", "novi sad") are one place. */
 export const placeKey = (text: string) => text.trim().replace(/\s+/g, ' ').toLocaleLowerCase('sr-Latn-RS');
 
+/**
+ * Zadaci as the screen shows it (Discovery V47: the list follows the map). `mapped` is what every filter but the map's
+ * area leaves, without my own tasks: the map draws these, so moving the map never takes a pin away. The list follows
+ * the area: with one, it holds the pinned tasks inside it (`inArea`), then every task that has no public point at all
+ * (`withoutPoint`: online work, or a task placed nowhere), which an area can neither hold nor leave out, so they are
+ * never lost. Without an area the list is `mapped`, in the read's order. No coordinate is ever invented.
+ */
+export type DiscoveryShown = { mapped: MarketplaceItem[]; inArea: MarketplaceItem[]; withoutPoint: MarketplaceItem[]; listed: MarketplaceItem[] };
+export function discoveryShown(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
+  now: Date = new Date()): DiscoveryShown {
+  const all = marketplaceItems(items, { ...view, area: null }, false, now);
+  const mapped = mine?.size ? all.filter(item => !mine.has(item.id)) : all;
+  if (!view.area) return { mapped, inArea: mapped, withoutPoint: [], listed: mapped };
+  const inArea: MarketplaceItem[] = [], withoutPoint: MarketplaceItem[] = [];
+  for (const item of mapped) {
+    const point = publicPoint(item);
+    if (!point) withoutPoint.push(item); else if (inBounds(point, view.area)) inArea.push(item);
+  }
+  return { mapped, inArea, withoutPoint, listed: [...inArea, ...withoutPoint] };
+}
 /** The Zadaci list: the filtered subset, without the tasks that are mine (they live under Početna, "Moji zadaci"). */
 export function discoveryItems(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): MarketplaceItem[] {
-  const shown = marketplaceItems(items, view, false, now);
-  return mine?.size ? shown.filter(item => !mine.has(item.id)) : shown;
+  return discoveryShown(items, view, mine, now).listed;
 }
+/** Two areas that are the same bounds: a settle that did not move the map does not change the list. */
+export const sameBounds = (a: PublicBounds | null | undefined, b: PublicBounds | null | undefined) =>
+  a === b || (!!a && !!b && a.every((value, index) => value === b[index]));
 /** How many of the conditions (Kada, Kako se radi, Koliko vas dolazi, Cena) are on: the count on "Uslovi pretrage". */
 export function discoveryConditions(view: MarketplaceView): number {
   return Number((view.when ?? 'any') !== 'any' || !!dateRange(view.dates)) + Number((view.where ?? 'any') !== 'any')

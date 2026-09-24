@@ -27,7 +27,7 @@ const rows = [{ id: 'one', naslov: 'Posao', priblizno: { lat: 44.81, lng: 20.46 
 const maps: [string, () => React.ReactElement][] = [
   ['ResolvedPinMap', () => <ResolvedPinMap position={{ latitude: 44.81, longitude: 20.46 }} onChoose={() => {}} scopeKey="a:1" coarse disabled />],
   ['DiscoveryMap', () => <DiscoveryMap items={rows} scopeKey="a:1" viewport={null} selectedId={null} onSelect={() => {}} onViewport={() => {}}
-    onSearchArea={() => {}} onList={() => {}} />],
+    onArea={() => {}} onList={() => {}} />],
 ];
 let tree: ReactTestRenderer;
 beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); mockStyle = null; });

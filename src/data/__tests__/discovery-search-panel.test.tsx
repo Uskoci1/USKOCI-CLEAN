@@ -111,9 +111,10 @@ test('"Gde" offers only the places the loaded tasks name, with their counts; typ
   expect(show().props.label).toBe('Prikaži 1 zadatak');
   await act(async () => show().props.onPress());
   expect(lastDraft()).toMatchObject({ place: 'Vračar, Beograd', query: '', area: null }); expect(close).toHaveBeenCalledTimes(1);
-  // The map's current area is offered once the map has settled somewhere, with what it holds.
+  // The map's current area is offered once the map has settled somewhere, with what the list would then hold: the two
+  // tasks inside it and the online one, which no area leaves out.
   await act(async () => tree.unmount()); mapArea = [19.8, 45.2, 19.9, 45.3]; await render();
-  await choose('Oblast sa mape, 2 zadatka');
+  await choose('Oblast sa mape, 3 zadatka');
   await act(async () => show().props.onPress());
   expect(lastDraft()).toMatchObject({ place: null, area: [19.8, 45.2, 19.9, 45.3] });
 });

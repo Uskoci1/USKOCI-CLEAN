@@ -13,9 +13,10 @@ const ListBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
 
 /**
  * The list of Zadaci as a sheet over the map (owner step 4, 2026-09-24): the sheet IS the list, so there is no Lista/Mapa
- * switch. It never closes; it rests at one of three heights and its top line (the count and "Prikaži listu") is always
- * there to take hold of. It sits inside the screen, and the screen ends where the tab bar begins, so the sheet never
- * slides under the bar. Under reduced motion it changes height at once.
+ * switch. It never closes; it rests at one of three heights and its top line (the count, which is also the button that
+ * opens the list; Discovery V47) is there to take hold of, except while a pin's card covers it: then the screen lowers
+ * the lowest height to a sliver behind the card. It sits inside the screen, and the screen ends where the tab bar begins,
+ * so the sheet never slides under the bar and the bar shows at every height. Under reduced motion it changes height at once.
  */
 export function DiscoveryListSheet({ index, snapPoints, position, reduced, onIndex, header, children }: {
   index: number; snapPoints: readonly (number | string)[];

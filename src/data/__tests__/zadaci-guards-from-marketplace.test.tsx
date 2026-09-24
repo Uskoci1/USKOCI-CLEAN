@@ -121,13 +121,14 @@ test('the search panel offers price modes as radios and its apply action is the 
 });
 
 // From marketplace-presentation (review r3 item 7): the filtered-empty view's one way forward clears what was chosen,
-// and only that. Where the map stands is not a filter.
+// and only that. Where the map stands is not a filter, and neither is where the list sheet rests (Discovery V47 keeps
+// it in the view).
 test('"Poništi filtere" clears search, price and area but keeps the map and where it stands', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19, 45, 20, 46] as [number, number, number, number] };
   Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', area: [19, 45, 20, 46], viewport });
   await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
   await click('Poništi filtere');
-  expect(snapshot).toEqual({ ...initialMarketplaceView(), mode: 'map', viewport });
+  expect(snapshot).toEqual({ ...initialMarketplaceView(), mode: 'map', viewport, sheet: 'half' });
   const [map] = maps();
   expect(map.props.viewport).toEqual(viewport);
   expect(map.props.items.map((item: MarketplaceItem) => item.id)).toEqual(['one', 'two']);
@@ -159,13 +160,14 @@ test('removing the price filter keeps the search, the area, the map position and
 });
 
 // From marketplace-presentation (verifier r3b vc, fix 1): with a search and a map area on, the filter sheet's count is
-// the count of the list under that same search and area, not of every task.
+// the count of the list under that same search and area, not of every task. Discovery V47: under an area the list also
+// keeps the tasks with no point on the map (here "two"), after the area's own, and the count counts them too.
 test('with a search and a map area on, "Prikaži N zadataka" counts the list shown under them', async () => {
   rows = [row('one'), row('two', { priblizno: null, rezimCene: 'OFFERS' }), row('tri', { naslov: 'Selidba tri' }),
     row('četiri', { priblizno: { lat: 44.0, lng: 21.5 } }), row('pet', { priblizno: { lat: 45.3, lng: 19.9 } })];
   Object.assign(initial, { query: 'Pomoć', area: [19, 45, 20, 46] });
   await render();
-  expect(cards().map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć one', 'Otvori priliku Pomoć pet']);
+  expect(cards().map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć one', 'Otvori priliku Pomoć pet', 'Otvori priliku Pomoć two']);
   await tap('Uslovi pretrage');
-  expect(showAction().props.label).toBe('Prikaži 2 zadatka');
+  expect(showAction().props.label).toBe('Prikaži 3 zadatka');
 });

@@ -11,11 +11,12 @@ const PeekHandle = () => <View accessible={false} importantForAccessibility="no"
 
 /**
  * A card that peeks up over a screen without taking it over: no backdrop, no dimming, no modal focus trap, detached
- * above the tab bar. Made for the pin card on the map, where the map must stay live around it. A drag down or Android Back
- * closes it (Back closes the card before it leaves the screen); the screen underneath keeps its own touches. Render it as
- * the last child of a full-screen container.
+ * above the tab bar, 16 dp in from both edges. Made for the pin card on the map, where the map must stay live around it.
+ * A drag down or Android Back closes it (Back closes the card before it leaves the screen); the screen underneath keeps
+ * its own touches. Render it as the last child of a full-screen container. `handle={false}` leaves the grab bar out
+ * for a card that carries its own close button (Discovery V47); a drag down still closes it.
  */
-export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced }: {
+export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced, handle = true }: {
   /** What assistive technology calls the card. */
   label: string;
   /** True while the screen that hosts the card is the one in front (the map passes `useIsFocused()`). Only then does
@@ -27,6 +28,8 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   /** The gap to the bottom of the screen it floats over. The tab bar sits outside the screen, so 12 clears it. */
   bottomInset?: number;
   reduced?: boolean;
+  /** The grab bar above the content; a card with its own × leaves it out. */
+  handle?: boolean;
 }) {
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
@@ -47,15 +50,17 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
     style={s.sheet} accessible={false} accessibilityRole="none" accessibilityLabel={label}
     maxDynamicContentSize={height * 0.5} animateOnMount={!reduced} onClose={onClose}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING}
-    backgroundComponent={PeekBackground} handleComponent={PeekHandle}>
-    <BottomSheetView style={s.content}>{children(dismiss)}</BottomSheetView>
+    backgroundComponent={PeekBackground} handleComponent={handle ? PeekHandle : null}>
+    <BottomSheetView style={[s.content, !handle && s.unhandled]}>{children(dismiss)}</BottomSheetView>
   </BottomSheet>;
 }
 
 const s = StyleSheet.create({
-  sheet: { marginHorizontal: sys.space.md },
+  sheet: { marginHorizontal: sys.space.base },
   background: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine, ...sheetLift.detached },
   handleArea: { height: 20, alignItems: 'center', justifyContent: 'center' },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong },
   content: { paddingHorizontal: sys.space.base, paddingBottom: sys.space.base },
+  // Without the handle's 20 px above it, the content keeps the card's own padding at the top too.
+  unhandled: { paddingTop: sys.space.base },
 });
