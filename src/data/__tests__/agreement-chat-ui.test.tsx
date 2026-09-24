@@ -14,7 +14,7 @@ jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 
 jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
-import { AgreementChat } from '../../ui/AgreementChat';
+import { AgreementChat, messageSpoken } from '../../ui/AgreementChat';
 
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
@@ -85,6 +85,16 @@ describe('D03 actual message component', () => {
     expect(entry.previewText).toContain('Privatne fotografije uz ovu poruku: 1');
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
     expect(outbox.sendDraft).not.toHaveBeenCalled();
+  });
+  // Verify r4b rd item 2: the bubble's press hides its children, so a message with text AND photos names its photos too.
+  it('hears a message with text and photos as both, and a message with neither as a message without text', async () => {
+    const photo = { assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const };
+    const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: 'photo_message_key',
+      posiljalacAccountId: account, telo: 'Evo kako izgleda', moja: false, posiljalacIme: 'Milan', vremeTekst: '24. sep · 12:00', procitano: null,
+      fotografije: [photo, { ...photo, assetId: '40000000-0000-4000-8000-000000000002' }] };
+    await render({ messages: [read] });
+    expect(held('Milan').props.accessibilityLabel).toBe('Milan: Evo kako izgleda, 2 fotografije, 24. sep, 12:00');
+    expect(messageSpoken({ moja: true, posiljalacIme: 'Ja', telo: '', fotografije: [] }, { day: null, clock: '12:00' })).toBe('Ti: poruka bez teksta, 12:00');
   });
   it('shows latest history initially, preserves an older reading position, and follows an explicit outgoing message', async () => {
     await render();
@@ -281,13 +291,32 @@ describe('D03 actual message component', () => {
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
       expect(button('Fotografije uz poruku').props).toMatchObject({ disabled: true, accessibilityState: { expanded: true, disabled: true } });
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
+      // Verify r4b rd item 6: the disabled X says what holds the panel open, by its real cause.
+      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok fotografije čekaju slanje.');
+      await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, message: 'Dozvoli pristup kameri.' }} />));
+      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok je prikazana poruka o fotografijama.');
+      await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, versionConflict: true, items: [{}] }} />));
+      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok ne ukloniš fotografije pripremljene za raniju verziju Dogovora.');
+      await act(async () => tree.update(<AgreementChat {...props} photos={photos} />));
+      expect(button('Fotografije uz poruku').props.accessibilityHint).toBeUndefined();
     });
     // Review r4 rd item 4: with no live update and a pull a screen reader cannot easily make, the refresh is an action.
-    it('offers a quiet refresh at the head of the thread, and none while there is nothing to refresh into', async () => {
+    // Verify r4b rd item 4 (was: no action in the empty thread, and one on a closed Dogovor): the empty thread is where
+    // someone waits for the other side's first message, so it has the action; a closed Dogovor takes no new message, a
+    // failed read has its own retry, and the first read's spinner stands alone.
+    it('offers a quiet refresh at the head of the thread and in the empty thread, and none where nothing new can come', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
       await act(async () => button('Osveži poruke').props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(1);
       await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
+      expect(texts()).toContain('Napiši prvu poruku');
+      await act(async () => button('Osveži poruke').props.onPress());
+      expect(props.refresh).toHaveBeenCalledTimes(2);
+      await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} messages={[message('1', false, 'Zdravo', '10:00')]} />));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+      await act(async () => tree.update(<AgreementChat {...props} error />));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+      await act(async () => tree.update(<AgreementChat {...props} loading messages={[]} />));
       expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
     });
     // Review r4 rd item 8: the first read's spinner stands in the middle, like every other state.

@@ -96,6 +96,11 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void }) {
     accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.'
       : 'Drži tokom govora. Kad pustiš, poruka ide u razgovor. Povuci prst naviše da otkažeš.'}
     accessibilityState={{ disabled: blocked, busy: waiting }} disabled={blocked}
+    // Switch Access and Voice Access click instead of holding: that click reaches only `onPress` (or this action), never
+    // the press-in and press-out a hold is made of, so on its own it did nothing. In hold mode it shows the same advice
+    // as a short tap, with "Govori bez držanja" beside it, which opens voice mode (verify r4b ra item B).
+    accessibilityActions={explicit ? undefined : [{ name: 'activate' }]}
+    onAccessibilityAction={explicit ? undefined : event => { if (event.nativeEvent.actionName === 'activate' && !blocked) p.onTooShort?.(); }}
     onPressIn={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
     onPressOut={explicit ? undefined : release}
     onPress={explicit ? () => active ? release() : begin() : undefined}
@@ -148,7 +153,8 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   </View>;
   if (!p.hint) return null;
   // The advice after a tap carries the way to speak without holding (review r4 ra item 7): a person who cannot hold, or
-  // who uses Switch Access, has voice mode here even while the field has text and the waveform button is not shown.
+  // who uses Switch Access or Voice Access (their click on the microphone is its `activate` action, which brings this
+  // advice), has voice mode here even while the field has text and the waveform button is not shown.
   return <View style={s.hintRow}>
     <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hintText}>{p.hint}</T>
     {p.hintAction ? <V2Action kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
@@ -185,9 +191,10 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
     // A reviewed capture is now in the message field: this screen steps aside so the person reads and sends it. Only a
     // capture that was finalised put text there (review r4 ra item 5): one stopped while the microphone was still on
     // its way ("Dodir prekida."), or cancelled when the app left the foreground, ends in IDLE with nothing in the field,
-    // and voice mode stays open.
-    if (mode === 'accessible' && before === 'FINALIZING' && !state.error && !state.fallbackText) close.current('review');
-  }, [state.phase, state.error, state.fallbackText]);
+    // and voice mode stays open. The controller tells the two apart itself: a finished capture rests with its session
+    // kept, and a cancel clears it, so this holds even when FINALIZING and IDLE arrive in one render (verify r4b ra 5).
+    if (mode === 'accessible' && state.session !== null && !state.error && !state.fallbackText) close.current('review');
+  }, [state.phase, state.session, state.error, state.fallbackText]);
   // Taken away by its screen while a capture it started still runs: that capture ends unsent.
   useEffect(() => () => { if (gesture.current) controller.cancel('gesture'); }, [controller]);
   const toggle = () => {

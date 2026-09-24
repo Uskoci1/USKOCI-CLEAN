@@ -69,9 +69,9 @@ function attentionOf(item: DogovorProjekcija): Attention | null {
 }
 
 /**
- * The foot of a card that waits for me (round-1 critique B1): white under the card's hairline, an 8 dp orange dot and
- * the words in `warn`, with the one arrow of the card. No orange edge and no orange fill: the screen's one orange fill
- * is not spent once per waiting card.
+ * The foot of a card that waits for me (round-1 critique B1): the card system's waiting foot, the quiet wash under the
+ * card's hairline, an 8 dp orange dot and the words in `warn`, with the one arrow of the card. No orange edge and no
+ * orange fill: the screen's one orange fill is not spent once per waiting card.
  */
 function AttentionFoot({ attention }: { attention: Attention }) {
   return <>
@@ -309,9 +309,10 @@ const s = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 8 }, noteText: { flexShrink: 1 },
   problem: { alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
-  // The card system's own white foot (`faceStyles.footLink`, review r4 rd item 7: this was a copy of it with its own
-  // fill and corners), a step taller for its two lines.
-  foot: { ...faceStyles.footLink, minHeight: 52 },
+  // Every foot here is a foot that waits for me, so it is the card system's waiting foot (`faceStyles.ownerFoot`: the
+  // quiet wash under one hairline, as Moje prijave and Moji zadaci draw it; verify r4b rd item 7 — it was the white
+  // quiet-link foot, so the same waiting looked different per list), a step taller for its two lines.
+  foot: { ...faceStyles.ownerFoot, minHeight: 52 },
   footCopy: { flex: 1, minWidth: 0, gap: 1 },
   footTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
   footLine: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },

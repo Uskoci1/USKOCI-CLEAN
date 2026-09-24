@@ -108,7 +108,8 @@ export function MyApplicationsPresentation(props: Props) {
   // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
     {props.loading ? <StateView kind="loading" title="Učitavamo tvoje prijave…" skeleton={{ count: 3, rows: 2 }} />
-      // The fallback names no cause nobody checked (review r4 item 4); while a read runs, the retry greys out (item 3).
+      // The fallback names no cause nobody checked (review r4 item 4). The retry greys out while a command is in flight
+      // (`busy` is a write, item 3); a read in flight shows the loading state above instead of this one.
       : props.unavailable ? <StateView kind="error" art="offers" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
         : props.rows.length && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."

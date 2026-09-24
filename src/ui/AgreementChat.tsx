@@ -58,14 +58,16 @@ export function messageMoment(text: string): { day: string | null; clock: string
 }
 
 /**
- * A message as a screen reader hears it, in one stop: who ("Ti" for mine), what (the text, or its photos when it has no
- * text), and when (the day the read named, then the clock).
+ * A message as a screen reader hears it, in one stop: who ("Ti" for mine), what (the text, then how many photos it
+ * carries), and when (the day the read named, then the clock). The bubble's press hides its children, so a photo the
+ * label does not name is never heard (verify r4b rd item 2).
  */
 export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljalacIme' | 'telo' | 'fotografije'>,
   moment: { day: string | null; clock: string }): string {
   const who = message.moja ? 'Ti' : message.posiljalacIme;
   const photoCount = message.fotografije?.length ?? 0;
-  const what = message.telo || (photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : 'poruka bez teksta');
+  const what = [message.telo, photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : '']
+    .filter(Boolean).join(', ') || 'poruka bez teksta';
   return `${who}: ${what}, ${moment.day ? `${moment.day}, ` : ''}${moment.clock}`;
 }
 
@@ -136,6 +138,12 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   // then the "+" (drawn as the close X) cannot fold it away, so it says so instead of swapping its icon for nothing
   // (review r4 rd item 6).
   const forced = !!photos && (photos.hasSelection || !!photos.items?.length || !!photos.message || !!photos.versionConflict);
+  // Why the panel cannot fold, by what holds it open (verify r4b rd item 6: "fotografije čekaju slanje" was said also when
+  // only a notice about the photos, such as the camera permission, or a changed Dogovor held it).
+  const forcedWhy = !forced || !photos ? undefined
+    : photos.versionConflict ? 'Ostaje otvoreno dok ne ukloniš fotografije pripremljene za raniju verziju Dogovora.'
+      : photos.hasSelection || photos.items?.length ? 'Ostaje otvoreno dok fotografije čekaju slanje.'
+        : 'Ostaje otvoreno dok je prikazana poruka o fotografijama.';
   const photoPanel = !!photos && !terminal && (attachOpen || forced);
   const shown = !error ? messages : [];
   const empty = !loading && !error && messages.length === 0 && local.length === 0;
@@ -153,8 +161,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
         {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
             update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
-            thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). */}
-        {shown.length && !error ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
+            thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
+            empty thread too, where someone waits for the other side's first message, and not on a closed Dogovor, where
+            nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. */}
+        {!error && !terminal && !(loading && !shown.length) ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
           <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
@@ -231,7 +241,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         {terminal ? null : <View style={s.pill}>
           {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
-            accessibilityHint={forced ? 'Ostaje otvoreno dok fotografije čekaju slanje.' : undefined}
+            accessibilityHint={forcedWhy}
             accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
             onPress={() => setAttachOpen(open => !open)} haptic={forced ? 'none' : 'select'} style={s.tool}>
             {photoPanel ? <X size={22} color={forced ? sys.color.muted : sys.color.ink} /> : <Plus size={22} color={sys.color.ink} />}

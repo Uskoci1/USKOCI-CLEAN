@@ -102,6 +102,22 @@ it('shows the message it just sent until the read confirms it, and nothing for a
  await render();await flush();
  expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBeNull();
 });
+// Verify r4b ra item A: the worker side stores the person's message when its turn is claimed, so a turn that is still
+// processing already has it in the read. It is shown once, in the thread, and never again as "šalje se".
+it('a sent message the read already holds is shown once, not again as still being sent',async()=>{
+ mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery('PROCESSING'),clientRequestId:key}));
+ await render();
+ mockApi.read.mockResolvedValue(ok({...snapshot(turn('PROCESSING')),messages:[{id:'m1',role:'USER',body:'Radim vikendom.',sequence:1}]}));
+ const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
+ await act(async()=>expect(receive({text:' Radim vikendom. ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(true));
+ expect(mockApi.recoverTurn).toHaveBeenCalled();
+ expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBeNull();
+ expect(shell().props.messages).toEqual([{id:'m1',fromAi:false,body:'Radim vikendom.'}]);
+ // A read whose last message is something else keeps the sentence on screen as not yet read back.
+ mockApi.read.mockResolvedValue(ok({...snapshot(turn('PROCESSING')),messages:[{id:'m0',role:'ASSISTANT',body:'Čime se baviš?',sequence:1}]}));
+ await click('Proveri stanje razgovora');
+ expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBe('Radim vikendom.');
+});
 it('held speech that is empty or over the limit is refused without a send',async()=>{
  await render();const receive=(mockVoiceHook.mock.calls.at(-1)![0] as {onTranscript:(input:unknown)=>boolean}).onTranscript;
  await act(async()=>expect(receive({text:'   ',isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));

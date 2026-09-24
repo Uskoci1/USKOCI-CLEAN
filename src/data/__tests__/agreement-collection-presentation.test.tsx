@@ -204,14 +204,15 @@ describe('the rating strip is a press of its own', () => {
     // Only a Dogovor that waits for my rating has the strip.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao plain' })).toHaveLength(0);
   });
-  test('it is drawn on white under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
+  test('it is drawn on the waiting foot\'s wash under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
     const { sys } = require('../../ui/system/tokens');
     await act(async () => { tree = create(<Rated />); });
     const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
-    // Review r4 rd item 7: the strip is the card system's own white foot (`faceStyles.footLink`), lying on the card's
-    // white with no fill of its own; it was a copy with an explicit white fill.
+    // Verify r4b rd item 7 (was: the white quiet-link foot, `faceStyles.footLink`, after review r4 rd item 7). What waits
+    // for me is the card system's waiting foot (`faceStyles.ownerFoot`), on the quiet wash as Moje prijave and Moji
+    // zadaci draw it, so the same waiting looks the same in every list.
     expect(flat(strip.props.style)).toMatchObject({ borderTopWidth: 1, borderTopColor: sys.color.line, minHeight: 52 });
-    expect(flat(strip.props.style).backgroundColor ?? sys.color.surface).toBe(sys.color.surface);
+    expect(flat(strip.props.style).backgroundColor).toBe(sys.color.wash);
     const dots = strip.findAll(node => typeof node.type === 'string' && flat(node.props.style).backgroundColor === sys.color.orange);
     expect(dots).toHaveLength(1); expect(flat(dots[0].props.style)).toMatchObject({ width: 8, height: 8 });
     const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Oceni saradnju'))!;

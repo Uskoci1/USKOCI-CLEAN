@@ -265,7 +265,8 @@ const s = StyleSheet.create({
   titleEmpty: { color: sys.color.muted },
   next: { marginTop: 2 },
   ready: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  readyText: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.green },
+  // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
+  readyText: { ...sys.type.note, fontWeight: '600', color: sys.color.green },
   unavailable: { flex: 1, paddingHorizontal: sys.space.xl, justifyContent: 'center' },
   loading: { gap: 16, alignItems: 'center' },
   unavailableMark: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },

@@ -24,8 +24,8 @@ import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceSty
  *   3. where (one line); 4. when (up to two lines);
  *   5. my offer: "Tvoja ponuda", and the amount in the money colour with "ukupno" under it (the task card's value slot),
  *      or the word when there is no amount;
- *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people; only "2 osobe"
- *      once the application is over, since nobody comes);
+ *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people, while the offer
+ *      is open; only "2 osobe" once it is settled: chosen, withdrawn or closed);
  *   7. my message to the requester, when I wrote one, in two lines at most;
  *   8. the foot: at most ONE action, the one this state allows, as a quiet row link (never a button inside the card):
  *      Izabrana → "Otvori Dogovor", Poslata (and every open state the server lets me withdraw) → "Povuci prijavu" (a
@@ -75,16 +75,21 @@ export const OFFER_WORDS = 'Tvoja ponuda';
 export const offerSpoken = (value: ApplicationValue) => value.kind === 'amount'
   ? `${OFFER_WORDS} ${value.amount} ${value.basis}` : `${OFFER_WORDS}: ${VALUE_WORDS.unpriced}`;
 /**
- * The people the offer brings, in the owner's words for a price read with its people (decision 2, 2026-09-19). An
- * application that is over (withdrawn or closed) brings nobody, so it says only how many it offered ("2 osobe"), never
- * "Dolaze 2 osobe" (review r4 item 2).
+ * The people the offer brings, in the owner's words for a price read with its people (decision 2, 2026-09-19). "Dolaze
+ * 2 osobe" is said only while the offer is open. A settled offer says only how many it offered ("2 osobe"): a withdrawn
+ * or closed one brings nobody (review r4 item 2), and a chosen one may already be finished (verify r4b item A).
  */
-export const offerPeople = (places: number, over = false) => {
-  const words = over ? osoba(places) : dolaziOsoba(places);
+export const offerPeople = (places: number, settled = false) => {
+  const words = settled ? osoba(places) : dolaziOsoba(places);
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
-/** An application nobody comes for any more: withdrawn, or closed for any of the reasons CLOSED merges. */
-export const applicationOver = (state: StanjeMojePrijave) => state === 'WITHDRAWN' || state === 'CLOSED';
+/**
+ * An offer that is no longer open: withdrawn, closed for any of the reasons CLOSED merges, or chosen. A chosen offer
+ * became a Dogovor, and the application's read carries no Dogovor state, so the card cannot tell a live Dogovor from a
+ * finished one; "Otvori Dogovor" holds the live facts (verify r4b item A, seen on the emulator: "Izabrana" cards of
+ * finished Dogovori said "Dolazi 1 osoba").
+ */
+export const offerSettled = (state: StanjeMojePrijave) => state === 'WITHDRAWN' || state === 'CLOSED' || state === 'SELECTED';
 
 /** The one action the foot holds, from the state alone. `null`: the state allows none, or it is already open. */
 export type ApplicationFootAction = 'agreement' | 'withdraw' | 'review';
@@ -112,7 +117,7 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
   const value = applicationValue(row);
   const note = row.napomena?.trim();
   return [applicationStatus(row.stanje).text, row.podrucjeTekst, row.vremeTekst, offerSpoken(value),
-    offerPeople(row.pokrivaMesta, applicationOver(row.stanje)), note ? `tvoja poruka: ${note}` : null]
+    offerPeople(row.pokrivaMesta, offerSettled(row.stanje)), note ? `tvoja poruka: ${note}` : null]
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
 }
 
@@ -126,8 +131,8 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
  * how the task card already says it. A word instead of an amount is a quiet label, never the money colour or weight. At
  * large text the value moves under its words, as a whole line on that same column.
  */
-export function OfferRow({ value, places, large, over = false }: { value: ApplicationValue; places: number; large: boolean;
-  /** The application is withdrawn or closed: nobody comes, so the people are a count, not "Dolaze". */ over?: boolean }) {
+export function OfferRow({ value, places, large, settled = false }: { value: ApplicationValue; places: number; large: boolean;
+  /** The offer is settled (chosen, withdrawn or closed): the people are a count, not "Dolaze". */ settled?: boolean }) {
   return <View style={s.offer}>
     <View style={large ? s.valueStacked : s.valueRow}>
       <View style={!large && s.offerWords}><CardFact art={<FactArt kind="money" size={16} />} text={OFFER_WORDS} lines={2} /></View>
@@ -137,7 +142,7 @@ export function OfferRow({ value, places, large, over = false }: { value: Applic
       </View>
         : <T style={[valueStyles.valueWord, large ? s.onTextColumn : s.valueWordSide]} numberOfLines={2}>{VALUE_WORDS.unpriced}</T>}
     </View>
-    <CardFact art={<FactArt kind="users" size={16} />} text={offerPeople(places, over)} lines={large ? 2 : 1} />
+    <CardFact art={<FactArt kind="users" size={16} />} text={offerPeople(places, settled)} lines={large ? 2 : 1} />
   </View>;
 }
 
@@ -156,7 +161,7 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large 
       <CardFact art={<FactArt kind="pin" size={16} />} text={row.podrucjeTekst} />
       <CardFact art={<FactArt kind="calendar" size={16} />} text={row.vremeTekst} lines={2} />
     </View>
-    <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} over={applicationOver(row.stanje)} />
+    <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} settled={offerSettled(row.stanje)} />
     {/* The only place my message to the requester can be read again; my words, so in quotes. */}
     {note ? <CardFact art={<FactArt kind="chat" size={16} />} text={`„${note}“`} lines={2} /> : null}
   </>;

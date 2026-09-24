@@ -407,8 +407,8 @@ const CHOOSE_LABEL = 'Izaberi ovu ponudu';
 
 /**
  * One offer in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
- * behind it). The person leads — their picture, name and rating, which open their public profile — then the offer: the
- * total and whom it is for, the time, their whole message and what they declared with it.
+ * behind it). The person leads — their name as the sheet's title, then their picture and rating, which open their public
+ * profile — then the offer: the total and whom it is for, the time, their whole message and what they declared with it.
  *
  * The sheet's pinned footer holds the ONE green action. "Izaberi ovu ponudu" asks first, in an in-app confirmation with
  * the words that always stood before this choice; only its confirm runs the route's `choose`, which keeps every guard it
@@ -478,7 +478,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <View style={s.sheetFooter}>{primary}{quiet}</View> : undefined}>
     {() => <>
-      <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} nameShown={false} />
+      <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
       {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
         {status ? <CandidateStatusLine status={status} /> : null}
         {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>

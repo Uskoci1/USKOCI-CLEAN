@@ -4,16 +4,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { Bell } from 'phosphor-react-native';
-import type { DogovorProjekcija, PorukaProjekcija, UcesnikProjekcija } from '../contracts/projections';
+import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
-import { NextStepCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep } from '../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep } from '../ui/agreements/AgreementWorkspace';
 import { Press } from '../ui/Press';
 import { ProductHeader } from '../ui/product/ProductDetails';
 import { ChromeIconButton, ScreenChrome } from '../ui/system/ScreenChrome';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../ui/v2/AgreementCollectionPresentation';
+import { V2Action } from '../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement,
   type AgreementTab } from '../ui/v2/AgreementPresentation';
 
@@ -69,6 +70,17 @@ const LONG: DogovorProjekcija[] = [
     naslov: 'Sklapanje garderobera od tri krila sa kliznim vratima i ogledalom u spavaćoj sobi',
     ucesnici: [ME_WORKER, requester('Vladimir Aleksandrović Petrović', 'VA')] }),
 ];
+
+/**
+ * The change proposals the route reads with a Dogovor's actions (`radnje.predlogIzmene`), for the two fixtures whose
+ * change waits: the other side's proposal to the worker (answered from the footer) and the requester's own in the group.
+ */
+const PROPOSALS: Record<string, Pick<PredlogIzmeneSazetak, 'mozeOdgovoriti' | 'razlog' | 'izmene'>> = {
+  izmena: { mozeOdgovoriti: true, razlog: 'Ujutru je trava još mokra od rose.',
+    izmene: [{ polje: 'Termin', sada: '28. sep · 08:00–12:00', predlog: '28. sep · 10:00–14:00' }] },
+  grupa: { mozeOdgovoriti: false, razlog: 'Uputstvo ima više strana nego što je navedeno.',
+    izmene: [{ polje: 'Cena', sada: '5.500 RSD', predlog: '6.500 RSD' }] },
+};
 
 const OTHER = 'druga-MJ';
 const message = (n: number, moja: boolean, telo: string, vremeTekst: string): PorukaProjekcija => ({ id: `poruka-${n}`, dogovorVerzija: 1,
@@ -140,6 +152,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   const changeRow = active && !(isRequester && item.stanje === 'AWAITING_REQUESTER');
   const step = agreementNextStep({ state: item.stanje, party: true, worker: isWorker, change, ownRating,
     problemOpen: item.problemOtvoren, deadline: 'Do 27. sep · 17:00' });
+  const proposal = change.waits ? PROPOSALS[item.id] ?? null : null;
   return <View style={s.fill}>
     {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
     <View style={s.tabs}>
@@ -149,8 +162,22 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan} /> : <>
       <ScrollView contentContainerStyle={s.content}>
         <AgreementHero agreement={item} />
-        <NextStepCard tone={step.tone} title={step.title} body={step.body} />
+        {/* The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
+            and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer). */}
+        <NextStepCard tone={step.tone} title={step.title} body={step.body}>
+          {proposal ? <View style={s.stack}>
+            {proposal.izmene.map(line => <View key={line.polje} style={s.change}>
+              <T variant="meta" tone="muted">{line.polje}</T>
+              <T variant="body" style={s.ink}>{line.sada} → {line.predlog}</T>
+            </View>)}
+            {proposal.razlog ? <T variant="meta" tone="muted">Razlog: {proposal.razlog}</T> : null}
+            {proposal.mozeOdgovoriti ? null : <V2Action label="Pogledaj predlog" kind="quiet" onPress={noop} />}
+          </View> : null}
+        </NextStepCard>
         {isGroupAgreement(item) ? <AgreementPeople agreement={item} /> : null}
+        {/* The route's GroupConversationEntry reads the group; still here, in the words it says when the task has fewer
+            than two independent people chosen, which is true of the group fixture (one worker for two places). */}
+        {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
         <WorkspaceRows>
           <WorkspaceRow art="tasks" label="Zadatak" onPress={noop} />
           {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
@@ -161,7 +188,26 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         </WorkspaceRows>
         <AgreementSection art="phone" label="Kontakt" summary="Podeli svoj broj kada ti odgovara">
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
+          <T variant="body" style={s.ink}>Broj druge strane: Nisu podelili svoj broj</T>
+          {active ? <V2Action label="Podeli svoj broj" onPress={noop} /> : null}
         </AgreementSection>
+        {/* The rest of the route's Pregled, still: the location section (its grant is not read here, so only its
+            closed-Dogovor sentence and the refresh note are drawn) and the problem card. */}
+        {item.rezim !== 'DALJINSKI' && item.kontakt.lokacijaPostoji ? <AgreementSection art="lock" label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
+          <T variant="note" tone="muted">{active ? 'Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.' : 'Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.'}</T>
+        </AgreementSection> : null}
+        {item.problemOtvoren ? <WorkspaceCard tone="warn">
+          <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
+          <T variant="meta" tone="muted">Prijavila je druga strana.</T>
+          <T variant="meta" tone="muted">25. sep · 18:40</T>
+          <T variant="body" style={s.ink}>Deo teksta nije bio u dogovorenom obimu.</T>
+          <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
+          {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
+        </WorkspaceCard> : active ? <WorkspaceCard>
+          <T variant="bodyStrong" style={s.ink}>Nešto nije u redu?</T>
+          <T variant="meta" tone="muted">Prijava problema zaustavlja automatski završetak i vidi je druga strana.</T>
+          <V2Action label="Prijavi problem" kind="quiet" onPress={noop} />
+        </WorkspaceCard> : null}
       </ScrollView>
       <WorkspaceFooter brand={{ label: footer, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }} />
     </>}
@@ -216,4 +262,6 @@ const s = StyleSheet.create({
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
   tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
+  // The route's own proposal lines (`dogovor/[id].tsx`: stack, change).
+  stack: { gap: 8, marginTop: 4 }, change: { gap: 2 }, ink: { color: sys.color.ink },
 });

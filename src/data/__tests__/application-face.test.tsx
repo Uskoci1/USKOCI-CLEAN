@@ -20,7 +20,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/textScale', () => ({ useTextScale: () => mockScale }));
-import { ApplicationCard, applicationFoot, applicationStatus, applicationValue, offerPeople } from '../../ui/v2/ApplicationFace';
+import { ApplicationCard, applicationFoot, applicationStatus, applicationValue, offerPeople, offerSettled } from '../../ui/v2/ApplicationFace';
 import { faceStyles } from '../../ui/v2/TaskFace';
 
 const row = (patch: Partial<MojaPrijavaProjekcija> = {}): MojaPrijavaProjekcija => ({ prijavaId: 'a1', potrebaId: 'n1', potrebaRevizija: 3,
@@ -178,8 +178,11 @@ describe('my offer', () => {
   });
 
   // Review r4 item 2: nobody comes for an application that is over, so it says how many it offered, not "Dolaze".
-  it.each([['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena']] as const)('%s says the people it offered, never that they are coming', async (state, word) => {
+  // Verify r4b item A adds SELECTED: the read carries no Dogovor state, so a chosen offer whose Dogovor is finished
+  // cannot say that someone is coming (seen on the emulator); "Otvori Dogovor" holds the live facts.
+  it.each([['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena'], ['SELECTED', 'Izabrana']] as const)('%s says the people it offered, never that they are coming', async (state, word) => {
     expect(offerPeople(2, true)).toBe('2 osobe'); expect(offerPeople(1, true)).toBe('1 osoba');
+    expect(offerSettled(state)).toBe(true);
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()).toContain('2 osobe');
     expect(texts().some(text => /^Dolaz/.test(text))).toBe(false);
@@ -187,7 +190,8 @@ describe('my offer', () => {
   });
 
   it('every open state still says the people are coming', async () => {
-    for (const state of ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED', 'STALE_REVIEW_REQUIRED'] as const) {
+    for (const state of ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'] as const) {
+      expect(offerSettled(state)).toBe(false);
       await render(<ApplicationCard row={inState(state)} {...handlers()} />);
       expect(texts()).toContain('Dolaze 2 osobe');
     }
@@ -212,5 +216,6 @@ describe('my offer', () => {
 it('is heard once: the command name, then status, place, time, the offer, the people and my message', async () => {
   await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
   expect(presses()[0].props.accessibilityValue).toEqual({ text:
-    'Izabrana, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, Dolaze 2 osobe, tvoja poruka: Donosim trake.' });
+    // Verify r4b item A: a chosen offer says the people it offered ("2 osobe"), not "Dolaze 2 osobe".
+    'Izabrana, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.' });
 });

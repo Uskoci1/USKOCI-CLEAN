@@ -184,6 +184,20 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
       // Opening voice mode starts nothing: the one capture is the tap on the held microphone that brought the advice.
       expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).toHaveBeenCalledTimes(1);
     });
+  // Verify r4b ra item B: Switch Access and Voice Access click the microphone (its `activate` action) instead of holding
+  // it; with a draft in the field that click is their only way to speech, so it brings the same advice and its action.
+  it('a Switch Access click on the held microphone shows the advice and the way to voice mode, and starts nothing', async () => {
+    const p = props(); p.value = 'Treba mi prevoz'; p.canSend = true; p.voice = voice();
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onAccessibilityAction === 'function')[0];
+    expect(mic.props.accessibilityActions).toEqual([{ name: 'activate' }]);
+    await act(async () => mic.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(text()).toContain(HOLD_HINT);
+    expect(p.voice!.controller.begin).not.toHaveBeenCalled();
+    await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
+    expect(tree.root.findByType(VoiceMode).props.reviewFirst).toBe(true);
+    expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).not.toHaveBeenCalled();
+  });
   it('the advice offers no voice mode while the screen cannot take a message', async () => {
     const p = props(); p.value = 'Treba mi prevoz'; p.voice = voice({ disabled: true });
     await act(async () => { tree = create(<AiConversationShell {...p} />); });

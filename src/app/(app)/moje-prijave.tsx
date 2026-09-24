@@ -101,7 +101,7 @@ export default function MojePrijave() {
         boundedApplicationSelectionRead(izvor.mojePrijave()),
         pending ? readApplicationCommandState(pending.row) : Promise.resolve(null),
       ]);
-      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne Prijave.' };
+      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne prijave.' };
       let notice: string | null = null;
       if (pending && session.pending === pending && !pending.inFlight && named) {
         pending.reconciled = named.ok;
@@ -112,7 +112,8 @@ export default function MojePrijave() {
         } else if (pending.result === 'receipt') notice = 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Proveri vezu i pokušaj ponovo.' }; }
+    // The failure's cause is not known here, so the words do not guess one (verify r4b item B).
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave nisu učitane. Pokušaj ponovo za trenutak.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
   }, [session, izvor, accountCurrent, clearReview, resume]);
@@ -200,8 +201,8 @@ export default function MojePrijave() {
       const result = await readExistingApplicationInterval(p);
       if (!rowCurrent(p) || generation !== session.editRevision) return;
       if (result.ok) session.draft = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
-      else session.message = 'Sačuvani termin ili aktuelna cena nisu potvrđeni. Osveži Prijave pre izmene ponude.';
-    } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži Prijave pre izmene.'; }
+      else session.message = 'Sačuvani termin ili aktuelna cena nisu potvrđeni. Osveži prijave pre izmene ponude.';
+    } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
   const navigate = (path: '/zadaci' | '/profil') => { if (current()) router.navigate(path); };

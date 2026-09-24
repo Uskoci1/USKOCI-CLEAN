@@ -41,6 +41,23 @@ it('a tap that ends before the microphone listens asks the composer to explain h
   await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onPressOut());
   expect(short).toHaveBeenCalledTimes(1);expect(c.release).toHaveBeenCalledTimes(2);
 });
+// Verify r4b ra item B: a click from Switch Access or Voice Access reaches the held microphone only as `activate`; it
+// asks for the advice (and its way to voice mode) instead of doing nothing, starts no capture, and a disabled
+// microphone asks for nothing. With a screen reader the microphone is a plain start/stop button and needs no action.
+it('a click without a hold is the activate action: it asks for the advice and starts nothing',async()=>{
+  const c=controller(),short=jest.fn();
+  await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={jest.fn()} onTooShort={short}/>);});
+  const mic=tree.root.findByProps({testID:'voice-mic'});
+  expect(mic.props.accessibilityActions).toEqual([{name:'activate'}]);
+  await act(async()=>mic.props.onAccessibilityAction({nativeEvent:{actionName:'activate'}}));
+  expect(short).toHaveBeenCalledTimes(1);expect(c.begin).not.toHaveBeenCalled();expect(c.release).not.toHaveBeenCalled();
+  await act(async()=>tree.update(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled onKeepText={jest.fn()} onTooShort={short}/>));
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onAccessibilityAction({nativeEvent:{actionName:'activate'}}));
+  expect(short).toHaveBeenCalledTimes(1);
+  await act(async()=>tree.unmount());mockReader=true;
+  await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={jest.fn()} onTooShort={short}/>);});
+  expect(tree.root.findByProps({testID:'voice-mic'}).props.accessibilityActions).toBeUndefined();
+});
 it('screen reader sees explicit Stop, not an instruction to release a held finger',async()=>{
   mockReader=true;const c=controller();const listening={...idle,phase:'LISTENING' as const};
   await act(async()=>{tree=create(<><VoiceComposer controller={c as unknown as HoldToTalkController} state={listening} disabled={false} onKeepText={jest.fn()}/>

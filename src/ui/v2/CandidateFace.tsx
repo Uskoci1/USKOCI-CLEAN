@@ -221,25 +221,20 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
 });
 
 /**
- * The person at the head of their offer: the 56 px picture, the name large and the rating under it. It opens their public
- * profile, and is heard as the person first, with what a press does as its hint (as the task's poster row is).
+ * The person at the head of their offer, under the sheet's title, which is their name (review r4 rk item 3): the 56 px
+ * picture and the rating beside it. The name is not drawn again; the row still says it to a screen reader, as the person
+ * first, with what a press does as its hint (as the task's poster row is). It opens their public profile.
  */
-export function CandidatePerson({ candidate: k, photo, onPress, disabled = false, nameShown = true }: {
+export function CandidatePerson({ candidate: k, photo, onPress, disabled = false }: {
   candidate: KandidatProjekcija; photo?: ReactNode; onPress: () => void; disabled?: boolean;
-  /**
-   * False where the name already heads the view (the offer sheet's title): the row keeps the picture and the rating, and
-   * still says the name to a screen reader.
-   */
-  nameShown?: boolean;
 }) {
   const trust = candidateTrust(k);
   // No heading role inside the press: a screen reader never reaches a heading that lives in a button (review r4 rk item
-  // 3). Where the name heads a view, the view's own title is the heading.
+  // 3). The sheet's own title is the heading.
   return <Press accessibilityRole="button" accessibilityLabel={`${k.ime}, ${trust.spoken}`} accessibilityHint="Otvara javni profil"
     accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={onPress} style={s.person}>
     <CandidateAvatar candidate={k} size={56} photo={photo} />
     <View style={s.identity}>
-      {nameShown ? <T style={s.personName} numberOfLines={3}>{k.ime}</T> : null}
       <CandidateTrustLine candidate={k} lines={3} />
     </View>
     <CaretRight size={20} color={sys.color.muted} />
@@ -269,5 +264,4 @@ const s = StyleSheet.create({
   cell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line },
   compareAmount: { ...sys.type.priceRow, color: sys.color.money },
   person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64 },
-  personName: { ...sys.type.cardTitle, color: sys.color.ink },
 });

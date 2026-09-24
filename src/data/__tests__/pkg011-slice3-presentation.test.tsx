@@ -100,7 +100,8 @@ describe('Moje prijave states', () => {
     expect(onTab).toHaveBeenCalledWith('all');
   });
 
-  test('a read that failed offers the retry and the way back, and the retry greys out while a read runs', async () => {
+  // Verify r4b nit D: `busy` is a command (a write) in flight, not a read; the test's name says so now.
+  test('a read that failed offers the retry and the way back, and the retry greys out while a command is in flight', async () => {
     const onRefresh = jest.fn(), onBack = jest.fn();
     await act(async () => { tree = create(make({ unavailable: true, onRefresh, onBack })); });
     expect(texts()).toContain('Prijave trenutno nisu dostupne');
