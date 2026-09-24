@@ -117,6 +117,12 @@ change was made by the cloud session.
    `docs/implementation/design-system/r6-emulator-b4531ef/FINDINGS.json`, the fix order per file in `R6_CRITIQUE.md`,
    the receipt in `R6_RECEIPT.json`. Still owed: widths 320–430 dp and font scale 1.3, real flows, TalkBack.
    **Fix what the pictures show** = the "Fix first" table of `R6_CRITIQUE.md`, one writer per file.
+   **Split, 2026-09-24 23:30 (so two agents never touch one file):** the owner's local Claude session takes rows 1–6,
+   8, 11–14 and the ResolvedPinMap half of 15 (ProductSheet, CalendarControls, Skeleton, StateView, the application
+   composer and its route, ResolvedPinMap, Q&A + PillComposer, Izmene + a new shared FlowFooter, group conversation,
+   AgreementPhotoComposer). **Codex / the next agent takes rows 7, 9, 10, 16 and the DiscoveryMap half of 15**
+   (pregled-zadatka, ReviewPresentation, NeedLocationForm, TaskPhotosPresentation, fotografije-zadatka, Discovery*)
+   together with the owner's evening decisions a–d, which live in those same files.
 2. **Owner decisions of 2026-09-24 evening, not yet built:**
    - a. "U blizini" NOW (owner: "Da, odmah"): add `expo-location` with `npx expo install expo-location` (approved),
      ask the foreground permission only when the person taps "U blizini", use the position only to centre the map,
