@@ -82,3 +82,15 @@ See the last section of this file (updated at handoff).
 - Geocoder for public release (LocationIQ paid vs the state address register), shared vocabulary for vehicles and
   tools, the four calendar wording choices and what "Mogu odmah" means to others (listed in the round-5 calendar
   report), the binding four-sentence candidate choice confirmation (kept word for word).
+
+## Current head at handoff
+
+- Branch `work/uskoci-ui-unification-20260924` at `bc127755` (rounds 1–5 and the round-5 review fixes integrated).
+- `npx tsc --noEmit` clean; full Jest **297 suites / 5,707 tests** pass on `bc127755`.
+- Emulator build `36015751245` was dispatched on `bc127755`; the owner's PC photographs it.
+- **Do first in the cloud (round 5c):** the independent verifiers of the round-5 fixes left small items, all "fix first"
+  or low. Read `round5b/*-verify-*.md` (profil: keyboard footer dead tap and two photo fixes that clash; kalendar: the
+  overnight-copy one-line regression and two accessibility fixes; obavestenja: the inbox filter rebuilding the whole
+  list and two accessibility regressions; privatnost: two support-screen defects; r4: three presentation items). Apply
+  them with one fixer per area (disjoint files, as in `round5b/*-fixer.md`), verify, run the full Jest, push.
+- Then run round 6 (`round6.workflow.js`).
