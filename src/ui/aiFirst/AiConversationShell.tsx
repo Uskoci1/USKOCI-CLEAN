@@ -21,7 +21,7 @@ export type AiConversationShellProps = {
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void; onOptions: () => void;
   onAdd?: () => void; addDisabled?: boolean; addLabel?: string;
-  status?: ReactNode; actions?: ReactNode; voice?: ReactNode; children?: ReactNode;
+  status?: ReactNode; actions?: ReactNode; voice?: ReactNode; voiceActive?: boolean; children?: ReactNode;
   /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
   openings?: readonly string[];
   /** A sentence already sent and not yet read back from the server. It belongs on screen. */
@@ -51,7 +51,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const [typing, setTyping] = useState(false);
   const input = useRef<TextInput>(null);
   // A draft has to be readable wherever it came from, so speech opens the field too.
-  const draft = typing || !p.voice || p.value.length > 0 || p.pending;
+  const draft = !p.voiceActive && (typing || !p.voice || p.value.length > 0 || p.pending);
   const showSend = !p.voice || p.value.trim().length > 0 || p.pending;
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
@@ -138,23 +138,25 @@ export function AiConversationShell(p: AiConversationShellProps) {
             haptic={p.canSend ? 'light' : 'none'} style={[s.send, !p.canSend && s.disabled]}>
             <PaperPlaneTilt size={22} weight="fill" color={a.color.surface} /></Press> : null}
         </View> : null}
-        {p.voice && !draft ? <View testID="ai-composer-bar" style={s.bar}>
-          {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
-            accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
-            haptic={p.addDisabled ? 'none' : 'select'} style={[s.barWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
-            <Plus size={24} color={sys.color.ink} weight="bold" /></Press> :
-            <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
-              onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
-              <KeyboardIcon size={23} color={sys.color.ink} /></Press>}
-          <View style={s.barCentre}>{p.voice}</View>
-          <View style={s.barRight}>
+        {p.voice && !draft ? <View testID="ai-composer-bar" style={[s.bar, p.voiceActive && s.barActive]}>
+          {!p.voiceActive ? <>
+            {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel={p.addLabel ?? 'Dodaj u zadatak'}
+              accessibilityState={{ disabled: !!p.addDisabled }} disabled={!!p.addDisabled}
+              haptic={p.addDisabled ? 'none' : 'select'} style={[s.barWell, p.addDisabled && s.disabled]} onPress={p.onAdd}>
+              <Plus size={24} color={sys.color.ink} weight="bold" /></Press> :
+              <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.barWell}
+                onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
+                <KeyboardIcon size={23} color={sys.color.ink} /></Press>}
+          </> : null}
+          <View style={[s.barCentre, p.voiceActive && s.barCentreActive]}>{p.voice}</View>
+          {!p.voiceActive ? <View style={s.barRight}>
             {p.onAdd ? <Press accessibilityRole="button" accessibilityLabel="Piši umesto da govoriš" haptic="select" style={s.smallWell}
               onPress={() => { setTyping(true); requestAnimationFrame(() => input.current?.focus()); }}>
               <KeyboardIcon size={21} color={sys.color.ink} /></Press> : null}
             <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select" style={s.smallWell}
               onPress={() => Alert.alert('Govorni unos i privatnost', VOICE_PROCESSING_NOTICE)}>
               <Info size={21} color={sys.color.muted} /></Press>
-          </View>
+          </View> : null}
         </View> : null}
       </View>
     </KeyboardAvoidingView>
@@ -229,7 +231,9 @@ const s = StyleSheet.create({
     minHeight: 64, paddingVertical: 6, paddingHorizontal: 7, borderRadius: 32, backgroundColor: a.color.surface,
     borderWidth: 1, borderColor: a.color.cardLine, shadowColor: a.color.ink, shadowOpacity: 0.08,
     shadowRadius: 16, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
+  barActive: { justifyContent: 'center', paddingHorizontal: 10 },
   barCentre: { flex: 1, minWidth: 0, alignItems: 'center' },
+  barCentreActive: { width: '100%' },
   barRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   barWell: { width: 50, height: 50, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.wash },
   smallWell: { width: 42, height: 42, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
