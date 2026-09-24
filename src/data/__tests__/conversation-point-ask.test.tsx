@@ -180,7 +180,9 @@ describe('the conversation point ask', () => {
     await act(async () => { editor().props.onConfirm(point('end')); });
     const reads = mockRead.mock.calls.length;
     await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
-    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Učitaj sačuvano mesto?', confirmLabel: 'Učitaj', cancelLabel: 'Odustani', tone: 'danger' });
+    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Učitaj sačuvano mesto?', confirmLabel: 'Učitaj', cancelLabel: 'Odustani', tone: 'danger',
+      // One voice without grammatical gender (owner rule): no "koje si potvrdio".
+      message: 'Potvrđene tačke koje nisu sačuvane zameniće poslednje sačuvano mesto.' });
     expect(mockRead).toHaveBeenCalledTimes(reads);
     await answer('confirm-sheet-cancel');
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(mockRead).toHaveBeenCalledTimes(reads);
@@ -206,7 +208,9 @@ describe('the conversation point ask', () => {
     await act(async () => { editor().props.onConfirm(point('start')); });
     await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
     const leave = tree!.root.findByType(ConfirmSheet);
-    expect(leave.props).toMatchObject({ title: 'Potvrđena tačka nije sačuvana', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger' });
+    expect(leave.props).toMatchObject({ title: 'Potvrđena tačka nije sačuvana', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger',
+      // One voice without grammatical gender (owner rule): no "Potvrdio si".
+      message: 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.' });
     await act(async () => { leave.findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
     expect(onClose).not.toHaveBeenCalled(); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
     await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });

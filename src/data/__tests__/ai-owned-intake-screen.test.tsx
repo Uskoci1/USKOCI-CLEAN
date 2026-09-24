@@ -406,6 +406,17 @@ it('explicit abandonment uses the actual authority and becomes closed only after
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.'); expect(input().editable).toBe(false);
 });
+it('keeps the leave question open with a busy confirm while abandonment runs, and closes it once that settles', async () => {
+  // The screen returns its command to the sheet; a `void` there would close the question before the command is sent.
+  const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise);
+  await resume(); await options(); await act(async () => button('Napusti razgovor').onPress());
+  mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1); expect(leaveSheets()).toHaveLength(1);
+  expect(leaveSheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
+  await act(async () => held.resolve(ok({ conversationId: id, status: 'ABANDONED', authoritative: true })));
+  expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.');
+});
 it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBe(id);

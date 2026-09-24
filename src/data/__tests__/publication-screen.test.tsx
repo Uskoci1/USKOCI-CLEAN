@@ -168,6 +168,23 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     const action = confirmation(); await act(async () => { action(); action(); });
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String)); expect(mockNeed).toHaveBeenCalledTimes(2);
   });
+  it('the screen\'s own answer, fired twice, closes the search once: its dialog token is the fence, not the sheet\'s latch', async () => {
+    // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet,
+    // so it fails if the screen's own token check is removed.
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    await render(); await tap('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
+    const answer = retainedAnswer(); await act(async () => { answer(); answer(); });
+    expect(mockClose).toHaveBeenCalledTimes(1);
+  });
+  it('keeps the question open with a busy confirm while the search is being closed, and closes it once that settles', async () => {
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    const closing = deferred(); mockClose.mockReturnValueOnce(closing.promise);
+    await render(); await tap('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
+    expect(mockClose).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(1);
+    expect(sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
+    await act(async () => closing.resolve(ok(null)));
+    expect(sheets()).toHaveLength(0); expect(mockNeed).toHaveBeenCalledTimes(2);
+  });
   it.each([
     ['NO_REMAINING_SEARCH', 'Sva mesta su već popunjena. Učitaj aktuelno stanje Zadatka.'],
     ['STALE_REVIEW_REQUIRED', 'Zadatak je izmenjen. Pregledaj važeće uslove.'],
@@ -182,7 +199,8 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   it('cancelling a confirmation sends nothing, and the same question can be asked again', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     await render(); await tap('Ne traži više nikoga');
-    expect(sheet().props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', cancelLabel: 'Odustani' });
+    // Closing the search cannot be undone, so its confirm is drawn as the destructive one (as izvoz's withdrawals are).
+    expect(sheet().props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', cancelLabel: 'Odustani', tone: 'danger' });
     await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
     expect(sheets()).toHaveLength(0); expect(mockClose).not.toHaveBeenCalled();
     // The cancel path released the screen's dialog token, so the question opens again and its answer runs once.
@@ -200,6 +218,8 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')
       : { ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     await render(); await tap(action === 'edit' ? 'Izmeni Zadatak' : 'Ne traži više nikoga');
+    // Opening the edit can be walked back; closing the search cannot.
+    expect(sheet().props.tone).toBe(action === 'edit' ? 'default' : 'danger');
     const retained = retainedAnswer(); mockFocused = false; await update(); expect(sheets()).toHaveLength(0);
     mockFocused = true; await update();
     await act(async () => retained()); expect(mockEdit).not.toHaveBeenCalled(); expect(mockClose).not.toHaveBeenCalled();

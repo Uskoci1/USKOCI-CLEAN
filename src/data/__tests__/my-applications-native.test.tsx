@@ -196,6 +196,15 @@ it('withdraws only after explicit confirmation, fences double taps, and reads be
   await act(async () => { send(); send(); }); expect(mockWithdraw).toHaveBeenCalledTimes(1); expect(mockWithdraw.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 4, prijavaVerzija: 2, razlog: null });
   expect(mockRead).toHaveBeenCalledTimes(2); expect(text()).toContain('Sačuvano stanje: Prijava je povučena.');
 });
+it('the screen\'s own answer, fired twice, withdraws once: its pending intent is the fence, not the sheet\'s latch', async () => {
+  // Pressing the sheet's confirm twice is stopped by the sheet itself. This calls the answer the screen handed the sheet,
+  // so it fails if the screen's own pending-intent check is removed.
+  const held = deferred(); mockWithdraw.mockReturnValueOnce(held.promise);
+  await render(); await tap('Povuci prijavu: Unos ormara'); const answer = retained();
+  await act(async () => { answer(); answer(); }); expect(mockWithdraw).toHaveBeenCalledTimes(1);
+  await act(async () => { mockRows = [row({ stanje: 'WITHDRAWN', mozePovuci: false })]; held.resolve({ ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }); });
+  expect(mockWithdraw).toHaveBeenCalledTimes(1);
+});
 it('stale WITHDRAW uses its actual revision-resolution authority', async () => {
   mockResolve.mockResolvedValue({ ok: true, podatak: { status: 'WITHDRAWN', version: 2 } }); await review(); await tap('Povuci izmenjenu prijavu'); await act(async () => confirm()());
   expect(mockWithdraw).not.toHaveBeenCalled(); expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'WITHDRAW', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4 });

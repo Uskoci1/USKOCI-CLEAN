@@ -126,12 +126,14 @@ function OwnedNeed({ id }: { id: string }) {
     dialog.current = null; retireConfirmation(); navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null; retireConfirmation();
     void editor.refresh(); };
-  const ask = (title: string, description: string, label: string, command: () => Promise<void>) => {
+  // `danger` for a question whose confirm cannot be undone (closing the search), drawn like izvoz's withdrawals.
+  const ask = (title: string, description: string, label: string, tone: 'default' | 'danger', command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return;
     const confirmation = {}; dialog.current = confirmation;
     const cancel = () => { if (dialog.current === confirmation) dialog.current = null; };
-    // The sheet waits on the command it started (busy confirm, no way out) and shows no outcome of its own.
-    confirmSheet.ask({ title, message: description, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label,
+    // The sheet waits on the command it started (a busy confirm; Back returns after a few seconds without cancelling it)
+    // and shows no outcome of its own.
+    confirmSheet.ask({ title, message: description, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label, tone,
       onConfirm: () => { if (dialog.current !== confirmation || !canAct()) return;
         dialog.current = null; return command(); } });
   };
@@ -139,7 +141,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     // "za preostalih 1 mesta" counted the English way; the case follows the number.
     ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
-      'Zatvori potragu', async () => { await editor.save(async () => {
+      'Zatvori potragu', 'danger', async () => { await editor.save(async () => {
         const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
         closeAttempt.current = attempt;
         const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
@@ -175,7 +177,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
     ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
-      'Nastavi', async () => openOwnedReview('/nova'));
+      'Nastavi', 'default', async () => openOwnedReview('/nova'));
   };
 
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}

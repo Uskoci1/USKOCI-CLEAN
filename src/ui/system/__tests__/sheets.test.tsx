@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { BackHandler, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import BottomSheet from '@gorhom/bottom-sheet';
-import { ConfirmSheet, useConfirmSheet, type ConfirmRequest } from '../ConfirmSheet';
+import { ConfirmSheet, SLOW_COMMAND_MS, useConfirmSheet, type ConfirmRequest } from '../ConfirmSheet';
 import { ActionSheet, orderActions, type SheetAction } from '../ActionSheet';
 import { PeekSheet } from '../PeekSheet';
-import { ProductSheet } from '../../product/ProductSheet';
-import { sys } from '../tokens';
+import { FOOTER_ESTIMATE, ProductSheet, SHEET_BACKDROP_HINT } from '../../product/ProductSheet';
+import { brandAction, sys } from '../tokens';
 import { Press } from '../../Press';
 
 let mockReduced = false;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), mockReact = require('react');
+  // The native Modal owns Back; the double keeps its one callback reachable. It is one function: a new one on every read
+  // would be a new component type on every render, and React would mount the whole sheet again each time.
+  const Modal = ({ visible, children, ...props }: any) => visible ? mockReact.createElement('Modal', props, children) : null;
   return new Proxy(native, { get(target, key) {
-    // The native Modal owns Back; the double keeps its one callback reachable.
-    if (key === 'Modal') return ({ visible, children, ...props }: any) => visible ? mockReact.createElement('Modal', props, children) : null;
+    if (key === 'Modal') return Modal;
     return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -25,9 +27,10 @@ jest.mock('../../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMoti
 /**
  * The one sheet engine and the three sheets built on it. Confirmations used to be system alerts: they could not show
  * that a command was running, could not stop a second tap, and looked like another app. These tests pin what replaced
- * them — one confirm that runs once, a busy state with no way out while its command runs, every other ending routed to
- * the cancel path — and the engine rules every sheet shares: pinned actions, a guard for unsaved input, Back, and no
- * motion when the phone asks for none.
+ * them — one confirm that runs once, a busy state that holds the sheet while its command runs (and lets Back through
+ * again once it runs long, without cancelling it), every other ending routed to the cancel path — and the engine rules
+ * every sheet shares: pinned actions that are updated in place, a guard for unsaved input, Back, and no motion when the
+ * phone asks for none.
  */
 let tree: ReactTestRenderer;
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
@@ -40,7 +43,8 @@ const press = async (instance: ReactTestInstance) => { await act(async () => { i
 const deferred = () => { let resolve!: () => void, reject!: (error: Error) => void;
   const promise = new Promise<void>((done, fail) => { resolve = done; reject = fail; }); return { promise, resolve, reject }; };
 const flat = (style: unknown) => Object.assign({}, ...[style].flat(3).filter(Boolean));
-afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; });
+const backdropOf = () => sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
+afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; jest.useRealTimers(); });
 
 describe('ConfirmSheet', () => {
   const request = (patch: Partial<ConfirmRequest> = {}): ConfirmRequest => ({ title: 'Povući prijavu?',
@@ -56,11 +60,37 @@ describe('ConfirmSheet', () => {
     expect(flat(byTestId('confirm-sheet-confirm').props.style).backgroundColor).toBe(sys.color.green);
     expect(flat(byTestId('confirm-sheet-cancel').props.style).backgroundColor).toBeUndefined();
     expect(flat(byTestId('confirm-sheet-cancel').props.style).minHeight).toBeGreaterThanOrEqual(48);
+    // The confirm is the one primary action: brandAction's measure and corner, and the label in onGreen.
+    expect(flat(byTestId('confirm-sheet-confirm').props.style)).toMatchObject({ minHeight: brandAction.minHeight, borderRadius: sys.radius.primary });
+    expect(flat(byTestId('confirm-sheet-confirm').findByType('T' as unknown as React.ElementType).props.style).color).toBe(sys.color.onGreen);
   });
 
-  it('draws a destructive confirm in the danger colour', async () => {
+  it('draws a destructive confirm in the danger colour, at the primary\'s measure', async () => {
     await render(<ConfirmSheet {...request({ tone: 'danger' })} onClosed={jest.fn()} />);
-    expect(flat(byTestId('confirm-sheet-confirm').props.style).backgroundColor).toBe(sys.color.danger);
+    expect(flat(byTestId('confirm-sheet-confirm').props.style)).toMatchObject({ backgroundColor: sys.color.danger, minHeight: brandAction.minHeight });
+  });
+
+  it('says what a tap outside does to the question, and says nothing once the command it started runs', async () => {
+    const command = deferred();
+    await render(<ConfirmSheet {...request({ onConfirm: () => command.promise })} onClosed={jest.fn()} />);
+    expect(backdropOf().props.accessibilityHint).toBe('Zatvara pitanje bez potvrde.');
+    await press(byTestId('confirm-sheet-confirm'));
+    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    await act(async () => { command.resolve(); await command.promise; });
+  });
+
+  it('keeps one footer component, so the pressed confirm turns busy in place instead of being mounted again', async () => {
+    const command = deferred();
+    await render(<ConfirmSheet {...request({ onConfirm: () => command.promise })} onClosed={jest.fn()} />);
+    const component = sheet().props.footerComponent, footer = byTestId('product-sheet-footer'), confirm = byTestId('confirm-sheet-confirm');
+    await press(confirm);
+    expect(byTestId('confirm-sheet-confirm').props.accessibilityState).toEqual({ disabled: true, busy: true });
+    // The same component and the same rendered nodes: a screen reader keeps its place on the button just pressed.
+    expect(sheet().props.footerComponent).toBe(component);
+    expect(byTestId('product-sheet-footer')).toBe(footer); expect(byTestId('confirm-sheet-confirm')).toBe(confirm);
+    await act(async () => { tree.update(<ConfirmSheet {...request({ message: 'Druga rečenica.', onConfirm: () => command.promise })} onClosed={jest.fn()} />); });
+    expect(sheet().props.footerComponent).toBe(component); expect(byTestId('product-sheet-footer')).toBe(footer);
+    await act(async () => { command.resolve(); await command.promise; });
   });
 
   it('runs a confirm once, however often it is pressed, then closes without cancelling', async () => {
@@ -82,12 +112,34 @@ describe('ConfirmSheet', () => {
     expect(byTestId('confirm-sheet-cancel').props.disabled).toBe(true);
     // No way out while it runs: not the confirm again, not cancel, not Back, not a tap outside, not a drag.
     await press(confirm); await press(byTestId('confirm-sheet-cancel')); await act(async () => { modal().props.onRequestClose(); });
-    const backdrop = sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
+    const backdrop = backdropOf();
     expect(backdrop.props.pressBehavior).toBe(0); expect(sheet().props.enablePanDownToClose).toBe(false);
     expect(onConfirm).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled(); expect(onClosed).not.toHaveBeenCalled();
     const before = texts();
     await act(async () => { command.resolve(); await command.promise; });
     expect(onClosed).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled(); expect(texts()).toBe(before);
+  });
+
+  it('lets Back and a tap outside close the window once the command runs long, without cancelling or repeating it', async () => {
+    jest.useFakeTimers();
+    const command = deferred(), onCancel = jest.fn(), onClosed = jest.fn();
+    const onConfirm = jest.fn(() => command.promise);
+    await render(<ConfirmSheet {...request({ onConfirm, onCancel })} onClosed={onClosed} />);
+    await press(byTestId('confirm-sheet-confirm'));
+    await act(async () => { jest.advanceTimersByTime(SLOW_COMMAND_MS - 1); });
+    await act(async () => { modal().props.onRequestClose(); });
+    expect(onClosed).not.toHaveBeenCalled(); expect(backdropOf().props.pressBehavior).toBe(0);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    // Still the same busy confirm, and still no cancel: the command runs on and the screen that owns it says so.
+    expect(byTestId('confirm-sheet-confirm').props.accessibilityState).toEqual({ disabled: true, busy: true });
+    expect(byTestId('confirm-sheet-cancel').props.disabled).toBe(true);
+    expect(backdropOf().props.pressBehavior).toBe('close'); expect(sheet().props.enablePanDownToClose).toBe(true);
+    // A tap outside now only closes the window; it no longer answers the question, so it promises nothing.
+    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    await act(async () => { modal().props.onRequestClose(); });
+    expect(onClosed).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled();
+    await act(async () => { command.resolve(); await command.promise; });
+    expect(onConfirm).toHaveBeenCalledTimes(1); expect(onClosed).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled();
   });
 
   it('closes after a command that fails, leaving the failure to the screen that owns it', async () => {
@@ -161,6 +213,19 @@ describe('useConfirmSheet', () => {
     expect(tree.root.findAllByType(ConfirmSheet).map(node => node.props.title)).toEqual(['Novo?']);
     expect(old.onCancel).toHaveBeenCalledTimes(1); expect(old.onConfirm).not.toHaveBeenCalled();
   });
+
+  it('a slow command\'s window closed by Back is gone, and the command settles on its own afterwards', async () => {
+    jest.useFakeTimers();
+    await render(<Screen />);
+    const command = deferred(), asked = { onConfirm: jest.fn(() => command.promise), onCancel: jest.fn() };
+    await act(async () => { api.ask({ title: 'Zatvori?', message: 'x', confirmLabel: 'Da', ...asked }); });
+    await press(byTestId('confirm-sheet-confirm'));
+    await act(async () => { jest.advanceTimersByTime(SLOW_COMMAND_MS); });
+    await act(async () => { modal().props.onRequestClose(); });
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(api.open).toBe(false);
+    await act(async () => { command.resolve(); await command.promise; });
+    expect(asked.onConfirm).toHaveBeenCalledTimes(1); expect(asked.onCancel).not.toHaveBeenCalled();
+  });
 });
 
 describe('ProductSheet', () => {
@@ -169,9 +234,38 @@ describe('ProductSheet', () => {
       {() => <Text>Sadržaj</Text>}</ProductSheet>);
     expect(sheet().props.footerComponent).toEqual(expect.any(Function));
     expect(byTestId('product-sheet-footer').findByProps({ testID: 'apply' })).toBeDefined();
+    const scroll = () => tree.root.findByType('ScrollView' as unknown as React.ElementType);
+    // Before its first layout the footer is taken at a confirmation's height, so the sentence is not hidden under it.
+    expect(FOOTER_ESTIMATE).toBe(130);
+    expect(flat(scroll().props.contentContainerStyle).paddingBottom).toBe(FOOTER_ESTIMATE + sys.space.sm);
     await act(async () => { byTestId('product-sheet-footer').props.onLayout({ nativeEvent: { layout: { height: 96 } } }); });
-    const scroll = tree.root.findByType('ScrollView' as unknown as React.ElementType);
-    expect(flat(scroll.props.contentContainerStyle).paddingBottom).toBe(104);
+    expect(flat(scroll().props.contentContainerStyle).paddingBottom).toBe(104);
+  });
+
+  it('keeps the same footer component across renders and updates its actions in place', async () => {
+    const element = (label: string) => <ProductSheet title="Filteri" onClose={jest.fn()}
+      footer={() => <Text testID="apply">{label}</Text>}>{() => <Text>Sadržaj</Text>}</ProductSheet>;
+    await render(element('Primeni'));
+    const component = sheet().props.footerComponent, footer = byTestId('product-sheet-footer');
+    await act(async () => { tree.update(element('Primeni izbor')); });
+    expect(sheet().props.footerComponent).toBe(component);
+    expect(byTestId('product-sheet-footer')).toBe(footer);
+    expect(byTestId('apply').props.children).toBe('Primeni izbor');
+  });
+
+  it('says what a tap outside does only while it simply closes the sheet', async () => {
+    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(backdropOf().props.accessibilityHint).toBe(SHEET_BACKDROP_HINT);
+    await act(async () => tree.unmount());
+    await render(<ProductSheet title="Filteri" backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(backdropOf().props.accessibilityHint).toBe('Zatvara meni.');
+    await act(async () => tree.unmount());
+    await render(<ProductSheet title="Filteri" backdropHint={null} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(backdropOf().props.accessibilityHint).toBeUndefined();
+    // Guarded, a tap outside asks first (unsaved input) or does nothing (a command runs): it promises no closing.
+    await act(async () => tree.unmount());
+    await render(<ProductSheet title="Filteri" dirty backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    expect(backdropOf().props.accessibilityHint).toBeUndefined();
   });
 
   it('names a sheet without a visible title, and draws no heading for it', async () => {
@@ -185,6 +279,14 @@ describe('ProductSheet', () => {
     await render(<ProductSheet title="Filteri" onClose={onClose}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
     await act(async () => { modal().props.onRequestClose(); modal().props.onRequestClose(); });
     expect(onClose).toHaveBeenCalledTimes(1);
+    // A fresh sheet, closed by its ×, pressed twice.
+    await act(async () => tree.unmount());
+    const onCloseByX = jest.fn();
+    await render(<ProductSheet title="Filteri" onClose={onCloseByX}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori' });
+    expect(close.props.accessibilityRole).toBe('button');
+    await act(async () => { close.props.onPress(); close.props.onPress(); });
+    expect(onCloseByX).toHaveBeenCalledTimes(1);
   });
 
   it('asks before throwing unsaved input away, and the caller\'s own commit never asks', async () => {
@@ -261,6 +363,16 @@ describe('ActionSheet', () => {
     expect(sheet().props.accessibilityLabel).toBe('Radnje');
   });
 
+  it('names the menu where a screen reader reads it, and says what a tap outside does', async () => {
+    await render(<ActionSheet actions={actions([])} onClose={jest.fn()} />);
+    // The sheet's own label sits on a container that is not read; the menu carries the name.
+    expect(tree.root.findByProps({ accessibilityRole: 'menu' }).props.accessibilityLabel).toBe('Radnje');
+    expect(backdropOf().props.accessibilityHint).toBe('Zatvara meni bez izbora.');
+    await act(async () => tree.unmount());
+    await render(<ActionSheet title="Dogovor" actions={actions([])} onClose={jest.fn()} />);
+    expect(tree.root.findByProps({ accessibilityRole: 'menu' }).props.accessibilityLabel).toBe('Dogovor');
+  });
+
   it('runs the chosen action once, after the sheet has gone', async () => {
     const log: string[] = [], onClose = jest.fn(() => log.push('closed'));
     await render(<ActionSheet actions={actions(log)} onClose={onClose} />);
@@ -280,31 +392,53 @@ describe('ActionSheet', () => {
 describe('PeekSheet', () => {
   it('peeks over the screen without a backdrop, a modal or a focus trap, detached above the tab bar', async () => {
     const onClose = jest.fn();
-    await render(<PeekSheet label="Zadatak na mapi" onClose={onClose}>{dismiss => <Text testID="card" onPress={dismiss}>Kartica</Text>}</PeekSheet>);
+    await render(<PeekSheet label="Zadatak na mapi" active onClose={onClose}>{dismiss => <Text testID="card" onPress={dismiss}>Kartica</Text>}</PeekSheet>);
     expect(tree.root.findAllByType('Modal' as unknown as React.ElementType)).toHaveLength(0);
-    expect(sheet().props).toMatchObject({ detached: true, bottomInset: 12, enablePanDownToClose: true, accessibilityLabel: 'Zadatak na mapi' });
+    expect(sheet().props).toMatchObject({ detached: true, bottomInset: sys.space.md, enablePanDownToClose: true, accessibilityLabel: 'Zadatak na mapi' });
     expect(sheet().props.backdropComponent).toBeUndefined();
     await press(byTestId('card')); expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes on Android Back before the screen under it does, and lets Back go once it is gone', async () => {
+  const listenBack = () => {
     const listeners: (() => boolean)[] = [], remove = jest.fn();
     const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
       listeners.push(handler as () => boolean); return { remove };
     });
+    return { listeners, remove, spy };
+  };
+
+  it('closes on Android Back before the screen under it does, and lets Back go once it is on its way out', async () => {
+    const { listeners, remove, spy } = listenBack();
     try {
       const onClose = jest.fn();
-      await render(<PeekSheet label="Zadatak na mapi" onClose={onClose}>{() => <Text>Kartica</Text>}</PeekSheet>);
+      await render(<PeekSheet label="Zadatak na mapi" active onClose={onClose}>{() => <Text>Kartica</Text>}</PeekSheet>);
       let consumed = false;
       await act(async () => { consumed = listeners[0](); });
       expect(consumed).toBe(true); expect(onClose).toHaveBeenCalledTimes(1);
+      // The card is closing (still mounted until its screen drops it): the next Back belongs to the screen.
+      await act(async () => { consumed = listeners[0](); });
+      expect(consumed).toBe(false); expect(onClose).toHaveBeenCalledTimes(1);
       await act(async () => tree.unmount()); expect(remove).toHaveBeenCalledTimes(1);
+    } finally { spy.mockRestore(); }
+  });
+
+  it('takes Back only while its own screen is in front', async () => {
+    const { listeners, remove, spy } = listenBack();
+    try {
+      const card = (active: boolean) => <PeekSheet label="Zadatak na mapi" active={active} onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>;
+      // A task detail pushed over the map: the hidden card registers nothing, so Back goes to the detail.
+      await render(card(false));
+      expect(listeners).toHaveLength(0);
+      await act(async () => { tree.update(card(true)); });
+      expect(listeners).toHaveLength(1);
+      await act(async () => { tree.update(card(false)); });
+      expect(remove).toHaveBeenCalledTimes(1); expect(listeners).toHaveLength(1);
     } finally { spy.mockRestore(); }
   });
 
   it('appears without motion under reduced motion', async () => {
     mockReduced = true;
-    await render(<PeekSheet label="Zadatak na mapi" onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
+    await render(<PeekSheet label="Zadatak na mapi" active onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
     expect(sheet().props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
   });
 });

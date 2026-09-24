@@ -3,7 +3,14 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { ProductSheet, SHEET_TOUCH } from '../product/ProductSheet';
-import { sys } from './tokens';
+import { brandAction, sys } from './tokens';
+
+/**
+ * How long a confirmed command holds the sheet before Back and a tap outside work again. A command and its re-read can
+ * take up to about 30 s at the 15 s deadlines; before the sheets, Back still left the screen all that time. After this
+ * the person may close the window; the command carries on and the screen that owns it keeps showing that it runs.
+ */
+export const SLOW_COMMAND_MS = 2500;
 
 export type ConfirmRequest = {
   title: string;
@@ -29,12 +36,19 @@ export type ConfirmRequest = {
 export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', onConfirm, onCancel,
   onClosed, reduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
   const [busy, setBusy] = useState(false);
+  // A command that has run for SLOW_COMMAND_MS no longer holds the person in the sheet.
+  const [slow, setSlow] = useState(false);
   const decided = useRef(false), closed = useRef(false), alive = useRef(true);
   const latest = useRef({ onCancel, onClosed }); latest.current = { onCancel, onClosed };
   const decline = useCallback(() => { if (decided.current) return; decided.current = true; latest.current.onCancel?.(); }, []);
   const ended = useCallback(() => { decline(); if (closed.current) return; closed.current = true; latest.current.onClosed(); }, [decline]);
   // Taken away by its screen (retired, or the branch that drew it is gone): that is not a confirm.
   useEffect(() => { alive.current = true; return () => { alive.current = false; ended(); }; }, [ended]);
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_COMMAND_MS);
+    return () => clearTimeout(timer);
+  }, [busy]);
   const confirm = (dismiss: () => void) => {
     if (decided.current) return;
     decided.current = true;
@@ -51,12 +65,15 @@ export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odus
   };
   const cancel = (dismiss: () => void) => { if (busy || decided.current) return; decline(); dismiss(); };
   const danger = tone === 'danger';
-  return <ProductSheet title={title} closeButton={false} dismissible={!busy} reduced={reduced} onClose={ended}
+  // Leaving a slow command's sheet is not a cancel: `decided` is already set, so the cancel path does not run again.
+  return <ProductSheet title={title} closeButton={false} dismissible={!busy || slow} reduced={reduced} onClose={ended}
+    // A tap outside the question closes it as a "no". Once the command runs it no longer answers anything, so it says nothing.
+    backdropHint={busy ? null : 'Zatvara pitanje bez potvrde.'}
     footer={dismiss => <View style={s.actions}>
       <Press testID="confirm-sheet-confirm" accessibilityRole="button" accessibilityLabel={confirmLabel}
         accessibilityState={{ disabled: busy, busy }} disabled={busy} haptic={busy ? 'none' : danger ? 'medium' : 'light'}
-        onPress={() => confirm(dismiss)} style={[s.confirm, danger ? s.danger : s.primary]}>
-        {busy ? <ActivityIndicator accessibilityElementsHidden importantForAccessibility="no-hide-descendants" color={sys.color.surface} /> : null}
+        onPress={() => confirm(dismiss)} style={[s.confirm, danger && s.danger]}>
+        {busy ? <ActivityIndicator accessibilityElementsHidden importantForAccessibility="no-hide-descendants" color={sys.color.onGreen} /> : null}
         <T variant="action" style={s.onFilled}>{confirmLabel}</T>
       </Press>
       {cancelLabel === null ? null : <Press testID="confirm-sheet-cancel" accessibilityRole="button" accessibilityLabel={cancelLabel}
@@ -94,13 +111,14 @@ export function useConfirmSheet(options: { reduced?: boolean } = {}): {
 }
 
 const s = StyleSheet.create({
-  actions: { gap: 4 },
-  confirm: { minHeight: 54, borderRadius: sys.radius.primary, paddingHorizontal: 16, paddingVertical: 8,
-    flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
-  primary: { backgroundColor: sys.color.green },
+  actions: { gap: sys.space.xs },
+  // The confirm is the screen's one primary action (`brandAction`: 54 high, the primary corner, green); a destructive
+  // one keeps that measure and takes the danger colour. Its label is `onGreen` on either fill (6.9:1 on danger).
+  confirm: { ...brandAction, paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm,
+    flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center' },
   danger: { backgroundColor: sys.color.danger },
-  onFilled: { color: sys.color.surface, textAlign: 'center', flexShrink: 1 },
-  cancel: { minHeight: SHEET_TOUCH, borderRadius: sys.radius.primary, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+  onFilled: { color: sys.color.onGreen, textAlign: 'center', flexShrink: 1 },
+  cancel: { minHeight: SHEET_TOUCH, borderRadius: sys.radius.primary, paddingHorizontal: sys.space.base, alignItems: 'center', justifyContent: 'center' },
   faded: { opacity: 0.45 },
   quiet: { color: sys.color.green, textAlign: 'center' },
 });

@@ -123,6 +123,18 @@ it('explicit abandon clears dispatched journal only after exact canonical parent
  await click('Novi razgovor');await answer('confirm-sheet-confirm');expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');expect(mockApi.send).not.toHaveBeenCalled();
 });
+it('keeps the new-conversation question open with a busy confirm while the old one is abandoned, and closes it once that settles',async()=>{
+ // The screen returns its command to the sheet; a `void` there would close the question before the command is sent.
+ let settle!:(value:unknown)=>void;mockApi.abandon.mockImplementationOnce(()=>new Promise(done=>{settle=done;}));
+ // A saved profile changed under this conversation: "Novi razgovor" is offered.
+ mockApi.read.mockResolvedValue(ok({...snapshot(),stale:true}));
+ await render();await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(sheets()).toHaveLength(1);
+ expect(tree.root.findByType(ConfirmSheet).findByProps({testID:'confirm-sheet-confirm'}).props.accessibilityState).toEqual({disabled:true,busy:true});
+ mockApi.read.mockResolvedValue(ok({...snapshot(),status:'ABANDONED'}));
+ await act(async()=>settle(ok({...snapshot(),status:'ABANDONED'})));
+ expect(sheets()).toHaveLength(0);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+});
 
 it.each([{safety:'BLOCK'},{safety:'REVIEW'},{stale:true},{status:'ABANDONED'},{status:'COMPLETED'}])('revokes microphone scope whenever its visible composer becomes unavailable: %p',async state=>{
  await render();expect((mockVoiceHook.mock.calls.at(-1) as unknown[])[0]).toMatchObject({conversationId:C});

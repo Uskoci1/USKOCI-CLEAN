@@ -231,7 +231,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
       // Stop native capture before the terminal command can hide its controls.
       // Cancellation never finalizes audio or sends a transcript to the AI.
       voice.controller.cancel('navigation');
-      // Returned so the confirmation waits on it (busy, no way out) instead of closing before the command is sent.
+      // Returned so the confirmation waits on it (a busy confirm) instead of closing before the command is sent.
       return editor.save(async () => {
         abandoning.current = true;
         const result = await aiNeedV2Izvor.abandonConversation(razgovorId);

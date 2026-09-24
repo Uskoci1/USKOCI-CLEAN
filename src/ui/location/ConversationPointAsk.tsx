@@ -117,7 +117,8 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   const leave = () => {
     if (!points.length || state.kind === 'SAVED') { props.onClose(); return; }
     confirmation.ask({ title: 'Potvrđena tačka nije sačuvana',
-      message: 'Potvrdio si tačku, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova se gubi.',
+      // One voice without grammatical gender (owner, 2026-09-23): the point is confirmed, not "potvrdio si".
+      message: 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.',
       cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: props.onClose });
   };
 
@@ -135,7 +136,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
     {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
     {points.length
       ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => confirmation.ask({ title: 'Učitaj sačuvano mesto?',
-        message: 'Tačke koje si potvrdio, a nisu sačuvane, zameniće poslednje sačuvano mesto.',
+        message: 'Potvrđene tačke koje nisu sačuvane zameniće poslednje sačuvano mesto.',
         cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { void load(); } })} />
       : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />}
     <Button kind="quiet" label="Zatvori" onPress={leave} />

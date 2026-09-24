@@ -17,9 +17,12 @@ const PeekHandle = () => <View accessible={false} importantForAccessibility="no"
  * closes it (Back closes the card before it leaves the screen); the screen underneath keeps its own touches. Render it as
  * the last child of a full-screen container.
  */
-export function PeekSheet({ label, onClose, children, bottomInset = 12, reduced: callerReduced }: {
+export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced }: {
   /** What assistive technology calls the card. */
   label: string;
+  /** True while the screen that hosts the card is the one in front (the map passes `useIsFocused()`). Only then does
+   *  Android Back belong to the card: with a task detail pushed over the map, Back goes to the detail, not the card. */
+  active: boolean;
   /** Called once the card is gone, whatever closed it. */
   onClose: () => void;
   children: (dismiss: () => void) => ReactNode;
@@ -37,9 +40,11 @@ export function PeekSheet({ label, onClose, children, bottomInset = 12, reduced:
     if (sheet.current) sheet.current.close(); else onClose();
   }, [onClose]);
   useEffect(() => {
-    const back = BackHandler.addEventListener('hardwareBackPress', () => { dismiss(); return true; });
+    if (!active) return;
+    // Once the card is on its way out, Back is the screen's again: it never swallows a second press.
+    const back = BackHandler.addEventListener('hardwareBackPress', () => { if (closing.current) return false; dismiss(); return true; });
     return () => back.remove();
-  }, [dismiss]);
+  }, [active, dismiss]);
   return <BottomSheet ref={sheet} index={0} enableDynamicSizing enablePanDownToClose detached bottomInset={bottomInset}
     style={s.sheet} accessible={false} accessibilityRole="none" accessibilityLabel={label}
     maxDynamicContentSize={height * 0.5} animateOnMount={!reduced} onClose={onClose}
@@ -50,9 +55,9 @@ export function PeekSheet({ label, onClose, children, bottomInset = 12, reduced:
 }
 
 const s = StyleSheet.create({
-  sheet: { marginHorizontal: 12 },
+  sheet: { marginHorizontal: sys.space.md },
   background: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine, ...shadow },
   handleArea: { height: 20, alignItems: 'center', justifyContent: 'center' },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong },
-  content: { paddingHorizontal: 16, paddingBottom: 16 },
+  content: { paddingHorizontal: sys.space.base, paddingBottom: sys.space.base },
 });

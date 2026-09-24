@@ -111,6 +111,22 @@ it('cancels only after explicit confirmation and refetches the real cancelled st
   const action = confirm();
   await act(async () => { action(); action(); }); expect(mockCancel).toHaveBeenCalledTimes(1); expect(texts()).toContain('Zahtev je otkazan');
 });
+it('the screen\'s own answer, fired twice, cancels once: its dialog token is the fence, not the sheet\'s latch', async () => {
+  // The test above presses the sheet's button, which the sheet itself runs only once. This one calls the answer the screen
+  // handed the sheet, so it fails if the screen's own token check is removed.
+  mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
+  await render(); await tap('Otkaži zahtev'); const answer = retained();
+  await act(async () => { answer(); answer(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
+});
+it('keeps the question open with a busy confirm while the cancellation runs, and closes it once it settles', async () => {
+  const cancelled = deferred(); mockCancel.mockReturnValueOnce(cancelled.promise);
+  mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
+  await render(); await tap('Otkaži zahtev'); await act(async () => { confirm()(); });
+  expect(mockCancel).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(1);
+  expect(sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
+  await act(async () => cancelled.resolve(ok({ receiptId: ID, status: 'CANCELLED' })));
+  expect(sheets()).toHaveLength(0); expect(texts()).toContain('Zahtev je otkazan');
+});
 it('does not report saved or open a picker until explicit download completes and actual local save succeeds', async () => {
   const downloaded = deferred(), saved = deferred(); mockDownload.mockReturnValueOnce(downloaded.promise); mockSaveFile.mockReturnValueOnce(saved.promise);
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render(); expect(mockDownload).not.toHaveBeenCalled();

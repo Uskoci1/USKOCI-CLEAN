@@ -4,7 +4,7 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt, type FactArtKind } from './FactArt';
-import { sys } from './tokens';
+import { iconButton, sys } from './tokens';
 
 export type SheetAction = {
   key: string;
@@ -41,8 +41,9 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
   const closed = useCallback(() => { const action = chosen.current; chosen.current = null; onClose(); action?.onPress(); }, [onClose]);
   const ordered = orderActions(actions);
   const firstDestructive = ordered.findIndex(action => action.destructive);
-  return <ProductSheet title={title} label={label} reduced={reduced} onClose={closed}>
-    {dismiss => <View accessibilityRole="menu" style={s.list}>
+  // The sheet's own name sits on a container a screen reader skips, so the menu carries it where it is read.
+  return <ProductSheet title={title} label={label} reduced={reduced} onClose={closed} backdropHint="Zatvara meni bez izbora.">
+    {dismiss => <View accessibilityRole="menu" accessibilityLabel={title ?? label} style={s.list}>
       {ordered.map((action, index) => <View key={action.key}>
         {index > 0 && index === firstDestructive ? <View style={s.rule} /> : null}
         <Press accessibilityRole="menuitem" accessibilityLabel={action.label} accessibilityHint={action.hint}
@@ -50,7 +51,7 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
           haptic={action.disabled ? 'none' : action.destructive ? 'medium' : 'select'}
           onPress={() => { if (action.disabled || chosen.current) return; chosen.current = action; dismiss(); }}
           style={[s.row, action.disabled && s.disabled]}>
-          <View style={[s.well, action.destructive && s.dangerWell]}>
+          <View style={[iconButton, action.destructive && s.dangerWell]}>
             <FactArt kind={action.icon} size={28} muted={action.destructive || action.disabled} /></View>
           <T variant="bodyStrong" style={[s.label, action.destructive && s.danger]}>{action.label}</T>
         </Press>
@@ -59,14 +60,16 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
   </ProductSheet>;
 }
 
+/** The row's inset and the gap after its picture; the rule before the destructive group starts where the labels do. */
+const ROW_INSET = sys.space.xs, ROW_GAP = sys.space.md;
 const s = StyleSheet.create({
-  list: { gap: 2, paddingBottom: 4 },
-  row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6, paddingHorizontal: 4,
-    borderRadius: sys.radius.control },
-  well: { width: 44, height: 44, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
+  list: { gap: sys.space.xs, paddingBottom: sys.space.xs },
+  row: { minHeight: (iconButton.height as number) + 2 * ROW_INSET, flexDirection: 'row', alignItems: 'center', gap: ROW_GAP,
+    paddingVertical: ROW_INSET, paddingHorizontal: ROW_INSET, borderRadius: sys.radius.control },
   dangerWell: { backgroundColor: sys.color.dangerSoft },
   label: { flex: 1, color: sys.color.ink },
   danger: { color: sys.color.danger },
   disabled: { opacity: 0.45 },
-  rule: { height: 1, backgroundColor: sys.color.line, marginVertical: 6, marginLeft: 62 },
+  rule: { height: 1, backgroundColor: sys.color.line, marginVertical: sys.space.sm,
+    marginLeft: ROW_INSET + (iconButton.width as number) + ROW_GAP },
 });
