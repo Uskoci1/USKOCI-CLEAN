@@ -63,6 +63,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const compact = keyboard || height < 700 || fontScale >= 1.5 || p.pending;
   const pinned = p.card(compact);
   useEffect(() => {
+    if (p.voiceActive) setInputFocused(false);
+  }, [p.voiceActive]);
+  useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
     const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
     return () => { show.remove(); hide.remove(); };
@@ -132,7 +135,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             placeholder="Napiši šta ti treba…" placeholderTextColor={a.color.muted} multiline maxLength={4000} style={s.input} />
           {p.voice ? <Press accessibilityRole="button" accessibilityLabel="Govori umesto da pišeš" haptic="select" style={s.voiceSwitch}
-            onPress={() => { setTyping(false); Keyboard.dismiss(); }}>
+            onPress={() => { setInputFocused(false); setTyping(false); Keyboard.dismiss(); }}>
             <Microphone size={22} color={sys.color.green} weight="bold" /></Press> : null}
           {showSend ? <Press accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend} onPress={p.onSend}
