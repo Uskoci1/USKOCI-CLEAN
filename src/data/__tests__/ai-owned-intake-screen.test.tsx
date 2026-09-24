@@ -482,9 +482,7 @@ it('puts photos behind the contextual composer plus only after a conversation ex
   expect(mockSend).not.toHaveBeenCalled();
 });
 
-it('offers the owned photo route and options without automatic abandonment', async () => {
-  // Photos belong to a conversation, so before the first word there is nothing to attach them to
-  // and the entry is not offered.
+it('keeps the options sheet focused after attachments move to the composer plus', async () => {
   await render(); await options();
   const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
     .map(node => node.props.accessibilityLabel).join(' ');
@@ -494,8 +492,8 @@ it('offers the owned photo route and options without automatic abandonment', asy
   await act(async () => tree.unmount());
   await resume(); expect(tree.root.findAllByProps({ label: 'Napusti razgovor' })).toHaveLength(0);
   await options();
-  expect(optionLabels()).toContain('Fotografije zadatka');
-  expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
+  expect(optionLabels()).not.toContain('Fotografije zadatka');
+  expect(optionLabels()).not.toMatch(/mesto na mapi|mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
   await act(async () => button('Zatvori').onPress()); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAlert).not.toHaveBeenCalled();
 });
