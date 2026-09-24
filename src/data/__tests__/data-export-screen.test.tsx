@@ -201,3 +201,24 @@ it('revokes the server copy only after confirmation and explains that existing l
   await act(async () => confirm()()); expect(mockRevoke).toHaveBeenCalledWith(ID); expect(mockSaveFile).not.toHaveBeenCalled();
   expect(texts()).toContain('Preuzimanje kopije je opozvano');
 });
+// Round 5: the outcome of the footer action is said right above that action, in the colour of what happened.
+it('says a saved copy above the button that saved it, in the confirmation colour', async () => {
+  mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render(); await tap('Preuzmi i sačuvaj');
+  const footer = tree.root.findByProps({ testID: 'settings-primary-footer' });
+  const line = footer.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Kopija je sačuvana u izabranoj fascikli.');
+  expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'success', accessibilityLiveRegion: 'polite' });
+});
+it('says an unconfirmed copy as a failure, and a withdrawal is drawn apart from the harmless refresh', async () => {
+  mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); mockDownload.mockResolvedValue(ok({ ...file(), sha256: 'c'.repeat(64) }));
+  await render(); expect(button('Opozovi kopiju').props.kind).toBe('destructive');
+  await tap('Preuzmi i sačuvaj');
+  const line = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Preuzeta kopija nije potvrđena. Osveži stanje.');
+  expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'danger', accessibilityRole: 'alert' });
+});
+it('the steps never call a cancelled request the active step', async () => {
+  mockStatus.mockResolvedValue(ok(status('CANCELLED'))); await render();
+  const steps = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && /^(Zahtev|Priprema kopije|Preuzimanje), /.test(node.props.accessibilityLabel))
+    .map(node => node.props.accessibilityLabel as string);
+  expect(steps[0]).toMatch(/^Zahtev, zaustavljeno. Zahtev je otkazan. /); expect(steps.slice(1).every(label => label.includes(', sledi.'))).toBe(true);
+  expect(button('Zatraži novu kopiju')).toBeTruthy();
+});

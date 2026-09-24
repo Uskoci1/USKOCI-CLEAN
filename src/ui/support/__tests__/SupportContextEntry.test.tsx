@@ -16,7 +16,11 @@ jest.mock('react-native', () => { const rn = jest.requireActual('react-native');
   return Reflect.get(target, key);
 } }); });
 jest.mock('../../settings/SettingsPresentation', () => ({ SettingsAction: 'Action', SettingsPanel: 'Panel', SettingsText: 'T' }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
+jest.mock('../../Press', () => ({ Press: 'Press' }));
+jest.mock('../../Text', () => ({ T: 'T' }));
 import { SupportContextEntry } from '../SupportContextEntry';
+import { ProductSheet } from '../../product/ProductSheet';
 let tree: ReactTestRenderer, allowed = true, disabled = false, previewText: string | undefined, authority = 0;
 const element = () => { const renderedAuthority = authority; return <SupportContextEntry
   reference={{ kind: previewText === undefined ? 'TASK_REVIEW' : 'AGREEMENT_MESSAGE', id: R, revision: previewText === undefined ? null : 2 }}
@@ -89,7 +93,10 @@ it('drops a lookup from replaced parent authority but releases the same screen b
 it('previews only the chosen message and performs no lookup until the explicit continuation', async () => {
   previewText = 'Samo namerno izabrana privatna poruka.'; await render(); await act(async () => press()());
   expect(mockFind).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
-  expect(tree.root.findAllByType('T' as React.ElementType).some(n => n.props.children === previewText)).toBe(true);
+  // The chosen message is shown in a sheet over the conversation, not unfolded inside it.
+  const sheet = tree.root.findByType(ProductSheet);
+  expect(sheet.props.title).toBe('Izabrana poruka za privatnu podršku');
+  expect(sheet.findAllByType('T' as React.ElementType).some(n => n.props.children === previewText)).toBe(true);
   await act(async () => tree.root.findByProps({ label: 'Nastavi sa izabranom porukom' }).props.onPress());
   expect(mockFind).toHaveBeenCalledWith('AGREEMENT_MESSAGE', R, expect.any(Object));
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT_MESSAGE', contextId: R, contextRevision: '2' } });
@@ -102,5 +109,11 @@ it.each(['cancel', 'blur/focus', 'ABA', 'changed text'] as const)('a selected me
   else if (change === 'blur/focus') { mockFocused = false; await update(); mockFocused = true; await update(); }
   else { if (change === 'ABA') mockSession = { user: { id: A }, accountRevision: 3 }; else previewText = 'Druga prikazana poruka'; await update(); }
   await act(async () => retained()); expect(mockFind).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
-  expect(tree.root.findAllByType('Panel' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
+});
+it('the continuation leaves with the sheet: it is gone before the next screen opens', async () => {
+  previewText = 'Izabrana poruka'; await render(); await act(async () => press()());
+  expect(tree.root.findAllByType(ProductSheet)).toHaveLength(1);
+  await act(async () => tree.root.findByProps({ label: 'Nastavi sa izabranom porukom' }).props.onPress());
+  expect(mockPush).toHaveBeenCalledTimes(1); expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
 });

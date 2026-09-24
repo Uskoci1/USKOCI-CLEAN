@@ -1,0 +1,204 @@
+import type { ReactNode } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { closureBlockerLabels, closureClassLabels, erasureAdapter, erasureExceptionLabels, type ClosureExecutionReview,
+  type ClosureExecutionState } from '../../data/closureExecutionClientService';
+import { vreme } from '../../lib/vreme';
+import { InlineNote, PlainRow } from '../privacy/InlineNote';
+import { SettingsAction, SettingsGroup, SettingsInfo, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
+import { FactArt, type FactArtKind } from '../system/FactArt';
+import { plural } from '../system/plural';
+import { ScreenChrome } from '../system/ScreenChrome';
+import { StateView } from '../system/StateView';
+import { sys } from '../system/tokens';
+import { V2Action } from '../v2/V2Action';
+import type { ClosureIntent } from './closureIntent';
+
+export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400, 'dan', 'dana', 'dana')
+  : n % 3600 === 0 ? plural(n / 3600, 'sat', 'sata', 'sati') : plural(n, 'sekunda', 'sekunde', 'sekundi');
+
+/** Where a blocker can be resolved. A blocker with no place of its own is a plain line. */
+export type ClosureBlockerPlace = 'dogovori' | 'zadaci' | 'prijave';
+const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGREEMENT: 'dogovori', OPEN_TASK: 'zadaci', ACTIVE_APPLICATION: 'prijave' };
+
+/**
+ * The frame of the closure flow: one job, one way out (the X), the flow's name, the scroll and an optional pinned footer
+ * with the SettingsScreen footer's own measure. SettingsScreen has no flow variant and belongs to another unit, so the
+ * flow draws its frame here from the same system pieces.
+ */
+export function ClosureFrame({ onClose, closeDisabled = false, footer, children }: {
+  onClose: () => void; closeDisabled?: boolean; footer?: ReactNode; children: ReactNode;
+}) {
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori" disabled={closeDisabled} onClose={onClose} />
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
+    {footer ? <View testID="closure-footer" style={s.footer}>{footer}</View> : null}
+  </SafeAreaView>;
+}
+
+/**
+ * The irreversible command: outlined in the danger colour on white, 54 high like the primary. It is never green (green
+ * is the safe way forward) and never a filled red block (that would shout before the consequences are read).
+ */
+export function DangerAction({ label, onPress, busy, loading = false }: { label: string; onPress: () => void; busy: boolean; loading?: boolean }) {
+  return <V2Action label={label} kind="destructive" disabled={busy} loading={loading} onPress={onPress}
+    style={[s.danger, { borderColor: busy && !loading ? sys.color.line : sys.color.danger }]} />;
+}
+
+export type ClosureModel = {
+  busy: boolean;
+  /** Which command of this flow is running, so only its own button shows the spinner. */
+  working: 'prepare' | 'start' | 'retry' | 'refresh' | 'logout' | null;
+  message: string; review: ClosureExecutionReview | null; intent: ClosureIntent | null;
+  state: ClosureExecutionState | null; absent: boolean;
+};
+export type ClosureCommands = {
+  onClose: () => void; onPrepare: () => void; onAskStart: () => void; onRetry: () => void; onRefresh: () => void;
+  onLogout: () => void; onSupport: () => void; onBlocker: (place: ClosureBlockerPlace) => void; onExport: () => void;
+};
+
+/**
+ * Zatvaranje naloga as a flow (round 5, owner step 11b): the consequences first, then the one way to start. Every word
+ * is the owner's closure copy, kept verbatim; only the layout changed. Presentation only: every command is the dialog's
+ * own, fenced there.
+ */
+export function ClosureView({ model, commands }: { model: ClosureModel; commands: ClosureCommands }) {
+  const { busy, working, message, review, intent, state, absent } = model;
+  const terminal = state?.state === 'CLOSED';
+  const erasure = (state?.adapterVersion ?? review?.adapterVersion) === erasureAdapter;
+  const pendingExceptions = state?.exceptions ?? review?.exceptions ?? [];
+  const retained = (terminal ? state?.retainedDatasets : review?.retainedDatasets) ?? [];
+  const check = (kind: 'primary' | 'secondary' | 'quiet') => <SettingsAction key="check" label="Proveri stanje zahteva" kind={kind}
+    disabled={busy} loading={working === 'refresh'} onPress={commands.onRefresh} />;
+
+  if (!review && !state && !intent) {
+    if (!busy && message) return <ClosureFrame onClose={commands.onClose}>
+      <StateView kind="error" art="lock" title="Stanje zatvaranja nije učitano" body={message}
+        primary={{ label: 'Proveri stanje zahteva', onPress: commands.onRefresh, disabled: busy }} />
+    </ClosureFrame>;
+    return <ClosureFrame onClose={commands.onClose}>
+      <StateView kind="loading" title="Proveravamo stanje…" skeleton={{ count: 2, rows: 2 }} />
+    </ClosureFrame>;
+  }
+
+  const art: FactArtKind = terminal ? 'check' : state ? 'clock' : 'lock';
+  const header = <View style={s.header}>
+    <View style={s.well}><FactArt kind={art} size={56} muted={terminal} /></View>
+    <T variant="title" accessibilityRole="header">{terminal ? 'Nalog je zatvoren.' : state ? 'Zahtev je pokrenut.' : 'Pregled pre zatvaranja.'}</T>
+    <T variant="copy" tone="muted">{terminal ? 'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.'
+      : state ? 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'
+        : 'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}</T>
+  </View>;
+  const note = message ? <InlineNote tone="neutral" alert>{message}</InlineNote> : null;
+  const retention = retained.length ? <SettingsGroup title="Rokovi čuvanja">
+    {retained.map((d, index) => <SettingsInfo key={d.dataClass} title={closureClassLabels[d.dataClass]} last={index === retained.length - 1}>
+      {`Ograničeno čuvanje: ${closureDuration(d.retentionSeconds)} od pokretanja zahteva.`}
+    </SettingsInfo>)}
+  </SettingsGroup> : null;
+  const exceptions = erasure && pendingExceptions.length > 0 ? <View style={s.block}>
+    <T variant="heading" accessibilityRole="header">Pre konačnog zatvaranja</T>
+    <T variant="copy">Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
+    <View style={s.list}>{pendingExceptions.map((code, index) =>
+      <PlainRow key={code} label={erasureExceptionLabels[code]} last={index === pendingExceptions.length - 1} />)}</View>
+    <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={commands.onSupport} />
+  </View> : null;
+
+  if (state) {
+    const steps = erasure && !terminal && state.totalSteps ? { done: state.completedSteps ?? 0, total: state.totalSteps } : null;
+    return <ClosureFrame onClose={commands.onClose} footer={terminal ? <>
+      <SettingsAction label="Odjavi se sa ovog uređaja" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
+      {check('quiet')}
+    </> : <>
+      {check('primary')}
+      <SettingsAction label="Odjavi se sa ovog uređaja" kind="quiet" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
+    </>}>
+      {header}{note}
+      <View style={s.block}>
+        <T variant="heading" accessibilityRole="header">{terminal ? 'Završene radnje' : 'Obrada je u toku'}</T>
+        <T variant="copy">{terminal ? 'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.'
+          : 'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>
+        {erasure ? <T variant="copy">{terminal ? 'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.'
+          : state.ordinaryContentErased ? 'Obični podaci aplikacije su uklonjeni. Podaci za prijavu još nisu potvrđeno obrisani i nalog nije zatvoren.'
+            : 'Obični podaci aplikacije se postupno uklanjaju. Završetak se potvrđuje tek posle svih provera.'}</T>
+          : <T variant="copy">Identifikator naloga i evidencije obuhvaćene objavljenim pravilima ostaju ograničeno dostupni tokom propisanog čuvanja.</T>}
+        {steps ? <View style={s.progress}>
+          {/* Static: the count is a fact, so the bar is drawn where it is and never slides. */}
+          <View style={s.track} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <View style={[s.fill, { width: `${Math.round(100 * Math.min(1, steps.done / steps.total))}%` }]} />
+          </View>
+          <T variant="note" tone="muted">{`Provereni koraci: ${steps.done} od ${steps.total}.`}</T>
+        </View> : null}
+        {terminal ? <T variant="note" tone="muted">{`Završeno: ${vreme(state.closedAt)}`}</T> : null}
+      </View>
+      {exceptions}
+      {retention}
+    </ClosureFrame>;
+  }
+
+  if (intent) {
+    // An unconfirmed command: the same key waits for a read, and a replay is offered only once the read finds it absent.
+    const replay = absent ? intent.kind === 'START'
+      ? <DangerAction label="Ponovi isti zahtev za zatvaranje" busy={busy} loading={working === 'retry'} onPress={commands.onRetry} />
+      : <SettingsAction label="Ponovi istu pripremu" kind="secondary" disabled={busy} loading={working === 'retry'} onPress={commands.onRetry} /> : null;
+    return <ClosureFrame onClose={commands.onClose} footer={replay ? <>{replay}{check('quiet')}</> : check('primary')}>
+      {header}{note}{exceptions}{retention}
+    </ClosureFrame>;
+  }
+
+  const ready = review!;
+  if (!ready.ready) {
+    const preparation = ready.code === 'CLOSURE_PREPARATION_REQUIRED';
+    return <ClosureFrame onClose={commands.onClose} footer={preparation ? <>
+      <SettingsAction label="Pripremi pregled" disabled={busy} loading={working === 'prepare'} onPress={commands.onPrepare} />
+      {check('quiet')}
+    </> : check('secondary')}>
+      {header}{note}
+      <T variant="copy">{ready.code === 'CLOSURE_POLICY_NOT_READY' ? (erasure ? 'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.'
+        : 'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.')
+        : preparation ? 'Pripremi pregled trenutnih obaveza pre zatvaranja.' : 'Najpre reši obaveze navedene ispod.'}</T>
+      {ready.blockers.length ? <SettingsGroup title="Obaveze">{ready.blockers.map((code, index) => {
+        const place = blockerPlace[code], last = index === ready.blockers.length - 1;
+        return place ? <SettingsRow key={code} compact last={last} label={closureBlockerLabels[code]} disabled={busy}
+          onPress={() => commands.onBlocker(place)} />
+          : <PlainRow key={code} label={closureBlockerLabels[code]} last={last} />;
+      })}</SettingsGroup> : null}
+      {exceptions}{retention}
+    </ClosureFrame>;
+  }
+
+  return <ClosureFrame onClose={commands.onClose}>
+    {header}{note}
+    <View style={s.block}>
+      <T variant="heading" accessibilityRole="header">Posle pokretanja</T>
+      <T variant="copy">{erasure ? 'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.'
+        : 'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T>
+    </View>
+    {exceptions}{retention}
+    <SettingsGroup title="Tvoji podaci">
+      <SettingsRow compact last label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." disabled={busy}
+        onPress={commands.onExport} />
+    </SettingsGroup>
+    {/* At the end of the scroll, not pinned: the consequences above are passed on the way to it. */}
+    <View style={s.end}>
+      <DangerAction label="Pokreni zatvaranje naloga" busy={busy} loading={working === 'start'} onPress={commands.onAskStart} />
+      {check('quiet')}
+    </View>
+  </ClosureFrame>;
+}
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.ground },
+  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, gap: 16, flexGrow: 1 },
+  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: sys.color.line,
+    backgroundColor: sys.color.surface, gap: 8 },
+  header: { gap: sys.space.sm, paddingBottom: sys.space.xs },
+  well: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center',
+    marginBottom: sys.space.xs },
+  block: { gap: sys.space.sm },
+  list: { borderTopWidth: 1, borderTopColor: sys.color.line },
+  progress: { gap: sys.space.sm, paddingTop: sys.space.xs },
+  track: { height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.control, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  end: { gap: sys.space.sm, marginTop: sys.space.sm },
+  danger: { minHeight: 54, borderRadius: sys.radius.primary, borderWidth: 1, backgroundColor: sys.color.surface },
+});

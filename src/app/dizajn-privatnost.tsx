@@ -1,0 +1,287 @@
+import { useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import type { DataExportStatus } from '../contracts/dataExport';
+import type { LegalBundleStatus } from '../contracts/legal';
+import type { DogovorProjekcija } from '../contracts/projections';
+import type { RetentionExecutionStatus, RetentionPolicyStatus } from '../contracts/retentionPolicy';
+import type { ClosureExecutionReview, ClosureExecutionState } from '../data/closureExecutionClientService';
+import type { SupportDetail, SupportInbox } from '../data/supportCaseTypes';
+import { ClosureView, type ClosureModel } from '../ui/closure/ClosurePresentation';
+import { LegalReviewView, PublicLegalBody } from '../ui/legal/LegalDocuments';
+import type { LegalReviewState } from '../ui/legal/legalReview';
+import { ExportScreenView, type NoticeTone } from '../ui/privacy/ExportPresentation';
+import { PrivacyBody, type PrivacyRead } from '../ui/privacy/PrivacyPresentation';
+import { Press } from '../ui/Press';
+import { ProductSheet } from '../ui/product/ProductSheet';
+import { SettingsAction, SettingsRow, SettingsScreen } from '../ui/settings/SettingsPresentation';
+import { SupportMessagePreviewSheet } from '../ui/support/SupportContextEntry';
+import { initialSupportState, type SupportState } from '../ui/support/SupportController';
+import { SupportDetailView } from '../ui/support/SupportDetailScreen';
+import { SupportInboxView } from '../ui/support/SupportInboxScreen';
+import { SupportNewView } from '../ui/support/SupportNewScreen';
+import type { useSupportController } from '../ui/support/useSupportController';
+import { useConfirmSheet } from '../ui/system/ConfirmSheet';
+import { sys } from '../ui/system/tokens';
+import { T } from '../ui/Text';
+
+/**
+ * Privatnost, podaci, pravila, zatvaranje naloga i podrška (owner step 11b) on the emulator, in every state the lead
+ * photographs. Reached only by its address (uskociapp://dizajn-privatnost) in the internal build; the store package shows
+ * nothing. The real presentation components draw fixture data: nothing here reads or writes anything. Every command is a
+ * local stand-in (the support screens get a controller that is absent, so every command is a no-op; the closure start
+ * asks its real question and does nothing when confirmed). The fixture words marked "Primer" are placeholders, never the
+ * owner's published legal text.
+ */
+type Scene = { key: string; group: string; label: string };
+const SCENES: Scene[] = [
+  ['privatnost-ucitavanje', 'Privatnost', 'Učitavanje'], ['privatnost-nije-objavljeno', 'Privatnost', 'Rokovi nisu objavljeni'],
+  ['privatnost-objavljeno', 'Privatnost', 'Objavljeni rokovi i brisanje'], ['privatnost-greska', 'Privatnost', 'Greška čitanja'],
+  ['izvoz-ucitavanje', 'Izvoz', 'Učitavanje'], ['izvoz-bez-zahteva', 'Izvoz', 'Bez zahteva'], ['izvoz-zahtev', 'Izvoz', 'Zahtev zabeležen'],
+  ['izvoz-nije-spremno', 'Izvoz', 'Priprema nije dostupna'], ['izvoz-spremno', 'Izvoz', 'Kopija spremna, sačuvana'],
+  ['izvoz-u-toku', 'Izvoz', 'Čuvanje u toku (onemogućeno)'], ['izvoz-isteklo', 'Izvoz', 'Kopija istekla'], ['izvoz-otkazano', 'Izvoz', 'Zahtev otkazan'],
+  ['izvoz-neuspeh', 'Izvoz', 'Priprema nije završena'], ['izvoz-greska', 'Izvoz', 'Greška čitanja'],
+  ['pravila-ucitavanje', 'Pravila', 'Učitavanje'], ['pravila-nije-objavljeno', 'Pravila', 'Nisu objavljena'],
+  ['pravila-prihvatanje', 'Pravila', 'Za prihvatanje, dugi nazivi'], ['pravila-u-toku', 'Pravila', 'Prihvatanje u toku'],
+  ['pravila-ishod', 'Pravila', 'Ishod nepoznat'], ['pravila-prihvaceno', 'Pravila', 'Prihvaćeno'], ['pravila-javno', 'Pravila', 'Javni dokumenti (sheet)'],
+  ['zatvaranje-ucitavanje', 'Zatvaranje', 'Učitavanje'], ['zatvaranje-greska', 'Zatvaranje', 'Greška čitanja'],
+  ['zatvaranje-obaveze', 'Zatvaranje', 'Obaveze'], ['zatvaranje-priprema', 'Zatvaranje', 'Priprema potrebna'],
+  ['zatvaranje-pregled', 'Zatvaranje', 'Pregled spreman'], ['zatvaranje-nepotvrdjeno', 'Zatvaranje', 'Nepotvrđen zahtev'],
+  ['zatvaranje-u-toku', 'Zatvaranje', 'Obrada u toku'], ['zatvaranje-zatvoren', 'Zatvaranje', 'Nalog zatvoren'],
+  ['podrska-lista', 'Podrška', 'Lista zahteva'], ['podrska-prazno', 'Podrška', 'Prazno'], ['podrska-ucitavanje', 'Podrška', 'Učitavanje'],
+  ['podrska-greska', 'Podrška', 'Greška'], ['podrska-operater', 'Podrška', 'Operaterski inbox'],
+  ['novi-forma', 'Novi zahtev', 'Forma'], ['novi-dogovor', 'Novi zahtev', 'Tema traži Dogovor'], ['novi-poruka', 'Novi zahtev', 'Sa izabranom porukom'],
+  ['novi-nepotvrdjeno', 'Novi zahtev', 'Nepotvrđeno slanje'], ['novi-potvrdjeno', 'Novi zahtev', 'Potvrđen'],
+  ['novi-nedostupno', 'Novi zahtev', 'Nije dostupno'],
+  ['zahtev-razgovor', 'Zahtev', 'Razgovor i odluka'], ['zahtev-operater', 'Zahtev', 'Operater'], ['zahtev-zatvoren', 'Zahtev', 'Zatvoren'],
+  ['zahtev-ucitavanje', 'Zahtev', 'Učitavanje'], ['zahtev-greska', 'Zahtev', 'Greška'],
+  ['poruka-podrska', 'Poruka', 'Izabrana poruka (sheet)'],
+].map(([key, group, label]) => ({ key, group, label }));
+
+const NOW = Date.now(), hour = 3_600_000;
+const iso = (offset: number) => new Date(NOW + offset).toISOString();
+const noop = () => {};
+
+// Privatnost
+const POLICY_UNPUBLISHED: RetentionPolicyStatus = { ready: false, reason: 'RETENTION_POLICY_NOT_PUBLISHED', missingDataClasses: [] };
+const rule = (dataClass: string) => ({ dataClass, purpose: 'Primer svrhe čuvanja za prikaz rasporeda.', retentionPeriod: 'Primer roka: dok nalog postoji.',
+  deletionTrigger: 'Primer: posle zatvaranja naloga.', exceptionRule: 'Primer izuzetka koji traje duže od jednog reda teksta na uskom ekranu.',
+  legalBasis: 'Primer pravnog osnova.' });
+const POLICY: RetentionPolicyStatus = { ready: true, policyVersion: 'primer-2026-09', effectiveAt: iso(-48 * hour),
+  rules: ['ACCOUNT_IDENTITY', 'PROFILE_DATA', 'AI_VOLATILE', 'MEDIA_OBJECTS', 'AUDIT_SECURITY_LOGS'].map(rule) };
+const EXECUTION = (admitted: boolean): RetentionExecutionStatus => ({ engineVersion: 'P3_AI_ABANDONED_UNBOUND_V1', executionAdmitted: admitted,
+  policyVersion: admitted ? 'primer-2026-09' : null, unsupportedDataClasses: [], storageCleanup: 'NOT_APPLICABLE',
+  datasets: [{ dataset: 'AI_ABANDONED_UNBOUND', dataClass: 'AI_VOLATILE', action: 'DELETE', ready: admitted, reason: admitted ? null : 'POLICY_NOT_READY' }] });
+const read = <V,>(data: V | null, loading = false, error = false): PrivacyRead<V> => ({ data, loading, error });
+
+// Izvoz
+const exportStatus = (state: 'REQUESTED' | 'READY' | 'CANCELLED' | 'FAILED' | 'EXPIRED' | null, expiresIn?: number): DataExportStatus => ({
+  hasRequest: state !== null, downloadAvailable: expiresIn !== undefined && expiresIn > 0, serverFulfillmentRequired: true, externalDsrChannelReady: false,
+  fulfillment: expiresIn === undefined ? null : { artifactAvailable: true, artifactGeneration: 'galerija', artifactExpiresAt: iso(expiresIn),
+    byteLength: 1_468_006, sha256: 'a'.repeat(64), md5: 'b'.repeat(32) },
+  request: state ? { receiptId: 'galerija', clientRequestId: 'galerija', status: state, requestedAt: iso(-2 * hour), updatedAt: iso(-hour),
+    cancelledAt: null, completedAt: null, failureCode: null } : null,
+});
+
+// Pravila
+const BUNDLE: LegalBundleStatus = { ready: true, acceptedCurrentBundle: false, reason: null, documents: [
+  { kind: 'TERMS', version: 'RC2', sha256: 'a'.repeat(64), url: 'https://example.com/uslovi', publishedAt: iso(-72 * hour), effectiveAt: iso(-72 * hour) },
+  { kind: 'PRIVACY', version: 'V1', sha256: 'b'.repeat(64), url: 'https://example.com/privatnost', publishedAt: iso(-72 * hour), effectiveAt: iso(-72 * hour) },
+] };
+const provider = (code: string, name: string, entity: string) => ({ providerCode: code, providerDisplayName: name, legalEntityName: entity,
+  legalRole: 'PROCESSOR' as const, purpose: 'Primer svrhe obrade.', dataCategories: ['Primer kategorije', 'Druga kategorija'],
+  processingRegions: 'Primer regiona', crossBorderTransfer: false, transferMechanism: '', dpaReference: 'Primer ugovora', privacyNoticeUrl: 'https://example.com/obrada',
+  retentionDeletionTerms: 'Primer čuvanja i brisanja.', subprocessorTerms: '', legalBasisReference: 'Primer osnova' });
+const legal = (patch: Partial<LegalReviewState>): LegalReviewState => ({ bundle: BUNDLE, loading: false, busy: false, error: null, processorError: null,
+  pending: null, receipt: null, processors: { ready: true, mapVersion: 'primer-1', effectiveAt: iso(-72 * hour), providers: [
+    provider('A', 'Primer obrađivača sa veoma dugim nazivom usluge koji se lomi u dva reda', 'Primer pravnog lica d.o.o. Beograd — Novi Beograd'),
+    provider('B', 'Drugi obrađivač', 'Drugo pravno lice')] }, ...patch });
+
+// Zatvaranje
+const REVIEW: ClosureExecutionReview = { accountId: 'galerija', requestId: 'galerija', revision: 1, ready: true, policySha256: 'a'.repeat(64),
+  blockers: [], code: null, authoritative: true, retainedDatasets: [
+    { dataClass: 'ACCOUNT_IDENTITY', action: 'RETAIN_RESTRICTED', retentionSeconds: 30 * 86400, trigger: 'CLOSURE_REQUESTED', ruleSha256: 'c'.repeat(64) },
+    { dataClass: 'AUDIT_SECURITY_LOGS', action: 'RETAIN_RESTRICTED', retentionSeconds: 365 * 86400, trigger: 'CLOSURE_REQUESTED', ruleSha256: 'd'.repeat(64) }] };
+const closure = (patch: Partial<ClosureModel>): ClosureModel => ({ busy: false, working: null, message: '', review: null, intent: null, state: null, absent: false, ...patch });
+const EXECUTING: ClosureExecutionState = { accountId: 'galerija', requestId: 'galerija', generation: 'galerija', state: 'EXECUTING', policySha256: 'a'.repeat(64),
+  authoritative: true, adapterVersion: 'OWNER_AF_D22_EVENT_ERASURE_V1', ordinaryContentErased: false, completedSteps: 31, totalSteps: 74,
+  exceptions: ['SCOPED_EVIDENCE_REVIEW_REQUIRED'] };
+const CLOSED: ClosureExecutionState = { accountId: 'galerija', requestId: 'galerija', generation: 'galerija', state: 'CLOSED', policySha256: 'a'.repeat(64),
+  authoritative: true, closedAt: iso(-hour), retainedDatasets: REVIEW.retainedDatasets ?? [] };
+
+// Podrška
+const OWNER = { id: 1, accountId: 'galerija', accountRevision: 1, identity: 'GALERIJA' };
+const model = (patch: Partial<SupportState>) => ({ state: { ...initialSupportState, phase: 'READY', ...patch } as SupportState, controller: null,
+  current: () => true, navigate: noop, accountId: 'galerija', accountRevision: 1, incarnation: OWNER, incarnationId: 1, focused: true,
+}) as unknown as ReturnType<typeof useSupportController>;
+const CAPS = { accountId: 'galerija', operatorAvailable: false, canCreate: true, authoritative: true } as const;
+const row = (id: string, topic: SupportInbox['cases'][number]['topic'], status: SupportInbox['cases'][number]['status'], channel: SupportInbox['cases'][number]['channel'],
+  unread: boolean, age: number) => ({ id, caseNumber: String(70 + Number(id.slice(-1))), channel, topic, status, revision: 1, lastSequence: '3',
+  createdAt: iso(-age), updatedAt: iso(-age / 2), context: null, unread });
+const INBOX: SupportInbox = { accountId: 'galerija', mode: 'OWN', operatorAvailable: false, authoritative: true, nextBeforeCaseNumber: '60', cases: [
+  row('00000000-0000-4000-8000-000000000001', 'NO_SHOW', 'WAITING_FOR_AUTHOR', 'TASK', true, 3 * hour),
+  row('00000000-0000-4000-8000-000000000002', 'TECHNICAL', 'IN_REVIEW', 'SERVICE', false, 26 * hour),
+  row('00000000-0000-4000-8000-000000000003', 'SERVICE_COMPLAINT', 'DECIDED', 'SERVICE', true, 70 * hour),
+  row('00000000-0000-4000-8000-000000000004', 'PRIVACY_RIGHTS', 'CLOSED', 'LEGAL_PRIVACY', false, 400 * hour)] };
+const CASE = '00000000-0000-4000-8000-0000000000aa', DECISION = '00000000-0000-4000-8000-0000000000bb';
+const detail = (patch: Partial<SupportDetail> = {}, status: SupportDetail['case']['status'] = 'IN_REVIEW'): SupportDetail => ({ accountId: 'galerija',
+  viewerRole: 'AUTHOR', operatorAvailable: false, allowedActions: ['AUTHOR_REPLY', 'APPEAL'], authoritative: true, nextAfterSequence: null,
+  case: { id: CASE, caseNumber: '71', authorAccountId: 'galerija', title: 'Saradnik nije došao na dogovoreni termin, a Dogovor i dalje stoji kao aktivan',
+    desiredOutcome: 'Da se Dogovor zatvori bez ocene.', channel: 'TASK', topic: 'NO_SHOW', status, revision: 3, lastSequence: '6',
+    createdAt: iso(-30 * hour), updatedAt: iso(-hour), context: {} },
+  events: [
+    { id: 'e1', caseId: CASE, sequence: '1', kind: 'CREATED', authorRole: 'AUTHOR', body: null, createdAt: iso(-30 * hour), decisionId: null, appealId: null },
+    { id: 'e2', caseId: CASE, sequence: '2', kind: 'CLAIM', authorRole: 'OPERATOR', body: null, createdAt: iso(-28 * hour), decisionId: null, appealId: null },
+    { id: 'e3', caseId: CASE, sequence: '3', kind: 'REQUEST_INFO', authorRole: 'OPERATOR', body: 'Možeš li da napišeš u koliko sati ste se dogovorili i da li si pokušao da ga pozoveš?',
+      createdAt: iso(-27 * hour), decisionId: null, appealId: null },
+    { id: 'e4', caseId: CASE, sequence: '4', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'U 10:00. Zvao sam dva puta, nije se javio.', createdAt: iso(-26 * hour), decisionId: null, appealId: null },
+    { id: 'e5', caseId: CASE, sequence: '5', kind: 'AUTHOR_REPLY', authorRole: 'AUTHOR', body: 'Čekao sam do 11.', createdAt: iso(-26 * hour + 60_000), decisionId: null, appealId: null },
+    { id: 'e6', caseId: CASE, sequence: '6', kind: 'DECIDE', authorRole: 'OPERATOR', body: null, createdAt: iso(-2 * hour), decisionId: DECISION, appealId: null },
+  ],
+  decisions: [{ id: DECISION, caseId: CASE, caseRevision: 3, outcome: 'ACCEPTED', reasonCode: 'NO_SHOW_CONFIRMED', explanation: 'Primer obrazloženja odluke.',
+    effect: 'NONE', evidenceIds: [], priorDecisionId: null, createdAt: iso(-2 * hour), reviewType: 'INITIAL' }],
+  appeals: [], evidence: [], ...patch });
+const OPERATOR = detail({ viewerRole: 'OPERATOR', operatorAvailable: true, allowedActions: ['OPERATOR_REPLY', 'REQUEST_INFO', 'DECIDE', 'CLOSE', 'CLAIM_APPEAL'],
+  appeals: [{ id: 'a1', caseId: CASE, decisionId: DECISION, status: 'RECEIVED', decisionResultId: null, createdAt: iso(-hour) }] });
+const AGREEMENTS = [{ id: '00000000-0000-4000-8000-0000000000c1', verzija: 2, naslov: 'Unos ormara na treći sprat' },
+  { id: '00000000-0000-4000-8000-0000000000c2', verzija: 1, naslov: 'Selidba garsonjere sa Limana na Grbavicu, subota pre podne' }] as unknown as DogovorProjekcija[];
+
+export default function DizajnPrivatnost() {
+  const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
+  const [scene, setScene] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const confirm = useConfirmSheet();
+  if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
+  const toList = () => { confirm.close(); setExpanded(null); setScene(null); };
+  if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <ScrollView contentContainerStyle={s.list}>
+      <T variant="title" accessibilityRole="header">Galerija: privatnost i podrška</T>
+      <T variant="note" tone="muted">Primeri stanja sa izmišljenim podacima. Ništa se ne čita i ne šalje.</T>
+      {SCENES.map((item, index) => <View key={item.key}>
+        {index === 0 || SCENES[index - 1].group !== item.group ? <T variant="label" style={s.group}>{item.group}</T> : null}
+        <Press accessibilityRole="button" accessibilityLabel={`${item.group}: ${item.label}`} haptic="select" onPress={() => setScene(item.key)} style={s.row}>
+          <T variant="bodyStrong">{item.label}</T>
+        </Press>
+      </View>)}
+      <SettingsAction label="Zatvori galeriju" kind="quiet" onPress={() => router.back()} />
+    </ScrollView>
+  </SafeAreaView>;
+
+  const privacy = (policy: PrivacyRead<RetentionPolicyStatus>, execution: PrivacyRead<RetentionExecutionStatus>, admitted = false) =>
+    <SettingsScreen title="Privatnost i podaci" onBack={toList}>
+      <PrivacyBody policy={policy} execution={execution} admitted={admitted} expandedRule={expanded} onToggle={(key, next) => setExpanded(next ? key : null)}
+        onRefresh={noop} dataRows={<>
+          <SettingsRow compact label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." onPress={noop} />
+          <SettingsRow compact last label="Zatvaranje naloga" detail="Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva." onPress={noop} />
+        </>} />
+    </SettingsScreen>;
+  const exportView = (status: DataExportStatus | null, options: { loading?: boolean; failure?: boolean; busy?: boolean; notReady?: boolean;
+    notice?: { text: string; tone: NoticeTone }; primary?: ReactNode } = {}) =>
+    <ExportScreenView onBack={toList} loading={!!options.loading} status={status} now={Date.now()} busy={!!options.busy} notice={options.notice ?? null}
+      failure={options.failure ? { title: 'Stanje izvoza nije učitano', body: 'Stanje izvoza nije dostupno.' } : null}
+      preparation={options.notReady ? { receiptId: 'galerija', kind: 'NOT_READY', code: 'POLICY_NOT_READY' } : null}
+      primary={options.primary ?? null} onCancel={noop} onRevoke={noop} onRefresh={noop} refreshDisabled={false} />;
+  const legalView = (state: LegalReviewState, action: ReactNode = null) =>
+    <LegalReviewView state={state} onBack={toList} action={action} linkError={null} onOpen={noop} onOpenUrl={noop} onRefresh={noop} />;
+  const closureView = (value: ClosureModel) => <ClosureView model={value} commands={{ onClose: toList, onPrepare: noop, onRetry: noop, onRefresh: noop,
+    onLogout: noop, onSupport: noop, onBlocker: noop, onExport: noop,
+    onAskStart: () => confirm.ask({ title: 'Da li sigurno zatvaraš nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
+      confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger', onConfirm: noop }) }} />;
+
+  const body = scene === 'privatnost-ucitavanje' ? privacy(read<RetentionPolicyStatus>(null, true), read<RetentionExecutionStatus>(null, true))
+    : scene === 'privatnost-nije-objavljeno' ? privacy(read(POLICY_UNPUBLISHED), read(EXECUTION(false)))
+    : scene === 'privatnost-objavljeno' ? privacy(read(POLICY), read(EXECUTION(true)), true)
+    : scene === 'privatnost-greska' ? privacy(read<RetentionPolicyStatus>(null, false, true), read<RetentionExecutionStatus>(null, false, true))
+    : scene === 'izvoz-ucitavanje' ? exportView(null, { loading: true })
+    : scene === 'izvoz-bez-zahteva' ? exportView(exportStatus(null), { primary: <SettingsAction label="Zatraži izvoz" onPress={noop} /> })
+    : scene === 'izvoz-zahtev' ? exportView(exportStatus('REQUESTED'), { notice: { text: 'Zahtev za izvoz je zabeležen.', tone: 'success' },
+      primary: <SettingsAction label="Pripremi kopiju" onPress={noop} /> })
+    : scene === 'izvoz-nije-spremno' ? exportView(exportStatus('REQUESTED'), { notReady: true, primary: <SettingsAction label="Pripremi kopiju" onPress={noop} /> })
+    : scene === 'izvoz-spremno' ? exportView(exportStatus('READY', 20 * hour), { notice: { text: 'Kopija je sačuvana u izabranoj fascikli.', tone: 'success' },
+      primary: <SettingsAction label="Preuzmi i sačuvaj" onPress={noop} /> })
+    : scene === 'izvoz-u-toku' ? exportView(exportStatus('READY', 20 * hour), { busy: true,
+      primary: <SettingsAction label="Preuzimanje i čuvanje…" loading disabled onPress={noop} /> })
+    : scene === 'izvoz-isteklo' ? exportView(exportStatus('READY', -hour), { primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
+    : scene === 'izvoz-otkazano' ? exportView(exportStatus('CANCELLED'), { notice: { text: 'Zahtev je otkazan.', tone: 'success' },
+      primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
+    : scene === 'izvoz-neuspeh' ? exportView(exportStatus('FAILED'), { notice: { text: 'Preuzeta kopija nije potvrđena. Osveži stanje.', tone: 'danger' },
+      primary: <SettingsAction label="Zatraži novu kopiju" onPress={noop} /> })
+    : scene === 'izvoz-greska' ? exportView(null, { failure: true })
+    : scene === 'pravila-ucitavanje' ? legalView(legal({ loading: true, bundle: null, processors: null }))
+    : scene === 'pravila-nije-objavljeno' ? legalView(legal({ bundle: { ready: false, acceptedCurrentBundle: false, reason: 'LEGAL_DOCUMENTS_NOT_PUBLISHED', documents: [] },
+      processors: { ready: false, reason: 'PROCESSOR_MAP_NOT_PUBLISHED', missingProviders: [] } }))
+    : scene === 'pravila-prihvatanje' ? legalView(legal({}), <SettingsAction label="Prihvati pregledane dokumente" onPress={noop} />)
+    : scene === 'pravila-u-toku' ? legalView(legal({ busy: true, pending: 'READ_REQUIRED' }), <SettingsAction label="Prihvati pregledane dokumente" loading disabled onPress={noop} />)
+    : scene === 'pravila-ishod' ? legalView(legal({ pending: 'READ_REQUIRED', error: 'Prihvatanje još nije potvrđeno. Proveri ishod svog zahteva.' }),
+      <SettingsAction label="Proveri ishod prihvatanja" onPress={noop} />)
+    : scene === 'pravila-prihvaceno' ? legalView(legal({ bundle: { ...BUNDLE, acceptedCurrentBundle: true } }))
+    : scene === 'pravila-javno' ? <View style={s.screen}>
+      <ProductSheet title="Politika privatnosti" onClose={toList}>{() => <PublicLegalBody loading={false} bundle={BUNDLE} error={null} onOpen={noop} onRefresh={noop} />}</ProductSheet>
+    </View>
+    : scene === 'zatvaranje-ucitavanje' ? closureView(closure({ busy: true }))
+    : scene === 'zatvaranje-greska' ? closureView(closure({ message: 'Pregled trenutno nije dostupan. Pokušaj ponovo.' }))
+    : scene === 'zatvaranje-obaveze' ? closureView(closure({ review: { ...REVIEW, ready: false, code: 'CLOSURE_BLOCKED', retainedDatasets: null,
+      blockers: ['ACTIVE_AGREEMENT', 'OPEN_TASK', 'ACTIVE_APPLICATION', 'MEDIA_UPLOAD_PENDING'] } }))
+    : scene === 'zatvaranje-priprema' ? closureView(closure({ review: { ...REVIEW, ready: false, code: 'CLOSURE_PREPARATION_REQUIRED', retainedDatasets: null } }))
+    : scene === 'zatvaranje-pregled' ? closureView(closure({ review: REVIEW }))
+    : scene === 'zatvaranje-nepotvrdjeno' ? closureView(closure({ review: REVIEW, absent: true,
+      message: 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.',
+      intent: { kind: 'START', accountId: 'galerija', clientRequestId: 'galerija', requestId: 'galerija', expectedRevision: 1, policySha256: 'a'.repeat(64) } }))
+    : scene === 'zatvaranje-u-toku' ? closureView(closure({ state: EXECUTING }))
+    : scene === 'zatvaranje-zatvoren' ? closureView(closure({ state: CLOSED }))
+    : scene === 'podrska-lista' ? <SupportInboxView mode="OWN" model={model({ capabilities: CAPS, inbox: INBOX })} />
+    : scene === 'podrska-prazno' ? <SupportInboxView mode="OWN" model={model({ capabilities: CAPS, inbox: { ...INBOX, cases: [], nextBeforeCaseNumber: null } })} />
+    : scene === 'podrska-ucitavanje' ? <SupportInboxView mode="OWN" model={model({ phase: 'LOADING' })} />
+    : scene === 'podrska-greska' ? <SupportInboxView mode="OWN" model={model({ phase: 'ERROR', message: 'Zahtevi trenutno nisu dostupni. Proveri vezu.' })} />
+    : scene === 'podrska-operater' ? <SupportInboxView mode="OPERATOR" onMode={noop} model={model({ capabilities: { ...CAPS, operatorAvailable: true },
+      inbox: { ...INBOX, mode: 'OPERATOR', operatorAvailable: true } })} />
+    : scene === 'novi-forma' ? <SupportNewView reference={null} model={model({ capabilities: CAPS })} readAgreements={async () => AGREEMENTS} />
+    : scene === 'novi-dogovor' ? <SupportNewView reference={{ kind: 'AGREEMENT', id: AGREEMENTS[0].id, revision: 2 }} model={model({ capabilities: CAPS })}
+      readAgreements={async () => AGREEMENTS} />
+    : scene === 'novi-poruka' ? <SupportNewView reference={{ kind: 'AGREEMENT_MESSAGE', id: '00000000-0000-4000-8000-0000000000d1', revision: 4 }}
+      model={model({ capabilities: CAPS })} readAgreements={async () => AGREEMENTS} />
+    : scene === 'novi-nepotvrdjeno' ? <SupportNewView reference={null} readAgreements={async () => AGREEMENTS} model={model({ capabilities: CAPS, absent: true,
+      canReplay: true, message: 'Potvrda prethodne radnje još nije pronađena.', pending: { version: 1, accountId: 'galerija', clientRequestId: 'galerija',
+        kind: 'CREATE', caseId: null, expectedRevision: null, inputSha256: 'a'.repeat(64) } })} />
+    : scene === 'novi-potvrdjeno' ? <SupportNewView reference={null} model={model({ capabilities: CAPS, message: 'Radnja je potvrđena.',
+      receipt: { accountId: 'galerija', clientRequestId: 'galerija', kind: 'CREATE', caseId: CASE, caseNumber: '72', expectedRevision: null, inputSha256: 'a'.repeat(64),
+        eventId: 'e', sequence: '1', caseRevision: 1, createdAt: iso(-60_000), authoritative: true } })} />
+    : scene === 'novi-nedostupno' ? <SupportNewView reference={null} model={model({ capabilities: { ...CAPS, canCreate: false } })} />
+    : scene === 'zahtev-razgovor' ? <SupportDetailView caseId={CASE} model={model({ capabilities: CAPS, detail: detail() })} />
+    : scene === 'zahtev-operater' ? <SupportDetailView caseId={CASE} model={model({ capabilities: { ...CAPS, operatorAvailable: true }, detail: OPERATOR })} />
+    : scene === 'zahtev-zatvoren' ? <SupportDetailView caseId={CASE} model={model({ capabilities: CAPS, detail: detail({ allowedActions: [] }, 'CLOSED') })} />
+    : scene === 'zahtev-ucitavanje' ? <SupportDetailView caseId={CASE} model={model({ phase: 'LOADING' })} />
+    : scene === 'zahtev-greska' ? <SupportDetailView caseId={CASE} model={model({ phase: 'ERROR', message: 'Zahtev trenutno nije dostupan. Proveri vezu.' })} />
+    : scene === 'poruka-podrska' ? <View style={s.screen}>
+      <SupportMessagePreviewSheet previewText="Stigao sam u 10:00, niko nije otvorio. Zvao sam dva puta." busy={false} disabled={false} error={null}
+        onContinue={noop} onCancel={toList} />
+    </View>
+    : null;
+  const current = SCENES.find(item => item.key === scene);
+  return <View style={s.screen}>
+    <View style={s.grow}>{body}</View>
+    {confirm.sheet}
+    {/* The scene's own arrow returns here too; this bar says which scene is shown and is always one tap back. */}
+    <SafeAreaView edges={['bottom']} style={s.strip}>
+      <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={toList} style={s.back}>
+        <T variant="action" style={s.backText}>Nazad</T>
+      </Press>
+      <T variant="meta" tone="muted" numberOfLines={1} style={s.grow}>{current ? `${current.group} · ${current.label}` : ''}</T>
+    </SafeAreaView>
+  </View>;
+}
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.surface },
+  grow: { flex: 1, minWidth: 0 },
+  list: { paddingHorizontal: 20, paddingVertical: 16, gap: 4 },
+  group: { color: sys.color.muted, marginTop: 20, marginBottom: 6 },
+  row: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 6, borderTopWidth: 1, borderTopColor: sys.color.line,
+    backgroundColor: sys.color.surface },
+  back: { minHeight: 48, minWidth: 96, paddingHorizontal: 16, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  backText: { color: sys.color.green },
+});

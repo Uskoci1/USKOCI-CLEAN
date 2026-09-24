@@ -10,6 +10,9 @@ jest.mock('react-native', () => {
 });
 jest.mock('expo-router', () => ({ router: { back: () => mockBack(), canGoBack: () => true, replace: jest.fn() },
   useFocusEffect: (callback: () => unknown) => require('react').useEffect(callback, [callback]) }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
+jest.mock('../../Press', () => ({ Press: 'Press' }));
+jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../../store/sesija', () => ({ sesijaSada: () => mockOwner, useSesija: () => mockOwner }));
 jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../../data/legalClientService', () => ({ legalClientService: {
@@ -72,7 +75,9 @@ it('the public modal reads anonymously and never offers or records ledger accept
   mockOwner = { user: null, accountRevision: 0 }; const close = jest.fn();
   await act(async () => { tree = create(<PublicLegalModal kind="PRIVACY" onClose={close} />); });
   await act(async () => hosts('SettingsRow')[1].props.onPress()); expect(mockOpen).toHaveBeenCalledWith('https://example.test/privacy');
-  await act(async () => hosts('SettingsScreen')[0].props.onBack()); expect(close).toHaveBeenCalledTimes(1);
+  // The public view is a sheet now: its own close control ends it, and closing leaves the form behind it untouched.
+  await act(async () => tree.root.findByProps({ accessibilityRole: 'button', accessibilityLabel: 'Zatvori' }).props.onPress()); expect(close).toHaveBeenCalledTimes(1);
+  expect(hosts('SettingsScreen')).toHaveLength(0);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockProcessors).not.toHaveBeenCalled();
 });
 it('renders actual published processor fields without a local provider fallback', async () => {
@@ -81,7 +86,29 @@ it('renders actual published processor fields without a local provider fallback'
     crossBorderTransfer: true, transferMechanism: 'Objavljeni mehanizam', dpaReference: 'Objavljeni ugovor', privacyNoticeUrl: 'https://example.test/provider',
     retentionDeletionTerms: 'Objavljeni rok', subprocessorTerms: 'Objavljeni podobrađivači', legalBasisReference: 'Objavljeni osnov' }] }));
   await act(async () => { tree = create(<LegalRoute />); });
+  // Each provider is folded to its name, its legal entity and role until opened.
+  expect(renderedCopy()).toContain('Objavljeno pravno lice · Obrađivač'); expect(renderedCopy()).not.toContain('Objavljeni region');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Objavljeni obrađivač' }).props.onPress());
   expect(renderedCopy()).toContain('Objavljeni region'); expect(renderedCopy()).toContain('Objavljeni rok');
   await act(async () => action('Obaveštenje o privatnosti · Objavljeni obrađivač').props.onPress());
   expect(mockOpen).toHaveBeenCalledWith('https://example.test/provider');
+});
+it('the screen is named as the entries that open it, and a running acceptance keeps its words', async () => {
+  let resolve!: (value: unknown) => void; mockAccept.mockReturnValue(new Promise(done => { resolve = done; }));
+  await act(async () => { tree = create(<LegalRoute />); });
+  expect(hosts('SettingsScreen')[0].props.title).toBe('Pravila i saglasnosti');
+  await act(async () => { action('Prihvati pregledane dokumente').props.onPress(); });
+  expect(action('Prihvati pregledane dokumente').props).toMatchObject({ loading: true, disabled: true });
+  expect(mockAccept).toHaveBeenCalledTimes(1);
+  await act(async () => resolve(ok(receipt)));
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+});
+it('an acceptance failure is said right above the button that failed', async () => {
+  mockAccept.mockResolvedValue({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
+  await act(async () => { tree = create(<LegalRoute />); });
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
+  // Once, as an alert beside the readback it now offers, and not a second time under the intro.
+  const alerts = tree.root.findAll(node => node.type === ('SettingsText' as React.ElementType) && [node.props.children].flat().includes('Ishod nije potvrđen.'));
+  expect(alerts).toHaveLength(1); expect(alerts[0].props.accessibilityRole).toBe('alert');
+  expect(action('Proveri ishod prihvatanja')).toBeDefined();
 });

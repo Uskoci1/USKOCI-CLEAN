@@ -20,15 +20,21 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; },
 jest.mock('react-native', () => { const rn = jest.requireActual('react-native'); return new Proxy(rn, { get(target, key) {
   if (key === 'AppState') return { get currentState() { return mockAppState; }, addEventListener: (_: string, fn: (value: string) => void) => {
     mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) }; } };
-  return ['View', 'TextInput', 'ActivityIndicator', 'KeyboardAvoidingView'].includes(String(key)) ? key : Reflect.get(target, key);
+  return ['View', 'TextInput', 'ActivityIndicator', 'KeyboardAvoidingView', 'ScrollView', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
+// The screen renders its footer (the one primary action) as a child, as the real one pins it under the scroll.
 jest.mock('../../settings/SettingsPresentation', () => ({ SettingsAction: 'Action', SettingsGroup: 'Group', SettingsIntro: 'Intro',
-  SettingsPanel: 'Panel', SettingsRow: 'Row', SettingsScreen: 'Screen', SettingsText: 'T' }));
+  SettingsPanel: 'Panel', SettingsRow: 'Row', SettingsInfo: 'Info', SettingsText: 'T',
+  SettingsScreen: ({ children, footer, ...props }: any) => require('react').createElement('Screen', props, children, footer) }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
+jest.mock('../../Press', () => ({ Press: 'Press' }));
+jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 import { SupportNewScreen, supportRouteReference } from '../SupportNewScreen';
 import { SupportDetailScreen } from '../SupportDetailScreen';
 import { SupportInboxScreen } from '../SupportInboxScreen';
 import { SupportReferenceView } from '../SupportReferenceView';
+import { ConfirmSheet } from '../../system/ConfirmSheet';
 const ok = (podatak: unknown) => ({ ok: true, podatak }), unknown = { ok: false, kod: 'UNKNOWN', poruka: 'Sačekaj proveru.' };
 const journal = (kind: SupportKind = 'CREATE'): SupportIntent => ({ version: 1, accountId: A, clientRequestId: K, kind, caseId: kind === 'CREATE' ? null : C,
   expectedRevision: kind === 'CREATE' ? null : 2, inputSha256: 'a'.repeat(64) });
@@ -66,10 +72,10 @@ afterEach(async () => { await act(async () => tree?.unmount()); expect(mockListe
 
 it('uses a private create form with optional outcome, scalar limits and no safety category replacement', async () => {
   await render(); expect(text()).toContain('Zahtev vide podnosilac'); expect(actions('Pošalji privatni zahtev')[0].props.disabled).toBe(true);
-  // A grey send button says why it is grey (owner rule, 2026-09-23).
-  expect(text()).toContain('Za slanje su potrebni naslov i opis.');
+  // A grey send button says why it is grey (owner rule, 2026-09-23): the reason is the button's own.
+  expect(action('Pošalji privatni zahtev').reason).toBe('Za slanje su potrebni naslov i opis.');
   await type('Kratak naslov', 'Pomoć'); await type('Opis zahteva', '🙂'.repeat(4000));
-  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(text()).not.toContain('Za slanje su potrebni');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(action('Pošalji privatni zahtev').reason).toBeNull();
   await type('Opis zahteva', '🙂'.repeat(4001));
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(text()).toContain('Skrati tekst');
   expect(mockService.prepare).not.toHaveBeenCalled(); expect(actions('Bezbednost')).toHaveLength(0);
@@ -77,9 +83,9 @@ it('uses a private create form with optional outcome, scalar limits and no safet
 it('a topic that needs a Dogovor says so under the grey send button until one is chosen', async () => {
   await render(); await act(async () => action('Prijava nedolaska').onPress());
   await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Nisam našao saradnika.');
-  expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(text()).toContain('Izaberi Dogovor iznad');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(action('Pošalji privatni zahtev').reason).toContain('Izaberi Dogovor iznad');
   await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
-  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(text()).not.toContain('Izaberi Dogovor iznad');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(action('Pošalji privatni zahtev').reason).toBeNull();
 });
 it('does not submit a retained button after the visible draft changes', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Prva verzija');
@@ -157,31 +163,39 @@ it.each(['account', 'account ABA', 'blur/focus', 'context'] as const)('a reused 
   for (const label of ['Kratak naslov', 'Opis zahteva', 'Željeni ishod']) expect(field(label).value).toBe('');
   expect(actions('Stvarni sopstveni Dogovor')).toHaveLength(0);
   expect(action('Pošalji privatni zahtev').disabled).toBe(true);
-  if (change === 'context') expect(actions('Izabrano: Pregled odluke o objavi')).toHaveLength(1);
+  if (change === 'context') expect(action('Pregled odluke o objavi').selected).toBe(true);
 });
 it('does not expose a previous account case from a late detail read', async () => {
   screen = 'DETAIL'; const held = deferred(); mockService.detail.mockReturnValueOnce(held.promise); await render();
   mockSession = { user: { id: B }, accountRevision: 2 }; mockService.detail.mockResolvedValue({ ok: false, poruka: 'Nije dostupno.' }); await update();
-  await act(async () => held.resolve(ok(detail()))); expect(text()).not.toContain('Privatna dopuna'); expect(actions('Dopuni zahtev')).toHaveLength(0);
+  await act(async () => held.resolve(ok(detail()))); expect(text()).not.toContain('Privatna dopuna');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })).toHaveLength(0);
 });
 it('author role never renders operator controls despite a contradictory allowedActions list', async () => {
   screen = 'DETAIL'; mockService.detail.mockResolvedValue(ok({ ...detail(), operatorAvailable: true,
     allowedActions: ['CLAIM', 'DECIDE', 'CLOSE', 'OPERATOR_REPLY', 'AUTHOR_REPLY'] })); await render();
-  expect(actions('Dopuni zahtev')).toHaveLength(1); for (const label of ['Preuzmi predmet', 'Donesi odluku', 'Zatvori obrađeni predmet', 'Odgovori podnosiocu']) expect(actions(label)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })).toHaveLength(1);
+  for (const label of ['Preuzmi predmet', 'Donesi odluku', 'Zatvori obrađeni predmet', 'Zatraži dopunu']) expect(actions(label)).toHaveLength(0);
+  expect(field('Tekst poruke').placeholder).toBe('Napiši dopunu…');
   expect(mockService.submit).not.toHaveBeenCalled();
 });
 it('opens a real decision appeal and submits its exact id only after the author writes a reason', async () => {
-  screen = 'DETAIL'; await render(); const row = tree.root.findAllByType('Row' as React.ElementType).find(n => n.props.label.startsWith('Zatraži ponovni pregled'))!;
-  await act(async () => row.props.onPress()); expect(text()).toContain('ne predstavlja nezavisan žalbeni organ');
+  screen = 'DETAIL'; await render();
+  await act(async () => action('Zatraži ponovni pregled').onPress()); expect(text()).toContain('ne predstavlja nezavisan žalbeni organ');
   await type('Razlog i nove činjenice', 'Nova činjenica'); await act(async () => action('Pošalji zahtev za ponovni pregled').onPress());
   expect(mockService.prepare).toHaveBeenCalledWith('APPEAL', C, 2, { decisionId: D, body: 'Nova činjenica' }, expect.objectContaining({ accountId: A }));
 });
-it('does not submit a retained reply after its draft has been closed', async () => {
-  screen = 'DETAIL'; await render(); await act(async () => action('Dopuni zahtev').onPress());
-  expect(action('Pošalji poruku').disabled).toBe(true); expect(text()).toContain('Unesi tekst pre slanja.');
-  await type('Tekst poruke', 'Uneta dopuna'); expect(text()).not.toContain('Unesi tekst pre slanja.');
-  const retained = action('Pošalji poruku').onPress; await act(async () => action('Zatvori unos').onPress());
+it('does not submit a retained reply after its draft has changed, and sends the words on screen', async () => {
+  screen = 'DETAIL'; await render();
+  expect(field('Pošalji poruku').disabled).toBe(true); expect(field('Pošalji poruku').accessibilityHint).toBe('Unesi tekst pre slanja.');
+  await type('Tekst poruke', 'Uneta dopuna');
+  expect(field('Pošalji poruku').disabled).toBe(false); expect(field('Pošalji poruku').accessibilityHint).toBeUndefined();
+  const retained = field('Pošalji poruku').onPress; await type('Tekst poruke', 'Promenjena dopuna');
   await act(async () => retained()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => field('Pošalji poruku').onPress());
+  expect(mockService.prepare).toHaveBeenCalledWith('AUTHOR_REPLY', C, 2, { body: 'Promenjena dopuna', evidence: [] }, expect.objectContaining({ accountId: A }));
+  // The outcome is unknown here: the words stay in the field, not editable, until a readback settles it.
+  expect(field('Tekst poruke').value).toBe('Promenjena dopuna'); expect(field('Tekst poruke').editable).toBe(false);
 });
 it('operator reconsideration uses only the actual server appeal and does not infer independent review', async () => {
   screen = 'DETAIL'; mockService.detail.mockResolvedValue(ok({ ...detail(), viewerRole: 'OPERATOR', operatorAvailable: true, allowedActions: ['DECIDE_APPEAL'],
@@ -205,14 +219,13 @@ it('marks only the displayed page explicitly and never uses the unseen case last
   await act(async () => action('Označi prikazane događaje kao pročitane').onPress());
   expect(mockService.markRead).toHaveBeenCalledWith(C, '2', expect.any(Object)); expect(text()).toContain('Prikazani događaji');
 });
-it('the inbox intro is one sentence: the bar names the screen, so no tagline restates it', async () => {
+it('a person\'s own inbox has no intro: the list explains itself, and its one action is in the footer', async () => {
   screen = 'INBOX'; await render();
-  const intro = tree.root.findByType('Intro' as React.ElementType).props;
-  expect(intro.title).toBeUndefined(); expect(intro.kicker).toBeUndefined();
+  expect(tree.root.findAllByType('Intro' as React.ElementType)).toHaveLength(0);
   expect(text()).not.toContain('Prati svaki odgovor');
-  // The empty state keeps its sentence; its one action is the brand action in the frame's footer.
+  // The empty state keeps its sentence and has no action of its own; the brand action is in the frame's footer.
   expect(text()).toContain('Još nema primljenih zahteva');
-  expect(tree.root.findByType('Screen' as React.ElementType).props.footer.props.label).toBe('Novi privatni zahtev');
+  expect(actions('Novi privatni zahtev')).toHaveLength(1);
 });
 it('shows the operator inbox entry only when the server grants it to this account', async () => {
   screen = 'INBOX'; await render(); expect(actions('Otvori operaterski inbox')).toHaveLength(0);
@@ -242,4 +255,53 @@ it('renders a photo-only selected private message through case authorization wit
   const image = tree.root.findByType('AuthorizedPhoto' as React.ElementType).props;
   expect(image).toMatchObject({ assetId: K, caseId: C }); expect(image.agreementId).toBeUndefined(); expect(image.messageId).toBeUndefined();
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(text()).not.toContain(D);
+});
+// Round 5 (owner step 11b).
+it('Back with typed words asks first; keeping them keeps them, and an empty form leaves at once', async () => {
+  await render(); await type('Opis zahteva', 'Nesačuvan tekst');
+  await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
+  const sheet = tree.root.findByType(ConfirmSheet);
+  expect(sheet.props).toMatchObject({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.', confirmLabel: 'Odbaci',
+    cancelLabel: 'Nastavi pisanje', tone: 'danger' });
+  await act(async () => sheet.findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(field('Opis zahteva').value).toBe('Nesačuvan tekst');
+  expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockRouter.back).not.toHaveBeenCalled();
+  await type('Opis zahteva', '');
+  await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
+  expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+});
+it('the topics are one radio group: the chosen one is said as checked, never by a prefix', async () => {
+  await render();
+  expect(action('Tehnička pomoć')).toMatchObject({ kind: 'radio', selected: true });
+  await act(async () => action('Drugo').onPress());
+  expect(action('Drugo').selected).toBe(true); expect(action('Tehnička pomoć').selected).toBe(false);
+  expect(text()).not.toContain('Izabrano:');
+});
+it('an inbox row says what the request is about, its state and news in words, and keeps the number for the spoken label', async () => {
+  screen = 'INBOX';
+  mockService.inbox.mockResolvedValue(ok({ accountId: A, mode: 'OWN', operatorAvailable: false, authoritative: true, nextBeforeCaseNumber: null,
+    cases: [{ id: C, caseNumber: '71', channel: 'SERVICE', topic: 'TECHNICAL', status: 'WAITING_FOR_AUTHOR', revision: 2, lastSequence: '9',
+      createdAt: time, updatedAt: time, context: null, unread: true }] }));
+  await render();
+  const row = tree.root.findByProps({ topic: 'Tehnička pomoć' });
+  expect(row.props).toMatchObject({ status: 'WAITING_FOR_AUTHOR', unread: true, caseNumber: '71' });
+  const press = row.findByType('Press' as React.ElementType);
+  expect(press.props.accessibilityLabel).toMatch(/^Tehnička pomoć, Čeka tvoju dopunu, novo, .+, zahtev #71$/);
+  expect(text()).toContain('Čeka tvoju dopunu'); expect(text()).not.toContain('#71');
+  await act(async () => press.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/podrska/[id]', params: { id: C } });
+});
+it('a failed inbox read is one state with its own retry, not a second refresh below it', async () => {
+  screen = 'INBOX'; mockService.inbox.mockResolvedValue({ ok: false, poruka: 'Zahtevi trenutno nisu dostupni.' }); await render();
+  expect(text()).toContain('Zahtevi nisu učitani'); expect(text()).toContain('Zahtevi trenutno nisu dostupni.');
+  expect(actions('Osveži zahteve')).toHaveLength(1);
+  await act(async () => action('Osveži zahteve').onPress()); expect(mockService.inbox).toHaveBeenCalledTimes(2);
+});
+it('a decision stands where the thread is, with the appeal beside it and its limits said', async () => {
+  screen = 'DETAIL'; await render();
+  expect(text()).toContain('Odluka o zahtevu'); expect(text()).toContain('Zahtev je odbijen'); expect(text()).toContain('Pregledana odluka');
+  expect(text()).toContain('sama ne menja Zadatak, Dogovor, novčani iznos ili ocenu');
+  expect(actions('Zatraži ponovni pregled')).toHaveLength(1);
+  // The chrome names the case by its title; the number is under it.
+  expect(tree.root.findByProps({ variant: 'detail' }).props).toMatchObject({ title: 'Problem sa prikazom', subtitle: 'Zahtev #71' });
 });

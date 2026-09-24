@@ -24,8 +24,9 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
   const media = ['TASK', 'TASK_REVIEW', 'AGREEMENT_MESSAGE'].includes(snapshot.kind) && Array.isArray(content.media) ? content.media : [];
   const facts = snapshot.kind === 'TASK_REVIEW' && Array.isArray(content.publicFacts) ? content.publicFacts : [];
   const evaluation = record(content.evaluation);
-  return <View style={styles.row}><T variant="bodyStrong">{supportReferenceNames[snapshot.kind]}</T>
-    {snapshot.revision !== null ? <T variant="meta" tone="muted">Verzija {snapshot.revision}</T> : null}
+  // A block on the quiet wash, as a quoted thing: its name, when it was, and only the decoded words. The revision is
+  // machinery (it still travels with the reference); a person reads the name and the time.
+  return <View style={styles.summary}><T variant="bodyStrong">{supportReferenceNames[snapshot.kind]}</T>
     {typeof content.createdAt === 'string' ? <T variant="meta" tone="muted">{supportTime(content.createdAt)}</T> : null}
     {['title', 'description', 'body'].map(key => typeof content[key] === 'string' && content[key]
       ? <T key={key}>{content[key] as string}</T> : null)}

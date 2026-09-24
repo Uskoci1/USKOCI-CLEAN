@@ -3,16 +3,16 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 const mockPolicy = jest.fn(), mockExecution = jest.fn();
-const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), navigate: jest.fn() };
+const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), navigate: jest.fn(), push: jest.fn() };
 jest.mock('../retentionPolicyClientService', () => ({ retentionPolicyClientService: {
   readStatus: () => mockPolicy(), readExecutionStatus: () => mockExecution(),
 } }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) =>
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useRouter: () => mockRouter, useFocusEffect: (effect: () => void) =>
   require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
-  return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+  return ['View', 'ScrollView', 'ActivityIndicator', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
@@ -53,12 +53,12 @@ it('keeps unpublished retention explicit and opens closure through a separate re
   expect(texts()).toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
-    .toEqual(['Otvori izvoz', 'Pregledaj zatvaranje', 'Osveži stanje']);
+    .toEqual(['Osveži stanje', 'Izvoz podataka', 'Zatvaranje naloga']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
   expect(texts()).not.toContain('fixture duration');
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.onPress());
   for (const value of ['synthetic purpose', 'fixture duration', 'fixture trigger', 'fixture exception', 'fixture basis',
     'samo za napuštene AI razgovore', 'Ovo nije potvrda da je određeni razgovor obrisan']) expect(texts()).toContain(value);
   expect(texts()).not.toContain('P3_AI_ABANDONED_UNBOUND_V1'); expect(texts()).not.toContain('AI_VOLATILE');
@@ -67,8 +67,8 @@ it('opens one published rule at a time without turning the row into a data mutat
   const value = policy();
   value.rules.push({ ...value.rules[0], dataClass: 'PROFILE_DATA', retentionPeriod: 'second fixture duration' });
   mockPolicy.mockResolvedValue(ok(value)); await render();
-  const first = () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' });
-  const second = () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: Podaci profila' });
+  const first = () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' });
+  const second = () => tree.root.findByProps({ accessibilityLabel: 'Podaci profila' });
   expect(first().props.accessibilityState.expanded).toBe(false);
   await act(async () => first().props.onPress());
   expect(first().props.accessibilityState.expanded).toBe(true);
@@ -81,7 +81,7 @@ it('opens one published rule at a time without turning the row into a data mutat
 });
 it('does not carry expanded legal content across a newly read policy version', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); await render();
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.onPress());
   expect(texts()).toContain('fixture duration');
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
   await act(async () => button('Osveži stanje').onPress());
@@ -97,18 +97,18 @@ it.each(['policy', 'execution'])('keeps the other reader usable after %s fails w
   (failed === 'policy' ? mockPolicy : mockExecution).mockRejectedValueOnce(new Error('private transport diagnostic'));
   await render(); expect(texts()).not.toContain('private transport'); expect(texts()).not.toContain('brisanje je omogućeno');
   if (failed === 'execution') {
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Rokovi: AI razgovori i izdvojeni podaci' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.onPress());
     expect(texts()).toContain('fixture duration');
   }
   await act(async () => button('Osveži stanje').onPress());
   expect(mockPolicy).toHaveBeenCalledTimes(2); expect(mockExecution).toHaveBeenCalledTimes(2);
 });
 it('opens existing export once after an explicit double tap', async () => {
-  await render(); const open = button('Otvori izvoz').onPress;
+  await render(); const open = button('Izvoz podataka').onPress;
   await act(async () => { open(); open(); }); expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
 });
 it.each(['account', 'incarnation', 'blur'])('retires retained navigation after %s changes', async change => {
-  await render(); const open = button('Otvori izvoz').onPress;
+  await render(); const open = button('Izvoz podataka').onPress;
   if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
   else { mockFocused = false; await update(); mockFocused = true; await update(); }
@@ -116,7 +116,7 @@ it.each(['account', 'incarnation', 'blur'])('retires retained navigation after %
 });
 // Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
 it('a flip of the retired app mode retires nothing: retained navigation still opens the export', async () => {
-  await render(); const open = button('Otvori izvoz').onPress; mockIntent = 'uskocer';
+  await render(); const open = button('Izvoz podataka').onPress; mockIntent = 'uskocer';
   await act(async () => open()); expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
 });
 it.each(['account', 'blur'])('discards late schedule success after %s changes', async change => {
@@ -132,4 +132,26 @@ it.each([true, false])('returns through available history %s or Profile fallback
   await act(async () => { back(); back(); });
   expect(mockRouter.back).toHaveBeenCalledTimes(history ? 1 : 0);
   expect(mockRouter.replace.mock.calls).toEqual(history ? [] : [['/profil']]);
+});
+// Round 5: closure is a quiet row that opens the flow over this screen (the Modal host; a route of its own needs the
+// tab layout). It opens once for a double tap and never from a retained press of an old account, incarnation or focus.
+it('opens the closure flow once after an explicit double tap', async () => {
+  await render(); const open = button('Zatvaranje naloga').onPress;
+  await act(async () => { open(); open(); });
+  expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(1);
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+it.each(['account', 'incarnation', 'blur'])('retires a retained closure entry after %s changes', async change => {
+  await render(); const open = button('Zatvaranje naloga').onPress;
+  if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
+  else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
+  else { mockFocused = false; await update(); mockFocused = true; await update(); }
+  await act(async () => open());
+  expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+});
+it('keeps the unpublished and failed retention states off the green confirmation tint', async () => {
+  mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
+  expect(texts()).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+  const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert');
+  expect(alert.map(node => node.props.children)).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
 });

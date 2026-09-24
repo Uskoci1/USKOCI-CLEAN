@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { DownloadSimple } from 'phosphor-react-native';
 import type { DataExportFile, DataExportPreparation, DataExportStatus } from '../../../contracts/dataExport';
@@ -11,22 +10,11 @@ import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { sys } from '../../../ui/system/tokens';
-import { SettingsText as T, SettingsScreen, SettingsIntro, SettingsPanel, SettingsAction as Button, settingsStyles as styles } from '../../../ui/settings/SettingsPresentation';
-import { SkeletonList } from '../../../ui/system/Skeleton';
-import { vreme } from '../../../lib/vreme';
-import { FactArt } from '../../../ui/system/FactArt';
+import { SettingsAction as Button } from '../../../ui/settings/SettingsPresentation';
+import { ExportScreenView, type NoticeTone } from '../../../ui/privacy/ExportPresentation';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 
-const preparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
-  POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
-  BUSY: 'Kopija se priprema. Proveri stanje kasnije.',
-  RETRY_REQUIRED: 'Priprema nije završena. Proveri stanje pa probaj ponovo.',
-  NOT_AVAILABLE: 'Ova kopija trenutno nije dostupna. Proveri stanje zahteva.',
-};
 type Snapshot = { status: DataExportStatus; preparation: DataExportPreparation | null };
-/** A file size as a person reads it, never in bytes (forensic analysis: no technical text): "12 KB", "1,4 MB". */
-const sizeLabel = (count: number) => count < 1024 ? 'manje od 1 KB' : count < 1024 * 1024 ? `${Math.round(count / 1024)} KB`
-  : `${(count / (1024 * 1024)).toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 })} MB`;
 const changed = () => failure('EXPORT_SCOPE_CHANGED', 'Ponovo otvori izvoz podataka.');
 
 export default function IzvozPodataka() {
@@ -39,7 +27,9 @@ function OwnedExport() {
   const latestIdentity = useRef(identity); latestIdentity.current = identity;
   const focus = useRef<object | null>(null), navigating = useRef(false), dialog = useRef<object | null>(null);
   const download = useRef<AbortController | null>(null), pendingKey = useRef<string | null>(null);
-  const [savingFile, setSavingFile] = useState(false), [notice, setNotice] = useState<string | null>(null);
+  const [savingFile, setSavingFile] = useState(false), [notice, setNoticeState] = useState<{ text: string; tone: NoticeTone } | null>(null);
+  // The words are the screen's own; the tone says whether it went through (green), failed (danger) or only happened (ink).
+  const setNotice = (text: string | null, tone: NoticeTone = 'ink') => setNoticeState(text === null ? null : { text, tone });
   // Which of the footer's own writes is in flight, so that button shows it is working while every other one waits grey.
   const [working, setWorking] = useState<'request' | 'prepare' | null>(null);
   const [fileReadbackRequired, setFileReadbackRequired] = useState(false);
@@ -104,7 +94,7 @@ function OwnedExport() {
         const result = await exports.requestExport(key);
         if (!current()) return changed(); if (!result.ok) return result;
         if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
-        pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.'); return read();
+        pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.', 'success'); return read();
       });
     } finally { if (started) setWorking(null); }
   };
@@ -118,7 +108,7 @@ function OwnedExport() {
         if (!current()) return changed(); if (!result.ok) return result;
         if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Osveži stanje.');
         if (result.podatak.kind === 'NOT_READY') return { ok: true, podatak: { ...editor.data!, preparation: result.podatak } };
-        setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.');
+        setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.', 'success');
         return read();
       });
     } finally { if (started) setWorking(null); }
@@ -129,7 +119,7 @@ function OwnedExport() {
       await editor.save(async () => { const result = await exports.cancelExport(request.receiptId);
         if (!current()) return changed(); if (!result.ok) return result;
         if (!sameId(result.podatak.receiptId, request.receiptId) || result.podatak.status !== 'CANCELLED') return changed();
-        setNotice('Zahtev je otkazan.'); return read(); });
+        setNotice('Zahtev je otkazan.', 'success'); return read(); });
     });
   };
   const revoke = () => {
@@ -138,7 +128,7 @@ function OwnedExport() {
       await editor.save(async () => { const result = await exports.revokeExport(request.receiptId);
         if (!current()) return changed(); if (!result.ok) return result;
         if (!sameId(result.podatak.receiptId, request.receiptId) || result.podatak.revoked !== true) return changed();
-        setNotice('Preuzimanje kopije je opozvano.'); return read(); });
+        setNotice('Preuzimanje kopije je opozvano.', 'success'); return read(); });
     });
   };
   const saveFile = async () => {
@@ -149,11 +139,11 @@ function OwnedExport() {
     try {
       const result = await exports.downloadExport({ receiptId: request.receiptId, artifactGeneration: artifact.artifactGeneration }, controller.signal);
       if (!ownedDownload()) { if (result.ok) result.podatak.bytes.fill(0); return; }
-      if (!result.ok) { requireFileReadback(true); setNotice(result.poruka); return; }
+      if (!result.ok) { requireFileReadback(true); setNotice(result.poruka, 'danger'); return; }
       bytes = result.podatak;
       if (!sameId(bytes.receiptId, request.receiptId) || !sameId(bytes.artifactGeneration, artifact.artifactGeneration)
         || bytes.byteLength !== artifact.byteLength || bytes.sha256 !== artifact.sha256 || bytes.md5 !== artifact.md5) {
-        requireFileReadback(true); setNotice('Preuzeta kopija nije potvrđena. Osveži stanje.'); return;
+        requireFileReadback(true); setNotice('Preuzeta kopija nije potvrđena. Osveži stanje.', 'danger'); return;
       }
       const saved = await saveDataExportFile({ artifact: bytes, isCurrent: ownedDownload, signal: controller.signal });
       if (!ownedDownload()) return;
@@ -165,17 +155,11 @@ function OwnedExport() {
                 : saved.status === 'FAILED' && saved.code === 'EXISTS' ? 'Ova kopija već postoji u izabranoj fascikli. Izaberi drugu fasciklu.'
                   : saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED' ? 'Čuvanje nije potvrđeno. U izabranoj fascikli može biti nepotpun fajl.'
                     : 'Čuvanje nije potvrđeno. Proveri stanje pa probaj ponovo.';
-      setNotice(copy);
-    } catch { if (ownedDownload()) { requireFileReadback(true); setNotice('Preuzimanje nije potvrđeno. Proveri vezu pa probaj ponovo.'); } }
+      setNotice(copy, saved.status === 'SAVED' ? 'success'
+        : saved.status === 'DOWNLOAD_STARTED' || saved.status === 'CANCELLED' || saved.status === 'BUSY' ? 'ink' : 'danger');
+    } catch { if (ownedDownload()) { requireFileReadback(true); setNotice('Preuzimanje nije potvrđeno. Proveri vezu pa probaj ponovo.', 'danger'); } }
     finally { bytes?.bytes.fill(0); if (download.current === controller) { download.current = null; if (current()) setSavingFile(false); } }
   };
-  const step = (label: string, copy: string, active: boolean) => <View key={label}
-    style={[styles.step, { backgroundColor: active ? sys.color.greenSoft : 'transparent' }]}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: active ? sys.color.green : sys.color.muted }} />
-      <T variant="bodyStrong">{label}</T>
-    </View><T variant="meta" tone="muted" style={{ paddingLeft: 16 }}>{copy}</T>
-  </View>;
   const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
   const primary = readyView ? available
     // The button whose own write is in flight shows it is working (spinner, its green kept); the others wait grey.
@@ -190,35 +174,10 @@ function OwnedExport() {
           : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
         loading={editor.busy && working === 'request'} onPress={() => { void requestExport(); }} />
     : null;
-  return <><SettingsScreen title="Izvoz podataka" onBack={back} footer={primary}>
-    <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
-    {editor.loading ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
-      : editor.error || !status || fileReadbackRequired ? <SettingsPanel soft>
-        <T accessibilityRole="alert">{editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.')}</T>
-        <Button label="Osveži stanje" onPress={refresh} disabled={editor.busy} />
-      </SettingsPanel> : <>
-        <SettingsPanel soft>
-          {step('Zahtev', request?.status === 'CANCELLED' ? 'Zahtev je otkazan.' : request ? 'Zahtev je zabeležen na tvom nalogu.' : 'Kopija podataka tvog naloga.', !!request)}
-          {step('Priprema kopije', request?.status === 'PROCESSING' ? 'Kopija se priprema.' : request?.status === 'FAILED'
-            ? 'Priprema nije završena.' : request?.status === 'READY' ? 'Obrada je završena.' : 'Priprema počinje nakon tvog zahteva.', request?.status === 'PROCESSING' || available)}
-          {step('Preuzimanje', available ? 'Kopija je dostupna. Izaberi fasciklu za čuvanje.' : request?.status === 'EXPIRED' || (artifact && expires <= Date.now())
-            ? 'Dostupnost kopije je istekla.' : 'Dostupno kada stvarna kopija bude spremna.', available)}
-        </SettingsPanel>
-        {editor.data?.preparation?.kind === 'NOT_READY' ? <SettingsPanel><T accessibilityRole="alert" tone="muted">{
-          preparationCopy[editor.data.preparation.code ?? 'NOT_AVAILABLE']}</T></SettingsPanel> : null}
-        {available && artifact ? <SettingsPanel>
-          <T variant="meta">Dostupno do {vreme(expires)}.</T>
-          <T variant="meta" tone="muted">Datoteka JSON · {sizeLabel(artifact.byteLength)}</T>
-        </SettingsPanel> : null}
-        <View style={styles.notice}>
-          <FactArt kind="shield" size={22} /><T variant="meta" tone="muted" style={{ flex: 1 }}>Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</T>
-        </View>
-        <View style={{ gap: 8, marginTop: 16 }}>
-          {request?.status === 'REQUESTED' ? <Button label="Otkaži zahtev" kind="quiet" disabled={busy} onPress={cancelRequest} /> : null}
-          {request?.status === 'READY' && artifact ? <Button label="Opozovi kopiju" kind="quiet" disabled={busy} onPress={revoke} /> : null}
-          <Button label="Osveži stanje" kind="quiet" disabled={busy} onPress={refresh} />
-        </View>
-      </>}
-    {notice ? <View style={{ marginTop: 16 }}><T accessibilityLiveRegion="polite">{notice}</T></View> : null}
-  </SettingsScreen>{confirmSheet.sheet}</>;
+  const failed = editor.error || !status || fileReadbackRequired;
+  return <><ExportScreenView onBack={back} loading={editor.loading} status={status ?? null} preparation={editor.data?.preparation ?? null}
+    failure={editor.loading || !failed ? null : { title: fileReadbackRequired ? 'Proveri stanje izvoza' : 'Stanje izvoza nije učitano',
+      body: editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.') }}
+    now={Date.now()} busy={busy} notice={notice} primary={primary}
+    onCancel={cancelRequest} onRevoke={revoke} onRefresh={refresh} refreshDisabled={editor.busy} />{confirmSheet.sheet}</>;
 }

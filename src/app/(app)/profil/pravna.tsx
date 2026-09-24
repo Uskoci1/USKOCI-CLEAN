@@ -1,20 +1,16 @@
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { LegalDocument } from '../../../contracts/legal';
-import type { ProcessorLegalRole } from '../../../contracts/processorMap';
 import { legalClientService } from '../../../data/legalClientService';
 import { processorMapClientService } from '../../../data/processorMapClientService';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 
-import { LegalDocumentRows } from '../../../ui/legal/LegalDocuments';
+import { LegalReviewView } from '../../../ui/legal/LegalDocuments';
 import { LegalReviewController, legalHttpsUrl, reviewedDocuments, sessionLegalIntentJournal } from '../../../ui/legal/legalReview';
-import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsScreen, SettingsText as T } from '../../../ui/settings/SettingsPresentation';
-import { sys } from '../../../ui/system/tokens';
-import { SkeletonList } from '../../../ui/system/Skeleton';
+import { SettingsAction } from '../../../ui/settings/SettingsPresentation';
 
-const roles: Record<ProcessorLegalRole, string> = { PROCESSOR: 'Obrađivač', SUBPROCESSOR: 'Podobrađivač', INDEPENDENT_CONTROLLER: 'Samostalni rukovalac' };
 export default function PravnaDokumenta() {
   const { user, accountRevision } = useSesija();
   return <OwnedLegal key={`${user?.id ?? ''}:${accountRevision}`} />;
@@ -50,33 +46,21 @@ function OwnedLegal() {
   const documents = reviewedDocuments(state.bundle);
   const receiptCurrent = state.receipt && documents && documents[0].sha256 === state.receipt.termsSha256 && documents[1].sha256 === state.receipt.privacySha256;
   const confirmed = state.bundle?.acceptedCurrentBundle || !!receiptCurrent;
-  const action = state.pending ? <SettingsAction label={state.busy ? 'Provera je u toku…' : state.pending === 'READ_REQUIRED' ? 'Proveri ishod prihvatanja' : 'Ponovi isto prihvatanje'}
-    disabled={state.busy || state.loading} onPress={() => { if (!current()) return; void (state.pending === 'READ_REQUIRED' ? controller.readOutcome() : controller.accept(state.bundle)); }} />
-    : documents && !confirmed ? <SettingsAction label={state.busy ? 'Beleženje prihvatanja…' : 'Prihvati pregledane dokumente'} disabled={state.busy || state.loading}
-      onPress={() => { if (current()) void controller.accept(state.bundle); }} /> : null;
-  return <SettingsScreen title="Pravna dokumenta" onBack={back} footer={action}>
-    <SettingsIntro>Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
-    {state.loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
-      <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} />
-      {confirmed ? <SettingsPanel soft><T accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></SettingsPanel>
-        : state.receipt ? <SettingsPanel soft><T>Prethodno prihvatanje je potvrđeno. Učitaj aktuelne dokumente ponovo.</T></SettingsPanel> : null}
-      <SettingsGroup title="Obrađivači podataka">
-        {state.processors?.ready ? <SettingsInfo title={`Mapa obrade · ${state.processors.mapVersion}`} last>Podaci iz objavljene mape obrade.</SettingsInfo>
-          : <SettingsInfo title={state.processorError ? 'Podaci o obrađivačima nisu dostupni' : 'Mapa obrade još nije objavljena'} last>{state.processorError ?? 'Podaci će biti dostupni kada bude objavljena potpuna mapa obrade.'}</SettingsInfo>}
-      </SettingsGroup>
-      {state.processors?.ready ? state.processors.providers.map(provider => <SettingsPanel soft key={provider.providerCode}>
-        <T variant="heading" accessibilityRole="header">{provider.providerDisplayName}</T>
-        <T variant="meta" tone="muted">{provider.legalEntityName} · {roles[provider.legalRole]}</T>
-        {[
-          ['Svrha obrade', provider.purpose], ['Podaci koji se obrađuju', provider.dataCategories.join(', ')],
-          ['Regioni obrade', provider.processingRegions], ['Prenos podataka', provider.crossBorderTransfer ? provider.transferMechanism : 'Bez međunarodnog prenosa prema objavljenoj mapi.'],
-          ['Čuvanje i brisanje', provider.retentionDeletionTerms], ['Podobrađivači', provider.subprocessorTerms],
-          ['Osnov obrade', provider.legalBasisReference], ['Ugovor o obradi', provider.dpaReference],
-        ].filter(([, value]) => !!value).map(([title, value]) => <View key={title} style={{ gap: 3 }}><T variant="bodyStrong">{title}</T><T variant="meta" tone="muted">{value}</T></View>)}
-        <SettingsAction label={`Obaveštenje o privatnosti · ${provider.providerDisplayName}`} kind="quiet" onPress={() => { void openUrl(provider.privacyNoticeUrl); }} />
-      </SettingsPanel>) : null}
-      <SettingsAction label="Osveži stanje" kind="quiet" disabled={state.busy} onPress={() => { if (current()) void controller.refresh(); }} />
-    </>}
-    {state.error || linkError ? <SettingsPanel><T accessibilityRole="alert" accessibilityLiveRegion="polite">{linkError ?? state.error}</T></SettingsPanel> : null}
-  </SettingsScreen>;
+  // The pressed command keeps its words while it runs, with a spinner: an acceptance in flight already counts as one to
+  // read back (the controller marks it so before the write), and must not read "Proveri ishod" while it is still sending.
+  const [working, setWorking] = useState<'accept' | 'read' | 'replay' | null>(null);
+  const press = (kind: 'accept' | 'read' | 'replay', command: () => Promise<void>) => {
+    setWorking(kind); void command().finally(() => setWorking(value => value === kind ? null : value));
+  };
+  const shown = state.busy ? working : null;
+  const action = state.pending ? <SettingsAction label={shown === 'accept' ? 'Prihvati pregledane dokumente' : shown === 'read' ? 'Proveri ishod prihvatanja'
+    : shown === 'replay' ? 'Ponovi isto prihvatanje' : state.pending === 'READ_REQUIRED' ? 'Proveri ishod prihvatanja' : 'Ponovi isto prihvatanje'}
+    loading={state.busy} disabled={state.busy || state.loading}
+    onPress={() => { if (!current()) return; if (state.pending === 'READ_REQUIRED') press('read', () => controller.readOutcome());
+      else press('replay', () => controller.accept(state.bundle)); }} />
+    : documents && !confirmed ? <SettingsAction label="Prihvati pregledane dokumente" loading={state.busy} disabled={state.busy || state.loading}
+      onPress={() => { if (current()) press('accept', () => controller.accept(state.bundle)); }} /> : null;
+  return <LegalReviewView state={state} onBack={back} action={action} linkError={linkError}
+    onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} onOpenUrl={url => { void openUrl(url); }}
+    onRefresh={() => { if (current()) void controller.refresh(); }} />;
 }

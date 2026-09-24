@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { supportCaseClientService } from '../../data/supportCaseClientService';
 import type { SupportReference } from '../../data/supportCaseTypes';
 import { sesijaSada, useSesija } from '../../store/sesija';
 
-import { SettingsAction, SettingsPanel, SettingsText as T } from '../settings/SettingsPresentation';
+import { ProductSheet } from '../product/ProductSheet';
+import { SettingsAction, SettingsText as T } from '../settings/SettingsPresentation';
+import { inset, sys } from '../system/tokens';
 
 /** An explicit read opens an owned existing case or a new unsent form.
  * The route contains only an opaque reference, never a narrative or snapshot. */
@@ -48,7 +50,8 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
       if (!current() || lock.current !== operation) return;
       if (!result.ok) { setError(result.poruka); return; }
       const target = result.podatak.caseId;
-      focus.current = null;
+      // The preview sheet is a window over the conversation: it goes with this lease, before the next screen opens.
+      focus.current = null; selection.current = null; setSelected(false);
       navigate(() => target ? router.push({ pathname: '/podrska/[id]', params: { id: target } })
         : router.push({ pathname: '/podrska/novi', params: { contextKind: bound.kind, contextId: bound.id,
           ...(bound.revision !== null ? { contextRevision: String(bound.revision) } : {}) } }));
@@ -58,18 +61,41 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
     // the rejected result or updating another account/focus/context.
     finally { if (lock.current === operation) { lock.current = null; if (ownLease()) setBusy(false); } }
   };
+  const cancelSelection = () => { if (canSelect() && !lock.current) { selection.current = null; setSelected(false); } };
+  const previewing = selectedForView && previewText !== undefined;
   return <>
     {!selectedForView ? <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : label} kind="quiet" disabled={disabled || busy || !previewValid}
       onPress={() => { if (!canSelect() || lock.current) return; if (previewText !== undefined && renderedFocus) {
         selection.current = { focus: renderedFocus, view, accountId, accountRevision }; setSelected(true);
       } else void open(); }} /> : null}
-    {selectedForView && previewText !== undefined ? <SettingsPanel soft><T variant="heading">Izabrana poruka za privatnu podršku</T>
-      <T selectable>{previewText}</T><T variant="meta" tone="muted">Uz privatni zahtev prilažeš samo ovu poruku. Ostatak razgovora se ne kopira i druga strana ne dobija zahtev.</T>
-      <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : 'Nastavi sa izabranom porukom'} disabled={disabled || busy}
-        onPress={() => { void open(); }} />
-      <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy}
-        onPress={() => { if (canSelect() && !lock.current) { selection.current = null; setSelected(false); } }} />
-    </SettingsPanel> : null}
-    {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
+    {previewing && previewText !== undefined ? <SupportMessagePreviewSheet previewText={previewText} busy={busy} disabled={disabled} error={error}
+      onContinue={() => { void open(); }} onCancel={cancelSelection} /> : null}
+    {error && !previewing ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
   </>;
 }
+
+/**
+ * The chosen message, before it is attached: shown in a sheet over the conversation, not unfolded inside it, so the thread
+ * does not jump and no primary button stands among the messages. Every way out (the quiet button, the X, Back, a tap
+ * outside) ends in `onCancel` once the sheet has closed. Presentation only; the entry above owns every fence.
+ */
+export function SupportMessagePreviewSheet({ previewText, busy, disabled, error, onContinue, onCancel }: {
+  previewText: string; busy: boolean; disabled: boolean; error: string | null; onContinue: () => void; onCancel: () => void;
+}) {
+  return <ProductSheet title="Izabrana poruka za privatnu podršku" closeLabel="Odustani od izbora poruke" dismissible={!busy} onClose={onCancel}
+    footer={dismiss => <>
+      <SettingsAction label={busy ? 'Proveravamo prethodni zahtev…' : 'Nastavi sa izabranom porukom'} disabled={disabled || busy} onPress={onContinue} />
+      <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
+    </>}>
+    {() => <View style={styles.preview}>
+      <View style={styles.quote}><T selectable>{previewText}</T></View>
+      <T variant="note" tone="muted">Uz privatni zahtev prilažeš samo ovu poruku. Ostatak razgovora se ne kopira i druga strana ne dobija zahtev.</T>
+      {error ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
+    </View>}
+  </ProductSheet>;
+}
+
+const styles = StyleSheet.create({
+  preview: { gap: sys.space.md },
+  quote: { ...inset, backgroundColor: sys.color.wash },
+});

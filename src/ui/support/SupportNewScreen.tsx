@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { agreementClientService } from '../../data/agreementClientService';
 import type { SupportPayloads, SupportReference, SupportTopic } from '../../data/supportCaseTypes';
 import { positiveInteger, uuid } from '../../data/serverReceipt';
-import { SettingsAction, SettingsGroup, SettingsIntro, SettingsPanel, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
-import { SupportField, SupportFrame, SupportLoading, SupportNotice, SupportPrivacy, supportLabel } from './SupportPresentation';
+import { ProductSheet } from '../product/ProductSheet';
+import { SettingsAction, SettingsGroup, SettingsIntro, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
+import { useConfirmSheet } from '../system/ConfirmSheet';
+import { FactArt, type FactArtKind } from '../system/FactArt';
+import { StateView } from '../system/StateView';
+import { SuccessMark } from '../system/SuccessMark';
+import { sys } from '../system/tokens';
+import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
 import { useSupportController } from './useSupportController';
 
@@ -24,24 +31,58 @@ export function supportRouteReference(params: { contextKind?: unknown; contextId
 const channel = (topic: SupportTopic): SupportPayloads['CREATE']['channel'] =>
   ['COLLABORATION', 'NO_SHOW', 'PUBLICATION_REVIEW'].includes(topic) ? 'TASK'
     : ['CONTENT_NOTICE', 'PRIVACY_RIGHTS'].includes(topic) ? 'LEGAL_PRIVACY' : 'SERVICE';
+const PAGE = 50;
+type ReadAgreements = () => Promise<DogovorProjekcija[]>;
+
 export function SupportNewScreen({ reference }: { reference: SupportReference | null | 'INVALID' }) {
-  const model = useSupportController({ type: 'NEW' }), { state, navigate } = model;
-  return <SupportFrame title="Novi zahtev" onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'))}>
-    <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
-    <SupportPrivacy />
-    <SupportRecoveryPanel model={model} />
-    {state.message ? <SupportNotice error={state.phase === 'ERROR'}>{state.message}</SupportNotice> : null}
-    {state.phase === 'LOADING' ? <SupportLoading /> : null}
-    {reference === 'INVALID'
-      ? <SupportNotice error>Kontekst zahteva nije ispravan. Ponovo otvori podršku iz Zadatka ili Dogovora.</SupportNotice>
-      : state.receipt || !model.focused ? null : <NewContents
-        key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}`}
-        model={model} initialReference={reference} />}
-    {state.capabilities && !state.capabilities.canCreate ? <SupportNotice>Novi zahtev trenutno nije dostupan ovom nalogu. Sačuvane zahteve možeš ponovo da proveriš iz podrške.</SupportNotice> : null}
-    {state.phase === 'ERROR' ? <SettingsAction label="Proveri dostupnost" kind="quiet" onPress={() => { if (model.current()) void model.controller?.load(); }} /> : null}
-  </SupportFrame>;
+  const model = useSupportController({ type: 'NEW' });
+  return <SupportNewView model={model} reference={reference} />;
 }
-function NewContents({ model, initialReference }: { model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null }) {
+
+/**
+ * Novi zahtev (round 5, owner step 11b): a topic chosen like a radio, the context it came from as an attachment, the
+ * words, and the send pinned in the footer with the reason it is grey. The words live only in memory, so Back with typed
+ * words asks first. Presentation over the controller: every command, fence and payload is unchanged.
+ */
+export function SupportNewView({ model, reference, readAgreements = () => agreementClientService.mojiDogovori() }: {
+  model: ReturnType<typeof useSupportController>; reference: SupportReference | null | 'INVALID';
+  /** Where the person's own Dogovori come from (the gallery hands in fixtures). */ readAgreements?: ReadAgreements;
+}) {
+  const { state, navigate } = model;
+  const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'));
+  const busy = state.phase === 'LOADING' || state.phase === 'SENDING';
+  if (reference === 'INVALID') return <SupportFrame title="Novi zahtev" onBack={back}>
+    <StateView kind="error" title="Kontekst zahteva nije ispravan" body="Ponovo otvori podršku iz Zadatka ili Dogovora."
+      primary={{ label: 'Otvori podršku', onPress: () => navigate(() => router.replace('/podrska')) }} />
+  </SupportFrame>;
+  if (state.receipt) {
+    const receipt = state.receipt;
+    return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvori potvrđeni predmet" disabled={busy}
+      onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: receipt.caseId } }))} />}>
+      <View style={s.receipt}>
+        <SuccessMark fresh size={64} />
+        <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">{`Potvrđen zahtev #${receipt.caseNumber}`}</T>
+        <T variant="note" tone="muted">{`Primljeno: ${supportTime(receipt.createdAt)}`}</T>
+      </View>
+    </SupportFrame>;
+  }
+  if (state.capabilities && !state.capabilities.canCreate) return <SupportFrame title="Novi zahtev" onBack={back}>
+    <SupportRecoveryPanel model={model} receipt={false} />
+    <StateView kind="empty" art="info" title="Novi zahtev trenutno nije dostupan ovom nalogu."
+      body="Sačuvane zahteve možeš ponovo da proveriš iz podrške." />
+  </SupportFrame>;
+  if (!model.focused) return <SupportFrame title="Novi zahtev" onBack={back}><SupportLoading /></SupportFrame>;
+  return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}`}
+    model={model} initialReference={reference} readAgreements={readAgreements} back={back} />;
+}
+
+function Attachment({ art, label, last }: { art: FactArtKind; label: string; last: boolean }) {
+  return <View style={[s.attachment, !last && s.line]}><FactArt kind={art} size={26} /><T variant="bodyStrong" style={s.grow}>{label}</T></View>;
+}
+
+function NewContents({ model, initialReference, readAgreements, back }: {
+  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; readAgreements: ReadAgreements; back: () => void;
+}) {
   const { state, current: parentCurrent, controller, navigate } = model;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -55,6 +96,7 @@ function NewContents({ model, initialReference }: { model: ReturnType<typeof use
   const [title, setTitle] = useState(''), [body, setBody] = useState(''), [desired, setDesired] = useState('');
   const [choices, setChoices] = useState<DogovorProjekcija[] | null>(null), [choosing, setChoosing] = useState(false), [choiceError, setChoiceError] = useState('');
   const [choicePage, setChoicePage] = useState(0);
+  const confirm = useConfirmSheet();
   const disabled = state.phase !== 'READY' || !state.capabilities?.canCreate || !!state.pending || choosing;
   const draftView = useMemo(() => ({}), [topic, context, title, body, desired, disabled, selectedEvidence]);
   const latestDraft = useRef(draftView); latestDraft.current = draftView;
@@ -62,69 +104,118 @@ function NewContents({ model, initialReference }: { model: ReturnType<typeof use
   const valid = !!title.trim() && Array.from(title).length <= 200 && !!body.trim() && Array.from(body).length <= 4000
     && Array.from(desired).length <= 1000 && (!requiresAgreement || context?.kind === 'AGREEMENT')
     && (topic !== 'PUBLICATION_REVIEW' || context?.kind === 'TASK_REVIEW');
-  // The send button is grey until the form is complete; the line under it says what is still missing.
+  // The send button is grey until the form is complete; its reason says what is still missing.
   const missing = disabled || valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
     : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o Zadatku.'
       : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
+  const dirty = !!title || !!body || !!desired;
+  // While the screen reads, an untouched form waits behind a placeholder; typed words stay in sight (and in memory).
+  const hideForm = (state.phase === 'LOADING' || state.phase === 'ERROR') && !dirty && !state.pending;
   async function loadAgreements() {
     if (!current() || disabled) return;
     setChoosing(true); setChoiceError('');
-    try { const result = await agreementClientService.mojiDogovori();
+    try { const result = await readAgreements();
       if (!current()) return;
       setChoices(result.filter(item => uuid(item.id) && positiveInteger(item.verzija))); setChoicePage(0);
     } catch { if (current()) setChoiceError('Dogovori nisu učitani. Pokušaj ponovo.'); }
     finally { if (current()) setChoosing(false); }
   }
-  return <>
-    <SettingsGroup title="Tema zahteva">{(initialReference?.kind === 'TASK_REVIEW' ? ['PUBLICATION_REVIEW' as const, ...topics] : topics).map((value, index, all) =>
-      <SettingsRow key={value} label={`${topic === value ? 'Izabrano: ' : ''}${supportLabel(value)}`} last={index === all.length - 1} disabled={disabled}
-        onPress={() => { if (current() && !disabled) { setTopic(value); setChoices(null);
-          if ((value === 'COLLABORATION' || value === 'NO_SHOW') && context?.kind !== 'AGREEMENT') setContext(null);
-          else if (value === 'PUBLICATION_REVIEW') setContext(initialReference); } }} />)}</SettingsGroup>
-    {requiresAgreement ? <SettingsPanel><T variant="bodyStrong">Dogovor na koji se zahtev odnosi</T>
-      <T variant="meta" tone="muted">Operater dobija označeni Dogovor i nužan kontekst. Privatni razgovor se ne kopira automatski.</T>
-      {context?.kind === 'AGREEMENT' ? <T>{contextTitle ?? 'Izabran Dogovor'}, verzija {context.revision}.</T> : <T>Izaberi jedan od svojih Dogovora.</T>}
-      <SettingsAction label={choosing ? 'Učitavamo Dogovore…' : 'Izaberi Dogovor'} kind="quiet" disabled={disabled} onPress={() => { void loadAgreements(); }} />
-      {choiceError ? <T accessibilityRole="alert" tone="danger">{choiceError}</T> : null}
-      {choices ? choices.length ? <SettingsGroup title="Tvoji Dogovori">
-        {choices.slice(choicePage * 50, (choicePage + 1) * 50).map((item, index, all) => <SettingsRow key={item.id}
-          label={item.naslov || 'Dogovor'} detail={`Verzija ${item.verzija}`} last={index === all.length - 1} disabled={disabled}
+  // The words exist only in memory: leaving with some asks first. An unsent form with nothing typed leaves at once.
+  const leave = () => {
+    if (!current()) return;
+    if (dirty && state.phase === 'READY' && !state.pending) confirm.ask({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.',
+      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: back });
+    else back();
+  };
+  const send = () => { if (current() && latestDraft.current === draftView && !disabled && valid) void controller?.submit('CREATE', {
+    channel: channel(topic), topic, title, body, desiredOutcome: desired.trim() ? desired : null, context,
+    evidence: selectedEvidence ? [selectedEvidence] : [],
+  }, state); };
+  const contextName = (kind: SupportReference['kind']) => kind === 'TASK_REVIEW' ? 'Pregledana odluka o Zadatku' : kind === 'TASK' ? 'Izabrani Zadatak'
+    : kind === 'AGREEMENT_MESSAGE' ? 'Izabrana poruka iz Dogovora' : kind === 'GROUP_MESSAGE' ? 'Izabrana grupna poruka' : 'Namerno izabrana referenca';
+  const sameAsEvidence = !!context && !!selectedEvidence && context.kind === selectedEvidence.kind && context.id === selectedEvidence.id;
+  const showContext = !requiresAgreement && !!context && !sameAsEvidence;
+  const page = choices?.slice(choicePage * PAGE, (choicePage + 1) * PAGE) ?? [];
+  return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
+    : <SettingsAction label="Pošalji privatni zahtev" loading={state.phase === 'SENDING'} disabled={disabled || !valid} reason={missing} onPress={send} />}>
+    <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
+    <SupportRecoveryPanel model={model} receipt={false} />
+    {state.phase === 'LOADING' && hideForm ? <SupportLoading />
+      : state.phase === 'ERROR' && hideForm ? <StateView kind="error" title="Stanje zahteva nije učitano" body={state.message ?? undefined}
+        quiet={{ label: 'Proveri dostupnost', onPress: () => { if (model.current()) void controller?.load(); } }} />
+      : state.phase === 'ERROR' ? <>
+        {state.message ? <SupportNote tone="danger">{state.message}</SupportNote> : null}
+        <SettingsAction label="Proveri dostupnost" kind="quiet" onPress={() => { if (model.current()) void controller?.load(); }} />
+      </> : state.message ? <SupportNote>{state.message}</SupportNote> : null}
+    <View style={hideForm ? s.hidden : s.form}>
+      <SupportPrivacy />
+      <SettingsGroup title="Tema zahteva">{(initialReference?.kind === 'TASK_REVIEW' ? ['PUBLICATION_REVIEW' as const, ...topics] : topics).map((value, index, all) =>
+        <SupportChoiceRow key={value} kind="radio" label={supportLabel(value)} selected={topic === value} last={index === all.length - 1} disabled={disabled}
+          onPress={() => { if (current() && !disabled) { setTopic(value); setChoices(null);
+            if ((value === 'COLLABORATION' || value === 'NO_SHOW') && context?.kind !== 'AGREEMENT') setContext(null);
+            else if (value === 'PUBLICATION_REVIEW') setContext(initialReference); } }} />)}</SettingsGroup>
+      {requiresAgreement ? <SettingsGroup title="Dogovor na koji se zahtev odnosi"><View style={s.inCard}>
+        {context?.kind === 'AGREEMENT' ? <T variant="bodyStrong">{contextTitle ?? 'Izabran Dogovor'}</T>
+          : <T tone="muted">Izaberi jedan od svojih Dogovora.</T>}
+        <T variant="note" tone="muted">Operater dobija označeni Dogovor i nužan kontekst. Privatni razgovor se ne kopira automatski.</T>
+        <SettingsAction label="Izaberi Dogovor" kind="quiet" loading={choosing} disabled={disabled} onPress={() => { void loadAgreements(); }} />
+        {choiceError ? <T variant="note" accessibilityRole="alert" tone="danger">{choiceError}</T> : null}
+        {/* Choosing this topic with no agreements made the send button unreachable, with nothing anywhere saying why:
+            the requirement is stated here and the way out is beside it. */}
+        {choices && !choices.length ? <>
+          <T>Ova tema traži Dogovor, a ti još nemaš nijedan.</T>
+          <SettingsAction label="Izaberi drugu temu" kind="quiet" disabled={disabled}
+            onPress={() => { if (current() && !disabled) { setTopic('OTHER'); setContext(null); setContextTitle(null); setChoices(null); } }} />
+        </> : null}
+      </View></SettingsGroup> : null}
+      {showContext || selectedEvidence ? <SettingsGroup title="Prilog"><View style={s.inCardList}>
+        {showContext ? <Attachment art={context!.kind === 'TASK' || context!.kind === 'TASK_REVIEW' ? 'document' : 'chat'}
+          label={contextName(context!.kind)} last={!selectedEvidence} /> : null}
+        {selectedEvidence ? <Attachment art="chat" label={selectedEvidence.kind === 'AGREEMENT_MESSAGE' ? 'Poruka iz privatnog Dogovora' : 'Poruka iz grupnog razgovora'} last /> : null}
+        <View style={s.inCard}>
+          {showContext ? <T variant="note" tone="muted">Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.</T> : null}
+          {selectedEvidence ? <>
+            <T variant="note" tone="muted">Prilaže se samo namerno izabrana poruka, čak i ako zahtev povežeš sa Dogovorom.</T>
+            <SettingsAction label="Ukloni izabranu poruku iz zahteva" kind="quiet" disabled={disabled}
+              onPress={() => { if (current() && !disabled) {
+                if (context?.kind === selectedEvidence.kind && context.id === selectedEvidence.id) setContext(null);
+                setSelectedEvidence(null);
+              } }} />
+          </> : null}
+        </View>
+      </View></SettingsGroup> : null}
+      {topic === 'PRIVACY_RIGHTS' ? <View style={s.rights}>
+        <SupportNote>Ovde možeš da pošalješ zahtev u vezi sa svojim pravima. Slobodna poruka ne izvršava izvoz ili zatvaranje naloga.</SupportNote>
+        <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled} onPress={() => navigate(() => router.push('/profil/privatnost'))} />
+      </View> : null}
+      <SupportField label="Kratak naslov" value={title} onChange={value => { if (current() && !disabled) setTitle(value); }} maximum={200} disabled={disabled} />
+      <SupportField label="Opis zahteva" value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
+      <SupportField label="Željeni ishod" value={desired} onChange={value => { if (current() && !disabled) setDesired(value); }} maximum={1000} multiline optional disabled={disabled} />
+    </View>
+    {choices && choices.length ? <ProductSheet title="Tvoji Dogovori" onClose={() => { if (alive.current) setChoices(null); }}>
+      {dismiss => <View>
+        {page.map((item, index) => <SettingsRow key={item.id} label={item.naslov || 'Dogovor'} last={index === page.length - 1} disabled={disabled}
           onPress={() => { if (current() && !disabled) { setContext({ kind: 'AGREEMENT', id: item.id.toLowerCase(), revision: item.verzija });
-            setContextTitle(item.naslov || 'Dogovor'); setChoices(null); } }} />)}
-        {choices.length > (choicePage + 1) * 50 ? <SettingsAction label="Još Dogovora" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value + 1); }} /> : null}
-        {choicePage > 0 ? <SettingsAction label="Prethodni Dogovori" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value - 1); }} /> : null}
-      </SettingsGroup> : <>
-        {/* Choosing this topic with no agreements made the send button unreachable, with nothing
-            anywhere saying why: the requirement is stated up here and the way out is beside it. */}
-        <T>Ova tema traži Dogovor, a ti još nemaš nijedan.</T>
-        <SettingsAction label="Izaberi drugu temu" kind="quiet" disabled={disabled}
-          onPress={() => { if (current() && !disabled) { setTopic('OTHER'); setContext(null); setContextTitle(null); setChoices(null); } }} />
-      </> : null}
-    </SettingsPanel> : context ? <SettingsPanel soft><T variant="bodyStrong">Izabrani kontekst</T>
-      <T>{context.kind === 'TASK_REVIEW' ? 'Pregledana odluka o Zadatku' : context.kind === 'TASK' ? 'Izabrani Zadatak'
-        : context.kind === 'AGREEMENT_MESSAGE' ? 'Izabrana poruka iz Dogovora' : context.kind === 'GROUP_MESSAGE' ? 'Izabrana grupna poruka' : 'Namerno izabrana referenca'}{context.revision ? `, verzija ${context.revision}` : ''}.</T>
-      <T variant="meta" tone="muted">Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.</T>
-    </SettingsPanel> : null}
-    {selectedEvidence ? <SettingsPanel soft><T variant="bodyStrong">Izabrana poruka je priložena</T>
-      <T>{selectedEvidence.kind === 'AGREEMENT_MESSAGE' ? 'Poruka iz privatnog Dogovora' : 'Poruka iz grupnog razgovora'}.
-        {' '}Prilaže se samo namerno izabrana poruka, čak i ako zahtev povežeš sa Dogovorom.</T>
-      <SettingsAction label="Ukloni izabranu poruku iz zahteva" kind="quiet" disabled={disabled}
-        onPress={() => { if (current() && !disabled) {
-          if (context?.kind === selectedEvidence.kind && context.id === selectedEvidence.id) setContext(null);
-          setSelectedEvidence(null);
-        } }} />
-    </SettingsPanel> : null}
-    {topic === 'PRIVACY_RIGHTS' ? <SettingsPanel soft><T>Ovde možeš da pošalješ zahtev u vezi sa svojim pravima. Slobodna poruka ne izvršava izvoz ili zatvaranje naloga.</T>
-      <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled} onPress={() => navigate(() => router.push('/profil/privatnost'))} />
-    </SettingsPanel> : null}
-    <SupportField label="Kratak naslov" value={title} onChange={value => { if (current() && !disabled) setTitle(value); }} maximum={200} disabled={disabled} />
-    <SupportField label="Opis zahteva" value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
-    <SupportField label="Željeni ishod" value={desired} onChange={value => { if (current() && !disabled) setDesired(value); }} maximum={1000} multiline optional disabled={disabled} />
-    <SettingsAction label={state.phase === 'SENDING' ? 'Čekamo potvrdu…' : 'Pošalji privatni zahtev'} disabled={disabled || !valid}
-      onPress={() => { if (current() && latestDraft.current === draftView && !disabled && valid) void controller?.submit('CREATE', {
-        channel: channel(topic), topic, title, body, desiredOutcome: desired.trim() ? desired : null, context,
-        evidence: selectedEvidence ? [selectedEvidence] : [],
-      }, state); }} />
-    {missing ? <T variant="note" tone="muted">{missing}</T> : null}
-  </>;
+            setContextTitle(item.naslov || 'Dogovor'); dismiss(); } }} />)}
+        <View style={s.pager}>
+          {choicePage > 0 ? <SettingsAction label="Prethodni Dogovori" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value - 1); }} /> : null}
+          {choices.length > (choicePage + 1) * PAGE ? <SettingsAction label="Još Dogovora" kind="quiet" disabled={disabled} onPress={() => { if (current()) setChoicePage(value => value + 1); }} /> : null}
+        </View>
+      </View>}
+    </ProductSheet> : null}
+    {confirm.sheet}
+  </SupportFrame>;
 }
+
+const s = StyleSheet.create({
+  grow: { flex: 1, minWidth: 0 },
+  receipt: { alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xl },
+  form: { gap: sys.space.base },
+  hidden: { display: 'none' },
+  inCard: { paddingVertical: 14, gap: sys.space.sm },
+  inCardList: { paddingTop: 2 },
+  attachment: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  line: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  rights: { gap: sys.space.xs },
+  pager: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, justifyContent: 'space-between', paddingTop: sys.space.sm },
+});
