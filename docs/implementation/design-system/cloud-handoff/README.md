@@ -111,9 +111,12 @@ change was made by the cloud session.
 - Control table rows updated (`docs/control/redovi.json`, 24.09 uveče notes) and recomputed.
 
 **Next, in this order**
-1. **Emulator loop on the owner's PC** for `b4531ef`: install the APK (`adb install -r`), photograph the Zadaci tab
-   and the three galleries, and the items each report lists under "What the emulator check should look at"; write
-   receipts to `docs/implementation/design-system/r6-emulator-b4531ef/`; fix what the pictures show.
+1. **Emulator loop on the owner's PC** for `b4531ef`: DONE 2026-09-24 late evening (local session). Build 36038648243
+   installed on the emulator; the Zadaci tab and the three galleries photographed (27 + 24 + 28 scenes) and critiqued
+   by two lenses with a code-aware skeptic per finding: **113 confirmed findings** (2 high, 36 medium, 75 low) in
+   `docs/implementation/design-system/r6-emulator-b4531ef/FINDINGS.json`, the fix order per file in `R6_CRITIQUE.md`,
+   the receipt in `R6_RECEIPT.json`. Still owed: widths 320–430 dp and font scale 1.3, real flows, TalkBack.
+   **Fix what the pictures show** = the "Fix first" table of `R6_CRITIQUE.md`, one writer per file.
 2. **Owner decisions of 2026-09-24 evening, not yet built:**
    - a. "U blizini" NOW (owner: "Da, odmah"): add `expo-location` with `npx expo install expo-location` (approved),
      ask the foreground permission only when the person taps "U blizini", use the position only to centre the map,
