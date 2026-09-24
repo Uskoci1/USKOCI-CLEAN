@@ -23,8 +23,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24: Početna kao pregled (dve pločice, Čeka te, Moji zadaci i Moje prijave) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Na Androidu „velika slova“ (1,3) ne prebacuju pločice jednu ispod druge: ispravka ide sa drugim krugom. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen."
       },
-      "problem": "",
-      "sledece": "F04: oznaka dela kroz unutrašnje ekrane je ispravljena i testovi prolaze. Novi APK je napravljen; emulator otvara prijavu. Provera posle prijave i na telefonu sledi.",
+      "problem": "Audit 24.09: RC-03: čitanje Dogovora čeka sve pojedinačne provere ocena istorije; jedan spor odgovor može sakriti ovaj deo Početne.",
+      "sledece": "Audit 24.09: čitanje Dogovora čeka zasebnu proveru ocene za svaki završen Dogovor; spor odgovor može oboriti taj deo Početne. Ograničiti/dopuniti projekciju, dokazati da aktivni Dogovori ostaju dostupni. Četiri razloga za pažnju ostaju serverske činjenice.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -34,6 +34,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-03"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -63,8 +71,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "23.09. 07:11–07:13, telefon VKP-NX9, nalog uskocibusiness: ceo razgovor do objave prošao i zadatak „Pomoć oko krečenja stana“ je PUBLISHED na serveru (be549970…). Jedna greška: kategorija nije sama izvedena."
       },
-      "problem": "Viđeno na telefonu 23.09. (nalog uskocibusiness): iz „Pomoć oko krečenja stana“ AI nije sam izveo kategoriju, nego je ostavio „Još treba: Kategorija“ i tražio je od tebe; tek kad si je rekao kroz razgovor, upisana je „Molerski radovi“. Jasan naslov posla treba da nosi kategoriju bez pitanja. Sve ostalo (mesto, termin sa satima u Beogradu, cena, broj ljudi, ćirilica u poruci) prošlo je i zadatak je objavljen.",
-      "sledece": "Popravka je u Edge funkciji uskoci-ai-interview (izvođenje kategorije iz naslova/opisa pre nego što se pita), pa zaseban paket sa lokalnim testovima, CI i tvojom CLI komandom za deploy — kao PKG-043/044. Dokaz sa telefona: docs/implementation/functional-audit-20260922/device-20260923/ (snimci razgovora i objave, uskocibusiness, 07:11–07:13).",
+      "problem": "Viđeno na telefonu 23.09. (nalog uskocibusiness): iz „Pomoć oko krečenja stana“ AI nije sam izveo kategoriju, nego je ostavio „Još treba: Kategorija“ i tražio je od tebe; tek kad si je rekao kroz razgovor, upisana je „Molerski radovi“. Jasan naslov posla treba da nosi kategoriju bez pitanja. Sve ostalo (mesto, termin sa satima u Beogradu, cena, broj ljudi, ćirilica u poruci) prošlo je i zadatak je objavljen. Audit 24.09: CF01: uspešno slanje odvojenog govora briše zaseban kucani nacrt, i posle oporavka ishoda. Ponovljeno i na bc127755.",
+      "sledece": "Audit 24.09: uspešno slanje odvojenog govora briše zaseban kucani nacrt; ponovljeno za neposredan uspeh i oporavak ishoda. Ispraviti čišćenje samo poslatog nacrta, uz očuvan dnevnik komande. Novi AI izgled je u APK-u 644cab09; ova provera nije poziv AI provajderu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -72,6 +80,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "CF01"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -92,8 +108,8 @@
         "uskoci-speech-session"
       ],
       "telefon": null,
-      "problem": "",
-      "sledece": "Govor se testira na telefonu samo kad ti kažeš da si spreman.",
+      "problem": "Audit 24.09: CF01: postojeći test čuva nacrt samo dok je ishod nepoznat; posle uspeha nacrt nestaje.",
+      "sledece": "Sačuvati neposlat kucani nacrt posle uspeha glasovne poruke (CF01). Glas na uređaju proveravati uz vlasnika spremnog da govori. Odgovori ostaju tekst; ne uvoditi paket za govor bez odluke.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -101,6 +117,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "CF01"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -156,8 +180,8 @@
         "rpc_cancel_media_upload"
       ],
       "telefon": null,
-      "problem": "",
-      "sledece": "PRIMENJENO 22.09. u 22:03 UTC, uz tvoje „primeni pkg046a“. Server sada ima rpc_cancel_media_upload; ledger 198, sertifikat brisanja naloga pomeren sa 65980fce na cc248ff1 i vezan na sva tri mesta, spremnost i dalje važi. Zabeleška otkazivanja stoji u owned_media_assets (stanje CANCELLED), kasno slanje istog zahteva dobije MEDIA_COMMAND_CANCELLED, a već primljena fotografija izlazi iz nacrta postojećim putem. Četiri postojeća reda su netaknuta. Dokaz: CI 35787119578, 10 od 10. OSTAJE: pritisnuti dugme na telefonu (nije potreban nov APK, instalirana verzija već zove tačno ovu funkciju) i tvoja CLI komanda za Edge uskoci-media, koja menja samo kako se prijavljuje odbijanje zakasnelog slanja.",
+      "problem": "Audit 24.09: RC-02: moguće uzajamno čekanje pri paralelnom otkazivanju READY slike i uklanjanju/završavanju; red zaključavanja je obrnut. Dokazano iz koda, još ne konkurentnim izvršavanjem.",
+      "sledece": "PKG-046a je na DEV-u; nedostajuća funkcija otkazivanja je rešena. Audit 24.09 nalazi obrnut red zaključavanja READY slike: prvo dokaz konkurentnog otkazivanja i uklanjanja na probnoj bazi. Safe-error dopuna Edge media još nije objavljena; potpuni tok na novom uređaju nije prihvaćen.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -165,6 +189,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-02"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -576,8 +608,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: DN-06: tastatura sakriva donji deo u kom je jedino objašnjenje zašto napuštanje izmena nije dozvoljeno; iz koda potvrđeno, nativni trenutak proveriti.",
+      "sledece": " Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -585,6 +617,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "DN-06"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -644,8 +684,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana.",
+      "sledece": " Dopuna 24.09: završiti nalaze DN-05, DN-10, DN-11 iz nezavisnog audita pre prihvatanja ovog toka.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -653,6 +693,16 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "DN-05",
+          "DN-10",
+          "DN-11"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -681,8 +731,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom."
       },
-      "problem": "Čita najviše 25 stranica po 200 zadataka i prijavi grešku ako ih ima još; filtrira na telefonu. Ispravka sabijene legende je u kodu; nova verzija još čeka proveru na telefonu.",
-      "sledece": "Pretraga i jasnije Lista/Mapa kontrole su u proverenim APK-ovima 6d3c7ead. Emulator je instaliran i otvoren do ulaza; provera mape sa nalogom, telefon i Claude pregled čekaju. Serversko filtriranje ostaje poseban korak F06/F07. DISCOVERY_SEARCH_RECEIPT.json. Razlike za sledeći serverski ugovor opisane u DISCOVERY_SEARCH.md (analiza sačuvanog snimka, bez nove promene baze).",
+      "problem": "Mapa i lista su sada jedan ekran sa panelom, tačkama i cenama. Čitanje i dalje uzima do 25 × 200 javnih zadataka i filtrira lokalno. Audit 24.09: lista ne čeka podatke o vlasništvu; posle njihove greške prikazuje i svoje zadatke, a obično osvežavanje istih ID-jeva ne ponavlja tu proveru.",
+      "sledece": "Prvo DN-01: stanje učitavanja/greške vlasništva i zajedničko osvežavanje. Zatim proveriti visoku karticu tačke sa velikim fontom (DN-02, još nije ponovljeno na uređaju). Serversko filtriranje/straničenje F06/F07 ostaje poseban ugovor. Stariji dokaz izgleda: R3_RECEIPT, 09dc6877.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -691,6 +741,17 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "DN-01",
+          "DN-02",
+          "F06",
+          "F07"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -715,8 +776,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni."
       },
-      "problem": "Prikaz sada ima stalnu pretragu i uklanjanje primenjenog filtera cene jednim dodirom. Lokalno provereni primena 2→1, uklanjanje 1→2, prazna pretraga i oporavak; to nije dokaz sa DEV podacima ni telefona. Server nema sve predložene filtere, sortiranje ni ukupan broj.",
-      "sledece": "Oba APK-a 6d3c7ead su napravljena i otisci provereni; emulator se pokreće. Proveriti sa prijavljenim nalogom kada vlasnik bude dostupan. Zatim F07/D7: datum fleksibilnih zadataka, oblast/na daljinu, preostala mesta i sortiranje; sačuvani alarmi posebno.",
+      "problem": "Filteri Kada, Gde se radi, Cena i Slobodna mesta postoje u novom panelu, sa stvarnim lokalnim brojem. Serveru se i dalje ne šalju svi izabrani filteri; broj nije serverski ukupan rezultat.",
+      "sledece": "Uskladiti F07/D7 ugovor: fleksibilni datumi, oblast, na daljinu, slobodna mesta, sortiranje i ukupan rezultat; zatim dokazati primenu/reset i povratak sa novim APK-om. Ne vraćati stari prekidač Lista/Mapa.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -725,6 +786,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "F07"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -949,8 +1018,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24: Kalendar sa sedam kolona i novim praznim danom viđen na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Otvoreno: Dogovor završen istog dana se ne vidi u kalendaru. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: RC-03: i kalendar deli čitanje Dogovora koje čeka neograničene provere ocena.",
+      "sledece": "Kalendar i dostupnost su u APK-u 644cab09. Audit 24.09 je video dugu galerijsku karticu bez preklapanja (calendar-long.png), bez stvarnog upisa. Zajedničko čitanje Dogovora ima RC-03; zatim proveriti čuvanje dostupnosti, greške i vremenske zone na uređaju.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -958,6 +1027,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-03"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -981,8 +1058,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: RC-03: za svaki završen Dogovor ide dodatni RPC ocene, bez ograničenja paralelizma; sve se čeka zajedno.",
+      "sledece": "Zadržati novu listu i istinitu dostupnost ocene. Ukloniti neograničeno čekanje svih pojedinačnih provera ocena; proveriti veliki broj završenih Dogovora i jedan odgovor koji kasni. RC-03.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -990,6 +1067,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-03"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1014,7 +1099,7 @@
         "dokaz": "2026-09-23: novi pregled Dogovora viđen na telefonu (build 077fd648, docs/implementation/design-system/g7-dogovor/G7_RECEIPT.json), samo Pregled; Poruke nisu otvarane. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor."
       },
       "problem": "23.09.: završen ili otkazan Dogovor više ne nudi „Izmene i otkazivanje“ (red je vodio na ekran bez moguće radnje); Početna imenuje Dogovore koji čekaju ocenu.",
-      "sledece": "PRIMENJENO 23.09. u 01:28 UTC uz tvoju reč (PKG-048a, ledger 200): rpc_get_agreement_workspace sada vraća needId i applicationId. Dokazano da je sve ostalo u odgovoru isto do bajta, prava netaknuta, stranac i dalje ne vidi ništa, sertifikat se nije pomerio. SLEDEĆE: dodati te dve veze u ekran Dogovora i pokriti ih testovima.",
+      "sledece": "Veze ka zadatku i prijavi su već povezane sa PKG-048a i viđene u ranijem toku sa dva uređaja. Ne implementirati ih ponovo. Sada proveriti najnoviji APK, različite strane i završetak preko „Završio sam“, uz očuvane provere verzije.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1022,6 +1107,12 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1043,10 +1134,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om."
+        "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om. Dopuna 24.09: poziv PKG-050 jeste u izgrađenom APK-u 644cab09; prethodno „tek sa sledećim APK-om“ više nije aktuelno. Novi ACK rubni slučaj nije prihvaćen na uređaju (RC-01)."
       },
       "problem": "Stara verzija slanja (rpc_send_agreement_message) i dalje je dostupna na serveru (blokada B16). Funkcionalni audit: istorija se čita bez straničenja, dolazne poruke traže osvežavanje. Praćenje sopstvene poslate poruke već postoji.",
-      "sledece": "Posle odobrenja funkcionalne analize: sveže dolazne poruke i istorija po delovima uz postojeća prava i red slanja; staru serversku verziju proveravati zasebno. Audit F13.",
+      "sledece": "PKG-050a je primenjen i njegov poziv je u trenutnom APK-u. Audit 24.09: obaveštenje za poruku koja stigne između čitanja i potvrde može biti prerano označeno pročitanim (RC-01). Prvo dokaz granice pročitanih poruka; zatim dolazne poruke bez ručnog osvežavanja i istorija po delovima (F13).",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1054,6 +1145,15 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-01",
+          "F13"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1076,8 +1176,8 @@
         "rpc_read_agreement_photo_messages_v5"
       ],
       "telefon": null,
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: CF02: kada Dogovor postane završen/otkazan, nestaju uklanjanje i provera neposlate fotografije, iako server dozvoljava čišćenje. Ponovljeno i na bc127755.",
+      "sledece": "Audit 24.09 je ponovio gubitak kontrola za neposlatu fotografiju kada Dogovor pređe u završeno/otkazano stanje. Zadržati proveru ishoda i uklanjanje postojeće fotografije, uz zabranu novog slanja. CF02; test stvarnih komponenti pada na sadašnjem kodu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1085,6 +1185,14 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "CF02"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1392,8 +1500,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka."
       },
-      "problem": "Razrešavanje odredišta na serveru je i dalje grublje od 24 predložena događaja. Dve vrste („dobio si ocenu“, „oporavak otvoren“) nemaju dokazano odredište. Vreme obaveštenja na 12px proveriti na telefonu. PKG-050 napisan (2026-09-23, vlasnikova odluka): čitanje prepiske gasi obaveštenja „Nova poruka“ za taj Dogovor — serverska funkcija rpc_mark_agreement_messages_read + poziv sa kartice Poruke. Dokaz prošao (CI 35826370830, 7/7, potvrda pkg050/PROOF_35826370830.json); PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om.",
-      "sledece": "Odredišta su 23.09. izoštrena tamo gde aplikacija to sama može: poruka otvara prepisku, predlog izmene otvara izmene, otkazan zadatak vodi na „Moje prijave“ umesto na mrtav zadatak. Ostalo namerno ostaje na pregledu Dogovora. Dve veze i dalje niko ne dokazuje — „dobio si ocenu“ i „oporavak otvoren“; za njih treba serverski odgovor. Font vremena (F03) čeka proveru na telefonu.",
+      "problem": "PKG-050a je na DEV-u i u trenutnom APK-u. Audit 24.09: potvrda čitanja bez granice može označiti i tek pristiglu neviđenu poruku pročitanom. Dve ranije nedokazane vrste odredišta i dalje ostaju posebno otvorene. Audit 24.09: DN-07: promena filtera ponovo pravi i samu aktiviranu karticu filtera; rizik gubitka fokusa čitača ekrana, konkretno ponašanje na uređaju još čeka.",
+      "sledece": "Dodati i dokazati granicu pročitanog za RC-01. Ne menjati već ispravno otvaranje kartice Poruke. Zasebno dokazati odredišta „dobio si ocenu“ i „oporavak otvoren“. Dopuna 24.09: završiti nalaze RC-01, DN-07 iz nezavisnog audita pre prihvatanja ovog toka.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1401,6 +1509,15 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-01",
+          "DN-07"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1666,8 +1783,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu.",
+      "problem": "Audit 24.09: DN-08/09: provera sačuvane fotografije ima naziv za povratak, a ponavljanje slanja gubi sopstveni prikaz obrade. Komanda i zaštite ostaju; prikaz treba uskladiti.",
+      "sledece": "Crvena oznaka servera je nestala 22.09: rpc_cancel_media_upload sada postoji (PKG-046a), pa zajednički mediaClientService više ne zove funkciju koje nema. Sam ekran avatara je i ranije koristio samo upload/read/apply/discard/clear. Ostaje provera celog toka avatara na telefonu. Dopuna 24.09: završiti nalaze DN-08, DN-09 iz nezavisnog audita pre prihvatanja ovog toka.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1678,6 +1795,15 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "DN-08",
+          "DN-09"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1741,7 +1867,7 @@
         "dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran."
       },
       "problem": "",
-      "sledece": "PRIMENJENO (PKG-047a, ledger 199). Serversko pravilo konteksta je i ranije dozvoljavalo prijavu naručioca objavljenog zadatka i prijavu kandidata, pa se tu ništa ne menja. Dokazano: prijava stiže, ponovljeni isti zahtev ne pravi drugu prijavu, a osoba koju prijavljuješ je ne vidi. Tok istrage i operaterski ishod ostaju zaseban posao. OSTAJE provera na telefonu. NA TELEFONU 23.09: ulaz je viđen na tuđem profilu, sa rečenicom da prijava ostaje privatna. Prijava nije poslata.",
+      "sledece": "PKG-047a je primenjen; bezbedan cilj javnog profila postoji i klijent ga koristi. Ne ponavljati stari nalaz nedostajućeg cilja. Potvrditi ceo prijavi/blokiraj tok i rad podrške na trenutnom izdanju, bez prijavljivanja pravih osoba kao testa.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1750,6 +1876,12 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1781,8 +1913,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Audit 24.09: RC-05/06: potvrda odbacivanja može ostati bez dejstva kada se čitanje u međuvremenu završi; neuspeh oznake pročitanog izgleda kao čekanje ako postoji nepotvrđen odgovor. Ponovljeno izolovanim izvršavanjem bez pravog naloga.",
+      "sledece": " Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1791,6 +1923,15 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [
+          "RC-05",
+          "RC-06"
+        ],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1820,7 +1961,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-      "sledece": "Tvoj deo: rokovi čuvanja od pravnika.",
+      "sledece": "Tvoj deo: rokovi čuvanja od pravnika. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1828,6 +1969,12 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1854,7 +2001,7 @@
       ],
       "telefon": null,
       "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-      "sledece": "Posebno dokazati bezbedan serverski oporavak bez lokalnog traga. Sertifikovani čitač/zaštita zahtevaju posebno odobrenje promene otiska. Ne brisati pravi nalog za probu. CLIENT_ENGINE_RECONCILIATION.md §7.",
+      "sledece": "Posebno dokazati bezbedan serverski oporavak bez lokalnog traga. Sertifikovani čitač/zaštita zahtevaju posebno odobrenje promene otiska. Ne brisati pravi nalog za probu. CLIENT_ENGINE_RECONCILIATION.md §7. Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1862,6 +2009,12 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -1886,7 +2039,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "",
-      "sledece": "",
+      "sledece": " Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1894,6 +2047,12 @@
         ],
         "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
         "status": "ANALIZA_ODOBRENA_20260922"
+      },
+      "nezavisni_audit": {
+        "datum": "2026-09-24",
+        "izvor": "docs/implementation/audit-20260924/REPORT.md",
+        "nalazi": [],
+        "head": "bc127755a85ced147b3979bdb6985ce8d0524291"
       }
     },
     {
@@ -2024,15 +2183,15 @@
       "id": "B03",
       "oblast": "Slike",
       "nalaz_16_09": "rpc_cancel_media_upload ne postoji",
-      "sada": "OTVORENO: aplikacija i dalje poziva funkciju koje nema; predlog pkg008 postoji, nije primenjen",
-      "dokaz": "snimak servera 22.09; src/data/mediaClientService.ts:117"
+      "sada": "DELIMIČNO: nedostajuća funkcija rešena primenjenim PKG-046a, svež hash potvrđen 24.09. Otvoreni su RC-02 red zaključavanja i neobjavljena Edge safe-error dopuna; ceo tok slika nije prihvaćen.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B04",
       "oblast": "Baza",
       "nalaz_16_09": "Migracije 145–147 nisu na DEV-u",
-      "sada": "ZATVORENO: 197 migracija = 147 izvornih + 50 dev_alpha",
-      "dokaz": "snimak servera 22.09"
+      "sada": "ZATVORENO u obimu nedostajućih migracija: sveže potvrđeno 201 = 147 izvornih + 54 dev_alpha (24.09, 14:27 UTC). Sveža privatna kontrola sertifikata nije dostupna; poslednja potvrda cc248ff1 ostaje od 23.09.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B05",
@@ -2052,29 +2211,29 @@
       "id": "B07",
       "oblast": "Brisanje naloga",
       "nalaz_16_09": "Radnik za brisanje nije postavljen",
-      "sada": "ZATVORENO: radnik v3 radi svakog minuta; ceo put dokazan na probnoj bazi (PKG-028/030/032)",
-      "dokaz": "pkg030, pkg032"
+      "sada": "DELIMIČNO za javno izdanje: raspored edge_workers radi svakog minuta, 1440 uspešnih pokretanja/0 grešaka u 24h. To nije dokaz novog stvarnog brisanja; raniji probni dokaz i pravne/retencione pretpostavke ostaju odvojeni.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B08",
       "oblast": "APK",
       "nalaz_16_09": "APK je star (1. sept.)",
-      "sada": "DELIMIČNO: APK 31598ac8 (35731932400) instaliran preko postojeće aplikacije; ceo tok nije prihvaćen.",
-      "dokaz": "docs/implementation/functional-audit-20260922/DEVICE_CHECK.json"
+      "sada": "DELIMIČNO: APK 644cab09, run35964962961, prisutan na emulatoru; SHA-256 se poklapa. Najnoviji celovit tok i iOS nisu prihvaćeni. Audit nije menjao vlasnikov telefon.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B09",
       "oblast": "Dva telefona",
       "nalaz_16_09": "Nema testa sa dva telefona",
-      "sada": "OTVORENO",
-      "dokaz": ""
+      "sada": "DELIMIČNO: raniji tok telefon+emulator na 332d285f beleži objavu, ponudu, izbor, poruke i direktan završetak. Nisu dokazani radnikovo „Završio sam“, obe ocene, push ni ceo tok poslednjeg APK-a.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B10",
       "oblast": "Obaveštenja",
       "nalaz_16_09": "0 poslatih",
-      "sada": "OTVORENO: sve spremno, prekidač isključen do testa",
-      "dokaz": "snimak servera 22.09"
+      "sada": "OTVORENO: raspored radi, ali to nije dokaz dostave. Ostaju ispravan build/provider, registracija, stvarna dostava i otvaranje na uređaju. Audit 24.09 nije menjao prekidače niti slao push.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B11",
@@ -2108,8 +2267,8 @@
       "id": "B15",
       "oblast": "Osvežavanje liste",
       "nalaz_16_09": "Mapa/lista se ne osvežava kad drugi telefon nešto promeni",
-      "sada": "PROVERITI",
-      "dokaz": ""
+      "sada": "OTVORENO: DN-01 potvrđuje da osvežavanje istih javnih zadataka ne ponavlja neuspešno čitanje vlasništva; dolazne poruke i dalje traže osvežavanje (F13).",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B16",
@@ -2136,15 +2295,15 @@
       "id": "B19",
       "oblast": "Brzina",
       "nalaz_16_09": "Lista prilika se ne učitava po delovima",
-      "sada": "OTVORENO: potvrđeno 22.09",
-      "dokaz": "src/data/supabaseIzvor.ts"
+      "sada": "OTVORENO: lista prilika i dalje lokalno filtrira do 5000 zadataka. Nov RC-03: zbir Dogovora čeka po jedan RPC ocene za svaki završen Dogovor.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B20",
       "oblast": "Izgled i pristupačnost",
       "nalaz_16_09": "Nije provereno na telefonu",
-      "sada": "DELIMIČNO: pretraga i pregled ponude u APK-ovima 50178e6b (35762581551 / 35762585376), oba proverena; emulator instaliran i otvoren do ulaza. Tipovi i 242 grupe/4704 testa prolaze. Tokovi sa nalogom, telefon, ceo izgled donjeg dugmeta i Claude pregled još čekaju.",
-      "dokaz": "docs/implementation/functional-audit-20260922/OFFER_REVIEW_RECEIPT.json; DISCOVERY_SEARCH_RECEIPT.json"
+      "sada": "DELIMIČNO: prvobitni b1da968c ima zelene tipove i CI296/5605. Dodatna verzija bc127755 ima čiste tipove i lokalno 297 grupa/5707 testova; dopunske provere i dalje ponavljaju greške nacrta/fotografija, kopiranja dostupnosti i podrške. Izgled poslednje dopune, pristupačnost i ceo tok na uređajima ostaju otvoreni. RC-04 blokira dva stroga učitavača serverskih dokaza.",
+      "dokaz": "docs/implementation/audit-20260924/REPORT.md"
     },
     {
       "id": "B21",
@@ -2406,5 +2565,69 @@
       "Završni zapis: verzija koda, APK, prijemnice"
     ]
   ],
-  "test_dva_telefona_izvrseno": {}
+  "test_dva_telefona_izvrseno": {},
+  "aktuelne_dopune": {
+    "datum": "2026-09-24",
+    "izvor": "docs/implementation/audit-20260924/REPORT.md",
+    "praznine": {
+      "PG01": {
+        "sada": "PKG-047a je primenjen; bezbedan cilj javnog profila je povezan u klijentu.",
+        "nedostaje": "Prihvatanje celog prijavi/blokiraj/moderacija toka na trenutnom izdanju.",
+        "stanje": "ugovor povezan; ceo tok čeka"
+      },
+      "PG04": {
+        "sada": "PKG-048a vraća needId/applicationId; obe veze postoje u ekranu i viđene su u ranijem toku.",
+        "nedostaje": "Ponovna provera poslednjeg izdanja za obe strane; ne treba ponovo praviti ugovor.",
+        "stanje": "ugovor i veze rešeni"
+      },
+      "PG08": {
+        "sada": "PKG-046a je primenjen i rpc_cancel_media_upload postoji, sveže provereno 24.09.",
+        "nedostaje": "RC-02 red zaključavanja pri konkurentnom otkazivanju READY slike, Edge safe-error dopuna i uređaj.",
+        "stanje": "nedostajući poziv rešen; novi rizik otvoren"
+      },
+      "PG10": {
+        "sada": "Pregled, imenovano sletanje i slanje ponude postoje; raniji stvarni tok dokazan na 332d285f.",
+        "nedostaje": "Ceo tok najnovijeg izdanja, obe ocene i ostali izuzeci; stari dokaz nije potvrda novog APK-a.",
+        "stanje": "raniji uređaj dokazan; novo izdanje čeka"
+      }
+    },
+    "nivoi": {
+      "Početna": {
+        "napomena": "Aktuelna odobrena navigacija je Početna · Zadaci · Dogovori; Moji zadaci i Moje prijave otvaraju se sa Početne.",
+        "sadrzi": "Dve glavne radnje; šta čeka mene; sledeći Dogovori; Moji zadaci; Moje prijave"
+      },
+      "Mapa / Lista": {
+        "povrsina": "Zadaci · mapa i lista",
+        "ulaz": "Donja navigacija · Zadaci",
+        "sadrzi": "Jedna mapa sa listom koja se izvlači, pretraga, filteri i izabrana kartica",
+        "napomena": "/mapa i /prilike preusmeravaju na /zadaci. F06/F07 i DN-01 ostaju otvoreni."
+      },
+      "Dogovori": {
+        "napomena": "PKG-048 i klijent imaju stvarne veze ka izvornom zadatku i prijavi. RC-03 čitanje ocena ostaje otvoreno."
+      },
+      "Dogovor · Pregled / Poruke": {
+        "napomena": "Direktan ulaz u Poruke postoji. Ostaju istorija po delovima, dolazne poruke, RC-01 potvrda čitanja i CF02 fotografije."
+      }
+    },
+    "tokovi": {
+      "NEED_CANCELLED": {
+        "otvara": "/moje-prijave",
+        "red": "B10",
+        "ocena": "tacno",
+        "napomena": "Klijent preusmerava otkazan javni zadatak na sopstvene prijave; izvor src/app/obavestenja.tsx."
+      },
+      "MESSAGE_RECEIVED": {
+        "otvara": "/dogovor/[id]",
+        "red": "D03",
+        "ocena": "tacno",
+        "napomena": "Klijent prosleđuje tab=poruke; ranije viđeno na dva uređaja. RC-01 granica pročitanog je zaseban otvoren nalaz."
+      },
+      "AGREEMENT_CHANGE_PROPOSED": {
+        "otvara": "/dogovor/[id]/izmene",
+        "red": "D06",
+        "ocena": "tacno",
+        "napomena": "Klijent otvara izmene Dogovora; izvor src/app/obavestenja.tsx."
+      }
+    }
+  }
 }

@@ -60,6 +60,12 @@ Each row also gets `veza`: surface and level, the RPCs its own code reads and wr
 events it makes, and anything it needs that DEV does not have. Percentages and verdicts inside the snapshot are
 not copied — the lights stay computed here.
 
+As of the 2026-09-24 audit, `redovi.json.aktuelne_dopune` holds dated, evidence-linked corrections to the
+snapshot-derived `praznine`, `nivoi` and `tokovi` prose. The generator overlays these current corrections without
+editing the frozen package. They are manual audit judgments, not automatic behavioral verification; update them
+when the referenced source/contract changes. `snimak` and its hashes remain historical. A fresh generation date
+does not change the date or scope of `dev_snapshot.json`, device receipts or CI runs.
+
 ## Refreshing (after every piece of work)
 
 1. **DEV changed?** Run `dev_snapshot.sql` through the connector, add `list_edge_functions`, and save

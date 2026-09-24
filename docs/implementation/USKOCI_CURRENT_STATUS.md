@@ -1,6 +1,6 @@
 # USKOČI — current execution status
 
-Updated: 2026-09-22. This is a status index, not a new product constitution or permission grant.
+Updated: 2026-09-24. This is a status index, not a new product constitution or permission grant.
 The owner's latest instructions and the mandatory handoff boundaries continue to govern.
 
 ## Evidence levels
@@ -10,6 +10,32 @@ verified → public-release ready. A completed level never implies the next. Do 
 of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
+
+**Independent delta audit — 2026-09-24.** Read `audit-20260924/REPORT.md` and its three appendices.
+Initial audited HEAD `b1da968c` on `work/uskoci-ui-unification-20260924`; emulator runtime source `644cab09`.
+Ten additional commits arrived during review through `bc127755`; they have a separately labeled supplement.
+Supplement TypeScript and full local Jest **297 suites / 5707 tests pass, exit 0**, with the known delayed-teardown
+warning. Docs-only38f199bc does not change that source. The current handoff calls for round5c corrections before
+round6; the audit independently confirms overnight source-slot loss (DN-05) and several keyboard/accessibility,
+photo-feedback and support-state defects. See the appendices rather than interpreting the green suite as release acceptance.
+This supersedes the operational next actions below, not the owner's permissions or the master design plan.
+
+- Fresh local TypeScript and 296 suites / 5605 tests pass, exit 0; exact-HEAD CI36013854412 also passes.
+- Fresh DEV ledger201 =147+54 and all four new applied SQL hashes match receipts; both cron jobs have
+  1440 successful records/0 failures in the observed 24h. Direct private certificate/readiness read is denied;
+  last saved ready certificate is cc248ff1 from 2026-09-23. No new independent readiness claim.
+- Emulator APK644cab09/run35964962961 hash matches its build. Selected native fixture galleries viewed;
+  the earlier real two-party journey is on332d285f and does not cover worker completion/both ratings/push.
+- Shared design/navigation and steps9–11 are implemented. The existing master plan's step12/round6 remains.
+- New audit findings: unrelated typed draft cleared by voice success; terminal photo recovery controls hidden;
+  discovery ownership/read retry; bulk message ACK without read boundary; media lock-order inversion;
+  unbounded rating enrichment; two strict proof loaders missing inicijali. Confidence/reproduction varies,
+  explicitly recorded in the appendices. No app/server fixes were applied during this audit.
+- PKG045b rollout privacy restriction, server discovery/paging, incoming chat, real push, legal/retention,
+  payment/provider decisions, current-build two-party acceptance, iOS and store gates remain separate work.
+- Control table facts reconciled and regenerated; publication outcome is in audit-20260924/EVIDENCE.json.
+
+### Historical product checkpoint — 2026-09-22
 
 **Current product checkpoint — later on2026-09-22.** Start with
 `NEXT_AI_HANDOFF_20260922_PRODUCT_EXECUTION.md` and

@@ -14,6 +14,8 @@ const rel = p => relative(ROOT, p).split(sep).join('/');
 const read = p => readFileSync(p, 'utf8');
 
 const rows = JSON.parse(read(join(CONTROL, 'redovi.json')));
+// Current, manually evidenced corrections belong beside the living rows, never in the frozen R4 package.
+const dopune = rows.aktuelne_dopune ?? {};
 const snap = JSON.parse(read(join(CONTROL, 'dev_snapshot.json')));
 const rpcAll = new Set(snap.rpc_all), rpcAuth = new Set(snap.rpc_authenticated);
 const edges = new Set(snap.edge.map(e => e.slug));
@@ -201,7 +203,8 @@ if (existsSync(join(R4DIR, 'MANIFEST.json'))) {
       : t.status.startsWith('COARSE_') ? 'Otvori pravi ekran, ali ne i tačno mesto na njemu.'
       : ocena === 'nepoznato' ? 'Nijedan pregledani put ne dokazuje gde ovo sleti.' : '';
     return { dogadjaj: t.event, kome: t.recipient, zeljeno: t.ux_target, vrsta: kind,
-      nastaje: emits[t.event] ?? [], otvara: ruta, red: ruta ? routeRow[ruta] ?? null : null, ocena, napomena };
+      nastaje: emits[t.event] ?? [], otvara: ruta, red: ruta ? routeRow[ruta] ?? null : null, ocena, napomena,
+      ...(dopune.tokovi?.[t.event] ?? {}) };
   });
   const sazetak = stavke.reduce((a, s) => (a[s.ocena] = (a[s.ocena] ?? 0) + 1, a), {});
   tokovi = { stavke, sazetak, vrste: INBOX_ROUTES, provereno_u: 'src/app/obavestenja.tsx',
@@ -209,7 +212,8 @@ if (existsSync(join(R4DIR, 'MANIFEST.json'))) {
 
   // 3. Read-model gaps: what a screen would need before its next step can be built.
   praznine = rj('PROJECTION_GAPS.json').map(g => ({ id: g.id, ...{ oblast: g.area, sada: g.current, nedostaje: g.missing }, ...(prevod.praznine[g.id] ?? {}),
-    redovi: String(g.affected).split(/[;,]/).map(s => s.trim()).filter(s => rowById[s]), stanje: g.status }));
+    redovi: String(g.affected).split(/[;,]/).map(s => s.trim()).filter(s => rowById[s]), stanje: g.status,
+    ...(dopune.praznine?.[g.id] ?? {}) }));
 
   // 4. The screen map: the draft's navigation, with every row placed on the surface a person reaches it from.
   // The route → surface table is authored here (the draft names surfaces, the rows name routes); a row whose
@@ -241,7 +245,7 @@ if (existsSync(join(R4DIR, 'MANIFEST.json'))) {
   nivoi = REDOSLED.filter(p => iaBy[p] || poPovrsini[p]).map(p => ({ povrsina: p,
     nivo: iaBy[p]?.level ?? NIVO[p] ?? 2, stanje: iaBy[p]?.status ?? 'CURRENT',
     ...{ ulaz: iaBy[p]?.entry ?? '', sadrzi: iaBy[p]?.contains ?? '', napomena: iaBy[p]?.note ?? 'Grupisano po ekranu iz kog se otvara.' }, ...(prevod.povrsine[p] ?? {}),
-    redovi: poPovrsini[p] ?? [] }));
+    redovi: poPovrsini[p] ?? [], ...(dopune.nivoi?.[p] ?? {}) }));
 
   // 5. Physical screens: 48 route files, and which of them no control row owns.
   const ra = rj('ROUTE_AUDIT_48.json');
