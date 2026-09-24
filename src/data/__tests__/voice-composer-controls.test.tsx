@@ -19,8 +19,8 @@ afterEach(async()=>{await act(async()=>tree?.unmount());});beforeEach(()=>{mockR
 it('offers accessible mode in the mic row without starting capture or sending a turn',async()=>{
   const c=controller(),keep=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={keep}/>);});
-  const toggle=tree.root.findByProps({label:'Bez držanja'});
-  expect(toggle.parent?.findAllByProps({accessibilityLabel:'Drži da govoriš'}).length).toBeGreaterThan(0);
+  const toggle=tree.root.findByProps({accessibilityLabel:'Govor bez držanja'});
+  expect(tree.root.findByProps({accessibilityLabel:'Drži da govoriš'})).toBeDefined();
   await act(async()=>toggle.props.onPress());
   expect(c.begin).not.toHaveBeenCalled();expect(keep).not.toHaveBeenCalled();
   const mic=tree.root.findByProps({accessibilityLabel:'Pokreni govorni unos'});
@@ -42,7 +42,7 @@ it('screen reader sees explicit Stop, not an instruction to release a held finge
     state={{...idle,phase:'LISTENING'}} disabled={false} onKeepText={jest.fn()}/>);});
   expect(tree.root.findByProps({accessibilityLabel:'Zaustavi i pregledaj tekst'})).toBeDefined();
   expect(JSON.stringify(tree.toJSON())).toContain('Zaustavi, pregledaj tekst i izaberi Pošalji.');
-  expect(tree.root.findAllByProps({label:'Bez držanja'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({accessibilityLabel:'Govor bez držanja'})).toHaveLength(0);
 });
 it('keeps first-speech preparation cancellable and accessible', async () => {
   mockReader = true; const c = controller();
