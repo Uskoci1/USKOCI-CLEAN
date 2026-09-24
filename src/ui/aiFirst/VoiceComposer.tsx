@@ -95,7 +95,7 @@ const s = StyleSheet.create({
     shadowColor: a.color.ink, shadowOpacity: 0.10, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   micListening: { width: 52, height: 52, backgroundColor: a.color.orange, borderColor: a.color.orangeEdge },
   modeToggle: { width: 38, height: 38, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: a.color.iconWell },
-  modeToggleOn: { backgroundColor: a.color.orangeSoft, borderWidth: 1, borderColor: a.color.orangeHalo },
+  modeToggleOn: { backgroundColor: sys.color.orangeSoft, borderWidth: 1, borderColor: a.color.orangeHalo },
   disabled: { opacity: 0.5 },
   caption: { color: a.color.muted, fontWeight: '500', letterSpacing: 0.2, textAlign: 'center' },
   captionActive: { color: a.color.green, fontWeight: '600' },
