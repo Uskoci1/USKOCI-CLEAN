@@ -20,6 +20,14 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
+Research supplement (proposal only):
+`docs/implementation/design-system/premium-research-plan-20260925/PLAN.md` connects the owner's 62-area
+research document and 50 independently checked references to existing code and a 40-route improvement plan.
+It preserves the current product model and white/green/orange direction. Read CURRENT_GAPS.md and SCREEN_PLAN.md
+before implementing: many recommendations already exist, especially direct AI draft/profile editing. Batches
+P0–P5 organize continuity, discovery/choice, AI creation, Agreement completion, account/trust and integrated
+finish. These are delivery labels, not severity levels. No runtime, server or device status changed in this task.
+
 R17 is the current authorized client-source batch after R16. Read
 `docs/implementation/design-system/r17-conversation-appointments-20260925/REPORT.md` for scope and boundaries.
 Home's next appointment and the Agreement list lead with the work, supporting person/role and actual accepted

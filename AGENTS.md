@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+PREMIUM RESEARCH PLAN (2026-09-25): read
+`docs/implementation/design-system/premium-research-plan-20260925/PLAN.md` before the next UI batch.
+The owner's research document was mapped to current code, 40 active routes and five redirects, with all
+50 references checked at the access depth recorded in SOURCE_AUDIT_A/B.md. CURRENT_GAPS.md distinguishes
+existing editors and flows from open continuity/scaling findings. This is a proposal, not implementation,
+fresh DEV evidence or device acceptance. Runtime remains R17 / 8500bf29. Keep the single control tracker;
+do not restart completed work, introduce dependencies or deploy server changes from research alone.
+
 R17 CONVERSATION / APPOINTMENTS (2026-09-25): owner resumed the second composition batch. Read
 `docs/implementation/design-system/r17-conversation-appointments-20260925/REPORT.md`.
 Home and Agreements lead with actual work and terms. AI drafts disclose locally, separately from guarded review;
