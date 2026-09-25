@@ -67,6 +67,16 @@ test('search opens from the header with the keyboard; clearing it keeps price, a
  expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', attention: false, section: 'active' });
  expect(press('Otvori Zadatak Pomoć one')).toBeTruthy();
 });
+test('the active tab speaks tasks waiting for a choice, then removes the count when none remain', async () => {
+ rows = [row('waiting', { brojPrijavaZaIzbor: 3 }), row('ready'), row('draft', { stanje: 'NACRT', brojPrijavaZaIzbor: 5 })];
+ await render();
+ expect(press('Aktivni').props.accessibilityValue).toEqual({ text: 'Za tvoj izbor: 1 zadatak' });
+ expect(cards()).toHaveLength(2);
+ rows = rows.map(item => ({ ...item, brojPrijavaZaIzbor: 0 }));
+ await act(async () => tree.update(<Screen />));
+ expect(press('Aktivni').props.accessibilityValue).toBeUndefined();
+ expect(cards()).toHaveLength(2);
+});
 test('filter working copy can cancel and hardware back does not apply; Apply preserves selected choice', async () => {
  await render(); await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera'); expect(snapshot.price).toBe('all');
  await tap('Filteri'); await tap('Navedena cena'); await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()); expect(snapshot.price).toBe('all');

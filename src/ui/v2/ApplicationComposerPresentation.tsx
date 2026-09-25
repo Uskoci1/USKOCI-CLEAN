@@ -19,6 +19,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, inset, sys } from '../system/tokens';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { CardFact, CardHead, CardPlaces, CardTitle, placesText, taskSpoken, taskValue } from './TaskFace';
 import { V2Action } from './V2Action';
 
@@ -437,15 +438,15 @@ const s = StyleSheet.create({
   task: { gap: sys.space.sm, paddingBottom: sys.space.lg, borderBottomWidth: 1, borderColor: sys.color.line },
   section: { gap: sys.space.sm },
   priceBox: { ...fieldBox, minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0 },
-  priceInput: { ...sys.type.price, flex: 1, minWidth: 0, color: sys.color.ink, paddingVertical: sys.space.sm },
+  priceInput: withInter({ ...sys.type.price, flex: 1, minWidth: 0, color: sys.color.ink, paddingVertical: sys.space.sm }),
   fieldDanger: { borderColor: sys.color.danger },
   fixed: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   fixedValue: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: sys.space.sm, flex: 1, minWidth: 0 },
   money: { ...sys.type.priceSmall, color: sys.color.money },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  peopleInput: { ...fieldBox, ...sys.type.price, width: 72, minHeight: 56, textAlign: 'center', color: sys.color.ink, paddingHorizontal: sys.space.sm },
+  peopleInput: withInter({ ...fieldBox, ...sys.type.price, width: 72, minHeight: 56, textAlign: 'center', color: sys.color.ink, paddingHorizontal: sys.space.sm }),
   term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.sm },
-  note: { ...fieldBox, ...sys.type.body, color: sys.color.ink, minHeight: 96, textAlignVertical: 'top' },
+  note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, minHeight: 96, textAlignVertical: 'top' }),
   outcome: { gap: sys.space.md, alignItems: 'flex-start', paddingBottom: sys.space.sm },
   reviewTask: { gap: sys.space.xs },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },

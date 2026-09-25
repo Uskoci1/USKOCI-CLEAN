@@ -10,6 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
+import { withInter } from '../interFont';
 import { sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
 
@@ -142,4 +143,4 @@ function PrivateReport(context: Context) {
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}
   </SettingsPanel>;
 }
-const input = { borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize };
+const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });

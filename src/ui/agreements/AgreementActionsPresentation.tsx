@@ -9,6 +9,7 @@ import { novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilClock, civilDay, zonedParts } from '../calendar/calendarPresentation';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { FlowFooter } from '../system/FlowFooter';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
@@ -278,7 +279,7 @@ const s = StyleSheet.create({
   multiline: { minHeight: 100, textAlignVertical: 'top' },
   // The price row is the field box itself; the number's input is borderless inside it and RSD closes the row.
   amount: { ...fieldBox, paddingVertical: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  amountInput: { flex: 1, minWidth: 0, paddingVertical: 12, paddingHorizontal: 0, ...sys.type.body, color: sys.color.ink },
+  amountInput: withInter({ flex: 1, minWidth: 0, paddingVertical: 12, paddingHorizontal: 0, ...sys.type.body, color: sys.color.ink }),
   unit: { color: sys.color.ink },
   // The decision that ends or refuses keeps the primary's measure, drawn in the danger colour: its edge and its words.
   danger: { minHeight: brandAction.minHeight, borderRadius: brandAction.borderRadius, borderWidth: 1, borderColor: sys.color.danger },

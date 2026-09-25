@@ -6,6 +6,7 @@ import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
 import { T } from '../../Text';
+import { withInter } from '../../interFont';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { Segmented } from '../../system/Segmented';
@@ -294,7 +295,7 @@ const s = StyleSheet.create({
   question: { color: sys.color.ink, paddingHorizontal: sys.space.sm },
   // The one text field of the system, with the search glass before it and the clear button in it.
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
-  input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm },
+  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm }),
   clear: { width: 48, height: 48, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   suggestions: { gap: sys.space.xs },
   // A suggestion is a row inside the card: a flat tint when chosen, never another card.

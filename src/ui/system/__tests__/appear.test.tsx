@@ -17,9 +17,9 @@ describe('a row arriving in a list', () => {
   afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; rows = []; });
 
   /** Stands in for a list: it settles what it is about to draw, then asks about each row. */
-  function List({ keys }: { keys: string[] }) {
+  function List({ keys, viewKey }: { keys: string[]; viewKey?: string }) {
     const appear = useAppear();
-    appear.settle(keys);
+    appear.settle(keys, viewKey);
     rows = keys.map(key => ({ key, animate: appear.isNew(key) }));
     return <>{keys.map((key, index) => <Appear key={key} index={index} animate={rows[index].animate}>
       <View testID={key} />
@@ -42,6 +42,18 @@ describe('a row arriving in a list', () => {
     expect(animate()).toEqual([false, false, true]);
     // Having arrived, it is part of the list: a later read leaves it alone.
     await redraw(['a', 'b', 'c']);
+    expect(animate()).toEqual([false, false, false]);
+  });
+
+  it('switching to existing history or a filter is silent, while a later incoming record still enters once', async () => {
+    await act(async () => { tree = create(<List keys={['active']} viewKey="active" />); });
+    await act(async () => tree.update(<List keys={['past-1', 'past-2']} viewKey="history" />));
+    expect(animate()).toEqual([false, false]);
+    await act(async () => tree.update(<List keys={['past-1', 'past-2', 'just-completed']} viewKey="history" />));
+    expect(animate()).toEqual([false, false, true]);
+    await act(async () => tree.update(<List keys={['active']} viewKey="active" />));
+    expect(animate()).toEqual([false]);
+    await act(async () => tree.update(<List keys={['past-1', 'past-2', 'just-completed']} viewKey="history" />));
     expect(animate()).toEqual([false, false, false]);
   });
 

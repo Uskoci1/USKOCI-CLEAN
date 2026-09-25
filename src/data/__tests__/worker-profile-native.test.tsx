@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockAccount = '10000000-0000-4000-8000-000000000001', mockRevision = 1;
 let mockIntent = 'uskocer', mockFocused = true, mockPlatform = 'android';
@@ -50,6 +51,17 @@ it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on
   expect(tree.root.findByType('SafeAreaView' as any).props.edges).toEqual(['top', 'bottom']);
   expect(mockWrite).not.toHaveBeenCalled();
 });
+
+it('keeps regular profile fields and the bold capacity input on their bundled Inter faces', async () => {
+  await render();
+  const name = StyleSheet.flatten(control('Ime na radnom profilu').props.style);
+  const capacity = StyleSheet.flatten(control('Koliko ljudi možeš da obezbediš').props.style);
+  expect(name.fontFamily).toBe('Inter-Regular');
+  expect(name.fontWeight).toBeUndefined();
+  expect(capacity).toMatchObject({ fontFamily: 'Inter-Bold', fontVariant: ['tabular-nums'], fontSize: 20, lineHeight: 26 });
+  expect(capacity.fontWeight).toBeUndefined();
+});
+
 it('a successfully absent profile starts with truthful empty values and the primary action saves the first draft before activation', async () => {
   mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
   expect(texts()).toContain('Status „Mogu odmah“ je isključen'); expect(texts()).toContain('Nije podešeno');

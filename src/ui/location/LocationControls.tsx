@@ -6,7 +6,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { TurningCaret } from '../system/Disclosure';
 import { useReducedMotion } from '../system/motion';
 import { StateView } from '../system/StateView';
-import { card, sys, fieldBox } from '../system/tokens';
+import { card, sys, field } from '../system/tokens';
 import { ProductSheet } from '../product/ProductSheet';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
@@ -19,7 +19,7 @@ export const locationStyles = StyleSheet.create({
   content: { padding: 20, gap: 16, paddingBottom: 36 },
   section: { gap: 12 },
   card: { ...card, gap: 12 },
-  input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
+  input: { ...field },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notice: { backgroundColor: sys.color.greenSoft, borderRadius: sys.radius.card, padding: 16, gap: 10 },
   failure: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base },

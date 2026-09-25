@@ -11,6 +11,7 @@ import { FactArt } from './system/FactArt';
 import { plural } from './system/plural';
 import { sys } from './system/tokens';
 import { T } from './Text';
+import { withInter } from './interFont';
 import { positiveInteger, uuid } from '../data/serverReceipt';
 import { SupportContextEntry } from './support/SupportContextEntry';
 
@@ -297,8 +298,8 @@ const s = StyleSheet.create({
   composerArea: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: sys.color.surface },
   pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
   tool: { width: COMMAND, height: COMMAND, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minHeight: COMMAND, maxHeight: 140, fontSize: 16, lineHeight: 22, color: sys.color.ink, paddingHorizontal: 4,
-    paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' },
+  input: withInter({ flex: 1, minHeight: COMMAND, maxHeight: 140, fontSize: 16, lineHeight: 22, color: sys.color.ink, paddingHorizontal: 4,
+    paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' }),
   inputAlone: { paddingHorizontal: 14 },
   // The send is a 48 px target around a 40 px circle: green with a white glyph when a message can go, a grey well
   // with a muted glyph when it cannot (never faded), a quiet spinner while photos are being captured.

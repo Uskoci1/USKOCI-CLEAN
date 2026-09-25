@@ -5,7 +5,7 @@ import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useReducedMotion } from '../system/motion';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { StateView } from '../system/StateView';
-import { brandAction, sys, card, cardCompact, fieldBox } from '../system/tokens';
+import { brandAction, sys, card, cardCompact, field } from '../system/tokens';
 import { ProductSheet } from '../product/ProductSheet';
 import { V2Action } from '../v2/V2Action';
 import { Press } from '../Press';
@@ -29,7 +29,7 @@ export const calendarStyles = StyleSheet.create({
   // A choice is an option row, not a card: the same control the price filter uses.
   option: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexWrap: 'wrap' },
-  input: { ...fieldBox, ...sys.type.body, color: sys.color.ink },
+  input: { ...field },
   footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface, borderTopWidth: 1, borderColor: sys.color.line },
   divider: { height: 1, backgroundColor: sys.color.line },
 });

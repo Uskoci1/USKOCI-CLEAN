@@ -46,7 +46,8 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   await act(async () => { tree = create(<DizajnDodaci />); });
   const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Pitanja|Izmene|Lokacija|Grupa|Poruke) · /.test(String(node.props.accessibilityLabel)))
     .map(node => String(node.props.accessibilityLabel));
-  expect(labels).toHaveLength(28);
+  expect(labels).toHaveLength(21);
+  expect(labels.some(label => label.startsWith('Lokacija · '))).toBe(false);
   for (const label of labels) {
     await pressHost(label);
     expect(text()).not.toContain('Dogovor · dodaci · galerija');
@@ -56,12 +57,11 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   }
 });
 
-it('draws the binding words of cancellation and the one-point promise of location sharing as they are', async () => {
+it('keeps the binding cancellation words after retiring current-location sharing', async () => {
   await act(async () => { tree = create(<DizajnDodaci />); });
   await pressHost('Izmene · otkazivanje, korak 2');
   expect(text()).toContain('Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.');
   expect(text()).toContain('Korak 2 od 2');
-  await pressHost('Nazad na scene'); await pressHost('Lokacija · poslednja tačka');
-  expect(text()).toContain('Ovo je ranije zabeležena tačka. Ne potvrđuje sadašnji položaj.');
-  expect(tree.root.findByType('PinMap' as React.ElementType).props.disabled).toBe(true);
+  await pressHost('Nazad na scene');
+  expect(text()).not.toContain('Lokacija · poslednja tačka');
 });

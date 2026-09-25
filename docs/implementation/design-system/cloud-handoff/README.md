@@ -1,5 +1,13 @@
 # USKOČI UI unification — cloud handoff (2026-09-24)
 
+## Active checkpoint — 2026-09-25 cohesion package
+
+Continue from `USKOCI_MASTER_PLAN_DIZAJNA.md`'s current execution checkpoint and
+`../r7-cohesion-20260925/REPORT.md` / `RECEIPT.json`. Earlier “done” rows below retain their original scope/date;
+gallery checks are not current-build whole-flow or phone acceptance. The integrated recovery source was b9aed185;
+9956d3ee separately removed the redundant place-confirmation checkbox. The R7 receipt binds subsequent work to
+its exact source/APK. No server or payment work is part of this client package.
+
 The owner moved this work to a Claude Code cloud session to use the cloud session credits. This folder is everything
 the cloud session needs that used to live only on the owner's PC.
 

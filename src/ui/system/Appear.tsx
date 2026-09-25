@@ -17,11 +17,18 @@ import { useReducedMotion } from './motion';
 export function useAppear() {
   const seen = useRef<Set<string>>(new Set());
   const settled = useRef(false);
+  const view = useRef<string | undefined>(undefined);
   // One object for the life of the list, so a memoised renderItem can depend on it directly (2026-09-23).
-  const api = useRef<{ settle(keys: readonly string[]): void; isNew(key: string): boolean } | null>(null);
+  const api = useRef<{ settle(keys: readonly string[], viewKey?: string): void; isNew(key: string): boolean } | null>(null);
   if (!api.current) api.current = {
     /** Call once per render pass, before the rows, with the keys the list is about to draw. */
-    settle(keys: readonly string[]) {
+    settle(keys: readonly string[], viewKey?: string) {
+      // A different filter/section reveals existing records; it is not an arrival. Keep the
+      // list mounted and baseline that view before its cells render. Actual later IDs still enter.
+      if (view.current !== viewKey) {
+        view.current = viewKey;
+        keys.forEach(key => seen.current.add(key));
+      }
       if (settled.current || !keys.length) return;
       settled.current = true;
       // The first list a screen draws is not an arrival; it is what was already there.

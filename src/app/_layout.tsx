@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useReducedMotion as useLaunchReducedMotion } from 'react-native-reanimated';
 import { sys } from '../ui/system/tokens';
-import { useReducedMotionRoot } from '../ui/system/motion';
+import { useReducedMotion, useReducedMotionRoot } from '../ui/system/motion';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
@@ -26,6 +26,7 @@ export default function RootLayout() {
   // The one reduced-motion store starts here: Reanimated read the system setting natively at launch, so the first frame
   // of the first screen already respects it, and from here the store follows every change (ui/system/motion.ts).
   useReducedMotionRoot(useLaunchReducedMotion());
+  const reduced = useReducedMotion();
   const { isLoaded, session, sessionEpoch, accountRevision, returnTargetRevision } = useSesija();
   const router = useRouter();
   const segments = useSegments();
@@ -127,7 +128,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: sys.color.surface },
-            animation: 'slide_from_right',
+            animation: reduced ? 'none' : 'slide_from_right',
           }}
         >
           <Stack.Protected guard={!session}>

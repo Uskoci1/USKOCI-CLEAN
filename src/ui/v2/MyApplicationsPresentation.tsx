@@ -9,6 +9,7 @@ import { needScheduleText } from '../../data/needDetailPresentation';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { Segmented } from '../system/Segmented';
+import { prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { brandAction, field, inset, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -104,7 +105,8 @@ export function MyApplicationsPresentation(props: Props) {
     </ApplicationCard>
   </Appear>;
   const count = (tab: ApplicationsTab) => tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
-  const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
+  const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeLabel: prijava(count(option.key)),
+    badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
   // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
     {props.loading ? <StateView kind="loading" title="Učitavamo tvoje prijave…" skeleton={{ count: 3, rows: 2 }} />

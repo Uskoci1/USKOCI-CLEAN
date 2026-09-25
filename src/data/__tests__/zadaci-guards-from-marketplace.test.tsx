@@ -25,7 +25,9 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
+jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: jest.fn() }));
 import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
+import { loadNearbyLocation } from '../../ui/v2/discovery/nearbyLocation';
 
 /**
  * Guards that lived in the discovery branch of MarketplacePresentation (marketplace-presentation and pkg011-slice1)
@@ -101,14 +103,16 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
 });
 
 // From marketplace-presentation: under reduced motion the search appears at once (Discovery V47: the panel that replaced
-// the filter sheet), and nothing offers location features that are not wired: no geocoder, no "near me".
-test('reduced motion opens the search panel at once; no unbound GPS, proximity or geocoding controls appear', async () => {
+// the filter sheet). Nearby is now bound, but rendering or searching must not start native location.
+test('reduced motion opens search at once; Nearby waits for its own tap and no distance/geocoder is invented', async () => {
   mockReduced = true; await render(); await tap('Uslovi pretrage');
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
   expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
   await tap('Gde');
-  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|U blizini|km od|geocod/i);
+  expect(press('U blizini').props.accessibilityRole).toBe('button');
+  expect(loadNearbyLocation).not.toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
 });
 
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.

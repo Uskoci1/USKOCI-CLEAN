@@ -47,6 +47,8 @@ beforeEach(() => {
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
   await render(); expect(titles()).toHaveLength(3); // One list holds both sides of one account, and each row says which side from its own participants.
+  expect(tree.root.findByProps({ accessibilityLabel: 'Aktivni' }).props.accessibilityValue).toEqual({ text: '3 Dogovora' });
+  expect(tree.root.findByProps({ accessibilityLabel: 'Istorija' }).props.accessibilityValue).toEqual({ text: '2 Dogovora' });
   // The row carries the other person's photo and name, so the sentence beside it is about THEM,
   // third person — the same words the Dogovor itself uses in AgreementPeople. It used to read
   // "Milos SLJIVIC   Uskočio si": their name, then a sentence about me, with nothing to mark that

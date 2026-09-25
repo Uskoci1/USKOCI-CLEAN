@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
-import BottomSheet, { BottomSheetView, type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView, BottomSheetView, type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
 import { SHEET_SPRING } from '../product/ProductSheet';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sheetLift, sys } from './tokens';
@@ -8,7 +8,7 @@ import { sheetLift, sys } from './tokens';
 const PeekBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
   importantForAccessibility="no" style={[style, s.background]} />;
 const PeekHandle = () => <View accessible={false} importantForAccessibility="no" style={s.handleArea}><View style={s.handle} /></View>;
-/** The card is as tall as what it says, up to this share of the window; past it gorhom cuts the content off. */
+/** The card is as tall as what it says, up to this share of the window; scrollable content stays within that cap. */
 export const PEEK_MAX_SHARE = 0.5;
 
 /**
@@ -19,7 +19,7 @@ export const PEEK_MAX_SHARE = 0.5;
  * for a card that carries its own close button (Discovery V47); a drag down still closes it.
  */
 export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced, handle = true,
-  maxShare = PEEK_MAX_SHARE }: {
+  maxShare = PEEK_MAX_SHARE, scrollable = false, overlay }: {
   /** What assistive technology calls the card. */
   label: string;
   /** True while the screen that hosts the card is the one in front (the map passes `useIsFocused()`). Only then does
@@ -28,6 +28,10 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   /** Called once the card is gone, whatever closed it. */
   onClose: () => void;
   children: (dismiss: () => void) => ReactNode;
+  /** Long content uses gorhom's registered scroll view, so overflow remains reachable inside the bounded card. */
+  scrollable?: boolean;
+  /** Fixed controls above scrolling content. Only the controls take touches; the rest of the card stays interactive. */
+  overlay?: (dismiss: () => void) => ReactNode;
   /** The gap to the bottom of the screen it floats over. The tab bar sits outside the screen, so 12 clears it. */
   bottomInset?: number;
   reduced?: boolean;
@@ -59,7 +63,11 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
     maxDynamicContentSize={height * maxShare} animateOnMount={!reduced} onClose={onClose}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING}
     backgroundComponent={PeekBackground} handleComponent={handle ? PeekHandle : null}>
-    <BottomSheetView style={[s.content, !handle && s.unhandled]}>{children(dismiss)}</BottomSheetView>
+    {scrollable ? <BottomSheetScrollView contentContainerStyle={[s.content, !handle && s.unhandled]}
+      keyboardShouldPersistTaps="handled" bounces={false} showsVerticalScrollIndicator>
+      {children(dismiss)}
+    </BottomSheetScrollView> : <BottomSheetView style={[s.content, !handle && s.unhandled]}>{children(dismiss)}</BottomSheetView>}
+    {overlay ? <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{overlay(dismiss)}</View> : null}
   </BottomSheet>;
 }
 

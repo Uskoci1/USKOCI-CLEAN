@@ -14,6 +14,7 @@ import { useReducedMotion } from '../system/motion';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
+import { dogovora } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { sys, cardCompact } from '../system/tokens';
 import { T } from '../Text';
@@ -211,10 +212,10 @@ export function AgreementCollectionPresentation(props: Props) {
   const sections = useMemo(() => {
     if (!settledRead) return SECTIONS;
     const counts: Record<AgreementCollectionSection, number> = { active: activeCount, history: items.length - activeCount };
-    return SECTIONS.map(option => counts[option.key] ? { ...option, badge: counts[option.key] } : option);
+    return SECTIONS.map(option => counts[option.key] ? { ...option, badge: counts[option.key], badgeLabel: dogovora(counts[option.key]) } : option);
   }, [items.length, activeCount, settledRead]);
   const appear = useAppear();
-  appear.settle(visible.map(keyOf));
+  appear.settle(visible.map(keyOf), JSON.stringify([section, filtering]));
   // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
   // is a fresh closure each render; both are read through refs so `renderItem` keeps its identity.
   const appearRef = useRef(appear); appearRef.current = appear;

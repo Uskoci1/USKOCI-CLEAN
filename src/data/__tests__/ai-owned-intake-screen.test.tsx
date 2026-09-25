@@ -262,6 +262,102 @@ it('held speech is sent as its own message on release; the typed draft stays whe
   expect(mockSend).toHaveBeenCalledTimes(1); expect(mockSend.mock.calls[0][1]).toBe('Treba mi prevoz.');
   expect(input().value).toBe('Već ukucano.');
 });
+it.each([
+  ['immediate success', 'Već ukucano.', 'Treba mi prevoz.'],
+  ['unknown then success', 'Već ukucano.', 'Treba mi prevoz.'],
+  ['explicit retry', 'Isti tekst.', 'Isti tekst.'],
+])('CF01: spoken %s preserves the unrelated draft and the original command', async (outcome, draft, spoken) => {
+  if (outcome === 'immediate success') {
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  }
+  await render(); await type(draft);
+  const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+  await act(async () => expect(receive({ text: spoken, isCurrent: () => true, session: { mode: 'hold' } })).toBe(true));
+  const sent = mockSend.mock.calls[0].slice(0, 3);
+  expect(sent.slice(0, 2)).toEqual([id, spoken]);
+  if (outcome === 'explicit retry') {
+    await act(async () => button('Proveri ishod').onPress());
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    await act(async () => submit().onPress());
+    expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(sent);
+  } else if (outcome === 'unknown then success') {
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    await act(async () => button('Proveri ishod').onPress());
+  }
+  expect(input().value).toBe(draft); expect(input().editable).toBe(true);
+  expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+});
+it.each([
+  ['typed', 'Noviji nacrt.', 'immediate success'],
+  ['typed', '  Poslati nacrt.  ', 'immediate success'],
+  ['spoken', 'Noviji nacrt.', 'immediate success'],
+  ['typed', 'Noviji nacrt.', 'unknown then success'],
+  ['typed', '  Poslati nacrt.  ', 'explicit retry'],
+])('CF01: %s preserves a newer native edit during opening (%s; %s)', async (origin, freshDraft, outcome) => {
+  const opening = deferred(); mockOpen.mockReturnValueOnce(opening.promise);
+  if (outcome === 'immediate success') {
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  }
+  await render(); await type('  Poslati nacrt.  ');
+  // A native change already queued before the field became disabled can arrive while the first open awaits.
+  const lateEdit = input().onChangeText;
+  if (origin === 'typed') await act(async () => { void submit().onPress(); });
+  else {
+    const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+    await act(async () => expect(receive({ text: 'Govorna poruka.', isCurrent: () => true, session: { mode: 'hold' } })).toBe(true));
+  }
+  expect(mockSend).not.toHaveBeenCalled();
+  await act(async () => { lateEdit('Promena tokom otvaranja.'); lateEdit(freshDraft); });
+  expect(input().value).toBe(freshDraft);
+  await act(async () => opening.resolve(ok({ conversationId: id, clientRequestId: mockOpen.mock.calls[0][0] })));
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(mockSend.mock.calls[0][1]).toBe(origin === 'typed' ? 'Poslati nacrt.' : 'Govorna poruka.');
+  if (outcome === 'explicit retry') {
+    await act(async () => button('Proveri ishod').onPress());
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    await act(async () => submit().onPress());
+    expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(mockSend.mock.calls[0].slice(0, 3));
+  } else if (outcome === 'unknown then success') {
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    await act(async () => button('Proveri ishod').onPress());
+  }
+  expect(input().value).toBe(freshDraft); expect(input().editable).toBe(true);
+  expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
+});
+it('CF01: a typed retry clears only its unchanged raw submitted draft', async () => {
+  await render(); await type('  Poslati nacrt.  '); await act(async () => submit().onPress());
+  await act(async () => button('Proveri ishod').onPress());
+  mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  await act(async () => submit().onPress());
+  expect(mockSend).toHaveBeenCalledTimes(2);
+  expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(mockSend.mock.calls[0].slice(0, 3));
+  expect(mockSend.mock.calls[1][1]).toBe('Poslati nacrt.');
+  expect(input().value).toBe(''); expect(input().editable).toBe(true);
+});
+it.each(['typed', 'spoken'])('CF01: remounted %s intent restores only IDs and cannot clear a fresh draft', async origin => {
+  await render(); await type('Private typed draft');
+  if (origin === 'typed') await act(async () => submit().onPress());
+  else {
+    const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
+    await act(async () => expect(receive({ text: 'Private spoken message', isCurrent: () => true, session: { mode: 'hold' } })).toBe(true));
+  }
+  const requestId = mockSend.mock.calls[0][2];
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual({ accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId });
+  await act(async () => tree.unmount());
+  mockTurn.mockResolvedValue(turn(requestId, 'SUCCEEDED'));
+  await render(); await openKeyboard();
+  expect(input().value).toBe(''); expect(input().editable).toBe(true);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  await type('Fresh draft after recovery'); await options();
+  await act(async () => menuItem('Osveži razgovor').onPress());
+  expect(input().value).toBe('Fresh draft after recovery'); expect(mockSend).toHaveBeenCalledTimes(1);
+});
 it('the accessible start/stop mode still hands speech to the draft for review; only explicit Send writes the AI intent', async () => {
   await render(); await type('Već ukucano.');
   const receive = mockVoiceOptions.mock.calls.at(-1)![0].onTranscript;
@@ -746,8 +842,9 @@ it.each(['invalid', [id]])('rejects malformed new-entry key %s without creating 
 it('normal successful send clears the composer after the actual turn readback', async () => {
   mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-  await render(); await type(); await act(async () => submit().onPress());
+  await render(); await type('  Treba preneti ormar sutra.  '); await act(async () => submit().onPress());
   expect(input().value).toBe(''); expect(input().editable).toBe(true); expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(mockSend.mock.calls[0][1]).toBe('Treba preneti ormar sutra.');
 });
 
 function recovery(status: ReturnType<typeof turn>['podatak'], cancelled = false, dispatched = false) {

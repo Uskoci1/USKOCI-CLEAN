@@ -74,6 +74,20 @@ describe('actual package-aware Firebase config', () => {
     expect(configure({ config: first }).plugins.filter((plugin: string) => plugin === enrollmentPlugin)).toHaveLength(1);
   });
 
+  it('Nearby has only foreground location permission and truthful permission copy', () => {
+    const config = configure({ config: structuredClone(original.expo) });
+    const plugins = config.plugins.filter((plugin: any) => Array.isArray(plugin) && plugin[0] === 'expo-location');
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0][1]).toMatchObject({ locationAlwaysPermission: false, locationAlwaysAndWhenInUsePermission: false,
+      motionUsagePermission: false, isIosBackgroundLocationEnabled: false, isAndroidBackgroundLocationEnabled: false,
+      isAndroidForegroundServiceEnabled: false, isAndroidMotionActivityEnabled: false });
+    expect(config.ios.infoPlist.NSLocationWhenInUseUsageDescription).toContain('U blizini');
+    expect(config.ios.infoPlist.NSLocationWhenInUseUsageDescription).not.toContain('Dogovoru');
+    expect(config.android.permissions).toContain('android.permission.ACCESS_COARSE_LOCATION');
+    expect(config.android.permissions).not.toEqual(expect.arrayContaining(['android.permission.ACCESS_BACKGROUND_LOCATION']));
+    expect(configure({ config }).plugins.filter((plugin: any) => Array.isArray(plugin) && plugin[0] === 'expo-location')).toHaveLength(1);
+  });
+
   it('installed notification support retains disabled automatic Firebase enrollment', () => {
     const script = `const { getPrebuildConfigAsync } = require('@expo/prebuild-config');
       const { compileModsAsync } = require('expo/config-plugins');

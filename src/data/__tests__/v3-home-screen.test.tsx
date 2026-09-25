@@ -245,6 +245,7 @@ it('PKG-042: server attention remains visible with its full total when all three
   await render();
   expect(text()).toContain('Zadatak je izmenjen'); expect(text()).toMatch(/I još\s+12/);
   expect(tree.root.findAll(node => String(node.type) === 'T').some(node => node.props.children === 13)).toBe(true);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te: 13 stavki' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
   expect(text()).not.toContain('Šta rešavamo');
   await act(async () => row('Zadatak je izmenjen').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });

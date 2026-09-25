@@ -96,8 +96,9 @@ function MineRow({ art, title, detail, onPress, last = false }: {
 
 function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return <View style={s.section}>
-    <View style={s.sectionHead}>
-      <T accessibilityRole="header" variant="heading" style={s.flexible}>{title}</T>
+    <View style={s.sectionHead} accessible accessibilityRole="header"
+      accessibilityLabel={count != null && count > 0 ? `${title}: ${plural(count, 'stavka', 'stavke', 'stavki')}` : title}>
+      <T variant="heading" style={s.flexible}>{title}</T>
       {count != null && count > 0 ? <View style={s.counter}><T variant="meta" style={s.link}>{count}</T></View> : null}
     </View>
     {children}

@@ -4,6 +4,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextI
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { ChromeIconButton } from '../system/ScreenChrome';
@@ -331,6 +332,6 @@ const s = StyleSheet.create({
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   add: { minWidth: 72 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  count: { width: 88, textAlign: 'center', fontSize: 20, lineHeight: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  count: withInter({ width: 88, textAlign: 'center', fontSize: 20, lineHeight: 26, fontWeight: '700', fontVariant: ['tabular-nums'] }),
   rows: { ...card, paddingVertical: 0, paddingHorizontal: 18 },
 });

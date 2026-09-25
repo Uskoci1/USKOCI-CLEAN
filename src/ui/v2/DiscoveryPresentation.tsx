@@ -21,6 +21,7 @@ import { DiscoveryMap } from './DiscoveryMap';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
 import { DiscoverySearchBar, type QuickChip } from './discovery/DiscoverySearchBar';
+import { useNearbyMap } from './discovery/useNearbyMap';
 import { DiscoverySearchPanel, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
 import { CLEAR_ALL, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, datesWords, placesWords, quoted, removeWords, said,
   undatedWords, whereWords } from './discovery/discoveryWords';
@@ -110,6 +111,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
  */
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error, view } = props, reduced = useReducedMotion(), focused = useIsFocused();
+  const nearby = useNearbyMap(props.scopeKey, focused);
   const { height: windowHeight } = useWindowDimensions();
   const relations = props.relations;
   const pending = !!props.relationsPending;
@@ -193,7 +195,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Its first mount also waits for what is mine, exactly as the sheet's start does: the map fits its pins once, when it
   // mounts, so a mount before that would fit my own tasks for a sheet height the sheet then does not take (review r3b).
   // A later read of the labels does not take the map away again.
-  const mapShown = !loading && !error && !(pending && !started.current) && (mapped.length - mappedWithoutPin > 0 || !!view.viewport);
+  const mapShown = !loading && !error && !(pending && !started.current) && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
   // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
   const highest = !loading && !error && !listed.length && mapShown ? SNAP.half : SNAP.full;
@@ -275,6 +277,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // move, never an area).
   const openSearch = (step: SearchStep) => { Keyboard.dismiss(); setSearch(step); };
   const [fit, setFit] = useState<{ key: number; bounds: PublicBounds; bottom: number } | null>(null);
+  const findNearby = () => {
+    if (!nearby.start()) return;
+    Keyboard.dismiss(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
+  };
   const fits = useRef(0);
   const apply = (draft: SearchDraft) => {
     const before = latestView.current.place;
@@ -356,7 +362,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const folded = expanded && scrolled;
 
   const appear = useAppear();
-  appear.settle(listed.map(keyOf));
+  appear.settle(listed.map(keyOf), searchKey);
   const appearRef = useRef(appear); appearRef.current = appear;
   // Under a map area the tasks without a point follow the area's own, under their quiet heading.
   const section = withoutPoint.length ? { at: inArea.length, count: withoutPoint.length } : null;
@@ -439,7 +445,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <View style={StyleSheet.absoluteFill}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
-          onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit}
+          onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
           onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
@@ -447,6 +453,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           : <View style={s.ground} />}
       </View>
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
+        nearby={{ onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
         chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
         onNew={props.onNew ? () => { Keyboard.dismiss(); props.onNew?.(); } : undefined}
         onClearWhere={area || pinPlace ? showAll : undefined}

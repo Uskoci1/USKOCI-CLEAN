@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 import { PaperPlaneTilt } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { sys } from './tokens';
 
 /** Every command in the pill is a 48 px target. */
@@ -72,8 +73,8 @@ const s = StyleSheet.create({
   note: { paddingHorizontal: sys.space.sm },
   pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, padding: sys.space.xs, borderRadius: sys.radius.sheet,
     backgroundColor: sys.color.wash },
-  input: { flex: 1, minHeight: COMMAND, maxHeight: 140, ...sys.type.body, lineHeight: 22, color: sys.color.ink,
-    paddingHorizontal: sys.space.xs, paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' },
+  input: withInter({ flex: 1, minHeight: COMMAND, maxHeight: 140, ...sys.type.body, lineHeight: 22, color: sys.color.ink,
+    paddingHorizontal: sys.space.xs, paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' }),
   inputAlone: { paddingHorizontal: 14 },
   sendArea: { width: COMMAND, height: COMMAND, alignItems: 'center', justifyContent: 'center' },
   send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },

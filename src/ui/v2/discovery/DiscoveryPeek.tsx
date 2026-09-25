@@ -8,15 +8,16 @@ import { Press } from '../../Press';
 import { T } from '../../Text';
 import { PEEK_MAX_SHARE, PeekSheet } from '../../system/PeekSheet';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
+import { FactArt } from '../../system/FactArt';
 import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardFoot, CardPerson, CardPlaces, CardStatus, CardTitle, CardValue, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
+import { CardFact, CardFoot, CardHead, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
   taskValue } from '../TaskFace';
 import { V2Action } from '../V2Action';
 
-/** Rows a place shows in its card; a place with more offers the whole set in the list instead of a scroll inside a card. */
+/** Rows a place shows in its card; a place with more offers the whole set in the list. Large text may scroll within the card. */
 export const PLACE_ROWS = 3;
 /** What the PeekSheet draws around a place's rows: its `base` padding above and under them (the card has no handle). */
 const PEEK_FRAME = 2 * sys.space.base;
@@ -39,12 +40,13 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
  * the task ("Otvori zadatak: …"), and its round × top right closes it. It says, bare (it is the card, never a card inside
- * one): HITNO or "Prijava poslata" when they apply, the title in two lines, where · when, the price line exactly as the
- * task face writes it, the places still open, and who posted it with the honest rating when the read has them. No photo:
+ * one): HITNO or "Prijava poslata" when they apply, the shared title/value head, separate illustrated place/time rows,
+ * the places still open, and who posted it with the honest rating when the read has them. The preview stacks its head
+ * so a long title and the close control keep their room; the list uses the compact side-by-side head. No photo:
  * a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
-function PinTask({ item, applied, onOpen, onClose, onLayout }: {
-  item: MarketplaceItem; applied: boolean; onOpen: () => void; onClose: () => void; onLayout: (event: LayoutChangeEvent) => void;
+function PinTask({ item, applied, onOpen, onLayout }: {
+  item: MarketplaceItem; applied: boolean; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
 }) {
   const large = useTextScale() >= 1.3;
   const title = readableTitle(item.naslov);
@@ -65,13 +67,14 @@ function PinTask({ item, applied, onOpen, onClose, onLayout }: {
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: spoken }}
       haptic="select" scaleTo={1} onPress={onOpen} style={s.pinBody}>
       {head ? <View style={s.clearOfClose}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
-      <CardTitle title={title} lines={2} style={!head && s.clearOfClose} />
-      <T variant="note" style={s.meta} numberOfLines={2}>{`${place.text} · ${schedule}`}</T>
-      <CardValue value={value} large />
+      <View style={s.clearOfClose}><CardHead title={title} value={value} large /></View>
+      <View style={s.facts}>
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={16} />} text={place.text} lines={2} />
+        <CardFact art={<FactArt kind="calendar" size={16} />} text={schedule} lines={2} />
+      </View>
       {item.pokrivenost || person ? <CardFoot large={large} person={person}
         places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience="worker" large={large} /> : null} /> : null}
     </Press>
-    <View style={s.close}><ChromeIconButton label="Zatvori pregled zadatka" icon={X} onPress={onClose} /></View>
   </View>;
 }
 
@@ -111,12 +114,13 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
     if (content > 0) onHeight?.(Math.min(PEEK_FRAME + content, cap));
   };
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
-    handle={false} maxShare={share} onClose={onClose}>
-    {dismiss => item ? <PinTask item={item} applied={applied(item)} onOpen={() => onOpen(item)} onClose={dismiss} onLayout={measureCard} />
+    handle={false} maxShare={share} onClose={onClose} scrollable
+    overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
+      icon={X} onPress={dismiss} /></View>}>
+    {() => item ? <PinTask item={item} applied={applied(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
-        <View style={s.head}>
+        <View style={[s.head, s.clearOfClose]}>
           <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(place.length)} na ovom mestu`}</T>
-          <ChromeIconButton label="Zatvori pregled zadataka" icon={X} onPress={dismiss} />
         </View>
         {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledaj zadatak ${readableTitle(task.naslov)}`}
           haptic="select" scaleTo={0.98} onPress={() => onOpen(task)} style={s.row}>
@@ -141,9 +145,9 @@ const s = StyleSheet.create({
   pinBody: { padding: sys.space.base, gap: sys.space.sm, borderRadius: sys.radius.card },
   // The first line keeps clear of the × in the corner (one chrome control wide).
   clearOfClose: { marginRight: chrome.control },
-  meta: { fontWeight: '500', color: sys.color.fact },
+  facts: { gap: sys.space.xs },
   close: { position: 'absolute', top: CLOSE_INSET, right: CLOSE_INSET },
-  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  head: { flexDirection: 'row', alignItems: 'center', minHeight: chrome.control },
   title: { flex: 1, color: sys.color.ink },
   // A row inside the card is a flat tint at the control corner, never another card.
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,

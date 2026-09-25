@@ -390,8 +390,6 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
             {!active || (requester && dogovor.stanje === 'AWAITING_REQUESTER') ? null
               : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
                 onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
-            {active && dogovor.rezim !== 'DALJINSKI' ? <WorkspaceRow art="pin" label={worker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'} hint="Jedna tačka, samo uz pristanak" disabled={!enabled}
-              onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/lokacija', params: { id } }); }} /> : null}
             {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
               onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
                 router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}

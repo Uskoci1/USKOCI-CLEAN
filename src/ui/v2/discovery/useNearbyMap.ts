@@ -1,0 +1,71 @@
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Linking, Platform } from 'react-native';
+import { createNearbyCapture, type NearbyStatus } from './nearbyCapture';
+import type { NearbyCameraTarget } from '../DiscoveryMap.types';
+import { loadNearbyLocation } from './nearbyLocation';
+
+export const NEARBY_COPY: Partial<Record<NearbyStatus, string>> = {
+  locating: 'Tražimo tvoju lokaciju…',
+  denied: 'Dozvoli lokaciju u podešavanjima ili pomeri mapu ručno.',
+  'services-off': 'Lokacija je isključena na uređaju. Uključi je pa pokušaj ponovo.',
+  timeout: 'Lokacija nije pronađena na vreme. Pokušaj ponovo ili pomeri mapu.',
+  unavailable: 'Lokacija trenutno nije dostupna. Pokušaj ponovo ili pomeri mapu.',
+  unsupported: 'U blizini je dostupno u mobilnoj aplikaciji. Ovde pomeri mapu ručno.',
+};
+
+/** The target lives only in this screen's memory. Account/focus/background retirement discards it and stops capture. */
+export function useNearbyMap(scopeKey: string, focused: boolean) {
+  const [status, setStatus] = useState<NearbyStatus>('idle');
+  const [located, setLocated] = useState<{ scopeKey: string; owner: object; target: NearbyCameraTarget | null } | null>(null);
+  const latest = useRef({ scopeKey, focused }); latest.current = { scopeKey, focused };
+  const incarnation = useRef<object | null>(null), sequence = useRef(0);
+  const capture = useRef<ReturnType<typeof createNearbyCapture> | null>(null);
+  const [foreground, setForeground] = useState(AppState.currentState !== 'background');
+  useEffect(() => {
+    const owner = {}; incarnation.current = owner;
+    let active = focused && AppState.currentState !== 'background';
+    const owns = () => incarnation.current === owner && active && latest.current.focused && latest.current.scopeKey === scopeKey
+      && AppState.currentState !== 'background';
+    const controller = createNearbyCapture({
+      load: loadNearbyLocation, owns, onStatus: setStatus,
+      onPoint: point => { if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] } }); },
+    });
+    capture.current = controller;
+    setStatus('idle'); setLocated(null);
+    const listener = AppState.addEventListener('change', next => {
+      // Native permission dialogs may report inactive on iOS. Only leaving for the background retires the attempt.
+      if (next === 'background') {
+        active = false; controller.cancel(); setStatus('idle'); setLocated(null); setForeground(false);
+      } else if (next === 'active') { active = focused; setForeground(true); }
+    });
+    return () => {
+      active = false; controller.cancel(); listener.remove();
+      if (incarnation.current === owner) incarnation.current = null;
+      if (capture.current === controller) capture.current = null;
+    };
+  }, [scopeKey, focused]);
+  const start = () => {
+    if (latest.current.scopeKey !== scopeKey || !latest.current.focused || !foreground || AppState.currentState === 'background') return false;
+    if (Platform.OS === 'web') { setStatus('unsupported'); return false; }
+    return capture.current?.start() ?? false;
+  };
+  // Camera requests are commands, not a remembered location. A native map remount must restore its normal viewport,
+  // never replay a previous Nearby command. Keep only the fact that a map was requested until its first region arrives.
+  const consume = (key: number) => {
+    if (latest.current.scopeKey !== scopeKey || !latest.current.focused || AppState.currentState === 'background') return;
+    setLocated(current => current?.scopeKey === scopeKey && current.owner === incarnation.current && current.target?.key === key
+      ? { ...current, target: null } : current);
+  };
+  const settings = status === 'denied' || status === 'services-off' ? () => {
+    if (latest.current.scopeKey !== scopeKey || !latest.current.focused || AppState.currentState === 'background') return;
+    const owner = incarnation.current;
+    const action = status === 'services-off' && Platform.OS === 'android'
+      ? Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS') : Linking.openSettings();
+    void action.catch(() => {
+      if (owner === incarnation.current && latest.current.scopeKey === scopeKey && latest.current.focused) setStatus('unavailable');
+    });
+  } : undefined;
+  const mapRequested = focused && foreground && located?.scopeKey === scopeKey && located.owner === incarnation.current;
+  return { status, target: mapRequested ? located.target : null, mapRequested, start, consume, settings,
+    message: NEARBY_COPY[status], busy: status === 'locating' };
+}

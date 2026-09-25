@@ -1,5 +1,6 @@
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { elevation, palette, radius, space, touch, type } from '../../theme/tokens';
+import { withInter } from '../interFont';
 
 /**
  * `sys` is the one surface screens and components read for colour, type, space, corners, touch and motion (2026-09-24:
@@ -199,7 +200,7 @@ export const sheetLift = {
 /** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
 export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
   paddingHorizontal: 14, paddingVertical: 12, backgroundColor: sys.color.surface } satisfies ViewStyle;
-export const field = { ...fieldBox, ...sys.type.body, color: sys.color.ink } satisfies TextStyle;
+export const field = { ...fieldBox, ...withInter(sys.type.body), color: sys.color.ink } satisfies TextStyle;
 /** A note inside a screen or a card: a flat tint, no border, no shadow. */
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 /**

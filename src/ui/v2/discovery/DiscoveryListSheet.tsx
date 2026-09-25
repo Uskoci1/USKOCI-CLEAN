@@ -34,7 +34,7 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, onInd
   return <BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
     animateOnMount={false} animatedPosition={position} onChange={next => { if (next >= 0) onIndex(next); }}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING} handleComponent={null} backgroundComponent={sunk ? SunkBackground : ListBackground}
-    accessible={false} accessibilityRole="none" accessibilityLabel="Lista zadataka"
+    accessible={false} accessibilityRole="none" accessibilityLabel={sunk ? null : 'Lista zadataka'}
     keyboardBehavior="extend" keyboardBlurBehavior="restore">
     <View testID="list-sheet-content" style={s.content} accessibilityElementsHidden={sunk}
       importantForAccessibility={sunk ? 'no-hide-descendants' : 'auto'}>{header}{children}</View>

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-25T04:07:43Z",
+  "osvezeno": "2026-09-25T04:45:32Z",
   "grana": "HEAD",
-  "head": "aa71278c",
-  "head_poruka": "Merge origin/work/uskoci-ui-unification-20260924 (Codex R6 recovery) — take Codex's ResolvedPinMap; handoff note updated",
+  "head": "9956d3ee",
+  "head_poruka": "fix(location): save selected place without redundant checkbox",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "PROBLEM": 30,
-  "NA TELEFONU NIJE PROVERENO": 32
+  "PROBLEM": 31,
+  "NA TELEFONU NIJE PROVERENO": 31
  },
  "redovi": [
   {
@@ -193,8 +193,8 @@
     "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "23.09. 07:11–07:13, telefon VKP-NX9, nalog uskocibusiness: ceo razgovor do objave prošao i zadatak „Pomoć oko krečenja stana“ je PUBLISHED na serveru (be549970…). Jedna greška: kategorija nije sama izvedena.",
-   "problem": "Viđeno na telefonu 23.09. (nalog uskocibusiness): iz „Pomoć oko krečenja stana“ AI nije sam izveo kategoriju, nego je ostavio „Još treba: Kategorija“ i tražio je od tebe; tek kad si je rekao kroz razgovor, upisana je „Molerski radovi“. Jasan naslov posla treba da nosi kategoriju bez pitanja. Sve ostalo (mesto, termin sa satima u Beogradu, cena, broj ljudi, ćirilica u poruci) prošlo je i zadatak je objavljen. Audit 24.09: CF01: uspešno slanje odvojenog govora briše zaseban kucani nacrt, i posle oporavka ishoda. Ponovljeno i na bc127755.",
-   "sledece": "Audit 24.09: uspešno slanje odvojenog govora briše zaseban kucani nacrt; ponovljeno za neposredan uspeh i oporavak ishoda. Ispraviti čišćenje samo poslatog nacrta, uz očuvan dnevnik komande. Novi AI izgled je u APK-u 644cab09; ova provera nije poziv AI provajderu.",
+   "problem": "Preostaje viđeni problem iz razgovora 23.09: iz jasnog opisa krečenja AI nije sam izveo kategoriju. CF01 (govor briše odvojen kucani nacrt) ispravljen 25.09; 6 novih provera je palo na starom kodu i prošlo posle ispravke. To nije nova provera kvaliteta AI provajdera.",
+   "sledece": "Kucani tekst se čisti samo kada tačno taj unos i njegova revizija pripadaju uspešnom slanju. Govor, oporavak zapamćenih ID-jeva i novije izmene ga ne brišu. Slede provera kategorije i ceo razgovor na aktuelnoj verziji. Dokaz: docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -273,8 +273,8 @@
     "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Audit 24.09: CF01: postojeći test čuva nacrt samo dok je ishod nepoznat; posle uspeha nacrt nestaje.",
-   "sledece": "Sačuvati neposlat kucani nacrt posle uspeha glasovne poruke (CF01). Glas na uređaju proveravati uz vlasnika spremnog da govori. Odgovori ostaju tekst; ne uvoditi paket za govor bez odluke.",
+   "problem": "CF01 ispravljen u klijentu i dokazan testovima. Android govorni unos postoji; AI odgovori su tekst. Govorni unos na iOS-u i odgovaranje AI-ja glasom nisu završeni.",
+   "sledece": "Uz vlasnika spremnog da govori proveriti mikrofon, prekid, povratak, odbijenu dozvolu i oporavak. Za govor AI-ja treba posebna odluka o rešenju i trošku. Aktivacija provajdera nije proverena ovom izmenom. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1256,8 +1256,8 @@
     "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "",
-   "sledece": "",
+   "problem": "25.09: bezbedan izlazak tokom AI obrade, ugnježdeno pomeranje rasporeda i brisanje nezavisnog kucanog nacrta posle govora ispravljeni u kodu i dokazani testovima koji padaju pre popravke. Komanda ostaje zapamćena, stari odgovori ne menjaju drugi ekran. Stvaran ceo put razgovor → pregled → aktivacija na aktuelnoj verziji još nije prihvaćen.",
+   "sledece": "Proveriti na uređaju čuvanje i aktivaciju profila, povratak u obradu i raspored sa velikim slovima. Testovi dokazuju oporavak i dostupnost komandi, ne stvaran poziv AI-ju. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1266,7 +1266,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Profil / Moje prijave",
     "nivo": 2,
@@ -1547,11 +1547,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "18 test fajl(ova)"
+    "test": "19 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Mapa i lista su sada jedan ekran sa panelom, tačkama i cenama. Čitanje i dalje uzima do 25 × 200 javnih zadataka i filtrira lokalno. Audit 24.09: lista ne čeka podatke o vlasništvu; posle njihove greške prikazuje i svoje zadatke, a obično osvežavanje istih ID-jeva ne ponavlja tu proveru.",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Discovery V47 (Airbnb model): mapa stalno ispod, lista prati mapu posle pokreta (450 ms), zadaci bez tačke ostaju u „Bez tačke na mapi“, jedna plutajuća kartica pina sa ×, dugme „Mapa“, pamćenje panela/liste/kamere; 3 nezavisna pregleda, 21 ispravka (brojevi dok se učitava, jedna tačka nije oblast, miran panel). Čitanje i dalje lokalno (do 25 × 200). Proveriti na emulatoru; zatim DN-02. Prvo DN-01: stanje učitavanja/greške vlasništva i zajedničko osvežavanje. Zatim proveriti visoku karticu tačke sa velikim fontom (DN-02, još nije ponovljeno na uređaju). Serversko filtriranje/straničenje F06/F07 ostaje poseban ugovor. Stariji dokaz izgleda: R3_RECEIPT, 09dc6877.",
+   "sledece": "25.09: dodat „U blizini” samo na pritisak, bez čuvanja ili slanja GPS podatka poslovnom serveru; pomera kameru, ne prepisuje filtere. Dovršeni izvori mape, ujednačena kartica tačke i Inter u pretrazi; stare stavke ne animiraju dolazak pri promeni filtera. DN-01 i čitanje do 25 × 200 zadataka ostaju otvoreni. Proveriti novu karticu sa velikim slovima, pomeranje i sve grane dozvole na uređaju. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1625,7 +1625,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "13 test fajl(ova)"
+    "test": "14 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri Kada, Gde se radi, Cena i Slobodna mesta postoje u novom panelu, sa stvarnim lokalnim brojem. Serveru se i dalje ne šalju svi izabrani filteri; broj nije serverski ukupan rezultat.",
@@ -2681,21 +2681,18 @@
   {
    "id": "D08",
    "grupa": "Dogovor",
-   "naslov": "Deljenje lokacije i kontakta",
+   "naslov": "Kontakt i tačna adresa zadatka u Dogovoru",
    "nacrt_ref": "UX nacrt §4 korak 11",
    "stari": [
     "FUNC-3793"
    ],
    "ekrani": [
-    "/dogovor/[id]/lokacija"
+    "/dogovor/[id]"
    ],
    "servisi": [
-    "agreementCurrentLocationService",
     "contactClientService"
    ],
    "server_deps": [
-    "rpc_read_agreement_current_location",
-    "rpc_write_agreement_current_location",
     "rpc_reveal_contact",
     "rpc_set_contact_grant"
    ],
@@ -2708,12 +2705,12 @@
     "telefon": "sivo"
    },
    "note": {
-    "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
+    "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: deljenje lokacije jasno kaže šta, kome i koliko. ODLUKA VLASNIKA 24.09: IZBACITI „Trenutnu lokaciju“ (deljenje gde sam sada) iz Dogovora; TAČNA ADRESA zadatka i dalje se otkriva posle Dogovora; na serveru ništa ne brisati. Nije urađeno. ",
+   "sledece": "25.09: uklonjeni ekran, ruta i ulazi za „Trenutnu lokaciju”. Kontakt i AgreementPrivateLocation ostaju sa svojim dozvolama i oporavkom. Server i postojeći podaci nisu menjani. Dva testa obe strane proveravaju uklonjeni ulaz; zaštićena adresa i dalje prolazi svoje provere. Potrebna provera pravog Dogovora na aktuelnoj verziji. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4248,7 +4245,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "108 test fajl(ova)"
+    "test": "107 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",

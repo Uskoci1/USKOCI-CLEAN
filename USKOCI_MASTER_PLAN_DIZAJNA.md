@@ -10,6 +10,55 @@ naslove i izbor), narandžasta samo kao kontrolisani akcenat (objava zadatka, �
 Dogovor pripadaju istoj aplikaciji, ali svako ima jasnu namenu. Poslovna logika, statusi, navigacija, privatnost,
 ID veze, baza i tokovi ostaju, osim kad je greška dokazana. Ništa se ne izmišlja: ocene, GPS, uspešan upis, status.
 
+## Current execution checkpoint — 2026-09-25
+
+This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
+that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
+decisions. Exact-source checks, APK and device evidence belong in `docs/implementation/design-system/r7-cohesion-20260925/`.
+No completion percentage is inferred from passing tests or the historical 181 R6 entries.
+
+### Implemented foundation and remaining visual work
+
+| Surface / user's job | What is implemented | Current decision and next acceptance |
+| --- | --- | --- |
+| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. | Keep this hierarchy and the quiet first-run illustration. Do not add motion to static obligations. Group the attention heading/count for speech. Recheck narrow/large-text layout on the new APK. |
+| Discovery: find a suitable nearby task | Shared map/list, price pins, clustering, multiple tasks on one point, draft filters and honest result counts. | Add explicit-tap Nearby, one ephemeral foreground observation. Keep the quiet map ground so green selection and urgency remain legible. Reuse illustrated card facts on the selected preview. Complete map credits and remove the duplicate native credit control. |
+| Pins and map color | Public rounded coordinates; selected green price/place pill; count clusters; Serbian Latin labels; approximate area on read-only task maps. | Keep amount, offer and missing-price pins semantically distinct. No invented distance, live position, urgent status or rating. Tune contrast only after actual map screenshots; a wholesale green map would compete with selected tasks. |
+| Filters and changing views | Draft-before-Apply search, place/date/price/work-mode/free-place choices, chip removal, clear-all and unavailable counts. | Existing records revealed by a changed filter should appear immediately, not replay arrival motion. A genuinely arriving record may animate once. Sorting, saved-search alerts and server pagination remain separate verified-contract work. |
+| Task cards and detail | Shared truthful value slots, FactArt, requirements, availability, publisher; photos only inside task detail. | List head stays compact; the pin preview stacks the same title/value head to reserve its close control and long title. Place/time use separate illustrated rows. Keep exact address protected and missing price in ordinary text. |
+| Location forms | Separate public place/private address, point validation and command recovery. | Save itself is the confirmation (`confirmed: true`); the redundant checkbox is removed. Pending-point and unknown-outcome guards remain. Verify onsite, remote and worker area visually. |
+| Offers and candidate choice | Price/people/note, review before send, candidate comparison and explicit acceptance. | Retain approved acceptance wording and pricing semantics. Inter must also reach native amount/input fields with the correct bold face. Current-build real offer/selection acceptance is still owed. |
+| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. | Retire current-location sharing route and entries only, per owner decision. Keep exact task-location disclosure, telephone consent and all server records. Keyboard, long thread, reconnect and terminal-media recovery require explicit acceptance. |
+| AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. | Preserve typed drafts when speech completes; allow safe exit from a running worker interview; remove the worker availability panel's nested vertical scroll. See AI table below. |
+| Profile, calendar, support/settings | Native screens and corresponding galleries already exist. | Apply the shared Inter face to input controls, then verify actual focused inputs, fixed footers, large text and all loading/error states. Do not infer whole-flow completion from galleries. |
+| Motion and accessibility | Shared durations, press feedback, live reduced-motion store, sheets, bounded map annotations. | Gate root-stack transitions, reset interrupted bell motion, suppress false arrivals, speak contextual badge counts and hide a sunk sheet completely from accessibility. Retain the existing restrained success/empty-state assets. |
+
+### AI: implementation is not activation or device acceptance
+
+| Capability | Evidence / state | Work still needed |
+| --- | --- | --- |
+| Task interview by text | Source `nova.tsx`, `aiNeedV2Production`, `aiTaskReviewClientService`; historical task-to-publication phone evidence on 23 September. Speech/draft ownership is now corrected with predecessor-failing regression tests. | Recheck category inference and corrections against owner-approved real conversations. The old phone run does not accept today's build. |
+| Worker interview → profile | Source supports interview, manual edits, tools/team/availability, frozen review, save/activate and recovery. Historical v17 Edge receipt exists. Safe Back, availability scroll and independent typed-draft preservation during speech/recovery are corrected in source and predecessor-failing tests. | Full current-build interview→review→activate journey still needs device evidence. |
+| Dictation / held microphone | Native Android speech adapter + authenticated speech-session path. Held microphone sends on release; accessible dictation appends to the editable draft and uses Send. | Real microphone, denial, interruption, background, retry and latency checks only when the owner is ready. Mocked voice-controller tests are not microphone acceptance. iOS native speech is not implemented. |
+| AI speaking aloud / full voice conversation | Not implemented. Voice-mode UI still sends speech as text and renders text answers. `isAiSpeaking` is only a guard hook. | Separate approved runtime/provider, audio focus, stop/interruption, text fallback and cost/privacy decision. `expo-speech` is not approved. Do not call this activated. |
+| Provider/admission/budget | Source checks provider configuration, admitted account and policy validity; IDs/revisions bind each turn; unknown outcomes are reconciled rather than blindly replayed. Historical receipts are source-compatible. | A fresh operational read and an explicitly permitted real call are needed before claiming current provider availability. Do not read/print keys, enable gates, spend provider money or declare all registrations admitted. |
+| Screen-reader responses | Existing typing status and accessible controls; new completed answers do not yet have a dedicated one-time announcement. | Add a completion announcement that does not re-read history or every fragment, then test with a screen reader. |
+
+### Finish order after this client package
+
+1. Exact-source typecheck/full Jest, matched CI and APK; inspect native map/card/filter/form states and large text.
+2. Reconcile remaining R6 majors against current bodies. Preserve refuted findings as refuted: the list sinking
+   behind a pin preview is approved V47 behavior; the old selected-cluster claim was refuted. Do not redo recovered agents.
+3. Close remaining client defects one coherent flow at a time, with keyboard, offline, stale/unknown-outcome and
+   return paths. R6 source findings and the 24 September independent contract audit are separate evidence sets.
+4. Propose server work separately (discovery/paging, review enrichment, new rating-comment contract). Candidate SQL
+   and disposable proof first; **nothing applied to DEV without the owner's “primeni”**. Payments/PKG-051 stay with
+   the other session.
+5. Current-build two-party journey: publish → apply → choose → agree/message → complete/confirm → both ratings;
+   cancellation/problem branches, notifications and actual push, privacy/export/closure must each be accepted.
+6. Legal/operator/retention, payment-provider decisions, production environment, iOS acceptance and store gates remain
+   release work. Finishing visual polish alone does not make the application ready for public release.
+
 ## 1. Audit (24. sep, merenje na `724f4ed1`)
 
 **Dobro i ostaje**

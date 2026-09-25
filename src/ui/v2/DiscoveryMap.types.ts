@@ -1,5 +1,7 @@
 import type { SharedValue } from 'react-native-reanimated';
 import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/marketplaceView';
+/** Ephemeral camera instruction, never a public pin, task location, search filter, or stored location. */
+export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;
   /**
@@ -16,6 +18,9 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
    * camera's own move, so it never becomes an area. `key` says which request it is; `onFitted` hears it was carried out.
    */
   fitTo?: { key: number; bounds: PublicBounds; bottom: number } | null;
+  centerNearby?: NearbyCameraTarget | null;
+  /** Retire this exact one-shot request after camera dispatch; later remounts restore the remembered viewport. */
+  onNearbyConsumed?: (key: number) => void;
   onFitted?: (key: number) => void;
   /** Several tasks on one public point: pressing that point selects the place (its `pointKey`) instead of one task. */
   onSelectPlace?: (key: string) => void;

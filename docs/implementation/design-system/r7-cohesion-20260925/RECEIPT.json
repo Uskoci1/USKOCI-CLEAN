@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-25",
+  "scope": "Bounded client UI cohesion, Nearby location and AI input reliability; not whole-app acceptance",
+  "sourceCommit": "PENDING_COMMIT_BINDING",
+  "remoteBranch": "work/uskoci-ui-unification-20260924",
+  "checks": {
+    "types": {
+      "command": "npx tsc --noEmit -p tsconfig.json",
+      "exitCode": 0
+    },
+    "jest": {
+      "command": "npx jest -w 3 --testTimeout=30000 --testPathIgnorePatterns '<rootDir>/.claude/' '/node_modules/'",
+      "suites": 307,
+      "tests": 5994,
+      "seconds": 108.478,
+      "exitCode": 0,
+      "warning": "A worker failed to exit gracefully and was force exited; clean timer teardown is not claimed."
+    },
+    "migrationInventory": {
+      "result": "PASS",
+      "count": 147,
+      "unchanged": true
+    },
+    "diffWhitespace": "PASS",
+    "sourceChangedAfterTests": false,
+    "predecessorFailingRegressions": {
+      "taskDraftOwnership": 6,
+      "workerDraftOwnership": 5,
+      "workerBackAndAvailability": 15
+    }
+  },
+  "githubRuns": [],
+  "apk": {
+    "status": "PENDING"
+  },
+  "native": {
+    "device": "emulator-5554 / USKOCI_V5_TEST",
+    "status": "PENDING_NEW_APK",
+    "mode": "Read-only actual existing session and internal gallery; no business commands or provider calls",
+    "phoneAcceptance": false
+  },
+  "dashboard": {
+    "computedState": "docs/control/stanje.json",
+    "externalPublication": "PENDING",
+    "url": "https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t"
+  },
+  "unchanged": [
+    "canonical DEV",
+    "Edge functions",
+    "keys",
+    "payments",
+    "frozen source migrations",
+    "original Claude checkout"
+  ],
+  "approvedDependency": {
+    "name": "expo-location",
+    "version": "57.0.20",
+    "otherDependenciesUpgraded": false
+  },
+  "remaining": [
+    "R6 finding-by-finding reconciliation",
+    "Discovery relations recovery and bounded server queries",
+    "Home rating read fan-out",
+    "Actual two-party current-build journey",
+    "Owner-present microphone acceptance",
+    "iOS speech and AI spoken responses",
+    "Legal/operator/retention and release gates",
+    "Payments owned by separate session"
+  ],
+  "evidenceFiles": []
+}

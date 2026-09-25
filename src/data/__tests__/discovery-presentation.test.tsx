@@ -4,6 +4,10 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 let mockReduced = false, mockFocused = true;
+const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
+jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
+  requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
+  watchPositionAsync: (...args: unknown[]) => mockNearbyWatch(...args) }) }));
 // The window: React Native's Jest default (a 2× text size, so "large text") unless a test says otherwise.
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
@@ -76,7 +80,7 @@ const texts = (root: ReactTestInstance = tree.root) => root.findAllByType('T' as
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const map = () => tree.root.findByType('DiscoveryMap' as React.ElementType);
 const sheets = () => tree.root.findAllByType(BottomSheet);
-const listSheet = () => sheets().find(node => node.props.accessibilityLabel === 'Lista zadataka')!;
+const listSheet = () => sheets().find(node => !node.props.detached)!;
 const peek = () => sheets().find(node => node.props.detached);
 // The cards in the list (TaskCard says "Otvori priliku"). Since review r3 item 7 a place's rows say "Pogledaj zadatak",
 // as the single card's action does, so this reads the list sheet alone and never counts a pin card's rows.
@@ -230,6 +234,7 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
   // The list's top line is not a second strip under the card: it sinks behind it, draws nothing there (no hairline, no
   // shadow as a sliver under the card), and a screen reader does not reach anything in it.
   expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
+  expect(listSheet().props.accessibilityLabel).toBeNull();
   const content = () => listSheet().findByProps({ testID: 'list-sheet-content' });
   expect(content().props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
   const Sunk = listSheet().props.backgroundComponent;
@@ -246,6 +251,7 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
   await tap('Zatvori pregled zadatka');
   expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
   expect(listSheet().props.snapPoints[0]).toBe(top);
+  expect(listSheet().props.accessibilityLabel).toBe('Lista zadataka');
   expect(content().props).toMatchObject({ accessibilityElementsHidden: false, importantForAccessibility: 'auto' });
   expect(listSheet().props.backgroundComponent).not.toBe(Sunk);
   // A tap on the empty map closes it too.
@@ -267,14 +273,17 @@ test('the pin card says the task bare and honestly, with no photo; the list\'s c
   await act(async () => map().props.onSelect('bb'));
   const card = press('Otvori zadatak: Selidba klavira u Zemunu');
   const words = texts(peek()!);
-  expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd · 26. sep · 10:00–12:00');
+  expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
   expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('Još 2 od 3 mesta'); expect(words).toContain('Mila');
   expect(card.props.accessibilityValue.text).toContain('2.000 RSD ukupno');
   // Nothing in it is framed as a card of its own, and nothing is a photo or a place for one.
   const edged = card.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
   expect(edged).toHaveLength(0);
-  expect(peek()!.findAll(node => /Image|Photo/i.test(String(node.type)) || /photo|foto/i.test(String(node.props.testID ?? '')))).toHaveLength(0);
-  expect(listSheet().findAll(node => /Image|Photo/i.test(String(node.type)))).toHaveLength(0);
+  // Bundled FactArt pictograms may use Image; task photos/remote image sources must still never enter these cards.
+  const isTaskPhoto = (node: ReactTestInstance) => /Photo/i.test(String(node.type)) || /photo|foto/i.test(String(node.props.testID ?? ''))
+    || (/Image/i.test(String(node.type)) && !!node.props.source?.uri);
+  expect(peek()!.findAll(isTaskPhoto)).toHaveLength(0);
+  expect(listSheet().findAll(isTaskPhoto)).toHaveLength(0);
   // A task that asks for offers says so in words that never look like an amount.
   await tap('Zatvori pregled zadatka'); await act(async () => map().props.onSelect('ponude'));
   expect(texts(peek()!)).toContain('Tražim ponude');
@@ -863,4 +872,46 @@ test('over the map: the pill has the card edge; a chip has no shadow; a chosen c
   await act(async () => tree.unmount()); initial = { ...initial, query: 'Pomoć' }; await render();
   const remove = press('Ukloni uslov: „Pomoć“');
   expect(StyleSheet.flatten(remove.props.style).minHeight + remove.props.hitSlop.top + remove.props.hitSlop.bottom).toBeGreaterThanOrEqual(48);
+});
+
+describe('U blizini: an explicit camera-only location capture', () => {
+  let receive: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
+  const remove = jest.fn();
+  beforeEach(() => {
+    mockNearbyPermission.mockReset().mockResolvedValue({ granted: true });
+    mockNearbyWatch.mockReset().mockImplementation(async (_options, next) => { receive = next; return { remove }; });
+    remove.mockClear();
+  });
+  test('offers a real 48 dp chip first, asks only on tap, and keeps list/filter data unchanged', async () => {
+    rows = [row('a'), row('b')]; await render();
+    const chip = press('U blizini');
+    expect(StyleSheet.flatten(chip.props.style).minHeight).toBeGreaterThanOrEqual(48);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Brzi filteri' }).findAllByType('Press' as React.ElementType)[0]).toBe(chip);
+    expect(mockNearbyPermission).not.toHaveBeenCalled(); expect(mockNearbyWatch).not.toHaveBeenCalled();
+    const before = { ...snapshot }, beforeCards = cards();
+    await tap('U blizini'); expect(mockNearbyPermission).toHaveBeenCalledTimes(1); expect(press('U blizini').props.disabled).toBe(true);
+    // Even an old native press callback cannot start a second attempt.
+    await act(async () => chip.props.onPress()); expect(mockNearbyWatch).toHaveBeenCalledTimes(1);
+    await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.812345, longitude: 20.412345 } }));
+    expect(map().props.centerNearby).toEqual({ key: 1, center: [20.412345, 44.812345] }); expect(remove).toHaveBeenCalledTimes(1);
+    expect(cards()).toEqual(beforeCards); expect(map().props.items).toEqual(rows);
+    expect(snapshot).toMatchObject({ query: before.query, price: before.price, area: before.area, viewport: before.viewport, place: before.place });
+    expect(JSON.stringify(snapshot)).not.toContain('20.412345'); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
+  });
+  test('permission refusal leaves the map usable and offers settings without starting a watch', async () => {
+    mockNearbyPermission.mockResolvedValue({ granted: false }); await render(); await tap('U blizini');
+    expect(mockNearbyWatch).not.toHaveBeenCalled(); expect(map()).toBeTruthy();
+    expect(texts()).toContain('Dozvoli lokaciju u podešavanjima'); expect(press('Podešavanja lokacije')).toBeTruthy();
+    expect(press('U blizini').props.disabled).toBe(false);
+  });
+  test('consuming Nearby keeps an otherwise empty map mounted until its native viewport arrives', async () => {
+    rows = []; await render(); expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
+    await tap('U blizini');
+    await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.8, longitude: 20.4 } }));
+    const request = map().props.centerNearby;
+    await act(async () => map().props.onNearbyConsumed(request.key));
+    expect(map().props.centerNearby).toBeNull(); expect(snapshot.viewport).toBeNull();
+    const settled = { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9] };
+    await act(async () => map().props.onViewport(settled)); expect(snapshot.viewport).toEqual(settled);
+  });
 });

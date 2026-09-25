@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowUp, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
 import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { BrandMark } from '../entry/BrandAssets';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
@@ -284,8 +285,8 @@ const s = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 56, paddingHorizontal: 4, paddingVertical: 4,
     borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  input: { ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, minHeight: 48, maxHeight: 132,
-    paddingHorizontal: 4, paddingTop: 12, paddingBottom: 12, textAlignVertical: 'top' },
+  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, minHeight: 48, maxHeight: 132,
+    paddingHorizontal: 4, paddingTop: 12, paddingBottom: 12, textAlignVertical: 'top' }),
   inputFirst: { paddingLeft: 12 },
   inputOff: { color: sys.color.muted },
   round: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },

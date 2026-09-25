@@ -325,3 +325,10 @@ test('the clear-text button and the suggestions take no touch beyond themselves,
   const field = tree.root.findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.minHeight === 52)[0];
   expect(StyleSheet.flatten(field.props.style)).toMatchObject({ borderColor: sys.color.lineStrong, borderRadius: sys.radius.control });
 });
+
+test('search text uses the bundled regular face without asking the platform to synthesize its weight', async () => {
+  await render();
+  const style = StyleSheet.flatten(tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' }).props.style);
+  expect(style.fontFamily).toBe('Inter-Regular');
+  expect(style.fontWeight).toBeUndefined();
+});

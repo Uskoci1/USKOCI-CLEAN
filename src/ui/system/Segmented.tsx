@@ -5,7 +5,8 @@ import { T } from '../Text';
 import { useReducedMotion } from './motion';
 import { nested, sys } from './tokens';
 
-export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label; not part of the spoken label. */ badge?: number | string;
+export type SegmentedOption<K extends string> = { key: K; label: string; /** Optional count shown beside the label. */ badge?: number | string;
+  /** The caller owns what is counted (all records or only those waiting for a choice). */ badgeLabel?: string;
   /** A set that needs the person ("Čeka te") keeps an orange count; every other count is quiet (V41). */ badgeTone?: 'attention' };
 
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
@@ -48,6 +49,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
   const items = options.map(option => {
     const selected = option.key === value;
     return <Press key={option.key} accessibilityRole="tab" accessibilityLabel={option.label} accessibilityState={{ selected }}
+      accessibilityValue={option.badge != null && option.badgeLabel ? { text: option.badgeLabel } : undefined}
       haptic="select" scaleTo={0.98} onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
       style={[s.segment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>

@@ -34,11 +34,12 @@ export function InboxBell() {
   const seen = useRef<number | null | undefined>(undefined);
   useEffect(() => {
     const before = seen.current; seen.current = count;
-    if (reduced || before === undefined || before == null || count == null || count <= before) return;
+    // An interrupted swing must never leave a tilted bell behind when no new swing is due.
     swing.setValue(0);
+    if (reduced || before === undefined || before == null || count == null || count <= before) return;
     const run = Animated.timing(swing, { toValue: 1, duration: BELL_SWING_MS, easing: Easing.out(Easing.quad), useNativeDriver: true });
     run.start();
-    return () => run.stop();
+    return () => { run.stop(); swing.setValue(0); };
   }, [count, reduced, swing]);
   const rotate = swing.interpolate({ inputRange: [0, 0.22, 0.48, 0.72, 1], outputRange: ['0deg', '-12deg', '9deg', '-5deg', '0deg'] });
   // The chrome's one icon button with a green glyph (round-1 critique B1): the bell used to turn orange while something

@@ -16,6 +16,7 @@ import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
+import { withInter } from '../interFont';
 import { TaskCard } from './TaskCard';
 import { V2Action } from './V2Action';
 
@@ -79,7 +80,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // How many active tasks wait for my choice, the badge on "Aktivni". Početna does not repeat it: there what waits is
   // said once, under "Čeka te", from the server's own attention list.
   const attentionCount = useMemo(() => ownedTaskCounts(items).waiting, [items]);
-  const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount ? { ...option, badge: attentionCount } : option), [attentionCount]);
+  const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount
+    ? { ...option, badge: attentionCount, badgeLabel: `Za tvoj izbor: ${zadataka(attentionCount)}` } : option), [attentionCount]);
   const hasFilter = !!view.query || view.price !== 'all' || view.attention || view.section !== 'active';
   const filterActive = view.price !== 'all' || view.attention;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
@@ -94,7 +96,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
-  appear.settle(visible.map(keyOf));
+  appear.settle(visible.map(keyOf), JSON.stringify([view.section, view.query, view.price, view.attention]));
   // `useAppear` returns a new object each render over the same two refs; read it through a ref so
   // `renderItem` keeps its identity and the list does not re-render every cell on every render.
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -175,7 +177,7 @@ const s = StyleSheet.create({
   countRow: { paddingBottom: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
-  input: { ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 },
+  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 }),
   clear: { width: 44, height: 44, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },

@@ -16,7 +16,8 @@ import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
-type PendingTurn = { id: string; body: string | null };
+type SubmittedDraft = { value: string; revision: number };
+type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null };
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
@@ -41,6 +42,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
   const [unos, setUnos] = useState('');
   const draftText = useRef(unos); draftText.current = unos;
+  const draftRevision = useRef(0);
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
@@ -70,7 +72,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         if (conversation.current && conversation.current !== stored.conversationId) return unavailable();
         conversation.current = stored.conversationId;
         if (!request.current || request.current.id !== stored.clientRequestId)
-          request.current = { id: stored.clientRequestId, body: null };
+          request.current = { id: stored.clientRequestId, body: null, submittedDraft: null };
       }
       // Opening the screen used to open a row: 38 of 62 conversations had no message in them, one
       // for every time someone looked and left. Merely viewing still creates nothing.
@@ -96,7 +98,11 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         if (!current()) return unavailable();
         if (request.current?.id === pending.id) {
           request.current = null;
-          if (turn?.state === 'SUCCEEDED') setUnos('');
+          // Only a typed Send owns this exact draft revision. Speech and restored IDs own none;
+          // retries keep the original ownership, and later edits survive successful readback.
+          const submittedDraft = pending.submittedDraft;
+          if (turn?.state === 'SUCCEEDED' && submittedDraft) setUnos(value =>
+            draftRevision.current === submittedDraft.revision && value === submittedDraft.value ? '' : value);
           setStreamingText('');
         }
       }
@@ -128,7 +134,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
-  const submitTurn = async (body: string) => {
+  const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null) => {
     if (!canAct() || !canSubmit || !body) return;
     await editor.save(async () => {
       // The first word is what makes the conversation exist. `openRequestId` is fixed for this
@@ -140,7 +146,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         if (!opened.ok) return opened;
         conversation.current = id = opened.podatak.conversationId;
       }
-      const command = request.current ?? { id: noviUuidZahtevId(), body };
+      const command = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft };
       request.current = command;
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: id, clientRequestId: command.id });
@@ -180,7 +186,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     if (!canAct() || !canSubmit || request.current) return false;
     const next = [draftText.current.trimEnd(), text.trim()].filter(Boolean).join('\n');
     if (!next || next.length > 4000) return false;
-    draftText.current = next; setUnos(next); return true;
+    draftRevision.current += 1; draftText.current = next; setUnos(next); return true;
   };
   const voice = useHoldToTalk({
     conversationId: () => writable && !navigating.current ? conversation.current ?? '' : null,
@@ -213,7 +219,7 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const voiceBusy = voice.state.phase !== 'IDLE';
   const posalji = async () => {
     if (voice.controller.getSnapshot().phase !== 'IDLE') return;
-    await submitTurn(request.current?.body ?? unos.trim());
+    await submitTurn(request.current?.body ?? unos.trim(), { value: unos, revision: draftRevision.current });
   };
   const noviZadatak = () => {
     if (!canAct() || request.current || (stanje?.status !== 'COMPLETED' && stanje?.status !== 'ABANDONED')) return;
@@ -299,7 +305,9 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
     newTaskDisabled={!canAct() || !!request.current}
     onBack={back} onSend={posalji} onRefresh={osvezi} onAbandon={napusti}
-    onChange={value => { if (canAct() && writable && !request.current) setUnos(value); }}
+    onChange={value => { if (canAct() && writable && !request.current) {
+      draftRevision.current += 1; draftText.current = value; setUnos(value);
+    } }}
     onReview={() => {
       if (!canAct() || !razgovorId || request.current) return;
       navigate(() => router.push({ pathname: '/pregled-zadatka', params: { conversationId: razgovorId } }));

@@ -7,6 +7,7 @@ import type { SupportChannel, SupportStatus } from '../../data/supportCaseTypes'
 import { vreme } from '../../lib/vreme';
 import { InlineNote, QuietLine } from '../privacy/InlineNote';
 import { Press } from '../Press';
+import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ScreenChrome } from '../system/ScreenChrome';
@@ -291,8 +292,8 @@ export const supportStyles = StyleSheet.create({
   decisionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   summary: { ...inset, backgroundColor: sys.color.wash, gap: 8, marginBottom: 4 },
   pill: { flexDirection: 'row', alignItems: 'flex-end', padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
-  pillInput: { flex: 1, minHeight: 48, maxHeight: 140, paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md,
-    ...sys.type.body, lineHeight: 22, color: sys.color.ink },
+  pillInput: withInter({ flex: 1, minHeight: 48, maxHeight: 140, paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md,
+    ...sys.type.body, lineHeight: 22, color: sys.color.ink }),
   sendArea: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   sendOn: { backgroundColor: sys.color.green },

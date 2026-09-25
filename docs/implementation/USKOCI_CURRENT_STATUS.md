@@ -1,6 +1,6 @@
 # USKOČI — current execution status
 
-Updated: 2026-09-24. This is a status index, not a new product constitution or permission grant.
+Updated: 2026-09-25. This is a status index, not a new product constitution or permission grant.
 The owner's latest instructions and the mandatory handoff boundaries continue to govern.
 
 ## Evidence levels
@@ -10,6 +10,15 @@ verified → public-release ready. A completed level never implies the next. Do 
 of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
+
+**Client continuation — 2026-09-25.** Start with the current checkpoint in root
+`USKOCI_MASTER_PLAN_DIZAJNA.md`, then `design-system/r7-cohesion-20260925/REPORT.md` for verification.
+Recovered source `b9aed185` has an attested emulator APK and five matched CI proofs; its selected gallery evidence
+is in `design-system/r6-integration-20260925/RECEIPT.json`. It is not whole-app or real-phone acceptance.
+Commit `9956d3ee` removes redundant location confirmation checkboxes, preserving `confirmed: true` and recovery;
+types and full 305 suites / 5,921 tests passed. The next client package covers retired current-location sharing,
+explicit Nearby, typography/motion/card cohesion, contextual spoken counts and independently reproduced AI client
+defects. No DEV/Edge/payment changes are authorized by this checkpoint. Older anchors below remain dated evidence.
 
 **Independent delta audit — 2026-09-24.** Read `audit-20260924/REPORT.md` and its three appendices.
 Initial audited HEAD `b1da968c` on `work/uskoci-ui-unification-20260924`; emulator runtime source `644cab09`.

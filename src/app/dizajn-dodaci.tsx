@@ -9,8 +9,6 @@ import type { AgreementChangeProposal, AgreementChangeSnapshot } from '../data/a
 import type { GroupMessage } from '../data/groupConversationService';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementActionsPresentation, type AgreementActionForm, type AgreementActionsPresentationProps } from '../ui/agreements/AgreementActionsPresentation';
-import { AgreementLocationPresentation } from '../ui/agreements/AgreementLocationPresentation';
-import type { LocationState } from '../ui/agreements/AgreementLocationController';
 import { GroupConversationPresentation } from '../ui/groups/GroupConversationPresentation';
 import type { GroupState } from '../ui/groups/GroupConversationController';
 import { AgreementPhotoComposer } from '../ui/media/AgreementPhotoComposer';
@@ -23,11 +21,11 @@ import { V2Action } from '../ui/v2/V2Action';
 
 /**
  * The gallery of the Dogovor additions (round 6, unit dogovor-dodaci): the real presentations of task questions, Dogovor
- * changes and cancellation, current-location sharing, the group conversation and the photo tray of Poruke, drawn from
+ * changes and cancellation, the group conversation and the photo tray of Poruke, drawn from
  * fixtures in their main states so the lead can photograph them on the emulator. Reached only by its address
  * (uskociapp://dizajn-dodaci) in the internal build; the store package shows nothing. Nothing here reads or writes data:
  * every command is a no-op, no photo is read (no prepared photo carries a receipt), and the group's people are drawn with
- * their initials. The last-point scene draws the still map, whose tiles come from the map provider as on every map.
+ * their initials. Current-location sharing was retired by the owner on 2026-09-24.
  * Large text is the system's: set the font scale on the device.
  */
 const noop = () => {};
@@ -70,12 +68,6 @@ const changes = (patch: Partial<AgreementActionsPresentationProps>): AgreementAc
   form: null, review: null, proposed: null, onBack: noop, onRefresh: noop, onOpenForm: noop, onEdit: noop, onPrepareForm: noop, onCloseForm: noop,
   onPrepare: noop, onSend: noop, onCloseReview: noop, onRetry: noop, onAcknowledge: noop, ...patch });
 
-// ——— Trenutna lokacija ———
-const locationContext = (role: 'WORKER' | 'REQUESTER', patch: Partial<NonNullable<LocationState['context']>> = {}) => ({ agreementId: AGREEMENT, agreementVersion: 3, role,
-  canShare: role === 'WORKER', canRequest: role === 'REQUESTER', requestedAt: null, point: null, authoritative: true as const, ...patch });
-const POINT = { latitude: 45.2517, longitude: 19.8369, accuracyMeters: 12.4, capturedAt: '2026-09-24T10:14:00Z', sharedAt: '2026-09-24T10:14:05Z' };
-const location = (state: Partial<LocationState>): LocationState => ({ phase: 'READY', context: locationContext('WORKER'), journal: null, message: null, ...state });
-
 // ——— Grupni razgovor ———
 const THIRD = '10000000-0000-4000-8000-000000000003';
 const person = (accountId: string, displayName: string, role: 'REQUESTER' | 'PARTICIPANT') => ({ accountId, profileId: accountId, displayName, role });
@@ -110,7 +102,6 @@ const PHOTOS = { agreementId: AGREEMENT, loaded: true, busy: false, ready: false
 
 type SceneKey = 'qa-public' | 'qa-owner' | 'qa-answer' | 'qa-empty' | 'qa-loading' | 'qa-error' | 'qa-closed' | 'qa-recovery'
   | 'ch-hub' | 'ch-other' | 'ch-form' | 'ch-cancel' | 'ch-unknown' | 'ch-done' | 'ch-loading'
-  | 'loc-worker' | 'loc-requester' | 'loc-point' | 'loc-capturing' | 'loc-unknown' | 'loc-closed' | 'loc-error'
   | 'gr-thread' | 'gr-people' | 'gr-empty' | 'gr-closed' | 'gr-error' | 'photos';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'qa-public', label: 'Pitanja · javno' }, { key: 'qa-owner', label: 'Pitanja · moj zadatak' }, { key: 'qa-answer', label: 'Pitanja · odgovaram' },
@@ -119,9 +110,6 @@ const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'ch-hub', label: 'Izmene · važeći uslovi' }, { key: 'ch-other', label: 'Izmene · predlog druge strane' }, { key: 'ch-form', label: 'Izmene · korak 1' },
   { key: 'ch-cancel', label: 'Izmene · otkazivanje, korak 2' }, { key: 'ch-unknown', label: 'Izmene · nepotvrđeno' }, { key: 'ch-done', label: 'Izmene · potvrđeno' },
   { key: 'ch-loading', label: 'Izmene · učitavanje' },
-  { key: 'loc-worker', label: 'Lokacija · uskačem' }, { key: 'loc-requester', label: 'Lokacija · tražim' }, { key: 'loc-point', label: 'Lokacija · poslednja tačka' },
-  { key: 'loc-capturing', label: 'Lokacija · uzimam tačku' }, { key: 'loc-unknown', label: 'Lokacija · nepotvrđeno' }, { key: 'loc-closed', label: 'Lokacija · zatvoreno' },
-  { key: 'loc-error', label: 'Lokacija · greška' },
   { key: 'gr-thread', label: 'Grupa · razgovor' }, { key: 'gr-people', label: 'Grupa · učesnici' }, { key: 'gr-empty', label: 'Grupa · prazno' },
   { key: 'gr-closed', label: 'Grupa · završen' }, { key: 'gr-error', label: 'Grupa · greška' },
   { key: 'photos', label: 'Poruke · fotografije uz poruku' },
@@ -158,18 +146,6 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
       canRetry: true, needsReentry: true, journalKind: 'PROPOSE' })} />;
     case 'ch-done': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'CONFIRMED', journalKind: 'PROPOSE', message: 'Predlog izmene je sačuvan.' })} />;
     case 'ch-loading': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'LOADING', snapshot: null })} />;
-    case 'loc-worker': return <AgreementLocationPresentation state={location({ context: locationContext('WORKER', { requestedAt: '2026-09-24T10:02:00Z' }) })}
-      accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-requester': return <AgreementLocationPresentation state={location({ context: locationContext('REQUESTER') })} accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-point': return <AgreementLocationPresentation state={location({ context: locationContext('REQUESTER', { point: POINT }) })}
-      accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-capturing': return <AgreementLocationPresentation state={location({ phase: 'CAPTURING' })} accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-unknown': return <AgreementLocationPresentation state={location({ phase: 'UNKNOWN', message: 'Potvrda još nije pronađena. Proveri ponovo ili zaustavi prvobitni zahtev.' })}
-      accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-closed': return <AgreementLocationPresentation state={location({ context: locationContext('WORKER', { canShare: false }) })}
-      accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
-    case 'loc-error': return <AgreementLocationPresentation state={location({ phase: 'ERROR', context: null, message: 'Proveri vezu i pokušaj ponovo.' })}
-      accountId={ME} agreementId={AGREEMENT} {...locationHandlers(back)} />;
     case 'gr-thread': return <GroupConversationPresentation {...groupProps(group({}), back, draft, setDraft)} />;
     case 'gr-people': return <GroupConversationPresentation {...groupProps(group({ context: groupContext({ role: 'REQUESTER', management: [
       { agreementId: 'pojedinacni-1', accountId: THIRD, status: 'CONFIRMED', executionState: 'AWAITING_REQUESTER', problemOpened: false },
@@ -186,8 +162,6 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
   }
 }
 
-const locationHandlers = (back: () => void) => ({ onBack: back, onRefresh: noop, onShare: noop, onRequest: noop, onStopCapture: noop,
-  onCancelUnknown: noop, onAcknowledge: noop });
 const groupProps = (state: GroupState, back: () => void, draft: string, setDraft: (value: string) => void) => ({ state, draft, showPeople: false, listKey: 0,
   draftLength: Array.from(draft.trim()).length, draftSendable: draft.trim().length > 0,
   viewability: { viewAreaCoveragePercentThreshold: 60, minimumViewTime: 600 }, onVisible: noop, onBack: back, onTogglePeople: noop, onRefresh: noop,

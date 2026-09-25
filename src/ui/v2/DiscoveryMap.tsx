@@ -38,6 +38,11 @@ const INTENT_MS = 1_500;
 const PILL_TAP_MS = 400;
 const ZOOM_CAPSULE = { width: 44, height: 88 } as const;
 const GAP = sys.space.md;
+const CREDITS = [
+  { text: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
+  { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
+  { text: 'OpenFreeMap', url: 'https://openfreemap.org/' },
+] as const;
 
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
@@ -61,6 +66,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
+  const [creditHeight, setCreditHeight] = useState(96);
   const mounted = useRef(true), load = useRef(status);
   const data = useMemo(() => publicFeatures(props.items), [props.items]);
   const places = useMemo(() => pinPlaces(props.items), [props.items]);
@@ -210,9 +216,21 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       duration: reduced ? 0 : sys.motion.camera });
     props.onFitted?.(request.key);
   }, [props.fitTo?.key, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  // One explicit location capture only moves the camera; it is never a pin or an area filter. Its viewport follows
+  // the same in-memory screen path as a normal pan. No tracking marker or continuous subscription belongs to the map.
+  const centeredNearby = useRef<number | null>(null);
+  useEffect(() => {
+    const target = props.centerNearby;
+    if (status !== 'ready' || !target || target.key === centeredNearby.current || !owns() || !camera.current) return;
+    if (target.center.length !== 2 || !target.center.every(Number.isFinite) || Math.abs(target.center[0]) > 180 || Math.abs(target.center[1]) > 90) return;
+    centeredNearby.current = target.key;
+    cancelArea(); intent.current = 0;
+    moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
+    props.onNearbyConsumed?.(target.key);
+  }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
   // The zoom and the credits ride on the list sheet's top edge when the screen has one. When the sheet leaves them no
   // room under the tools they step out of the screen entirely, so an unseen control can never take a touch.
-  const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + ZOOM_CAPSULE.height + 2 * GAP;
+  const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + Math.max(ZOOM_CAPSULE.height, creditHeight) + 2 * GAP;
   // A chosen pin's card rests on the sheet's top line, exactly where they ride; they step up above it (review r3 item
   // 11), at the sheet's pace or at once under reduced motion, so zoom stays a tap away and the credits stay in sight.
   const cover = useSharedValue(props.coverBottom ?? 0);
@@ -234,14 +252,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
       </View>)}
     </View> : null}
-    <View style={s.attribution}>
-      <T variant="label" style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://www.openstreetmap.org/copyright').catch(() => {}); }}>© OpenStreetMap</T>
-      <T variant="label" style={s.credit} maxFontSizeMultiplier={1} accessibilityRole="link" onPress={() => { void Linking.openURL('https://openfreemap.org/').catch(() => {}); }}>OpenFreeMap</T>
+    <View style={s.attribution} onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setCreditHeight(next); }}>
+      {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0} style={s.creditLink}
+        onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}><T variant="label" style={s.credit}>{credit.text}</T></Press>)}
     </View>
   </>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
     <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
-      attribution attributionPosition={{ top: (props.toolsBottom ?? 0) + 8, right: 8 }} tintColor={sys.color.muted}
+      attribution={false} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
       onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
@@ -338,7 +356,9 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // The credits stay visible and linked, as quiet 12 px words with a light halo instead of a white slab (critique B9).
-  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP,
+    flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
+  creditLink: { minHeight: 48, minWidth: 48, maxWidth: '100%', paddingHorizontal: sys.space.xs, justifyContent: 'center' },
   credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

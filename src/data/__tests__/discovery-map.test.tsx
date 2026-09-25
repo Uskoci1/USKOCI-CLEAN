@@ -1,8 +1,12 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
+import type { NearbyCameraTarget } from '../../ui/v2/DiscoveryMap.types';
+import { Linking, StyleSheet } from 'react-native';
 let mockFocused = true, mockReduced = false;
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn();
+const mockNearbyLoad = jest.fn();
+jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: () => mockNearbyLoad() }));
 jest.mock('@maplibre/maplibre-react-native', () => {
  const React = require('react');
  return { Map: 'NativeMap', Layer: 'Layer', ViewAnnotation: 'Annotation',
@@ -19,10 +23,12 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { AREA_SETTLE_MS, DiscoveryMap } from '../../ui/v2/DiscoveryMap';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
 import { sys } from '../../ui/system/tokens';
+import { useNearbyMap } from '../../ui/v2/discovery/useNearbyMap';
 const row = (id = 'one', lat = 0, lng = 0) => ({ id, naslov: 'Privatan naslov van source properties', priblizno: { lat, lng } } as MarketplaceItem);
 let rows = [row()], key = 'owner:1', viewport: PublicViewport | null = null, selectedId: string | null = null;
+let nearby: NearbyCameraTarget | null = null;
 const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn(), clear = jest.fn();
-function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} />; }
+function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} centerNearby={nearby} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} />; }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
@@ -32,7 +38,7 @@ const ready = async () => act(async () => native().props.onDidFinishLoadingMap()
 const region = { center: [0, 0], zoom: 4, bounds: [-1, -1, 1, 1] };
 const cluster = { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { cluster: true, cluster_id: 7 } };
 const pressFeature = async (features: unknown[]) => act(async () => source().props.onPress({ nativeEvent: { features }, stopPropagation: jest.fn() }));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, select, setViewport, search, list, clear]) fn.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, select, setViewport, search, list, clear]) fn.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();
@@ -219,4 +225,57 @@ test('under reduced motion the zoom buttons jump without animation', async () =>
 test('a cluster flies at the camera pace when motion is allowed', async () => {
  mockExpand.mockResolvedValue(9); await render(); await ready(); await pressFeature([cluster]);
  expect(mockEase).toHaveBeenCalledWith({ center: [0, 0], zoom: 9, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled();
+});
+
+test.each([false, true])('Nearby centers once, preserves list semantics and public pins (reduced motion: %s)', async reduced => {
+  mockReduced = reduced; await render(); await ready();
+  await act(async () => native().props.onRegionDidChange(moved(region)));
+  nearby = { key: 1, center: [20.412345, 44.812345] }; await update();
+  const options = { center: nearby.center, zoom: 12 };
+  if (reduced) { expect(mockJump).toHaveBeenCalledWith(options); expect(mockEase).not.toHaveBeenCalled(); }
+  else { expect(mockEase).toHaveBeenCalledWith({ ...options, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled(); }
+  await update(); expect((reduced ? mockJump : mockEase)).toHaveBeenCalledTimes(1);
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, center: nearby!.center, zoom: 12 } }));
+  await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+  expect(source().props.data.features[0].geometry.coordinates).toEqual([0, 0]);
+  expect(JSON.stringify(source().props.data)).not.toContain('20.412345');
+});
+test('Nearby waits for map readiness and does not move a blurred map', async () => {
+  nearby = { key: 2, center: [20.4, 44.8] }; await render(); expect(mockEase).not.toHaveBeenCalled();
+  await ready(); expect(mockEase).toHaveBeenCalledTimes(1);
+  mockFocused = false; nearby = { key: 3, center: [19.8, 45.2] }; await update(); expect(mockEase).toHaveBeenCalledTimes(1);
+});
+test('Nearby then manual pan then refresh/remount restores the pan without replaying location', async () => {
+  let receive!: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
+  const remove = jest.fn();
+  mockNearbyLoad.mockResolvedValue({ Accuracy: { Balanced: 3 }, requestForegroundPermissionsAsync: async () => ({ granted: true }),
+    hasServicesEnabledAsync: async () => true, watchPositionAsync: async (_options: unknown, next: typeof receive) => { receive = next; return { remove }; } });
+  let capture!: ReturnType<typeof useNearbyMap>, visible = true;
+  // Real hook + real DiscoveryMap: the hook survives the map being removed during a read, like DiscoveryPresentation.
+  function NearbyScreen() {
+    capture = useNearbyMap(key, mockFocused);
+    const [saved, save] = React.useState<PublicViewport | null>(null);
+    return visible ? <DiscoveryMap items={rows} scopeKey={key} viewport={saved} selectedId={null} centerNearby={capture.target}
+      onNearbyConsumed={capture.consume} onSelect={select} onViewport={save} onArea={search} onList={list} /> : null;
+  }
+  await act(async () => { tree = create(<NearbyScreen />); }); await ready();
+  await act(async () => { capture.start(); });
+  await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.8, longitude: 20.4 } }));
+  expect(mockEase).toHaveBeenCalledTimes(1); expect(capture.target).toBeNull(); expect(remove).toHaveBeenCalledTimes(1);
+  const elsewhere: PublicViewport = { center: [19.8, 45.2], zoom: 10, bounds: [19.7, 45.1, 19.9, 45.3] };
+  await act(async () => native().props.onRegionDidChange(moved(elsewhere)));
+  visible = false; await act(async () => tree.update(<NearbyScreen />));
+  visible = true; await act(async () => tree.update(<NearbyScreen />));
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: elsewhere.center, zoom: elsewhere.zoom });
+  await ready(); expect(mockEase).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
+});
+test('complete map credits replace native attribution with real 48 dp links', async () => {
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined); await render(); await ready();
+  expect(native().props.attribution).toBe(false);
+  for (const [text, url] of [['© OpenStreetMap', 'https://www.openstreetmap.org/copyright'],
+    ['© OpenMapTiles', 'https://www.openmaptiles.org/'], ['OpenFreeMap', 'https://openfreemap.org/']]) {
+    const link = tree.root.findByProps({ accessibilityLabel: text });
+    expect(link.props.accessibilityRole).toBe('link'); expect(StyleSheet.flatten(link.props.style).minHeight).toBeGreaterThanOrEqual(48);
+    await act(async () => link.props.onPress()); expect(open).toHaveBeenLastCalledWith(url);
+  }
 });

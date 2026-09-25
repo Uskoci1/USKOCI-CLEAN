@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { Check, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Check, Crosshair, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
@@ -37,11 +37,12 @@ const CHIP_SIDE = sys.space.md;
  * exactly as tall with it as without it.
  */
 export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onClearWhere,
-  onLayout, onChipsHeight }: {
+  onLayout, onChipsHeight, nearby }: {
   /** Line 1: where the search looks. */ where: string;
   /** Line 2: when, and the other conditions (or "Dodaj uslove"). */ conditions: string;
   /** How many conditions are on: the count on "Uslovi pretrage". */ conditionCount: number;
   chips: readonly QuickChip[]; chipsShown: boolean;
+  nearby?: { onPress: () => void; busy: boolean; message?: string; onSettings?: () => void };
   onSearch: () => void; onConditions: () => void; onNew?: () => void;
   /** Set while the list is narrowed to the map's area or to one point: the pill's "×" takes that narrowing away. */
   onClearWhere?: () => void;
@@ -92,14 +93,26 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
         <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={onNew} />
       </View> : null}
     </View>
-    {chipsShown && chips.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+    {chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       accessibilityLabel="Brzi filteri" contentContainerStyle={s.chips} onLayout={measureChips}>
+      {nearby ? <Press accessibilityRole="button" accessibilityLabel="U blizini"
+        accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
+        accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
+        haptic="select" scaleTo={0.97} hitSlop={0} onPress={nearby.onPress} style={[s.chip, s.nearby]}>
+        {nearby.busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <Crosshair size={18} color={sys.color.green} />}
+        <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
+      </Press> : null}
       {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
         haptic="select" scaleTo={0.97} hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
         {chip.selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
         <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
       </Press>)}
     </ScrollView> : null}
+    {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
+      <T variant="note" style={s.noticeText}>{nearby.message}</T>
+      {nearby.onSettings ? <Press accessibilityRole="button" accessibilityLabel="Podešavanja lokacije" hitSlop={0}
+        onPress={nearby.onSettings} style={s.settings}><T variant="note" style={s.settingsText}>Podešavanja</T></Press> : null}
+    </View> : null}
   </View>;
 }
 
@@ -127,7 +140,7 @@ const s = StyleSheet.create({
   badge: { position: 'absolute', top: 0, right: 0, minWidth: 20, minHeight: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.green, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
-  chips: { flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
@@ -135,4 +148,10 @@ const s = StyleSheet.create({
   chipOn: { ...chipChosen, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink },
   chipTextOn: { color: sys.color.green, fontWeight: '700' },
+  nearby: { minHeight: 48 },
+  notice: { marginHorizontal: sys.space.base, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
+    borderRadius: sys.radius.control, backgroundColor: sys.color.surface, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
+  noticeText: { color: sys.color.ink, flexGrow: 1, flexBasis: 180 },
+  settings: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
+  settingsText: { color: sys.color.green, fontWeight: '600' },
 });

@@ -14,10 +14,18 @@ let mockStackMounts = 0;
 let mockRendered: { isLoaded: boolean; session: Session | null; user: Session['user'] | null; sessionEpoch: number; accountRevision: number; returnTargetRevision: number } =
   { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, accountRevision: 1, returnTargetRevision: 0 };
 let mockCurrent = mockRendered;
+let mockMotionPreference: ((value: boolean) => void) | undefined;
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
+    if (key === 'AccessibilityInfo') return {
+      isReduceMotionEnabled: () => new Promise<boolean>(() => {}),
+      addEventListener: (_name: string, callback: (value: boolean) => void) => {
+        mockMotionPreference = callback;
+        return { remove: () => { if (mockMotionPreference === callback) mockMotionPreference = undefined; } };
+      },
+    };
     return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -27,7 +35,9 @@ jest.mock('expo-router', () => {
   const { Protected } = require('expo-router/build/views/Protected');
   const { useFilterScreenChildren } = require('expo-router/build/layouts/withLayoutContext');
   const { StackRouter } = require('expo-router/build/react-navigation/routers/StackRouter');
-  const Stack = ({ children, initialRouteName }: { children?: React.ReactNode; initialRouteName?: string }) => {
+  const Stack = ({ children, initialRouteName, screenOptions }: {
+    children?: React.ReactNode; initialRouteName?: string; screenOptions?: { animation?: string };
+  }) => {
     const filtered = useFilterScreenChildren(children);
     const [instance] = React.useState(() => ++mockStackMounts);
     const screens = filtered.screens.map((screen: { name: string }) => screen.name);
@@ -38,6 +48,8 @@ jest.mock('expo-router', () => {
     return React.createElement('Stack', {
       instance,
       screens,
+      screenOptions,
+      screenOptionsByName: Object.fromEntries(filtered.screens.map((screen: { name: string; options?: unknown }) => [screen.name, screen.options])),
       coldRoute: cold.routes[cold.index].name,
       linkedRoute: linked.routes[linked.index].name,
       protectedScreens: Array.from(filtered.protectedScreens),
@@ -85,6 +97,33 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
+
+it.each([false, true])('root pushes follow live reduced motion without replacing the navigator: signedIn=%s', async signedIn => {
+  if (!signedIn) mockRendered = { ...mockRendered, session: null, user: null };
+  mockCurrent = mockRendered;
+  await render();
+  const stack = () => tree.root.findByType('Stack' as React.ElementType).props;
+  const instance = stack().instance;
+  expect(stack().screenOptions.animation).toBe('slide_from_right');
+  await act(async () => { mockMotionPreference!(true); });
+  expect(stack().screenOptions.animation).toBe('none');
+  expect(stack().instance).toBe(instance);
+  expect(stack().screenOptionsByName.oporavak.animation).toBe('none');
+  if (!signedIn) expect(stack().screenOptionsByName.auth.animation).toBe('none');
+  await act(async () => { mockMotionPreference!(false); });
+  expect(stack().screenOptions.animation).toBe('slide_from_right');
+  expect(stack().instance).toBe(instance);
+});
+
+it('keeps the current motion preference when session restoration finishes', async () => {
+  mockRendered = { ...mockRendered, isLoaded: false }; mockCurrent = mockRendered;
+  await render();
+  expect(tree.root.findAllByType('Stack' as React.ElementType)).toHaveLength(0);
+  await act(async () => { mockMotionPreference!(true); });
+  mockRendered = { ...mockRendered, isLoaded: true }; mockCurrent = mockRendered;
+  await act(async () => { tree.update(<RootLayout />); });
+  expect(tree.root.findByType('Stack' as React.ElementType).props.screenOptions.animation).toBe('none');
+});
 
 describe('session-owned root return navigation', () => {
   it.each([false, true])('cold launch selects the admitted entry route instead of recovery: signedIn=%s', async signedIn => {

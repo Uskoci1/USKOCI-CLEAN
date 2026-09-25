@@ -184,8 +184,6 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
           <WorkspaceRow art="tasks" label="Zadatak" onPress={noop} />
           {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
           {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" onPress={noop} /> : null}
-          {active && item.rezim !== 'DALJINSKI' ? <WorkspaceRow art="pin" label={isWorker ? 'Podeli svoju trenutnu lokaciju' : 'Trenutna lokacija osobe koja dolazi'}
-            hint="Jedna tačka, samo uz pristanak" onPress={noop} /> : null}
           <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
         </WorkspaceRows>
         <AgreementSection art="phone" label="Kontakt" summary="Podeli svoj broj kada ti odgovara">

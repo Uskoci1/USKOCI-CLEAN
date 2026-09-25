@@ -6,6 +6,7 @@ const { buildIdentity } = require('./scripts/build-identity.cjs');
 // The Google Play identity (owner, 2026-09-23: "rs.uskoci"). Only the EAS production profile, the store app bundle,
 // takes it; the preview APK and every CI build keep the package they are given. A package is permanent in Play Console.
 const STORE_PACKAGE = 'rs.uskoci';
+const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada pritisneš „U blizini”, da prikaže mapu zadataka oko tebe.';
 
 module.exports = ({ config }) => {
   const android = { ...config.android };
@@ -13,13 +14,27 @@ module.exports = ({ config }) => {
   android.permissions = [...new Set([...(android.permissions ?? []),
     'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION'])];
   const ios = { ...config.ios, infoPlist: { ...config.ios?.infoPlist,
-    NSLocationWhenInUseUsageDescription: 'USKOČI uzima jednu lokaciju kada u aktivnom Dogovoru izabereš deljenje sa naručiocem.',
+    NSLocationWhenInUseUsageDescription: NEARBY_PERMISSION,
   } };
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
   const mapPlugin = '@maplibre/maplibre-react-native';
   const photoPlugin = 'expo-image-picker';
+  const locationPlugin = 'expo-location';
+  if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === locationPlugin)) {
+    // A single foreground observation on explicit Nearby. No background tracking, service or motion permission.
+    plugins.push([locationPlugin, {
+      locationWhenInUsePermission: NEARBY_PERMISSION,
+      locationAlwaysPermission: false,
+      locationAlwaysAndWhenInUsePermission: false,
+      motionUsagePermission: false,
+      isIosBackgroundLocationEnabled: false,
+      isAndroidBackgroundLocationEnabled: false,
+      isAndroidForegroundServiceEnabled: false,
+      isAndroidMotionActivityEnabled: false,
+    }]);
+  }
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === photoPlugin)) {
     plugins.push([photoPlugin, {
       photosPermission: 'Izaberi fotografiju za svoj zadatak ili profil.',

@@ -73,7 +73,7 @@ test('a confirmed Agreement without server permission leads with the conversatio
   // used to be the step, which the sentence under it then said again.
   expect(copy).toContain('Dogovoreno'); expect(copy).not.toContain('Sledeći korak'); expect(copy).not.toContain('Potvrdi završetak kada je posao obavljen');
   expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.');
-  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Trenutna lokacija osobe koja dolazi', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
+  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tok Dogovora' }).props.onPress());
@@ -431,4 +431,12 @@ test('a bubble from the other person carries their name from the workspace, not 
   await act(async () => { tree = create(<Dogovor />); });
   const chat = tree.root.findAll(node => String(node.type) === 'AgreementChat')[0];
   expect(chat.props.messages.map((message: { posiljalacIme: string }) => message.posiljalacIme)).toEqual(['Marko', 'Ja']);
+});
+
+test.each(['narucilac', 'uskocer'] as const)('retired current-location sharing is absent for %s; exact task-location disclosure remains', async role => {
+  await render(base({ kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true } }, role));
+  expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi');
+  expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
+  expect(labels()).toContain('Lokacija i pristup');
+  expect(labels()).toContain('Kontakt');
 });
