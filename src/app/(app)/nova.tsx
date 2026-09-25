@@ -276,7 +276,8 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
           ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
 
-  return <><IntakePresentation conversation={stanje} value={unos} busy={radi} error={greska}
+  return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
+    conversation={stanje} value={unos} busy={radi} error={greska}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
     sentMessage={request.current?.body ?? null}

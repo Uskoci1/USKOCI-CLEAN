@@ -91,6 +91,28 @@ it('an empty status fragment does not permanently collapse a normal task card',a
   await act(async()=>mockKeyboard.keyboardDidShow());expect(p.card).toHaveBeenLastCalledWith(true);
   await act(async()=>mockKeyboard.keyboardDidHide());expect(p.card).toHaveBeenLastCalledWith(false);
 });
+it('offers a return to the latest answer without taking the reader away from earlier messages',async()=>{
+  const p=props();p.messages=[{id:'a',fromAi:true,body:'Kada ti odgovara?'}];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const scroll=(offset:number)=>tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScroll({
+    nativeEvent:{contentOffset:{y:offset},contentSize:{height:1200},layoutMeasurement:{height:400}}});
+  await act(async()=>scroll(200));
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
+  await act(async()=>tree.update(<AiConversationShell {...p} messages={[...p.messages,{id:'b',fromAi:true,body:'Možeš i kasnije da dopuniš.'}]}/>));
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
+  expect(p.onSend).not.toHaveBeenCalled();expect(p.onChange).not.toHaveBeenCalled();
+  await act(async()=>tree.root.findByProps({testID:'ai-latest'}).props.onPress());
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(0);
+});
+it('a different conversation drops the previous scroll hint',async()=>{
+  const p=props();p.conversationKey='first';p.messages=[{id:'a',fromAi:true,body:'Prvi razgovor'}];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  await act(async()=>tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScroll({
+    nativeEvent:{contentOffset:{y:0},contentSize:{height:1200},layoutMeasurement:{height:400}}}));
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
+  await act(async()=>tree.update(<AiConversationShell {...p} conversationKey="second"/>));
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(0);
+});
 it.each([{height:640,scale:1},{height:844,scale:2}])('compacts without disabling editing on constrained geometry %o',async({height,scale})=>{
   mockHeight=height;mockScale=scale;const p=props();
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});

@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowUp, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
+import { ArrowDown, ArrowUp, ArrowUpRight, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
 import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { T } from '../Text';
 import { withInter } from '../interFont';
@@ -14,9 +14,11 @@ import { useTextScale } from '../system/textScale';
 import { floating, sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } from './VoiceComposer';
+import { useConversationArrival } from './useConversationArrival';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
 export type AiConversationShellProps = {
+  /** Separates arrival/announcement ownership when a different conversation replaces this view. */ conversationKey?: string;
   /** The chrome's title; the chrome draws no line under it (no copy that explains where you are). */ title: string;
   /** The one live card pinned above the thread; null until there is something to pin. */ card: (compact: boolean) => ReactNode;
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
@@ -45,10 +47,8 @@ export type AiConversationShellProps = {
  * - The assistant speaks as plain, large, calm text on white, under a small USKOČI mark; the person's own words are
  *   compact pills on the right in the pale green. Nothing is typed out that has not arrived: streamed text is the
  *   server's own deltas, and while nothing has arrived three dots say that an answer is being written.
- * - The composer is one white pill that floats over the ground with a hairline and the floating shadow: "+" when there
- *   is something to attach, the field, the microphone (held, it sends on release), and on the right the waveform that
- *   opens voice mode while the field is empty, or the round green send once there is text. A send that cannot go now
- *   is drawn disabled and says why, above the pill and to a screen reader.
+ * - The composer gives text its full width; attachments and speech sit in a separate toolbar, with send at the right.
+ *   Empty input offers voice mode, which still returns text. A send that cannot go now is disabled and explains why.
  *
  * No domain mutations: card, transcript and composer share one bounded surface, and every command is the screen's own.
  */
@@ -61,16 +61,15 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // the draft instead of going out as a message of its own.
   const [voiceReview, setVoiceReview] = useState(false);
   const [holdHint, setHoldHint] = useState(false);
+  const [readingEarlier, setReadingEarlier] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const input = useRef<TextInput>(null);
   const thread = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const reduced = useReducedMotion();
   const notice = useConfirmSheet({ reduced });
-  // Everything present on the first render is history; anything after it is news.
-  const seen = useRef<Set<string>>(new Set());
-  const settled = useRef(false);
-  if (!settled.current) { settled.current = true; p.messages.forEach(message => seen.current.add(message.id)); }
-  const compact = keyboard || height < 700 || textScale >= 1.5 || p.pending;
+  const arrival = useConversationArrival(p);
+  const compact = keyboard || height < 760 || textScale >= 1.3 || p.pending;
   const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
@@ -82,6 +81,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
   // Speech that closes (the conversation ended, or it cannot take speech any more) takes voice mode with it.
   useEffect(() => { if (!p.voice) setVoiceMode(false); }, [p.voice]);
+  useEffect(() => { nearBottom.current = true; setReadingEarlier(false); }, [p.conversationKey]);
 
   const hasText = p.value.trim().length > 0;
   const sendShown = hasText || p.pending;
@@ -103,13 +103,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardAreaCompact]}>{pinned}</View> : null}
+      <View style={s.flex}>
       <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
         contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-          nearBottom.current = contentSize.height - contentOffset.y - layoutMeasurement.height < 80; }} scrollEventThrottle={100}
+          const atBottom = contentSize.height - contentOffset.y - layoutMeasurement.height < 80;
+          // React updates only at this boundary, never once per scrolling frame.
+          if (nearBottom.current !== atBottom) { nearBottom.current = atBottom; setReadingEarlier(!atBottom); }
+        }} scrollEventThrottle={100}
         // With no messages the intro is the entire content, and scrolling to its end cuts its first line off the top.
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
@@ -120,7 +124,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             {p.openings.map(opening => <Press key={opening} accessibilityRole="button" accessibilityLabel={opening}
               accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
               onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }}>
-              <T variant="meta" style={s.openingText}>{opening}</T></Press>)}
+              <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.green} /></Press>)}
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
           {p.voice ? <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select"
@@ -130,7 +134,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         </View> : p.messages.map(message => <Turn key={message.id} {...message}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
-          reduced={reduced || seen.current.has(message.id)} />)}
+          reduced={reduced || !arrival.shouldEnter(message.id)} />)}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
         {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
@@ -140,12 +144,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
           <Mark />
-          <View style={s.typing}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
+          <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
+            <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
       </ScrollView>
+      {readingEarlier && p.messages.length > 0 ? <Press testID="ai-latest" accessibilityRole="button"
+        accessibilityLabel="Najnovija poruka" onPress={() => {
+          nearBottom.current = true; setReadingEarlier(false); thread.current?.scrollToEnd({ animated: !reduced });
+        }} haptic="select" style={[s.latest, floating]}>
+        <ArrowDown size={18} color={sys.color.green} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
+      </Press> : null}
+      </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
           is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
       <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
@@ -158,18 +170,22 @@ export function AiConversationShell(p: AiConversationShellProps) {
             button still says it to a screen reader. */}
         {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
-        <View testID="ai-composer" style={[s.pill, floating]}>
-          {p.attach ? <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
-            accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
-            hitSlop={0} onPress={p.attach.onPress} style={s.target}>
-            <Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} />
-          </Press> : null}
+        <View testID="ai-composer" style={[s.pill, floating, inputFocused && s.pillFocused]}>
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} editable={p.canEdit}
+            onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { setHoldHint(false); p.onChange(text); }}
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
-            style={[s.input, !p.attach && s.inputFirst, !p.canEdit && s.inputOff]} />
-          {p.voice ? <VoiceComposer {...p.voice} onTooShort={() => setHoldHint(true)} /> : null}
+            style={[s.input, !p.canEdit && s.inputOff]} />
+          <View testID="ai-composer-tools" style={s.composerTools}>
+          <View style={s.toolsStart}>
+            {p.attach ? <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
+              accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
+              hitSlop={0} onPress={p.attach.onPress} style={s.target}>
+              <View style={s.toolCircle}><Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} /></View>
+            </Press> : null}
+            {p.voice ? <VoiceComposer {...p.voice} onTooShort={() => setHoldHint(true)} /> : null}
+          </View>
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={p.onSend} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
@@ -182,6 +198,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
               <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.green} /></View>
           </Press> : null}
+          </View>
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -195,7 +212,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
 /** The small USKOČI mark that says who is speaking; a screen reader hears the turn's own label instead. */
 function Mark() {
-  return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}><BrandMark size={20} /></View>;
+  return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
+    <BrandMark size={28} /><T variant="note" style={s.markName}>USKOČI</T>
+  </View>;
 }
 
 /**
@@ -248,46 +267,56 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.color.surface }, flex: { flex: 1, minHeight: 0 },
   cardArea: { paddingHorizontal: sys.space.lg, paddingTop: 2, paddingBottom: sys.space.md },
   cardAreaCompact: { paddingTop: 0, paddingBottom: sys.space.sm },
-  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm, paddingBottom: sys.space.xl, gap: sys.space.xl },
-  threadEmpty: { justifyContent: 'center', paddingBottom: 60 },
-  welcome: { gap: sys.space.md, paddingTop: 14, paddingBottom: sys.space.sm, maxWidth: 360 },
+  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64, gap: 28 },
+  threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
+  welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
   presence: { width: 84, height: 84, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
   presenceHalo: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: sys.color.greenSoft },
   presenceDisc: { width: 64, height: 64, borderRadius: 32, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
-  welcomeTitle: { ...sys.type.hero, color: sys.color.green },
-  welcomeCopy: { lineHeight: 24 },
-  openings: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, marginTop: 2 },
+  welcomeTitle: { ...sys.type.hero, color: sys.color.green, textAlign: 'center' },
+  welcomeCopy: { lineHeight: 24, textAlign: 'center' },
+  openings: { gap: sys.space.sm, marginTop: sys.space.sm },
   // An opening is an action that is not the screen's primary: white with a green label and the hairline.
-  opening: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill,
-    borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
-  openingText: { color: sys.color.green, fontWeight: '600' },
-  privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  opening: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: sys.space.sm,
+    borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+  openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
+  privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
   // The assistant: plain, large and calm, the whole width of the thread, no bubble.
-  assistant: { gap: 8, alignSelf: 'stretch' },
-  mark: { width: 20, height: 21 },
+  assistant: { gap: 10, alignSelf: 'stretch' },
+  mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  markName: { color: sys.color.green, fontWeight: '600' },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
   // The person: a compact pill on the right, in the pale green.
-  person: { alignSelf: 'flex-end', maxWidth: '85%', marginLeft: 40, paddingVertical: 10, paddingHorizontal: 16,
-    borderRadius: sys.radius.card, backgroundColor: sys.color.greenSoft },
+  person: { alignSelf: 'flex-end', maxWidth: '90%', marginLeft: 24, paddingVertical: 12, paddingHorizontal: 16,
+    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.color.greenSoft },
   personText: { ...sys.type.body, color: sys.color.ink },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
   sending: { opacity: 0.6 },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
-  typing: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26, paddingLeft: 2 },
+  typing: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap', minHeight: 28, paddingLeft: 2 },
+  dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },
   dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   dotStill: { opacity: 0.55 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   actions: { gap: 10 },
+  latest: { position: 'absolute', bottom: 8, alignSelf: 'center', minHeight: 48, flexDirection: 'row', gap: 8,
+    alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
+  latestText: { color: sys.color.green, fontWeight: '600' },
   footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.color.surface },
   reason: { paddingHorizontal: sys.space.sm },
-  // The floating composer: a white pill with the hairline and the floating shadow, its controls on 48 px targets.
-  pill: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 56, paddingHorizontal: 4, paddingVertical: 4,
+  // The draft uses the full width; controls never squeeze the sentence between three competing circles.
+  pill: { paddingHorizontal: 8, paddingVertical: 6,
     borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
+  pillFocused: { borderColor: sys.color.green },
+  composerTools: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  toolsStart: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
+  toolCircle: { width: 40, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash,
+    alignItems: 'center', justifyContent: 'center' },
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, minHeight: 48, maxHeight: 132,
-    paddingHorizontal: 4, paddingTop: 12, paddingBottom: 12, textAlignVertical: 'top' }),
-  inputFirst: { paddingLeft: 12 },
+  input: withInter({ ...sys.type.body, color: sys.color.ink, minWidth: 0, minHeight: 48, maxHeight: 132,
+    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, textAlignVertical: 'top' }),
   inputOff: { color: sys.color.muted },
   round: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   send: { backgroundColor: sys.color.green },

@@ -25,6 +25,8 @@ import { publicSummary, type Summary } from './draftSummary';
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
 
 type Props = {
+  /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
+  conversationKey?: string;
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
   pending: boolean; statusCopy: string | null; showReadback: boolean; readbackDisabled: boolean;
@@ -86,23 +88,24 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   return <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
     accessibilityHint={`${spoken}. ${editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}`}
     accessibilityState={{ disabled: !canReview }}
-    disabled={!canReview} onPress={onReview} haptic={canReview ? 'select' : 'none'} scaleTo={1}
+    disabled={!canReview} onPress={onReview} haptic={canReview ? 'select' : 'none'} scaleTo={0.99}
     style={[s.card, compact && s.cardCompact]}>
-    {compact ? null : <View style={s.statusRow}>
+    <View style={s.statusRow}>
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="document" size={compact ? 24 : 28} /></View>
       <View style={[s.dot, busy && s.dotBusy]} />
       <T variant="label" numberOfLines={1} style={s.status}>{status}</T>
       {/* The card opens the review; once the review is the next step, its own line carries the one arrow. */}
-      {canReview && !ready ? <CaretRight size={16} weight="bold" color={sys.color.muted} /> : null}
-    </View>}
+      {canReview && !ready ? <CaretRight size={20} weight="bold" color={sys.color.green} /> : null}
+    </View>
     <View style={large ? s.headStacked : s.head}>
-      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={compact ? 1 : 2}
-        style={[!large && s.titleSide, !summary.title && s.titleEmpty]} />
+      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={2}
+        style={[!large && s.titleSide, compact && s.compactTitle, !summary.title && s.titleEmpty]} />
       {summary.value ? <CardValue value={summary.value} large={large} /> : null}
     </View>
     {compact ? null : <>
-      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={16} />} text={summary.zone} /> : null}
-      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={16} />} text={summary.schedule} lines={2} /> : null}
-      {summary.people ? <CardFact art={<FactArt kind="users" size={16} />} text={summary.people} /> : null}
+      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={20} />} text={summary.zone} /> : null}
+      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={20} />} text={summary.schedule} lines={2} /> : null}
+      {summary.people ? <CardFact art={<FactArt kind="users" size={20} />} text={summary.people} /> : null}
     </>}
     {/* The safety note stays on the compact card too (large text, a small phone, a pending turn), in two lines there
         (review r4 ra item 6): it used to live in the options panel, and hiding it on compact lost it for those people. */}
@@ -164,12 +167,12 @@ export function IntakePresentation(props: Props) {
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
-  return <AiConversationShell title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
+  return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
-    welcomeDetail="Ispričaj svojim rečima — glasom ili kucanjem. Ja hvatam detalje sa strane, ti potvrđuješ šta je tačno."
+    welcomeDetail="Opiši posao svojim rečima. Zajedno ćemo složiti detalje, a pre objave sve pregledaš."
     openings={OPENINGS} placeholder="Opiši šta ti treba"
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={props.voice}
@@ -217,6 +220,7 @@ const s = StyleSheet.create({
   // The one card of the app (`cardCompact`: white, the card edge, no shadow), with the task card's rhythm.
   card: { ...cardCompact, gap: 8 },
   cardCompact: { paddingVertical: 12, gap: 4 },
+  compactTitle: { ...sys.type.cardTitleCompact },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
   // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.

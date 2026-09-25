@@ -250,10 +250,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
-  return <><AiConversationShell title="Tvoj radni profil"
-    card={compact=><WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>}
+  const hasProfileContent = data.messages.some(message => message.role === 'USER')
+    || data.candidate.skills.length > 0 || data.candidate.tools.length > 0 || data.candidate.licenses.length > 0
+    || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
+  return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
+    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome="Čime se baviš?" welcomeDetail="Opiši veštine, opremu, područje i vreme kada možeš da radiš. Sve ćemo složiti u jedan pregled."
+    welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
+    openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}

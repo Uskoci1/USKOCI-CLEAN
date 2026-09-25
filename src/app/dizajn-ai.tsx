@@ -87,6 +87,11 @@ export default function DizajnAi() {
   const running = conversation({ messages: THREAD, facts: FACTS }, ['need.description', 'need.category', 'need.task_geography']);
   const STATES: { key: string; title: string; render: () => ReactNode }[] = [
     { key: 'welcome', title: 'Novi zadatak · početak', render: () => intake({ conversation: conversation({ conversationId: '' }) }) },
+    { key: 'worker-welcome', title: 'Radni profil · početak', render: () => <AiConversationShell conversationKey="gallery-worker-welcome"
+      title="Tvoj radni profil" welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
+      openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']} placeholder="Opiši šta radiš" card={() => null}
+      messages={[]} value={value} onChange={setValue} canEdit canSend={!!value.trim()} pending={false} busy={false} onSend={noop}
+      onBack={back} voice={voice()} /> },
     { key: 'thread', title: 'Novi zadatak · razgovor i živa kartica', render: () => intake({ conversation: running, canReview: true, showAbandon: true,
       onPhotos: noop }) },
     { key: 'ready', title: 'Spremno za pregled (traži ponude)', render: () => intake({ canReview: true, showAbandon: true, onPhotos: noop,
@@ -125,8 +130,8 @@ export default function DizajnAi() {
       thinking={false} onClose={back} /> },
     { key: 'voice-error', title: 'Glasovni režim · greška', render: () => <VoiceMode voice={voice(snapshot({ error: 'CAPTURE_FAILED', fallbackText: 'Treba mi' }))}
       prompt="Reci šta ti treba." answer={null} said={null} thinking={false} onClose={back} /> },
-    { key: 'worker', title: 'Radni profil kroz razgovor', render: () => <AiConversationShell title="Tvoj radni profil" welcome="Čime se baviš?"
-      welcomeDetail="Opiši veštine, opremu, područje i vreme kada možeš da radiš. Sve ćemo složiti u jedan pregled." placeholder="Opiši šta radiš"
+    { key: 'worker', title: 'Radni profil kroz razgovor', render: () => <AiConversationShell title="Tvoj radni profil" welcome="Šta umeš da radiš?"
+      welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja." placeholder="Opiši šta radiš"
       card={compact => <WorkerAiCard profile={PROFILE} compact={compact} disabled={false} review={noop} />}
       messages={[{ id: 'w1', fromAi: false, body: 'Radim selidbe i montažu nameštaja, imam kombi i bušilicu.' },
         { id: 'w2', fromAi: true, body: 'Odlično. U kom gradu radiš i koliko daleko možeš da ideš?' }]}

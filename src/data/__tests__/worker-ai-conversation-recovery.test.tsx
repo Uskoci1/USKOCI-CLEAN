@@ -34,6 +34,7 @@ jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:(props:any
 jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 import Screen from '../../app/(app)/profil/razgovor';
+import type { WorkerAiProfile } from '../workerAiClientService';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { CalendarScreen } from '../../ui/calendar/CalendarControls';
@@ -41,7 +42,9 @@ const intent=()=>({accountId:A,conversationId:C,clientRequestId:K});
 const turn=(state='PROCESSING',id=K)=>({turnId:B,conversationId:C,clientRequestId:id,attemptId:A,state,retryAllowed:false,authoritative:true});
 const recovery=(state:string|null=null,extras={})=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,conversationStatus:'OPEN',clientRequestId:K,turn:state?turn(state):null,providerDispatched:false,cancelled:false,canCancel:true,retryAllowed:state===null,authoritative:true,...extras});
 const availability=()=>({timezone:'Europe/Belgrade',availableNow:false,rules:[],windows:[]});
-const snapshot=(t:unknown=null)=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,status:'OPEN',profileStatus:'DRAFT',revision:0,candidate:{availability:availability()},safety:'ALLOW',stale:false,messages:[],turn:t,review:null,saved:null});
+const candidate=():WorkerAiProfile=>({displayName:'',bio:'',skills:['Montaža'],tools:[],vehicles:[],licenses:[],teamCapacity:1,
+ location:{city:'',operatingCountryCode:'RS',radiusKm:10,approximatePosition:null},availability:availability()});
+const snapshot=(t:unknown=null)=>({schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,profileId:B,status:'OPEN',profileStatus:'DRAFT',revision:0,candidate:candidate(),safety:'ALLOW',stale:false,messages:[],turn:t,review:null,saved:null});
 const ok=(podatak:unknown)=>({ok:true,podatak});let tree:ReactTestRenderer;
 const shell=()=>tree.root.findByType('Shell' as any),action=(label:string)=>tree.root.findByProps({label});
 const visibleText=()=>tree.root.findAllByType('T' as any).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
@@ -69,6 +72,15 @@ const succeedWorkerTurn=()=>{
  mockApi.send.mockImplementation(async(_cid,_text,key)=>ok(turn('SUCCEEDED',key)));
  mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery('SUCCEEDED'),clientRequestId:key,turn:turn('SUCCEEDED',key)}));
 };
+it('a new empty interview starts with the invitation instead of an empty profile card',async()=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
+ await render();
+ expect(shell().props.card(false)).toBeNull();
+ expect(shell().props.welcome).toBe('Šta umeš da radiš?');
+ expect(shell().props.canEdit).toBe(true);
+ expect(await manualDisabled()).toBe(false);
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
+});
 it.each(['immediate','readback','retry'])('worker draft ownership: identical spoken text preserves the typed draft after %s success',async outcome=>{
  if(outcome==='immediate')succeedWorkerTurn();
  await render();act(()=>shell().props.onChange('  Radim vikendom.  '));

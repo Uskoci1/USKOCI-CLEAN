@@ -19,6 +19,27 @@ No completion percentage is inferred from passing tests or the historical 181 R6
 
 ### Implemented foundation and remaining visual work
 
+#### AI conversations — owner-prioritized batch, 25 September (R8)
+
+Task conversation: describe a job, correct its draft, then review before publication. Worker conversation: describe
+skills, equipment, team and availability, then review the saved profile. Both keep the existing server commands,
+intent journals, privacy notice, microphone contract and recovery. This batch changes their presentation.
+
+Three compositions were considered: a step wizard (clear progression but restricts free corrections), a large
+permanent draft dashboard (visible facts but crowds messages and keyboard), and a conversation with a compact
+live summary. Selected the third: full-width writing area with a separate action row, clear opening choices,
+clear USKOČI speaker identity, quiet user bubbles, and one review target. The summary becomes compact on short
+screens, with large text, while typing or while a turn is pending. Reading old messages offers an explicit return
+to the newest message without moving the reader unexpectedly.
+
+The worker review presents every frozen fact in open sections: skills/equipment, people, work area, availability,
+regular week and exceptional dates. Licences, paused rules, time zone and missing requirements stay visible.
+Completed assistant answers announce once by durable message ID. Streaming fragments, loaded history and the
+replacement of a visible local message remain still; normal fresh arrivals retain soft motion.
+
+Evidence: `docs/implementation/design-system/r8-ai-conversations-20260925/REPORT.md`. Native acceptance and real
+provider/microphone testing remain separate. This batch does not implement spoken AI responses or iOS speech.
+
 #### Map, cards and movement — owner steering, 25 September
 
 The owner wants larger coherent batches before an APK, and soft, responsive motion throughout normal use.
