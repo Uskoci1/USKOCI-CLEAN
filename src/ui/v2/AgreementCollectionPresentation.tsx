@@ -16,7 +16,7 @@ import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { dogovora } from '../system/plural';
 import { StateView } from '../system/StateView';
-import { sys, cardCompact } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { agreementPeople, agreementRole, agreementStateText, agreementTerm } from './AgreementPresentation';
@@ -46,7 +46,7 @@ const awaitsMyRating = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' 
 const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER' || awaitsMyRating(item);
 const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
-const Separator = () => <View style={{ height: 20 }} />;
+const Separator = () => <View style={s.separator} />;
 const keyOf = (item: DogovorProjekcija) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
@@ -86,10 +86,10 @@ function AttentionFoot({ attention }: { attention: Attention }) {
 }
 
 /**
- * One Dogovor, person first (owner step 8): the other person and what they are to me, the state when it says
- * something, the task, then the accepted logistics and a separate amount line. The full term keeps its zone under it;
- * the place and, beyond one person, how many remain visible. The body is one press that opens the
- * Dogovor, with no caret: the whole card is the target (B16). When the Dogovor waits for me, its foot says what for;
+ * An open accepted appointment, deliberately distinct from a task advertisement: person and actual state first,
+ * then the full accepted term, the work and place; people and accepted total share a wrapping final line. The rail
+ * groups accepted facts, not a progress timeline. The body is one press that opens the
+ * Dogovor, with no caret: the whole row is the target (B16). When the Dogovor waits for me, its foot says what for;
  * the rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2).
  * Nothing is drawn that the list does not carry: no last message, no rating, no date heading built from the task.
  *
@@ -125,7 +125,7 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
-  return <Animated.View style={[s.card, lift]}>
+  return <Animated.View style={[s.agreement, lift]}>
     <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${title}`} accessibilityValue={{ text: spoken }}
       accessibilityHint={footInside ? `${footInside.title}. ${footInside.line}` : undefined} onPress={onOpen}
       onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} style={s.body}>
@@ -139,28 +139,27 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
               <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
           </View>
         </View>
-        <T style={s.title} numberOfLines={3}>{title}</T>
-        <View style={s.facts}>
-          {/* The term is the Dogovor's own fact: one full line, the zone note on its own quiet line (B15). */}
+        <View style={s.appointment}>
+          {/* Accepted schedule leads an appointment. Do not shorten, parse or invent its date. */}
           <View style={s.fact}>
             <View style={s.art}><FactArt kind="calendar" size={20} /></View>
             <View style={s.factCopy}>
-              <T style={s.term} numberOfLines={2}>{term.line}</T>
+              <T style={s.term}>{term.line}</T>
               {term.zone ? <T style={s.zone}>{term.zone}</T> : null}
             </View>
           </View>
+          <T style={s.title} numberOfLines={3}>{title}</T>
           <View style={s.fact}>
             <View style={s.art}><FactArt kind={remote ? 'remote' : 'pin'} size={20} /></View>
             <T style={[s.factCopy, s.factText]}>{place}</T>
           </View>
-          {people ? <View style={s.fact}><View style={s.art}><FactArt kind="users" size={20} /></View>
-            <T style={[s.factCopy, s.factText]}>{people}</T></View> : null}
-        </View>
-        {/* Accepted money has its own reading line. Missing money remains a sentence, never a monetary emphasis. */}
-        <View style={s.acceptedPrice}>
-          <View style={s.art}><FactArt kind="money" size={20} /></View>
-          {amount ? <T style={s.factCopy}><T style={s.amount}>{amount}</T><T style={s.basis}> ukupno</T></T>
-            : <T style={[s.factCopy, s.noAmount]}>{BEZ_IZNOSA}</T>}
+          <View style={s.agreedSummary}>
+            {people ? <View style={s.peopleFact}><View style={s.art}><FactArt kind="users" size={20} /></View>
+              <T style={[s.factCopy, s.factText]}>{people}</T></View> : null}
+            {/* An accepted total is a quiet receipt line, not an advertised price badge. */}
+            {amount ? <T style={s.acceptedPrice}><T style={s.amount}>{amount}</T><T style={s.basis}> ukupno</T></T>
+              : <T style={[s.acceptedPrice, s.noAmount]}>{BEZ_IZNOSA}</T>}
+          </View>
         </View>
         {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
         {ownProposal ? <View style={s.note}><FactArt kind="clock" size={16} muted />
@@ -290,24 +289,26 @@ const s = StyleSheet.create({
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
   list: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },
-  // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
-  // card stays one target up to its edge; the foot is the wash under one hairline (`ownerFoot`).
-  card: { ...cardCompact, padding: 0 },
-  body: { borderRadius: sys.radius.cardCompact },
-  main: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, gap: 16 },
+  // Agreements are open appointments. Advertisement cards own the rounded enclosing frame; this list uses a rule.
+  agreement: { backgroundColor: sys.color.surface },
+  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 20 },
+  body: { borderRadius: 0 },
+  main: { paddingVertical: 4, gap: 20 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   personCopy: { flex: 1, minWidth: 0, gap: 3 },
   personName: { fontSize: 16, lineHeight: 21, fontWeight: '700', color: sys.color.ink },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0 },
   title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
-  facts: { gap: 10 },
+  appointment: { gap: 12, borderLeftWidth: 2, borderLeftColor: sys.color.lineStrong, marginLeft: 27, paddingLeft: 27 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   art: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
   factText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.ink },
-  acceptedPrice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
+  agreedSummary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 20, rowGap: 8, paddingTop: 4 },
+  peopleFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, flexGrow: 1, flexBasis: 104 },
+  acceptedPrice: { flexGrow: 1, flexShrink: 1, flexBasis: 120 },
   // The term is what a Dogovor is about beside the person, so it reads a step stronger than the other facts.
-  term: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  term: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.green, fontVariant: ['tabular-nums'] },
   zone: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },
   amount: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
   basis: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: sys.color.muted },
@@ -318,7 +319,7 @@ const s = StyleSheet.create({
   // Every foot here is a foot that waits for me, so it is the card system's waiting foot (`faceStyles.ownerFoot`: the
   // quiet wash under one hairline, as Moje prijave and Moji zadaci draw it; verify r4b rd item 7 — it was the white
   // quiet-link foot, so the same waiting looked different per list), a step taller for its two lines.
-  foot: { ...faceStyles.ownerFoot, minHeight: 52 },
+  foot: { ...faceStyles.ownerFoot, minHeight: 52, marginTop: 16, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   footCopy: { flex: 1, minWidth: 0, gap: 1 },
   footTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
   footLine: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },

@@ -34,7 +34,7 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
 
 /**
  * A task somebody else posted: first decide whether its work and terms suit me. The open white page puts the
- * work and truthful price first, groups place/time/capacity, then closes the brief with the person behind it.
+ * work first, then place/time/capacity and a distinct price band, before the person behind it.
  * Real photos and requirements follow before the longer description, approximate place and questions.
  * The name comes into the bar once the large title has scrolled away; reporting the person who posted it waits
  * behind the bar's "···". The one action, chosen by what I am to this task, stays at the foot.
@@ -90,10 +90,10 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
-          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
             filled={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
             spokenFilled={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
+          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
           {/* The publisher closes the brief, before the longer reading. A missing rating stays explicitly missing. */}
           <TaskDecisionPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
             initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy} />

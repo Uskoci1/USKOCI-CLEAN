@@ -16,11 +16,11 @@ export function TaskDecisionTitle({ children, onLayout }: { children: ReactNode;
 /** The same truthful price helper, with a different visual weight for amounts and statements about a price. */
 export function TaskDecisionPrice({ price, offers = false }: { price: ReturnType<typeof productPriceParts>; offers?: boolean }) {
   return <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
+    <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={32} muted={!price.isAmount && !offers} /></View>
     <View style={s.priceCopy}>
       <T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
       {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
     </View>
-    <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={40} muted={!price.isAmount && !offers} /></View>
   </View>;
 }
 
@@ -92,13 +92,14 @@ export function TaskDecisionRequirements({ rows }: { rows: { label: string; valu
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  title: { ...sys.type.hero, color: sys.color.ink, lineHeight: 36, letterSpacing: -0.8 },
-  price: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 4 },
+  title: { ...sys.type.hero, color: sys.color.green, lineHeight: 36, letterSpacing: -0.8 },
+  price: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 20,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   priceCopy: { flex: 1, minWidth: 0, gap: 4 },
-  priceArt: { paddingTop: 4 },
+  priceArt: { paddingTop: 2 },
   amount: { ...sys.type.priceLarge, fontSize: 28, lineHeight: 36, color: sys.color.money },
   priceWords: { ...sys.type.title, color: sys.color.ink },
-  logistics: { paddingVertical: 20, gap: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  logistics: { gap: 24 },
   place: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   planning: { gap: 20 },
   planningPaired: { flexDirection: 'row', gap: 20 },

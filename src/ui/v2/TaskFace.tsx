@@ -202,14 +202,17 @@ export function CardValue({ value, large, prominent = false }: { value: TaskValu
     </View>;
   }
   return <View style={large ? s.valueRow : valueStyles.wordSide}>
-    <T style={[valueStyles.valueWord, large && valueStyles.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
+    <T style={[valueStyles.valueWord, prominent && value.kind === 'offers' && s.offerWord, large && valueStyles.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
   </View>;
 }
 
 /** A task's real value and capacity, below its full-width title. Large text gives each its own row. */
 export function CardDecision({ value, places, large }: { value: TaskValue; places: ReactNode; large: boolean }) {
   return <View style={[s.decision, large && s.decisionStacked]}>
-    <View style={s.decisionValue}><CardValue value={value} large prominent /></View>
+    <View style={s.decisionValue}>
+      {value.kind !== 'unpriced' ? <View style={s.decisionArt}><FactArt kind={value.kind === 'offers' ? 'offers' : 'money'} size={24} /></View> : null}
+      <View style={s.decisionCopy}><CardValue value={value} large prominent /></View>
+    </View>
     {places ? <View style={s.decisionPlaces}>{places}</View> : null}
   </View>;
 }
@@ -386,11 +389,14 @@ const s = StyleSheet.create({
   valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 16, rowGap: 10 },
   decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  decisionValue: { flexShrink: 1, maxWidth: '100%' },
+  decisionValue: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, flexShrink: 1, maxWidth: '100%' },
+  decisionArt: { paddingTop: 2 },
+  decisionCopy: { flexShrink: 1, minWidth: 0 },
   decisionPlaces: { flexShrink: 1, maxWidth: '100%' },
   decisionAmount: { fontSize: 22, lineHeight: 28, letterSpacing: -0.5 },
+  offerWord: { fontSize: 16, lineHeight: 22, fontWeight: '600', color: sys.color.green },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  art: { width: 20, height: 23, alignItems: 'center', justifyContent: 'center' },
+  art: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   factText: { flex: 1, minWidth: 0, fontSize: 16, lineHeight: 23, fontWeight: '500', color: sys.color.fact },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 },
   footStacked: { gap: 8, marginTop: 2 },

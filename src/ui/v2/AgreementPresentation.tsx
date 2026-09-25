@@ -5,7 +5,6 @@ import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
-import { ProductTitle } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
@@ -136,17 +135,20 @@ export function AgreementHero({ agreement: a, compact = false, onOpen, waiting =
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
-  // Separate accepted logistics from the accepted total. No current-task edit can change either of these facts.
+  // The route presents the real next step first. These accepted terms read as an appointment record, not another
+  // task advertisement: schedule leads; work, place and group size follow; the total remains a restrained receipt.
   return <View style={s.hero}>
     <View style={s.termsHeading}>
       <T variant="meta" style={s.termsLabel}>Prihvaćeni uslovi</T>
       {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
     </View>
-    <ProductTitle>{readableTitle(a.naslov)}</ProductTitle>
-    <View style={s.facts}>
-      <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
+    <View style={s.acceptedAppointment}>
       <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
-      {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
+      <T accessibilityRole="header" style={s.acceptedTitle}>{title}</T>
+      <View style={s.facts}>
+        <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
+        {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
+      </View>
     </View>
     {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
     <View style={s.acceptedPrice}>
@@ -184,11 +186,13 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { gap: 16 },
+  hero: { gap: 20 },
   termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   termsLabel: { color: sys.color.muted, fontWeight: '600' },
-  facts: { gap: 8 },
-  acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 8 },
+  acceptedAppointment: { borderLeftWidth: 2, borderLeftColor: sys.color.green, paddingLeft: 18, gap: 12 },
+  acceptedTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.ink },
+  facts: { gap: 4 },
+  acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
   // The box is the drawing's own 24, so it does not spill 1 px over and under (review r4 rd, small note).
   factArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },

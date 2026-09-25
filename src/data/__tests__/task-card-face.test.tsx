@@ -118,8 +118,10 @@ describe('the value slot', () => {
       if (amountOf(item)) {
         expect(style(value)).toMatchObject({ color: sys.color.money, fontWeight: '700', fontVariant: ['tabular-nums'] });
       } else {
-        // A label: 15/20 medium, quiet, never the amount's colour or weight.
-        expect(style(value)).toMatchObject({ fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted });
+        // Offers have a distinct verbal cue; absence remains quiet. Neither becomes an amount.
+        expect(style(value)).toMatchObject(shown === 'Tražim ponude'
+          ? { fontSize: 16, lineHeight: 22, fontWeight: '600', color: sys.color.green }
+          : { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted });
       }
       // Nothing but an amount ever wears the money colour on a card.
       const money = tree.root.findAll(node => node.type === ('T' as React.ElementType) && style(node).color === sys.color.money);
@@ -287,14 +289,13 @@ describe('my own task\'s next step', () => {
 });
 
 describe('the card', () => {
-  it.each([1, 1.3])('keeps each fact in its own row and is a hairline card without a shadow (text scale %s)', async scale => {
+  it.each([1, 1.3])('keeps each fact in its own row with a single soft task-card edge (text scale %s)', async scale => {
     mockScale = scale;
     await render(<TaskCard item={task({ detalji: detail({}, { bitniUslovi: ['Zgrada bez lifta'] }) })} onOpen={jest.fn()} />);
     for (const words of ['Liman, Novi Sad', '24. sep · 17:00', 'Zgrada bez lifta']) {
       expect(style(textNode(words).parent!).flexWrap).not.toBe('wrap');
     }
-    expect(style(frame())).toMatchObject({ borderWidth: 1, backgroundColor: sys.color.surface });
-    for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity']) expect(style(frame())).not.toHaveProperty(key);
+    expect(style(frame())).toMatchObject({ borderWidth: 0, backgroundColor: sys.color.surface, ...sys.elevation.card });
     expect(presses()).toHaveLength(1);
   });
 
@@ -305,7 +306,7 @@ describe('the card', () => {
     await render(<TaskCard item={task()} onOpen={onOpen} />);
     const framed = { label: presses()[0].props.accessibilityLabel, value: presses()[0].props.accessibilityValue, texts: texts() };
     await act(async () => tree.update(<TaskCard item={task()} onOpen={onOpen} bare />));
-    expect(style(frame())).toMatchObject({ borderWidth: 0, borderRadius: 0 });
+    expect(style(frame())).toMatchObject({ borderWidth: 0, borderRadius: 0, elevation: 0, shadowOpacity: 0 });
     expect(style(presses()[0])).toMatchObject({ paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 });
     expect(presses()).toHaveLength(1);
     expect(presses()[0].props.accessibilityLabel).toBe('Otvori priliku Farbanje dnevne sobe');
@@ -390,7 +391,7 @@ describe('review r3', () => {
   // Item 9: the content used to shrink inside a frame that stood still. The frame is what scales, border and all.
   it('gives under the finger as one object, frame and all, from either target; under reduced motion nothing moves', async () => {
     await render(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />);
-    expect(style(frame())).toMatchObject({ borderWidth: 1, transform: [{ scale: 1 }] });
+    expect(style(frame())).toMatchObject({ borderWidth: 0, transform: [{ scale: 1 }] });
     const [body, next] = presses();
     expect(body.props.scaleTo).toBe(1); expect(next.props.scaleTo).toBe(1);
     const scale = mockShared[mockShared.length - 1];

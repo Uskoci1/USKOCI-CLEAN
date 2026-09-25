@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+R15 DISTINCT WORK SURFACES (2026-09-25): read `docs/implementation/design-system/r15-distinct-work-surfaces-20260925/REPORT.md`.
+The owner rejects identical-looking task cards, task details and Agreements. A task is now a softly lifted work brief
+with a green heading and separate terms band; its bare map preview has no nested shadow. Detail is an open reading
+page; Agreements are person-led accepted appointments without the advertisement outline. Preserve actual facts,
+commands, recovery, ordinary type sizes and white surfaces. This supersedes old rules forcing one card outline.
+Types and 314 suites / 6,114 tests pass; APK/native scope is recorded separately. R14-N01 and release gates stay open.
+
 R14 READABLE EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
 The owner's latest direction is stronger readable type, without enlarging normal letters or prices. Body/copy/note/
 speech use bundled Inter Medium; secondary ink is darker. Agreement cards separate identity/logistics/total; the

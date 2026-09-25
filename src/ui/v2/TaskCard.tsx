@@ -26,8 +26,8 @@ const NOTHING_TO_CHOOSE = 'Još nema prijava za izbor';
  *
  * The body is ONE press that opens the task. On my own task the next step is its own press, a sibling of the body and
  * never inside it: when applications wait for my choice, the foot at the bottom of the card goes straight to them
- * (`onApplications`), a screen shorter than through the task. The card is the shared hairline card with no shadow; a
- * shadow means "this floats", and a card in a list does not.
+ * (`onApplications`), a screen shorter than through the task. R15 uses a softly lifted work brief: green work title,
+ * illustrated logistics, then a distinct offer/capacity band. Agreements use a person-led open agenda instead.
  *
  * The frame is what gives under the finger (card review r3 item 9): the border, the ground and everything on it scale
  * together, as one object, instead of the content shrinking inside a frame that stood still. Under reduced motion
@@ -88,13 +88,15 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
       <CardTitle title={title} lines={3} style={s.title} />
-      <CardDecision value={value} large={large}
-        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} large />} />
       <View style={s.facts}>
-        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={24} />} text={place.text} lines={2} />
         {/* Two lines at every text size: "Fleksibilan raspon · 24. sep – 30. sep" lost its end date on one (review r3 item 1). */}
-        <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
+        <CardFact art={<FactArt kind="calendar" size={24} />} text={schedule} lines={2} />
         {requirement ? <CardRequirement requirement={requirement} /> : null}
+      </View>
+      <View style={s.terms}>
+        <CardDecision value={value} large={large}
+          places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} large />} />
       </View>
       {person ? <View style={s.publisher}>{person}</View> : null}
       {next?.kind === 'draft' ? <CardNext label={DRAFT_NEXT} /> : null}
@@ -113,18 +115,18 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
 export const TaskCard = memo(TaskCardBase);
 
 const s = StyleSheet.create({
-  // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
-  // card stays one target up to its edge.
-  card: { ...cardCompact, padding: 0 },
+  // The task's contained work brief contrasts with an open Agreement agenda; one soft edge, not border plus shadow.
+  card: { ...cardCompact, ...sys.elevation.card, borderWidth: 0, padding: 0 },
   disabled: { opacity: 0.55 },
   body: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, gap: 16, borderRadius: sys.radius.cardCompact },
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
-  title: { fontSize: 22, lineHeight: 28, letterSpacing: -0.45 },
-  facts: { gap: 10 },
-  publisher: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 14 },
+  title: { fontSize: 22, lineHeight: 28, letterSpacing: -0.45, color: sys.color.green },
+  facts: { gap: 12 },
+  terms: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 16 },
+  publisher: { paddingTop: 4 },
   footCompact: { paddingHorizontal: 14 },
   // Bare: the card that holds the face draws the edge, the corner and the padding across; the face adds none of them.
-  bare: { borderWidth: 0, borderRadius: 0 },
+  bare: { borderWidth: 0, borderRadius: 0, elevation: 0, shadowOpacity: 0 },
   bodyBare: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0, gap: 16 },
   // Inside another card the waiting foot is a flat tint at the control corner, never a card's bottom strip.
   // (Its own lower corners are named, so they are named again here: a named corner wins over `borderRadius`.)

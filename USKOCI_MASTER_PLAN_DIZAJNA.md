@@ -20,6 +20,12 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
+R15 follows the owner's explicit distinction between work to choose and work already agreed. See
+`docs/implementation/design-system/r15-distinct-work-surfaces-20260925/REPORT.md`. Tasks use a green work heading,
+illustrated facts and separated terms in a softly lifted white card; details use an open reading sequence; Agreements
+use a person-led accepted appointment. No blanket card-outline recipe survives this correction. Types and all
+314 suites / 6,114 tests pass. Read the batch receipt for APK/native evidence; no new domain behavior or release acceptance.
+
 R14 continues the product pass: `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
 Stronger reading text at unchanged sizes, clearer Agreement cards/next step, full-width photo recovery, and open
 profile/settings groups are implemented. Types and 314 suites / 6,114 tests pass. Source 668ca648 / APK 36144235695
