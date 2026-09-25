@@ -332,3 +332,19 @@ test('search text uses the bundled regular face without asking the platform to s
   expect(style.fontFamily).toBe('Inter-Regular');
   expect(style.fontWeight).toBeUndefined();
 });
+
+test.each([[320, 1], [320, 2], [412, 1.3], [412, 2]])(
+  'at %i dp / %s text, both footer actions have their own width without applying the draft during reflow', async (width, fontScale) => {
+    mockWindow = { ...mockWindow, width: 412, fontScale: 1 }; await render();
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'search-actions' }).props.style).flexDirection).toBe('row');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' }).props.onChangeText('Vračar'));
+    mockWindow = { ...mockWindow, width, fontScale };
+    await act(async () => tree.update(panelOf()));
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'search-actions' }).props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'search-show' }).props.style)).toMatchObject({ flex: 0, width: '100%' });
+    expect(apply).not.toHaveBeenCalled(); expect(close).not.toHaveBeenCalled();
+    expect(show().props.label).toBe('Prikaži 1 zadatak');
+    await act(async () => show().props.onPress());
+    expect(lastDraft().query).toBe('Vračar'); expect(close).toHaveBeenCalledTimes(1);
+  },
+);

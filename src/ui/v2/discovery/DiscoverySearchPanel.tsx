@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, saysWorkMode, serbianToday, undatedCount,
@@ -152,6 +152,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const reader = useScreenReader();
   const large = useTextScale() >= 1.3;
+  const { width } = useWindowDimensions();
+  const stackedActions = large || width < 360;
   const counted = readiness === 'ready';
   const others = useMemo(() => mine?.size ? items.filter(item => !mine.has(item.id)) : items, [items, mine]);
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
@@ -262,9 +264,9 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
                 <T variant="bodyStrong" style={[s.rowValue, large && s.rowValueStacked]} numberOfLines={large ? 2 : 1}>{value(step)}</T>
               </Press>)}
           </ScrollView>
-          <View style={s.footer}>
+          <View testID="search-actions" style={[s.footer, stackedActions && s.footerStacked]}>
             <V2Action label={CLEAR_ALL} accessibilityLabel="Obriši sve uslove pretrage" kind="quiet" onPress={clearAll} />
-            <View testID="search-show" accessibilityLiveRegion="polite" style={s.grow}>
+            <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
               <V2Action label={show.label} disabled={show.disabled} onPress={() => { onApply(draft); onClose(); }} style={brandAction} />
             </View>
           </View>
@@ -316,4 +318,8 @@ const s = StyleSheet.create({
   stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'] },
   footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.md,
     paddingBottom: sys.space.md, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
+  // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into
+  // a column of letters. Each action gets the full width; no vertical flex growth may squeeze out the filter cards.
+  footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },
+  showStacked: { flex: 0, width: '100%' },
 });
