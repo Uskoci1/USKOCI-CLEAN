@@ -10,6 +10,10 @@ This is a **source audit and proposed composition order**. Route bodies, relevan
 
 The current `AGENTS.md`, current sections of `USKOCI_MASTER_PLAN_DIZAJNA.md`, `OWNER_DESIGN_DIRECTION_20260922.md` and `UX_NACRT_20260922.md` were used. The current owner direction and latest root-only navigation decision supersede the older blueprint's “bottom bar everywhere” wording. Existing server facts, privacy boundaries, command ownership and recovery are preserved in every proposal.
 
+Subsequent native checkpoint: source `add23b46` / APK `36121421114` now has 38 primary captures and ten extra states.
+See `NATIVE_REVIEW.md` and `RECEIPT.json` for observations and remaining work. The source-only baseline statements
+below are historical scope labels, not a claim that the later native work is still pending.
+
 ## Composition conclusions
 
 The app already has useful structure: its bottom bar is limited to **Početna, Zadaci and Dogovori**; inner screens use Back or a close control; task and offer flows retain explicit reviews; settings have purpose-named sections. The next pass should remove repeated navigation and commands that compete with the current decision, while preserving every necessary state and recovery path.

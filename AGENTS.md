@@ -5,7 +5,10 @@ and `SCREEN_AUDIT.md`. The source inventory covers 40 active destinations and fi
 journey proof. Discovery is search-led with secondary entries in one menu; offers have larger portraits and quieter
 terms; public profile keeps its 96 dp portrait; compact human chat moves full identity/terms into history; AI turns
 no longer repeat the brand mark and idle welcome art is static. Final verification/APK evidence belongs to the R11
-receipt when present. No backend, payment, dependency or real business mutation. Preserve larger implementation batches.
+receipt. Source add23b46: types and 313 suites / 6,083 tests pass; APK 36121421114 is attested/installed. Native review
+covers 38 primary screens and ten extra states on the emulator, including normal/320-dp font-2 docked chat keyboard.
+Read NATIVE_REVIEW.md for scope and open composition findings. No phone acceptance. No backend, payment, dependency
+or real business mutation. Preserve larger implementation batches.
 
 R10 HOME AND DISCOVERY (2026-09-25): app source `0f4d7644`. Read `docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md` and its receipt.
 Home uses an agenda card with unchanged time/person facts; map search, attribution and preview/list heights adapt

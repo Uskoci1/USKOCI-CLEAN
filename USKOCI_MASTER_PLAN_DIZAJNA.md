@@ -25,11 +25,16 @@ R11 continuation: `docs/implementation/design-system/r11-screen-composition-2026
 associated inventory and capture plan separate real routes from inert gallery coverage and unobserved contexts.
 This batch implements the search-led Discovery composition, spacious offers, adaptive human-chat context and quieter
 AI speaker identity. No logo or bottom bar is required on every screen. The R11 report/receipt owns exact checks,
-APK and native scope; a source inventory is not a completed device acceptance pass.
+APK and native scope; a source inventory is not a completed device acceptance pass. Source add23b46 passed types and
+313 suites / 6,083 tests. APK 36121421114 is attested/installed. Native review records 38 of 40 primary destinations
+and ten extra states, including normal/320-dp font-2 docked chat keyboard. Next: Safety identity/confirmation,
+media status width, long forms, group/support chat, and the measured map/filter follow-ups in NATIVE_REVIEW.md.
+Authentication/recovery context and physical-phone acceptance remain separate. Control state is generated locally;
+remote upload to the existing Claude page remains unconfirmed after file-chooser timeouts.
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R10 dated directories under `docs/implementation/design-system/`; R10 is the latest client checkpoint.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R11 dated directories under `docs/implementation/design-system/`; R11 is the latest client checkpoint.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work

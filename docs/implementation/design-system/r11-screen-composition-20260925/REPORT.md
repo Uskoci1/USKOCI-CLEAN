@@ -45,8 +45,13 @@ full-width text and truthful price styling. Focused checks passed. Final combine
 tests**, 147.56 seconds; types clean. The existing Jest worker-teardown warning remains; it is not a native acceptance
 result. Checks used `npx tsc --noEmit -p tsconfig.json` and `npx jest -w 3 --testTimeout=30000`.
 
-APK and native observations are pending at this source checkpoint. The final receipt will name their exact source,
-artifact and scope. No physical phone is currently attached; emulator evidence must not be labeled phone acceptance.
+APK run `36121421114` passed on source `add23b4660304b3346e116fcdeb58150e26d382b`. Both attestations match the
+source/tree/run/APK hash; replacement installation succeeded with existing app data preserved. `RECEIPT.json`
+and `NATIVE_REVIEW.md` record 38 primary screens (32 inert examples, six existing read-only routes) and ten extra
+states. Authentication and recovery still need their own context. Normal and 320 dp/font-2 docked-keyboard checks
+confirm the R11 chat commands remain visible and history scrolls independently. Narrow media-caption, map-camera
+and filter-label follow-ups remain explicit. No physical phone is attached; emulator evidence is not phone
+acceptance. `dev-latest` was not changed.
 
 ## Remaining scope
 
