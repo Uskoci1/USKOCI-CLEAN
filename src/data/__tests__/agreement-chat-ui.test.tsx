@@ -31,18 +31,30 @@ const button = (label: string) => tree.root.findByProps({ accessibilityLabel: la
 const held = (who: string) => tree.root.findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string'
   && node.props.accessibilityLabel.startsWith(`${who}: `))[0];
 const scrollToEnd = jest.fn();
+const scrollTo = jest.fn();
+const frames = new Map<number, FrameRequestCallback>();
+let frameId = 0;
+const scrollEvent = (y: number, height = 600, content = 3000) => ({ nativeEvent: {
+  contentOffset: { y }, layoutMeasurement: { height }, contentSize: { height: content },
+} });
+const flushFrames = async () => act(async () => {
+  const pending = [...frames.values()]; frames.clear(); pending.forEach(callback => callback(0));
+});
 async function render(overrides: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...overrides} />, {
-    createNodeMock: element => element.type === ('ScrollView' as any) ? { scrollToEnd } : null,
+    createNodeMock: element => element.type === ('ScrollView' as any) ? { scrollToEnd, scrollTo } : null,
   }); });
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  frames.clear(); frameId = 0;
+  jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++frameId, callback); return frameId; });
+  jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (id != null) frames.delete(id); });
   state = { phase: 'ready', draft: 'Nova poruka', capturing: false, entries: [], error: null };
   props = { messages: [], loading: false, error: false, writable: true, terminal: false,
     refresh: jest.fn().mockResolvedValue(undefined), refreshWorkspace: jest.fn().mockResolvedValue(undefined), outbox, state };
 });
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 describe('D03 actual message component', () => {
   it('sends one explicit photo-only command and preserves a pending selection instead of silently sending text alone', async () => {
     const attachments = { agreementVersion: 3, assetIds: ['40000000-0000-4000-8000-000000000001'] };
@@ -102,9 +114,11 @@ describe('D03 actual message component', () => {
     await act(async () => scroll.props.onContentSizeChange(300, 3000));
     expect(scrollToEnd).toHaveBeenCalledWith({ animated: false });
     scrollToEnd.mockClear();
+    await act(async () => scroll.props.onScrollBeginDrag(scrollEvent(2400)));
     await act(async () => scroll.props.onScroll({ nativeEvent: {
       contentOffset: { y: 400 }, layoutMeasurement: { height: 600 }, contentSize: { height: 3000 },
     } }));
+    await act(async () => scroll.props.onScrollEndDrag(scrollEvent(400)));
     await act(async () => scroll.props.onContentSizeChange(300, 3200));
     expect(scrollToEnd).not.toHaveBeenCalled();
     const sending: OutboxSnapshot = { ...state, entries: [{ command, state: 'sending', persisted: true, attempt: 1 }] };
@@ -116,6 +130,59 @@ describe('D03 actual message component', () => {
     expect(scrollToEnd).not.toHaveBeenCalled();
     await act(async () => scroll.props.onLayout());
     expect(scrollToEnd).toHaveBeenCalledTimes(1);
+    expect(outbox.sendDraft).not.toHaveBeenCalled();
+    expect(outbox.retry).not.toHaveBeenCalled();
+  });
+  it('keeps following through keyboard geometry events and cancels queued follow when the person reads history', async () => {
+    await render();
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => scroll.props.onContentSizeChange(300, 3000));
+    await flushFrames(); scrollToEnd.mockClear();
+    // Android emits a non-bottom offset while the keyboard and compact context are still laying out.
+    await act(async () => scroll.props.onScroll(scrollEvent(2400, 280, 3350)));
+    await act(async () => scroll.props.onLayout());
+    await act(async () => scroll.props.onContentSizeChange(300, 3350));
+    expect(scrollToEnd).toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Najnovije poruke' })).toHaveLength(0);
+    await act(async () => scroll.props.onScrollBeginDrag(scrollEvent(500, 280, 3350)));
+    await act(async () => scroll.props.onScrollEndDrag(scrollEvent(500, 280, 3350)));
+    scrollToEnd.mockClear(); await flushFrames();
+    await act(async () => scroll.props.onLayout());
+    await act(async () => scroll.props.onContentSizeChange(300, 3500));
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => button('Najnovije poruke').props.onPress());
+    expect(scrollToEnd).toHaveBeenCalled();
+    expect(outbox.sendDraft).not.toHaveBeenCalled();
+  });
+  it('preserves the history message position when context enters and leaves above it', async () => {
+    await render();
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    const context = tree.root.findByProps({ testID: 'agreement-chat-context' });
+    await act(async () => context.props.onLayout({ nativeEvent: { layout: { height: 0 } } }));
+    await act(async () => scroll.props.onScrollBeginDrag(scrollEvent(600)));
+    await act(async () => scroll.props.onScrollEndDrag(scrollEvent(600)));
+    scrollToEnd.mockClear();
+    await act(async () => context.props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 840, animated: false });
+    await act(async () => scroll.props.onScroll(scrollEvent(500, 280, 3240)));
+    await act(async () => context.props.onLayout({ nativeEvent: { layout: { height: 0 } } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 600, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(outbox.sendDraft).not.toHaveBeenCalled();
+  });
+  it('treats accessibility history navigation as intentional without sending or retrying', async () => {
+    await render();
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => scroll.props.onScroll(scrollEvent(2400)));
+    await act(async () => scroll.props.onAccessibilityAction({ nativeEvent: { actionName: 'scrollBackward' } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 1920, animated: false });
+    scrollToEnd.mockClear();
+    await act(async () => scroll.props.onLayout());
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(button('Najnovije poruke')).toBeTruthy();
+    await act(async () => scroll.props.onAccessibilityAction({ nativeEvent: { actionName: 'scrollForward' } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 2400, animated: false });
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Najnovije poruke' })).toHaveLength(0);
     expect(outbox.sendDraft).not.toHaveBeenCalled();
     expect(outbox.retry).not.toHaveBeenCalled();
   });
@@ -143,9 +210,11 @@ describe('D03 actual message component', () => {
     await render({ photos });
     const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
     await act(async () => scroll.props.onContentSizeChange(300, 3000));
+    await act(async () => scroll.props.onScrollBeginDrag(scrollEvent(2700, 300)));
     await act(async () => scroll.props.onScroll({ nativeEvent: {
       contentOffset: { y: 400 }, layoutMeasurement: { height: 300 }, contentSize: { height: 3000 },
     } }));
+    await act(async () => scroll.props.onScrollEndDrag(scrollEvent(400, 300)));
     scrollToEnd.mockClear();
     await act(async () => button('Fotografije uz poruku').props.onPress());
     expect(scroll.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);

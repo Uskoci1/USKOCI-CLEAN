@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, Switch, TextInput, View } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
+import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
 import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { sys, card, floating, inset, field } from '../system/tokens';
+import { sys, card, inset, field } from '../system/tokens';
+import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { V2Action } from '../v2/V2Action';
 import { civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
@@ -18,40 +19,38 @@ const EMPTY='Nije navedeno';
 const list=(values:readonly string[])=>values.length?values.join(' · '):EMPTY;
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
+  const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
   const place = `${profile.location.city || 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
   const team = osoba(profile.teamCapacity);
   const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
-  // One review target: the card gives under the finger, while facts update immediately without their own animation.
-  // The compact face keeps room for the conversation and still exposes the complete review through the same action.
-  return <Press accessibilityRole="button" accessibilityLabel="Pregledaj profil"
-    accessibilityHint="Otvara sve podatke pre završnog čuvanja."
-    accessibilityValue={{text:`${skills}. ${place}, ${profile.location.radiusKm} km. ${team}. ${availability}. ${schedule}.`}}
-    accessibilityState={{disabled}} disabled={disabled} onPress={review} haptic={disabled?'none':'select'} scaleTo={0.99} hitSlop={0}
+  const DisclosureCaret = expanded ? CaretUp : CaretDown;
+  return <View testID="worker-draft-summary"
     style={[s.card,compact&&s.cardCompact]}>
-    <View style={s.previewHead}>
-      <View style={[s.previewIcon,compact&&s.previewIconCompact]}><FactArt kind="tasks" size={28} /></View>
+    <Press testID="worker-draft-disclosure" accessibilityRole="button"
+      accessibilityLabel={expanded ? 'Sakrij detalje radnog profila' : 'Pokaži detalje radnog profila'}
+      accessibilityValue={{text:skills}} accessibilityState={{expanded}}
+      accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
+      onPress={toggle} haptic="select" style={s.previewHead}>
       <View style={[s.grow,s.previewSummary]}>
-        <T variant="cardTitleCompact" numberOfLines={compact?1:2} style={s.skillHeading}>{skills}</T>
-        {compact?<>
-          <T variant="meta" tone="muted" numberOfLines={1}>{place} · {team}</T>
-          <T variant="meta" numberOfLines={1} style={disabled?s.muted:s.reviewLabel}>Pregledaj profil</T>
-        </>:null}
+        <T variant="label" tone="muted">Radni profil</T>
+        <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
       </View>
-      {compact?<ReviewCue disabled={disabled}/>:null}
-    </View>
-    {!compact?<>
-      <View style={s.previewFacts}>
+      <DisclosureCaret size={20} color={sys.color.green}/>
+    </Press>
+    {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
         <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
         <PreviewFact art="users">{`${team} · ${availability}`}</PreviewFact>
-      </View>
-      <View style={s.reviewLink}>
-        <T variant="bodyStrong" style={[s.grow,disabled?s.muted:s.reviewLabel]}>Pregledaj profil</T>
+        <PreviewFact art="clock">{schedule}</PreviewFact>
+      </View>:null}
+      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+        accessibilityHint="Otvara sve podatke pre završnog čuvanja." accessibilityState={{disabled}} disabled={disabled}
+        onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
+        <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
         <ReviewCue disabled={disabled}/>
-      </View>
-    </>:null}
-  </Press>;
+      </Press>
+  </View>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
   return <View style={[s.reviewCue,disabled&&s.reviewCueDisabled]}>
@@ -152,17 +151,15 @@ const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   muted:{color:sys.color.muted},
   grow:{flex:1,minWidth:0},
-  card:{...card,...floating,padding:sys.space.base,gap:sys.space.sm,minHeight:48,
+  card:{...card,paddingHorizontal:sys.space.base,paddingVertical:8,gap:4,minHeight:48,
     backgroundColor:sys.conversation.summary,borderColor:sys.conversation.edge},
-  cardCompact:{padding:sys.space.md,borderRadius:sys.radius.cardCompact},
-  previewHead:{flexDirection:'row',alignItems:'center',gap:sys.space.md},
-  previewIcon:{width:40,height:40,borderRadius:sys.radius.control,backgroundColor:sys.conversation.iconWell,alignItems:'center',justifyContent:'center'},
-  previewIconCompact:{width:36,height:36},
+  cardCompact:{paddingVertical:6,borderRadius:sys.radius.cardCompact},
+  previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
   previewSummary:{gap:sys.space.xs},
   skillHeading:{color:sys.color.green},
   previewFacts:{gap:sys.space.sm},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewLink:{minHeight:28,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
+  reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:sys.space.sm},
   reviewLabel:{color:sys.color.green,fontWeight:'700'},
   reviewCue:{width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.green,alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},

@@ -70,25 +70,23 @@ function attentionOf(item: DogovorProjekcija): Attention | null {
 }
 
 /**
- * The foot of a card that waits for me (round-1 critique B1): the card system's waiting foot, the quiet wash under the
- * card's hairline, an 8 dp orange dot and the words in `warn`, with the one arrow of the card. No orange edge and no
- * orange fill: the screen's one orange fill is not spent once per waiting card.
+ * A real next action follows the accepted facts: an orange dot and verb distinguish it on the white reading surface.
+ * The rating remains its own target; the rule makes its boundary clear without another coloured panel.
  */
 function AttentionFoot({ attention }: { attention: Attention }) {
   return <>
     <WaitingDot />
     <View style={s.footCopy}>
-      <T style={s.footTitle} numberOfLines={2}>{attention.title}</T>
-      <T style={s.footLine} numberOfLines={2}>{attention.line}</T>
+      <T style={s.footTitle}>{attention.title}</T>
+      <T style={s.footLine}>{attention.line}</T>
     </View>
     <ArrowRight size={18} color={sys.color.warn} />
   </>;
 }
 
 /**
- * An open accepted appointment, deliberately distinct from a task advertisement: person and actual state first,
- * then the full accepted term, the work and place; people and accepted total share a wrapping final line. The rail
- * groups accepted facts, not a progress timeline. The body is one press that opens the
+ * An open accepted appointment: work beside the actual person, then full-width accepted time and place;
+ * people and accepted total share a wrapping final line. The body is one press that opens the
  * Dogovor, with no caret: the whole row is the target (B16). When the Dogovor waits for me, its foot says what for;
  * the rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2).
  * Nothing is drawn that the list does not carry: no last message, no rating, no date heading built from the task.
@@ -111,7 +109,7 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
   const tone = item.stanje === 'CANCELLED' ? sys.color.muted : item.stanje === 'AWAITING_REQUESTER' ? sys.color.warn : sys.color.green;
   const dot = item.stanje === 'CANCELLED' ? sys.color.lineStrong : item.stanje === 'AWAITING_REQUESTER' ? sys.color.orange : sys.color.green;
   const role = agreementRole(other);
-  const name = other?.ime ?? 'Druga strana';
+  const name = other?.ime?.trim() || 'Druga strana';
   const term = agreementTerm(item), remote = item.rezim === 'DALJINSKI';
   const place = remote ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
   const amount = item.cena.prikaz, people = agreementPeople(item);
@@ -133,14 +131,15 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
         <View style={s.person}>
           {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
           <View style={s.personCopy}>
-            <T style={s.personName} numberOfLines={2}>{name}</T>
-            {role ? <T variant="meta" tone="muted" numberOfLines={2}>{role}</T> : null}
+            <T style={s.title}>{title}</T>
+            <T variant="note" style={s.personName}>{name}</T>
+            {role ? <T variant="meta" tone="muted">{role}</T> : null}
             {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
               <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
           </View>
         </View>
         <View style={s.appointment}>
-          {/* Accepted schedule leads an appointment. Do not shorten, parse or invent its date. */}
+          {/* Accepted facts keep the full row width. Do not shorten, parse or invent the date. */}
           <View style={s.fact}>
             <View style={s.art}><FactArt kind="calendar" size={20} /></View>
             <View style={s.factCopy}>
@@ -148,7 +147,6 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
               {term.zone ? <T style={s.zone}>{term.zone}</T> : null}
             </View>
           </View>
-          <T style={s.title} numberOfLines={3}>{title}</T>
           <View style={s.fact}>
             <View style={s.art}><FactArt kind={remote ? 'remote' : 'pin'} size={20} /></View>
             <T style={[s.factCopy, s.factText]}>{place}</T>
@@ -260,9 +258,8 @@ export function AgreementCollectionPresentation(props: Props) {
         icon, not a fourth control in the header; the one filter follows only when something waits for me. */}
     <View style={s.controls}>
       <View style={s.tabRow}>
-        {/* The tabs keep their spacing and slide sideways only where they do not fit beside the calendar (320 dp,
-            large text), fading at the edge instead of running under it. */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} fadingEdgeLength={24} style={s.tabs}>
+        {/* Tabs scroll within their own space on narrow/large-text screens; their text keeps full contrast at the edge. */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabs}>
           <Segmented options={sections} value={section} onChange={props.onSection} appearance="underline" style={s.tabTrack} />
         </ScrollView>
         <ChromeIconButton quiet label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />
@@ -293,13 +290,13 @@ const s = StyleSheet.create({
   agreement: { backgroundColor: sys.color.surface },
   separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 20 },
   body: { borderRadius: 0 },
-  main: { paddingVertical: 4, gap: 20 },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  personCopy: { flex: 1, minWidth: 0, gap: 3 },
-  personName: { fontSize: 16, lineHeight: 21, fontWeight: '700', color: sys.color.ink },
+  main: { paddingVertical: 4, gap: 16 },
+  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  personCopy: { flex: 1, minWidth: 0, gap: 4 },
+  personName: { color: sys.color.ink, fontWeight: '500' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0 },
-  title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
-  appointment: { gap: 12, borderLeftWidth: 2, borderLeftColor: sys.color.lineStrong, marginLeft: 27, paddingLeft: 27 },
+  title: { ...sys.type.cardTitle, color: sys.color.ink },
+  appointment: { gap: 10 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   art: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
@@ -307,7 +304,7 @@ const s = StyleSheet.create({
   agreedSummary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 20, rowGap: 8, paddingTop: 4 },
   peopleFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, flexGrow: 1, flexBasis: 104 },
   acceptedPrice: { flexGrow: 1, flexShrink: 1, flexBasis: 120 },
-  // The term is what a Dogovor is about beside the person, so it reads a step stronger than the other facts.
+  // The accepted term remains stronger than the other logistics, below the work and person.
   term: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.green, fontVariant: ['tabular-nums'] },
   zone: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },
   amount: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
@@ -316,10 +313,8 @@ const s = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 8 }, noteText: { flexShrink: 1 },
   problem: { alignSelf: 'flex-start', backgroundColor: sys.color.dangerSoft, borderRadius: sys.radius.badge, paddingHorizontal: 10, paddingVertical: 6 },
   problemText: { color: sys.color.danger, fontWeight: '600' },
-  // Every foot here is a foot that waits for me, so it is the card system's waiting foot (`faceStyles.ownerFoot`: the
-  // quiet wash under one hairline, as Moje prijave and Moji zadaci draw it; verify r4b rd item 7 — it was the white
-  // quiet-link foot, so the same waiting looked different per list), a step taller for its two lines.
-  foot: { ...faceStyles.ownerFoot, minHeight: 52, marginTop: 16, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  foot: { ...faceStyles.ownerFoot, backgroundColor: sys.color.surface, paddingHorizontal: 0,
+    minHeight: 52, marginTop: 12, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   footCopy: { flex: 1, minWidth: 0, gap: 1 },
   footTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
   footLine: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },

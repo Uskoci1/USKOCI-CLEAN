@@ -12,7 +12,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys, floating } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeIllustration } from './HomeIllustration';
@@ -83,30 +83,26 @@ function AttentionRow({ row, onOpen, last = false }: {
 }
 
 /** The projection's time can be exact, flexible or absent; no date is extracted from a display sentence. */
-function AppointmentCard({ row, onOpen, stacked }: {
-  row: HomeRow; onOpen: (target: HomeTarget) => void; stacked: boolean;
+function AppointmentCard({ row, onOpen }: {
+  row: HomeRow; onOpen: (target: HomeTarget) => void;
 }) {
   const appointment = row.appointment;
   return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`}
     accessibilityHint="Otvara Dogovor." haptic="select" scaleTo={0.99} onPress={() => onOpen(row.target)} style={s.appointment}>
-    <View style={[s.appointmentWhen, stacked && s.appointmentWhenStacked]}>
-      <View style={[s.appointmentMarker, stacked && s.appointmentMarkerStacked]}>
-        <View style={s.calendarIcon}><FactArt kind="calendar" size={32} /></View>
-        {stacked ? <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View> : null}
-      </View>
-      <View style={[s.rowCopy, stacked && s.appointmentTimeStacked]}>
-        {appointment?.timeText ? <T variant="heading" style={s.appointmentTime}>{appointment.timeText}</T> : null}
-        {appointment?.roleLabel ? <T variant="note" tone="muted">{appointment.roleLabel}</T> : null}
-      </View>
-      {!stacked ? <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View> : null}
-    </View>
-    <View style={s.appointmentBody}>
+    <View style={s.appointmentHead}>
       <T variant="cardTitle" style={s.appointmentTitle}>{readableTitle(row.title)}</T>
-      {appointment ? appointment.counterpartName ? <View style={s.appointmentPerson}>
-        <FactArt kind="person" size={28} />
-        <T variant="bodyStrong" style={s.rowCopy}>{appointment.counterpartName}</T>
-      </View> : null : <T variant="note" tone="muted">{row.detail}</T>}
+      <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View>
     </View>
+    {appointment ? <>
+      {appointment.timeText ? <View style={s.appointmentWhen}>
+        <FactArt kind="calendar" size={24} />
+        <T variant="note" style={s.appointmentTime}>{appointment.timeText}</T>
+      </View> : null}
+      {appointment.counterpartName || appointment.roleLabel ? <View style={s.appointmentPerson}>
+        {appointment.counterpartName ? <T variant="note" style={s.appointmentName}>{appointment.counterpartName}</T> : null}
+        {appointment.roleLabel ? <T variant="note" tone="muted">{appointment.roleLabel}</T> : null}
+      </View> : null}
+    </> : <T variant="note" tone="muted">{row.detail}</T>}
   </Press>;
 }
 
@@ -233,7 +229,7 @@ export function HomePresentation(p: HomePresentationProps) {
       {/* One next Dogovor, and only when there is one; the rest are in the Dogovori tab. A failed read says so. */}
       {home?.agreements.kind === 'unavailable' ? <Section title="Sledeći Dogovor"><Unavailable what="Dogovori" onRefresh={p.onRefresh} /></Section>
         : next ? <Section title="Sledeći Dogovor">
-          <Appear index={0} animate={agreements.isNew(next.id)}><AppointmentCard row={next} onOpen={p.onOpen} stacked={stacked} /></Appear>
+          <Appear index={0} animate={agreements.isNew(next.id)}><AppointmentCard row={next} onOpen={p.onOpen} /></Appear>
         </Section> : null}
 
       <View style={s.mine}>
@@ -282,7 +278,7 @@ const s = StyleSheet.create({
   attention: { backgroundColor: sys.color.surface },
   section: { marginTop: sys.space.xxl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
-  sectionTitle: { fontSize: 22, lineHeight: 28, letterSpacing: -0.6 },
+  sectionTitle: { ...sys.type.heading, color: sys.color.ink },
   counter: { minWidth: 28, minHeight: 28, paddingHorizontal: sys.space.xs,
     backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   link: { color: sys.color.attentionInk, fontSize: 18, lineHeight: 24, fontWeight: '600', fontVariant: ['tabular-nums'] },
@@ -294,24 +290,16 @@ const s = StyleSheet.create({
   rowDirection: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   attentionDot: { position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
-  calendarIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
-    alignItems: 'center', justifyContent: 'center' },
-  // Home's one elevated object is the appointment; a green leading rule groups the work and the person below its time.
-  appointment: { ...floating, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine,
-    backgroundColor: sys.color.surface, padding: sys.space.base },
-  appointmentWhen: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingBottom: sys.space.base,
-    backgroundColor: sys.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  appointmentWhenStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
-  appointmentMarker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
-  appointmentMarkerStacked: { alignSelf: 'stretch' },
-  appointmentTime: { color: sys.color.green, fontSize: 20, lineHeight: 27, letterSpacing: -0.4 },
-  appointmentDirection: { width: 32, height: 32, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash,
-    alignItems: 'center', justifyContent: 'center' },
-  appointmentTimeStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
-  appointmentBody: { gap: sys.space.md, borderLeftWidth: 3, borderLeftColor: sys.color.green,
-    paddingLeft: sys.space.md, marginTop: sys.space.base, paddingBottom: sys.space.xs },
-  appointmentTitle: { fontSize: 22, lineHeight: 28, letterSpacing: -0.6 },
-  appointmentPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  // One outline identifies the upcoming appointment. Its work, time and person need no nested rails or panels.
+  appointment: { borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine,
+    backgroundColor: sys.color.surface, padding: sys.space.base, gap: sys.space.md },
+  appointmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  appointmentTitle: { flex: 1, minWidth: 0, ...sys.type.cardTitle, color: sys.color.ink },
+  appointmentDirection: { width: 24, height: 28, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  appointmentWhen: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  appointmentTime: { flex: 1, minWidth: 0, color: sys.color.green, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  appointmentPerson: { gap: 2 },
+  appointmentName: { color: sys.color.ink, fontWeight: '600' },
   rowCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // Open navigation rows: the illustrated icons supply color, without a tinted group behind them.
   mine: { marginTop: sys.space.xxl, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line,

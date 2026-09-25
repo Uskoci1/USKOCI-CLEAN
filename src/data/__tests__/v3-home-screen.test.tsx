@@ -89,16 +89,16 @@ it.each([[390, 1], [320, 2]])('keeps the appointment time, role, task and person
   await render();
   const card = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith(title))[0];
   const facts = card.findAll(node => String(node.type) === 'T');
-  expect(facts.map(node => node.props.children)).toEqual([timeText, 'Uskačeš', title, person]);
+  expect(facts.map(node => node.props.children)).toEqual([title, timeText, person, 'Uskačeš']);
   expect(card.props.accessibilityLabel).toBe(`${title}. Uskačeš · ${person} · ${timeText}`);
   expect(card.props.accessibilityHint).toBe('Otvara Dogovor.');
-  // Large text gets the whole card width below the calendar/caret row, with no shortened text or fixed-height ancestor.
-  if (fontScale === 2) expect(StyleSheet.flatten(facts[0].parent?.parent?.props.style).flexDirection).toBe('column');
+  // Work leads the appointment at either size; facts have no shortened text, decorative inset or fixed-height ancestor.
   for (const fact of facts) {
     expect(fact.props.numberOfLines).toBeUndefined(); expect(fact.props.allowFontScaling).not.toBe(false);
     for (let ancestor: ReactTestInstance | null = fact; ancestor && ancestor !== card.parent; ancestor = ancestor.parent) {
       const style = StyleSheet.flatten(ancestor.props.style) ?? {};
       expect(style.height).toBeUndefined(); expect(style.maxHeight).toBeUndefined();
+      expect(style.borderLeftWidth ?? 0).toBe(0);
     }
   }
   expect(text()).not.toContain('2026-09-25');

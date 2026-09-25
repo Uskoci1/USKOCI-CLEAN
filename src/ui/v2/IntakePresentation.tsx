@@ -1,13 +1,13 @@
 import { lazy, Suspense, useState } from 'react';
 import { ActivityIndicator, Keyboard, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight } from 'phosphor-react-native';
+import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
 import { FactArt } from '../system/FactArt';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { Press } from '../Press';
-import { brandAction, cardCompact, floating, sys } from '../system/tokens';
+import { brandAction, cardCompact, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
@@ -17,7 +17,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { CardFact, CardTitle, CardValue, valueSpoken } from './TaskFace';
 import { pointsMissing } from '../../lib/location';
-import { AiConversationShell } from '../aiFirst/AiConversationShell';
+import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import { publicSummary, type Summary } from './draftSummary';
 
@@ -63,10 +63,8 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko selidbe'] as const;
 
 /**
- * The draft the conversation is building, as ONE card that changes in place (owner step 6): the task card's own parts
- * (TaskFace) — the state, the title with its value slot, where, when, how many people — and one quiet line saying what
- * is still missing or that the review is ready. It is one target: the whole card opens the review. What it says is
- * spoken once as its hint, so a screen reader does not stop on each fact.
+ * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
+ * owned editor's guards. Safety and missing information remain visible in either state.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
   editing = false, hiddenMissing = false }: {
@@ -80,41 +78,48 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   hiddenMissing?: boolean;
 }) {
   const large = useTextScale() >= 1.3;
+  const stackValue = large || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
+  const { expanded, toggle } = useAiDraftDisclosure();
   const status = `${editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
   const ready = open && !stillNeeded && !hiddenMissing;
-  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.value ? valueSpoken(summary.value) : null,
-    summary.zone || null, summary.schedule ?? null, summary.people, next, note].filter(Boolean).join(', ');
-  return <Press testID="intake-task-summary" accessibilityRole="button" accessibilityLabel="Otvori sažetak Zadatka"
-    accessibilityHint={`${spoken}. ${editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}`}
-    accessibilityState={{ disabled: !canReview }}
-    disabled={!canReview} onPress={onReview} haptic={canReview ? 'select' : 'none'} scaleTo={0.99}
+  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
+  const DisclosureCaret = expanded ? CaretUp : CaretDown;
+  return <View testID="intake-task-summary"
     style={[s.card, compact && s.cardCompact]}>
-    <View style={s.statusRow}>
-      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="document" size={compact ? 24 : 28} /></View>
-      <View style={[s.dot, busy && s.dotBusy]} />
-      <T variant="label" numberOfLines={1} style={s.status}>{status}</T>
-      {/* The card opens the review; once the review is the next step, its own line carries the one arrow. */}
-      {canReview && !ready ? <CaretRight size={20} weight="bold" color={sys.color.green} /> : null}
-    </View>
-    <View style={large ? s.headStacked : s.head}>
-      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={2}
-        style={[!large && s.titleSide, compact && s.compactTitle, !summary.title && s.titleEmpty]} />
-      {summary.value ? <CardValue value={summary.value} large={large} /> : null}
-    </View>
-    {compact ? null : <>
+    <Press testID="intake-draft-disclosure" accessibilityRole="button"
+      accessibilityLabel={expanded ? 'Sakrij detalje nacrta' : 'Pokaži detalje nacrta'} accessibilityValue={{ text: spoken }}
+      accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru." accessibilityState={{ expanded }}
+      onPress={toggle} haptic="select" style={s.disclosure}>
+      <View style={s.titleSide}>
+        <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy]} />
+          <T variant="label" numberOfLines={1} style={s.status}>{status}</T></View>
+        <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={expanded ? 0 : 2}
+          style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+      </View>
+      <DisclosureCaret size={20} color={sys.color.green} />
+    </Press>
+    {expanded ? <View testID="intake-draft-details" style={s.details}>
       {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={20} />} text={summary.zone} /> : null}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={20} />} text={summary.schedule} lines={2} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={20} />} text={summary.people} /> : null}
-    </>}
-    {/* The safety note stays on the compact card too (large text, a small phone, a pending turn), in two lines there
-        (review r4 ra item 6): it used to live in the options panel, and hiding it on compact lost it for those people. */}
-    {note ? <T variant="note" tone="muted" numberOfLines={compact ? 2 : 3}>{note}</T> : null}
-    {next ? <T variant="note" tone="muted" numberOfLines={compact ? 1 : 2} style={s.next}>{next}</T>
-      : ready && canReview ? <View style={s.ready}><T style={s.readyText} numberOfLines={1}>{reviewLabel}</T>
-        <CaretRight size={16} weight="bold" color={sys.color.green} /></View>
-        : ready ? <T variant="note" tone="muted" numberOfLines={1} style={s.next}>Sve traženo je uneto.</T> : null}
-  </Press>;
+    </View> : null}
+    {note ? <T variant="note" tone="muted">{note}</T> : null}
+    {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
+      : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null}
+    <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
+      {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
+        <CardValue value={summary.value} large />
+      </View> : null}
+      <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
+        accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
+        accessibilityState={{ disabled: !canReview }} disabled={!canReview}
+        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
+        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
+        <CaretRight size={18} color={canReview ? sys.color.green : sys.color.muted} />
+      </Press>
+    </View>
+  </View>;
 }
 
 /**
@@ -218,22 +223,26 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.
-  card: { ...cardCompact, ...floating, gap: 8, backgroundColor: sys.conversation.summary, borderColor: sys.conversation.edge },
-  cardCompact: { paddingVertical: 12, gap: 4 },
+  card: { ...cardCompact, paddingVertical: 8, gap: 4, backgroundColor: sys.conversation.summary, borderColor: sys.conversation.edge },
+  cardCompact: { paddingVertical: 6 },
+  disclosure: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  details: { gap: 8, paddingTop: 8, paddingBottom: 4 },
+  reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  reviewRowLarge: { flexDirection: 'column', alignItems: 'stretch', gap: 0 },
+  value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+  valueStacked: { width: '100%' },
+  reviewAction: { minHeight: 48, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6 },
   compactTitle: { ...sys.type.cardTitleCompact },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
   // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.
   dotBusy: { backgroundColor: sys.color.orange },
   status: { flex: 1, color: sys.color.muted, letterSpacing: 0.3 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  headStacked: { gap: 4 },
-  titleSide: { flex: 1, minWidth: 0 },
+  titleSide: { flex: 1, minWidth: 0, gap: 4 },
   titleEmpty: { color: sys.color.muted },
   next: { marginTop: 2 },
-  ready: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
-  readyText: { ...sys.type.note, fontWeight: '600', color: sys.color.green },
+  readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.green },
   unavailable: { flex: 1, paddingHorizontal: sys.space.xl, justifyContent: 'center' },
   loading: { gap: 16, alignItems: 'center' },
   unavailableMark: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },

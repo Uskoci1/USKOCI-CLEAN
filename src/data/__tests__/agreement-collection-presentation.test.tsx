@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { DogovorProjekcija } from '../../contracts/projections';
 jest.mock('react-native', () => {
@@ -91,6 +92,27 @@ test('reuses full accepted amount, precise interval and coverage, without exposi
   expect(text).toContain('ukupno');
   expect(text).toContain('Na daljinu'); expect(text).not.toMatch(/PRIVATE_|REMOTE_MUST_HIDE_LOCATION/);
   await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
+});
+
+test('leads with the full work title beside the person, then gives accepted facts the row width', async () => {
+  const title = 'Popravka police u dnevnoj sobi i postavljanje velikog ogledala';
+  rows = [{ ...agreement('work', 'CONFIRMED'), naslov: title }];
+  await render();
+  const body = card(title);
+  const words = body.findAllByType('T' as React.ElementType);
+  const heading = words.find(node => node.props.children === title)!;
+  expect(heading.parent!.findAllByType('T' as React.ElementType).map(node => node.props.children))
+    .toEqual([title, 'Druga osoba', 'Uskače na tvoj zadatak']);
+  expect(heading.props.numberOfLines).toBeUndefined();
+  const personRow = heading.parent!.parent!;
+  expect(personRow.findAll(node => typeof node.type !== 'string' && node.props.initials === 'DO' && node.props.size === 56)).toHaveLength(1);
+  const term = words.find(node => node.props.children === rows[0].vremeTekst)!;
+  for (let ancestor = term.parent; ancestor && ancestor !== body; ancestor = ancestor.parent) {
+    const style = StyleSheet.flatten(ancestor.props.style) ?? {};
+    expect(style.borderLeftWidth ?? 0).toBe(0);
+    expect(style.marginLeft ?? 0).toBe(0);
+    expect(style.paddingLeft ?? 0).toBe(0);
+  }
 });
 test.each(['loading', 'error'])('%s hides stale private rows and error retry uses actual callback', async state => {
   loading = state === 'loading'; error = state === 'error'; await render(); expect(titles()).toEqual([]);
@@ -206,15 +228,13 @@ describe('the rating strip is a press of its own', () => {
     // Only a Dogovor that waits for my rating has the strip.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao plain' })).toHaveLength(0);
   });
-  test('it is drawn on the waiting foot\'s wash under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
+  test('it is drawn on white under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
     const { sys } = require('../../ui/system/tokens');
     await act(async () => { tree = create(<Rated />); });
     const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
-    // Verify r4b rd item 7 (was: the white quiet-link foot, `faceStyles.footLink`, after review r4 rd item 7). What waits
-    // for me is the card system's waiting foot (`faceStyles.ownerFoot`), on the quiet wash as Moje prijave and Moji
-    // zadaci draw it, so the same waiting looks the same in every list.
+    // The rule separates the independent target. Colour belongs to the actual next action, not a tinted panel.
     expect(flat(strip.props.style)).toMatchObject({ borderTopWidth: 1, borderTopColor: sys.color.line, minHeight: 52 });
-    expect(flat(strip.props.style).backgroundColor).toBe(sys.color.wash);
+    expect(flat(strip.props.style).backgroundColor).toBe(sys.color.surface);
     const dots = strip.findAll(node => typeof node.type === 'string' && flat(node.props.style).backgroundColor === sys.color.orange);
     expect(dots).toHaveLength(1); expect(flat(dots[0].props.style)).toMatchObject({ width: 8, height: 8 });
     const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Oceni saradnju'))!;
@@ -244,6 +264,7 @@ test('the header is profile, mark and bell only, and the calendar ends the tab r
   const scroller = tree.root.findByType(Segmented).parent!;
   expect(scroller.type).toBe('ScrollView');
   expect(scroller.props.horizontal).toBe(true);
+  expect(scroller.props.fadingEdgeLength).toBeUndefined();
   const tabRow = scroller.parent!;
   const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Kalendar obaveza');
   expect(entry).toHaveLength(1);

@@ -313,9 +313,25 @@ test('at large text place and condition labels can wrap, and the chosen circle n
   // 320 dp, less the panel's and the card's side paddings, plus the grid's bleed: 294 across, 42 a day.
   await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 294, height: 300 } } }));
   await act(async () => dayCell(26).props.onPress());
-  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 40, height: 40 });
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 40, height: 40, borderRadius: 20 });
   await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 266, height: 300 } } }));
-  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 36, height: 36 });
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 36, height: 36, borderRadius: 18 });
+});
+
+test('the 361dp phone gives the people label its own row without changing the draft or footer behavior', async () => {
+  mockWindow = { ...mockWindow, width: 411, fontScale: 1 }; await render();
+  const layout = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'search-people-layout' }).props.style);
+  expect(layout().flexDirection).toBe('row');
+  await tap('Povećaj broj osoba');
+  mockWindow = { ...mockWindow, width: 361, fontScale: 1.15 };
+  await act(async () => tree.update(panelOf()));
+  expect(layout()).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
+  expect(StyleSheet.flatten(byLabel('Povećaj broj osoba')[0].parent!.props.style).width).toBe('100%');
+  expect(texts()).toContain('2 osobe');
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'search-actions' }).props.style).flexDirection).toBe('row');
+  expect(apply).not.toHaveBeenCalled(); expect(close).not.toHaveBeenCalled();
+  await act(async () => show().props.onPress());
+  expect(lastDraft().places).toBe(2); expect(close).toHaveBeenCalledTimes(1);
 });
 
 test('the clear-text button and the suggestions take no touch beyond themselves, and the field is the system\'s one field', async () => {

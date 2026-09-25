@@ -90,7 +90,9 @@ function Day({ day, today, from, to, now, dot, onDay }: {
   const chosen = start || end || inside;
   // The band runs under the whole range: from the start's middle to the end's middle.
   const band = inside ? s.bandFull : start && to && to > day ? s.bandRight : end && from && from < day ? s.bandLeft : null;
-  const round = { width: dot, height: dot };
+  // Use the measured radius for this actual circle. Android painted square range ends with the oversized capsule
+  // radius; the circle stays inside the same full-height touch cell and the range band still joins at its centre.
+  const round = { width: dot, height: dot, borderRadius: dot / 2 };
   return <Press accessibilityRole="button" accessibilityLabel={`${dayHeading(day, now)}${day === today ? ', danas' : ''}${past ? ', prošao dan' : ''}`}
     accessibilityState={{ disabled: past, selected: chosen }} disabled={past} haptic={past ? 'none' : 'select'} scaleTo={1} hitSlop={0}
     onPress={() => onDay(day)} style={s.cell}>

@@ -3,14 +3,14 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '../marketplaceView';
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
-const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn();
+const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn(), mockQuery = jest.fn();
 jest.mock('@maplibre/maplibre-react-native', () => {
   const React = require('react');
   const host = (name: string, handle: () => object) => React.forwardRef(({ children, ...props }: any, ref: any) => {
     React.useImperativeHandle(ref, handle); return React.createElement(name, props, children);
   });
   return { Layer: 'Layer', Images: 'Images', ViewAnnotation: 'Annotation',
-    Map: host('NativeMap', () => ({ queryRenderedFeatures: async () => mockRendered, project: mockProject, unproject: mockUnproject })),
+    Map: host('NativeMap', () => ({ queryRenderedFeatures: mockQuery, project: mockProject, unproject: mockUnproject })),
     Camera: host('Camera', () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom, fitBounds: mockFit })),
     GeoJSONSource: host('Source', () => ({ getClusterExpansionZoom: mockExpand, getClusterLeaves: async () => mockLeaves })) };
 });
@@ -63,6 +63,7 @@ beforeEach(() => {
   jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {});
   rows = base(); selectedId = null; selectedPlace = null; extra = {}; mockFocused = true; mockReduced = false;
   mockRendered = ['money', 'offer', 'stack-1', 'stack-2', 'urgent', 'noprice', 'money'].map(feature); mockLeaves = [];
+  mockQuery.mockReset().mockImplementation(async () => mockRendered);
   for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockProject, mockUnproject, mockFit, select, selectPlace, setViewport, search, list, clear, fitted]) fn.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
@@ -170,6 +171,23 @@ test('selecting a public pin from a regional view frames its neighborhood withou
   expect(mockEase).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
 });
 
+test('the native fallback survives failed rich-pin discovery and fits under a successful pill without a second ring', async () => {
+  mockQuery.mockRejectedValueOnce(new Error('native query failed'));
+  await render(); await ready();
+  expect(annotations()).toHaveLength(0);
+  const fallback = () => tree.root.findByProps({ id: 'need-pins' }).props;
+  expect(fallback().filter).toEqual(['!', ['has', 'point_count']]);
+  expect(tree.root.findByProps({ id: 'need-pin-marks' }).props.layout['icon-image']).toBe('uskoci-task');
+  await act(async () => { jest.advanceTimersByTime(300); });
+  expect(annotations()).toHaveLength(5);
+  const outerDiameter = 2 * (fallback().paint['circle-radius'] + fallback().paint['circle-stroke-width']);
+  const pillHeight = flat(tree.root.findAllByProps({ testID: 'price-pill' })[0]).minHeight;
+  expect(outerDiameter).toBeLessThan(pillHeight);
+  // No optimistic hide filter: every unclustered source point remains drawn if its annotation is missing or fails.
+  expect(fallback().filter).toEqual(['!', ['has', 'point_count']]);
+  expect(source().props.hitbox).toEqual({ top: 24, right: 24, bottom: 24, left: 24 });
+});
+
 test.each(['saved', 'native', 'zoom-tap'])('a newly selected pin preserves a closer %s zoom', async kind => {
   extra = { viewport: { center: [19.83, 45.25], zoom: kind === 'saved' ? 15 : 6, bounds: [19.8, 45.2, 19.9, 45.3] } };
   await render(); await measureFrame(); await ready();
@@ -234,13 +252,28 @@ test('very large overlay measurements leave a usable initial fit window instead 
   expect(search).not.toHaveBeenCalled();
 });
 
-test('saved viewport survives delayed layout and never receives an automatic initial fit', async () => {
+test('saved visible bounds survive delayed layout and never receive an automatic initial task fit', async () => {
   const viewport = { center: [19.83, 45.25], zoom: 14, bounds: [19.8, 45.2, 19.9, 45.3] };
   extra = { viewport, cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
   await render(); await measureFrame(); await ready();
-  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: viewport.center, zoom: 14 });
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
   extra = { ...extra, cameraLayoutReady: true, fitBottom: 467 }; await update();
   expect(mockFit).not.toHaveBeenCalled();
+});
+
+test('returning to a narrow saved view restores its observed bounds once, not its padded target or all task points', async () => {
+  const viewport = { center: [20.46, 44.81], zoom: 15, bounds: [20.455, 44.795, 20.465, 44.813] };
+  selectedId = 'money'; extra = { viewport, cameraLayoutReady: false, toolsBottom: 160, focusBottom: 340 };
+  await render(); await measureFrame(620); await ready();
+  const initial = tree.root.findByType('Camera' as React.ElementType).props.initialViewState;
+  expect(initial).toEqual({ bounds: viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
+  expect(initial).not.toHaveProperty('center');
+  extra = { ...extra, cameraLayoutReady: true, viewport: { ...viewport, bounds: [20.45, 44.79, 20.47, 44.82] } };
+  await update(); await measureFrame(640);
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toBe(initial);
+  expect(mockFit).not.toHaveBeenCalled(); expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+  expect(search).not.toHaveBeenCalled();
+  expect(source().props.data.features[0].geometry.coordinates).toEqual([20.46, 44.81]);
 });
 
 test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before layout wins over the pending first fit', async intent => {

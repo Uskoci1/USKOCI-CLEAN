@@ -20,12 +20,33 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
-Latest checkpoint: the owner resumed implementation after R15 diagnosis. R16 implements the first coherent
+R17 is the current authorized client-source batch after R16. Read
+`docs/implementation/design-system/r17-conversation-appointments-20260925/REPORT.md` for scope and boundaries.
+Home's next appointment and the Agreement list lead with the work, supporting person/role and actual accepted
+terms; the Agreement keeps its existing portrait and independent rating target. Home keeps both illustrated starts,
+all four server-owned attention reasons, partial reads and legacy detail. No missing photo, price or location is invented.
+
+Task and worker AI drafts now have local disclosure separate from guarded full review, quieter assistant groups
+and one composer edge. Safety, missing-map guidance, category masking, frozen review and unknown-outcome recovery
+remain. Human/AI chat source separates follow-latest intent from keyboard geometry and compensates history context
+changes. Measured underline motion preserves immediate selection and reduced motion. Narrow people filters,
+calendar endpoints, map fallback pins and remembered map bounds are refined within the existing contracts.
+
+Combined types and 316 suites / 6,151 tests pass; the R17 build and native review are pending at this checkpoint.
+Earlier APK receipts below belong only to their dated sources. R14-N01 and R16-N02/N03 await exact-build native verification;
+R16-N01's post-install read failure has no established cause or verified fix. No server, Edge, DEV, payment,
+dependency, provider/microphone or real business command change belongs to R17. Provider quality, spoken AI,
+incoming-chat delivery/paging/read boundaries, Home history-rating reads, server-side Discovery filtering,
+physical-phone whole journeys, iOS and release gates remain separate open work.
+
+### Earlier checkpoint evidence (historical)
+
+The owner resumed implementation after R15 diagnosis. R16 implements the first coherent
 Discovery/filter/task-card/task-detail batch. Read `docs/implementation/design-system/r16-discovery-work-brief-20260925/REPORT.md`.
 Types and 315 suites / 6,130 tests pass. Source b4ba8a8d is installed on the owner's physical phone (run 36162844547)
 and emulator (36162848417). See its exact APK/native receipts for device scope; this is not owner visual acceptance.
-The next batch is Home/Agreement/conversation composition, with the observed narrow filter and map-return refinements.
-Read the R16 NEXT_BATCH.md; white reading surfaces and ordinary strong type remain.
+R16 queued Home/Agreement/conversation composition and the observed narrow filter/map-return refinements;
+R17's source scope above now continues that NEXT_BATCH.md. White reading surfaces and ordinary strong type remain.
 R14-N01, functional findings, physical-phone whole-journey acceptance and release gates remain open.
 
 R15 follows the owner's explicit distinction between work to choose and work already agreed. See
@@ -80,12 +101,14 @@ remote upload to the existing Claude page remains unconfirmed after file-chooser
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R15 dated directories under `docs/implementation/design-system/`; R15 distinguishes tasks and accepted Agreements over the R12–R14 foundation.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R17 dated directories under `docs/implementation/design-system/`;
+only executed evidence in each batch applies to that batch. R16/R17 continue the work/accepted-appointment distinction
+over the white R12–R14 foundation.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work
 
-#### AI conversations — owner-prioritized batch, 25 September (R8)
+#### AI conversations — historical R8 foundation, refined in R17 source
 
 Task conversation: describe a job, correct its draft, then review before publication. Worker conversation: describe
 skills, equipment, team and availability, then review the saved profile. Both keep the existing server commands,
@@ -158,15 +181,15 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 | Surface / user's job | What is implemented | Current decision and next acceptance |
 | --- | --- | --- |
-| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. The spoken attention heading/count is already grouped. | R10 composes the next Agreement around its existing time phrase, task and person. No date parsing; attention and own-list counts unchanged. Exact-build native acceptance is in the R10 receipt; N+1 rating reads remain separate functional work. |
+| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. The spoken attention heading/count is already grouped. | R17 source quiets the existing appointment around work, time and person. No date parsing or invented fields; attention, partial reads and own-list counts remain. R17 native verification is pending; N+1 rating reads remain separate functional work. |
 | Discovery: find a suitable nearby task | Shared map/list, explicit-tap Nearby with one ephemeral foreground observation, clustering, shared-point groups, draft filters and honest result counts. Illustrated preview facts, one set of map credits and 48 dp quick filters are implemented. | R10 separates large-text search from tools, reserves the measured credit rail and caps selected/list previews without losing scrolling. Oversized filter headers join the registered list. GPS success, DN-01 and query scaling remain separate. |
 | Pins and map color | USKOČI logo + truthful price capsules, native logo fallback beyond the 40-label cap, selected green capsule, count clusters and rounded public points. Shared warmer map palette and Serbian Latin labels. | Existing branded palette/pins remain. R10 gives attribution its own measured rail independent of zoom visibility. Native fallback beyond 40 rich markers and physical-device fluidity remain unobserved; exact-build layout evidence is in the R10 receipt. |
 | Filters and changing views | Draft-before-Apply search, place/date/price/work-mode/free-place choices, chip removal, clear-all and unavailable counts. | Existing records revealed by a changed filter should appear immediately, not replay arrival motion. A genuinely arriving record may animate once. Sorting, saved-search alerts and server pagination remain separate verified-contract work. |
 | Task cards and detail | Shared truthful value slots, FactArt, requirements, availability, publisher; photos only inside task detail. | List head stays compact; the pin preview stacks the same title/value head to reserve its close control and long title. Place/time use separate illustrated rows. Keep exact address protected and missing price in ordinary text. |
 | Location forms | Separate public place/private address, point validation and command recovery. | Save itself is the confirmation (`confirmed: true`); the redundant checkbox is removed. Pending-point and unknown-outcome guards remain. Verify onsite, remote and worker area visually. |
 | Offers and candidate choice | Price/people/note, review before send, candidate comparison and explicit acceptance. | Retain approved acceptance wording and pricing semantics. Inter must also reach native amount/input fields with the correct bold face. Current-build real offer/selection acceptance is still owed. |
-| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. Current-location sharing route/entries retired; server records preserved. | Exact task-location disclosure and telephone consent remain. Keyboard, long thread, reconnect and terminal-media recovery require explicit acceptance. |
-| AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. Independent typed-draft ownership, safe exit from a pending worker interview and one availability scroll are implemented. | Current-build real provider, microphone and full journey acceptance remain separate. See AI table below. |
+| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. R17 source places work beside the actual portrait and gives accepted facts full width. Current-location sharing route/entries remain retired; server records preserved. | Independent rating, task-location disclosure and telephone consent remain. R17 keyboard/history changes need exact-build native acceptance; reconnect and terminal-media recovery remain explicit checks. |
+| AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. R17 adds local draft disclosure separate from review authority and quieter turns; existing typed-draft ownership and recovery remain. | R17 source/native verification and current-build real provider, microphone and full journey acceptance are distinct. See AI table below. |
 | Profile, calendar, support/settings | Native screens and corresponding galleries already exist. | Apply the shared Inter face to input controls, then verify actual focused inputs, fixed footers, large text and all loading/error states. Do not infer whole-flow completion from galleries. |
 | Motion and accessibility | Shared durations, press feedback, live reduced-motion store and root gating, sheet springs, bounded map annotations, interrupted-bell reset, contextual spoken counts and no false arrival replay after filters. R8 adds once-per-answer announcements and silent stream-to-record replacement. | Normal motion stays enabled. Verify final native transitions and actual screen-reader delivery. |
 
@@ -183,12 +206,14 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 ### Finish order after this client package
 
-R8–R14 have source, passing automated checks and bounded native observations. Their receipts identify each APK
+R8–R16 have source, passing automated checks and bounded native observations. Their receipts identify each APK
 and distinguish inert galleries from existing DEV reads. No whole-flow or phone acceptance follows from these.
+R17 is the current source batch; combined checks pass and exact-build native acceptance is pending at this checkpoint.
 
 1. **Human chat continuity:** R14's full-width pending-photo recovery and reachable commands are observed at
-   normal and 320 dp/font-2 docked keyboard settings. Next fix R14-N01's latest-message anchor across keyboard
-   layout changes, then review group/support conversations and long histories. Preserve accepted terms, media
+   normal and 320 dp/font-2 docked keyboard settings. R17 source addresses R14-N01's latest-message anchor across
+   keyboard layout changes; verify that behavior and history preservation on the exact build before closing it,
+   then review group/support conversations and long histories. Preserve accepted terms, media
    recovery and terminal read-only behavior.
 2. **Safety and long forms:** carry forward R11-N01's person/task context and confirmation, R11-N05's form
    composition, and native authentication/recovery context. Preserve target IDs, exact commands and uncertainty
@@ -199,7 +224,7 @@ and distinguish inert galleries from existing DEV reads. No whole-flow or phone 
 4. **Functional and release tracks:** keep server/read-model, pagination, human-chat read boundaries, AI provider
    and voice, push, legal/privacy and store work separate from visual completion. Follow the control rows below.
 
-Home's agenda and responsive Discovery/navigation are now implemented in R10. The native filter-footer defect
+Home's agenda and responsive Discovery/navigation were implemented in R10 and refined in R13/R16/R17. The R10 native filter-footer defect
 was corrected in `0f4d7644` and its own APK was rechecked. These are not still unstarted design tasks.
 
 Release and acceptance work remains:

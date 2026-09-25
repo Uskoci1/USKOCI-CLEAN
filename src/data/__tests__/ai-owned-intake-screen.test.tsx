@@ -597,7 +597,7 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).toContain('Kada ti treba pomoć?');
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
-  const card = tree.root.findByProps({ testID: 'intake-task-summary' });
+  const card = tree.root.findByProps({ testID: 'intake-draft-review' });
   await act(async () => card.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
@@ -623,11 +623,14 @@ it('keeps private address and resolved coordinates out of the compact live card 
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
   expect(text()).toContain('Unos ormara'); expect(text()).toContain('Nacrt');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
-  const card = tree.root.findByProps({ testID: 'intake-task-summary' });
-  expect(card.props.accessibilityLabel).toBe('Otvori sažetak Zadatka');
-  // The review destination moved into the options panel with the other commands; there
-  // is still exactly one of it.
-  await options(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj zadatak' })).toHaveLength(1);
+  const disclosure = tree.root.findByProps({ testID: 'intake-draft-disclosure' });
+  await act(async () => disclosure.props.onPress());
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
+  expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
+  const card = tree.root.findByProps({ testID: 'intake-draft-review' });
+  expect(card.props.accessibilityLabel).toBe('Pregledaj zadatak');
+  await options(); expect(menuItems('Pregledaj zadatak')).toHaveLength(1);
   await closeMenu();
   await act(async () => { card.props.onPress(); card.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
@@ -666,15 +669,15 @@ it('names the first few missing things and counts the rest instead of a wall tha
 });
 
 // Review r4 ra item 4: while only the hidden category is missing, the card names nothing as missing and does not call
-// the draft ready either; the card itself still opens the review.
+// the draft ready either; the separate review remains available for incomplete facts.
 it('never names a category and does not call the draft ready while only the category is missing', async () => {
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
   const hidden = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
   hidden.review.missingRequired = ['need.category'];
   mockLoad.mockResolvedValue(hidden); await resume();
   expect(text()).not.toContain('Kategorija'); expect(text()).not.toContain('Još treba');
-  expect(text()).not.toContain('Pregledaj zadatak'); expect(text()).not.toContain('Sve traženo je uneto.');
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).props.disabled).toBe(false);
+  expect(text()).not.toContain('Sve traženo je uneto.');
+  expect(tree.root.findByProps({ testID: 'intake-draft-review' }).props.disabled).toBe(false);
   await act(async () => tree.unmount());
   const done = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
   mockLoad.mockResolvedValue(done); await resume();
@@ -688,22 +691,29 @@ it('the card of a task being changed says "Izmena" and names the review the way 
   mockLoad.mockResolvedValue(bound); await resume();
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).props.accessibilityHint).toMatch(/Otvara pregled izmena\.$/);
+  expect(tree.root.findByProps({ testID: 'intake-draft-review' }).props.accessibilityHint).toMatch(/Otvara pregled izmena\.$/);
 });
 
 // Review r4 ra item 6: the REVIEW/CLARIFY note describes the draft, so it stays on the card when the card is compact.
-it('keeps the safety note on the compact card, in two lines', async () => {
+it('keeps the complete safety note visible on the collapsed card during a pending turn', async () => {
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
   const flagged = conversation({ messages: said, safety: 'REVIEW', facts: [publicFact('need.title', 'Prenos ormara')] });
   mockLoad.mockResolvedValue(flagged); await resume();
   const card = () => tree.root.findByProps({ testID: 'intake-task-summary' });
   const noteOf = () => card().findAll(node => node.type === ('T' as React.ElementType) && node.props.variant === 'note' && node.props.tone === 'muted'
     && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.');
-  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBe(3);
+  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
   // A sent message makes the card compact (the shell's rule while a turn is pending).
   await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());
   expect(card().props.style).toEqual(expect.arrayContaining([expect.objectContaining({ gap: 4 })]));
-  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBe(2);
+  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
+  const disclosure = tree.root.findByProps({ testID: 'intake-draft-disclosure' });
+  await act(async () => disclosure.props.onPress());
+  expect(disclosure.props.accessibilityState.expanded).toBe(true);
+  const review = tree.root.findByProps({ testID: 'intake-draft-review' });
+  expect(review.props.disabled).toBe(true);
+  await act(async () => review.props.onPress());
+  expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
 it('offers the owned photo route and options without automatic abandonment', async () => {
@@ -776,17 +786,23 @@ it('shows actual typed fixed dates and times in Serbian time, in the app’s one
     publicFact('need.starts_at', '2026-09-10T16:00:00Z'), publicFact('need.ends_at', '2026-09-10T17:00:00Z')] }));
   // Review r4 ra item 8: the card writes the window as every agreed term is written (src/lib/vreme.ts), read in Serbian
   // time and named so on a phone set elsewhere (the suite runs in UTC). It said "(vreme u Beogradu)" in a format of its own.
-  await resume(); expect(text()).toContain('10. sep · 18:00–19:00 (po vremenu u Srbiji)');
+  await resume();
+  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(text()).toContain('10. sep · 18:00–19:00 (po vremenu u Srbiji)');
   expect(text()).not.toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
 it('omits an incomplete fixed interval without inventing an end time', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z')] }));
-  await render(); expect(text()).not.toContain('18:00'); expect(text()).not.toContain('Tačan termin');
+  await resume();
+  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(text()).not.toContain('18:00'); expect(text()).not.toContain('Tačan termin');
 });
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.people_needed', count)] }));
-  await resume(); expect(text()).toContain(label as string);
+  await resume();
+  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(text()).toContain(label as string);
 });
 
 // Owner-requested pre-HTML stabilization: terminal conversation is not a dead end.

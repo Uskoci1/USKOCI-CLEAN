@@ -87,10 +87,13 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
   const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
-  // Restore a remembered camera verbatim. A new map gets only an unoccluded provisional bounds view: the screen's
+  // Restore the actual visible bounds. Native camera `center` is the padded target after a pin/fit move; restoring
+  // that target without its old padding moves the visible geography behind the sheet. Bounds already include that
+  // offset, and need no new fit to the task dataset. This constructor runs only when this map session mounts.
+  // A new map gets only an unoccluded provisional bounds view: the screen's
   // first render still holds whole-window sheet estimates, so those must never be frozen into the native camera.
   const initialFitPending = useRef(!props.viewport && data.features.length > 0);
-  const initial = useRef(props.viewport ? { center: props.viewport.center, zoom: props.viewport.zoom }
+  const initial = useRef(props.viewport ? { bounds: props.viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } }
     : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 24, right: 50, bottom: 24, left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
@@ -339,12 +342,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={60} clusterMaxZoom={16}
         hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
-        {/* Rich pills cover these native logo markers. The same mark remains beyond the rich-label budget. */}
+        {/* The SDK exposes no annotation-rendered/error event: query/layout success cannot prove a bitmap exists.
+            Keep the fallback for failed/absent pills and beyond the label budget. Its 36dp outer disk fits wholly
+            inside a rich pill's 40dp solid body, so the fallback never leaves a second ring around a successful pill. */}
         <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 20, 'circle-color': sys.color.surface, 'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.green }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': 22, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
+          paint={{ 'circle-radius': 16, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
             'circle-stroke-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green] }} />
         <Layer id="need-pin-marks" type="symbol" filter={['!', ['has', 'point_count']]}
           layout={{ 'icon-image': 'uskoci-task', 'icon-size': 30 / 640, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />

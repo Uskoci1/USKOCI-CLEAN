@@ -142,6 +142,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   const large = useTextScale() >= 1.3;
   const { width } = useWindowDimensions();
   const stackedActions = large || width < 360;
+  // The people label needs more room than the footer: at 361dp / 1.15 it had only ~81dp beside the stepper.
+  const stackedPeople = large || width < 380;
   const counted = readiness === 'ready';
   const others = useMemo(() => mine?.size ? items.filter(item => !mine.has(item.id)) : items, [items, mine]);
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
@@ -264,12 +266,12 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
               <Choice label="Kako se radi" options={WHERE} value={draft.where} onChange={where => edit({ where })} />
             </View> : null}
             <View testID="search-step-koliko" style={s.section}>
-              <View style={[s.peopleRow, stackedActions && s.peopleStacked]}>
-                <View style={[s.sectionHeading, !stackedActions && s.grow]}>
+              <View testID="search-people-layout" style={[s.peopleRow, stackedPeople && s.peopleStacked]}>
+                <View style={[s.sectionHeading, !stackedPeople && s.grow]}>
                   <FactArt kind="users" size={24} />
                   <T variant="bodyStrong" accessibilityRole="header" style={s.grow}>Koliko vas dolazi</T>
                 </View>
-                <Stepper value={draft.places} expanded={stackedActions} onChange={places => edit({ places })} />
+                <Stepper value={draft.places} expanded={stackedPeople} onChange={places => edit({ places })} />
               </View>
               <T variant="note" tone="muted">Dovoljno slobodnih mesta za sve vas.</T>
             </View>

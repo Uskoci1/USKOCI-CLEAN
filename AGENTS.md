@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+R17 CONVERSATION / APPOINTMENTS (2026-09-25): owner resumed the second composition batch. Read
+`docs/implementation/design-system/r17-conversation-appointments-20260925/REPORT.md`.
+Home and Agreements lead with actual work and terms. AI drafts disclose locally, separately from guarded review;
+assistant groups are quieter. Human/AI history preserve follow intent through keyboard geometry and compensate
+context changes while reading history. Narrow filters and map return/fallback geometry are refined.
+Types and 316 suites / 6151 tests pass. Exact APK/native acceptance is recorded separately, not inferred here.
+No backend, provider, payment, microphone or dependency change. Existing functional and release gates remain open.
+
 R16 DISCOVERY / WORK BRIEF (2026-09-25): owner resumed after visual diagnosis. Read
 `docs/implementation/design-system/r16-discovery-work-brief-20260925/REPORT.md`.
 Search/tools share one surface; filters are open groups; task cards and detail lead with work and actual terms.

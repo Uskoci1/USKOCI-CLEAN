@@ -195,7 +195,7 @@ test('the region the camera settles into on first load arms the area control wit
 });
 test('bounded native load failure rejects late ready; explicit retry remounts and saved viewport survives', async () => {
  viewport = region as PublicViewport; await render(); const late = native().props.onDidFinishLoadingMap;
- expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: [0, 0], zoom: 4 });
+ expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
  await act(async () => jest.advanceTimersByTime(15_001)); await act(async () => late()); expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
  // The live map is back: its controls (the zoom capsule since critique B11) are on screen again.
  await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' }).props.onPress()); await ready(); expect(zoomButton('Uvećaj mapu')).toBeTruthy();
@@ -270,7 +270,7 @@ test('Nearby then manual pan then refresh/remount restores the pan without repla
   await act(async () => native().props.onRegionDidChange(moved(elsewhere)));
   visible = false; await act(async () => tree.update(<NearbyScreen />));
   visible = true; await act(async () => tree.update(<NearbyScreen />));
-  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: elsewhere.center, zoom: elsewhere.zoom });
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: elsewhere.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
   await ready(); expect(mockEase).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
 });
 test('complete map credits replace native attribution with real 48 dp links', async () => {

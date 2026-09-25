@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowClockwise, PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ArrowClockwise, ArrowDown, PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
@@ -101,8 +101,42 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const [attachOpen, setAttachOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const list = useRef<ScrollView>(null);
-  const nearBottom = useRef(true);
-  const initialScroll = useRef(true);
+  // Native layout/keyboard scroll events describe geometry, not a decision to stop following.
+  const following = useRef(true);
+  const userScrolling = useRef(false);
+  const readingOffset = useRef(0);
+  const geometry = useRef({ offset: 0, viewport: 0, content: 0 });
+  const contextHeight = useRef(0);
+  const followFrame = useRef<number | null>(null);
+  const [showLatest, setShowLatest] = useState(false);
+  const cancelFollow = () => {
+    if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
+    followFrame.current = null;
+  };
+  useEffect(() => () => cancelFollow(), []);
+  const followLatest = () => {
+    if (!following.current || userScrolling.current) return;
+    list.current?.scrollToEnd({ animated: false });
+    cancelFollow();
+    // The compact header can change content and viewport in adjacent native layout passes.
+    followFrame.current = requestAnimationFrame(() => {
+      followFrame.current = null;
+      if (following.current && !userScrolling.current) list.current?.scrollToEnd({ animated: false });
+    });
+  };
+  const chooseLatest = () => {
+    following.current = true; userScrolling.current = false; setShowLatest(false); followLatest();
+  };
+  const readUserPosition = ({ nativeEvent: event }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    readingOffset.current = Math.max(0, event.contentOffset.y);
+    following.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
+    setShowLatest(previous => previous === !following.current ? previous : !following.current);
+  };
+  const observePosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const native = event.nativeEvent;
+    geometry.current = { offset: native.contentOffset.y, viewport: native.layoutMeasurement.height, content: native.contentSize.height };
+    if (userScrolling.current) readUserPosition(event);
+  };
   const previousOutgoing = useRef(new Set<string>());
   const source = useRef({ messages, support, loading, error, photos }); source.current = { messages, support, loading, error, photos };
   const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
@@ -111,17 +145,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   useEffect(() => {
     const currentIds = new Set(outgoingIds ? outgoingIds.split('|') : []);
     if ([...currentIds].some(id => !previousOutgoing.current.has(id))) {
-      nearBottom.current = true;
-      list.current?.scrollToEnd({ animated: false });
+      chooseLatest();
     }
     previousOutgoing.current = currentIds;
   }, [outgoingIds]);
-  const followLatest = () => {
-    if (initialScroll.current || nearBottom.current) {
-      list.current?.scrollToEnd({ animated: false });
-      initialScroll.current = false;
-    }
-  };
   const ready = state.phase === 'ready';
   const length = Array.from(state.draft.trim()).length;
   const canSend = ready && writable && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
@@ -162,13 +189,40 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   return (
     <View style={s.screen}>
       <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
-        onContentSizeChange={followLatest} onLayout={followLatest}
-        scrollEventThrottle={100} onScroll={({ nativeEvent: event }) => {
-          nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
+        onContentSizeChange={(_width, height) => { geometry.current.content = height; followLatest(); }}
+        onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; followLatest(); }}
+        accessibilityActions={[{ name: 'scrollBackward', label: 'Starije poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
+        onAccessibilityAction={({ nativeEvent }) => {
+          const direction = nativeEvent.actionName === 'scrollBackward' ? -1 : nativeEvent.actionName === 'scrollForward' ? 1 : 0;
+          if (!direction) return;
+          cancelFollow(); userScrolling.current = false;
+          const { offset, viewport, content } = geometry.current;
+          const end = Math.max(0, content - viewport);
+          const y = Math.max(0, Math.min(end, offset + direction * viewport * 0.8));
+          geometry.current.offset = readingOffset.current = y;
+          following.current = direction > 0 && y >= end - 1;
+          setShowLatest(!following.current);
+          list.current?.scrollTo({ y, animated: false });
         }}
+        scrollEventThrottle={100}
+        onScrollBeginDrag={event => { cancelFollow(); userScrolling.current = true; readUserPosition(event); }}
+        onScroll={observePosition}
+        onScrollEndDrag={event => { readUserPosition(event); userScrolling.current = false; }}
+        onMomentumScrollBegin={() => { cancelFollow(); userScrolling.current = true; }}
+        onMomentumScrollEnd={event => { readUserPosition(event); userScrolling.current = false; }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
         contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
-        {context}
+        <View testID="agreement-chat-context" onLayout={({ nativeEvent }) => {
+          const height = nativeEvent.layout.height;
+          const delta = height - contextHeight.current;
+          contextHeight.current = height;
+          if (following.current) followLatest();
+          else if (delta && !userScrolling.current) {
+            // Preserve the message's screen position when accepted terms enter/leave the top of history.
+            readingOffset.current = Math.max(0, readingOffset.current + delta);
+            list.current?.scrollTo({ y: readingOffset.current, animated: false });
+          }
+        }}>{context}</View>
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
         {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
             update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
@@ -257,6 +311,13 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
       </View> : null}
       </ScrollView>
+      {showLatest ? <View style={s.latestRow}>
+        <Press accessibilityRole="button" accessibilityLabel="Najnovije poruke" onPress={chooseLatest}
+          haptic="select" hitSlop={0} style={s.latest}>
+          <ArrowDown size={18} color={sys.color.green} />
+          <T variant="note" tone="green">Najnovije poruke</T>
+        </Press>
+      </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
         <View style={[s.pill, focused && s.pillFocused]}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
@@ -268,7 +329,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}
               accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
-              onPress={() => { nearBottom.current = true; setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
+              onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
               {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <Plus size={24} color={sys.color.green} />}
               <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T>
             </Press> : null}
@@ -289,6 +350,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
 const s = StyleSheet.create({
   screen: { flex: 1, minHeight: 0, backgroundColor: sys.conversation.ground },
   history: { flex: 1, minHeight: 0 },
+  latestRow: { alignItems: 'center', paddingHorizontal: sys.space.md },
+  latest: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
+    paddingHorizontal: sys.space.md },
   list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1 },
   // A short conversation sits on the composer, where a reply is written; a state stands in the middle.
   listBottom: { justifyContent: 'flex-end' },

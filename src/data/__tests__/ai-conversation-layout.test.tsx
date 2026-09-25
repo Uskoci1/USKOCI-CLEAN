@@ -36,6 +36,9 @@ import { AiConversationShell, type AiConversationShellProps } from '../../ui/aiF
 import { HOLD_HINT, VoiceMode } from '../../ui/aiFirst/VoiceComposer';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
+import { DraftCard } from '../../ui/v2/IntakePresentation';
+import { WorkerAiCard } from '../../ui/workerProfile/WorkerAiPresentation';
+import { CardValue } from '../../ui/v2/TaskFace';
 let tree: ReactTestRenderer;
 const idle: VoiceSnapshot = { phase: 'IDLE', session: null, finalText: '', interimText: '', audioLevel: null, fallbackText: '', error: null };
 const controller = () => ({ begin: jest.fn(() => true), release: jest.fn(), cancel: jest.fn(), useFallback: jest.fn(), getSnapshot: () => idle });
@@ -108,7 +111,7 @@ it('offers a return to the latest answer without taking the reader away from ear
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
   const scroll=(offset:number)=>tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScroll({
     nativeEvent:{contentOffset:{y:offset},contentSize:{height:1200},layoutMeasurement:{height:400}}});
-  await act(async()=>scroll(200));
+  await act(async()=>{tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScrollBeginDrag();scroll(200);});
   expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
   await act(async()=>tree.update(<AiConversationShell {...p} messages={[...p.messages,{id:'b',fromAi:true,body:'Možeš i kasnije da dopuniš.'}]}/>));
   expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
@@ -124,8 +127,11 @@ it('offers a return to the latest answer without taking the reader away from ear
 it('a different conversation drops the previous scroll hint',async()=>{
   const p=props();p.conversationKey='first';p.messages=[{id:'a',fromAi:true,body:'Prvi razgovor'}];
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
-  await act(async()=>tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScroll({
-    nativeEvent:{contentOffset:{y:0},contentSize:{height:1200},layoutMeasurement:{height:400}}}));
+  await act(async()=>{
+    tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScrollBeginDrag();
+    tree.root.findByProps({testID:'ai-conversation-thread'}).props.onScroll({
+      nativeEvent:{contentOffset:{y:0},contentSize:{height:1200},layoutMeasurement:{height:400}}});
+  });
   expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(1);
   await act(async()=>tree.update(<AiConversationShell {...p} conversationKey="second"/>));
   expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(0);
@@ -136,6 +142,181 @@ it.each([{height:640,scale:1},{height:844,scale:2}])('compacts without disabling
   expect(p.card).toHaveBeenLastCalledWith(true);
   expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.editable).toBe(true);
 });
+
+describe('deliberate reading intent', () => {
+  let frames: Map<number, FrameRequestCallback>, frameId: number;
+  beforeEach(() => {
+    frames = new Map(); frameId = 0;
+    jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++frameId, callback); return frameId; });
+    jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (id != null) frames.delete(id); });
+  });
+  afterEach(() => { jest.restoreAllMocks(); });
+  const flushFrame = () => { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(callback => callback(0)); };
+  const scroller = () => tree.root.findByProps({ testID: 'ai-conversation-thread' });
+  const position = (y: number, height = 1200, viewport = 400) => ({ nativeEvent: {
+    contentOffset: { y }, contentSize: { height }, layoutMeasurement: { height: viewport },
+  } });
+  const layout = (height: number) => ({ nativeEvent: { layout: { height } } });
+  const mount = async (p: AiConversationShellProps) => {
+    const native = { scrollToEnd: jest.fn(), scrollTo: jest.fn() };
+    await act(async () => { tree = create(<AiConversationShell {...p} />, {
+      createNodeMock: element => (element.props as { testID?: string }).testID === 'ai-conversation-thread' ? native : null,
+    }); });
+    return native;
+  };
+  it('follows the first pending turn across content and keyboard geometry, but cancels queued following on drag', async () => {
+    const p = props(), native = await mount(p);
+    await act(async () => { scroller().props.onLayout(layout(500)); scroller().props.onContentSizeChange(390, 700); flushFrame(); });
+    expect(native.scrollToEnd).not.toHaveBeenCalled(); // Keep the untouched welcome at its beginning.
+    await act(async () => tree.update(<AiConversationShell {...p} pending sentMessage="Prva poruka" />));
+    await act(async () => { scroller().props.onContentSizeChange(390, 900); mockKeyboard.keyboardDidShow(); scroller().props.onLayout(layout(300)); });
+    expect(native.scrollToEnd).toHaveBeenCalledWith({ animated: false });
+    await act(async () => scroller().props.onScroll(position(0, 900, 300)));
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(0);
+    native.scrollToEnd.mockClear();
+    await act(async () => {
+      scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(100, 900, 300));
+      scroller().props.onScrollEndDrag(position(100, 900, 300)); flushFrame();
+    });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
+  });
+  it('preserves the deliberate history offset when context, viewport and streaming content change', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
+    const native = await mount(p);
+    await act(async () => {
+      flushFrame(); scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(200));
+      scroller().props.onScrollEndDrag(position(200));
+    });
+    native.scrollToEnd.mockClear();
+    await act(async () => {
+      // Native clamping is geometry, not a new place chosen by the reader.
+      scroller().props.onScroll(position(140)); mockKeyboard.keyboardDidShow();
+      scroller().props.onLayout(layout(250)); scroller().props.onContentSizeChange(390, 1600); flushFrame();
+    });
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 200, animated: false });
+    await act(async () => tree.root.findByProps({ testID: 'ai-inline-context' }).props.onLayout(layout(120)));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 320, animated: false });
+    await act(async () => {
+      tree.update(<AiConversationShell {...p} streamingText="Novi deo odgovora" />);
+      tree.root.findByProps({ testID: 'ai-inline-context' }).props.onLayout(layout(0));
+      scroller().props.onContentSizeChange(390, 1800); flushFrame();
+    });
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 200, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
+  });
+  it.each([0, 80])('keeps an anchor inside the old summary at %s when details expand', async offset => {
+    mockScale = 2;
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
+    p.card = () => <View testID="summary" />;
+    const native = await mount(p);
+    const context = () => tree.root.findByProps({ testID: 'ai-inline-context' });
+    await act(async () => {
+      flushFrame(); context().props.onLayout(layout(180));
+      scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(offset));
+      scroller().props.onScrollEndDrag(position(offset));
+    });
+    native.scrollTo.mockClear(); native.scrollToEnd.mockClear();
+    await act(async () => { context().props.onLayout(layout(340)); scroller().props.onContentSizeChange(320, 1360); flushFrame(); });
+    expect(native.scrollTo).not.toHaveBeenCalled(); expect(native.scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => scroller().props.onLayout(layout(350)));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: offset, animated: false });
+  });
+  it('keeps the visible top in place when inline context is first inserted', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
+    const native = await mount(p);
+    await act(async () => {
+      flushFrame(); scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(0));
+      scroller().props.onScrollEndDrag(position(0));
+    });
+    native.scrollTo.mockClear();
+    await act(async () => tree.root.findByProps({ testID: 'ai-inline-context' }).props.onLayout(layout(180)));
+    expect(native.scrollTo).not.toHaveBeenCalled();
+  });
+  it('treats accessible history scrolling as intent and resumes following only through latest or an enabled send', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Pitanje' }];
+    const native = await mount(p);
+    await act(async () => {
+      flushFrame(); scroller().props.onScroll(position(800));
+      scroller().props.onAccessibilityAction({ nativeEvent: { actionName: 'scrollBackward' } });
+    });
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 500, animated: false });
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
+    await act(async () => tree.root.findByProps({ testID: 'ai-send' }).props.onPress());
+    expect(p.onSend).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
+    await act(async () => tree.root.findByProps({ testID: 'ai-latest' }).props.onPress());
+    await act(async () => scroller().props.onScroll(position(600)));
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(0);
+    await act(async () => {
+      scroller().props.onAccessibilityAction({ nativeEvent: { actionName: 'scrollBackward' } });
+      tree.update(<AiConversationShell {...p} canSend />);
+    });
+    await act(async () => tree.root.findByProps({ testID: 'ai-send' }).props.onPress());
+    expect(p.onSend).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(0);
+  });
+});
+
+it('keeps a legal long amount complete in a constrained, wrapping value row at large text', async () => {
+  mockScale = 2;
+  const p = props();
+  p.card = compact => <DraftCard summary={{ title: 'Veliki posao', value: { kind: 'amount', amount: '100.000.000 RSD', basis: 'ukupno' },
+    zone: '', people: null }} stillNeeded={null} open busy={false} compact={compact} canReview onReview={jest.fn()} note={null} />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const value = tree.root.findByProps({ testID: 'intake-draft-value' });
+  expect(StyleSheet.flatten(value.props.style)).toMatchObject({ minWidth: 0, maxWidth: '100%', width: '100%', flexShrink: 1 });
+  expect(StyleSheet.flatten(value.parent!.props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
+  expect(value.findByType(CardValue).props.large).toBe(true);
+  const amount = value.findAll(node => node.type === 'T' as React.ElementType && node.props.children === '100.000.000 RSD')[0];
+  expect(amount.props.numberOfLines).toBeUndefined();
+  expect(StyleSheet.flatten(amount.props.style)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
+  expect(text()).toContain('100.000.000 RSD'); expect(text()).toContain('ukupno');
+  expect(tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.accessibilityValue.text).toContain('100.000.000 RSD ukupno');
+});
+
+it('shows the assistant name once per consecutive group while retaining the identity of every accessible turn', async () => {
+  const p = props(); p.messages = [
+    { id: 'a', fromAi: true, body: 'Prvo pitanje' }, { id: 'b', fromAi: true, body: 'Dopuna pitanja' },
+    { id: 'u', fromAi: false, body: 'Odgovor' }, { id: 'c', fromAi: true, body: 'Sledeće pitanje' },
+  ];
+  await act(async () => { tree = create(<AiConversationShell {...p} streamingText="Dopuna" />); });
+  expect(tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'AI asistent')).toHaveLength(2);
+  for (const message of p.messages) expect(tree.root.findAllByProps({ accessibilityLabel: `${message.fromAi ? 'USKOČI' : 'Ti'}: ${message.body}` })).toHaveLength(1);
+  expect(tree.root.findByProps({ accessibilityLabel: 'USKOČI: Dopuna' }).props.accessibilityLiveRegion).toBe('none');
+});
+
+it.each(['intake', 'worker'] as const)('%s disclosure stays local, survives same-owner updates and resets with the stable ownership key', async kind => {
+  const p = props(), review = jest.fn(); p.conversationKey = 'account:revision:opening-request';
+  let disabled = true;
+  const profile = { displayName: 'Ana', bio: '', skills: ['Selidbe'], tools: [], vehicles: [], licenses: [], teamCapacity: 2,
+    location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null },
+    availability: { timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] } };
+  p.card = compact => kind === 'intake'
+    ? <DraftCard summary={{ title: 'Selidba', value: null, zone: 'Novi Sad', schedule: 'Sutra', people: '2 osobe' }}
+        stillNeeded="tačka na mapi" open busy={disabled} compact={compact} canReview={!disabled} onReview={review} note="Proveri detalje pre objave." />
+    : <WorkerAiCard profile={profile} compact={compact} review={review} disabled={disabled} />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const prefix = kind === 'intake' ? 'intake' : 'worker';
+  const disclosure = () => tree.root.findByProps({ testID: `${prefix}-draft-disclosure` });
+  const details = () => tree.root.findAllByProps({ testID: `${prefix}-draft-details` });
+  const reviewTarget = () => tree.root.findByProps({ testID: `${prefix}-draft-review` });
+  expect(details()).toHaveLength(0);
+  await act(async () => { disclosure().props.onPress(); reviewTarget().props.onPress(); });
+  expect(details()).toHaveLength(1); expect(disclosure().props.accessibilityState.expanded).toBe(true);
+  expect(review).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  await act(async () => tree.update(<AiConversationShell {...p} messages={[{ id: 'first-persisted', fromAi: true, body: 'Primljeno' }]} />));
+  expect(details()).toHaveLength(1); // A server ID arriving does not replace the stable owned opening key.
+  if (kind === 'intake') { expect(text()).toContain('tačka na mapi'); expect(text()).toContain('Proveri detalje pre objave.'); }
+  await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
+  expect(details()).toHaveLength(0);
+  disabled = false;
+  await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
+  await act(async () => reviewTarget().props.onPress());
+  expect(review).toHaveBeenCalledTimes(1);
+});
+
 it('explains speech privacy in an in-app notice with one button, not a system alert',async()=>{
   // 2026-09-24: the (i) of the old voice bar is a quiet link under the welcome now (and the (i) of voice mode).
   const p=props();p.value='';p.voice=voice();

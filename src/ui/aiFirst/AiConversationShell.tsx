@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowUp, ArrowUpRight, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
@@ -18,6 +18,13 @@ import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } fro
 import { useConversationArrival } from './useConversationArrival';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
+const DraftDisclosure = createContext<{ expanded: boolean; toggle: () => void } | null>(null);
+/** Disclosure is presentation state, never the command that prepares the full review. */
+export function useAiDraftDisclosure() {
+  const shared = useContext(DraftDisclosure);
+  const [expanded, setExpanded] = useState(false);
+  return shared ?? { expanded, toggle: () => setExpanded(value => !value) };
+}
 export type AiConversationShellProps = {
   /** Separates arrival/announcement ownership when a different conversation replaces this view. */ conversationKey?: string;
   /** The chrome's title; the chrome draws no line under it (no copy that explains where you are). */ title: string;
@@ -45,9 +52,9 @@ export type AiConversationShellProps = {
 
 /**
  * The AI conversation (owner step 6, 2026-09-24, after the owner's Gemini reference): one chrome (the arrow back, the
- * title, "···"), the live card pinned above an independent thread, and a floating composer.
+ * title, "···"), a compact live draft above an independent thread, and one composer edge.
  *
- * - The assistant speaks on a lightly raised white surface with a quiet speaker label; the person's own words are
+ * - The assistant speaks on an open reading surface with a quiet group label; the person's own words are
  *   forest-green bubbles on the right. Nothing is typed out that has not arrived: streamed text is the
  *   server's own deltas, and while nothing has arrived three dots say that an answer is being written.
  * - The composer gives text its full width; attachments and speech sit in a separate toolbar, with send at the right.
@@ -66,9 +73,34 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const [holdHint, setHoldHint] = useState(false);
   const [readingEarlier, setReadingEarlier] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [disclosure, setDisclosure] = useState({ key: p.conversationKey, expanded: false });
+  const expanded = disclosure.key === p.conversationKey && disclosure.expanded;
   const input = useRef<TextInput>(null);
   const thread = useRef<ScrollView>(null);
-  const nearBottom = useRef(true);
+  // Only a deliberate reading gesture changes intent. Keyboard and content geometry must never impersonate one.
+  const followLatest = useRef(true);
+  const userScrolling = useRef(false);
+  const momentumAllowed = useRef(false);
+  const historyOffset = useRef(0);
+  const contextHeight = useRef(0);
+  const geometry = useRef({ offset: 0, content: 0, viewport: 0 });
+  const followFrame = useRef<number | null>(null);
+  const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText);
+  const activity = useRef(hasActivity); activity.current = hasActivity;
+  const cancelFollow = useCallback(() => {
+    if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
+    followFrame.current = null;
+  }, []);
+  const followAfterLayout = useCallback(() => {
+    if (!followLatest.current || userScrolling.current || !activity.current) return;
+    cancelFollow();
+    thread.current?.scrollToEnd({ animated: false });
+    // Keyboard avoidance settles after the first layout; every later content/viewport event can replace this pass.
+    followFrame.current = requestAnimationFrame(() => {
+      followFrame.current = null;
+      if (followLatest.current && !userScrolling.current && activity.current) thread.current?.scrollToEnd({ animated: false });
+    });
+  }, [cancelFollow]);
   const reduced = useReducedMotion();
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
@@ -78,20 +110,30 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const inlineSummary = textScale >= 1.6 || height < 500;
   const pinned = p.card(compact);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
+    const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { setKeyboard(false); followAfterLayout(); });
+    return () => { show.remove(); hide.remove(); cancelFollow(); };
+  }, [cancelFollow, followAfterLayout]);
   const phase = p.voice?.state.phase ?? 'IDLE';
   // The advice after a tap goes as soon as the microphone does anything.
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
   // Speech that closes (the conversation ended, or it cannot take speech any more) takes voice mode with it.
   useEffect(() => { if (!p.voice) setVoiceMode(false); }, [p.voice]);
-  useEffect(() => { nearBottom.current = true; setReadingEarlier(false); }, [p.conversationKey]);
+  useEffect(() => {
+    cancelFollow(); followLatest.current = true; userScrolling.current = false; momentumAllowed.current = false;
+    historyOffset.current = 0; setReadingEarlier(false); followAfterLayout();
+  }, [p.conversationKey, cancelFollow, followAfterLayout]);
   const syncReadingPosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    geometry.current = { offset: contentOffset.y, content: contentSize.height, viewport: layoutMeasurement.height };
+    if (!userScrolling.current) return;
+    historyOffset.current = Math.max(0, contentOffset.y);
     const atBottom = contentSize.height - contentOffset.y - layoutMeasurement.height < 80;
-    if (nearBottom.current !== atBottom) { nearBottom.current = atBottom; setReadingEarlier(!atBottom); }
+    if (followLatest.current !== atBottom) { followLatest.current = atBottom; setReadingEarlier(!atBottom); }
+  };
+  const latest = (animated: boolean) => {
+    cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
+    followLatest.current = true; setReadingEarlier(false); thread.current?.scrollToEnd({ animated });
   };
 
   const hasText = p.value.trim().length > 0;
@@ -107,26 +149,61 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const answer = p.streamingText || (!p.sentMessage && last?.fromAi ? last.body : null);
   const said = p.sentMessage ?? (last && !last.fromAi ? last.body : last?.fromAi && beforeLast && !beforeLast.fromAi ? beforeLast.body : null);
 
-  return <SafeAreaView edges={['top']} style={s.canvas}>
+  return <DraftDisclosure.Provider value={{ expanded, toggle: () => setDisclosure({ key: p.conversationKey, expanded: !expanded }) }}>
+  <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." icon={DotsThree} onPress={p.onOptions} /> : undefined} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
-      {pinned && !inlineSummary ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardAreaCompact]}>{pinned}</View> : null}
+      {pinned && !inlineSummary ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
+        { maxHeight: compact ? 180 : Math.min(300, height * 0.36) }]} contentContainerStyle={compact ? s.cardAreaCompact : s.cardContents}
+        keyboardShouldPersistTaps="handled" nestedScrollEnabled>{pinned}</ScrollView> : null}
       <View style={s.flex}>
       <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
         contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
-        // The terminal event is not throttled: an animated return can otherwise leave the shortcut visible at the end.
-        // React updates only at the reading boundary, never once per scrolling frame.
-        onScroll={syncReadingPosition} onMomentumScrollEnd={syncReadingPosition} onScrollEndDrag={syncReadingPosition} scrollEventThrottle={100}
-        onLayout={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}
-        // With no messages the intro is the entire content, and scrolling to its end cuts its first line off the top.
-        onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
-        {pinned && inlineSummary ? <View testID="ai-inline-card">{pinned}</View> : null}
+        onScrollBeginDrag={() => { cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
+        onScroll={syncReadingPosition}
+        onScrollEndDrag={event => { syncReadingPosition(event); userScrolling.current = false; }}
+        onMomentumScrollBegin={() => { userScrolling.current = momentumAllowed.current; momentumAllowed.current = false; }}
+        onMomentumScrollEnd={event => { syncReadingPosition(event); userScrolling.current = false; momentumAllowed.current = false; }}
+        scrollEventThrottle={100}
+        accessibilityActions={[{ name: 'scrollBackward', label: 'Prethodne poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
+        onAccessibilityAction={event => {
+          const direction = event.nativeEvent.actionName;
+          if (direction !== 'scrollBackward' && direction !== 'scrollForward') return;
+          const { offset, viewport, content } = geometry.current;
+          if (!viewport) return;
+          cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
+          const end = Math.max(0, content - viewport);
+          const target = Math.max(0, Math.min(end, offset + (direction === 'scrollBackward' ? -1 : 1) * viewport * 0.75));
+          historyOffset.current = target; geometry.current.offset = target;
+          followLatest.current = end - target < 80; setReadingEarlier(!followLatest.current);
+          thread.current?.scrollTo({ y: target, animated: false });
+        }}
+        onLayout={event => {
+          geometry.current.viewport = event.nativeEvent.layout.height;
+          if (followLatest.current) followAfterLayout();
+          else thread.current?.scrollTo({ y: historyOffset.current, animated: false });
+        }}
+        // The first pending turn already belongs at the bottom, even before the server returns a message ID.
+        onContentSizeChange={(_width, content) => { geometry.current.content = content; followAfterLayout(); }}>
+        {/* Always mounted: inserting/removing inline context preserves the sentence being read below it. */}
+        <View testID="ai-inline-context" style={pinned && inlineSummary ? s.inlineContext : undefined} onLayout={event => {
+          const previous = contextHeight.current, next = event.nativeEvent.layout.height, delta = next - previous;
+          contextHeight.current = next;
+          // An anchor inside the draft must stay there when its details open. Only transcript below the old
+          // context moves by its height delta. With new context, offset zero still means the visible top.
+          const belowContext = previous === 0 ? historyOffset.current > 0 : historyOffset.current >= previous;
+          if (!followLatest.current && delta && belowContext) {
+            historyOffset.current = Math.max(0, historyOffset.current + delta);
+            thread.current?.scrollTo({ y: historyOffset.current, animated: false });
+          }
+        }}>{pinned && inlineSummary ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
+        <View style={s.turns}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
           <AssistantPresence />
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
@@ -144,7 +221,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
             onPress={privacy} style={s.privacy}>
             <Info size={16} color={sys.color.muted} /><T variant="meta" tone="muted">O govornom unosu i privatnosti</T>
           </Press> : null}
-        </View> : p.messages.map(message => <Turn key={message.id} {...message}
+        </View> : p.messages.map((message, index) => <Turn key={message.id} {...message}
+          showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
           reduced={reduced || !arrival.shouldEnter(message.id)} />)}
@@ -153,21 +231,21 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
-        {p.streamingText ? <View style={s.assistant}><Mark /><T selectable style={s.answer}>{p.streamingText}</T></View> : null}
+        {p.streamingText ? <View accessibilityLabel={`USKOČI: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
+          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={s.answer}>{p.streamingText}</T></View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
-          <Mark />
+          {p.sentMessage || !last?.fromAi ? <Mark /> : null}
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
             <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
+        </View>
       </ScrollView>
-      {readingEarlier && p.messages.length > 0 ? <Press testID="ai-latest" accessibilityRole="button"
-        accessibilityLabel="Najnovija poruka" onPress={() => {
-          nearBottom.current = true; setReadingEarlier(false); thread.current?.scrollToEnd({ animated: !reduced });
-        }} haptic="select" style={[s.latest, floating]}>
+      {readingEarlier && hasActivity ? <Press testID="ai-latest" accessibilityRole="button"
+        accessibilityLabel="Najnovija poruka" onPress={() => latest(!reduced)} haptic="select" style={[s.latest, floating]}>
         <ArrowDown size={18} color={sys.color.green} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
       </Press> : null}
       </View>
@@ -183,7 +261,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             button still says it to a screen reader. */}
         {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
-        <View testID="ai-composer" style={[s.pill, floating, inputFocused && s.pillFocused]}>
+        <View testID="ai-composer" style={[s.pill, inputFocused && s.pillFocused]}>
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} editable={p.canEdit}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { setHoldHint(false); p.onChange(text); }}
@@ -201,7 +279,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </View>
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
-            onPress={p.onSend} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
+            onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
             <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
               <ArrowUp size={22} weight="bold" color={p.canSend ? sys.color.onGreen : sys.color.muted} /></View>
           </Press> : p.voice ? <Press testID="ai-voice-mode" accessibilityRole="button" accessibilityLabel="Razgovaraj glasom"
@@ -220,7 +298,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       onClose={reason => { setVoiceMode(false); if (reason === 'review') requestAnimationFrame(() => input.current?.focus()); }} /> : null}
     {p.children}
     {notice.sheet}
-  </SafeAreaView>;
+  </SafeAreaView></DraftDisclosure.Provider>;
 }
 
 /** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
@@ -259,20 +337,22 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
  * Persisted turns do not rerender for each keystroke or incoming chunk. Side, colour and shape say who is speaking; the
  * labels are for a screen reader.
  */
-const Turn = memo(function Turn({ fromAi, body, reduced }: ConversationMessage & { reduced: boolean }) {
+const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker }: ConversationMessage & { reduced: boolean; showSpeaker: boolean }) {
   const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).withInitialValues({ transform: [{ translateY: 8 }] });
   return fromAi
     ? <Animated.View entering={entering} accessibilityLabel={`USKOČI: ${body}`} style={s.assistant}>
-      <Mark /><T selectable style={s.answer}>{body}</T></Animated.View>
+      {showSpeaker ? <Mark /> : null}<T selectable style={s.answer}>{body}</T></Animated.View>
     : <Animated.View entering={entering} accessibilityLabel={`Ti: ${body}`} style={s.person}>
       <T selectable style={s.personText}>{body}</T></Animated.View>;
 });
 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground }, flex: { flex: 1, minHeight: 0 },
-  cardArea: { paddingHorizontal: sys.space.lg, paddingTop: 2, paddingBottom: sys.space.md },
+  cardArea: { flexGrow: 0, flexShrink: 1, paddingHorizontal: sys.space.lg },
+  cardContents: { paddingTop: 2, paddingBottom: sys.space.md },
   cardAreaCompact: { paddingTop: 0, paddingBottom: sys.space.sm },
-  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64, gap: 20 },
+  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64 },
+  turns: { gap: 20 }, inlineContext: { paddingBottom: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
   presence: { width: 94, height: 94, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
@@ -290,9 +370,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
-  // White on white: a quiet edge defines the answer, while the label identifies the speaker.
-  assistant: { ...floating, gap: 10, alignSelf: 'stretch', padding: 16, borderRadius: sys.radius.card,
-    borderBottomLeftRadius: 8, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
+  // Long replies read on the canvas; alignment and the group label identify the speaker.
+  assistant: { gap: 8, alignSelf: 'stretch', paddingVertical: 4, paddingHorizontal: 2 },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   markName: { color: sys.color.green, fontWeight: '600' },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
