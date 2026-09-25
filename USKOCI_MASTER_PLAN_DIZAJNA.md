@@ -27,6 +27,9 @@ The batch receipt separates completed tests, APK and bounded native review. Old 
 constraints. Business truth, privacy, recovery and accessibility remain. R12 is the preceding surface foundation.
 Owner typography refinement during R13: ordinary system text is the design baseline. Keep title and price scale
 proportionate to their jobs. Brief enlarged-text checks prevent clipping but do not prescribe the normal composition.
+R13 correction source 1b018b17: types and 314 suites / 6,113 tests pass; APK 36138797360 is attested/installed on the
+emulator. Four fresh ordinary-text views confirm calmer offer amounts and public pin neighborhood framing; fourteen
+initial views remain separately bound. Phone, iOS and real journeys are still open.
 
 R12 is the current surface refinement: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
 Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth

@@ -38,6 +38,11 @@ new regressions exercise camera intent, privacy and interrupted/deferred selecti
 
 Read CHECKS.json and RECEIPT.json for completed checks, exact source, APK and native observations. Until those exist, this document describes implementation, not acceptance.
 
+Correction APK **36138797360**, source **1b018b17**, is attested and installed with data retained. Four fresh normal-size
+views confirm calmer offer/review amounts and neighborhood framing of the selected public pin; closing the preview
+keeps the camera and all seven results. `NATIVE_REVIEW.md` separates these from the initial fourteen observations.
+This completes the bounded R13 package; physical-phone and real-journey acceptance remain open.
+
 No server, migration, Edge, payment, provider, secret or dependency changes. No paid AI calls, microphone exercise, real task command, account deletion or data reset. Inert native galleries exercise the same presentation components with local fixtures; they do not prove real publication, selection, completion or payments. Read-only live Discovery observations are recorded separately and private task screenshots are not committed.
 
 The whole app is not being declared finished by this batch. R11's remaining long-form, Safety, media and support/group-chat observations; real journeys on phones; AI provider/voice behavior; payments, legal and store gates remain separately tracked. Remote control-page upload must not be claimed from local JSON generation.

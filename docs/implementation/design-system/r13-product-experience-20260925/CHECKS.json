@@ -22,7 +22,7 @@
     "Large-text people input gets the full available line between the existing stepper buttons."
   ],
   "diffWhitespace": "git diff --check passed",
-  "native": "Initial APK has 14 bounded captures. Correction APK observations are recorded separately in RECEIPT.json.",
+  "native": "Both exact-source APKs installed on emulator without clearing data; bounded normal-size refinement observations in RECEIPT/CAPTURES. Phone acceptance remains false.",
   "controlPublication": "Regenerated locally; upload to the existing private Claude artifact remains unconfirmed.",
   "initialGate": {
     "source": "be72399d6f3deb55ad5ae1177ed8bedccc314327",
@@ -37,5 +37,6 @@
     "r13b-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "r13b-jest.log": "69c6cc3e519b3c2738ccd1743cbe4b6c37f8cca9b4637f3017b97572de7392ba",
     "r13b-jest.json": "ef170d7de80a1f4c8dd136cf9344c24dca541f023451f165dccdbbd42b8f9057"
-  }
+  },
+  "source": "1b018b17eac0c6e77d4acef6a614be93989fad2d"
 }

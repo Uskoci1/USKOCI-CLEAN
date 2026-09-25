@@ -8,6 +8,8 @@ Read its CHECKS/RECEIPT for completed verification and native scope; implementat
 Preserve larger coherent batches. No backend, payment, provider, dependency or real business mutation.
 Owner typography refinement: judge composition at ordinary system text size. Enlarged-text inspection is a bounded
 resilience check, not the visual baseline; do not inflate ordinary titles or prices to accommodate that check.
+Refined source 1b018b17 passes types and 314 suites / 6,113 tests. APK 36138797360 is attested/installed on the emulator;
+four normal-size correction views confirm calmer amounts and pin framing. Read the initial/correction evidence separately.
 
 R12 WHITE SURFACES (2026-09-25): the owner's latest explicit correction rejects mint backgrounds and pale large
 panels. Read `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`. White reading surfaces,

@@ -24,6 +24,26 @@ two-person task-to-rating journey.
 
 ## Refinement APK
 
-The correction tones down amount typography and adds an explicit pin/place neighborhood frame using only the
-existing rounded public point. Exact source, checks, APK and fresh normal-size observations are recorded in the
-batch receipt when complete; initial images must not be presented as proof of these corrections.
+Source `1b018b17eac0c6e77d4acef6a614be93989fad2d`, run **36138797360**, APK SHA-256
+`8f8b2b2dc8d2be201f887d5e2ffafbf6056417a3ae5bd38e4f49d1779cc49ecd`. Both attestations match the exact source,
+tree, run and APK; x86_64 payload checked. Installed with `adb install -r`, data retained. Package `rs.uskoci.dev`,
+version 1.0.0/code 35; update time on the device 2026-09-25 15:22:03. Density 420/font 1.0 verified afterward.
+
+Four fresh ordinary-size views were reviewed:
+
+- Offer: the 28 sp amount is calmer than the initial 32 sp. Context, capacity, terms and review action remain readable.
+- Review: the amount, people, time and entire note fit the native sheet. Send and edit remain visible; no send pressed.
+- Selected public pin: tapping the visible regional pin moves to the Belgrade neighborhood. The selected logo pin
+  stays above the complete card, with map credits and the active root tab visible.
+- Close selection: the map stays at the same neighborhood frame. The list still says seven tasks/four without
+  points and the search still says all tasks. Selection has not applied an area filter.
+
+The offer views are inert same-presentation examples; the map views read the existing account without business
+commands. All four have fresh hierarchies. Initial fourteen plus correction four = eighteen bounded observations;
+none is phone, iOS, frame-rate or complete real-journey acceptance. Unit tests cover interruption, closer-zoom
+preservation, delayed layout and Reduce Motion; no new native claims for those states are inferred from these images.
+
+`CAPTURES.json`, `APK.json` and `RECEIPT.json` bind each phase separately. Ordinary inert screenshots are kept under
+`screens/`; actual-account images/hierarchies stay in local output folders, outside Git. Normal screenshot originals
+were not recolored, scaled or retouched for the evidence. Remote Claude control-page publication remains unconfirmed;
+local state generation does not imply upload. The DEV snapshot remains dated 24 September.
