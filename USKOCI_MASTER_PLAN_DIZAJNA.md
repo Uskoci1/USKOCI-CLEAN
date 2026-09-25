@@ -5,16 +5,17 @@ Ovaj fajl je glavni plan za UI/UX nastavak. Detalji i slike: Claude Doc „USKO�
 „Plan ekrana (23. sep)“ (https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923) i skice
 (https://claude.ai/artifact/B2YMSAQVPz7iuq6TXHgZLf). Istraživanja: `docs/implementation/research/`.
 
-Cilj: jedna ujednačena, moderna, premium, čista BELA aplikacija; tamnozelena osnova (`#076E4E` za glavnu radnju,
-naslove i izbor), narandžasta samo kao kontrolisani akcenat (objava zadatka, „Čeka te“, „+“). Zadatak, Prijava i
-Dogovor pripadaju istoj aplikaciji, ali svako ima jasnu namenu. Poslovna logika, statusi, navigacija, privatnost,
-ID veze, baza i tokovi ostaju, osim kad je greška dokazana. Ništa se ne izmišlja: ocene, GPS, uspešan upis, status.
+Current owner direction, 25 September: a youthful, modern, clear and responsive app. White remains welcome when
+it has deliberate depth, subtle color and good composition; an all-white page is not a constraint. Compose each
+screen for its purpose, using a recognizable green foundation, illustrated icons, restrained orange accents and
+soft normal motion. Shadows distinguish surfaces and hierarchy rather than outlining every control. Earlier
+V28/white-only rules are references, not vetoes. Preserve domain behavior, recovery, privacy and truthful facts.
 
 ## Current execution checkpoint — 2026-09-25
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in `docs/implementation/design-system/r7-cohesion-20260925/`.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R10 dated directories under `docs/implementation/design-system/`; R10 is the latest client checkpoint.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work
@@ -28,9 +29,16 @@ intent journals, privacy notice, microphone contract and recovery. This batch ch
 Three compositions were considered: a step wizard (clear progression but restricts free corrections), a large
 permanent draft dashboard (visible facts but crowds messages and keyboard), and a conversation with a compact
 live summary. Selected the third: full-width writing area with a separate action row, clear opening choices,
-clear USKOČI speaker identity, quiet user bubbles, and one review target. The summary becomes compact on short
+clear USKOČI speaker identity, distinct user bubbles, and one review target. The summary becomes compact on short
 screens, with large text, while typing or while a turn is pending. Reading old messages offers an explicit return
 to the newest message without moving the reader unexpectedly.
+
+The owner refinement uses a mint canvas, nuanced white assistant/composer surfaces, a forest user bubble and
+illustrated opening choices. Task draft and worker summary are visibly separate from conversation turns.
+Texture comes from spacing, tonal layers and subtle elevation, with no noisy overlay behind reading text.
+At 320 dp / font scale 2 the initial APK showed a summary consuming roughly half the available content region:
+the refined version moves that same review target into the scroll at font scale 1.6+ or height below 500 dp.
+This preserves access without reducing the user's text size. Native acceptance of the refinement is recorded below.
 
 The worker review presents every frozen fact in open sections: skills/equipment, people, work area, availability,
 regular week and exceptional dates. Licences, paused rules, time zone and missing requirements stay visible.
@@ -41,6 +49,18 @@ Evidence: `docs/implementation/design-system/r8-ai-conversations-20260925/REPORT
 provider/microphone testing remain separate. This batch does not implement spoken AI responses or iOS speech.
 
 #### Map, cards and movement — owner steering, 25 September
+
+R10 checkpoint: source `0f4d7644` implements Home's appointment composition and responsive map/search,
+attribution and navigation. Types and 312 suites / 6,067 tests pass. Initial APK `36112841705` has bounded native evidence; filter-footer correction APK `36115051955` is attested/installed, with normal and enlarged-text filter controls observed. Extreme-text chat keyboard composition remains open.
+See `docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md` and its exact-build receipt. No new date, rating, account or server state is inferred.
+
+R9 implementation checkpoint: source `ad0b16ca` delivers the task decision brief, action-area Agreement
+recovery and full-width human-chat composer described below. Types and 310 suites / 6,031 tests pass. Initial R9
+APK `36107782918` confirms detail and the corrected AI shortcut, but exposed a clipped footer recovery control;
+the correction keeps commands outside the measured message viewport. Correction APK `36110012089` is attested/installed; its bounded recovery checks pass. R10 observed the normal chat keyboard after the fixture-origin correction; extreme-text keyboard composition remains open.
+R8 `0976b373` also has bounded native and docked-keyboard evidence.
+See `docs/implementation/design-system/r9-decisions-and-messages-20260925/REPORT.md` for composition alternatives
+and preserved guards. Native acceptance is recorded separately from source implementation.
 
 The owner wants larger coherent batches before an APK, and soft, responsive motion throughout normal use.
 System Reduce Motion remains an individual accessibility preference, not the default visual direction.
@@ -73,9 +93,9 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 | Surface / user's job | What is implemented | Current decision and next acceptance |
 | --- | --- | --- |
-| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. | Keep this hierarchy and the quiet first-run illustration. Do not add motion to static obligations. Group the attention heading/count for speech. Recheck narrow/large-text layout on the new APK. |
-| Discovery: find a suitable nearby task | Shared map/list, explicit-tap Nearby with one ephemeral foreground observation, clustering, shared-point groups, draft filters and honest result counts. Illustrated preview facts, one set of map credits and 48 dp quick filters are implemented. | Combined APK `43535736` inspected on the emulator: real map, selected card and filter panel. At 320 dp / font 2 the search header is too tall and navigation wraps; compact that composition without shrinking text. Real GPS success remains unproven: the interim run demonstrated timeout recovery only. Keep query/ownership work separate. |
-| Pins and map color | USKOČI logo + truthful price capsules, native logo fallback beyond the 40-label cap, selected green capsule, count clusters and rounded public points. Shared warmer map palette and Serbian Latin labels. | Rich logo/selection and both shared map surfaces rendered on the final emulator APK. Credits fit at normal width, wrap at 320 dp / font 1.3, and are not visible at font 2: repair/accept that layout. Native fallback beyond 40 rich markers and physical-device fluidity remain unobserved. No invented distance, position, urgency or rating. |
+| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. The spoken attention heading/count is already grouped. | R10 composes the next Agreement around its existing time phrase, task and person. No date parsing; attention and own-list counts unchanged. Exact-build native acceptance is in the R10 receipt; N+1 rating reads remain separate functional work. |
+| Discovery: find a suitable nearby task | Shared map/list, explicit-tap Nearby with one ephemeral foreground observation, clustering, shared-point groups, draft filters and honest result counts. Illustrated preview facts, one set of map credits and 48 dp quick filters are implemented. | R10 separates large-text search from tools, reserves the measured credit rail and caps selected/list previews without losing scrolling. Oversized filter headers join the registered list. GPS success, DN-01 and query scaling remain separate. |
+| Pins and map color | USKOČI logo + truthful price capsules, native logo fallback beyond the 40-label cap, selected green capsule, count clusters and rounded public points. Shared warmer map palette and Serbian Latin labels. | Existing branded palette/pins remain. R10 gives attribution its own measured rail independent of zoom visibility. Native fallback beyond 40 rich markers and physical-device fluidity remain unobserved; exact-build layout evidence is in the R10 receipt. |
 | Filters and changing views | Draft-before-Apply search, place/date/price/work-mode/free-place choices, chip removal, clear-all and unavailable counts. | Existing records revealed by a changed filter should appear immediately, not replay arrival motion. A genuinely arriving record may animate once. Sorting, saved-search alerts and server pagination remain separate verified-contract work. |
 | Task cards and detail | Shared truthful value slots, FactArt, requirements, availability, publisher; photos only inside task detail. | List head stays compact; the pin preview stacks the same title/value head to reserve its close control and long title. Place/time use separate illustrated rows. Keep exact address protected and missing price in ordinary text. |
 | Location forms | Separate public place/private address, point validation and command recovery. | Save itself is the confirmation (`confirmed: true`); the redundant checkbox is removed. Pending-point and unknown-outcome guards remain. Verify onsite, remote and worker area visually. |
@@ -83,7 +103,7 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 | Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. Current-location sharing route/entries retired; server records preserved. | Exact task-location disclosure and telephone consent remain. Keyboard, long thread, reconnect and terminal-media recovery require explicit acceptance. |
 | AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. Independent typed-draft ownership, safe exit from a pending worker interview and one availability scroll are implemented. | Current-build real provider, microphone and full journey acceptance remain separate. See AI table below. |
 | Profile, calendar, support/settings | Native screens and corresponding galleries already exist. | Apply the shared Inter face to input controls, then verify actual focused inputs, fixed footers, large text and all loading/error states. Do not infer whole-flow completion from galleries. |
-| Motion and accessibility | Shared durations, press feedback, live reduced-motion store and root gating, sheet springs, bounded map annotations, interrupted-bell reset, contextual spoken counts and no false arrival replay after filters. | Normal motion stays enabled. Verify final native transitions; improve AI answer completion announcements and stream-to-record continuity without decorative replay. |
+| Motion and accessibility | Shared durations, press feedback, live reduced-motion store and root gating, sheet springs, bounded map annotations, interrupted-bell reset, contextual spoken counts and no false arrival replay after filters. R8 adds once-per-answer announcements and silent stream-to-record replacement. | Normal motion stays enabled. Verify final native transitions and actual screen-reader delivery. |
 
 ### AI: implementation is not activation or device acceptance
 
@@ -94,13 +114,34 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 | Dictation / held microphone | Native Android speech adapter + authenticated speech-session path. Held microphone sends on release; accessible dictation appends to the editable draft and uses Send. | Real microphone, denial, interruption, background, retry and latency checks only when the owner is ready. Mocked voice-controller tests are not microphone acceptance. iOS native speech is not implemented. |
 | AI speaking aloud / full voice conversation | Not implemented. Voice-mode UI still sends speech as text and renders text answers. `isAiSpeaking` is only a guard hook. | Separate approved runtime/provider, audio focus, stop/interruption, text fallback and cost/privacy decision. `expo-speech` is not approved. Do not call this activated. |
 | Provider/admission/budget | Source checks provider configuration, admitted account and policy validity; IDs/revisions bind each turn; unknown outcomes are reconciled rather than blindly replayed. Historical receipts are source-compatible. | A fresh operational read and an explicitly permitted real call are needed before claiming current provider availability. Do not read/print keys, enable gates, spend provider money or declare all registrations admitted. |
-| Screen-reader responses | Existing typing status and accessible controls; new completed answers do not yet have a dedicated one-time announcement. | Add a completion announcement that does not re-read history or every fragment, then test with a screen reader. |
+| Screen-reader responses | R8 completed assistant answers announce once by durable ID; loaded history, stream fragments and already-visible sent messages do not replay arrival. Fifteen hook cases and shell integration pass. | Native TalkBack/VoiceOver listening remains unverified. |
 
 ### Finish order after this client package
 
-1. The combined package has exact-source types/full Jest and an attested, installed APK; bounded emulator checks
-   are recorded in the R7 receipt. Next acceptance: narrow/large-text search/navigation/credits, high-density
-   fallback markers, real GPS branches and physical-device interaction. Batch related fixes before another APK.
+R8–R10 have source, passing automated checks and bounded native observations. Their receipts identify each APK
+and distinguish inert galleries from existing DEV reads. No whole-flow or phone acceptance follows from these.
+
+1. **Human chat at extreme text size with a keyboard:** reserve writing/attachment/send space and let secondary
+   terms/header content yield or scroll. The normal-size R10 composer is observed; 320 dp/font 2 remains crowded
+   and partly covered. Preserve all accepted-terms access, pending media, recovery and terminal read-only behavior.
+2. **Offers, candidate choice and public identity:** person-led list with an appropriately sized portrait,
+   clear offered total/people/message and optional aligned comparison. Selection keeps its explicit confirmation.
+   Profile groups truthful identity, experience and available trust information; missing ratings stay missing.
+   Three compositions and the bounded source reads are in the R10 report; implementation is not claimed.
+3. **Profile/settings and remaining screens:** group by the user's purpose, preserving existing save, activation,
+   export/deletion and recovery guards. Carry the same typography, tonal white surfaces, illustrated facts and
+   responsive action hierarchy; inspect loading, empty, unavailable and error states with each coherent batch.
+4. **Functional and release tracks:** keep server/read-model, pagination, human-chat read boundaries, AI provider
+   and voice, push, legal/privacy and store work separate from visual completion. Follow the control rows below.
+
+Home's agenda and responsive Discovery/navigation are now implemented in R10. The native filter-footer defect
+was corrected in `0f4d7644` and its own APK was rechecked. These are not still unstarted design tasks.
+
+Release and acceptance work remains:
+
+1. The combined package has exact-source types/full Jest and attested, installed APKs; bounded emulator checks
+   are recorded in the R7–R10 receipts. Next acceptance: extreme-text keyboard/history, high-density fallback
+   markers, real GPS branches and physical-device interaction. Batch related fixes before another APK.
 2. Reconcile remaining R6 majors against current bodies. Preserve refuted findings as refuted: the list sinking
    behind a pin preview is approved V47 behavior; the old selected-cluster claim was refuted. Do not redo recovered agents.
 3. Close remaining client defects one coherent flow at a time, with keyboard, offline, stale/unknown-outcome and
@@ -117,8 +158,9 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 Read-only recheck at `3fdbe559` on 25 September. Indices are **zero-based `findings[]` indices** in
 `docs/implementation/design-system/r6-sweep/FINDINGS.json`, not newly assigned bug IDs. Five are fixed in current
-source, seventeen underlying mechanisms remain, and two performance patterns need profiling before their original
-major severity can be accepted. These are source judgments, not 24 fresh device observations or a whole-app count.
+source, seventeen underlying mechanisms remained, and two performance patterns needed profiling before their original
+major severity could be accepted. R8 later fixes source mechanisms 85 and 168 below. These are dated source judgments,
+not 24 fresh device observations or a whole-app count.
 
 | Index | Current evidence | Assessment / next action |
 | --- | --- | --- |
@@ -129,9 +171,9 @@ major severity can be accepted. These are source judgments, not 24 fresh device 
 | 48 | `ApplicationSelectionPresentation.tsx:303–318` shows the offer without the retired capabilities block | Fixed in source before this package. |
 | 49 | `PublicNeedPresentation.tsx:135` retains gendered relation-error copy | Still present; neutral Serbian copy. |
 | 50 | `WorkerAiPresentation.tsx:46` prints raw rule times | Still present; use the shared civil-time format. |
-| 85 | `AiConversationShell.tsx:139,238–244` does not announce completed answers | Still present; announce each new completed answer once, never history or every streamed fragment. |
+| 85 | R8 `useConversationArrival.ts` tracks durable completed answer IDs | Fixed in source/tests; native TalkBack/VoiceOver delivery remains unverified. |
 | 86 | `ApplicationSelectionPresentation.tsx:69,319,325` uses role-only outcome alerts | Still present; reachable and announced selection result/recovery. |
-| 87 | `dogovor/[id].tsx:416` leaves command errors at the scroll bottom | Still present; expose recovery at the action and announce the changed state. |
+| 87 | R9 moves the existing error/refresh into `WorkspaceFooter` and announces each recovery episode once | Fixed in source/tests; native layout and screen-reader delivery have separate acceptance. |
 | 88 | `ClosurePresentation.tsx:102` changes successful closure status without announcing it | Still present; announce status transition without changing the closure program. |
 | 89 | `CandidateFace.tsx:167,206` puts offer facts only in hints | Still present; essential facts must remain available when hints are disabled. |
 | 90 | `IntakePresentation.tsx:186,201` has role-only safety/error feedback | Still present; announce relevant new feedback without repeating history. |
@@ -141,14 +183,14 @@ major severity can be accepted. These are source judgments, not 24 fresh device 
 | 143 | `potrebe/[id]/kandidati.tsx:142,155` replaces a Tabs route with a root Agreement | Source concern remains; reproduce actual native return stack before choosing a navigation change. |
 | 144 | `AgreementCompletionReview.tsx:19` retains its custom page-sheet modal | Still present; consolidate after preserving the complete confirm/cancel contract. |
 | 145 | Worker `profil/razgovor.tsx:152` can retire the view while preserving the pending journal | Fixed in source with predecessor-failing tests; actual provider/phone acceptance remains separate. |
-| 146 | `dogovor/[id].tsx:173,291,416` disables primary action while recovery sits below | Still present; surface reason/loading/recovery beside the affected action. |
+| 146 | R9 surfaces reason/loading/recovery beside the affected action; completion loading has its own display owner | Fixed in source/tests; existing action admission/readback remain authoritative. Native acceptance is separate. |
 | 167 | Root `_layout.tsx:131` selects no transition under reduced motion | Fixed in source; live preference behavior tested. |
-| 168 | `AiConversationShell.tsx:70,133,239` animates persisted turns after stream replacement | Still present; measure and avoid reintroducing an already visible answer. |
+| 168 | R8 `useConversationArrival.ts` treats loaded history and preview/stream replacement separately | Fixed in source/tests; only genuinely arriving turns enter. Native stream-to-record timing remains to be observed. |
 | 169 | `calendarPresentation.ts:14,54` allocates formatters repeatedly | Pattern present; no measured major lag. Profile representative native calendar data first. |
 | 170 | `AgreementChat.tsx:186,254` redraws an unpaged message ScrollView with draft changes | Pattern present; profile realistic long history and keyboard latency, then bound/virtualize without breaking recovery. |
 
-Next client priority is action/recovery visibility and return navigation, then AI response announcements and motion,
-then wording/time/sheet consistency. Unprofiled performance claims are not accepted as measured defects. The older
+Next client priority is action/recovery visibility and return navigation, then wording/time/sheet consistency.
+AI announcements and arrival ownership are implemented in R8. Unprofiled performance claims are not accepted as measured defects. The older
 R6 severity labels do not automatically make every wording or styling mismatch a release blocker.
 
 ## 1. Audit (24. sep, merenje na `724f4ed1`)

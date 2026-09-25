@@ -1,5 +1,36 @@
 # USKOČI — repository entry map
 
+R10 HOME AND DISCOVERY (2026-09-25): app source `0f4d7644`. Read `docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md` and its receipt.
+Home uses an agenda card with unchanged time/person facts; map search, attribution and preview/list heights adapt
+to narrow/large-text layouts; navigation keeps whole labels and selected state. Internal Home fixtures are inert;
+the chat fixture now matches the real keyboard origin. Types and 312 suites / 6,067 tests pass with the existing
+teardown warning. Initial APK `36112841705` exposed the large-text filter footer; correction APK `36115051955` is attested/installed, with normal and enlarged-text filter controls observed. Extreme-text chat keyboard composition remains open. No server, payment,
+provider, migration or dependency change. Preserve the owner's larger-batch working preference.
+
+R9 DECISIONS AND MESSAGES (2026-09-25): source `ad0b16ca`, same UI unification branch. Read
+`docs/implementation/design-system/r9-decisions-and-messages-20260925/REPORT.md` and its receipt.
+Task detail leads with work and truthful terms; human chat uses a full-width composer and distinct speaker surfaces.
+Initial APK `36107782918` confirmed task detail and AI latest-message return, but exposed a clipped recovery control.
+Correction keeps both actions outside a measured message viewport. Types and 310 suites / 6,031 tests pass
+(existing teardown warning). Correction APK `36110012089` is attested/installed; recovery actions fit normal and large text. R10 observed the normal chat keyboard after the fixture-origin correction; extreme-text keyboard composition remains open.
+No server, payment, provider or dependency change.
+
+R8 AI CONVERSATION EXPERIENCE (2026-09-25): source `0976b373`, same UI unification branch. Read
+`docs/implementation/design-system/r8-ai-conversations-20260925/REPORT.md` and the root master plan's R8 section.
+Task and worker conversations now share a full-width composer, adaptive illustrated summaries, clearer speaker
+identity and latest-message navigation. Worker review preserves every frozen fact in open sections; completed
+answers announce once without re-entering streamed/history rows. Owner refinement adds mint ground, nuanced white
+surfaces, forest user bubbles, illustrated openings and a scrollable summary for very large text/short heights.
+Types and 309 suites / 6,016 tests pass with the existing teardown warning. Final combined emulator APK run
+`36105043985` is attested and installed on the emulator. Bounded welcome/thread/review/recovery and large-text
+observations and bounded docked-keyboard checks are recorded; phone and screen-reader acceptance remain pending. R8's return shortcut
+reaches the final answer but can remain visible; R9 carries the terminal-scroll correction. The earlier `5da4bb6e`
+APK exposed the large-text crowding corrected in `0976b373`.
+No server, provider/prompt, microphone, payment, migration or dependency change. Do not equate text voice mode
+with spoken AI answers. Preserve the owner's larger-batch preference and the existing recovery/ownership guards.
+Latest owner design direction supersedes old white-only/shadow prohibitions: white can be beautiful with depth
+and tonal layers; each screen must be composed for its purpose. The current master-plan checkpoint records this.
+
 R7 CLIENT COHESION (2026-09-25): current app source `43535736`, continuing the R6 recovery on
 `work/uskoci-ui-unification-20260924`. Read root `USKOCI_MASTER_PLAN_DIZAJNA.md`'s current checkpoint and
 `docs/implementation/design-system/r7-cohesion-20260925/REPORT.md` / `RECEIPT.json`. Place checkboxes removed;

@@ -11,6 +11,28 @@ of app completion from counts of migrations, files or closed findings.
 
 ## Current anchors
 
+**R10 Home and Discovery — 2026-09-25.** Source `0f4d7644`: agenda-led Home, full-width adaptive map search,
+independent attribution, bounded scrollable previews/oversized headers, and measured navigation label clearance.
+Types and 312 suites / 6,067 tests pass. Initial APK `36112841705` exposed the large-text filter footer; correction APK `36115051955` is attested/installed, with normal and enlarged-text filter controls observed. Extreme-text chat keyboard composition remains open. Read
+`design-system/r10-home-and-discovery-20260925/REPORT.md`. No DEV/Edge/payment/provider changes.
+
+**R9 decisions and messages — 2026-09-25.** Source `ad0b16ca`: task detail groups the decision facts,
+Agreement recovery stays beside the action, and human chat uses a full-width composer and distinct speaker surfaces.
+Initial APK `36107782918` confirmed task detail at normal/large text and the corrected AI return shortcut; it exposed
+clipped recovery controls. The correction measures only the message viewport, keeping both actions outside it.
+Types and 310 suites / 6,031 tests pass (existing teardown warning). Correction APK `36110012089` is attested/installed; its bounded recovery checks pass. R10 observed the normal chat keyboard after the fixture-origin correction; extreme-text keyboard composition remains open. Read
+`design-system/r9-decisions-and-messages-20260925/REPORT.md`; native acceptance remains separate from source.
+
+**R8 conversation UI — 2026-09-25.** App source `0976b373`: unified task/worker composer, compact live summaries,
+clearer welcome/thread, explicit return to latest message, once-per-answer announcements and illustrated worker
+review, nuanced white/mint surfaces and illustrated openings. Very large text/short heights move the summary
+into the scroll. Types and 309 suites / 6,016 tests pass (existing teardown warning). APK run `36105043985` is
+attested and installed on the emulator. Bounded welcome/thread/recovery/worker-review and 320 dp/font 2 evidence:
+`design-system/r8-ai-conversations-20260925/REPORT.md`. The shortcut reaches the newest answer but can remain
+visible; R9 corrects terminal-scroll tracking and observed its disappearance. Bounded docked-keyboard composition
+is recorded, while full-answer scrolling at large text, physical phone and actual screen-reader delivery remain open. Provider behavior, speech capture and full voice answers were not changed or exercised.
+Initial APK `5da4bb6e` exposed the large-text crowding corrected in `0976b373`.
+
 **Client continuation — 2026-09-25.** Start with the current checkpoint in root
 `USKOCI_MASTER_PLAN_DIZAJNA.md`, then `design-system/r7-cohesion-20260925/REPORT.md` for verification.
 Recovered source `b9aed185` has an attested emulator APK and five matched CI proofs; its selected gallery evidence
