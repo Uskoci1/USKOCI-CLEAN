@@ -7,7 +7,7 @@ import { countryCode } from '../../lib/market';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { sys, card, inset, field } from '../system/tokens';
+import { sys, card, floating, inset, field } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
@@ -31,15 +31,15 @@ export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAi
     accessibilityState={{disabled}} disabled={disabled} onPress={review} haptic={disabled?'none':'select'} scaleTo={0.99} hitSlop={0}
     style={[s.card,compact&&s.cardCompact]}>
     <View style={s.previewHead}>
-      <FactArt kind="tasks" size={28} />
+      <View style={[s.previewIcon,compact&&s.previewIconCompact]}><FactArt kind="tasks" size={28} /></View>
       <View style={[s.grow,s.previewSummary]}>
-        <T variant="cardTitleCompact" numberOfLines={compact?1:2} style={s.ink}>{skills}</T>
+        <T variant="cardTitleCompact" numberOfLines={compact?1:2} style={s.skillHeading}>{skills}</T>
         {compact?<>
           <T variant="meta" tone="muted" numberOfLines={1}>{place} · {team}</T>
           <T variant="meta" numberOfLines={1} style={disabled?s.muted:s.reviewLabel}>Pregledaj profil</T>
         </>:null}
       </View>
-      {compact?<CaretRight size={20} weight="bold" color={disabled?sys.color.muted:sys.color.green} />:null}
+      {compact?<ReviewCue disabled={disabled}/>:null}
     </View>
     {!compact?<>
       <View style={s.previewFacts}>
@@ -48,10 +48,15 @@ export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAi
       </View>
       <View style={s.reviewLink}>
         <T variant="bodyStrong" style={[s.grow,disabled?s.muted:s.reviewLabel]}>Pregledaj profil</T>
-        <CaretRight size={20} weight="bold" color={disabled?sys.color.muted:sys.color.green} />
+        <ReviewCue disabled={disabled}/>
       </View>
     </>:null}
   </Press>;
+}
+function ReviewCue({disabled}:{disabled:boolean}){
+  return <View style={[s.reviewCue,disabled&&s.reviewCueDisabled]}>
+    <CaretRight size={18} weight="bold" color={disabled?sys.color.muted:sys.color.onGreen}/>
+  </View>;
 }
 function PreviewFact({art,children}:{art:FactArtKind;children:string}){
   return <View style={s.previewFact}><FactArt kind={art} size={24}/><T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
@@ -61,7 +66,8 @@ function Row({label,value,quiet=false}:{label:string;value:string;quiet?:boolean
 }
 function ReviewSection({title,art,children}:{title:string;art:FactArtKind;children:ReactNode}){
   return <View style={s.reviewSection}>
-    <View style={s.sectionHead}><FactArt kind={art} size={28}/><T accessibilityRole="header" variant="heading" style={[s.grow,s.ink]}>{title}</T></View>
+    <View style={s.sectionHead}><View style={s.sectionIcon}><FactArt kind={art} size={28}/></View>
+      <T accessibilityRole="header" variant="heading" style={[s.grow,s.skillHeading]}>{title}</T></View>
     <View style={s.reviewRows}>{children}</View>
   </View>;
 }
@@ -70,7 +76,8 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
   const p=review.profile;
   return <View style={s.review}>
     <View style={s.reviewIntro}>
-      <View style={s.sectionHead}><FactArt kind="person" size={32}/><T accessibilityRole="header" variant="cardTitle" style={[s.grow,s.ink]}>{p.displayName||'Radni profil'}</T></View>
+      <View style={s.sectionHead}><View style={s.introIcon}><FactArt kind="person" size={32}/></View>
+        <T accessibilityRole="header" variant="title" style={[s.grow,s.skillHeading]}>{p.displayName||'Radni profil'}</T></View>
       <T variant="note" tone="muted">Proveri sve podatke. Završno dugme prihvata ovaj pregled i čuva profil.</T>
     </View>
     {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24}/>
@@ -145,18 +152,27 @@ const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   muted:{color:sys.color.muted},
   grow:{flex:1,minWidth:0},
-  card:{...card,padding:sys.space.base,gap:sys.space.sm,minHeight:48},
+  card:{...card,...floating,padding:sys.space.base,gap:sys.space.sm,minHeight:48,
+    backgroundColor:sys.conversation.summary,borderColor:sys.conversation.edge},
   cardCompact:{padding:sys.space.md,borderRadius:sys.radius.cardCompact},
   previewHead:{flexDirection:'row',alignItems:'center',gap:sys.space.md},
+  previewIcon:{width:40,height:40,borderRadius:sys.radius.control,backgroundColor:sys.conversation.iconWell,alignItems:'center',justifyContent:'center'},
+  previewIconCompact:{width:36,height:36},
   previewSummary:{gap:sys.space.xs},
+  skillHeading:{color:sys.color.green},
   previewFacts:{gap:sys.space.sm},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewLink:{minHeight:24,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
-  reviewLabel:{color:sys.color.green},
+  reviewLink:{minHeight:28,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
+  reviewLabel:{color:sys.color.green,fontWeight:'700'},
+  reviewCue:{width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.green,alignItems:'center',justifyContent:'center'},
+  reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   review:{gap:sys.space.xl},
-  reviewIntro:{gap:sys.space.sm},
+  reviewIntro:{gap:sys.space.md,padding:sys.space.base,borderRadius:sys.radius.card,
+    backgroundColor:sys.conversation.summary,borderWidth:1,borderColor:sys.conversation.edge},
+  introIcon:{width:48,height:48,borderRadius:sys.radius.control,backgroundColor:sys.conversation.iconWell,alignItems:'center',justifyContent:'center'},
   reviewSection:{gap:sys.space.md},
   sectionHead:{flexDirection:'row',alignItems:'center',gap:sys.space.md},
+  sectionIcon:{width:36,height:36,borderRadius:sys.radius.control,backgroundColor:sys.conversation.ground,alignItems:'center',justifyContent:'center'},
   reviewRows:{gap:sys.space.base},
   reviewNotice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft,flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   section:{...card,gap:12},

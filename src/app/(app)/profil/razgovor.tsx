@@ -258,6 +258,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
     openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']}
+    openingArts={['tool', 'vehicle', 'users']}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}

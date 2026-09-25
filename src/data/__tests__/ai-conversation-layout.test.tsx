@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { VoiceSnapshot } from '../../features/voice/holdToTalk';
 let mockHeight = 844, mockScale = 1, mockReduced = false;
 const mockKeyboard: Record<string, () => void> = {};
@@ -75,6 +75,18 @@ it('hides the pinned area entirely when there is nothing yet to pin',async()=>{
   const p=props();p.card=jest.fn(()=>null);
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
   expect(tree.root.findAllByProps({testID:'ai-pinned-card'})).toHaveLength(0);
+});
+it.each([{height:844,scale:2},{height:420,scale:1}])('keeps one reachable review inside the scroll on constrained geometry %o',async({height,scale})=>{
+  mockHeight=height;mockScale=scale;const p=props(), review=jest.fn();
+  p.card=()=> <View testID="review-target" onTouchEnd={review}/>;
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const thread=tree.root.findByProps({testID:'ai-conversation-thread'});
+  expect(tree.root.findAllByProps({testID:'ai-pinned-card'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({testID:'review-target'})).toHaveLength(1);
+  await act(async()=>thread.findByProps({testID:'review-target'}).props.onTouchEnd());
+  expect(review).toHaveBeenCalledTimes(1);
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.editable).toBe(true);
+  expect(p.onSend).not.toHaveBeenCalled();
 });
 it('does not offer openings once the conversation has started, or while it cannot be edited',async()=>{
   const p=props();p.openings=['Treba mi prevoz'];p.messages=[{id:'m1',fromAi:false,body:'Treba mi krečenje'}];

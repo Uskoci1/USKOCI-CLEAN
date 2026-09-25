@@ -83,6 +83,8 @@ type RootChrome = {
 };
 type DetailChrome = {
   variant: 'detail';
+  /** AI conversations keep one continuous tinted canvas; all other chrome keeps the established surface. */
+  tone?: 'conversation';
   onBack: () => void;
   /** The content's name. Omit it when the content carries its own large title (a task, a person). */ title?: string;
   /** A quiet line under the title: a state, a count. */ subtitle?: string;
@@ -128,7 +130,7 @@ export function ScreenChrome(props: ScreenChromeProps) {
 
   const { title, subtitle, titleVisible } = props;
   const scrolled = titleVisible !== undefined;
-  return <View style={s.bar}>
+  return <View style={[s.bar, props.tone === 'conversation' && {backgroundColor:sys.conversation.ground}]}>
     <ChromeIconButton label={props.backLabel ?? 'Nazad'} icon={ArrowLeft} disabled={props.disabled} onPress={props.onBack} />
     {props.lead}
     <View style={[s.copy, scrolled && s.scrolledCopy]}>

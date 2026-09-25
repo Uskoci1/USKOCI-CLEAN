@@ -89,7 +89,8 @@ export default function DizajnAi() {
     { key: 'welcome', title: 'Novi zadatak · početak', render: () => intake({ conversation: conversation({ conversationId: '' }) }) },
     { key: 'worker-welcome', title: 'Radni profil · početak', render: () => <AiConversationShell conversationKey="gallery-worker-welcome"
       title="Tvoj radni profil" welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
-      openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']} placeholder="Opiši šta radiš" card={() => null}
+      openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']} openingArts={['tool', 'vehicle', 'users']}
+      placeholder="Opiši šta radiš" card={() => null}
       messages={[]} value={value} onChange={setValue} canEdit canSend={!!value.trim()} pending={false} busy={false} onSend={noop}
       onBack={back} voice={voice()} /> },
     { key: 'thread', title: 'Novi zadatak · razgovor i živa kartica', render: () => intake({ conversation: running, canReview: true, showAbandon: true,

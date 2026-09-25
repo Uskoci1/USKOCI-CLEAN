@@ -7,7 +7,7 @@ import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { Press } from '../Press';
-import { brandAction, cardCompact, sys } from '../system/tokens';
+import { brandAction, cardCompact, floating, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
@@ -48,7 +48,7 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 }) {
   const primary = recover ? { label: 'Otvori prethodni razgovor', onPress: recover } : retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined;
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
-    <ScreenChrome variant="detail" onBack={back} />
+    <ScreenChrome variant="detail" tone="conversation" onBack={back} />
     <View style={s.unavailable}>
       {loading ? <View style={s.loading}>
         <View style={s.unavailableMark}><FactArt kind="chat" size={36} /></View>
@@ -173,7 +173,7 @@ export function IntakePresentation(props: Props) {
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
     welcomeDetail="Opiši posao svojim rečima. Zajedno ćemo složiti detalje, a pre objave sve pregledaš."
-    openings={OPENINGS} placeholder="Opiši šta ti treba"
+    openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
     onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={props.voice}
     attach={props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
@@ -215,10 +215,10 @@ export function IntakePresentation(props: Props) {
 }
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: sys.color.surface },
+  canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
-  // The one card of the app (`cardCompact`: white, the card edge, no shadow), with the task card's rhythm.
-  card: { ...cardCompact, gap: 8 },
+  // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.
+  card: { ...cardCompact, ...floating, gap: 8, backgroundColor: sys.conversation.summary, borderColor: sys.conversation.edge },
   cardCompact: { paddingVertical: 12, gap: 4 },
   compactTitle: { ...sys.type.cardTitleCompact },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },

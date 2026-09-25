@@ -8,6 +8,7 @@ import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { BrandMark } from '../entry/BrandAssets';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
@@ -34,6 +35,8 @@ export type AiConversationShellProps = {
   placeholder?: string;
   /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
   openings?: readonly string[];
+  /** Illustrations describe the opening's task; they add no command or domain state. */
+  openingArts?: readonly FactArtKind[];
   /** A sentence already sent and not yet read back from the server. It belongs on screen. */
   sentMessage?: string | null;
   /** Only real server text deltas belong here. No typewriter animation. */
@@ -44,8 +47,8 @@ export type AiConversationShellProps = {
  * The AI conversation (owner step 6, 2026-09-24, after the owner's Gemini reference): one chrome (the arrow back, the
  * title, "···"), the live card pinned above an independent thread, and a floating composer.
  *
- * - The assistant speaks as plain, large, calm text on white, under a small USKOČI mark; the person's own words are
- *   compact pills on the right in the pale green. Nothing is typed out that has not arrived: streamed text is the
+ * - The assistant speaks on a lightly raised white surface under the USKOČI mark; the person's own words are
+ *   forest-green bubbles on the right. Nothing is typed out that has not arrived: streamed text is the
  *   server's own deltas, and while nothing has arrived three dots say that an answer is being written.
  * - The composer gives text its full width; attachments and speech sit in a separate toolbar, with send at the right.
  *   Empty input offers voice mode, which still returns text. A send that cannot go now is disabled and explains why.
@@ -70,6 +73,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
   const compact = keyboard || height < 760 || textScale >= 1.3 || p.pending;
+  // On a narrow display with very large text the summary can consume half the usable screen.
+  // Keep the same review target in the scroll, rather than reserving that space above every message.
+  const inlineSummary = textScale >= 1.6 || height < 500;
   const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
@@ -98,11 +104,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
   return <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScreenChrome variant="detail" onBack={p.onBack} title={p.title}
+      <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." icon={DotsThree} onPress={p.onOptions} /> : undefined} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
-      {pinned ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardAreaCompact]}>{pinned}</View> : null}
+      {pinned && !inlineSummary ? <View testID="ai-pinned-card" style={[s.cardArea, compact && s.cardAreaCompact]}>{pinned}</View> : null}
       <View style={s.flex}>
       <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
@@ -114,16 +120,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
           // React updates only at this boundary, never once per scrolling frame.
           if (nearBottom.current !== atBottom) { nearBottom.current = atBottom; setReadingEarlier(!atBottom); }
         }} scrollEventThrottle={100}
+        onLayout={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}
         // With no messages the intro is the entire content, and scrolling to its end cuts its first line off the top.
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
+        {pinned && inlineSummary ? <View testID="ai-inline-card">{pinned}</View> : null}
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
           <AssistantPresence reduced={reduced} />
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>
-            {p.openings.map(opening => <Press key={opening} accessibilityRole="button" accessibilityLabel={opening}
+            {p.openings.map((opening, index) => <Press key={opening} accessibilityRole="button" accessibilityLabel={opening}
               accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
               onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }}>
+              {p.openingArts?.[index] ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.openingArt}>
+                <FactArt kind={p.openingArts[index]} size={28} /></View> : null}
               <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.green} /></Press>)}
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
@@ -233,7 +243,8 @@ function AssistantPresence({ reduced }: { reduced: boolean }) {
   return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
     {/* Under reduced motion the halo is a plain view: nothing here animates. */}
     {reduced ? <View style={s.presenceHalo} /> : <Animated.View style={[s.presenceHalo, halo]} />}
-    <View style={s.presenceDisc}><BrandMark size={40} /></View>
+    <View style={s.presenceDisc}><BrandMark size={48} /></View>
+    <View style={s.presenceAccent} />
   </View>;
 }
 
@@ -250,7 +261,7 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
 }
 
 /**
- * One turn. The assistant's is plain text under the mark, the width of the thread; the person's is a pill on the right.
+ * One turn. The assistant has a reading surface under the mark; the person's bubble is aligned right.
  * Persisted turns do not rerender for each keystroke or incoming chunk. Side, colour and shape say who is speaking; the
  * labels are for a screen reader.
  */
@@ -264,35 +275,40 @@ const Turn = memo(function Turn({ fromAi, body, reduced }: ConversationMessage &
 });
 
 const s = StyleSheet.create({
-  canvas: { flex: 1, backgroundColor: sys.color.surface }, flex: { flex: 1, minHeight: 0 },
+  canvas: { flex: 1, backgroundColor: sys.conversation.ground }, flex: { flex: 1, minHeight: 0 },
   cardArea: { paddingHorizontal: sys.space.lg, paddingTop: 2, paddingBottom: sys.space.md },
   cardAreaCompact: { paddingTop: 0, paddingBottom: sys.space.sm },
-  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64, gap: 28 },
+  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64, gap: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
-  presence: { width: 84, height: 84, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
-  presenceHalo: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: sys.color.greenSoft },
-  presenceDisc: { width: 64, height: 64, borderRadius: 32, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
+  presence: { width: 94, height: 94, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
+  presenceHalo: { position: 'absolute', width: 94, height: 94, borderRadius: 47, backgroundColor: sys.conversation.iconWell },
+  presenceDisc: { width: 76, height: 76, borderRadius: 26, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
+  presenceAccent: { position: 'absolute', right: 4, top: 6, width: 16, height: 16, borderRadius: 8,
+    backgroundColor: sys.color.orange, borderWidth: 3, borderColor: sys.conversation.ground },
   welcomeTitle: { ...sys.type.hero, color: sys.color.green, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   openings: { gap: sys.space.sm, marginTop: sys.space.sm },
-  // An opening is an action that is not the screen's primary: white with a green label and the hairline.
+  // Three illustrated ways into the person's task, not generic command chips.
   opening: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: sys.space.sm,
-    borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+    borderRadius: 20, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
+  openingArt: { width: 36, height: 36, borderRadius: 12, backgroundColor: sys.conversation.iconWell,
+    alignItems: 'center', justifyContent: 'center' },
   openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
-  // The assistant: plain, large and calm, the whole width of the thread, no bubble.
-  assistant: { gap: 10, alignSelf: 'stretch' },
+  // A quiet white reading surface against the tinted canvas; the logo identifies the speaker.
+  assistant: { ...floating, gap: 10, alignSelf: 'stretch', padding: 16, borderRadius: sys.radius.card,
+    borderBottomLeftRadius: 8, backgroundColor: sys.conversation.surface },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   markName: { color: sys.color.green, fontWeight: '600' },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
-  // The person: a compact pill on the right, in the pale green.
+  // Own words have a distinct alignment and high-contrast forest fill.
   person: { alignSelf: 'flex-end', maxWidth: '90%', marginLeft: 24, paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.color.greenSoft },
-  personText: { ...sys.type.body, color: sys.color.ink },
+    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.conversation.user },
+  personText: { ...sys.type.body, color: sys.conversation.onUser },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
-  sending: { opacity: 0.6 },
+  sending: { opacity: 0.85 },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
   typing: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap', minHeight: 28, paddingLeft: 2 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },
@@ -304,11 +320,11 @@ const s = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
   latestText: { color: sys.color.green, fontWeight: '600' },
-  footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.color.surface },
+  footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
   // The draft uses the full width; controls never squeeze the sentence between three competing circles.
   pill: { paddingHorizontal: 8, paddingVertical: 6,
-    borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
+    borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
   pillFocused: { borderColor: sys.color.green },
   composerTools: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toolsStart: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },

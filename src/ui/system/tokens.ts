@@ -87,6 +87,17 @@ export const sys = {
      */
     onDark: palette.onDark,
   },
+  /** Conversation surfaces: owner 25 September asks for youthful depth and nuanced white, composed for each purpose.
+   * Scoped here so other accepted screens keep their current values until their own composition is updated. */
+  conversation: {
+    ground: '#EBF4EF',
+    surface: '#FAFDFB',
+    summary: '#DDEEE4',
+    edge: '#C1D9CD',
+    user: '#07543F',
+    onUser: '#FFFFFF',
+    iconWell: '#D2ECDD',
+  },
   /** Public map geography: colors only, independent from the interactive brand markers and their states. */
   map: {
     ground: '#F4F6F2',
