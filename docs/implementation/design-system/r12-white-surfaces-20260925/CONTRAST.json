@@ -1,7 +1,8 @@
 {
   "method": "WCAG relative sRGB luminance, threshold 4.5:1 for normal text; opaque token pairs only.",
   "limits": "Does not certify every composited native pixel, disabled opacity, map labels, photographs or screen-reader behavior.",
-  "source_sha256": "b1ffc160ab23a2c5812179c2f1486206644197ec11ad836bbe9957737c002878",
+  "source_lf_sha256": "b1ffc160ab23a2c5812179c2f1486206644197ec11ad836bbe9957737c002878",
+  "source_hash_normalization": "UTF-8 text with LF line endings; Windows checkout can use CRLF.",
   "white_reading_surfaces": true,
   "neutral_control_wells": true,
   "auth": "authTheme aliases sys; white forms, green actions, dark words, white action labels.",

@@ -24,6 +24,8 @@ R12 is the current surface refinement: `docs/implementation/design-system/r12-wh
 Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth
 forms. The 22 measured text pairs pass AA; completed tests and exact-build/native evidence belong to its receipt.
 This does not close the R11 composition follow-ups or functional/store gates below.
+Source 21f8a0cb: types and 313 suites / 6,083 tests pass. APK 36128635882 is attested/installed. Nine bounded
+emulator views are recorded (seven inert, two read-only); authentication/recovery native context and phone acceptance remain open.
 
 R11 continuation: `docs/implementation/design-system/r11-screen-composition-20260925/SCREEN_AUDIT.md` now maps all
 40 active destinations and five redirects, including each control/search purpose, states and return path. The

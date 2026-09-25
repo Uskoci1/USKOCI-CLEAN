@@ -7,6 +7,8 @@ R8 mint-canvas and historical ivory prescriptions below. Auth forms now read the
 and water, meaningful warning states and colored artwork remain. Preserve behavior, normal fluid motion and the
 R11 screen composition/inventory. Checks, APK and bounded native observations must be read from this batch's
 evidence, never inferred from a palette change. No server, payments, provider or dependency change.
+Source 21f8a0cb passed types and 313 suites / 6,083 tests. APK 36128635882 is attested and installed; nine bounded
+emulator views are recorded in NATIVE_REVIEW.md. Auth/recovery native context and physical-phone acceptance remain open.
 
 R11 SCREEN COMPOSITION (2026-09-25): read `docs/implementation/design-system/r11-screen-composition-20260925/REPORT.md`
 and `SCREEN_AUDIT.md`. The source inventory covers 40 active destinations and five redirects; fixtures are not live

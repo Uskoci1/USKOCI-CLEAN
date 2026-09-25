@@ -38,8 +38,9 @@ Initial full Jest run: 311/313 suites and 6,081/6,083 tests passed. Two assertio
 switch track and green-tinted entry shadow. Their expected colors were updated for the owner's decision, retaining
 the complete accessibility, state and late-animation-clock assertions. Animated and settled entry shadows now use
 the same neutral ink. Final types are clean and all **313 suites / 6,083 tests pass** (116.024 seconds), with the existing Jest worker
-teardown warning. `CHECKS.json` records the commands. Exact-source APK/native acceptance is pending at source commit;
-the receipt will record observed results separately.
+teardown warning. `CHECKS.json` records the commands. APK run **36128635882** passed, both package attestations match source **21f8a0cb** and the
+APK digest, and the APK was installed with data preserved on the emulator. Nine bounded native views were read;
+see `NATIVE_REVIEW.md`, `CAPTURES.json` and `RECEIPT.json`. No physical-phone acceptance is claimed.
 
 ## Scope limits and next work
 
