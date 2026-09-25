@@ -5,7 +5,7 @@ import type { CoarsePosition, WorkerLocation, WorkerLocationInput } from '../../
 import { workerLocationClientService } from '../../../data/locationClientService';
 import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
-import { LocationConfirmation, LocationField, locationStyles } from '../../../ui/location/LocationControls';
+import { LocationField, locationStyles } from '../../../ui/location/LocationControls';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
 import { T } from '../../../ui/Text';
@@ -19,7 +19,7 @@ import { WorkerAreaSearch } from '../../../ui/location/WorkerAreaSearch';
 import { WorkerProfileFrame } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import type { createConfiguredLocationResolver } from '../../../data/configuredLocationResolver';
 
-/** The form's two parts: what is filled in, and the confirmation with the save that stay above the keyboard. */
+/** The form's two parts: fields and the save action that stays above the keyboard. */
 export type WorkerLocationParts = { body: ReactNode; footer: ReactNode };
 type WorkerLocationFormProps = { location: WorkerLocation; busy: boolean; uncertain: boolean;
   resolver?: Pick<ReturnType<typeof createConfiguredLocationResolver>, 'search' | 'cancel'>; onSave: (value: WorkerLocationInput) => void;
@@ -53,7 +53,6 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const [city, setCity] = useState(location.city);
   const [country, setCountry] = useState<string | null>(location.operatingCountryCode);
   const [radius, setRadius] = useState(String(location.radiusKm));
-  const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState(false);
   const [position, setPosition] = useState(location.approximatePosition);
   const [mapEpoch, setMapEpoch] = useState(0);
@@ -61,26 +60,26 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const disabled = busy || uncertain;
   const changePlace = (change: () => void) => {
     if (disabled) return;
-    change(); setPosition(null); setMapEpoch(value => value + 1); setConfirmed(false); setError(false);
+    change(); setPosition(null); setMapEpoch(value => value + 1); setError(false);
   };
-  // Typing a radius and tapping one run the same three steps: a new distance needs a fresh confirmation.
-  const changeRadius = (text: string) => { setRadius(text); setConfirmed(false); setError(false); };
+  // Typing a radius and tapping a preset both prepare it; pressing save confirms the whole area.
+  const changeRadius = (text: string) => { setRadius(text); setError(false); };
   // Right after a confirmed save the form is what was saved; until something changes the footer says so, instead of an
   // empty confirmation and a grey save that read as "confirm it again" (review of step 9, 2026-09-24).
   const settled = saved && city === location.city && country === location.operatingCountryCode && radius === String(location.radiusKm)
     && samePosition(position, location.approximatePosition);
   const submit = () => {
-    if (disabled || reading || settled || !confirmed || !selectableCountry(countryOptions.countries, country)) return;
+    if (disabled || reading || settled || !selectableCountry(countryOptions.countries, country)) return;
     const value = normalizeWorkerLocation({ operatingCountryCode: country, city: city.trim(), radiusKm: /^\d+$/.test(radius) ? Number(radius) : NaN,
       approximatePosition: position });
     if (!value) { setError(true); return; }
     onSave(value);
   };
   const selectable = selectableCountry(countryOptions.countries, country);
-  // A grey save says why (owner rule, 2026-09-23): a country that cannot be chosen, then a missing confirmation, then a
+  // A grey save says why (owner rule, 2026-09-23): a country that cannot be chosen, then a
   // read of the saved area that is still running (a save during it would be refused without a word). Once saved, the
   // line above the button already says why.
-  const reason = settled ? null : !selectable ? 'Izaberi dostupnu državu.' : !confirmed ? 'Prvo potvrdi područje.'
+  const reason = settled ? null : !selectable ? 'Izaberi dostupnu državu.'
     : reading ? 'Učitavamo sačuvano područje…' : null;
   const body = <View style={{ gap: 24 }}>
     {/* Privacy wording, word for word. "Izaberi područje u kom radiš." and a second title under the bar are gone. */}
@@ -107,16 +106,16 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
       <T variant="note" tone="muted">Označi centar područja rada. Čuva se približna tačka, zaokružena na oko kilometar, bez kućne adrese.</T>
       <WorkerAreaSearch city={city} countryCode={country} disabled={disabled} resolver={resolver}
         scopeKey={`${location.accountId}:${location.profileId}:${location.revision}:${mapEpoch}:${searchEpoch}`}
-        onChoose={next => { if (!disabled) { setPosition(next); setConfirmed(false); setError(false); } }} />
+        onChoose={next => { if (!disabled) { setPosition(next); setError(false); } }} />
       <ResolvedPinMap key={mapEpoch} coarse position={position} disabled={disabled}
         scopeKey={`${location.accountId}:${location.profileId}:${location.revision}:${mapEpoch}`}
         onChoose={next => { if (!disabled) {
           const coarse = displayedPinPosition(next, true);
           if (!coarse) return;
-          setPosition(coarse); setConfirmed(false); setError(false); setSearchEpoch(value => value + 1);
+          setPosition(coarse); setError(false); setSearchEpoch(value => value + 1);
         } }} />
       {position ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
-        onPress={() => { if (!disabled) { setPosition(null); setConfirmed(false); setMapEpoch(value => value + 1); } }} /> : null}
+        onPress={() => { if (!disabled) { setPosition(null); setMapEpoch(value => value + 1); } }} /> : null}
     </View> : null}
     {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada i ceo broj od 1 do 200 km.</T> : null}
   </View>;
@@ -126,11 +125,11 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const footer = <>
     {settled && !retry ? <View style={s.saved}><FactArt kind="check" size={20} />
       <T accessibilityRole="alert" tone="success" style={s.grow}>Područje rada je sačuvano.</T></View>
-      : <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>Potvrđujem područje u kom mogu da radim.</LocationConfirmation>}
+      : null}
     {retry ? <V2Action label="Učitaj sačuvano stanje" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
       error={refusal ?? undefined} />
       : <V2Action label="Sačuvaj područje rada" onPress={submit} loading={busy} style={brandAction}
-        disabled={disabled || reading || settled || !confirmed || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
+        disabled={disabled || reading || settled || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
   </>;
   return children({ body, footer });
 }

@@ -14,7 +14,7 @@ jest.mock('expo-router', () => ({ router: {}, useFocusEffect: (effect: () => unk
 // The old Button is gone (2026-09-24); the area search actions are V2Action, drawn here under the same name.
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationConfirmation: 'LocationConfirmation',
+jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField',
   LocationScreen: 'LocationScreen', locationStyles: { section: {}, notice: {} } }));
 jest.mock('../../ui/location/CountryField', () => ({ CountryField: 'CountryField', useCountryOptions: () => ({ countries: ['RS', 'BA'] }),
   selectableCountry: (_countries: unknown, country: string) => ['RS', 'BA'].includes(country) }));
@@ -44,7 +44,6 @@ const map = () => tree.root.findByType('PinMap' as React.ElementType);
 const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const press = async (label: string) => { await act(async () => { void button(label).props.onPress(); }); };
 const edit = async (label: string, value: string) => { await act(async () => field(label).props.onChangeText(value)); };
-const confirm = async () => { await act(async () => tree.root.findByType('LocationConfirmation' as React.ElementType).props.onChange(true)); };
 async function render(overrides: Partial<Props> = {}) {
   props = { location, busy: false, uncertain: false, onSave: jest.fn(), ...overrides };
   await act(async () => { tree = create(<WorkerLocationForm {...props} />); });
@@ -62,14 +61,14 @@ it('does not query on mount or typing and uses the production resolver only afte
   expect(text()).toContain('Pretraga područja još nije aktivirana');expect(props.onSave).not.toHaveBeenCalled();
 });
 
-it('sends only public city input and rounds candidates before Worker state/map, then requires global confirmation', async () => {
+it('sends only public city input and rounds candidates before Worker state/map, then saves only on the explicit save action', async () => {
   const search = resolver();await render({ resolver: search });await press('Pronađi područje za uneti grad');
   expect(search.search.mock.calls[0][0]).toEqual({ text: 'Novi Sad', countryCode: 'RS', scopeKey: expect.any(String) });
   expect(map().props.position).toEqual(location.approximatePosition);expect(props.onSave).not.toHaveBeenCalled();
   await press('Izaberi područje: Synthetic public city');
   expect(map().props.position).toEqual({ latitude: 44.12, longitude: 20.65 });
-  await press('Sačuvaj područje rada');expect(props.onSave).not.toHaveBeenCalled();
-  await confirm();await press('Sačuvaj područje rada');
+  expect(props.onSave).not.toHaveBeenCalled();
+  await press('Sačuvaj područje rada');
   expect(props.onSave).toHaveBeenCalledWith({ operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 25,
     approximatePosition: { latitude: 44.12, longitude: 20.65 } });
   expect(JSON.stringify((props.onSave as jest.Mock).mock.calls)).not.toMatch(/44\.123456|20\.654321|provider-precise-id|origin|address/);
@@ -80,7 +79,7 @@ it('radius edits preserve the base while city A-B-A clears it and rejects old ca
   expect(map().props.position).toEqual(location.approximatePosition);
   await press('Pronađi područje za uneti grad');const old = button('Izaberi područje: Synthetic public city').props.onPress;
   await edit('Grad ili mesto rada', 'Beograd');await edit('Grad ili mesto rada', 'Novi Sad');await act(async () => old());
-  expect(map().props.position).toBeNull();await confirm();await press('Sačuvaj područje rada');
+  expect(map().props.position).toBeNull();await press('Sačuvaj područje rada');
   expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Novi Sad', radiusKm: 40, approximatePosition: null }));
 });
 
@@ -99,7 +98,7 @@ it('manual map choice rounds before state and cancels an older search without le
   await act(async () => map().props.onChoose({ latitude: 43.876543, longitude: 21.123456 }));
   expect(map().props.position).toEqual({ latitude: 43.88, longitude: 21.12 });
   await act(async () => late.resolve(proposals));expect(button('Izaberi područje: Synthetic public city')).toBeUndefined();
-  await confirm();await press('Sačuvaj područje rada');
+  await press('Sačuvaj područje rada');
   expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ approximatePosition: { latitude: 43.88, longitude: 21.12 } }));
 });
 

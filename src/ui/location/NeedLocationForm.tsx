@@ -7,7 +7,7 @@ import { V2Action as Button } from '../v2/V2Action';
 import { brandAction, sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
 import { T } from '../Text';
-import { LocationChoice, LocationConfirmation, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
+import { LocationChoice, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
 import { CountryField, countryName, selectableCountry, useCountryOptions, type CountryOptions } from './CountryField';
 import { LocationPointEditor } from './LocationPointEditor';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
@@ -81,7 +81,6 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
   const [waypoints, setWaypoints] = useState<NeedTaskGeographyPoint[]>(current?.waypoints ?? []);
   const [address, setAddress] = useState(review.value.exactAddress ?? '');
   const [notes, setNotes] = useState(review.value.accessNotes ?? '');
-  const [confirmed, setConfirmed] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>(review.value.resolvedLocation?.points ?? []);
   const [pinEpoch, setPinEpoch] = useState(0);
@@ -90,7 +89,7 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
   const disabled = busy || uncertain || !review.editable;
   const change = (fn: () => void, invalidatePins = true) => {
     if (disabled) return;
-    fn(); setConfirmed(false); setInvalid(false);
+    fn(); setInvalid(false);
     if (invalidatePins) { setPoints([]); setPinEpoch(value => value + 1); setActiveSlot(null); setPendingPoint(false); }
   };
   function currentLocation() {
@@ -112,7 +111,7 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
     : slot === 'end' ? 'Odredište' : slot === 'serviceArea' ? 'Područje rada' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
   const selectedSlot = activeSlot && slots.includes(activeSlot) ? activeSlot : slots[0];
   function submit() {
-    if (disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)) return;
+    if (disabled || pendingPoint || !selectableCountry(countryOptions.countries, country)) return;
     if (!baseValue) { setInvalid(true); return; }
     const value = normalizeNeedLocation({ ...baseValue, resolvedLocation: mode !== 'REMOTE' && points.length ? {
       version: 1, binding: { taskCountryCode: baseValue.taskCountryCode, geography: baseValue.geography, exactAddress: baseValue.exactAddress }, points,
@@ -122,7 +121,7 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
   }
   const discardPending = () => { if (!disabled) { setPendingPoint(false); setPinEpoch(value => value + 1); } };
   const reason = saveBlockReason({ busy, uncertain, editable: review.editable, pendingPoint,
-    confirmed: reviewOnly || confirmed, countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) });
+    countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) });
 
   const body = <>
     {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na Zadatak.</T> : null}
@@ -194,15 +193,12 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
       </View>
     </>}
     {invalid ? <T accessibilityRole="alert" tone="danger">Unesi mesto za svaku potrebnu tačku. Ruta sa više stanica mora imati odredište ili bar jednu stanicu.</T> : null}
-    {!reviewOnly ? <LocationConfirmation checked={confirmed} disabled={disabled} onChange={setConfirmed}>
-      {mode === 'REMOTE' ? 'Potvrđujem da se Zadatak radi na daljinu.' : 'Javno mesto i privatni podaci su provereni.'}
-    </LocationConfirmation> : null}
   </>;
   // The one green action of the step, with its reason under it when it is grey (owner rule, 2026-09-23); while a point
   // waits for its confirmation, the one way to drop it stands right here, where the grey save is.
   const save = <>
-    <Button style={brandAction} label={reviewOnly ? 'Primeni izmenu mesta' : 'Potvrdi i sačuvaj mesto'} loading={busy}
-      disabled={disabled || pendingPoint || (!reviewOnly && !confirmed) || !selectableCountry(countryOptions.countries, country)}
+    <Button style={brandAction} label={reviewOnly ? 'Primeni izmenu mesta' : 'Sačuvaj mesto'} loading={busy}
+      disabled={disabled || pendingPoint || !selectableCountry(countryOptions.countries, country)}
       reason={reason} onPress={submit} />
     {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled} onPress={discardPending} /> : null}
     {!reason && !busy ? <T variant="note" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.'
@@ -217,14 +213,13 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
 
 /** Why the one save is grey, or null when it is live (or while it is at work: its spinner says so). */
 export function saveBlockReason(state: { busy: boolean; uncertain: boolean; editable: boolean; pendingPoint: boolean;
-  confirmed: boolean; countryChosen: boolean; countrySelectable: boolean }): string | null {
+  countryChosen: boolean; countrySelectable: boolean }): string | null {
   if (state.busy) return null;
   if (!state.editable) return 'Ovaj pregled više nije dostupan za izmene.';
   if (state.uncertain) return 'Prethodna radnja nije potvrđena. Učitaj sačuvano stanje pre novog pokušaja.';
   if (state.pendingPoint) return 'Potvrdi tačku na mapi, pa sačuvaj mesto.';
   if (!state.countryChosen) return 'Izaberi državu u „Država i način rada", pa sačuvaj mesto.';
   if (!state.countrySelectable) return 'Izabrana država još nije dostupna. Izaberi dostupnu u „Država i način rada".';
-  if (!state.confirmed) return 'Označi potvrdu iznad, pa sačuvaj mesto.';
   return null;
 }
 

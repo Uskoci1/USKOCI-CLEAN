@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-24T22:34:40Z",
+  "osvezeno": "2026-09-25T04:07:43Z",
   "grana": "HEAD",
-  "head": "b9aed185",
-  "head_poruka": "fix(ui): recover interrupted R6 map and agreement changes with verified integration",
+  "head": "aa71278c",
+  "head_poruka": "Merge origin/work/uskoci-ui-unification-20260924 (Codex R6 recovery) — take Codex's ResolvedPinMap; handoff note updated",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -338,7 +338,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "25.09. integracija prekinutog rada: Približna mapa prikazuje područje, uz čitljive izvore i odvojene dodirne površine. Kvačica potvrde još nije uklonjena. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: mesto zadatka prerađeno („Vide svi“ / „Samo u Dogovoru“). Odluka vlasnika 24.09: IZBACITI KVAČICU potvrde; „Sačuvaj mesto“ je potvrda (važi i za rad na daljinu i područje rada izvršioca). Nije urađeno. ",
+   "sledece": "25.09: dodatna kvačica je uklonjena; „Sačuvaj mesto“ potvrđuje izbor i klijent i dalje šalje confirmed: true. Važi za mesto zadatka, rad na daljinu i područje rada. Potvrda pomerene tačke, revizije i oporavak nepoznatog ishoda ostaju. Tipovi čisti; ceo Jest 305 grupa / 5921 test, 99,997 s. Stara provera koja je zahtevala uklonjenu kvačicu usklađena sa odlukom. APK i provera ovog koraka na uređaju još čekaju. Prethodne slike približne mape: docs/implementation/design-system/r6-integration-20260925/REPORT.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1409,7 +1409,7 @@
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
-   "sledece": "",
+   "sledece": "25.09: dodatna kvačica je uklonjena; „Sačuvaj mesto“ potvrđuje izbor i klijent i dalje šalje confirmed: true. Važi za mesto zadatka, rad na daljinu i područje rada. Potvrda pomerene tačke, revizije i oporavak nepoznatog ishoda ostaju. Tipovi čisti; ceo Jest 305 grupa / 5921 test, 99,997 s. Stara provera koja je zahtevala uklonjenu kvačicu usklađena sa odlukom. APK i provera ovog koraka na uređaju još čekaju. Prethodne slike približne mape: docs/implementation/design-system/r6-integration-20260925/REPORT.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5625,6 +5625,14 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 36074966857,
+   "ime": "Build Android development APK",
+   "sha": "b65a7a41",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-24T23:53:36Z"
+  },
+  {
    "id": 36065619683,
    "ime": "PKG-048 agreement source links proof",
    "sha": "b9aed185",
@@ -5711,14 +5719,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-24T18:04:44Z"
-  },
-  {
-   "id": 36038733191,
-   "ime": "PKG-010 system contracts proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:43Z"
   }
  ]
 }

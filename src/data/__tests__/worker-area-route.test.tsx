@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerLocation } from '../../contracts/location';
 
 /**
- * The work-area route (/profil/lokacija), recomposed 2026-09-24: the confirmation and the save stand in the screen's
+ * The work-area route (/profil/lokacija), recomposed 2026-09-24: the save stands in the screen's
  * sticky footer, the form stays on screen while it is read again, and the states without data are the one StateView.
  * The route still saves through the revision-bound writer with an explicit confirmation.
  */
@@ -67,13 +67,13 @@ it('says the area is saved in the footer, in place of the confirmation, until so
   expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(true); expect(buttons('Sačuvaj područje rada')[0].props.reason).toBeNull();
   await act(async () => tree.root.findByProps({ accessibilityLabel: '50 km' }).props.onPress());
   expect(texts()).not.toContain('Područje rada je sačuvano.');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' })).toHaveLength(1);
-  expect(buttons('Sačuvaj područje rada')[0].props.reason).toBe('Prvo potvrdi područje.');
+  expect(tree.root.findAllByProps({ accessibilityRole: 'checkbox' })).toHaveLength(0);
+  expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(false);
+  expect(buttons('Sačuvaj područje rada')[0].props.reason).toBeNull();
 });
 
 it('while the saved area is read again the save waits and says why', async () => {
   mockEditor = idle({ loading: true }); await render();
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' }).props.onPress());
   expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(true);
   expect(buttons('Sačuvaj područje rada')[0].props.reason).toBe('Učitavamo sačuvano područje…');
   expect(buttons('Sačuvaj područje rada')[0].props.loading).toBe(false);
@@ -99,12 +99,10 @@ it('an unknown outcome replaces the save with a read of the saved state', async 
   expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockSaveCall).not.toHaveBeenCalled();
 });
 
-it('a grey save says why, and a confirmed save goes through the revision-bound writer', async () => {
+it('one save confirms the area through the revision-bound writer', async () => {
   mockWriter.mockResolvedValue({ ok: true, podatak: { location: location() } });
   await render();
-  expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(true);
-  expect(buttons('Sačuvaj područje rada')[0].props.reason).toBe('Prvo potvrdi područje.');
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' }).props.onPress());
+  expect(tree.root.findAllByProps({ accessibilityRole: 'checkbox' })).toHaveLength(0);
   expect(buttons('Sačuvaj područje rada')[0].props.disabled).toBe(false);
   await act(async () => buttons('Sačuvaj područje rada')[0].props.onPress());
   expect(mockSaveCall).toHaveBeenCalledTimes(1);

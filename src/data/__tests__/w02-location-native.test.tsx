@@ -41,8 +41,7 @@ const location = (): WorkerLocation => ({ accountId: 'account-a', profileId: 'wo
   operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 25, approximatePosition: { latitude: 45.26, longitude: 19.83 } } as WorkerLocation);
 
 let tree: ReactTestRenderer;
-const saveButton = (label = 'Potvrdi i sačuvaj mesto') => tree.root.findByProps({ label });
-const confirm = () => tree.root.findByProps({ accessibilityLabel: 'Potvrđujem unetu lokaciju' });
+const saveButton = (label = 'Sačuvaj mesto') => tree.root.findByProps({ label });
 async function openChoice(label: string) { await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onPress()); }
 async function chooseMode(label: string) {
   if (!tree.root.findAllByProps({ accessibilityLabel: label }).length) {
@@ -55,7 +54,6 @@ async function chooseMode(label: string) {
   await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onPress());
 }
 async function edit(label: string, text: string) { await act(async () => tree.root.findByProps({ accessibilityLabel: label }).props.onChangeText(text)); }
-async function check() { await act(async () => confirm().props.onPress()); }
 async function save(label?: string) { await act(async () => saveButton(label).props.onPress()); }
 const text = () => tree.root.findAll(node => String(node.type) === 'T')
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -71,30 +69,26 @@ describe('actual native Need location form', () => {
     await edit('Tačna adresa (privatno, opciono)', 'Sačuvana privatna ispravka');
     await openChoice('Privatni detalji Zadatka'); await openChoice('Privatni detalji Zadatka');
     expect(tree.root.findByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' }).props.value).toBe('Sačuvana privatna ispravka');
-    expect(confirm().props.accessibilityState.checked).toBe(false);
-    await check(); await save();
+    await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Sačuvana privatna ispravka' }));
   });
 
-  // Round 2c (verifier vf, must 3): the 12 corner scale turned this 24 px box into a circle, which reads as a radio.
-  it('draws the location confirmation as a checkbox: a rounded square, never a circle', async () => {
-    await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={jest.fn()} />); });
-    const box = confirm().findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.width === 24)[0];
-    const radius = StyleSheet.flatten(box.props.style).borderRadius;
-    // Verifier r3b (vc, fix 2): this pinned the magic nested control corner (the control corner less 6); the checkbox
-    // corner now has its one name, `sys.radius.check` (the same 6).
-    expect(radius).toBe(sys.radius.check); expect(radius).toBeLessThan(24 / 2);
+  it('the save action is the confirmation, without a second checkbox', async () => {
+    const onSave = jest.fn();
+    await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
+    expect(tree.root.findAllByProps({ accessibilityRole: 'checkbox' })).toHaveLength(0);
+    expect(saveButton().props.disabled).toBe(false);
+    await save();
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 
   it('requires point confirmation before saving and does not publish the precise point in geography', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     await act(async () => tree.root.findByType('ResolvedPinMap' as never).props.onChoose({ latitude: 45.251234, longitude: 19.831234 }));
-    act(() => { confirm().props.onPress(); });
     act(() => { saveButton().props.onPress(); });
     expect(onSave).not.toHaveBeenCalled();
     act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Mesto rada' }).props.onPress(); });
-    act(() => { confirm().props.onPress(); });
     act(() => { saveButton().props.onPress(); });
     expect(onSave.mock.calls[0][0].resolvedLocation.points[0]).toMatchObject({ slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } });
     expect(JSON.stringify(onSave.mock.calls[0][0].geography)).not.toMatch(/latitude|longitude|Privatna/);
@@ -108,7 +102,7 @@ describe('actual native Need location form', () => {
     ] } } };
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     await edit('Mesto rada — grad ili mesto', 'Beograd'); await edit('Mesto rada — grad ili mesto', 'Novi Sad');
-    await check(); await save();
+    await save();
     expect(onSave.mock.calls[0][0].resolvedLocation).toBeNull();
     expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toBeNull();
   });
@@ -117,26 +111,19 @@ describe('actual native Need location form', () => {
     const historical = review();
     await act(async () => { tree = create(<NeedLocationForm review={{ ...historical, value: { ...historical.value, taskCountryCode: null } }} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByProps({ accessibilityLabel: 'Država Zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
-    await check(); await save(); expect(onSave).not.toHaveBeenCalled();
+    await save(); expect(onSave).not.toHaveBeenCalled();
     expect(saveButton().props.reason).toContain('Izaberi državu u „Država i način rada"');
-    await chooseMode('Srbija'); await check(); await save();
+    await chooseMode('Srbija'); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ taskCountryCode: 'RS' }));
   });
 
-  it('requires a fresh explicit confirmation even when the loaded server review is confirmed', async () => {
+  it('saves an existing review in one press and preserves its private fields', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
-    expect(confirm().props.accessibilityState.checked).toBe(false);
-    expect(saveButton().props.disabled).toBe(true);
-    // The grey save says why it is grey (owner rule, 2026-09-23).
-    expect(saveButton().props.reason).toBe('Označi potvrdu iznad, pa sačuvaj mesto.');
-    await save();
-    expect(onSave).not.toHaveBeenCalled();
-    await check();
     expect(saveButton().props.disabled).toBe(false);
     expect(saveButton().props.reason).toBeNull();
-    expect(text()).toContain('Čuva se mesto u istom pregledu.');
     await save();
+    expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
       exactAddress: 'Privatna ulica 17, stan 2', accessNotes: 'Privatna šifra ulaza 1234' }));
   });
@@ -144,35 +131,31 @@ describe('actual native Need location form', () => {
   it('remote sends no old geography points, exact address, or access notes', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
-    await check();
     await chooseMode('Na daljinu');
-    expect(confirm().props.accessibilityState.checked).toBe(false);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' })).toHaveLength(0);
-    await check(); await save();
+    await save();
     const payload = onSave.mock.calls[0][0];
     expect(payload).toMatchObject({ geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null });
     expect(Object.keys(payload.geography)).toEqual(['mode']);
     expect(JSON.stringify(payload)).not.toContain('Privatna');
   });
 
-  it('editing any private field cancels confirmation before a second save', async () => {
+  it('saving after a private edit confirms the current value without a checkbox', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
-    await check();
     await openChoice('Privatni detalji Zadatka');
     await edit('Tačna adresa (privatno, opciono)', 'Nova privatna adresa 2');
-    expect(confirm().props.accessibilityState.checked).toBe(false);
-    await save(); expect(onSave).not.toHaveBeenCalled();
+    await save(); expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Nova privatna adresa 2' }));
   });
 
   it('does not send an incomplete route and explains the missing place', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
-    await chooseMode('Od mesta do mesta'); await check(); await save();
+    await chooseMode('Od mesta do mesta'); await save();
     expect(onSave).not.toHaveBeenCalled();
     expect(text()).toContain('Unesi mesto');
     await edit('Odredište — grad ili mesto', 'Beograd');
-    await check(); await save();
+    await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } } }));
   });
 
@@ -181,7 +164,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     await chooseMode('Na području');
     await edit('Područje rada — grad ili mesto', 'Beograd');
-    await check(); await save();
+    await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'AREA_BASED', serviceArea: { city: 'Beograd' } } }));
     expect(onSave.mock.calls[0][0].geography).not.toHaveProperty('start');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Početna tačka — grad ili mesto' })).toHaveLength(0);
@@ -198,12 +181,11 @@ describe('actual native Need location form', () => {
     expect(text()).toContain('Liman');
     await openChoice('Početna tačka — dodatni javni opis');
     expect(tree.root.findByProps({ accessibilityLabel: 'Početna tačka — deo grada (opciono)' }).props.value).toBe('Liman');
-    await check(); await save();
+    await save();
     expect(onSave.mock.calls[0][0].geography).toEqual(loaded.value.geography);
     await act(async () => tree.root.findByProps({ label: 'Ukloni početnu tačku' }).props.onPress());
-    expect(confirm().props.accessibilityState.checked).toBe(false);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Početna tačka — grad ili mesto' })).toHaveLength(0);
-    await check(); await save();
+    await save();
     expect(onSave.mock.calls[1][0].geography).toEqual({ mode: 'AREA_BASED', serviceArea: { city: 'Beograd' } });
   });
 
@@ -217,9 +199,7 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toEqual({ latitude: 45.251234, longitude: 19.831234 });
     expect(text()).not.toContain('Prvo unesi državu i javno mesto');
-    act(() => { saveButton().props.onPress(); }); expect(onSave).not.toHaveBeenCalled();
     act(() => { tree.root.findByProps({ label: 'Potvrdi tačku: Polazište' }).props.onPress(); });
-    act(() => { confirm().props.onPress(); });
     act(() => { saveButton().props.onPress(); });
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave.mock.calls[0][0].geography).toEqual(geography);
@@ -231,10 +211,9 @@ describe('actual native Need location form', () => {
     const onSave = jest.fn();
     const loaded = review();
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
-    await check();
     await act(async () => tree.update(<NeedLocationForm review={{ ...loaded, editable: state !== 'read-only' }} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
     // The one green save keeps its words; at work it spins (loading) instead of changing its label.
-    const button = tree.root.findByProps({ label: 'Potvrdi i sačuvaj mesto' });
+    const button = tree.root.findByProps({ label: 'Sačuvaj mesto' });
     expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(sys.color.green);
     expect(button.props.loading).toBe(state === 'busy');
     expect(button.props.disabled).toBe(true);
@@ -244,7 +223,7 @@ describe('actual native Need location form', () => {
 });
 
 describe('saveBlockReason (round 6)', () => {
-  const live = { busy: false, uncertain: false, editable: true, pendingPoint: false, confirmed: true, countryChosen: true, countrySelectable: true };
+  const live = { busy: false, uncertain: false, editable: true, pendingPoint: false, countryChosen: true, countrySelectable: true };
   it('says a pending point is the reason, and nothing while the save is at work', () => {
     expect(saveBlockReason({ ...live, pendingPoint: true })).toBe('Potvrdi tačku na mapi, pa sačuvaj mesto.');
     expect(saveBlockReason({ ...live, busy: true, pendingPoint: true })).toBeNull();
@@ -252,7 +231,7 @@ describe('saveBlockReason (round 6)', () => {
   });
   it('speaks without grammatical gender', () => {
     const all = [{ ...live, editable: false }, { ...live, uncertain: true }, { ...live, pendingPoint: true }, { ...live, countryChosen: false },
-      { ...live, countrySelectable: false }, { ...live, confirmed: false }].map(state => saveBlockReason(state) ?? '').join(' ');
+      { ...live, countrySelectable: false }].map(state => saveBlockReason(state) ?? '').join(' ');
     expect(all).not.toMatch(/sačuvao|\/la\b/);
   });
 });
@@ -263,52 +242,47 @@ describe('actual native Worker location form', () => {
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
     await openChoice('Država rada');
     expect(tree.root.findByProps({ accessibilityLabel: 'Hrvatska' }).props.disabled).toBe(true);
-    await chooseMode('Hrvatska'); await check(); await save('Sačuvaj područje rada');
+    await chooseMode('Hrvatska'); await save('Sačuvaj područje rada');
     expect(onSave).not.toHaveBeenCalled();
     await chooseMode('Bosna i Hercegovina');
-    expect(confirm().props.accessibilityState.checked).toBe(false);
-    await check(); await save('Sačuvaj područje rada');
+    await save('Sačuvaj područje rada');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ operatingCountryCode: 'BA', city: 'Novi Sad', approximatePosition: null }));
   });
 
-  it('requires explicit confirmation and retains coordinates only for the saved city', async () => {
+  it('save itself confirms the work area and retains coordinates only for the saved city', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
-    await save('Sačuvaj područje rada'); expect(onSave).not.toHaveBeenCalled();
-    await check(); await save('Sačuvaj područje rada');
+    await save('Sačuvaj područje rada');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Novi Sad', approximatePosition: { latitude: 45.26, longitude: 19.83 } }));
   });
 
   it('clears old approximate coordinates when the worker enters another city', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
-    await check(); await edit('Grad ili mesto rada', 'Beograd');
-    expect(confirm().props.accessibilityState.checked).toBe(false);
-    await save('Sačuvaj područje rada'); expect(onSave).not.toHaveBeenCalled();
-    await check(); await save('Sačuvaj područje rada');
+    await edit('Grad ili mesto rada', 'Beograd');
+    await save('Sačuvaj područje rada');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Beograd', radiusKm: 25, approximatePosition: null }));
   });
 
   it.each(['0', '201', '1.5', '-1', 'abc'])('rejects invalid radius %s before invoking a command', async radius => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
-    await edit('Radijus rada u kilometrima', radius); await check(); await save('Sačuvaj područje rada');
+    await edit('Radijus rada u kilometrima', radius); await save('Sačuvaj područje rada');
     expect(onSave).not.toHaveBeenCalled();
     expect(text()).toContain('ceo broj od 1 do 200');
   });
 
-  // 2026-09-24: five common distances, one tap each. A tap runs what typing runs, so a new distance needs a fresh check.
-  it('a radius pill fills the field like typing and asks for a fresh confirmation', async () => {
+  // A radius preset prepares the same value as typing; only the save sends it.
+  it('a radius pill fills the field without sending and the save confirms it', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
-    await check(); expect(confirm().props.accessibilityState.checked).toBe(true);
     const pill = () => tree.root.findByProps({ accessibilityLabel: '20 km' });
     expect(pill().props.accessibilityRole).toBe('radio'); expect(pill().props.accessibilityState.checked).toBe(false);
     await act(async () => pill().props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Radijus rada u kilometrima' }).props.value).toBe('20');
-    expect(confirm().props.accessibilityState.checked).toBe(false); expect(pill().props.accessibilityState.checked).toBe(true);
-    await save('Sačuvaj područje rada'); expect(onSave).not.toHaveBeenCalled();
-    await check(); await save('Sačuvaj područje rada');
+    expect(pill().props.accessibilityState.checked).toBe(true);
+    expect(onSave).not.toHaveBeenCalled();
+    await save('Sačuvaj područje rada');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ radiusKm: 20 }));
   });
 

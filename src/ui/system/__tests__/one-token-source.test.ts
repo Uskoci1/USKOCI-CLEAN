@@ -84,9 +84,9 @@ it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary actio
   const { check, ...scale } = sys.radius;
   expect(new Set(Object.values(scale))).toEqual(new Set([12, 24, 28, 999]));
   expect(check).toBe(6);
-  // Only checkboxes read it: the filter's 22 px box and the location confirmation's 24 px box (verifier r3b vc, fix 2).
+  // The filter checkbox retains its small corner. Saving a place is now the confirmation itself;
+  // location forms intentionally have no extra checkbox (owner decision, 2026-09-24).
   expect(read('src/ui/v2/MarketplacePresentation.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
-  expect(read('src/ui/location/LocationControls.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
   expect(brandAction.borderRadius).toBe(fieldBox.borderRadius);
 });
 
