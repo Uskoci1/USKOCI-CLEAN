@@ -365,7 +365,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
             inside a rich pill's 40dp solid body, so the fallback never leaves a second ring around a successful pill. */}
         <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 20, 'circle-color': sys.color.surface, 'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
-          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.green }} />
+          // RN 11.3's Android bridge treats string-first arrays as expressions: the font stack must be literal.
+          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['literal', ['Noto Sans Regular']], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.green }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 16, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
             'circle-stroke-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green] }} />

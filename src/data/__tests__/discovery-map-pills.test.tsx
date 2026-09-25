@@ -31,6 +31,7 @@ jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
 import { DiscoveryMap, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
 import { sys } from '../../ui/system/tokens';
+import { expression, latest, type StylePropertySpecification } from '@maplibre/maplibre-gl-style-spec';
 
 /**
  * The Zadaci map's pins (owner step 4, 2026-09-24; critique B10). The native source still carries only IDs and rounded
@@ -172,6 +173,20 @@ test('selecting a public pin from a regional view frames its neighborhood withou
   rows = [...rows, row('later', 45.25, 19.83)];
   extra = { ...extra, toolsBottom: 90, focusBottom: 90 }; await update(); await measureFrame(600);
   expect(mockEase).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
+});
+
+test('the cluster font survives the Android string-array expression bridge', async () => {
+  await render();
+  const layout = tree.root.findByProps({ id: 'need-cluster-count' }).props.layout;
+  // MLRNStyleValue marks a string-first array as an expression, even for text-font. Use the installed real parser:
+  // the previous bare ['Noto Sans Regular'] fails here as an unknown expression, despite valid full-style JSON.
+  // The library exports raw JSON with widened strings; its parser expects the narrower specification type.
+  const fontSpec = latest.layout_symbol['text-font'] as unknown as StylePropertySpecification;
+  const font = expression.createPropertyExpression(layout['text-font'], 'text-font', fontSpec);
+  expect(font.result).toBe('success');
+  if (font.result !== 'success') throw new Error(font.value.map(error => error.message).join('; '));
+  expect(font.value.evaluate({ zoom: 8 })).toEqual(['Noto Sans Regular']);
+  expect(expression.createPropertyExpression(['Noto Sans Regular'], 'text-font', fontSpec).result).toBe('error');
 });
 
 test('the native fallback survives failed rich-pin discovery and fits under a successful pill without a second ring', async () => {

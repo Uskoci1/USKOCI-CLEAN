@@ -240,6 +240,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
   const showAll = () => change({ area: null, pinPlace: null });
   const onIndex = (index: number) => {
+    // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
+    // not to the requested stop or selected pin restored when the person comes back.
+    if (!currentSheet()) return;
     setSheetIndex(index);
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
@@ -294,6 +297,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const coverageOwner = useMemo(() => ({ sequence: ++coverageSequence.current, active: true }), [props.scopeKey, focused]);
   const currentCoverageOwner = useRef(coverageOwner); currentCoverageOwner.current = coverageOwner;
   useEffect(() => { coverageOwner.active = true; return () => { coverageOwner.active = false; }; }, [coverageOwner]);
+  const currentSheet = useCallback(() => focused && coverageOwner.active && currentCoverageOwner.current === coverageOwner,
+    [focused, coverageOwner]);
+  // Native-screen detachment can interrupt a sheet spring without another index change on return.
+  // Keep the exiting sheet during blur, then mount exactly one fresh native sheet at the remembered
+  // requested stop on re-entry. Camera, filters, selection and scroll live above this keyed boundary.
+  const sheetMount = useRef(coverageOwner.sequence);
+  if (focused) sheetMount.current = coverageOwner.sequence;
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
@@ -368,6 +378,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
+    if (!currentSheet()) return;
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
     offset.current = y;
     if (!scrolledRef.current) {
@@ -375,22 +386,29 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       if (y > SCROLLED && frame > 0 && contentHeight.current - frame >= room + FOLD_MARGIN) { scrolledRef.current = true; setScrolled(true); }
     } else if (y <= 0) { scrolledRef.current = false; setScrolled(false); }
     if (offsetTimer.current) clearTimeout(offsetTimer.current);
-    offsetTimer.current = setTimeout(writeOffset, OFFSET_SETTLE_MS);
-  }, [writeOffset]);
-  useEffect(() => () => { if (offsetTimer.current) clearTimeout(offsetTimer.current); }, []);
+    offsetTimer.current = setTimeout(() => { if (currentSheet()) writeOffset(); }, OFFSET_SETTLE_MS);
+  }, [writeOffset, currentSheet]);
+  // Opening a row flushes deliberately before navigation; background scroll deliveries and a pending
+  // debounce from the retired visit must not overwrite the position restored on the next visit.
+  useEffect(() => () => {
+    if (offsetTimer.current) { clearTimeout(offsetTimer.current); offsetTimer.current = null; }
+  }, [coverageOwner]);
   // gorhom 5.2.14 takes `onScroll` and calls it on the JS thread with `{ nativeEvent }` (useScrollHandler, runOnJS), but its
   // list types leave the prop out; it is handed over as the library reads it.
   const scrollProps = { onScroll } as object;
   const restore = useRef<number | null>(null);
   const hasRows = listed.length > 0, hadRows = useRef(false);
   useEffect(() => {
-    if (hasRows && !hadRows.current) {
+    if (focused && hasRows && !hadRows.current) {
       const at = latestView.current.listOffset ?? 0;
+      offset.current = at;
       if (at > 0) { restore.current = at; listRef.current?.scrollToOffset?.({ offset: at, animated: false }); }
     }
-    hadRows.current = hasRows;
-  }, [hasRows]);
+    if (!focused) restore.current = null;
+    hadRows.current = focused && hasRows;
+  }, [hasRows, focused]);
   const onContentSizeChange = (_width: number, height: number) => {
+    if (!currentSheet()) return;
     contentHeight.current = height;
     const at = restore.current;
     if (at !== null && height >= at) { restore.current = null; listRef.current?.scrollToOffset?.({ offset: at, animated: false }); }
@@ -532,7 +550,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
-      <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
+      <DiscoveryListSheet key={sheetMount.current} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
@@ -543,7 +561,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={section ? `${section.at}:${section.count}` : ''}
           refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
-          onScrollBeginDrag={() => { restore.current = null; }}
+          onScrollBeginDrag={() => { if (currentSheet()) restore.current = null; }}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
           // The floating "Mapa" stands over the list's end at the full height; the end scrolls clear of it.
           contentContainerStyle={pillShown ? s.listUnderPill : s.list}

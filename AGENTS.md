@@ -2,6 +2,10 @@
 
 R19 TASK / AGREEMENT / MEDIA (2026-09-25): read
 `docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md` and the versioned CHECKS/RECEIPT when present.
+Follow-up checks: clean types, 320 suites / 6,255 tests; CHECKS.followup.json preserves the earlier fixture-type failure.
+NATIVE_REVIEW records the first APK separately: avatars and source-task/chat navigation observed on emulator;
+all map labels/logos returned on that SAME APK after a normal host-GPU emulator restart. Native return testing found
+a disappearing sheet; its focus/callback retirement fix still needs the follow-up APK receipt. Phone remains absent.
 This coherent client package adds short bottom-right capacity, a source-task-led Agreement, contextual chat,
 paged actual task photos, branded map annotations, independent remote filtering and a rising/dimming map list.
 It also bounds optional author enrichment to four concurrent reads/four seconds and repairs JPEG binary reads:

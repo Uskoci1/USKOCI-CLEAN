@@ -16,7 +16,7 @@ For the Agreement, the considered alternatives were persistent top tabs, separat
 
 ## Concrete functional repairs found during integration
 
-- The actual installed Supabase Functions SDK decoded JPEG responses as text; the media service then rejected them. Contextual photo reads now preserve binary bytes, with the same session, account boundary and limits. Uploads remain unchanged. A real existing avatar is READY on DEV and has a storage object, so native re-reading that image is the next acceptance step.
+- The actual installed Supabase Functions SDK decoded JPEG responses as text; the media service then rejected them. Contextual photo reads now preserve binary bytes, with the same session, account boundary and limits. Uploads remain unchanged. A real existing avatar is READY on DEV and has a storage object; the first R19 emulator APK now renders that stored avatar. Upload cancellation and physical-phone acceptance remain separate.
 - Optional publisher metadata previously launched every distinct profile read concurrently. It now has four workers, one four-second budget, cancellation and account-revision fencing. This mitigates fan-out; it is not a server aggregate or a deadline on task pagination.
 - A late safety-target lookup could navigate from a retired profile/screen or replace a newer error state. Focus/context ownership now retires it. The target RPC and actual block/report commands remain unchanged.
 - Push taps now reuse the fixed Inbox destination instead of stacking copies. This does not enable push or prove transport delivery.
@@ -24,7 +24,7 @@ For the Agreement, the considered alternatives were persistent top tabs, separat
 
 ## Verification and versions
 
-Final integrated source checks pass: clean TypeScript, **320 suites / 6,251 tests**, and migration integrity (147 files). CHECKS.json records both the initial failed integration and the final passing run. The existing Jest worker-teardown warning remains. APK/native review is the next gate; read RECEIPT.json and native reports when produced. A passing build is not an installed result. The pre-change runtime is R18 `74f514d7`; the R18 documentation checkpoint is `5ca73531`.
+The first integrated source passed clean TypeScript, **320 suites / 6,251 tests**, and migration integrity (147 files). CHECKS.json records both its initial failed integration and passing run. The native corrective follow-up passes clean types and **320 suites / 6,255 tests**; CHECKS.followup.json also records the corrected missing-bounds test fixture. The existing Jest worker-teardown warning remains. First-APK evidence and follow-up rebuilt acceptance are separate; read RECEIPT.json and native reports when produced. A passing build is not an installed result. The pre-change runtime is R18 `74f514d7`; the R18 documentation checkpoint is `5ca73531`.
 
 Read these bounded evidence reports:
 
@@ -43,6 +43,12 @@ Read these bounded evidence reports:
 No server/schema/Edge deployment, payment work, migration-inventory change, provider call, new dependency, account creation or destructive data operation belongs to this package. Existing client commands and authorization/reconciliation guards remain in force. R18's one-task paid-AI allowance has been fulfilled and is not reused here.
 
 The phone was no longer listed by ADB during this package's preparation; the existing emulator remains available. An APK built for a disconnected phone is not an installed or verified phone result.
+
+## First native build and corrective follow-up
+
+First source `3cdb3005` built successfully for both ABIs; the emulator APK was installed without clearing data and its installed hash verified. Existing stored avatars render, task capacity is bottom-right, the Agreement source card opens the matching task, chat Back returns to overview, and the inert active composer shows two readable lines above the keyboard. See NATIVE_REVIEW and the independent review for exact scopes.
+
+Native inspection also found a disappearing discovery sheet after rapid task navigation. The follow-up adds a focus re-entry boundary and retires old sheet/index/scroll callbacks, preserving camera, filters, selected task and scroll. It also explicitly normalizes a font-stack prop across the native bridge. The initially blank map labels/counts/logo were restored on the **same first APK** by restarting the emulator with host graphics; this is not credited to that font normalization. Rebuilt-APK acceptance is recorded separately, never inferred from the first build or passing tests.
 
 ## Remaining work, not hidden by this redesign
 

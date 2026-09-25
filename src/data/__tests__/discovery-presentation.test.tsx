@@ -291,6 +291,76 @@ test.each(['scope', 'focus'] as const)('a queued covered-map delivery from a ret
   expect(layer().props.accessibilityElementsHidden).toBe(true);
 });
 
+test('return after opening a task during a collapse rebuilds the native sheet at its requested stop and retires the old finish', async () => {
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, viewport, sheet: 'full', listOffset: 160, price: 'MY_PRICE' };
+  await render(); await layOutBody(760);
+  const oldSheet = listSheet(), lateFinish = oldSheet.props.onChange;
+  await tap('Mapa');
+  expect(listSheet().props.index).toBe(0);
+  // The collapse is in flight: no native onChange has arrived when the still-visible row is pressed.
+  open.mockImplementation(() => { navigated = true; });
+  await tap('Otvori priliku Pomoć a');
+  expect(open).toHaveBeenCalledWith(rows[0]);
+  mockFocused = false; await update();
+  expect(listSheet()).toBe(oldSheet); // no second native mount while the outgoing screen is behind detail
+  await act(async () => lateFinish(2));
+  scrollToOffset.mockClear();
+  navigated = false; mockFocused = true; await update();
+  expect(listSheet().props).toMatchObject({ index: 0, animateOnMount: false, enablePanDownToClose: false });
+  expect(listSheet()).not.toBe(oldSheet);
+  expect(Number(listSheet().props.snapPoints[0])).toBeGreaterThan(HIDDEN);
+  expect(listSheet().findByProps({ testID: 'list-sheet-content' }).props.accessibilityElementsHidden).toBe(false);
+  expect(countLine()).toBeDefined();
+  expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+  await act(async () => lateFinish(2)); // a delivery already queued before blur must not reopen the restored sheet
+  expect(listSheet().props.index).toBe(0);
+  expect(snapshot).toMatchObject({ sheet: 'peek', viewport, listOffset: 160, price: 'MY_PRICE' });
+  await act(async () => countLine().props.onPress());
+  expect(listSheet().props.index).toBe(1);
+});
+
+test('return with a selected pin preserves its preview and closing it restores the list header', async () => {
+  initial = { ...initial, sheet: 'half', listOffset: 160 };
+  await render(); await layOutBody(760);
+  await act(async () => map().props.onSelect('bb'));
+  expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
+  const oldSheet = listSheet(), lateFinish = oldSheet.props.onChange;
+  mockFocused = false; await update(); mockFocused = true; await update();
+  await act(async () => lateFinish(1));
+  expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
+  expect(listSheet()).not.toBe(oldSheet);
+  expect(listSheet().props.index).toBe(0);
+  await tap('Zatvori pregled zadatka');
+  expect(Number(listSheet().props.snapPoints[0])).toBeGreaterThan(HIDDEN);
+  expect(listSheet().findByProps({ testID: 'list-sheet-content' }).props.accessibilityElementsHidden).toBe(false);
+  expect(countLine()).toBeDefined();
+});
+
+test('a retired sheet cannot save an old scroll, cancel the current restore or consume its content-size retry', async () => {
+  jest.useFakeTimers();
+  try {
+    initial = { ...initial, sheet: 'full', listOffset: 160 };
+    await render(); await layOutBody(760);
+    const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange;
+    await act(async () => oldScroll({ nativeEvent: { contentOffset: { y: 260 } } }));
+    mockFocused = false; await update();
+    await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
+    expect(snapshot.listOffset).toBe(160); // leaving without opening a row retires the pending save
+    mockFocused = true; await update(); scrollToOffset.mockClear();
+    await act(async () => {
+      oldScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      oldDrag(); oldContent(0, 1000);
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(160);
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    await act(async () => list().props.onContentSizeChange(0, 1000));
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+  } finally { jest.useRealTimers(); }
+});
+
 test('one screen: the map under the tools and the list as its sheet; no Lista/Mapa switch and no "Pogledaj listu"', async () => {
   await render();
   expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['a', 'bb', 'ccc']);

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-25T21:50:07Z",
+  "osvezeno": "2026-09-25T22:32:12Z",
   "grana": "HEAD",
-  "head": "5ca73531",
-  "head_poruka": "Record R18 native two-account journey and remaining gaps",
+  "head": "3cdb3005",
+  "head_poruka": "Refine task-led agreements, discovery and binary media reads",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "PROBLEM": 31,
-  "NA TELEFONU NIJE PROVERENO": 31
+  "PROBLEM": 32,
+  "NA TELEFONU NIJE PROVERENO": 30
  },
  "redovi": [
   {
@@ -1550,8 +1550,8 @@
     "test": "19 test fajl(ova)"
    },
    "telefon_dokaz": "R17 25.09, 8500bf29 / APK 36172923719: mapa sa stvarnim podacima otvorena bez ponavljanja; izabran logo-pin, javni detalj i povratak na isto mesto provereni na VKP-NX9 (oko 361 dp, font 1,15). Uzrok ranijeg povremenog neuspešnog učitavanja nije potvrđen. Poslovne radnje nisu izvršene. docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Stvarni Zadaci, mapa/klaster/pin/pregled i ulaz u javni detalj. Prvo učitavanje nije uspelo, retry jeste; kadriranje pri povratku traži doradu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
-   "problem": "R19 ograničava paralelna čitanja autora i čekanje. Ostaje čitanje do 25 strana po 200 zadataka i lokalno filtriranje; nije serversko straničenje po oblasti. Stvarno prikazivanje novih pinova čeka novi APK.",
-   "sledece": "R19: stvarni znak USKOČI u pinovima, jače boje mape i lista do pretrage uz zatamnjenje. Geografski rezultati i zadaci bez tačke ostaju jasno odvojeni. Rad na daljinu zanemaruje staru oblast. Dopuna autora ima najviše četiri istovremena čitanja i ukupno četiri sekunde; ovo nije serversko objedinjavanje. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md",
+   "problem": "Preuzima do 25 strana po 200 zadataka i filtrira ih lokalno; dopuna autora je ograničena po pozivu, ne celo učitavanje. R19 je na emulatoru otkrio nestanak panela posle brzog povratka sa detalja; korekcija čeka novu verziju.",
+   "sledece": "R19: jače boje mape i lista do pretrage uz zatamnjenje. Geografski rezultati i zadaci bez tačke ostaju jasno odvojeni. Rad na daljinu zanemaruje staru oblast. Svako dopunjavanje autora, posle preuzetih strana zadataka, ima najviše četiri istovremena čitanja i budžet četiri sekunde; to nije ukupno vreme učitavanja liste niti ograničenje cele aplikacije. Na istom R19 APK-u uključivanje host grafike emulatora vratilo je oznake mesta, brojeve grupa i USKOČI pin. Telefon još nije povezan; popravka povratka panela čeka novi APK. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3806,8 +3806,8 @@
     "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
-   "problem": "",
-   "sledece": "R19: ispravljen zastareo povratak iz čitanja ciljne osobe; blokiranje nije izvršavano niti menjano na serveru. Ostaju pouzdan prikaz osobe i potvrda posledice, oporavak i prihvatanje na telefonu. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md",
+   "problem": "SF-02: ekran još ne prikazuje pouzdano ime osobe i ne traži potvrdu posledice pre blokiranja. Povratak zastarelog čitanja cilja popravljen je u R19; to nije rešilo ovaj prikaz.",
+   "sledece": "R19: ispravljen zastareo povratak iz čitanja ciljne osobe; blokiranje nije izvršavano niti menjano na serveru. Ostaju pouzdan prikaz osobe i potvrda posledice (SF-02), oporavak i prihvatanje na telefonu. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3816,7 +3816,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Profil/Podešavanja",
     "nivo": 2,
@@ -4931,14 +4931,14 @@
   {
    "id": "PG10",
    "oblast": "Pregled ponude pre slanja",
-   "sada": "Pregled, imenovano sletanje i slanje ponude postoje; raniji stvarni tok dokazan na 332d285f.",
-   "nedostaje": "Ceo tok najnovijeg izdanja, obe ocene i ostali izuzeci; stari dokaz nije potvrda novog APK-a.",
+   "sada": "R18 74f514d7: nov zadatak na daljinu, jedna osoba, ponuda, izbor, poruke u oba smera, završetak i obe sačuvane ocene provereni na dva postojeća naloga.",
+   "nedostaje": "Prihvatanje R19 i ostali scenariji: uživo, više učesnika, konkurentni izbor, otkazivanje/problem, prekid veze i push. R18 nije potvrda svakog toka ili novog APK-a.",
    "redovi": [
     "B09",
     "B10",
     "A11"
    ],
-   "stanje": "raniji uređaj dokazan; novo izdanje čeka"
+   "stanje": "jedan ceo R18 tok dokazan; novo izdanje i ostali scenariji čekaju"
   },
   {
    "id": "PG11",
@@ -5634,6 +5634,22 @@
  },
  "ci": [
   {
+   "id": 36193917101,
+   "ime": "Build Android development APK",
+   "sha": "3cdb3005",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T21:53:06Z"
+  },
+  {
+   "id": 36193913047,
+   "ime": "Build Android development APK",
+   "sha": "3cdb3005",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T21:53:04Z"
+  },
+  {
    "id": 36183499333,
    "ime": "Build Android development APK",
    "sha": "74f514d7",
@@ -5712,22 +5728,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-25T13:05:36Z"
-  },
-  {
-   "id": 36135521690,
-   "ime": "Build Android development APK",
-   "sha": "be72399d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T12:32:37Z"
-  },
-  {
-   "id": 36128635882,
-   "ime": "Build Android development APK",
-   "sha": "21f8a0cb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T11:18:08Z"
   }
  ]
 }
