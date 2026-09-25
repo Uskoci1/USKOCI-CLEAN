@@ -96,7 +96,7 @@ const s = StyleSheet.create({
   price: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 4 },
   priceCopy: { flex: 1, minWidth: 0, gap: 4 },
   priceArt: { paddingTop: 4 },
-  amount: { ...sys.type.priceLarge, fontSize: 32, lineHeight: 40, color: sys.color.money },
+  amount: { ...sys.type.priceLarge, fontSize: 28, lineHeight: 36, color: sys.color.money },
   priceWords: { ...sys.type.title, color: sys.color.ink },
   logistics: { paddingVertical: 20, gap: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   place: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

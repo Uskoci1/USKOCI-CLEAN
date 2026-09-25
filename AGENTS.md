@@ -6,6 +6,8 @@ white reading surfaces, real facts and existing domain/recovery/privacy guards. 
 search, task detail and offer, with larger portraits, original purpose-made Home art and measured initial map framing.
 Read its CHECKS/RECEIPT for completed verification and native scope; implementation is not phone or store acceptance.
 Preserve larger coherent batches. No backend, payment, provider, dependency or real business mutation.
+Owner typography refinement: judge composition at ordinary system text size. Enlarged-text inspection is a bounded
+resilience check, not the visual baseline; do not inflate ordinary titles or prices to accommodate that check.
 
 R12 WHITE SURFACES (2026-09-25): the owner's latest explicit correction rejects mint backgrounds and pale large
 panels. Read `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`. White reading surfaces,

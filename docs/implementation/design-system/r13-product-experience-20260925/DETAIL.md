@@ -48,6 +48,9 @@ Implemented in `PublicNeedPresentation.tsx`, `NeedPresentation.tsx` and the deta
 token. The time/people band pairs only at widths of at least 380 dp and font scale at most 1.3; all other cases use
 full-width rows. These are layout choices, not native acceptance results.
 
+Ordinary-text native review refined the numeric amount from 32/40 to 28/36. Its separate position and green money
+token supply the hierarchy without an oversized number. The title, ordinary copy and missing-price wording are unchanged.
+
 `npx jest -w 1 --testTimeout=30000 --runTestsByPath src/data/__tests__/task-detail-round3.test.tsx
 src/data/__tests__/pkg011-slice3-presentation.test.tsx src/data/__tests__/pkg011-slice4-presentation.test.tsx
 src/data/__tests__/pkg004-lifecycle-wiring.test.ts` passed: **4 suites / 47 tests**, exit 0, 14.778 s.

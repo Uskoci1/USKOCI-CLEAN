@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
+import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { Minus, Plus } from 'phosphor-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
   from '../../data/marketplaceView';
@@ -72,6 +72,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const cancelArea = () => { if (areaTimer.current) { clearTimeout(areaTimer.current); areaTimer.current = null; } };
   /** When the person last asked the camera to move by a tap (a zoom button, a cluster); 0 when nothing is asked. */
   const intent = useRef(0);
+  const pendingFocus = useRef<{ key: string; dataKey: string; center: [number, number] } | null>(null);
+  const settledZoom = useRef(props.viewport?.zoom ?? null), zoomTarget = useRef<number | null>(null);
+  const fitted = useRef<number | null>(null), centeredNearby = useRef<number | null>(null);
   /** When a pill was last pressed, so that the same touch is not also taken as a tap on the empty map. */
   const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
@@ -113,7 +116,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const timer = setTimeout(() => { void readVisiblePins(); }, PILL_SETTLE_MS);
     return () => clearTimeout(timer);
   }, [dataKey, status]); // eslint-disable-line react-hooks/exhaustive-deps
-  const moveCamera = (options: { center: [number, number]; zoom?: number }, duration: number) => {
+  const moveCamera = (options: { center: [number, number] } & CameraOptions, duration: number) => {
     if (reduced) camera.current?.jumpTo(options); else camera.current?.easeTo({ ...options, duration });
   };
   /** Several tasks on one point are one place: its cluster opens the place instead of zooming into a single spot. */
@@ -137,7 +140,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
     const properties = feature.properties;
     if (properties?.cluster === true && Number.isInteger(properties.cluster_id)) {
-      initialFitPending.current = false;
+      initialFitPending.current = false; pendingFocus.current = null;
       const place = await stackOf(properties.cluster_id, Number(properties.point_count));
       if (!owns() || load.current !== 'ready') return;
       if (place) { latest.current.props.onSelectPlace?.(place); return; }
@@ -161,35 +164,36 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const urgencyNow = useUrgencyClock(props.items.map(item => item.urgency));
   const urgentIds = props.items.filter(item => displaysUrgent(item.urgency, urgencyNow)).map(item => item.id);
   const urgentPlace = (place: PinPlace) => place.ids.some(id => displaysUrgent(byId.get(id)?.urgency, urgencyNow));
-  // The camera brings a newly chosen pin into the clear part of the map (between the tools and the card), easing at the
-  // camera's pace, or at once under reduced motion. A choice that was already there when the map mounted stays put.
+  // A new choice gets a neighborhood view, never a tighter location: the target is still the rounded public point.
+  // Native padding and zoom are applied together, avoiding a geographic offset computed at the old, possibly
+  // continent-wide zoom. A closer settled/user-requested zoom survives; a choice restored on mount stays put.
   const focus = useRef<string | null>(props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null);
   useEffect(() => {
     const key = props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null;
-    if (status !== 'ready' || key === focus.current) return;
-    focus.current = key;
-    const target = selectedPlace?.point ?? point;
-    if (!key || !target) return;
-    initialFitPending.current = false;
-    // Bringing the chosen pin into view is the camera's own move: it never becomes the list's area, and a zoom tap the
-    // person made just before it is not carried over onto it.
-    intent.current = 0;
-    void (async () => {
-      let center: [number, number] = [target.lng, target.lat];
-      const nativeMap = map.current, size = frame, top = props.toolsBottom ?? 0, bottom = props.focusBottom ?? 0;
-      if (size && (top || bottom) && nativeMap?.project && nativeMap?.unproject) {
-        try {
-          const at = await nativeMap.project(center);
-          if (!owns() || focus.current !== key || !Array.isArray(at)) return;
-          const clear = top + Math.max(0, size.height - top - bottom) / 2;
-          const shifted = await nativeMap.unproject([at[0], at[1] + size.height / 2 - clear]);
-          if (!owns() || focus.current !== key) return;
-          if (Array.isArray(shifted) && shifted.length === 2 && shifted.every(Number.isFinite)) center = [shifted[0], shifted[1]];
-        } catch { /* The pin itself becomes the centre. */ }
+    if (key !== focus.current) {
+      focus.current = key; pendingFocus.current = null;
+      const target = selectedPlace?.point ?? point;
+      if (key && target && owns()) {
+        initialFitPending.current = false;
+        cancelArea(); intent.current = 0;
+        pendingFocus.current = { key, dataKey, center: [target.lng, target.lat] };
       }
-      if (owns() && focus.current === key) moveCamera({ center }, sys.motion.camera);
-    })();
-  }, [props.selectedId, props.selectedPlace, status]); // eslint-disable-line react-hooks/exhaustive-deps
+    }
+    const request = pendingFocus.current;
+    if (!request) return;
+    // Layout may arrive later. A new dataset, destination, scope or user gesture retires this one request instead of
+    // replaying it over the person's next move. Consumed search/Nearby requests do not prevent later pin choices.
+    if (!owns() || request.key !== key || request.dataKey !== dataKey
+      || (props.fitTo && props.fitTo.key !== fitted.current)
+      || (props.centerNearby && props.centerNearby.key !== centeredNearby.current)) { pendingFocus.current = null; return; }
+    if (status !== 'ready' || !frame || props.cameraLayoutReady === false || !camera.current) return;
+    pendingFocus.current = null;
+    cancelArea(); intent.current = 0;
+    const zoom = Math.min(18, Math.max(12, settledZoom.current ?? 12, zoomTarget.current ?? 0));
+    moveCamera({ center: request.center, zoom,
+      padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.focusBottom ?? 0) }, sys.motion.camera);
+  }, [props.selectedId, props.selectedPlace, status, frame, props.cameraLayoutReady, props.toolsBottom, props.focusBottom,
+    dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // The pins that stand on their own become pills; a point shared by several tasks is one pill that says how many.
   const pills = useMemo(() => {
     const seen = new Set<string>(), shown: PinPlace[] = [];
@@ -209,10 +213,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // The zoom buttons answer a finger, so they move at the toggle pace, not the camera's flight. `viewport` only
   // updates when the camera settles, so taps inside one animation build on the target already asked for: three quick
   // taps on "+" are three levels, not one. The target is forgotten when the map reports where it settled.
-  const zoomTarget = useRef<number | null>(null);
   const changeZoom = (delta: number) => {
     if (!owns() || load.current !== 'ready' || !viewport) return;
-    initialFitPending.current = false;
+    initialFitPending.current = false; pendingFocus.current = null;
     const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
     zoomTarget.current = next;
     // A zoom button is the person moving the map, though the camera makes the move: the list follows where it settles.
@@ -233,11 +236,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
   }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // A place chosen in the search: the camera brings its pins into view once, as its own move (never an area).
-  const fitted = useRef<number | null>(null);
   useEffect(() => {
     const request = props.fitTo;
     if (status !== 'ready' || !request || fitted.current === request.key || !owns() || !frame || props.cameraLayoutReady === false) return;
-    initialFitPending.current = false;
+    initialFitPending.current = false; pendingFocus.current = null;
     fitted.current = request.key;
     intent.current = 0;
     camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom),
@@ -246,12 +248,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   }, [props.fitTo?.key, status, props.cameraLayoutReady, frame]); // eslint-disable-line react-hooks/exhaustive-deps
   // One explicit location capture only moves the camera; it is never a pin or an area filter. Its viewport follows
   // the same in-memory screen path as a normal pan. No tracking marker or continuous subscription belongs to the map.
-  const centeredNearby = useRef<number | null>(null);
   useEffect(() => {
     const target = props.centerNearby;
     if (status !== 'ready' || !target || target.key === centeredNearby.current || !owns() || !camera.current) return;
     if (target.center.length !== 2 || !target.center.every(Number.isFinite) || Math.abs(target.center[0]) > 180 || Math.abs(target.center[1]) > 90) return;
-    initialFitPending.current = false;
+    initialFitPending.current = false; pendingFocus.current = null;
     centeredNearby.current = target.key;
     cancelArea(); intent.current = 0;
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
@@ -305,9 +306,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
       // pill's own press is not taken as a tap on the ground under it.
-      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) latest.current.props.onClear?.(); }}
+      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { pendingFocus.current = null; latest.current.props.onClear?.(); } }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
-      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; cancelArea(); } }}
+      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; pendingFocus.current = null; cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
       // phone that left both zoom buttons dead, with no reason beside them, on every fresh open of
@@ -315,7 +316,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // map says where it is; persisting that position upward still waits for ready, so a neutral
       // world overview never becomes the remembered viewport, nor the list's area.
       onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
-        if (event.nativeEvent?.userInteraction === true) initialFitPending.current = false;
+        if (value) settledZoom.current = value.zoom;
+        if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; pendingFocus.current = null; }
         if (value && load.current === 'ready' && !initialFitPending.current) {
           latest.current.props.onViewport(value);
           // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a zoom

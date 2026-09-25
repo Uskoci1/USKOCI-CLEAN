@@ -1,8 +1,19 @@
 {
   "batch": "R13 product experience, 2026-09-25",
   "sourceBinding": "Committed with the checked application source; RECEIPT.json records the exact commit and APK afterward.",
-  "typescript": {"command": "npx tsc --noEmit -p tsconfig.json", "exitCode": 0},
-  "jest": {"command": "npx jest -w 3 --testTimeout=30000", "exitCode": 0, "suitesPassed": 314, "suitesTotal": 314, "testsPassed": 6098, "testsTotal": 6098, "seconds": 117.568, "warning": "Existing worker teardown warning remains; Jest force-exited a worker after successful tests."},
+  "typescript": {
+    "command": "npx tsc --noEmit -p tsconfig.json",
+    "exitCode": 0
+  },
+  "jest": {
+    "command": "npx jest -w 3 --testTimeout=30000 --json --outputFile=../../outputs/r6-integration/r13b-jest.json",
+    "exitCode": 0,
+    "suitesPassed": 314,
+    "suitesTotal": 314,
+    "testsPassed": 6113,
+    "testsTotal": 6113,
+    "warning": "Existing Jest worker teardown warning remains."
+  },
   "integrationCorrections": [
     "Unknown price stays Cena nije navedena; its added receipt assertion failed before the correction and passed afterward.",
     "Publisher uses supported 56 dp Avatar size instead of unsupported 44 dp.",
@@ -11,6 +22,20 @@
     "Large-text people input gets the full available line between the existing stepper buttons."
   ],
   "diffWhitespace": "git diff --check passed",
-  "native": "Pending exact-source APK; tests are not native or phone acceptance.",
-  "controlPublication": "Regenerated locally; upload to the existing private Claude artifact remains unconfirmed."
+  "native": "Initial APK has 14 bounded captures. Correction APK observations are recorded separately in RECEIPT.json.",
+  "controlPublication": "Regenerated locally; upload to the existing private Claude artifact remains unconfirmed.",
+  "initialGate": {
+    "source": "be72399d6f3deb55ad5ae1177ed8bedccc314327",
+    "suites": 314,
+    "tests": 6098
+  },
+  "refinement": [
+    "Ordinary amount typography reduced to 28 sp in offer/detail; general text unchanged.",
+    "Explicit pin/place selection frames public rounded area at zoom 12 or preserves a closer zoom; area filters remain unchanged."
+  ],
+  "logs": {
+    "r13b-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "r13b-jest.log": "69c6cc3e519b3c2738ccd1743cbe4b6c37f8cca9b4637f3017b97572de7392ba",
+    "r13b-jest.json": "ef170d7de80a1f4c8dd136cf9344c24dca541f023451f165dccdbbd42b8f9057"
+  }
 }

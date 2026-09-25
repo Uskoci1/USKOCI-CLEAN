@@ -50,3 +50,40 @@ no coordinate; the pin-priority scenario now supplies the same valid project/unp
 Full gates and fresh-scope native map screenshots belong to the R13 integrator. Returning to an existing map can
 restore its saved viewport and therefore does not demonstrate the new first-fit path. No device, build, database,
 dependency or paid-provider action was performed by this scoped task.
+
+## Native follow-up: explicit selected-pin framing
+
+The integrator's `be72399d` APK capture (`outputs/r6-integration/r13-experience/map-pin.png`, in the outer workspace)
+shows a selected Belgrade task while the map still spans much of the Balkans. The original selected-pin effect moved
+the center but supplied no zoom, so a coarse saved overview remained coarse after selection. This is separate from
+the first-layout padding defect above.
+
+An explicit new task or stacked-point selection now sends one native camera command with:
+
+- the existing rounded public point, unchanged;
+- zoom 12 or the closer saved/native-settled/user-requested zoom, bounded by the existing maximum 18;
+- measured, bounded padding between tools and selected preview;
+- the existing eased motion, or `jumpTo` for the system Reduce Motion preference.
+
+Installed MapLibre `CameraOptions` and Android `CameraStop.toCameraUpdate` support center, zoom and padding in one
+command. Using them together removes the previous asynchronous project/unproject offset, which would have been
+computed at the old zoom and therefore wrong after zooming in. No exact address or additional location source is used.
+
+A selection may wait for native readiness and measured layout, but is consumed once. A new selection replaces it;
+pan, zoom, clear, a new dataset/scope, blur or an explicit search/Nearby destination retires it. An already-restored
+selection is not replayed. Consumed search/Nearby requests do not block later pin selections. Later list, sheet or
+frame changes do not move or zoom the camera again. Selection cancels pending area debounce and keeps `intent=0`, so
+its settled bounds do not become an area filter. The current native settled zoom is held in a ref as well as the
+existing viewport state, so an old incoming saved viewport cannot undo a closer native view.
+
+Scoped verification:
+
+`npx jest src/data/__tests__/discovery-map.test.tsx src/data/__tests__/discovery-map-pills.test.tsx -w 1 --testTimeout=30000`
+
+Passed: 2 suites / 66 tests, 12.945 seconds. Coverage includes coarse-view selection, precise-input/coarse-output
+coordinates, native/saved/in-flight closer zoom, stacked points, Reduce Motion, bounded large-overlay padding,
+layout/readiness deferral, area-debounce cancellation, retired requests and no replay after ordinary updates.
+`git diff --check` passed for the two changed source/test files (only the repository's LF-to-CRLF warnings).
+
+This refinement changes only `DiscoveryMap.tsx`, its focused pill tests and this note. Full type/Jest gates, correction
+APK and the resulting native screenshot remain the integrator's next checks; this note does not claim them completed.

@@ -147,19 +147,56 @@ test('a cluster that is only one stacked point opens the place instead of zoomin
   expect(mockExpand).toHaveBeenCalledWith(3); expect(selectPlace).toHaveBeenCalledTimes(1);
 });
 
-test('a newly chosen pin is eased into the clear band between the tools and its card, at once under reduced motion', async () => {
-  extra = { toolsBottom: 60, focusBottom: 300 }; mockProject.mockResolvedValue([200, 500]); mockUnproject.mockResolvedValue([20.47, 44.8]);
-  await render();
-  const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
-  await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
-  await ready();
+test('selecting a public pin from a regional view frames its neighborhood without using old-zoom projection or changing area', async () => {
+  const viewport = { center: [20.45, 44.8], zoom: 6, bounds: [16, 41, 25, 48] };
+  extra = { viewport, toolsBottom: 60, focusBottom: 300 };
+  rows[0] = row('money', 44.81444, 20.46444);
+  await render(); await measureFrame(800); await ready();
+  // Both an already-debounced pan and an immediately preceding zoom must not leak into selection's area intent.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: true } }));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
   selectedId = 'money'; await update();
-  // The clear band runs from 60 to 800 − 300; its middle is 280, so the pin at y 500 moves by 400 − 280.
-  expect(mockProject).toHaveBeenCalledWith([20.46, 44.81]); expect(mockUnproject).toHaveBeenCalledWith([200, 620]);
-  expect(mockEase).toHaveBeenCalledWith({ center: [20.47, 44.8], duration: sys.motion.camera });
-  await act(async () => tree.unmount());
-  mockReduced = true; selectedId = null; mockEase.mockReset(); await render(); await ready(); selectedId = 'offer'; await update();
-  expect(mockJump).toHaveBeenCalledWith({ center: [20.41, 44.83] }); expect(mockEase).not.toHaveBeenCalled();
+  expect(mockEase).toHaveBeenCalledWith({ center: [20.46, 44.81], zoom: 12,
+    padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
+  expect(mockProject).not.toHaveBeenCalled(); expect(mockUnproject).not.toHaveBeenCalled();
+  expect(rows[0].priblizno).toEqual({ lat: 44.81444, lng: 20.46444 });
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.46, 44.81], zoom: 12,
+    bounds: [20.4, 44.78, 20.5, 44.85], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled();
+  // Changing the sheet, rows or layout after this single selection is not another request to move the camera.
+  rows = [...rows, row('later', 45.25, 19.83)];
+  extra = { ...extra, toolsBottom: 90, focusBottom: 90 }; await update(); await measureFrame(600);
+  expect(mockEase).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
+});
+
+test.each(['saved', 'native', 'zoom-tap'])('a newly selected pin preserves a closer %s zoom', async kind => {
+  extra = { viewport: { center: [19.83, 45.25], zoom: kind === 'saved' ? 15 : 6, bounds: [19.8, 45.2, 19.9, 45.3] } };
+  await render(); await measureFrame(); await ready();
+  if (kind !== 'saved') await act(async () => native().props.onRegionDidChange({ nativeEvent: {
+    center: [20.45, 44.8], zoom: 14.5, bounds: [20.44, 44.79, 20.46, 44.81], userInteraction: false,
+  } }));
+  if (kind === 'zoom-tap') await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+  selectedId = 'money'; await update();
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81], zoom: kind === 'saved' ? 15 : kind === 'native' ? 14.5 : 15.5 }));
+});
+
+test('a stacked public point receives one neighborhood frame with bounded padding and no animation under Reduce Motion', async () => {
+  mockReduced = true; extra = { toolsBottom: 250, focusBottom: 300 };
+  await render(); await measureFrame(460); await ready();
+  selectedPlace = '44.79,20.45'; await update();
+  expect(mockJump).toHaveBeenCalledTimes(1);
+  expect(mockJump).toHaveBeenCalledWith(expect.objectContaining({ center: [20.45, 44.79], zoom: 12 }));
+  const options = mockJump.mock.calls[0][0];
+  expect(460 - options.padding.top - options.padding.bottom).toBeGreaterThanOrEqual(96);
+  expect(options.duration).toBeUndefined(); expect(mockEase).not.toHaveBeenCalled();
+});
+
+test('a selection restored with a saved viewport does not become a new camera request', async () => {
+  selectedId = 'money'; extra = { viewport: { center: [20.44, 44.8], zoom: 15, bounds: [20.4, 44.7, 20.5, 44.9] }, cameraLayoutReady: false };
+  await render(); await measureFrame(); await ready();
+  extra = { ...extra, cameraLayoutReady: true }; await update();
+  expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled(); expect(mockFit).not.toHaveBeenCalled();
 });
 
 // R13: the old constructor froze a 534dp pre-layout bottom estimate on a 790dp map. Top199 + bottom558
@@ -220,8 +257,7 @@ test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before lay
     expect(mockZoom).toHaveBeenCalledTimes(1);
   }
   if (intent === 'pin') {
-    mockProject.mockResolvedValue([200, 400]); mockUnproject.mockResolvedValue([20.46, 44.81]);
-    selectedId = 'money'; await update(); expect(mockEase).toHaveBeenCalledTimes(1);
+    selectedId = 'money'; await update(); expect(mockEase).not.toHaveBeenCalled();
   }
   if (intent === 'nearby') {
     extra = { ...extra, centerNearby: { key: 8, center: [19.84, 45.26] } }; await update();
@@ -237,6 +273,7 @@ test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before lay
     expect(mockFit).toHaveBeenCalledWith([19.8, 45.2, 19.9, 45.3], expect.objectContaining({ duration: sys.motion.camera }));
     expect(fitted).toHaveBeenCalledWith(9);
   } else expect(mockFit).not.toHaveBeenCalled();
+  if (intent === 'pin') expect(mockEase).toHaveBeenCalledTimes(1);
   await act(async () => { jest.advanceTimersByTime(2_000); });
   if (intent === 'pan') expect(search).toHaveBeenCalledWith(viewport.bounds);
   else expect(search).not.toHaveBeenCalled();
@@ -247,9 +284,44 @@ test('a selection made before map readiness remains in charge when layout arrive
   await render(); selectedId = 'money'; await update();
   expect(mockEase).not.toHaveBeenCalled(); expect(mockFit).not.toHaveBeenCalled();
   await ready();
-  expect(mockEase).toHaveBeenCalledWith({ center: [20.46, 44.81], duration: sys.motion.camera });
+  expect(mockEase).not.toHaveBeenCalled();
   await measureFrame(); extra = { ...extra, cameraLayoutReady: true, fitBottom: 467 }; await update();
   expect(mockEase).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81], zoom: 12, duration: sys.motion.camera }));
+});
+
+test.each(['pan', 'zoom', 'clear', 'dataset', 'remote', 'scope', 'blur', 'fitTo', 'nearby'])('a pending pin focus cannot take back the camera after %s', async reason => {
+  extra = { cameraLayoutReady: false };
+  await render(); await ready(); selectedId = 'money'; await update();
+  expect(mockEase).not.toHaveBeenCalled();
+  if (reason === 'pan') await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
+  if (reason === 'zoom') {
+    await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 14,
+      bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+  }
+  if (reason === 'clear') selectedId = null;
+  if (reason === 'dataset') rows = [...rows, row('later', 45.25, 19.83)];
+  if (reason === 'remote') rows = rows.map(item => item.id === 'money' ? { ...item, detalji: { rezimLokacije: 'REMOTE' } } as MarketplaceItem : item);
+  if (reason === 'scope') extra = { ...extra, scopeKey: 'another:2' };
+  if (reason === 'blur') mockFocused = false;
+  if (reason === 'fitTo') extra = { ...extra, fitTo: { key: 31, bounds: [19.8, 45.2, 19.9, 45.3], bottom: 200 } };
+  if (reason === 'nearby') extra = { ...extra, centerNearby: { key: 32, center: [19.84, 45.26] } };
+  await update();
+  if (reason === 'blur') { mockFocused = true; await update(); }
+  await measureFrame(); await ready(); extra = { ...extra, cameraLayoutReady: true }; await update();
+  // Other explicit destinations may run; the retired pin must not, including after a later measurement.
+  const pinMoves = () => [...mockEase.mock.calls, ...mockJump.mock.calls].filter(([options]) => options.center[0] === 20.46 && options.center[1] === 44.81);
+  expect(pinMoves()).toHaveLength(0);
+  await measureFrame(820); await update(); expect(pinMoves()).toHaveLength(0);
+});
+
+test('only the latest explicit selection survives a wait for measured layout', async () => {
+  extra = { cameraLayoutReady: false };
+  await render(); await ready(); selectedId = 'money'; await update(); selectedId = 'offer'; await update();
+  await measureFrame(); extra = { ...extra, cameraLayoutReady: true }; await update();
+  expect(mockEase).toHaveBeenCalledTimes(1);
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.41, 44.83], zoom: 12 }));
 });
 
 // Review r3 item 11: a chosen pin's card rests on the sheet's top line, where the zoom and the credits ride.

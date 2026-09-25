@@ -1,6 +1,8 @@
 # R13 — product experience, 25 September 2026
 
 The owner's latest instruction asks for a substantial creative refinement on clean white, with strong reading hierarchy and fluid behavior. Historical visual recipes are reference material, not constraints on layout. Business facts, privacy, recovery and accessibility remain constraints.
+The owner's subsequent typography clarification makes ordinary system text the visual baseline. Large-text checks
+are bounded overflow checks; they must not dictate or inflate the ordinary composition.
 
 ## Implemented scope
 
@@ -18,6 +20,21 @@ Alternatives and rationale: HOME.md, DISCOVERY.md, DETAIL.md, OFFER.md. Existing
 The independent review caught two errors before the release gate: nonnumeric unknown price wording was accidentally labelled as offers; an unsupported 44 dp Avatar size would have broken the typed component contract. Both were corrected. The unknown-price test failed before its correction and passed afterward. The shared supported portrait size is now 56 dp. The full suite then exposed the route's old 32 dp photo-fallback condition; it now also covers the new 56 dp portrait. Peek assertions were updated to the new title/decision anatomy without weakening scroll, close or overflow checks. The final type check and all 314 suites / 6,098 tests pass, with the existing Jest worker-teardown warning.
 
 ## Verification and boundaries
+
+### Native-driven refinement
+
+The initial APK, run 36135521690 at source be72399d, was attested and installed without clearing data. Fourteen
+bounded captures cover Home, first entry, real read-only map/detail/search and inert offer review/recovery/result.
+Ordinary system text is the visual baseline. A brief 320-dp/font-2 input check confirmed that a typed two-digit
+people value and the existing capacity refusal remain visible; emulator density/font were restored to 420/1.0.
+No user submission was made. The initial native pass exposed two refinements: normal offer amounts were too strong
+at 32 sp, and choosing a local pin left the camera at the regional overview. The correction uses 28 sp amounts in
+offer/detail and an explicit-selection neighborhood camera. Its source checks and APK are recorded separately;
+the initial captures are not evidence of the corrected camera or typography.
+
+The correction passes the type check and the full suite: **314 suites / 6,113 tests**, 120.199 seconds, exit 0.
+The existing forced-worker-teardown warning remains. No additional test was added just to mirror typography styles;
+new regressions exercise camera intent, privacy and interrupted/deferred selection behavior.
 
 Read CHECKS.json and RECEIPT.json for completed checks, exact source, APK and native observations. Until those exist, this document describes implementation, not acceptance.
 

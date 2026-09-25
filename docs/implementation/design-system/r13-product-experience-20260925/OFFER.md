@@ -17,7 +17,7 @@ The choice follows the blueprint's worker path, step 3. No new step, route, comm
 ## What changed
 
 - Task context now identifies the task quietly above the editable amount. Public place, time and available places remain visible and spoken as one group. Fixed task prices are still not repeated in the context.
-- The offer amount has a larger Inter numeral, an explicit currency and its unchanged total-price explanation. Empty input has a text placeholder, never a fake zero. Focus has a clear edge; missing and invalid prices retain the original blocked action and recovery.
+- The offer amount has a distinct Inter numeral, an explicit currency and its unchanged total-price explanation. Native review and the owner's ordinary-text clarification reduced the initial 32 sp treatment to 28/34 for input and receipts; fixed-price amounts use the same size. Empty input has a text placeholder, never a fake zero. Focus has a clear edge; missing and invalid prices retain the original blocked action and recovery.
 - People and time belong to one open white terms group. At less than 390 dp or text scale 1.3 and above, the stepper moves below its question. The controls retain their existing touch feedback and haptics. The time row has a modest 0.99 press response; the existing sheet owns the transition.
 - Message entry has a visible optional label, a comfortable writing area and a focus edge. The 4,000-character limit and remaining-character behavior are unchanged.
 - Review, saved intent and confirmed result share the same amount/people/time drawing. They also show the same trimmed message the command sends; previously the confirmed and unresolved receipt omitted that message.

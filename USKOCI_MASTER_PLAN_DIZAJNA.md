@@ -25,6 +25,8 @@ Home, Discovery cards/search, task detail and offer are rebuilt around their dec
 larger portraits and original illustrated Home entry points. Initial map framing waits for measured space.
 The batch receipt separates completed tests, APK and bounded native review. Old visual recipes are not binding layout
 constraints. Business truth, privacy, recovery and accessibility remain. R12 is the preceding surface foundation.
+Owner typography refinement during R13: ordinary system text is the design baseline. Keep title and price scale
+proportionate to their jobs. Brief enlarged-text checks prevent clipping but do not prescribe the normal composition.
 
 R12 is the current surface refinement: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
 Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth
