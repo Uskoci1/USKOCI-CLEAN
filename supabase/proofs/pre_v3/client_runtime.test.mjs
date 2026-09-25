@@ -25,4 +25,13 @@ test('saved Agreement seam loads exact safe mapper and rejects undeclared extern
  const result=await changes.withdraw('invalid',{accountId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',accountRevision:1});
  assert.equal(result.ok,false);assert.equal(calls(),0);assert.ok(r.sourceHashes['src/data/legacyRpcFailure.ts']);
  assert.ok(r.sourceHashes['src/lib/calendarTime.ts']);
+ assert.ok(r.sourceHashes['src/data/agreementRatingsRead.ts']);
+ assert.ok(r.sourceHashes['src/data/reviewsClientService.ts']);
+});
+
+test('bounded rating helper preserves active work without a review request',async()=>{
+ const {r,calls}=runtime();const helper=r.load('src/data/agreementRatingsRead.ts');
+ const rows=[{id:'active-only',stanje:'CONFIRMED'}];
+ const result=await helper.withAgreementRatings(rows,{accountId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',accountRevision:1});
+ assert.equal(result,rows);assert.equal(calls(),0);
 });

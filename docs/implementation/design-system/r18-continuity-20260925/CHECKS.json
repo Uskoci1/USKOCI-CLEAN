@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-09-25T20:03:08.281394+00:00",
+  "types": {
+    "command": "npx tsc --noEmit -p tsconfig.json",
+    "exitCode": 0,
+    "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "jest": {
+    "command": "npx jest -w 3 --testTimeout=30000",
+    "exitCode": 0,
+    "suites": 317,
+    "tests": 6185,
+    "logSha256": "6d27505612d3d2cf64efe9ce620264551c543e30dc23bfcf2ea24a250ee4adcd"
+  },
+  "calendarLoader": {
+    "command": "node --test supabase/proofs/calendar/w02_calendar_integrity_loader.test.mjs",
+    "tests": 2,
+    "exitCode": 0
+  },
+  "preV3Loader": {
+    "state": "pending source commit; loader requires exact committed bytes"
+  },
+  "initialIntegration": "Initial types and full Jest exposed the old applied prop in peek-overflow fixtures; migrated to relation. Final run follows that repair and the bounded-read/sort/scroll refinements.",
+  "native": "pending exact-source builds; no R17 acceptance reused"
+}

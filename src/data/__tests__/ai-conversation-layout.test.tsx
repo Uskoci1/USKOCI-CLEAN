@@ -234,6 +234,34 @@ describe('deliberate reading intent', () => {
     await act(async () => tree.root.findByProps({ testID: 'ai-inline-context' }).props.onLayout(layout(180)));
     expect(native.scrollTo).not.toHaveBeenCalled();
   });
+  it('reserves space for latest while reading an expanded draft and preserves its review action', async () => {
+    mockScale = 2;
+    const p = props(), review = jest.fn();
+    p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
+    p.card = () => <View testID="expanded-review" onTouchEnd={review} />;
+    const native = await mount(p);
+    await act(async () => {
+      flushFrame();
+      tree.root.findByProps({ testID: 'ai-inline-context' }).props.onLayout(layout(360));
+      scroller().props.onScrollBeginDrag(); scroller().props.onScrollEndDrag(position(80));
+    });
+    const region = tree.root.findByProps({ testID: 'ai-latest-region' });
+    const latest = tree.root.findByProps({ testID: 'ai-latest' });
+    expect(scroller().findAllByProps({ testID: 'ai-latest-region' })).toHaveLength(0);
+    expect(StyleSheet.flatten(region.props.style).position).not.toBe('absolute');
+    expect(StyleSheet.flatten(latest.props.style).position).not.toBe('absolute');
+    native.scrollToEnd.mockClear();
+    await act(async () => {
+      scroller().props.onLayout(layout(304));
+      scroller().findByProps({ testID: 'expanded-review' }).props.onTouchEnd();
+    });
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 80, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    expect(review).toHaveBeenCalledTimes(1);
+    await act(async () => latest.props.onPress());
+    expect(tree.root.findAllByProps({ testID: 'ai-latest-region' })).toHaveLength(0);
+    expect(p.onSend).not.toHaveBeenCalled();
+  });
   it('treats accessible history scrolling as intent and resumes following only through latest or an enabled send', async () => {
     const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Pitanje' }];
     const native = await mount(p);

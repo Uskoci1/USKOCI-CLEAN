@@ -14,7 +14,7 @@ import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
 import { CardBriefFoot, CardHead, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
-  taskValue } from '../TaskFace';
+  taskValue, type TaskCardRelation } from '../TaskFace';
 import { TaskPublisherPortrait } from '../TaskPublisherPortrait';
 import { V2Action } from '../V2Action';
 
@@ -46,22 +46,23 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
  * so a long title and the close control keep their room; the list uses the compact side-by-side head. No photo:
  * a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
-function PinTask({ item, applied, onOpen, onLayout }: {
-  item: MarketplaceItem; applied: boolean; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
+function PinTask({ item, relation, onOpen, onLayout }: {
+  item: MarketplaceItem; relation?: TaskCardRelation; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
 }) {
   const large = useTextScale() >= 1.3;
   const title = readableTitle(item.naslov);
-  const status = taskStatus(item, applied ? 'APPLIED' : undefined);
+  const status = taskStatus(item, relation);
+  const owned = relation === 'OWNED';
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
   const value = taskValue(item);
   const place = taskPlace(item);
   // The task's own time in the one time format ("24. sep · 12:00–19:00"): a window or a flexible range keeps both ends.
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
-  const publisher = 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
+  const publisher = !owned && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
   const person = 'narucilacIme' in item && publisher ? <CardPerson name={publisher} rating={item.narucilacOcena}
     count={item.narucilacBrojOcena} size={40} portrait={<TaskPublisherPortrait item={item} size={40} />} /> : null;
-  const places = item.pokrivenost ? placesText(item.pokrivenost, 'worker') : null;
+  const places = item.pokrivenost ? placesText(item.pokrivenost, owned ? 'owner' : 'worker') : null;
   const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, places: places?.spoken,
     person: 'narucilacIme' in item && publisher ? personSpoken(publisher, item.narucilacOcena, item.narucilacBrojOcena) : null });
   const head = status || urgent;
@@ -75,7 +76,7 @@ function PinTask({ item, applied, onOpen, onLayout }: {
         <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
       </View>
       <CardBriefFoot person={person} large={large}
-        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience="worker" large /> : null} />
+        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} large /> : null} />
     </Press>
   </View>;
 }
@@ -89,10 +90,10 @@ function PinTask({ item, applied, onOpen, onLayout }: {
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
  * text it may take more of the window than other cards rather than be cut off.
  */
-export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
+export function DiscoveryPeek({ item, place, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
   /** The tasks on the chosen place, in the list's order. */ place: readonly MarketplaceItem[];
-  applied: (item: MarketplaceItem) => boolean;
+  relation: (item: MarketplaceItem) => TaskCardRelation | undefined;
   active: boolean; bottomInset: number; reduced: boolean;
   /** Available map space below search and attribution; the existing scroll keeps a taller preview reachable. */
   maxHeight?: number;
@@ -128,7 +129,7 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
     handle={false} maxShare={share} onClose={onClose} scrollable
     overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
       icon={X} onPress={dismiss} /></View>}>
-    {() => item ? <PinTask item={item} applied={applied(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
+    {() => item ? <PinTask item={item} relation={relation(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={[s.head, s.clearOfClose]}>
           <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(place.length)} na ovom mestu`}</T>
@@ -137,7 +138,8 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
           haptic="select" scaleTo={0.98} onPress={() => onOpen(task)} style={s.row}>
           <View style={s.grow}>
             <T variant="cardTitleCompact" style={s.rowTitle} numberOfLines={2}>{readableTitle(task.naslov)}</T>
-            <T variant="note" tone="muted" numberOfLines={1}>{applied(task) ? 'Prijava poslata · ' : ''}{task.schedule ? needScheduleText(task.schedule, task.taskTimezone) : task.vremeTekst}</T>
+            {taskStatus(task, relation(task)) ? <T variant="note" tone="muted">{taskStatus(task, relation(task))!.text}</T> : null}
+            <T variant="note" tone="muted" numberOfLines={1}>{task.schedule ? needScheduleText(task.schedule, task.taskTimezone) : task.vremeTekst}</T>
           </View>
           <PriceWords item={task} />
           <CaretRight size={18} color={sys.color.muted} />

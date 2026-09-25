@@ -24,6 +24,9 @@ function deferred<T>() {
 function Probe({ load }: { load: () => Promise<string[]> }) {
   return React.createElement('Snapshot', useFocusedResource(load));
 }
+function RetainedProbe({ load }: { load: () => Promise<string[]> }) {
+  return React.createElement('Snapshot', useFocusedResource(load, { retainOnRefresh: true, coalesce: true }));
+}
 let tree: ReactTestRenderer;
 const snapshot = () => tree.root.findByType('Snapshot' as React.ElementType).props;
 beforeEach(() => {
@@ -87,4 +90,37 @@ it('does not begin an initial read while the application is already backgrounded
   await act(async () => { mockAppState = 'active'; mockStateListener?.('active'); });
   expect(load).toHaveBeenCalledTimes(1);
   expect(snapshot()).toMatchObject({ data: ['fresh'], loading: false });
+});
+
+it('keeps inline refresh options stable and retires an old target including its queued refresh', async () => {
+  const old = deferred<string[]>(), next = deferred<string[]>();
+  const loadOld = jest.fn().mockResolvedValueOnce(['old target history']).mockReturnValueOnce(old.promise);
+  const loadNext = jest.fn().mockReturnValueOnce(next.promise);
+  await act(async () => { tree = create(<RetainedProbe load={loadOld} />); });
+  await act(async () => { tree.update(<RetainedProbe load={loadOld} />); });
+  expect(loadOld).toHaveBeenCalledTimes(1); expect(mockRemove).not.toHaveBeenCalled();
+  const oldRefresh = snapshot().refresh;
+  await act(async () => { void oldRefresh(); void oldRefresh(); });
+  await act(async () => { tree.update(<RetainedProbe load={loadNext} />); });
+  expect(snapshot()).toMatchObject({ data: null, loading: true });
+  await act(async () => { old.resolve(['late old target']); });
+  expect(snapshot()).toMatchObject({ data: null, loading: true }); expect(loadOld).toHaveBeenCalledTimes(2);
+  await act(async () => { next.resolve(['next target']); });
+  expect(snapshot()).toMatchObject({ data: ['next target'], loading: false });
+  await act(async () => oldRefresh()); expect(loadOld).toHaveBeenCalledTimes(2);
+});
+
+it('retires queued conversation reads on account change and on unmount', async () => {
+  const old = deferred<string[]>(), current = deferred<string[]>();
+  const load = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+  await act(async () => { tree = create(<RetainedProbe load={load} />); });
+  await act(async () => { void snapshot().refresh(); });
+  mockSession = { user: { id: 'account-b' }, accountRevision: 2, sessionEpoch: 2 };
+  await act(async () => { tree.update(<RetainedProbe load={load} />); });
+  await act(async () => { old.resolve(['private A']); });
+  expect(snapshot()).toMatchObject({ data: null, loading: true }); expect(load).toHaveBeenCalledTimes(2);
+  const retired = snapshot().refresh;
+  await act(async () => { void retired(); tree.unmount(); });
+  await act(async () => { current.resolve(['private B']); });
+  await retired(); expect(load).toHaveBeenCalledTimes(2);
 });

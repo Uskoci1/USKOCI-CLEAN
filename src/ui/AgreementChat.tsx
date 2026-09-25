@@ -21,6 +21,8 @@ type Props = {
   messages: PorukaProjekcija[];
   loading: boolean;
   error: boolean;
+  refreshing?: boolean;
+  refreshError?: boolean;
   writable: boolean;
   terminal: boolean;
   refresh: () => Promise<void>;
@@ -77,11 +79,12 @@ export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljal
 }
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
-function ChatAction({ label, text = label, onPress, tone = 'green', center = false, refresh = false }: { label: string; text?: string; onPress: () => void;
-  tone?: 'green' | 'ink' | 'onMine'; center?: boolean; refresh?: boolean }) {
+function ChatAction({ label, text = label, onPress, tone = 'green', center = false, refresh = false, busy = false }: { label: string; text?: string; onPress: () => void;
+  tone?: 'green' | 'ink' | 'onMine'; center?: boolean; refresh?: boolean; busy?: boolean }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress}
+    disabled={busy} accessibilityState={{ busy, disabled: busy }}
     style={[s.chatAction, refresh && s.refreshAction, center && s.center]}>
-    {refresh ? <ArrowClockwise size={16} color={sys.color.green} /> : null}
+    {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <ArrowClockwise size={16} color={sys.color.green} /> : null}
     <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
   </Press>;
 }
@@ -93,7 +96,7 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos,
-  context, compact = false }: Props) {
+  context, compact = false, refreshing = false, refreshError = false }: Props) {
   const textScale = useTextScale();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -210,7 +213,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         onScrollEndDrag={event => { readUserPosition(event); userScrolling.current = false; }}
         onMomentumScrollBegin={() => { cancelFollow(); userScrolling.current = true; }}
         onMomentumScrollEnd={event => { readUserPosition(event); userScrolling.current = false; }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
         contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
         <View testID="agreement-chat-context" onLayout={({ nativeEvent }) => {
           const height = nativeEvent.layout.height;
@@ -218,11 +221,22 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           contextHeight.current = height;
           if (following.current) followLatest();
           else if (delta && !userScrolling.current) {
-            // Preserve the message's screen position when accepted terms enter/leave the top of history.
+            // Preserve the message's screen position when terms or refresh feedback change above it.
             readingOffset.current = Math.max(0, readingOffset.current + delta);
             list.current?.scrollTo({ y: readingOffset.current, animated: false });
           }
-        }}>{context}</View>
+        }}>{context}
+          {refreshError && !error ? <View style={s.refreshNotice} accessibilityLiveRegion="polite">
+            <T variant="note" tone="muted" style={s.centerText}>{messages.length
+              ? 'Nove poruke nisu proverene. Ranije učitane poruke su i dalje ovde.'
+              : 'Nove poruke nisu proverene.'}</T>
+            <ChatAction label="Ponovo proveri nove poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center refresh busy={refreshing} />
+          </View> : null}
+          {/* Measure the complete pre-message region: failure replaces this action with the notice,
+              so compensating the notice alone would shift an older message by the removed button's height. */}
+          {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
+            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}
+        </View>
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
         {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
             update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
@@ -231,8 +245,6 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. In the empty thread it
             stands under the empty state's words, as the error state's action does, not above its drawing (verify r4c
             item 2). */}
-        {!error && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-          ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh /> : null}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
           <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
@@ -245,7 +257,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {terminal ? <T variant="copy" tone="muted" style={s.centerText}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
             <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T>
-            <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh /></>}
+            {!refreshError ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}</>}
         </View> : null}
         {shown.map((message, index) => {
           const moment = messageMoment(message.vremeTekst);
@@ -360,6 +372,7 @@ const s = StyleSheet.create({
   loading: { paddingVertical: 24 },
   center: { alignSelf: 'center' }, centerText: { textAlign: 'center' }, ink: { color: sys.color.ink },
   stateBlock: { gap: 8, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 },
+  refreshNotice: { gap: 8, alignItems: 'center', paddingVertical: 12 },
   stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,

@@ -42,8 +42,10 @@ type Props = {
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }] as const;
 // A finished Dogovor that still waits for my rating is not history yet (owner, 2026-09-23: it was invisible
 // on the default tab right after completion). It stays among the active ones until the rating is given.
-const awaitsMyRating = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' && item.ocenaMoguca;
-const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER' || awaitsMyRating(item);
+const awaitsMyRating = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' && item.stanjeProvereOcene !== 'UNAVAILABLE' && item.ocenaMoguca;
+const ratingUnknown = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' && item.stanjeProvereOcene === 'UNAVAILABLE';
+// An unread rating cannot move finished work out of reach as if its next action were settled.
+const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER' || awaitsMyRating(item) || ratingUnknown(item);
 const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
 const Separator = () => <View style={s.separator} />;
@@ -54,7 +56,7 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
 const AVATAR = 56;
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
-type Attention = { kind: 'change' | 'confirm' | 'rate'; title: string; line: string };
+type Attention = { kind: 'change' | 'confirm' | 'rate' | 'check-rating'; title: string; line: string };
 /**
  * What this Dogovor is waiting for from ME, if anything, in the order the Dogovor itself leads with: a change
  * the other side proposed blocks both completions, so answering it comes first. A change I proposed, or a
@@ -66,6 +68,7 @@ function attentionOf(item: DogovorProjekcija): Attention | null {
   // The only route to rating a finished collaboration was: open the agreement, find the action. The card
   // that is already in front of the person says it, and with `onRate` goes there in one tap.
   if (awaitsMyRating(item)) return { kind: 'rate', title: 'Oceni saradnju', line: 'Čeka tvoju ocenu' };
+  if (ratingUnknown(item)) return { kind: 'check-rating', title: 'Proveri ocenu', line: 'Podatak o tvojoj oceni nije učitan. Otvori Dogovor.' };
   return null;
 }
 
@@ -198,6 +201,9 @@ export function AgreementCollectionPresentation(props: Props) {
     // that have one, in the order the server gave. History keeps the newest-first order it always had.
     if (section === 'history') return rows;
     return rows.map((item, index) => ({ item, index })).sort((a, b) => {
+      // Unavailable history stays reachable, but its old appointment must not outrank actual
+      // accepted work or a confirmed rating action merely because its date is earlier.
+      if (ratingUnknown(a.item) !== ratingUnknown(b.item)) return ratingUnknown(a.item) ? 1 : -1;
       const left = a.item.pocinje, right = b.item.pocinje;
       if (left && right && left !== right) return left < right ? -1 : 1;
       if (left && !right) return -1;

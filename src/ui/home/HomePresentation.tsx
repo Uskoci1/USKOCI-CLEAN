@@ -180,7 +180,7 @@ export function HomePresentation(p: HomePresentationProps) {
   agreements.settle(next ? [next.id] : []);
   const attentionUnavailable = home?.attentionState === 'unavailable';
   // Server rows keep their own count; a finished Dogovor waiting for my rating stands under them, never counted with them.
-  const waitingShown = !!home && (attentionUnavailable || home.attention.length > 0 || home.ratingsDue > 0);
+  const waitingShown = !!home && (attentionUnavailable || home.attention.length > 0 || home.ratingsDue === null || home.ratingsDue > 0);
   // Before the first answer a front door has no line; after a failed read it says so, never "0".
   const tasksDetail = home ? tasksLine(home.mine.tasks) : p.error ? 'Trenutno nisu učitani' : null;
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nisu učitane' : null;
@@ -216,7 +216,14 @@ export function HomePresentation(p: HomePresentationProps) {
         {home.attentionMore > 0 ? <T variant="note" tone="muted" style={s.more}>I još {home.attentionMore} u tvojim zadacima, prijavama i Dogovorima.</T> : null}
         {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
             with exactly one it opens that rating in one tap instead of four (critique A1, 2026-09-24). */}
-        {home.ratingsDue > 0 ? <Press accessibilityRole="button" haptic="select" style={s.ratingsDue}
+        {home.ratingsDue === null ? <Press accessibilityRole="button" haptic="select" style={s.ratingsDue}
+          onPress={() => p.onRatings(null)} accessibilityLabel="Proveri ocene u Dogovorima"
+          accessibilityHint="Broj Dogovora za ocenjivanje trenutno nije potvrđen.">
+          <FactArt kind="star" size={24} />
+          <View style={{ flex: 1 }}><T variant="note" style={s.ratingsDueText}>Proveri ocene</T>
+            <T variant="meta" tone="muted">Nisu svi podaci o ocenama učitani.</T></View>
+          <CaretRight size={18} color={sys.color.warn} />
+        </Press> : home.ratingsDue > 0 ? <Press accessibilityRole="button" haptic="select" style={s.ratingsDue}
           onPress={() => p.onRatings(home.ratingDueAgreementId)}
           accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'}>

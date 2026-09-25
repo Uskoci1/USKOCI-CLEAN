@@ -48,6 +48,18 @@ function receipt(raw: unknown, account: string, agreement: string, target: strin
     idempotentReplay: r.idempotentReplay, authoritative: true };
 }
 function bad<T>(code: string): Promise<Ishod<T>> { return Promise.resolve(failure(code, errors[code])); }
+/** The collection and the review screen admit the same account-bound server receipt. */
+export function decodeReviewContext(raw: unknown, accountId: string, agreementId: string): ReviewContext | null {
+  const r = record(raw), catalog = record(r?.tagCatalog);
+  if (!r || !sameId(r.accountId, accountId) || !sameId(r.agreementId, agreementId) ||
+      !uuid(r.targetAccountId) || sameId(r.targetAccountId, accountId) || typeof r.eligible !== 'boolean' ||
+      r.authoritative !== true || !catalog || catalog.version !== 'PRE_V3_REVIEW_TAGS_V1' || catalog.maxTags !== 3 ||
+      !Array.isArray(catalog.tags) || JSON.stringify(catalog.tags) !== JSON.stringify(REVIEW_TAGS)) return null;
+  const ownReview = r.review === null ? null : receipt(r.review, accountId, agreementId, r.targetAccountId);
+  if ((r.review !== null && ownReview === null) || (ownReview !== null && r.eligible)) return null;
+  return { accountId, agreementId, targetAccountId: r.targetAccountId, eligible: r.eligible,
+    review: ownReview, tagCatalog: { version: 'PRE_V3_REVIEW_TAGS_V1', maxTags: 3, tags: [...REVIEW_TAGS] }, authoritative: true };
+}
 export function accountReputationLabel(value: AccountReputation): string {
   return value.reviewCount === 0 ? 'Još nema ocena' : `${value.averageRating?.toLocaleString('sr-Latn-RS', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} · ${plural(value.reviewCount, 'ocena', 'ocene', 'ocena')}`;
 }
@@ -58,17 +70,8 @@ export const reviewsClientService = {
     const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');
     if (!uuid(agreementId)) return bad('REVIEW_NOT_ALLOWED');
     return readOwnedResult({ account, errors, fallback: 'REVIEW_READ_UNAVAILABLE', invalid: 'REVIEW_INVALID_RECEIPT',
-      request: () => supabaseKlijent().rpc('rpc_get_my_agreement_review', { p_agreement_id: agreementId }), decode: raw => {
-        const r = record(raw), catalog = record(r?.tagCatalog);
-        if (!r || !sameId(r.accountId, account.accountId) || !sameId(r.agreementId, agreementId) ||
-            !uuid(r.targetAccountId) || sameId(r.targetAccountId, account.accountId) || typeof r.eligible !== 'boolean' ||
-            r.authoritative !== true || !catalog || catalog.version !== 'PRE_V3_REVIEW_TAGS_V1' || catalog.maxTags !== 3 ||
-            !Array.isArray(catalog.tags) || JSON.stringify(catalog.tags) !== JSON.stringify(REVIEW_TAGS)) return null;
-        const ownReview = r.review === null ? null : receipt(r.review, account.accountId, agreementId, r.targetAccountId);
-        if ((r.review !== null && ownReview === null) || (ownReview !== null && r.eligible)) return null;
-        return { accountId: account.accountId, agreementId, targetAccountId: r.targetAccountId, eligible: r.eligible,
-          review: ownReview, tagCatalog: { version: 'PRE_V3_REVIEW_TAGS_V1', maxTags: 3, tags: [...REVIEW_TAGS] }, authoritative: true };
-      } });
+      request: () => supabaseKlijent().rpc('rpc_get_my_agreement_review', { p_agreement_id: agreementId }),
+      decode: raw => decodeReviewContext(raw, account.accountId, agreementId) });
   },
   submit(input: ReviewCommand, explicit?: ReceiptAccount): Promise<Ishod<ReviewReceipt>> {
     const account = scope(explicit); if (!account) return bad('AUTH_REQUIRED');

@@ -204,6 +204,13 @@ it('keeps the launch actions and rating row white with at least 64dp personal-li
 
 const completed = (id: string) => ({ ...agreement(id, 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true });
 
+it('an incomplete rating read opens Dogovori without claiming zero, an exact total or the single known rating', async () => {
+  mockSource.mojiDogovori.mockResolvedValue([completed('due'), { ...completed('unknown'), ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }]);
+  await render(); expect(text()).toContain('Proveri ocene'); expect(text()).not.toContain('Oceni završen Dogovor');
+  await act(async () => row('Proveri ocene u Dogovorima').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith('/dogovori');
+});
+
 // Copy updated 2026-09-24 (critique A1): the strip used to say "2 završena Dogovora čekaju tvoju ocenu"; it now leads
 // with the verb. Two due still open the Dogovori, where each one waits.
 it('names the completed Dogovori that wait for my rating once, verb first, with the count written once, and opens the Dogovori', async () => {

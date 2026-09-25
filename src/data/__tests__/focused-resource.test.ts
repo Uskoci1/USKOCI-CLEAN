@@ -131,3 +131,73 @@ it('never shows one account the screen that belonged to another', async () => {
   expect(model.snapshot()).toEqual({ data: null, loading: true, error: false, refreshing: false });
   expect(load).toHaveBeenCalledTimes(1);
 });
+
+describe('opt-in conversation refresh continuity', () => {
+  const policy = { retainOnRefresh: true, coalesce: true };
+  it('retains the transcript through a failed refresh and exposes its own retry status', async () => {
+    const update = deferred<string[]>();
+    const load = jest.fn().mockResolvedValueOnce(['read message']).mockReturnValueOnce(update.promise)
+      .mockResolvedValueOnce(['read message', 'new message']);
+    const model = createFocusedResource<string[]>(load, () => true, policy);
+    model.start(); await flush();
+    const refresh = model.refresh();
+    expect(model.snapshot()).toMatchObject({ data: ['read message'], loading: false, error: false, refreshing: true, refreshError: false });
+    update.reject(new Error('offline')); await refresh;
+    expect(model.snapshot()).toMatchObject({ data: ['read message'], loading: false, error: false, refreshing: false, refreshError: true });
+    await model.refresh();
+    expect(model.snapshot()).toMatchObject({ data: ['read message', 'new message'], loading: false, error: false, refreshing: false });
+    expect(model.snapshot().refreshError).toBeFalsy();
+  });
+
+  it('keeps a first failure distinct from a loaded empty conversation', async () => {
+    const load = jest.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('offline'));
+    const model = createFocusedResource<string[]>(load, () => true, policy);
+    model.start(); await flush();
+    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true, refreshing: false });
+    await model.refresh(); await model.refresh();
+    expect(model.snapshot()).toMatchObject({ data: [], loading: false, error: false, refreshing: false, refreshError: true });
+  });
+
+  it('serializes a manual read and a completed-send refresh into one trailing read', async () => {
+    const first = deferred<string[]>(), trailing = deferred<string[]>();
+    const load = jest.fn().mockResolvedValueOnce(['history']).mockReturnValueOnce(first.promise).mockReturnValueOnce(trailing.promise);
+    const model = createFocusedResource<string[]>(load, () => true, policy);
+    model.start(); await flush();
+    const manual = model.refresh(), send = model.refresh(), retry = model.refresh();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(send).toBe(manual); expect(retry).toBe(manual);
+    let finished = false; void send.then(() => { finished = true; });
+    first.resolve(['history']); await flush();
+    expect(load).toHaveBeenCalledTimes(3); expect(finished).toBe(false);
+    expect(model.snapshot()).toMatchObject({ data: ['history'], refreshing: true });
+    trailing.resolve(['history', 'just accepted send']); await send;
+    expect(model.snapshot().data).toEqual(['history', 'just accepted send']);
+    expect(finished).toBe(true); expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['stop', 'forget'] as const)('retires the active and queued reads on %s before a new focus', async boundary => {
+    const stale = deferred<string[]>(), fresh = deferred<string[]>();
+    const load = jest.fn().mockResolvedValueOnce(['history']).mockReturnValueOnce(stale.promise).mockReturnValueOnce(fresh.promise);
+    const model = createFocusedResource<string[]>(load, () => true, policy);
+    model.start(); await flush();
+    const old = model.refresh(); void model.refresh();
+    model[boundary](); model.start();
+    expect(load).toHaveBeenCalledTimes(3);
+    fresh.resolve(['current']); await flush();
+    stale.resolve(['retired']); await old;
+    expect(model.snapshot().data).toEqual(['current']); expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it('never starts a queued refresh or publishes a late result after ownership changes', async () => {
+    let current = true;
+    const pending = deferred<string[]>();
+    const load = jest.fn().mockResolvedValueOnce(['history']).mockReturnValueOnce(pending.promise);
+    const model = createFocusedResource<string[]>(load, () => current, policy);
+    model.start(); await flush();
+    const waiting = model.refresh(); void model.refresh(); current = false;
+    const listener = jest.fn(); model.subscribe(listener);
+    pending.resolve(['another account result']); await waiting; await model.refresh();
+    expect(listener).not.toHaveBeenCalled(); expect(load).toHaveBeenCalledTimes(2);
+    expect(model.snapshot().data).toEqual(['history']);
+  });
+});

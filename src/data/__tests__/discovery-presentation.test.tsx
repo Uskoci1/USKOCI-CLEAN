@@ -3,6 +3,7 @@ import { AccessibilityInfo, BackHandler, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
+import { taskRelationIndex, type TaskRelationIndex } from '../taskRelation';
 let mockReduced = false, mockFocused = true;
 const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
@@ -48,7 +49,7 @@ const CARD = (TaskCard as unknown as { type: React.ElementType }).type;
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24; round-1 critique A5–A7, B8, B12). The map is under a list sheet; the
  * sheet is the list (no Lista/Mapa switch), starts where the pin coverage says, and is never reached by a gesture only.
- * My own tasks are not listed, and nothing says they are hidden. A pin opens its card over the map; a point several
+ * Own tasks are distinctly labeled without changing public visibility/counts. A pin opens its card over the map; a point several
  * tasks share opens as one place. Filters are a draft applied at once. Presentation only: the route's guards are
  * pinned by the route suites.
  */
@@ -57,8 +58,12 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 44.8 + Number(id.length) / 100, lng: 20.4 + id.charCodeAt(0) / 1000 },
   ...patch } as unknown as MarketplaceItem);
 const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
-let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: { owned: ReadonlySet<string>; applied: ReadonlySet<string> } | undefined;
-let relationsPending = false;
+let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined;
+let relationsPending = false, relationsError = false;
+const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
+  ...own.map(needId => ({ needId, relation: 'OWNER' })),
+  ...applied.map(needId => ({ needId, relation: 'APPLIED', applicationId: `application-${needId}`, applicationState: 'SUBMITTED' })),
+], covered);
 let snapshot: MarketplaceView, initial: MarketplaceView;
 /** Set once a task is opened: like the route, the screen then takes no more changes of its view (it is not in front). */
 let navigated = false;
@@ -67,7 +72,7 @@ function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey="a:1" view={view}
     onView={next => { if (!navigated) setView(next); }}
-    onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} />;
+    onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
 }
 let tree: ReactTestRenderer;
 const scrollToOffset = jest.fn();
@@ -88,8 +93,8 @@ const listSheet = () => sheets().find(node => !node.props.detached)!;
 const peek = () => sheets().find(node => node.props.detached);
 // The cards in the list (TaskCard says "Otvori priliku"). Since review r3 item 7 a place's rows say "Pogledaj zadatak",
 // as the single card's action does, so this reads the list sheet alone and never counts a pin card's rows.
-const cards = () => listSheet().findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))
-  .map(node => String(node.props.accessibilityLabel).replace('Otvori priliku Pomoć ', ''));
+const cards = () => listSheet().findAll(node => String(node.type) === 'Press' && /^Otvori (?:priliku|Zadatak) /.test(node.props.accessibilityLabel ?? ''))
+  .map(node => String(node.props.accessibilityLabel).replace(/^Otvori (?:priliku|Zadatak) Pomoć /, ''));
 // Discovery V47: the search is a panel opened from the pill over the map. Its words are a draft that "Prikaži N zadataka"
 // applies; the one green action is found by its label, which says the count (or that nothing is left).
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
@@ -110,7 +115,7 @@ const search = async (words: string) => {
 };
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = navigated = false; mockFocused = true; relations = undefined;
+  initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile, scrollToOffset]) fn.mockReset();
@@ -157,16 +162,27 @@ test('portraits mount only for visible rows and unmount behind a pin, a collapse
   mockFocused = false; await update(); expect(portraits()).toEqual([]);
 });
 
-test('my own tasks are simply not listed, nothing says they are hidden, and a task I applied to says so', async () => {
+test('confirmed own, applied, other and uncovered tasks stay visible with distinct truthful labels on list and pin', async () => {
   rows = [row('mine'), row('other'), row('applied'), row('remote', { priblizno: null })];
-  relations = { owned: new Set(['mine']), applied: new Set(['applied']) };
+  relations = relationIndex(['mine'], ['applied'], ['mine', 'other', 'applied']);
   await render();
-  expect(cards()).toEqual(['other', 'applied', 'remote']);
-  expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['other', 'applied', 'remote']);
-  expect(texts()).not.toMatch(/sakriven|Prikaži i moje|Sakrij moje|Tvoj zadatak/);
-  expect(texts()).toContain('Prijava poslata');
+  expect(cards()).toEqual(['mine', 'other', 'applied', 'remote']);
+  expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['mine', 'other', 'applied', 'remote']);
+  const relationOf = (id: string) => tree.root.findAllByType(CARD).find(node => node.props.item.id === id)!.props.relation;
+  expect(relationOf('mine')).toBe('OWNED'); expect(relationOf('other')).toBeUndefined();
+  expect(relationOf('applied')).toBe('APPLIED'); expect(relationOf('remote')).toBe('UNKNOWN');
+  expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('Prijava poslata'); expect(texts()).toContain('Tvoj status nije potvrđen');
   // The top line counts what is listed, and how many of those the map cannot show.
-  expect(texts()).toContain('3 zadatka'); expect(texts()).toContain(' · 1 zadatak bez tačke na mapi');
+  expect(texts()).toContain('4 zadatka'); expect(texts()).toContain(' · 1 zadatak bez tačke na mapi');
+  await act(async () => map().props.onSelect('mine'));
+  expect(texts(peek()!)).toContain('Tvoj zadatak');
+  await tap('Zatvori pregled zadatka');
+  relations = undefined; relationsError = true; await update();
+  expect(cards()).toEqual(['mine', 'other', 'applied', 'remote']); expect(texts()).toContain('4 zadatka');
+  expect(texts()).not.toContain('Tvoj zadatak'); expect(texts()).not.toContain('Prijava poslata');
+  await tap('Proveri status zadataka'); expect(refresh).toHaveBeenCalledTimes(1);
+  await act(async () => map().props.onSelect('mine'));
+  expect(texts(peek()!)).toContain('Tvoj status nije potvrđen');
 });
 
 test.each([
@@ -656,14 +672,14 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   await search('prevod'); expect(listSheet().props.index).toBe(1);
 });
 
-// Review r3 item 9: until the list knows which tasks are mine it cannot leave them out, so it says no count yet.
-test('while it is still read which tasks are mine, the list says no count and does not yet choose where the sheet starts', async () => {
+// DN-01: ownership labels are independent of public count and sheet geometry.
+test('pending, confirmed and failed ownership keep identical counts, rows and sheet start', async () => {
   rows = Array.from({ length: 5 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); relationsPending = true;
   await render();
-  expect(texts()).not.toMatch(/\d+ zadat|bez tačke/); expect(listSheet().props.index).toBe(1);
-  // Two of the five were mine: three are listed, and three or fewer start half open (five would have started at the top line).
-  relations = { owned: new Set(['t0', 't1']), applied: new Set() }; relationsPending = false; await update();
-  expect(texts()).toContain('3 zadatka'); expect(listSheet().props.index).toBe(1);
+  expect(texts()).toContain('5 zadataka'); expect(listSheet().props.index).toBe(0);
+  expect(texts()).toContain('Proveravam tvoj status…');
+  relations = relationIndex(['t0', 't1']); relationsPending = false; await update();
+  expect(texts()).toContain('5 zadataka'); expect(listSheet().props.index).toBe(0);
   // A failed read is not pending: the list counts what it shows.
   await act(async () => tree.unmount()); relations = undefined; await render();
   expect(texts()).toContain('5 zadataka');
@@ -695,19 +711,21 @@ test('the map is told where the sheet starts, so the first fit keeps the pins ab
   expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md);
 });
 
-// Review r3b: the map fits its pins once, when it mounts. A mount before the labels land would fit my own tasks for a
-// sheet start the sheet then does not take, so its first mount waits exactly as the sheet's start does.
-test('the map\'s first mount waits for what is mine, then fits only what is listed above where the sheet starts', async () => {
+// DN-01: the same map fits every visible public pin before the labels arrive.
+test('the map mounts without waiting for ownership and keeps the same pins after it resolves', async () => {
   rows = Array.from({ length: 5 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); relationsPending = true;
   await render();
   const body = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
     && JSON.stringify(StyleSheet.flatten(node.props.style)) === JSON.stringify({ flex: 1 }))[0];
   await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
-  relations = { owned: new Set(['t0', 't1']), applied: new Set() }; relationsPending = false; await update();
-  expect(map().props.items).toHaveLength(3);
-  expect(listSheet().props.index).toBe(1);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + 48 + 2 * sys.space.md);
+  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
+  expect(map().props.items).toHaveLength(5);
+  const publicPins = map().props.items;
+  relations = relationIndex(['t0', 't1']); relationsPending = false; await update();
+  expect(map().props.items).toHaveLength(5);
+  expect(map().props.items).toBe(publicPins);
+  expect(listSheet().props.index).toBe(0);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + 48 + 2 * sys.space.md);
   // A later read of the labels (a new list) does not take the map away again.
   relationsPending = true; await update();
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
@@ -836,8 +854,7 @@ test('on iOS the new count is said once the list\'s area has stayed still for a 
   } finally { jest.useRealTimers(); }
 });
 
-// Review of V47, item 1: while the list, or which of its tasks are mine, is still read, the search counts nothing.
-test('the search panel counts nothing while the list or what is mine is still read, and the search never says "0 zadataka"', async () => {
+test('the search panel waits for public rows, but counts them while ownership is still pending', async () => {
   loading = true; rows = []; await render();
   expect(press('Pretraži zadatke').props.accessibilityValue.text).not.toMatch(/\d+ zadat/);
   await tap('Uslovi pretrage');
@@ -846,7 +863,7 @@ test('the search panel counts nothing while the list or what is mine is still re
   await tap('Zatvori pretragu'); await act(async () => tree.unmount());
   loading = false; relationsPending = true; rows = [row('a'), row('bb')]; await render();
   await tap('Pretraži zadatke');
-  expect(action('Prikaži zadatke').props.disabled).toBe(false); expect(radioOf('Svi zadaci')).toBeDefined();
+  expect(action('Prikaži 2 zadatka').props.disabled).toBe(false); expect(radioOf('Svi zadaci, 2 zadatka')).toBeDefined();
   await tap('Zatvori pretragu'); await act(async () => tree.unmount());
   relationsPending = false; error = true; rows = []; await render(); await tap('Uslovi pretrage');
   expect(action('Zadaci nisu učitani').props.disabled).toBe(true);

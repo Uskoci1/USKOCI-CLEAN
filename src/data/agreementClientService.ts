@@ -12,6 +12,8 @@ import { supabaseKlijent } from './supabaseClient';
 import { novac as novacTekst } from '../lib/novac';
 import { vreme } from '../lib/vreme';
 import { inicijali } from '../lib/inicijali';
+import { sesijaSada } from '../store/sesija';
+import { ratingReadOwnerCurrent, withAgreementRatings } from './agreementRatingsRead';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -557,25 +559,6 @@ export const agreementChangeService = {
  * Backend authority remains in canonical Agreement RPCs; this service preserves
  * the existing Izvor request, validation, mapping and error semantics exactly.
  */
-/**
- * A finished Dogovor waits for my rating only while the review read says I may still rate it (`eligible`). The list
- * used to mark every finished Dogovor as due, so one already rated stayed under Aktivni with "Čeka tvoju ocenu"
- * forever (review of 2026-09-23). The read is asked once per finished Dogovor, in parallel; if it cannot answer, the
- * Dogovor is not called due — the rating stays reachable from the Dogovor itself, which reads the same thing.
- */
-async function withRatingsDue(rows: DogovorProjekcija[]): Promise<DogovorProjekcija[]> {
-  const finished = rows.filter(row => row.stanje === 'COMPLETED');
-  if (!finished.length) return rows;
-  const due = new Map<string, boolean>();
-  await Promise.all(finished.map(async row => {
-    try {
-      const { data, error } = await supabase.rpc('rpc_get_my_agreement_review', { p_agreement_id: row.id });
-      due.set(row.id, !error && !!data && typeof data === 'object' && (data as { eligible?: unknown }).eligible === true);
-    } catch { due.set(row.id, false); }
-  }));
-  return rows.map(row => row.stanje === 'COMPLETED' ? { ...row, ocenaMoguca: due.get(row.id) === true } : row);
-}
-
 export const agreementClientService: AgreementService = {
   /**
    * PKG-023a. The paged reader answers what the unpaged one could not: the start instant of the work
@@ -584,7 +567,10 @@ export const agreementClientService: AgreementService = {
    * refusal, never a silent truncation.
    */
   async mojiDogovori() {
+    const session = sesijaSada();
+    const owner = { accountId: session.user?.id ?? '', accountRevision: session.accountRevision };
     const uid = await userId();
+    if (uid !== owner.accountId || !ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
     const rows: any[] = [];
     let cursor: { at: string; id: string } | null = null;
     for (let page = 0; ; page++) {
@@ -592,6 +578,7 @@ export const agreementClientService: AgreementService = {
       const { data, error } = await supabase.rpc('rpc_list_my_agreements_page', {
         p_scope: 'ALL', p_limit: 100, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
       });
+      if (!ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
       if (error) throw new Error('AGREEMENT_LIST_FAILED');
       const items = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
       if (!Array.isArray(items)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
@@ -600,7 +587,7 @@ export const agreementClientService: AgreementService = {
       if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
       cursor = { at: last.sortAt, id: last.id };
     }
-    return withRatingsDue(rows.map((row) => mapAgreement(row, uid)));
+    return withAgreementRatings(rows.map((row) => mapAgreement(row, uid)), owner);
   },
 
   async dogovor(id) {

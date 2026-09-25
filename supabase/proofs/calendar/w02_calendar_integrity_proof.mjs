@@ -89,6 +89,10 @@ function connectedCalendar(client,userId){
     '../lib/calendarTime':'src/lib/calendarTime.ts',
     './workerCalendarClientService':'src/data/workerCalendarClientService.ts',
     './agreementClientService':'src/data/agreementClientService.ts',
+    // The collection now bounds review reads and validates the same receipt as the review screen.
+    './agreementRatingsRead':'src/data/agreementRatingsRead.ts',
+    './reviewsClientService':'src/data/reviewsClientService.ts',
+    '../ui/system/plural':'src/ui/system/plural.ts',
     './agreementCompletion':'src/data/agreementCompletion.ts',
     './calendarErrors':'src/data/calendarErrors.ts',
     './legacyRpcFailure':'src/data/legacyRpcFailure.ts',

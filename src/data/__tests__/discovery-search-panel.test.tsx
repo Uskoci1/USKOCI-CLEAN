@@ -107,14 +107,14 @@ test('choices stay in context and remain selected, without applying or collapsin
 
 test('"Gde" offers only the places the loaded tasks name, with their counts; typing narrows them; a place, the map\'s area or every task', async () => {
   await render();
-  // My own task's place and a remote task's words are never offered; two spellings of one place are one.
+  // Own tasks participate in the same count; remote words are not places. Two spellings of one place are one.
   const offered = offeredPlaces().map(node => node.props.accessibilityLabel);
-  expect(offered).toEqual(['Svi zadaci, 4 zadatka', 'Liman, Novi Sad, 2 zadatka', 'Vračar, Beograd, 1 zadatak']);
-  expect(offered.join(' ')).not.toMatch(/Zemun|Na daljinu|U blizini|Moja lokacija/);
+  expect(offered).toEqual(['Svi zadaci, 5 zadataka', 'Liman, Novi Sad, 2 zadatka', 'Vračar, Beograd, 1 zadatak', 'Zemun, Beograd, 1 zadatak']);
+  expect(offered.join(' ')).not.toMatch(/Na daljinu|U blizini|Moja lokacija/);
   expect(texts()).toContain('Mesta iz dostupnih zadataka');
   // Typing narrows the places; the words themselves also search the tasks, so the count follows them.
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' }).props.onChangeText('vrač'));
-  expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual(['Svi zadaci, 4 zadatka', 'Vračar, Beograd, 1 zadatak']);
+  expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual(['Svi zadaci, 5 zadataka', 'Vračar, Beograd, 1 zadatak']);
   await choose('Vračar, Beograd, 1 zadatak');
   expect(openStep()).toEqual(['gde']);
   expect(placeValue()).toBe('Vračar, Beograd');
@@ -122,9 +122,9 @@ test('"Gde" offers only the places the loaded tasks name, with their counts; typ
   await act(async () => show().props.onPress());
   expect(lastDraft()).toMatchObject({ place: 'Vračar, Beograd', query: '', area: null }); expect(close).toHaveBeenCalledTimes(1);
   // The map's current area is offered once the map has settled somewhere, with what the list would then hold: the two
-  // tasks inside it and the online one, which no area leaves out.
+  // public tasks (including mine) inside it and the online one, which no area leaves out.
   await act(async () => tree.unmount()); mapArea = [19.8, 45.2, 19.9, 45.3]; await render();
-  await choose('Oblast sa mape, 3 zadatka');
+  await choose('Oblast sa mape, 4 zadatka');
   await act(async () => show().props.onPress());
   expect(lastDraft()).toMatchObject({ place: null, area: [19.8, 45.2, 19.9, 45.3] });
 });
@@ -138,11 +138,11 @@ test('a range of dates needs two taps and stays open until its end; a past day c
   expect(past.props).toMatchObject({ disabled: true, accessibilityState: { disabled: true, selected: false } });
   expect(dayCell(24).props.accessibilityLabel).toBe('Četvrtak, 24. sep, danas');
   // The first tap starts the range and nothing moves on; it is already a choice of that one day, and counted so (the
-  // three tasks of the 26th; the one of the 30th is not).
+  // four tasks of the 26th, including mine; the one of the 30th is not).
   await act(async () => dayCell(26).props.onPress());
   expect(openStep()).toEqual(['kada']); expect(texts()).toContain('Izaberi poslednji dan.');
   expect(dayCell(26).props.accessibilityState).toEqual({ disabled: false, selected: true });
-  expect(show().props.label).toBe('Prikaži 3 zadatka');
+  expect(show().props.label).toBe('Prikaži 4 zadatka');
   // The second tap ends it without moving the calendar: the days between are shaded and both ends are chosen.
   await act(async () => dayCell(28).props.onPress());
   expect(openStep()).toEqual(['kada']);
@@ -150,7 +150,7 @@ test('a range of dates needs two taps and stays open until its end; a past day c
   expect([26, 27, 28].map(n => dayCell(n).props.accessibilityState.selected)).toEqual([true, true, true]);
   expect(dayCell(29).props.accessibilityState.selected).toBe(false);
   expect(tree.root.findAll(node => node.props.testID === 'range-band')).toHaveLength(3);
-  expect(show().props.label).toBe('Prikaži 3 zadatka');
+  expect(show().props.label).toBe('Prikaži 4 zadatka');
   // A day before the pending start starts the range again.
   await act(async () => dayCell(30).props.onPress()); await act(async () => dayCell(25).props.onPress());
   expect(openStep()).toEqual(['kada']); expect(texts()).toContain('Izaberi poslednji dan.');
@@ -169,14 +169,14 @@ test('"Koliko vas dolazi" counts people from one: minus cannot go below one, and
   const minus = () => byLabel('Smanji broj osoba')[0], plus = () => byLabel('Povećaj broj osoba')[0];
   expect(texts()).toContain('1 osoba');
   expect(minus().props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
-  expect(show().props.label).toBe('Prikaži 4 zadatka');
+  expect(show().props.label).toBe('Prikaži 5 zadataka');
   await act(async () => plus().props.onPress()); await act(async () => plus().props.onPress());
   expect(texts()).toContain('3 osobe'); expect(openStep()).toEqual([]);
   expect(minus().props.disabled).toBe(false);
   // No task here has three open places: the one green action says so and cannot be pressed.
   expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await act(async () => minus().props.onPress());
-  expect(show().props).toMatchObject({ label: 'Prikaži 4 zadatka', disabled: false });
+  expect(show().props).toMatchObject({ label: 'Prikaži 5 zadataka', disabled: false });
   await act(async () => show().props.onPress());
   expect(lastDraft().places).toBe(2);
 });
@@ -185,7 +185,7 @@ test('"Obriši uslove" empties the draft and counts every task again; × leaves 
   view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd' }; await render();
   expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
-  expect(show().props.label).toBe('Prikaži 4 zadatka');
+  expect(show().props.label).toBe('Prikaži 5 zadataka');
   for (const choice of ['Bilo kada', 'Bilo gde', 'Sve']) expect(radio(choice)[0].props.accessibilityState.checked).toBe(true);
   expect(texts()).toContain('1 osoba');
   await act(async () => show().props.onPress());

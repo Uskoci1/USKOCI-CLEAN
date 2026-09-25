@@ -33,8 +33,8 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
   partial: boolean; attentionState?: 'known' | 'unavailable';
   /** Every read answered and this account has no task, no application, no Dogovor and nothing waiting. */
   firstRun: boolean;
-  /** Completed Dogovori still waiting for this person's rating; 0 when the Dogovori could not be read. */
-  ratingsDue: number;
+  /** Exact number only after every completed row has a valid receipt; null means unavailable, never zero. */
+  ratingsDue: number | null;
   /**
    * When exactly one Dogovor waits for my rating, its id, as the Dogovori read already gave it: Početna then opens that
    * rating in one tap (emulator critique A1, 2026-09-24). With none or several it is null and Početna opens Dogovori.
@@ -114,7 +114,8 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     })
     .map(entry => agreementRow(entry.row));
   const due = (agreements ?? []).filter(ratingDue);
-  const partial = serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
+  const ratingsKnown = agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
+  const partial = !ratingsKnown || serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   return {
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
@@ -126,7 +127,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       applications: applications ? { kind: 'known', value: applicationCounts(applications) } : { kind: 'unavailable' } },
     partial,
     firstRun: !partial && !attention.length && !needs?.length && !applications?.length && !agreements?.length,
-    ratingsDue: due.length,
-    ratingDueAgreementId: due.length === 1 ? due[0].id : null,
+    ratingsDue: ratingsKnown ? due.length : null,
+    ratingDueAgreementId: ratingsKnown && due.length === 1 ? due[0].id : null,
   };
 }

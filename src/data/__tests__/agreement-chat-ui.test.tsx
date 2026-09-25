@@ -56,6 +56,50 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 describe('D03 actual message component', () => {
+  it('keeps history, writing and photo recovery while refresh progress and its failure have separate feedback', async () => {
+    const history = [{ id: '30000000-0000-4000-8000-000000000001', telo: 'Prethodna poruka', moja: false,
+      posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }];
+    const photos = { loaded: true, busy: false, hasSelection: true, ready: false, agreementId: agreement,
+      items: [], message: 'Fotografija čeka ponovni pokušaj.', canSubmit: () => false } as any;
+    const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
+    await render({ messages: history, photos, state: pending, refreshing: true });
+    expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(true);
+    expect(button('Osveži poruke').props.accessibilityState).toEqual({ busy: true, disabled: true });
+    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
+    expect(tree.root.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);
+    await act(async () => tree.update(<AgreementChat {...props} messages={history} photos={photos} state={pending} refreshError />));
+    expect(texts()).toContain('Nove poruke nisu proverene.'); expect(texts()).not.toContain('Poruke nisu učitane');
+    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
+    expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(false);
+    await act(async () => button('Ponovo proveri nove poruke').props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+  });
+
+  it('preserves older-history reading position when retained-refresh feedback changes height', async () => {
+    await render({ messages: [{ id: 'message', telo: 'Starija poruka', moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }] });
+    const history = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    const context = () => tree.root.findByProps({ testID: 'agreement-chat-context' });
+    expect(context().findByProps({ accessibilityLabel: 'Osveži poruke' })).toBeTruthy();
+    await act(async () => {
+      context().props.onLayout({ nativeEvent: { layout: { height: 48 } } });
+      history.props.onScrollBeginDrag(scrollEvent(200)); history.props.onScrollEndDrag(scrollEvent(200));
+    });
+    scrollToEnd.mockClear();
+    await act(async () => tree.update(<AgreementChat {...props} messages={[{ id: 'message', telo: 'Starija poruka', moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }]} refreshError />));
+    expect(context().findByProps({ accessibilityLabel: 'Ponovo proveri nove poruke' })).toBeTruthy();
+    await act(async () => context().props.onLayout({ nativeEvent: { layout: { height: 90 } } }));
+    // The notice replaced the 48-high action; only its additional 42 shifts the message.
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 242, animated: false });
+    await act(async () => tree.update(<AgreementChat {...props} messages={[{ id: 'message', telo: 'Starija poruka', moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }]} refreshing />));
+    await act(async () => context().props.onLayout({ nativeEvent: { layout: { height: 48 } } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 200, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled(); expect(button('Najnovije poruke')).toBeTruthy();
+  });
+
   it('sends one explicit photo-only command and preserves a pending selection instead of silently sending text alone', async () => {
     const attachments = { agreementVersion: 3, assetIds: ['40000000-0000-4000-8000-000000000001'] };
     const photos = { loaded: true, busy: false, ready: true, hasSelection: true, agreementId: agreement,

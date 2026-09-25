@@ -113,14 +113,18 @@ const OWN_STATUS: Partial<Record<StanjePotrebe, string>> = { NACRT: 'Nacrt', DEL
  * a card in a section named for its state (every card under Nacrti is a draft, every card under Istorija is closed) does
  * not repeat it (card review r3 item 10). `sectionSays` is the state the list's own section already names.
  */
-export function taskStatus(item: MarketplaceItem, relation?: 'OWNED' | 'APPLIED', sectionSays?: StanjePotrebe): { text: string; quiet: boolean } | null {
+export type TaskCardRelation = 'OWNED' | 'APPLIED' | 'UNKNOWN' | 'PENDING';
+export function taskStatus(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe): { text: string; quiet: boolean } | null {
   if ('stanje' in item) {
     if (sectionSays && item.stanje === sectionSays) return null;
     const text = OWN_STATUS[item.stanje];
     return text ? { text, quiet: item.stanje === 'NACRT' || item.stanje === 'ZATVORENA' } : null;
   }
   // A sent application is a paper plane in words, never the tick of something finished.
-  return relation === 'OWNED' ? { text: 'Tvoj zadatak', quiet: false } : relation === 'APPLIED' ? { text: 'Prijava poslata', quiet: false } : null;
+  return relation === 'OWNED' ? { text: 'Tvoj zadatak', quiet: false }
+    : relation === 'APPLIED' ? { text: 'Prijava poslata', quiet: false }
+    : relation === 'UNKNOWN' ? { text: 'Tvoj status nije potvrđen', quiet: true }
+    : relation === 'PENDING' ? { text: 'Proveravam tvoj status…', quiet: true } : null;
 }
 
 /**

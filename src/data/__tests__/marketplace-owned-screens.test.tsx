@@ -76,8 +76,7 @@ test('discovery labels my own task and the one I applied to, asks only about the
  mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); await render();
  expect(props().items).toHaveLength(3); expect(props().relations).toBeUndefined();
 });
-// Review r3 item 9 (2026-09-24): until the list knows which tasks are mine it cannot leave them out, so the screen is told
-// that read is still running and holds its count back. A failed read is not pending, and nothing else waits for it.
+// Relations are labels only: the public rows remain usable while the overlay loads or fails.
 test('discovery says while the labels for the tasks on screen are still being read, and a failed read is not pending', async () => {
  let answer!: (index: unknown) => void;
  mockPublic.mockResolvedValue([{ id: 'mine' }, { id: 'other' }]);
@@ -131,4 +130,86 @@ test('my own task opens its waiting applications once, through the same guard, a
 });
 test('discovery hands no applications foot to its cards', async () => {
  await render(); expect(props().onApplications).toBeUndefined();
+});
+
+test('joint refresh recovers a failed relation read for identical IDs and keeps the current view', async () => {
+ mockPublic.mockResolvedValue([{ id: 'mine' }, { id: 'other' }]);
+ mockRelations.mockImplementation(async (ids: readonly string[]) => {
+   if (!ids.length) return taskRelationIndex([], ids);
+   throw new Error('TASK_RELATIONS_READ_FAILED');
+ });
+ await render();
+ expect(props().relationsError).toBe(true); expect(props().relationsPending).toBe(false);
+ const view = { ...props().view, query: 'kept', selectedId: 'mine', viewport: { center: [19.8, 45.2], zoom: 13, bounds: [19, 45, 20, 46] } };
+ await act(async () => props().onView(view));
+ let answer!: (value: ReturnType<typeof taskRelationIndex>) => void;
+ mockRelations.mockImplementation((ids: readonly string[]) => ids.length ? new Promise(done => { answer = done; }) : Promise.resolve(taskRelationIndex([], ids)));
+ const before = mockRelations.mock.calls.length, reads = mockPublic.mock.calls.length;
+ await act(async () => props().onRefresh());
+ expect(mockRelations).toHaveBeenCalledTimes(before + 1); expect(mockPublic).toHaveBeenCalledTimes(reads + 1);
+ expect(props().items).toEqual([{ id: 'mine' }, { id: 'other' }]); expect(props().relationsPending).toBe(true);
+ await act(async () => answer(taskRelationIndex([{ needId: 'mine', relation: 'OWNER' }], ['mine', 'other'])));
+ expect(props().relationsError).toBe(false); expect(props().relations.relation('mine').kind).toBe('OWNER');
+ expect(props().relations.relation('other').kind).toBe('NONE'); expect(props().relations.relation('unasked').kind).toBe('UNKNOWN');
+ expect(props().view).toEqual(view);
+ await act(async () => props().onOpen({ id: 'mine' }));
+ expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'mine' } });
+});
+
+test('changed public IDs retire the previous relation answer and read the new coverage', async () => {
+ let oldAnswer!: (value: ReturnType<typeof taskRelationIndex>) => void;
+ mockPublic.mockResolvedValueOnce([{ id: 'old' }]).mockResolvedValue([{ id: 'new' }]);
+ mockRelations.mockImplementation((ids: readonly string[]) => ids.includes('old')
+   ? new Promise(done => { oldAnswer = done; }) : Promise.resolve(taskRelationIndex([], ids)));
+ await render(); expect(props().relationsPending).toBe(true);
+ await act(async () => props().onRefresh());
+ expect(props().items).toEqual([{ id: 'new' }]); expect(props().relations.relation('new').kind).toBe('NONE');
+ await act(async () => oldAnswer(taskRelationIndex([{ needId: 'old', relation: 'OWNER' }], ['old'])));
+ expect(props().relations.relation('old').kind).toBe('UNKNOWN'); expect([...props().relations.owned]).toEqual([]);
+});
+
+test('late account-A ownership cannot relabel the same task after account ABA or refresh through an old callback', async () => {
+ let oldAnswer!: (value: ReturnType<typeof taskRelationIndex>) => void;
+ mockPublic.mockResolvedValue([{ id: 'same' }]);
+ mockRelations.mockImplementation((ids: readonly string[]) => ids.length && mockSession.accountRevision === 1
+   ? new Promise(done => { oldAnswer = done; }) : Promise.resolve(taskRelationIndex([], ids)));
+ await render(); const old = props();
+ mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+ mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
+ const reads = mockRelations.mock.calls.length;
+ await act(async () => { oldAnswer(taskRelationIndex([{ needId: 'same', relation: 'OWNER' }], ['same'])); old.onRefresh(); });
+ expect(mockRelations).toHaveBeenCalledTimes(reads);
+ expect(props().relations.relation('same').kind).toBe('NONE');
+ await act(async () => props().onOpen({ id: 'same' }));
+ expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: 'same' } });
+});
+
+test.each(['blur', 'background'])('a late ownership read is retired after %s and the next foreground read owns the labels', async leaving => {
+ let oldAnswer!: (value: ReturnType<typeof taskRelationIndex>) => void;
+ mockPublic.mockResolvedValue([{ id: 'same' }]);
+ mockRelations.mockImplementation((ids: readonly string[]) => ids.length
+   ? new Promise(done => { oldAnswer = done; }) : Promise.resolve(taskRelationIndex([], ids)));
+ await render(); const old = props();
+ if (leaving === 'blur') { mockFocused = false; await update(); }
+ else { mockApp.currentState = 'background'; await act(async () => mockListeners.forEach(listener => listener('background'))); }
+ const reads = mockRelations.mock.calls.length;
+ await act(async () => { oldAnswer(taskRelationIndex([{ needId: 'same', relation: 'OWNER' }], ['same'])); old.onRefresh(); });
+ expect(mockRelations).toHaveBeenCalledTimes(reads); expect(props().relations).toBeUndefined();
+ mockRelations.mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids));
+ if (leaving === 'blur') { mockFocused = true; await update(); }
+ else { mockApp.currentState = 'active'; await act(async () => mockListeners.forEach(listener => listener('active'))); }
+ expect(props().relations.relation('same').kind).toBe('NONE');
+});
+
+test('timed-out ownership cannot replace a successful explicit retry when its late answer arrives', async () => {
+ let oldAnswer!: (value: ReturnType<typeof taskRelationIndex>) => void;
+ mockPublic.mockResolvedValue([{ id: 'same' }]);
+ mockRelations.mockImplementation((ids: readonly string[]) => ids.length
+   ? new Promise(done => { oldAnswer = done; }) : Promise.resolve(taskRelationIndex([], ids)));
+ await render(); await act(async () => jest.advanceTimersByTime(15_000));
+ expect(props().relationsError).toBe(true); expect(props().items).toEqual([{ id: 'same' }]);
+ mockRelations.mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids));
+ await act(async () => props().onRefresh());
+ await act(async () => oldAnswer(taskRelationIndex([{ needId: 'same', relation: 'OWNER' }], ['same'])));
+ expect(props().relations.relation('same').kind).toBe('NONE'); expect(props().relationsError).toBe(false);
 });

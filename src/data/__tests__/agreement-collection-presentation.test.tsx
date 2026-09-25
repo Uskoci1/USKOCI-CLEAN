@@ -133,6 +133,27 @@ test('a finished Dogovor that still waits for my rating stays among the active o
   await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']); expect(texts()).not.toContain('Čeka tvoju ocenu');
 });
 
+test('an unavailable rating stays reachable from active work without claiming that a rating is due or already settled', async () => {
+  rows = [{ ...agreement('unknown', 'COMPLETED'), ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }, agreement('done', 'COMPLETED')];
+  await render(); expect(titles()).toEqual(['Otvori Dogovor Posao unknown']);
+  expect(texts()).toContain('Proveri ocenu'); expect(texts()).not.toContain('Čeka tvoju ocenu');
+  await tap('Otvori Dogovor Posao unknown'); expect(open).toHaveBeenCalledWith(rows[0]);
+  await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']);
+});
+
+test('old unknown ratings cannot preempt accepted appointments or confirmed rating actions in Active', async () => {
+  rows = [
+    { ...agreement('old-unknown', 'COMPLETED'), stanjeProvereOcene: 'UNAVAILABLE', pocinje: '2026-01-01T10:00:00Z' },
+    { ...agreement('later', 'CONFIRMED'), pocinje: '2026-09-26T10:00:00Z' },
+    { ...agreement('due', 'COMPLETED'), ocenaMoguca: true, stanjeProvereOcene: 'DUE', pocinje: '2026-09-24T10:00:00Z' },
+    { ...agreement('soon', 'CONFIRMED'), pocinje: '2026-09-25T10:00:00Z' },
+    { ...agreement('no-term', 'CONFIRMED'), pocinje: null },
+  ];
+  await render();
+  expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao soon', 'Otvori Dogovor Posao later',
+    'Otvori Dogovor Posao no-term', 'Otvori Dogovor Posao old-unknown']);
+});
+
 // V41 (owner, 2026-09-23): the underlined tabs carry their counts, and a foot on a card appears only when that
 // Dogovor waits for me. Round-1 critique A11 (owner step 8): the line under the tabs that counted again is gone.
 const card = (title: string) => tree.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === `Otvori Dogovor ${title}`)!;

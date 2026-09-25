@@ -266,7 +266,8 @@ export function publicArea(item: MarketplaceItem): string | null {
 
 /**
  * Zadaci as the screen shows it (Discovery V47: the list follows the map). `mapped` is what every filter but the map's
- * area leaves, without my own tasks: the map draws these, so moving the map never takes a pin away. The list follows
+ * area leaves, including my own tasks: ownership labels never alter public visibility or counts. The map draws these,
+ * so moving the map never takes a pin away. The list follows
  * the area: with one, it holds the pinned tasks inside it (`inArea`), then every task that has no public point at all
  * (`withoutPoint`: online work, or a task placed nowhere), which an area can neither hold nor leave out, so they are
  * never lost. Without an area the list is `mapped`, in the read's order. No coordinate is ever invented.
@@ -275,10 +276,9 @@ export function publicArea(item: MarketplaceItem): string | null {
  * on that point (`inArea`), and nothing else joins them, not even the tasks without a point.
  */
 export type DiscoveryShown = { mapped: MarketplaceItem[]; inArea: MarketplaceItem[]; withoutPoint: MarketplaceItem[]; listed: MarketplaceItem[] };
-export function discoveryShown(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
+export function discoveryShown(items: readonly MarketplaceItem[], view: MarketplaceView, _mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): DiscoveryShown {
-  const all = marketplaceItems(items, { ...view, area: null }, false, now);
-  const mapped = mine?.size ? all.filter(item => !mine.has(item.id)) : all;
+  const mapped = marketplaceItems(items, { ...view, area: null }, false, now);
   const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
   if (pin !== null) {
     const here = mapped.filter(item => { const point = publicPoint(item); return !!point && pointKey(point) === pin; });
@@ -292,7 +292,7 @@ export function discoveryShown(items: readonly MarketplaceItem[], view: Marketpl
   }
   return { mapped, inArea, withoutPoint, listed: [...inArea, ...withoutPoint] };
 }
-/** The Zadaci list: the filtered subset, without the tasks that are mine (they live under Početna, "Moji zadaci"). */
+/** The Zadaci list: one filtered public subset; ownership affects labels and destination, never membership. */
 export function discoveryItems(items: readonly MarketplaceItem[], view: MarketplaceView, mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): MarketplaceItem[] {
   return discoveryShown(items, view, mine, now).listed;
@@ -322,7 +322,7 @@ export function undatedCount(items: readonly MarketplaceItem[], view: Marketplac
 /** A "Gde" suggestion: a public area some loaded task names, and how many tasks there the other conditions leave. */
 export type PlaceSuggestion = { text: string; count: number };
 /**
- * The places "Gde?" offers, built only from the loaded open tasks that are not mine: each distinct public area text,
+ * The places "Gde?" offers, built from the loaded open tasks: each distinct public area text,
  * counted under the other conditions (Kada, Kako se radi, Koliko vas dolazi, Cena), most tasks first. A place the other
  * conditions leave empty is not offered. No geocoder and no device location: a place nobody's task names cannot be chosen.
  */

@@ -5,6 +5,7 @@
  * malformed fails closed to null while the Agreement itself stays readable.
  */
 const mockGetUser = jest.fn(), mockRpc = jest.fn();
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: '10000000-0000-4000-8000-000000000001' }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({
   supabaseKonfigurisan: () => true,
   supabaseKlijent: () => ({ auth: { getUser: mockGetUser }, rpc: mockRpc }),

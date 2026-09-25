@@ -123,18 +123,18 @@ describe('the Zadaci list and its sheet', () => {
       item('near', { priblizno: { lat: 44.8, lng: 20.45 } }), item('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] }),
       item('nowhere', { priblizno: null }), item('mine', { priblizno: { lat: 44.79, lng: 20.45 } })];
     const shown = discoveryShown(rows, view({ pinPlace: '44.79,20.45', area: [0, 0, 1, 1] }), new Set(['mine']), NOW);
-    expect(ids(shown.listed)).toEqual(['s1', 's2']); expect(ids(shown.inArea)).toEqual(['s1', 's2']); expect(shown.withoutPoint).toEqual([]);
-    expect(ids(shown.mapped)).toEqual(['s1', 's2', 'near', 'online', 'nowhere']);
-    expect(ids(discoveryItems(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW))).toEqual(['s1', 's2']);
+    expect(ids(shown.listed)).toEqual(['s1', 's2', 'mine']); expect(ids(shown.inArea)).toEqual(['s1', 's2', 'mine']); expect(shown.withoutPoint).toEqual([]);
+    expect(ids(shown.mapped)).toEqual(['s1', 's2', 'near', 'online', 'nowhere', 'mine']);
+    expect(ids(discoveryItems(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW))).toEqual(['s1', 's2', 'mine']);
     // The "Gde" places are counted as if no point were chosen (the remote task names no place; the one placed nowhere does).
-    expect(placeSuggestions(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW)).toEqual([{ text: 'Beograd', count: 4 }]);
+    expect(placeSuggestions(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW)).toEqual([{ text: 'Beograd', count: 5 }]);
     expect(initialMarketplaceView().pinPlace).toBeNull();
   });
-  it('never lists my own tasks, whatever the filters, and lists everything when nothing is known', () => {
+  it('ownership never changes visible membership: own tasks remain searchable before and after label recovery', () => {
     const rows = [item('mine'), item('other'), item('applied')];
-    expect(ids(discoveryItems(rows, view(), new Set(['mine']), NOW))).toEqual(['other', 'applied']);
+    expect(ids(discoveryItems(rows, view(), new Set(['mine']), NOW))).toEqual(['mine', 'other', 'applied']);
     expect(ids(discoveryItems(rows, view(), undefined, NOW))).toEqual(['mine', 'other', 'applied']);
-    expect(ids(discoveryItems(rows, view({ query: 'mine' }), new Set(['mine']), NOW))).toEqual([]);
+    expect(ids(discoveryItems(rows, view({ query: 'mine' }), new Set(['mine']), NOW))).toEqual(['mine']);
   });
   it.each([
     [6, 4, 'half'], [6, 3, 'half'], [6, 2, 'peek'], [6, 0, 'peek'], [4, 1, 'peek'],
@@ -220,7 +220,7 @@ describe('Discovery V47: Kada', () => {
   it('a time choice says how many tasks it leaves out only because they name no day; with no time choice it says nothing', () => {
     const list = [...rows, item('bez-rasporeda'), item('nepotpun', window(null, '2026-09-24T12:00:00+02:00')), item('moj-bez-rasporeda')];
     expect(undatedCount(list, view(), undefined, NOW)).toBe(0);
-    expect(undatedCount(list, view({ when: 'weekend' }), new Set(['moj-bez-rasporeda']), NOW)).toBe(2);
+    expect(undatedCount(list, view({ when: 'weekend' }), new Set(['moj-bez-rasporeda']), NOW)).toBe(3);
     expect(undatedCount(list, view({ dates: { from: '2026-09-26', to: '2026-09-26' } }), undefined, NOW)).toBe(3);
     // It counts only what the other filters leave: a search that finds none of them leaves none out.
     expect(undatedCount(list, view({ when: 'weekend', query: 'Pomoć 2026' }), undefined, NOW)).toBe(0);
@@ -243,8 +243,8 @@ describe('Discovery V47: Gde', () => {
     expect(publicArea(item('reci', { podrucjeTekst: 'Na daljinu', detalji: undefined }))).toBeNull();
     expect(publicArea(item('reci-2', { podrucjeTekst: '  na  daljinu ' }))).toBeNull();
   });
-  it('the suggestions are only the areas the loaded tasks that are not mine name, each with its count under the other conditions', () => {
-    expect(placeSuggestions(rows, view(), new Set(['mine']), NOW)).toEqual([{ text: 'Liman, Novi Sad', count: 2 }, { text: 'Vračar, Beograd', count: 1 }]);
+  it('the suggestions include own tasks with the same counts under the other conditions', () => {
+    expect(placeSuggestions(rows, view(), new Set(['mine']), NOW)).toEqual([{ text: 'Liman, Novi Sad', count: 2 }, { text: 'Vračar, Beograd', count: 1 }, { text: 'Zemun, Beograd', count: 1 }]);
     // Counted under the other conditions: a price choice leaves one place; the searched words and the map's area do not count.
     expect(placeSuggestions(rows, view({ price: 'OFFERS', query: 'nema', area: [0, 0, 1, 1] }), new Set(['mine']), NOW))
       .toEqual([{ text: 'Vračar, Beograd', count: 1 }]);

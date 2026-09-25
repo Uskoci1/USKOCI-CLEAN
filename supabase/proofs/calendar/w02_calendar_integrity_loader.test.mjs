@@ -20,6 +20,7 @@ const declaration=name=>{
 const expectedFiles=[
   'src/data/workerCalendarClientService.ts','src/data/serverReceipt.ts','src/lib/calendarTime.ts',
   'src/data/agreementClientService.ts','src/data/agreementCompletion.ts','src/data/calendarErrors.ts','src/data/legacyRpcFailure.ts','src/data/needDetailPresentation.ts',
+  'src/data/agreementRatingsRead.ts','src/data/reviewsClientService.ts','src/ui/system/plural.ts',
   'src/lib/location.ts','src/lib/market.ts','src/ui/calendar/calendarPresentation.ts',
   'src/lib/novac.ts','src/lib/dogovorenoVreme.ts','src/lib/vreme.ts','src/lib/tacanTermin.ts','src/lib/inicijali.ts',
 ].sort();

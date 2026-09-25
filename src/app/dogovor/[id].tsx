@@ -163,10 +163,17 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     return () => { current = false; };
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useFocusedResource(useCallback(async () => {
-    const rows = await izvor.poruke(id, accountId);
-    if (!ownsAccount()) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
-    return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
-  }, [izvor, id, accountId, accountRevision, ownsAccount]));
+    // Coalesced refresh callers must not wait forever behind a stalled history or photo read.
+    // One deadline covers the entire read; a late answer cannot reopen its retired snapshot.
+    let retired = false;
+    try {
+      return await bounded(async () => {
+        const rows = await izvor.poruke(id, accountId);
+        if (retired || !ownsAccount()) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
+        return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
+      });
+    } finally { retired = true; }
+  }, [izvor, id, accountId, accountRevision, ownsAccount]), { retainOnRefresh: true, coalesce: true });
   const dogovor = workspace.data;
   // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble
   // carries that name the way the header above it already does.
@@ -350,7 +357,8 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other} back={backToAgreements}
         waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
-          error: messages.error, writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh,
+          error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
+          writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh,
           outbox, state: outboxState, photos,
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
         {other ? <AgreementPersonBar person={other} back={backToAgreements} />

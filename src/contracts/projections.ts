@@ -371,6 +371,8 @@ export type DogovorProjekcija = {
   problemOtvoren: boolean;
   /** Ocena je moguća tek posle kanonskog završetka, ne pre. */
   ocenaMoguca: boolean;
+  /** List enrichment only. A failed/missing receipt does not establish rating eligibility or history. */
+  stanjeProvereOcene?: 'DUE' | 'NOT_DUE' | 'UNAVAILABLE';
   /** Hronologija je deo Pregleda, ne treći tab. */
   hronologija: { vremeTekst: string; tekst: string }[];
   /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */

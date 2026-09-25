@@ -13,7 +13,7 @@ import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardBriefFoot, CardHead, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
-  faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue } from './TaskFace';
+  faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue, type TaskCardRelation } from './TaskFace';
 
 /** How far the whole card gives under the finger: a large surface gives less than a button (`sys.motion.pressScale`). */
 export const CARD_PRESS_SCALE = 0.986;
@@ -47,7 +47,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   bare?: boolean;
   disabled?: boolean;
   /** What this account is to a task found in discovery, from its own tasks and applications. Absent = nothing known. */
-  relation?: 'OWNED' | 'APPLIED';
+  relation?: TaskCardRelation;
   /** Authorized public portrait supplied by the collection; no per-card reads are started here. */
   portrait?: ReactNode;
   /** The state the list's own section is named for (Nacrti, Istorija), which the card then does not repeat. */
@@ -86,7 +86,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   const settle = () => { scale.set(reduced ? 1 : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System })); };
 
   return <Animated.View style={[s.card, bare && s.bare, disabled && s.disabled, lift]}>
-    <Press accessibilityRole="button" accessibilityLabel={`${own ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
+    <Press accessibilityRole="button" accessibilityLabel={`${ownerView ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}

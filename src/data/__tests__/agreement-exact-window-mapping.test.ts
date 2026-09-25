@@ -4,6 +4,7 @@
  * with the start first; `null` when the Dogovor has no exact window; left out when the read carried no terms at all, so
  * the calendar says it shows only my work instead of calling a day empty.
  */
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: 'requester-1' }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
   const mockRpc = jest.fn();

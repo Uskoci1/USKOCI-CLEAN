@@ -26,19 +26,17 @@ import { DiscoverySearchPanel, type SearchDraft, type SearchReadiness, type Sear
 import { CLEAR_ALL, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, datesWords, placesWords, quoted, removeWords, said,
   undatedWords, whereWords } from './discovery/discoveryWords';
 import { TaskCard } from './TaskCard';
+import type { TaskCardRelation } from './TaskFace';
+import type { TaskRelationIndex } from '../../data/taskRelation';
 import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
-  /** Which of the shown tasks are mine (never listed here) and which I have applied to (labelled). */
-  relations?: { owned: ReadonlySet<string>; applied: ReadonlySet<string> };
-  /**
-   * The relations above are still being read for this list. Until they land the list cannot yet leave my own tasks out,
-   * so it says no count (a count that drops from 5 to 3 a moment later is a count that was wrong) and does not yet decide
-   * where the sheet starts. A failed read is not pending: the list then counts what it shows.
-   */
-  relationsPending?: boolean };
+  /** Account-owned answers, only for the IDs the read covered. Missing coverage remains UNKNOWN. */
+  relations?: TaskRelationIndex;
+  /** These labels do not delay public rows, counts, map fit or the sheet's initial position. */
+  relationsPending?: boolean; relationsError?: boolean };
 
 const GAP = sys.space.md;
 /** The tools' lower edge before it has been measured: the search pill's row and one row of chips under it. */
@@ -74,8 +72,8 @@ const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
 
-const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied, onOpen, section, portraitVisible }: {
-  item: MarketplaceItem; index: number; animate: boolean; applied: boolean; onOpen: (item: MarketplaceItem) => void;
+const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation, onOpen, section, portraitVisible }: {
+  item: MarketplaceItem; index: number; animate: boolean; relation?: TaskCardRelation; onOpen: (item: MarketplaceItem) => void;
   portraitVisible: boolean;
   /** The first task without a point under a map area: the quiet heading of those tasks, with how many there are. */
   section?: number;
@@ -86,7 +84,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
       accessibilityLabel={`Bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
       <T variant="meta" style={s.sectionTitle}>Bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
     </View> : null}
-    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={applied ? 'APPLIED' : undefined}
+    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={relation}
       portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
   </>;
 });
@@ -109,7 +107,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
  * reach) behind it. An empty list under the map rests at half the screen at most, so its own green action and the green
  * "Mapa" are never on screen together.
  *
- * My own tasks are not listed here at all (they are under Početna, "Moji zadaci"); a task I applied to says so.
+ * Own tasks remain visible with "Tvoj zadatak"; applied and unknown relationships are labeled distinctly.
  * Presentation only: every callback is the route's own guarded command.
  */
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
@@ -156,19 +154,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const now = useMemo(() => new Date(), [items, when, dates, search]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = useMemo(() => ({ ...initialMarketplaceView(), query, price, area, when, where, places: freePlaces, place: chosenPlace, dates,
     pinPlace: pinPlace ?? null }), [query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
-  const { mapped, inArea, withoutPoint, listed } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, relations?.owned, now),
-    [loading, error, items, filters, relations, now]);
+  const { mapped, inArea, withoutPoint, listed } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, undefined, now),
+    [loading, error, items, filters, now]);
   const mappedWithoutPin = useMemo(() => mapped.filter(item => !publicPoint(item)).length, [mapped]);
   const groups = useMemo(() => pinPlaces(mapped), [mapped]);
   const byId = useMemo(() => new Map(mapped.map(item => [item.id, item] as const)), [mapped]);
-  const applied = useCallback((item: MarketplaceItem) => !!relations?.applied.has(item.id), [relations]);
-  const others = useMemo(() => relations?.owned.size ? items.filter(item => !relations.owned.has(item.id)) : items, [items, relations]);
-  const undated = useMemo(() => loading || error ? 0 : undatedCount(items, filters, relations?.owned, now), [loading, error, items, filters, relations, now]);
+  const relation = useCallback((item: MarketplaceItem): TaskCardRelation | undefined => {
+    const answer = relations?.relation(item.id);
+    return answer?.kind === 'OWNER' ? 'OWNED' : answer?.kind === 'APPLIED' ? 'APPLIED'
+      : answer?.kind === 'NONE' ? undefined : pending ? 'PENDING' : 'UNKNOWN';
+  }, [relations, pending]);
+  const undated = useMemo(() => loading || error ? 0 : undatedCount(items, filters, undefined, now), [loading, error, items, filters, now]);
   const conditionCount = discoveryConditions(view);
   const hasFilter = !!view.query.trim() || discoveryFiltered(view) || !!view.area || !!view.place || !!view.pinPlace;
-  // What the list and the search panel can count by: nothing while the list is read or failed; no number yet while it is
-  // still read which of its tasks are mine.
-  const readiness: SearchReadiness = loading ? 'loading' : error ? 'error' : pending ? 'pending' : 'ready';
+  // Ownership only labels rows: counts describe the same public subset before and after the overlay arrives.
+  const readiness: SearchReadiness = loading ? 'loading' : error ? 'error' : 'ready';
 
   // Where the sheet rests is remembered in the route's view; a view that has one is where the sheet starts again.
   const [sheetIndex, setSheetIndex] = useState<number>(() => view.sheet ? INDEX[view.sheet] : SNAP.half);
@@ -178,16 +178,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const name = SNAP_NAME[sheetIndex];
     if (name && latestView.current.sheet !== name) change({ sheet: name });
   }, [sheetIndex, change]);
-  // Where the sheet starts is decided once, when the first read lands (and with it what is mine, so my own tasks do not
-  // tip the choice), from how many tasks the map can show.
+  // Where the sheet starts is decided once from public pin coverage; labels cannot move it afterward.
   useEffect(() => {
-    if (started.current || loading || error || pending) return;
+    if (started.current || loading || error) return;
     started.current = true;
     const start = discoveryStartSnap(mapped.length, mappedWithoutPin);
     setSheetIndex(INDEX[start]);
     // Remembered at once: a start equal to the height the sheet already had changes no state to remember it by later.
     if (latestView.current.sheet !== start) change({ sheet: start });
-  }, [loading, error, pending, mapped.length, mappedWithoutPin, change]);
+  }, [loading, error, mapped.length, mappedWithoutPin, change]);
   // What is found must be seen. A sheet resting at its top line rises to show why nothing is found; and when nothing found
   // has a point on the map (a filter left only "Na daljinu"), it takes the screen, over a map with nothing on it. The map's
   // area is not a reason: moving the map never moves the sheet the person is looking past.
@@ -198,10 +197,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }, [loading, mapped.length, mappedWithoutPin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
-  // Its first mount also waits for what is mine, exactly as the sheet's start does: the map fits its pins once, when it
-  // mounts, so a mount before that would fit my own tasks for a sheet height the sheet then does not take (review r3b).
-  // A later read of the labels does not take the map away again.
-  const mapShown = !loading && !error && !(pending && !started.current) && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
+  // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
+  const mapShown = !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
   // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
   const emptyOverMap = !loading && !error && !listed.length && mapShown;
@@ -305,15 +302,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const before = latestView.current.place;
     change({ ...draft, selectedId: null, selectedPlace: null });
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
-    const bounds = publicInitialBounds(discoveryShown(items, latestView.current, relations?.owned, now).mapped);
+    const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? peek : halfSheet) + GAP });
   };
   const reset = () => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet });
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the loaded tasks carry the fact it
   // reads (or it is already on and must be removable). "N+ mesta" is offered only on a count of open places the read gave.
-  const timed = useMemo(() => saysWhen(others, now), [others, now]);
-  const workModes = useMemo(() => saysWorkMode(others), [others]);
+  const timed = useMemo(() => saysWhen(items, now), [items, now]);
+  const workModes = useMemo(() => saysWorkMode(items), [items]);
   const toggle = (patch: Partial<MarketplaceView>) => change({ ...patch, selectedId: null, selectedPlace: null });
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
   const chips: QuickChip[] = [
@@ -321,9 +318,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       onPress: () => toggle({ when: currentWhen === key ? 'any' : key as WhenFilter, dates: null }) })),
     ...(['onsite', 'remote'] as const).filter(key => workModes || view.where === key).map(key => ({ key: `where:${key}`, label: said(WHERE, key),
       selected: view.where === key, onPress: () => toggle({ where: view.where === key ? 'any' : key }) })),
-    ...(['MY_PRICE', 'OFFERS'] as const).filter(key => view.price === key || others.some(item => item.rezimCene === key)).map(key => ({
+    ...(['MY_PRICE', 'OFFERS'] as const).filter(key => view.price === key || items.some(item => item.rezimCene === key)).map(key => ({
       key: `price:${key}`, label: said(PRICE, key), selected: view.price === key, onPress: () => toggle({ price: view.price === key ? 'all' : key }) })),
-    ...(atLeast(freePlaces) > 1 || others.some(item => (openPlaces(item) ?? 0) >= 2) ? [{ key: 'places',
+    ...(atLeast(freePlaces) > 1 || items.some(item => (openPlaces(item) ?? 0) >= 2) ? [{ key: 'places',
       label: atLeast(freePlaces) > 1 ? placesWords(freePlaces) : placesWords(2), selected: atLeast(freePlaces) > 1,
       onPress: () => toggle({ places: atLeast(freePlaces) > 1 ? 1 : 2 }) }] : []),
   ];
@@ -398,9 +395,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
   const showPortraits = focused && !cardShown && sheetIndex === SNAP.full;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
-    <DiscoveryRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} applied={applied(item)} onOpen={openItem}
+    <DiscoveryRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relation(item)} onOpen={openItem}
       portraitVisible={showPortraits && portraitIds.has(item.id)}
-      section={sectionRef.current?.at === index ? sectionRef.current.count : undefined} />, [applied, openItem, showPortraits, portraitIds]);
+      section={sectionRef.current?.at === index ? sectionRef.current.count : undefined} />, [relation, openItem, showPortraits, portraitIds]);
 
   // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
   const empty = <View style={s.empty}>
@@ -419,7 +416,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
               primary={{ label: 'Dopuni radni profil', onPress: props.onProfile }} quiet={{ label: 'Osveži zadatke', onPress: refreshList }} />}
   </View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
-  const footer = undated && !pending ? <T variant="note" tone="muted" style={s.undated}>{undatedWords(undated)}</T> : null;
+  const footer = undated ? <T variant="note" tone="muted" style={s.undated}>{undatedWords(undated)}</T> : null;
 
   // What is on and has no quick chip of its own says itself once, under the count, and removes itself: the place, the
   // searched words and the time choices the chips do not carry. A quick chip removes its own filter. The map's area and
@@ -433,8 +430,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       : currentWhen !== 'any' && !QUICK_WHEN.includes(currentWhen) ? [{ key: 'when', label: said(WHEN, currentWhen), clear: { when: 'any' as const } }] : []),
   ];
   // The count says what is listed, honestly: under a map area, the area's tasks and, apart, those with no point at all;
-  // on one point, that point's tasks. It is never blank: while the list (or which of it is mine) is read, it says so.
-  const line = countLineWords({ status: loading || pending ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
+  // on one point, that point's tasks. It is independent of the account overlay.
+  const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
     withoutPoint: withoutPoint.length, pinless: mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
   const spoken = `${line.words}${line.extra}`;
   const count = <T variant="bodyStrong" numberOfLines={2} style={s.count}>
@@ -467,6 +464,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
       : <View testID="list-count-words" accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
     </View>
+    {!loading && !error && items.length > 0 && props.relationsError ? <View style={s.relationsRecovery}>
+      <T variant="note" tone="muted" style={s.relationsMessage}>Tvoj status uz zadatke nije učitan.</T>
+      <Press accessibilityRole="button" accessibilityLabel="Proveri status zadataka" onPress={refreshList}
+        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Proveri</T></Press>
+    </View> : null}
     {appliedChips.length ? <View style={s.applied}>{appliedChips.map(chip => <Press key={chip.key} accessibilityRole="button"
       accessibilityLabel={removeWords(chip.label)} haptic="select" hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }}
       onPress={() => change({ ...chip.clear, selectedId: null, selectedPlace: null })} style={s.appliedChip}>
@@ -527,7 +529,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </Press>
       </Animated.View> : null}
       {cardShown ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
-        item={chosen} place={placeTasks} applied={applied} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
+        item={chosen} place={placeTasks} relation={relation} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
@@ -543,6 +545,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 }
 
 const s = StyleSheet.create({
+  relationsRecovery: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.md },
+  relationsMessage: { flex: 1 },
+  relationsRetry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: sys.space.sm },
+  relationsRetryText: { color: sys.color.green },
   screen: { flex: 1, backgroundColor: sys.color.ground },
   body: { flex: 1 },
   separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 18 },

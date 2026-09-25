@@ -8,7 +8,7 @@ import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
 
 /**
- * Zadaci, the middle tab: other people's open tasks (owner's information architecture, 2026-09-23: Početna | Zadaci |
+ * Zadaci, the middle tab: open tasks with this account's relationship labeled (Početna | Zadaci |
  * Dogovori). The Mapa tab and the root `/prilike` used to show this same discovery twice, under two names; both
  * addresses now redirect here, so an old notification, a remembered route or a deep link still lands on it. Since owner
  * step 4 (2026-09-24) the map and the list are one screen: the map under a list sheet (DiscoveryPresentation).
@@ -37,7 +37,7 @@ function Discovery() {
       timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
-  const resource = useFocusedResource(load);
+  const resource = useFocusedResource(load, { coalesce: true });
   // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
   // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
   // for the tasks actually on this page, instead of my whole task list and my whole application
@@ -51,11 +51,13 @@ function Discovery() {
       timer = setTimeout(() => reject(new Error('TASK_RELATIONS_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source, visible]);
-  const relations = useFocusedResource(loadRelations);
-  // Until that read lands the list cannot yet leave my own tasks out, so the screen holds its count back; a failed read
-  // is not pending (review r3 item 9). Labels only: nothing here gates a read, a guard or a command.
-  const relationsPending = relations.loading;
+  const relations = useFocusedResource(loadRelations, { coalesce: true });
+  // Ownership is an overlay, never a visibility filter. A missing answer stays unknown while the
+  // public rows, counts and map remain usable. Every explicit refresh retries both reads, even if
+  // the public task IDs did not change since a failed overlay read.
+  const relationsPending = relations.loading || relations.refreshing;
   const latestResource = useRef(resource); latestResource.current = resource;
+  const latestRelations = useRef(relations); latestRelations.current = relations;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
@@ -63,13 +65,17 @@ function Discovery() {
   const open = (item: MarketplaceItem) => {
     const latest = latestResource.current;
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
-    navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id: item.id } }));
+    const owned = latestRelations.current.data?.relation(item.id).kind === 'OWNER';
+    navigate(() => router.navigate({ pathname: owned ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: item.id } }));
   };
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
-  return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
-      onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
+      relationsError={relations.error}
+      onView={next => { if (current()) setView(next); }} onRefresh={() => {
+        if (current()) { void resource.refresh(true); void relations.refresh(true); }
+      }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;

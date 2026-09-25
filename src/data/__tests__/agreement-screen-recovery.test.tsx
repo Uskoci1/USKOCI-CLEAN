@@ -101,6 +101,56 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it.each(['messages', 'photos'] as const)('bounds a stalled %s read, admits explicit retry, and ignores the late retired answer', async stage => {
+    jest.useFakeTimers();
+    let late!: (rows: unknown[]) => void;
+    const stalled = new Promise<unknown[]>(resolve => { late = resolve; });
+    if (stage === 'messages') mockMessages.mockReturnValueOnce(stalled);
+    else mockPhotoRead.mockReturnValueOnce(stalled);
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const chat = () => tree.root.findByType('AgreementChat' as any).props;
+    expect(chat()).toMatchObject({ loading: true, error: false, messages: [] });
+    await act(async () => { await jest.advanceTimersByTimeAsync(15_000); });
+    expect(chat()).toMatchObject({ loading: false, error: true, messages: [] });
+    const fresh = { ...ownMessage, telo: 'Sveža poruka posle ponovnog čitanja.' };
+    mockMessages.mockResolvedValueOnce([fresh]);
+    await act(async () => { await chat().refresh(); });
+    expect(chat()).toMatchObject({ loading: false, error: false, messages: [fresh], refreshing: false });
+    const photoReadsAfterRetry = mockPhotoRead.mock.calls.length;
+    await act(async () => { late([{ ...ownMessage, telo: 'Zakasnela poruka.' }]); });
+    expect(chat().messages).toEqual([fresh]); expect(mockMessages).toHaveBeenCalledTimes(2);
+    // History timing out must also prevent its eventual answer from starting old photo work.
+    expect(mockPhotoRead).toHaveBeenCalledTimes(photoReadsAfterRetry);
+  });
+
+  it('retains messages, outbox and photo controller during refresh, failure and a coalesced send refresh', async () => {
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const chat = () => tree.root.findByType('AgreementChat' as any).props;
+    let rejectRefresh!: (error: Error) => void;
+    let resolveTrailing!: (rows: unknown[]) => void;
+    mockMessages.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectRefresh = reject; }));
+    let first!: Promise<void>;
+    await act(async () => { first = chat().refresh(); });
+    expect(chat()).toMatchObject({ messages: [ownMessage], refreshing: true, loading: false, error: false });
+    expect(chat().outbox).toBe(mockOutbox); expect(chat().state).toBe(mockOutboxState);
+    expect(chat().photos).toMatchObject({ agreementId: mockId, loaded: true });
+    await act(async () => { rejectRefresh(new Error('offline')); await first; });
+    expect(chat()).toMatchObject({ messages: [ownMessage], refreshing: false, loading: false, error: false, refreshError: true });
+    let resolveRefresh!: (rows: unknown[]) => void;
+    mockMessages.mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }))
+      .mockImplementationOnce(() => new Promise(resolve => { resolveTrailing = resolve; }));
+    let shared!: Promise<void>;
+    await act(async () => { shared = chat().refresh(); void chat().refresh(); void chat().refresh(); });
+    expect(mockMessages).toHaveBeenCalledTimes(3);
+    await act(async () => { resolveRefresh([ownMessage]); });
+    expect(mockMessages).toHaveBeenCalledTimes(4); expect(chat().refreshing).toBe(true);
+    const second = { ...ownMessage, id: '30000000-0000-4000-8000-000000000002', clientMessageId: 'another_message', telo: 'Kod ulaza sam.' };
+    await act(async () => { resolveTrailing([ownMessage, second]); await shared; });
+    expect(chat()).toMatchObject({ messages: [ownMessage, second], refreshing: false, loading: false, error: false });
+    expect(chat().refreshError).toBeFalsy(); expect(chat().outbox).toBe(mockOutbox);
+    expect(mockOutbox.reconcile).toHaveBeenLastCalledWith(expect.arrayContaining([expect.objectContaining({ clientMessageId: second.clientMessageId, messageId: second.id })]));
+  });
+
   it('opens the server-admitted group for this owned Agreement with its unread count', async () => {
     // A group joins the Dogovori of one Zadatak that needs more than one person; requiredSlots is that Zadatak's size.
     mockRead.mockResolvedValue({ ...workspace, pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1 } });

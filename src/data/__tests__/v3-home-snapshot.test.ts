@@ -17,6 +17,15 @@ const agreement = (id: string, mine: 'narucilac' | 'uskocer', patch: Partial<Dog
   rezim: 'FIZICKI', kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
   chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null, pocinje: null, izmenaCeka: null, izvor: { zadatakId: null, prijavaId: null }, ...patch });
 const known = <T,>(value: T) => ({ kind: 'known' as const, value });
+it('unknown review eligibility keeps the active appointment but cannot claim an exact count or a singleton shortcut', () => {
+  const home = composeHome({ needs: known([]), applications: known([]), agreements: known([
+    agreement('next', 'uskocer'),
+    agreement('due', 'uskocer', { stanje: 'COMPLETED', ocenaMoguca: true, stanjeProvereOcene: 'DUE' }),
+    agreement('unknown', 'uskocer', { stanje: 'COMPLETED', ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }),
+  ]) });
+  expect(home.ratingsDue).toBeNull(); expect(home.ratingDueAgreementId).toBeNull(); expect(home.partial).toBe(true);
+  expect(home.agreements).toMatchObject({ kind: 'known', value: { rows: [{ id: 'agreement:next' }] } });
+});
 const reads = (patch: Partial<HomeReads> = {}): HomeReads => ({ needs: known([]), applications: known([]), agreements: known([]), ...patch });
 
 test('PKG-035: history stays visible but only selectable applications require attention', () => {

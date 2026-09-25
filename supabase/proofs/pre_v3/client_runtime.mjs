@@ -23,13 +23,15 @@ const allowed=new Set(['src/data/serverReceipt.ts','src/data/needLifecycleClient
  // The exact window of a Dogovor's accepted terms (tacanTermin, 2026-09-24), a pure helper of the Agreement service.
  'src/lib/tacanTermin.ts',
  // One way to draw initials (inicijali, 2026-09-24), a pure helper with no imports.
- 'src/lib/inicijali.ts']);
+ 'src/lib/inicijali.ts',
+ // Account-owned bounded review enrichment; server authority remains in the existing receipt decoder.
+ 'src/data/agreementRatingsRead.ts']);
 export function loadPreV3Clients({client,session,sourceSha}) {
  assert.equal(typeof client,'function');assert.equal(typeof session,'function');
  assert.match(sourceSha,/^[a-f0-9]{40}$/);
  const cache=new Map(),sourceHashes={};
  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,
-  ReadableStream,AbortController,Date,setTimeout,clearTimeout,console:{error:()=>assert.fail('UNEXPECTED_CLIENT_LOG')}});
+  ReadableStream,AbortController,Date,setTimeout,clearTimeout,setInterval,clearInterval,console:{error:()=>assert.fail('UNEXPECTED_CLIENT_LOG')}});
  function load(path) {
   if(path==='src/data/supabaseClient.ts')return {supabaseKlijent:client};
   if(path==='src/store/sesija.ts')return {sesijaSada:session};

@@ -36,7 +36,7 @@ const onClose = jest.fn(), onOpen = jest.fn(), onHeight = jest.fn(), onShowPlace
 let tree: ReactTestRenderer;
 const pin = task();
 const render = async (props: Partial<React.ComponentProps<typeof DiscoveryPeek>> = {}) => act(async () => {
-  tree = create(<DiscoveryPeek item={pin} place={[]} applied={() => false} active bottomInset={12} reduced={false}
+  tree = create(<DiscoveryPeek item={pin} place={[]} relation={() => undefined} active bottomInset={12} reduced={false}
     onOpen={onOpen} onClose={onClose} onHeight={onHeight} onShowPlace={onShowPlace} {...props} />);
 });
 const under = (node: ReactTestInstance, parent: ReactTestInstance) => {
@@ -95,7 +95,7 @@ test('Back dismisses the focused card once and does not remain registered while 
   await render(); const back = [...mockBack][0];
   await act(async () => { expect(back()).toBe(true); }); expect(onClose).toHaveBeenCalledTimes(1);
   expect(back()).toBe(false);
-  await act(async () => tree.update(<DiscoveryPeek item={pin} place={[]} applied={() => false} active={false} bottomInset={12} reduced
+  await act(async () => tree.update(<DiscoveryPeek item={pin} place={[]} relation={() => undefined} active={false} bottomInset={12} reduced
     onOpen={onOpen} onClose={onClose} onShowPlace={onShowPlace} />));
   expect(mockBack.size).toBe(0);
 });

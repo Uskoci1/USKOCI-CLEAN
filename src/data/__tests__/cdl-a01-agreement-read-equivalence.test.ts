@@ -9,6 +9,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: 'requester-1' }, accountRevision: 1 }) }));
 
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
@@ -91,7 +92,7 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     expect(productionComposition).not.toContain('agreementProductionOverrides');
   });
 
-  it('a finished Dogovor waits for my rating only while the review read says I may still rate it (2026-09-23)', async () => {
+  it('unbound partial review data cannot establish eligibility or hide completed work in history', async () => {
     mockRpc.mockImplementation((name: string, args: { p_agreement_id?: string }) => Promise.resolve(name === 'rpc_list_my_agreements_page'
       ? { data: { items: [{ ...rawAgreement, id: 'rated', status: 'COMPLETED' }, { ...rawAgreement, id: 'due', status: 'COMPLETED' },
           { ...rawAgreement, id: 'broken', status: 'COMPLETED' }, rawAgreement], hasMore: false }, error: null }
@@ -99,7 +100,8 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
       : args.p_agreement_id === 'rated' ? { data: { eligible: false, review: { reviewId: 'r1' } }, error: null }
       : { data: null, error: { code: 'PGRST' } }));
     const result = await agreementClientService.mojiDogovori();
-    expect(Object.fromEntries(result.map(row => [row.id, row.ocenaMoguca]))).toEqual({ rated: false, due: true, broken: false, 'agr-1': false });
+    expect(Object.fromEntries(result.map(row => [row.id, row.ocenaMoguca]))).toEqual({ rated: false, due: false, broken: false, 'agr-1': false });
+    expect(result.filter(row => row.stanje === 'COMPLETED').every(row => row.stanjeProvereOcene === 'UNAVAILABLE')).toBe(true);
     // The review read is asked once per finished Dogovor and never for the others.
     expect(mockRpc.mock.calls.filter(([name]) => name === 'rpc_get_my_agreement_review').map(([, args]) => args.p_agreement_id).sort())
       .toEqual(['broken', 'due', 'rated']);

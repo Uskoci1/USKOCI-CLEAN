@@ -12,7 +12,7 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
-import { floating, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
@@ -244,10 +244,13 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
         </View>
       </ScrollView>
-      {readingEarlier && hasActivity ? <Press testID="ai-latest" accessibilityRole="button"
-        accessibilityLabel="Najnovija poruka" onPress={() => latest(!reduced)} haptic="select" style={[s.latest, floating]}>
+      {/* This control gets its own measured row. An overlay hid the expanded draft/review on small screens;
+          shrinking the thread preserves its reading anchor through onLayout instead of covering its content. */}
+      {readingEarlier && hasActivity ? <View testID="ai-latest-region" style={s.latestRegion}>
+        <Press testID="ai-latest" accessibilityRole="button"
+        accessibilityLabel="Najnovija poruka" onPress={() => latest(!reduced)} haptic="select" style={s.latest}>
         <ArrowDown size={18} color={sys.color.green} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
-      </Press> : null}
+      </Press></View> : null}
       </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
           is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
@@ -351,7 +354,7 @@ const s = StyleSheet.create({
   cardArea: { flexGrow: 0, flexShrink: 1, paddingHorizontal: sys.space.lg },
   cardContents: { paddingTop: 2, paddingBottom: sys.space.md },
   cardAreaCompact: { paddingTop: 0, paddingBottom: sys.space.sm },
-  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: 64 },
+  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md },
   turns: { gap: 20 }, inlineContext: { paddingBottom: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
@@ -389,10 +392,11 @@ const s = StyleSheet.create({
   dotStill: { opacity: 0.55 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   actions: { gap: 10 },
-  latest: { position: 'absolute', bottom: 8, alignSelf: 'center', minHeight: 48, flexDirection: 'row', gap: 8,
+  latestRegion: { flexShrink: 0, paddingHorizontal: sys.space.md, backgroundColor: sys.conversation.ground },
+  latest: { alignSelf: 'center', maxWidth: '100%', minHeight: 48, flexDirection: 'row', gap: 8,
     alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
-  latestText: { color: sys.color.green, fontWeight: '600' },
+    backgroundColor: sys.color.surface },
+  latestText: { flexShrink: 1, color: sys.color.green, fontWeight: '600' },
   footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
   // The draft uses the full width; controls never squeeze the sentence between three competing circles.

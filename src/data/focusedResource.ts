@@ -1,18 +1,30 @@
 export type ResourceState<T> = { data: T | null; loading: boolean; error: boolean;
   /** A user-asked re-read while what is on screen stays on screen. Never true on a first load. */
-  refreshing: boolean };
+  refreshing: boolean;
+  /** Opt-in retained refresh failed; data is still the last successfully read snapshot. */
+  refreshError?: boolean };
+
+export type FocusedResourceOptions = {
+  /** Preserve an already loaded snapshot through an explicit re-read and its failure. */
+  retainOnRefresh?: boolean;
+  /** One active read; requests during it share one trailing re-read, never overlap. */
+  coalesce?: boolean;
+};
+type RefreshMode = boolean | 'load' | 'keep' | 'silent';
 
 /** Coming back to a screen after this long is not "coming back"; it loads as if for the first time. */
 const STALE_MS = 5 * 60_000;
 
 /** A read belongs to one focused account/intent and one request generation. */
-export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () => boolean) {
+export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () => boolean, options: FocusedResourceOptions = {}) {
   let state: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
   let active = false;
   let generation = 0;
   let leftAt = 0;
   const listeners = new Set<() => void>();
   const empty: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
+  type Flight = { again: boolean; mode: RefreshMode; promise: Promise<void> };
+  let flight: Flight | null = null;
   const publish = (next: ResourceState<T>) => {
     state = next;
     listeners.forEach(listener => listener());
@@ -29,13 +41,13 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
    * The authority rule is unchanged and lives in `isCurrent`: nothing from another account or intent
    * is ever published, and a change of either builds a new resource that starts empty.
    */
-  async function refresh(mode: boolean | 'load' | 'keep' | 'silent' = 'load') {
+  async function read(mode: RefreshMode) {
     if (!active || !isCurrent()) return;
     const how = mode === true ? 'keep' : mode === false ? 'load' : mode;
     const request = ++generation;
     const holding = how !== 'load' && state.data !== null && !state.error;
     if (!holding) publish(empty);
-    else if (how === 'keep') publish({ ...state, refreshing: true });
+    else if (how === 'keep') publish({ ...state, refreshing: true, ...(options.retainOnRefresh ? { refreshError: false } : {}) });
     try {
       const data = await load();
       if (active && request === generation && isCurrent()) publish({ data, loading: false, error: false, refreshing: false });
@@ -43,9 +55,32 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
       if (!active || request !== generation || !isCurrent()) return;
       // A re-read nobody asked for must not turn a screen that was working into an error. What is
       // on it is the last thing the server actually said; the refresh control can be asked again.
-      publish(holding && how === 'silent' ? { ...state, refreshing: false }
+      publish(holding && options.retainOnRefresh ? { ...state, refreshing: false, refreshError: true }
+        : holding && how === 'silent' ? { ...state, refreshing: false }
         : { data: null, loading: false, error: true, refreshing: false });
     }
+  }
+  function refresh(mode: RefreshMode = options.retainOnRefresh ? 'keep' : 'load'): Promise<void> {
+    if (!active || !isCurrent()) return Promise.resolve();
+    if (!options.coalesce) return read(mode);
+    if (flight) {
+      // A send may finish after the active read began. Joining that read alone could miss the
+      // newly accepted message, so callers share one trailing read and await the whole drain.
+      flight.again = true;
+      if (mode !== 'silent') flight.mode = mode;
+      return flight.promise;
+    }
+    const current: Flight = { again: false, mode, promise: Promise.resolve() };
+    flight = current;
+    current.promise = (async () => {
+      try {
+        do {
+          current.again = false;
+          await read(current.mode);
+        } while (flight === current && current.again && active && isCurrent());
+      } finally { if (flight === current) flight = null; }
+    })();
+    return current.promise;
   }
   return {
     snapshot: () => state,
@@ -68,6 +103,7 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
     stop() {
       active = false;
       generation++;
+      flight = null;
       leftAt = Date.now();
       if (state.refreshing) publish({ ...state, refreshing: false });
     },
@@ -79,6 +115,7 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
     forget() {
       active = false;
       generation++;
+      flight = null;
       leftAt = 0;
       publish(empty);
     },
