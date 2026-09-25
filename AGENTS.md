@@ -3,10 +3,13 @@
 R16 DISCOVERY / WORK BRIEF (2026-09-25): owner resumed after visual diagnosis. Read
 `docs/implementation/design-system/r16-discovery-work-brief-20260925/REPORT.md`.
 Search/tools share one surface; filters are open groups; task cards and detail lead with work and actual terms.
-Authorized public portraits use existing projection reads and only mount in fully visible list rows or the selected pin.
+Authorized public portraits use existing projection reads and mount only in settled visible rows (at most six)
+on the fully expanded sheet, or in the selected pin. The row threshold is 30% visible for 180 ms.
 White surfaces, ordinary Inter sizes, actual facts and all guards remain. No backend/payment/dependency changes.
-Types and 315 suites / 6,130 tests pass. Artifact/native evidence is recorded separately; no visual acceptance is implied.
-Home/Agreement/AI composition is the next batch. R14-N01 and release gates remain open.
+Types and 315 suites / 6,130 tests pass. Source b4ba8a8d is attested and installed on the owner's phone (36162844547)
+and emulator (36162848417). Read the separate native reports: bounded read-only inspection is not visual acceptance.
+R16-N01 post-install deep-link retry, R16-N02 narrow filter composition and R16-N03 map return/pin refinement remain.
+Home/Agreement/AI composition is the next batch; read NEXT_BATCH.md. R14-N01 and release gates remain open.
 
 VISUAL DIAGNOSIS AFTER OWNER REJECTION (2026-09-25): read
 `docs/implementation/design-system/design-diagnosis-20260925/REPORT.md` before further UI work.

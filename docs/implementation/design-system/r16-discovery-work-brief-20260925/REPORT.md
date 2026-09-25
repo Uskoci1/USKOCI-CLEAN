@@ -39,3 +39,20 @@ behavior from the inert design gallery. Keep normal-size composition and narrow/
 No backend, migration, Edge, provider/prompt, payment, dependency or real business mutation. This batch preserves
 all actual data, ownership, unknown-outcome recovery, safety commands and media authorization. Control generation
 does not refresh the older DEV snapshot or prove remote dashboard publication.
+
+## Installed artifact checkpoint
+
+Source `b4ba8a8d92c066d23b357c690cfdb42041a2c062` / tree `5901d412d50f9fa16baf19eacb758e07cf72a5c1`.
+ARM64 run `36162844547` and emulator run `36162848417` passed their source/tree/run/hash/ABI checks and both
+installed with `adb install -r`. The owner's physical VKP-NX9 retains its 361-dp-equivalent width and font scale
+1.15. Target-specific APK, capture and native-review files describe what was actually inspected; device inspection
+does not grant whole-journey or owner visual acceptance.
+
+The ordinary-size emulator gallery preserves identical fixture facts while the two fully visible cards become
+shorter: offers 827 to 712 pixels (~315 to 271 dp), per-person 918 to 697 pixels (~350 to 266 dp), at density 420.
+This is a measured comparison of those two fixtures, not a fixed-height rule or a universal result for real text.
+
+Physical-phone follow-ups remain explicit: an immediate post-install deep link needed one successful retry;
+the people filter label is cramped at 361 dp / 1.15; return/snap map framing and the fallback ring behind a rich pin
+need another composition pass. The observed public profile had initials, so this phone pass does not establish
+that a real photograph displayed. See `NATIVE_REVIEW.phone.md` and `NATIVE_REVIEW.emulator.md`.

@@ -22,8 +22,10 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 Latest checkpoint: the owner resumed implementation after R15 diagnosis. R16 implements the first coherent
 Discovery/filter/task-card/task-detail batch. Read `docs/implementation/design-system/r16-discovery-work-brief-20260925/REPORT.md`.
-Types and 315 suites / 6,130 tests pass. See its exact APK/native receipts for device scope; source checks alone are not visual acceptance.
-The next batch is Home/Agreement/conversation composition. White reading surfaces and ordinary strong type remain.
+Types and 315 suites / 6,130 tests pass. Source b4ba8a8d is installed on the owner's physical phone (run 36162844547)
+and emulator (36162848417). See its exact APK/native receipts for device scope; this is not owner visual acceptance.
+The next batch is Home/Agreement/conversation composition, with the observed narrow filter and map-return refinements.
+Read the R16 NEXT_BATCH.md; white reading surfaces and ordinary strong type remain.
 R14-N01, functional findings, physical-phone whole-journey acceptance and release gates remain open.
 
 R15 follows the owner's explicit distinction between work to choose and work already agreed. See
