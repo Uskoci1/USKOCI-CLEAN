@@ -20,6 +20,15 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
+Latest checkpoint: the owner rejected R15's visual quality and paused new visual implementation for diagnosis.
+Read `docs/implementation/design-system/design-diagnosis-20260925/REPORT.md`. Ten design findings are tied to
+current code and bounded native evidence. The next proposal is one coherent Discovery/filter/card/detail batch,
+then Home/Agreement/conversation composition, with three alternatives considered per core surface. White stays;
+hierarchy, real media, spacing by purpose and connected motion need work. This is analysis, not a new app change.
+Four fresh product views were reviewed on the exact R15 emulator build; other screen families retain their stated
+historical scope. Previous tests passing does not mean the owner accepted the design. Control notes now record
+that distinction; phone evidence, R14-N01, functional findings and release gates are unchanged.
+
 R15 follows the owner's explicit distinction between work to choose and work already agreed. See
 `docs/implementation/design-system/r15-distinct-work-surfaces-20260925/REPORT.md`. Tasks use a green work heading,
 illustrated facts and separated terms in a softly lifted white card; details use an open reading sequence; Agreements

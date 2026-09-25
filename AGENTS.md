@@ -1,5 +1,14 @@
 # USKOČI — repository entry map
 
+VISUAL DIAGNOSIS AFTER OWNER REJECTION (2026-09-25): read
+`docs/implementation/design-system/design-diagnosis-20260925/REPORT.md` before further UI work.
+The owner paused implementation and rejected R15's visual quality. White and readable ordinary-size text remain;
+repeated enclosures, equal visual weight, tall cards, crowded AI composition and heavy map chrome are the issues.
+The report records ten open design findings, three composition options per core surface and a two-batch proposal.
+Four fresh bounded native product views and same-source R15 evidence support the diagnosis; other screen families
+are explicitly not freshly accepted. No runtime/server/dependency change or new APK/test run belongs to this audit.
+R15 technical verification is historical evidence, not design approval. Keep phone/release gates and R14-N01 open.
+
 R15 DISTINCT WORK SURFACES (2026-09-25): read `docs/implementation/design-system/r15-distinct-work-surfaces-20260925/REPORT.md`.
 The owner rejects identical-looking task cards, task details and Agreements. A task is now a softly lifted work brief
 with a green heading and separate terms band; its bare map preview has no nested shadow. Detail is an open reading
