@@ -15,10 +15,16 @@ of app completion from counts of migrations, files or closed findings.
 `USKOCI_MASTER_PLAN_DIZAJNA.md`, then `design-system/r7-cohesion-20260925/REPORT.md` for verification.
 Recovered source `b9aed185` has an attested emulator APK and five matched CI proofs; its selected gallery evidence
 is in `design-system/r6-integration-20260925/RECEIPT.json`. It is not whole-app or real-phone acceptance.
-Commit `9956d3ee` removes redundant location confirmation checkboxes, preserving `confirmed: true` and recovery;
-types and full 305 suites / 5,921 tests passed. The next client package covers retired current-location sharing,
-explicit Nearby, typography/motion/card cohesion, contextual spoken counts and independently reproduced AI client
-defects. No DEV/Edge/payment changes are authorized by this checkpoint. Older anchors below remain dated evidence.
+Commit `9956d3ee` removes redundant location confirmation checkboxes, preserving `confirmed: true` and recovery.
+R7 source `3fdbe559` implements retired current-location sharing, explicit Nearby, typography/motion/card cohesion,
+contextual spoken counts and independently reproduced AI draft/worker-navigation fixes; eight matched package proofs
+passed. Its first APK was installed on the emulator and exposed a credit-layout issue fixed in `e5e7d877`.
+Source `43535736` adds the owner's larger branded-map visual batch; types and full 308 suites / 5,996 tests pass.
+Combined APK run `36099357856` passed both attestations and is installed on the emulator. Actual logo pins,
+selection/card/close, map palette and filters were inspected; a local location fixture checks the shared map.
+The card remains readable at 320 dp / font 2, but search/navigation/credits need further large-text layout work.
+Exact evidence and its limitations are in the R7 receipt. This is not phone, microphone, current provider or
+complete two-party acceptance. No DEV/Edge/payment changes were made. Older anchors remain dated evidence.
 
 **Independent delta audit — 2026-09-24.** Read `audit-20260924/REPORT.md` and its three appendices.
 Initial audited HEAD `b1da968c` on `work/uskoci-ui-unification-20260924`; emulator runtime source `644cab09`.

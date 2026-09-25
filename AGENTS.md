@@ -1,5 +1,17 @@
 # USKOČI — repository entry map
 
+R7 CLIENT COHESION (2026-09-25): current app source `43535736`, continuing the R6 recovery on
+`work/uskoci-ui-unification-20260924`. Read root `USKOCI_MASTER_PLAN_DIZAJNA.md`'s current checkpoint and
+`docs/implementation/design-system/r7-cohesion-20260925/REPORT.md` / `RECEIPT.json`. Place checkboxes removed;
+Agreement current-location UI retired; approved explicit-tap Nearby added; typed AI draft ownership and worker
+Back/availability defects corrected; shared Inter/motion/card cohesion and branded map palette/pins implemented.
+Types and 308 suites / 5,996 tests pass (existing teardown warning). APK run `36099357856` is attested and installed
+on the emulator; bounded map/card/filter observations are in the receipt. Large-text search/navigation/credits,
+high-density markers, GPS success and phone acceptance remain open. APK/native/phone evidence stays separate.
+Owner now wants larger coherent batches before APK/device verification, not a new build for every small edit.
+Normal soft/fluid motion stays enabled; Reduce Motion is the individual's system preference. No DEV/Edge/payment
+or frozen-migration changes. The control rows and master plan hold remaining AI, R6, functional and release work.
+
 R6 RECOVERY (2026-09-25): Codex recovered the four interrupted local fix commits through `25dd5d13`, integrated
 `r6fix-pinmap` and the uncommitted `r6fix-izmene`, and connected all six pending Skeleton callers. Read
 `docs/implementation/design-system/r6-integration-20260925/REPORT.md` for scope, evidence and open work. Types clean;

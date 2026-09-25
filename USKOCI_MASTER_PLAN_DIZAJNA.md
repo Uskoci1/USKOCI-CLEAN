@@ -19,19 +19,50 @@ No completion percentage is inferred from passing tests or the historical 181 R6
 
 ### Implemented foundation and remaining visual work
 
+#### Map, cards and movement — owner steering, 25 September
+
+The owner wants larger coherent batches before an APK, and soft, responsive motion throughout normal use.
+System Reduce Motion remains an individual accessibility preference, not the default visual direction.
+Design skills guide usability and implementation; they do not override product facts or the owner's direction.
+
+The Discovery problem: recognise the right task and its terms, then move between the map, preview and list without
+losing context. Three materially different compositions were compared:
+
+| Composition | Strength | Cost |
+| --- | --- | --- |
+| Logo teardrop, terms only in the preview | Strong location silhouette and little horizontal clutter | Every price comparison requires opening a task |
+| Logo + exact-price capsule | Brand recognition and comparison together; fits the current selection contract | Wider marks need clustering and a bounded rich-label budget |
+| Logo tile with a caption underneath | Compact width, room for the mark | Taller footprint covers streets and separates the price from its touch target |
+
+Selected: logo + price capsule, with a static native logo marker for points beyond the 40 rich-label budget.
+Missing prices remain logo-only; offers remain words, never formatted as an amount. Shared public points retain
+their count and place list. Remote tasks and tasks with no public point never acquire invented map coordinates.
+Recolor only verified Positron layer colors: warmer ground, clearer blue water, pale green parks, legible streets.
+Keep sources, geometry, Latin names, clustering and camera ownership unchanged. Selected previews use the same
+facts as list cards, with more legible illustrated place/time rows and light press feedback.
+
+Motion decision: retain the existing UI-thread sheet springs, camera easing and interruptible press feedback.
+Native bitmap pins stay still; animating every pin would spend frames without helping selection.
+Do not remove the preview lifecycle key merely to avoid an entrance animation: dismiss callbacks, changed content
+height and scroll ownership must be proven first. No new library is needed for this batch.
+
+Implementation references: [MapLibre images](https://maplibre.org/maplibre-react-native/docs/components/images/)
+and [annotations](https://maplibre.org/maplibre-react-native/docs/guides/annotations/).
+This is a USKOČI design decision, not a claim to have reproduced another application's current UI.
+
 | Surface / user's job | What is implemented | Current decision and next acceptance |
 | --- | --- | --- |
 | Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. | Keep this hierarchy and the quiet first-run illustration. Do not add motion to static obligations. Group the attention heading/count for speech. Recheck narrow/large-text layout on the new APK. |
-| Discovery: find a suitable nearby task | Shared map/list, price pins, clustering, multiple tasks on one point, draft filters and honest result counts. | Add explicit-tap Nearby, one ephemeral foreground observation. Keep the quiet map ground so green selection and urgency remain legible. Reuse illustrated card facts on the selected preview. Complete map credits and remove the duplicate native credit control. |
-| Pins and map color | Public rounded coordinates; selected green price/place pill; count clusters; Serbian Latin labels; approximate area on read-only task maps. | Keep amount, offer and missing-price pins semantically distinct. No invented distance, live position, urgent status or rating. Tune contrast only after actual map screenshots; a wholesale green map would compete with selected tasks. |
+| Discovery: find a suitable nearby task | Shared map/list, explicit-tap Nearby with one ephemeral foreground observation, clustering, shared-point groups, draft filters and honest result counts. Illustrated preview facts, one set of map credits and 48 dp quick filters are implemented. | Combined APK `43535736` inspected on the emulator: real map, selected card and filter panel. At 320 dp / font 2 the search header is too tall and navigation wraps; compact that composition without shrinking text. Real GPS success remains unproven: the interim run demonstrated timeout recovery only. Keep query/ownership work separate. |
+| Pins and map color | USKOČI logo + truthful price capsules, native logo fallback beyond the 40-label cap, selected green capsule, count clusters and rounded public points. Shared warmer map palette and Serbian Latin labels. | Rich logo/selection and both shared map surfaces rendered on the final emulator APK. Credits fit at normal width, wrap at 320 dp / font 1.3, and are not visible at font 2: repair/accept that layout. Native fallback beyond 40 rich markers and physical-device fluidity remain unobserved. No invented distance, position, urgency or rating. |
 | Filters and changing views | Draft-before-Apply search, place/date/price/work-mode/free-place choices, chip removal, clear-all and unavailable counts. | Existing records revealed by a changed filter should appear immediately, not replay arrival motion. A genuinely arriving record may animate once. Sorting, saved-search alerts and server pagination remain separate verified-contract work. |
 | Task cards and detail | Shared truthful value slots, FactArt, requirements, availability, publisher; photos only inside task detail. | List head stays compact; the pin preview stacks the same title/value head to reserve its close control and long title. Place/time use separate illustrated rows. Keep exact address protected and missing price in ordinary text. |
 | Location forms | Separate public place/private address, point validation and command recovery. | Save itself is the confirmation (`confirmed: true`); the redundant checkbox is removed. Pending-point and unknown-outcome guards remain. Verify onsite, remote and worker area visually. |
 | Offers and candidate choice | Price/people/note, review before send, candidate comparison and explicit acceptance. | Retain approved acceptance wording and pricing semantics. Inter must also reach native amount/input fields with the correct bold face. Current-build real offer/selection acceptance is still owed. |
-| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. | Retire current-location sharing route and entries only, per owner decision. Keep exact task-location disclosure, telephone consent and all server records. Keyboard, long thread, reconnect and terminal-media recovery require explicit acceptance. |
-| AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. | Preserve typed drafts when speech completes; allow safe exit from a running worker interview; remove the worker availability panel's nested vertical scroll. See AI table below. |
+| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. Current-location sharing route/entries retired; server records preserved. | Exact task-location disclosure and telephone consent remain. Keyboard, long thread, reconnect and terminal-media recovery require explicit acceptance. |
+| AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. Independent typed-draft ownership, safe exit from a pending worker interview and one availability scroll are implemented. | Current-build real provider, microphone and full journey acceptance remain separate. See AI table below. |
 | Profile, calendar, support/settings | Native screens and corresponding galleries already exist. | Apply the shared Inter face to input controls, then verify actual focused inputs, fixed footers, large text and all loading/error states. Do not infer whole-flow completion from galleries. |
-| Motion and accessibility | Shared durations, press feedback, live reduced-motion store, sheets, bounded map annotations. | Gate root-stack transitions, reset interrupted bell motion, suppress false arrivals, speak contextual badge counts and hide a sunk sheet completely from accessibility. Retain the existing restrained success/empty-state assets. |
+| Motion and accessibility | Shared durations, press feedback, live reduced-motion store and root gating, sheet springs, bounded map annotations, interrupted-bell reset, contextual spoken counts and no false arrival replay after filters. | Normal motion stays enabled. Verify final native transitions; improve AI answer completion announcements and stream-to-record continuity without decorative replay. |
 
 ### AI: implementation is not activation or device acceptance
 
@@ -46,7 +77,9 @@ No completion percentage is inferred from passing tests or the historical 181 R6
 
 ### Finish order after this client package
 
-1. Exact-source typecheck/full Jest, matched CI and APK; inspect native map/card/filter/form states and large text.
+1. The combined package has exact-source types/full Jest and an attested, installed APK; bounded emulator checks
+   are recorded in the R7 receipt. Next acceptance: narrow/large-text search/navigation/credits, high-density
+   fallback markers, real GPS branches and physical-device interaction. Batch related fixes before another APK.
 2. Reconcile remaining R6 majors against current bodies. Preserve refuted findings as refuted: the list sinking
    behind a pin preview is approved V47 behavior; the old selected-cluster claim was refuted. Do not redo recovered agents.
 3. Close remaining client defects one coherent flow at a time, with keyboard, offline, stale/unknown-outcome and
@@ -58,6 +91,44 @@ No completion percentage is inferred from passing tests or the historical 181 R6
    cancellation/problem branches, notifications and actual push, privacy/export/closure must each be accepted.
 6. Legal/operator/retention, payment-provider decisions, production environment, iOS acceptance and store gates remain
    release work. Finishing visual polish alone does not make the application ready for public release.
+
+### Reconciliation of the 24 historical R6 major entries
+
+Read-only recheck at `3fdbe559` on 25 September. Indices are **zero-based `findings[]` indices** in
+`docs/implementation/design-system/r6-sweep/FINDINGS.json`, not newly assigned bug IDs. Five are fixed in current
+source, seventeen underlying mechanisms remain, and two performance patterns need profiling before their original
+major severity can be accepted. These are source judgments, not 24 fresh device observations or a whole-app count.
+
+| Index | Current evidence | Assessment / next action |
+| --- | --- | --- |
+| 0 | `tokens.ts:203` field and named custom inputs use `withInter` | Fixed in source; current APK typography acceptance below. |
+| 1 | Worker `profil/razgovor.tsx:213` uses a non-scrolling frame and direct availability form | Fixed in source; narrow/large-text footer acceptance below. |
+| 2 | `ProductDetails.tsx:226,333` fades the entire disabled footer to 0.45 | Still present; keep the label/reason readable while showing disabled state. |
+| 3 | `ConversationPointAsk.tsx:132,156` uses ink-filled primary return actions | Still present; align secondary return actions with the common hierarchy. |
+| 48 | `ApplicationSelectionPresentation.tsx:303–318` shows the offer without the retired capabilities block | Fixed in source before this package. |
+| 49 | `PublicNeedPresentation.tsx:135` retains gendered relation-error copy | Still present; neutral Serbian copy. |
+| 50 | `WorkerAiPresentation.tsx:46` prints raw rule times | Still present; use the shared civil-time format. |
+| 85 | `AiConversationShell.tsx:139,238–244` does not announce completed answers | Still present; announce each new completed answer once, never history or every streamed fragment. |
+| 86 | `ApplicationSelectionPresentation.tsx:69,319,325` uses role-only outcome alerts | Still present; reachable and announced selection result/recovery. |
+| 87 | `dogovor/[id].tsx:416` leaves command errors at the scroll bottom | Still present; expose recovery at the action and announce the changed state. |
+| 88 | `ClosurePresentation.tsx:102` changes successful closure status without announcing it | Still present; announce status transition without changing the closure program. |
+| 89 | `CandidateFace.tsx:167,206` puts offer facts only in hints | Still present; essential facts must remain available when hints are disabled. |
+| 90 | `IntakePresentation.tsx:186,201` has role-only safety/error feedback | Still present; announce relevant new feedback without repeating history. |
+| 91 | `MyApplicationsPresentation.tsx:44,143` has role-only validation/missing-row feedback | Still present; keep a visible and announced correction path. |
+| 92 | `ApplicationFace.tsx:99,203` removes the focused disclosure trigger when expanded | Still present; retain a named expanded control or deliberately transfer focus. |
+| 93 | `V2Action.tsx:71,86,111` makes the initial disabled reason hint-only | Still present; reason must be available on first focus. |
+| 143 | `potrebe/[id]/kandidati.tsx:142,155` replaces a Tabs route with a root Agreement | Source concern remains; reproduce actual native return stack before choosing a navigation change. |
+| 144 | `AgreementCompletionReview.tsx:19` retains its custom page-sheet modal | Still present; consolidate after preserving the complete confirm/cancel contract. |
+| 145 | Worker `profil/razgovor.tsx:152` can retire the view while preserving the pending journal | Fixed in source with predecessor-failing tests; actual provider/phone acceptance remains separate. |
+| 146 | `dogovor/[id].tsx:173,291,416` disables primary action while recovery sits below | Still present; surface reason/loading/recovery beside the affected action. |
+| 167 | Root `_layout.tsx:131` selects no transition under reduced motion | Fixed in source; live preference behavior tested. |
+| 168 | `AiConversationShell.tsx:70,133,239` animates persisted turns after stream replacement | Still present; measure and avoid reintroducing an already visible answer. |
+| 169 | `calendarPresentation.ts:14,54` allocates formatters repeatedly | Pattern present; no measured major lag. Profile representative native calendar data first. |
+| 170 | `AgreementChat.tsx:186,254` redraws an unpaged message ScrollView with draft changes | Pattern present; profile realistic long history and keyboard latency, then bound/virtualize without breaking recovery. |
+
+Next client priority is action/recovery visibility and return navigation, then AI response announcements and motion,
+then wording/time/sheet consistency. Unprofiled performance claims are not accepted as measured defects. The older
+R6 severity labels do not automatically make every wording or styling mismatch a release blocker.
 
 ## 1. Audit (24. sep, merenje na `724f4ed1`)
 

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-25T04:45:32Z",
+  "osvezeno": "2026-09-25T06:07:11Z",
   "grana": "HEAD",
-  "head": "9956d3ee",
-  "head_poruka": "fix(location): save selected place without redundant checkbox",
+  "head": "43535736",
+  "head_poruka": "feat(discovery): add branded map markers and clearer map palette",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -338,7 +338,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "25.09: dodatna kvačica je uklonjena; „Sačuvaj mesto“ potvrđuje izbor i klijent i dalje šalje confirmed: true. Važi za mesto zadatka, rad na daljinu i područje rada. Potvrda pomerene tačke, revizije i oporavak nepoznatog ishoda ostaju. Tipovi čisti; ceo Jest 305 grupa / 5921 test, 99,997 s. Stara provera koja je zahtevala uklonjenu kvačicu usklađena sa odlukom. APK i provera ovog koraka na uređaju još čekaju. Prethodne slike približne mape: docs/implementation/design-system/r6-integration-20260925/REPORT.md.",
+   "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1257,7 +1257,7 @@
    },
    "telefon_dokaz": "",
    "problem": "25.09: bezbedan izlazak tokom AI obrade, ugnježdeno pomeranje rasporeda i brisanje nezavisnog kucanog nacrta posle govora ispravljeni u kodu i dokazani testovima koji padaju pre popravke. Komanda ostaje zapamćena, stari odgovori ne menjaju drugi ekran. Stvaran ceo put razgovor → pregled → aktivacija na aktuelnoj verziji još nije prihvaćen.",
-   "sledece": "Proveriti na uređaju čuvanje i aktivaciju profila, povratak u obradu i raspored sa velikim slovima. Testovi dokazuju oporavak i dostupnost komandi, ne stvaran poziv AI-ju. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
+   "sledece": "25.09: na emulatoru 3fdbe559 lokalna scena rasporeda proverena od vrha do poslednjeg izuzetka i dugmeta za dodavanje, na 320 dp i uvećanju slova 1,3. Jedno pomeranje i dostupnost komandi viđeni; čuvanje nije pokrenuto. Zaštita nezavisnog kucanog nacrta i bezbedan izlazak tokom obrade dokazani testovima. Ceo razgovor → pregled → čuvanje → aktivacija na aktuelnoj verziji još nije prihvaćen. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1409,7 +1409,7 @@
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
-   "sledece": "25.09: dodatna kvačica je uklonjena; „Sačuvaj mesto“ potvrđuje izbor i klijent i dalje šalje confirmed: true. Važi za mesto zadatka, rad na daljinu i područje rada. Potvrda pomerene tačke, revizije i oporavak nepoznatog ishoda ostaju. Tipovi čisti; ceo Jest 305 grupa / 5921 test, 99,997 s. Stara provera koja je zahtevala uklonjenu kvačicu usklađena sa odlukom. APK i provera ovog koraka na uređaju još čekaju. Prethodne slike približne mape: docs/implementation/design-system/r6-integration-20260925/REPORT.md.",
+   "sledece": "25.09: Sačuvaj mesto je potvrda i za područje rada; dodatna kvačica je uklonjena. Ista pravila revizija i oporavka ostaju. Stvarno čuvanje područja rada na novoj verziji još treba proveriti. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1551,7 +1551,7 @@
    },
    "telefon_dokaz": "2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
    "problem": "Mapa i lista su sada jedan ekran sa panelom, tačkama i cenama. Čitanje i dalje uzima do 25 × 200 javnih zadataka i filtrira lokalno. Audit 24.09: lista ne čeka podatke o vlasništvu; posle njihove greške prikazuje i svoje zadatke, a obično osvežavanje istih ID-jeva ne ponavlja tu proveru.",
-   "sledece": "25.09: dodat „U blizini” samo na pritisak, bez čuvanja ili slanja GPS podatka poslovnom serveru; pomera kameru, ne prepisuje filtere. Dovršeni izvori mape, ujednačena kartica tačke i Inter u pretrazi; stare stavke ne animiraju dolazak pri promeni filtera. DN-01 i čitanje do 25 × 200 zadataka ostaju otvoreni. Proveriti novu karticu sa velikim slovima, pomeranje i sve grane dozvole na uređaju. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
+   "sledece": "25.09: zajednički R7 paket donosi pin sa USKOČI znakom, cenu ili pošten tekst ponude, nativni znak izvan ograničenja 40 bogatih oznaka, jasniju paletu mape, 48 dp filtere i ujednačen pregled zadatka. Bez izmišljenih tačaka za rad na daljinu. APK 43535736 i slike su vezani za tačan izvor; obim provere emulatora je u zapisu. U blizini traži jedan trenutni položaj tek na pritisak, bez čuvanja/poslovnog RPC-a; na prvom APK-u viđen oporavak po isteku roka, ne uspešan GPS. Na 320 dp i duplo većim slovima kartica i zatvaranje rade, ali pretraga, donja navigacija i izvori mape traže bolji raspored. DN-01, čitanje do 25 × 200 zadataka, ostale grane dozvole i telefon ostaju otvoreni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5622,100 +5622,100 @@
  "test_dva_telefona_izvrseno": {},
  "ci": [
   {
+   "id": 36099357856,
+   "ime": "Build Android development APK",
+   "sha": "43535736",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T05:37:45Z"
+  },
+  {
+   "id": 36097610908,
+   "ime": "Build Android development APK",
+   "sha": "e5e7d877",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T05:12:48Z"
+  },
+  {
+   "id": 36095780738,
+   "ime": "PKG-010 system contracts proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780601,
+   "ime": "PKG-007 agreement completion proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780590,
+   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780464,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780423,
+   "ime": "PKG-004 need lifecycle proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780395,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780381,
+   "ime": "PKG-005 Worker onboarding proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095780364,
+   "ime": "PKG-003 manual task proof",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:13Z"
+  },
+  {
+   "id": 36095767194,
+   "ime": "Build Android development APK",
+   "sha": "3fdbe559",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T04:46:02Z"
+  },
+  {
    "id": 36074966857,
    "ime": "Build Android development APK",
    "sha": "b65a7a41",
    "stanje": "completed",
    "ishod": "cancelled",
    "vreme": "2026-09-24T23:53:36Z"
-  },
-  {
-   "id": 36065619683,
-   "ime": "PKG-048 agreement source links proof",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:23Z"
-  },
-  {
-   "id": 36065615010,
-   "ime": "PKG-008 task photo recovery proof",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:20Z"
-  },
-  {
-   "id": 36065611427,
-   "ime": "PKG-007 agreement completion proof",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:18Z"
-  },
-  {
-   "id": 36065607281,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:15Z"
-  },
-  {
-   "id": 36065603432,
-   "ime": "PKG-004 need lifecycle proof",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:13Z"
-  },
-  {
-   "id": 36065599150,
-   "ime": "Build Android development APK",
-   "sha": "b9aed185",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T22:07:10Z"
-  },
-  {
-   "id": 36053060680,
-   "ime": "PKG-051 platform price list proof",
-   "sha": "0db57f50",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T20:10:21Z"
-  },
-  {
-   "id": 36039980994,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:15:35Z"
-  },
-  {
-   "id": 36038741182,
-   "ime": ".github/workflows/pkg050-agreement-messages-read-proof.yml",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:47Z"
-  },
-  {
-   "id": 36038738587,
-   "ime": "PKG-046 media upload cancellation proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:46Z"
-  },
-  {
-   "id": 36038735966,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "b4531ef4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:04:44Z"
   }
  ]
 }
