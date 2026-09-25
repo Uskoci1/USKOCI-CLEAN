@@ -1,0 +1,21 @@
+{
+  "base": "610088385d90e254eeffdf7aa55b6d1c09840d20",
+  "typescript": {
+    "command": "npx tsc --noEmit -p tsconfig.json",
+    "exitCode": 0
+  },
+  "jest": {
+    "command": "npx jest -w 3 --testTimeout=30000",
+    "exitCode": 0,
+    "suites": 313,
+    "tests": 6083,
+    "seconds": 116.024,
+    "warning": "Existing Jest worker teardown warning; not a native runtime assertion."
+  },
+  "contrast": {
+    "file": "CONTRAST.json",
+    "pairs": 22,
+    "minimum": 5.117
+  },
+  "native": "Pending exact-source APK; no phone acceptance."
+}

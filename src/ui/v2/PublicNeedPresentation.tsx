@@ -169,9 +169,9 @@ const s = StyleSheet.create({
   termsCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   amount: { ...sys.type.priceLarge, color: sys.color.money },
   priceWords: { ...sys.type.bodyStrong, color: sys.color.ink },
-  // One full-width band groups logistics without turning each fact into a tile or narrowing its text with nested gutters.
+  // Full-width white logistics: rules group the facts without tinted tiles or nested gutters.
   logistics: { marginHorizontal: -sys.space.base, paddingHorizontal: sys.space.base, paddingVertical: sys.space.base,
-    backgroundColor: sys.color.wash },
+    backgroundColor: sys.color.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   badgeRow: { flexDirection: 'row' },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, padding: sys.space.md,
     borderRadius: sys.radius.control, backgroundColor: sys.color.wash },

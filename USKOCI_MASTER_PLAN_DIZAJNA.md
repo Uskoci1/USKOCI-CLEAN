@@ -5,11 +5,11 @@ Ovaj fajl je glavni plan za UI/UX nastavak. Detalji i slike: Claude Doc „USKO�
 „Plan ekrana (23. sep)“ (https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923) i skice
 (https://claude.ai/artifact/B2YMSAQVPz7iuq6TXHgZLf). Istraživanja: `docs/implementation/research/`.
 
-Current owner direction, 25 September: a youthful, modern, clear and responsive app. White remains welcome when
-it has deliberate depth, subtle color and good composition; an all-white page is not a constraint. Compose each
-screen for its purpose, using a recognizable green foundation, illustrated icons, restrained orange accents and
-soft normal motion. Shadows distinguish surfaces and hierarchy rather than outlining every control. Earlier
-V28/white-only rules are references, not vetoes. Preserve domain behavior, recovery, privacy and truthful facts.
+Latest owner correction, 25 September (R12): a youthful, modern, clear and responsive app on clean white reading
+surfaces. Mint backgrounds and pale large panels are rejected. Icons, words, photos and strong accents supply
+color; neutral hairlines, space and light neutral shadows supply separation. Green/orange identity and soft normal
+motion remain. Compose every screen for its purpose. Earlier mint/ivory prescriptions are superseded. Preserve
+domain behavior, recovery, privacy and truthful facts.
 
 Owner screenshot refinement, 25 September: read
 `docs/implementation/design-system/OWNER_AIRBNB_REFERENCES_20260925.md` before the next Discovery/filter pass.
@@ -19,6 +19,11 @@ reduces competing header chrome and visual weight while preserving identity acce
 true task facts. This is recorded design intent, not a new implemented screen or APK. It does not restart the plan.
 
 ## Current execution checkpoint — 2026-09-25
+
+R12 is the current surface refinement: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
+Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth
+forms. The 22 measured text pairs pass AA; completed tests and exact-build/native evidence belong to its receipt.
+This does not close the R11 composition follow-ups or functional/store gates below.
 
 R11 continuation: `docs/implementation/design-system/r11-screen-composition-20260925/SCREEN_AUDIT.md` now maps all
 40 active destinations and five redirects, including each control/search purpose, states and return path. The
@@ -34,7 +39,7 @@ remote upload to the existing Claude page remains unconfirmed after file-chooser
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R11 dated directories under `docs/implementation/design-system/`; R11 is the latest client checkpoint.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R12 dated directories under `docs/implementation/design-system/`; R12 is the current surface batch.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work
@@ -52,7 +57,7 @@ clear USKOČI speaker identity, distinct user bubbles, and one review target. Th
 screens, with large text, while typing or while a turn is pending. Reading old messages offers an explicit return
 to the newest message without moving the reader unexpectedly.
 
-The owner refinement uses a mint canvas, nuanced white assistant/composer surfaces, a forest user bubble and
+The historical R8 refinement used a mint canvas (superseded by R12's clean white), assistant/composer surfaces, a forest user bubble and
 illustrated opening choices. Task draft and worker summary are visibly separate from conversation turns.
 Texture comes from spacing, tonal layers and subtle elevation, with no noisy overlay behind reading text.
 At 320 dp / font scale 2 the initial APK showed a summary consuming roughly half the available content region:

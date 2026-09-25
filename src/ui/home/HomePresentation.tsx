@@ -298,10 +298,10 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
   calendarIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
-  // One lifted appointment: time has its own tonal header, with the task and person on white below.
+  // Time, task and person share white; a rule separates the appointment's reading groups.
   appointment: { ...cardCompact, ...floating, padding: 0, borderColor: sys.color.lineStrong },
   appointmentWhen: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base,
-    paddingVertical: sys.space.md, backgroundColor: sys.color.wash,
+    paddingVertical: sys.space.md, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line,
     borderTopLeftRadius: sys.radius.cardCompact - 1, borderTopRightRadius: sys.radius.cardCompact - 1 },
   appointmentWhenStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
   appointmentMarker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
@@ -311,8 +311,8 @@ const s = StyleSheet.create({
   appointmentBody: { padding: sys.space.base, gap: sys.space.md },
   appointmentPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   rowCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // The two front doors share a flat, quiet ground; the appointment above carries the elevation.
-  mine: { marginTop: sys.space.xxl, paddingHorizontal: sys.space.base, borderRadius: sys.radius.card, backgroundColor: sys.color.wash },
+  // Open navigation rows: the illustrated icons supply color, without a tinted group behind them.
+  mine: { marginTop: sys.space.xxl, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
   mineIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
   more: { paddingVertical: sys.space.sm },

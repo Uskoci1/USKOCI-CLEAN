@@ -274,7 +274,7 @@ export default function AuthScreen() {
       onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
       onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
     <View onLayout={onFormLayout} style={styles.screen}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
           onPress={() => commands.changeForm(() => {

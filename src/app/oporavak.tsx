@@ -57,7 +57,7 @@ export default function PasswordRecoveryScreen() {
 
   const state = recovery.state;
   return <View style={[styles.screen, { paddingTop: insets.top }]}>
-    <StatusBar style="light" />
+    <StatusBar style="dark" />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy} onPress={back} style={styles.back}>
         <ArrowLeft size={22} color={c.ink} />

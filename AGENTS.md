@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+R12 WHITE SURFACES (2026-09-25): the owner's latest explicit correction rejects mint backgrounds and pale large
+panels. Read `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`. White reading surfaces,
+neutral control wells/rules/shadows; color comes from icons, words, photos and clear actions. This supersedes the
+R8 mint-canvas and historical ivory prescriptions below. Auth forms now read the same system. Geographic parks
+and water, meaningful warning states and colored artwork remain. Preserve behavior, normal fluid motion and the
+R11 screen composition/inventory. Checks, APK and bounded native observations must be read from this batch's
+evidence, never inferred from a palette change. No server, payments, provider or dependency change.
+
 R11 SCREEN COMPOSITION (2026-09-25): read `docs/implementation/design-system/r11-screen-composition-20260925/REPORT.md`
 and `SCREEN_AUDIT.md`. The source inventory covers 40 active destinations and five redirects; fixtures are not live
 journey proof. Discovery is search-led with secondary entries in one menu; offers have larger portraits and quieter
@@ -38,8 +46,7 @@ reaches the final answer but can remain visible; R9 carries the terminal-scroll 
 APK exposed the large-text crowding corrected in `0976b373`.
 No server, provider/prompt, microphone, payment, migration or dependency change. Do not equate text voice mode
 with spoken AI answers. Preserve the owner's larger-batch preference and the existing recovery/ownership guards.
-Latest owner design direction supersedes old white-only/shadow prohibitions: white can be beautiful with depth
-and tonal layers; each screen must be composed for its purpose. The current master-plan checkpoint records this.
+Historical R8 direction was superseded by R12: white canvas and reading groups, neutral shadows, no mint wash.
 
 R7 CLIENT COHESION (2026-09-25): current app source `43535736`, continuing the R6 recovery on
 `work/uskoci-ui-unification-20260924`. Read root `USKOCI_MASTER_PLAN_DIZAJNA.md`'s current checkpoint and

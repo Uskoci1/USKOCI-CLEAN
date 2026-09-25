@@ -1,11 +1,12 @@
-/** Final V5 premium auth reference; entry and the light app surfaces have their own tokens. */
+import { sys } from '../system/tokens';
+
+/** Auth uses the same white reading surfaces as the app. Names stay compatible with the guarded forms. */
 export const authTheme = {
-  surface: '#07342C', top: '#124B3F', bottom: '#042B24', input: '#082F28',
-  ink: '#FFFAF0', muted: '#CFDDD5', placeholder: '#A4BAAE', line: '#527469',
-  accent: '#FF850F', accentLight: '#FFAD63', accentPressed: '#FFA342', buttonInk: '#133B31',
-  error: '#FFD6CB', soft: '#174B3F', cream: '#FFF8EB',
-  /** Hairline between the dark form and its footer. */
-  divider: '#345D50',
-  /** The light sign-in method cards and the sheet behind them (the second, light auth surface). */
-  sheet: '#FBFCFB', methodSurface: '#FFFFFF', methodLine: '#DCE3DE', methodInk: '#143D35', methodIcon: '#174B43', stateWell: '#E4EDE8',
+  surface: sys.color.surface, input: sys.color.surface,
+  ink: sys.color.ink, muted: sys.color.muted, placeholder: sys.color.muted, line: sys.color.lineStrong,
+  accent: sys.color.green, accentLight: sys.color.green, accentPressed: sys.conversation.user, buttonInk: sys.color.onGreen,
+  error: sys.color.danger, soft: sys.color.wash, cream: sys.color.surface,
+  divider: sys.color.line,
+  sheet: sys.color.surface, methodSurface: sys.color.surface, methodLine: sys.color.cardLine,
+  methodInk: sys.color.ink, methodIcon: sys.color.green, stateWell: sys.color.iconWell,
 } as const;

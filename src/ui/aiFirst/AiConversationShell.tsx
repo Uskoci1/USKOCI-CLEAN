@@ -290,9 +290,9 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
-  // A quiet white reading surface against the tinted canvas; the label identifies the speaker.
+  // White on white: a quiet edge defines the answer, while the label identifies the speaker.
   assistant: { ...floating, gap: 10, alignSelf: 'stretch', padding: 16, borderRadius: sys.radius.card,
-    borderBottomLeftRadius: 8, backgroundColor: sys.conversation.surface },
+    borderBottomLeftRadius: 8, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   markName: { color: sys.color.green, fontWeight: '600' },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).

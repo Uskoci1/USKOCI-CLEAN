@@ -201,7 +201,7 @@ it('a switch row is one focus stop, spoken as a switch, drawn green on white ins
  const drawn = row.findByProps({ importantForAccessibility: 'no-hide-descendants' });
  const toggle = drawn.findByProps({ value: true });
  expect(toggle.props.accessibilityLabel).toBeUndefined();
- expect(toggle.props.trackColor).toEqual({ false: '#C9D6CF', true: '#076E4E' });
+ expect(toggle.props.trackColor).toEqual({ false: '#CDCDCD', true: '#076E4E' });
  expect(toggle.props.thumbColor).toBe('#FFFFFF');
 });
 it('the one green action is Save, in the footer, grey with its reason until something changes', async () => {

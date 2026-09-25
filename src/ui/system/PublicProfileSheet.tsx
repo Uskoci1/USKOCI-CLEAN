@@ -81,7 +81,7 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety }: {
 }
 
 /**
- * The rating and the finished Dogovori, side by side on one flat tint (nothing inside the sheet is a card of its own).
+ * Rating and finished Dogovori share an open white section, separated by rules instead of a tinted inner card.
  * A rating is written the Serbian way ("4,8") beside the count it stands on; no reviews yet says so, an unavailable
  * rating says that, and a verified identity appears only when the server reports it.
  */
@@ -123,7 +123,8 @@ const s = StyleSheet.create({
   identityCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.sm },
   identityCopyStack: { width: '100%', flexShrink: 0 },
   place: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trust: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, padding: sys.space.lg, gap: sys.space.base },
+  trust: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.base,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   cells: { flexDirection: 'row', alignItems: 'stretch', gap: sys.space.base },
   cellsStack: { flexDirection: 'column' },
   cell: { flexGrow: 1, flexBasis: 0, minWidth: 0, gap: sys.space.sm },

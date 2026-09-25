@@ -19,18 +19,11 @@ export { nested } from '../../theme/tokens';
  * `ENTRY_V49` values) and the mascot keep colours of their own. The Home pin is now the palette orange, no longer the
  * entry orange #FF800A it once copied.
  *
- * Colours are the owner's V28 prototype as it renders (decision 2026-09-22, "identičan izgled";
- * V28's colours, icons and navigation are the ones to keep). Measured from computed styles at
- * 412 px: ink #202723 (screen titles), muted #5E6D64, action green #076E4E (primary button with
- * white text, large price), card price #087B57, pale green #EFF6F0 (selected tab), orange #FA8229
- * with dark ink #30200F ("+"), orange-soft #FFF5E9, hairline #EBEEEA, card edge #D8DED7.
- *
- * Every text/background pair below was checked for WCAG AA (≥ 4.5:1):
- * ink on surface 15.3 · muted on surface 5.5 · muted on greenSoft 5.0 · muted on wash 5.0 ·
- * green on surface 6.3 · white on green 6.3 · green on greenSoft 5.7 · money on surface 5.3 ·
- * onOrange on orange 6.2 (white on orange is 2.5 — a defect, so text on orange is always dark) · onGreen on green 6.3 ·
- * ink on orangeSoft 14.2 · danger on dangerSoft 6.0 · warn on warnSoft 5.9 · fact on surface 6.6 · attentionInk on
- * surface 5.9 · waitingInk on orangeSoft 6.7 · orangeInk on surface 5.3 · onDark on green 5.7.
+ * Owner correction, 2026-09-25 (R12): clean white canvas and reading surfaces. No mint wash behind conversations,
+ * summaries or groups. Icons, photos, strong action colors and readable type supply the color. Neutral wells are
+ * limited to controls and selected states; separation comes from space, neutral hairlines and restrained shadows.
+ * V28's green/orange accents remain. Error and warning colors still carry meaning beside a label or icon.
+ * Text/background contrast is recorded in the R12 report; orange buttons always use dark text, never white.
  *
  * A colour that was written by hand beside this list and sat a hair off one of its values (CIEDE2000 ≤ 2.5, below what
  * reads as a different colour) now uses that value: two colours that nearly agree are worse than one. The ones that are
@@ -39,31 +32,32 @@ export { nested } from '../../theme/tokens';
 export const sys = {
   color: {
     surface: '#FFFFFF',
-    /** Screens are white; `wash` is the only grouped-area tint. */
+    /** Screens and reading groups are white; `wash` is a neutral control/recessed-state surface. */
     ground: '#FFFFFF',
-    wash: '#F2F7F4',
+    wash: '#F7F7F7',
     /** Segmented track and icon wells. */
-    control: '#E6EDE8',
-    iconWell: '#F4F7F5',
-    ink: '#202723',
-    muted: '#5E6D64',
+    control: '#E8E8E8',
+    iconWell: '#F5F5F5',
+    ink: '#202020',
+    muted: '#626262',
     green: '#076E4E',
-    greenSoft: '#EFF6F0',
+    /** Legacy name: a neutral selection well; the icon, edge or label carries green. */
+    greenSoft: '#F3F3F3',
     orange: '#FA8229',
     orangeSoft: '#FFF5E9',
     onOrange: '#30200F',
     /** The label on the one primary action, which is green. */
     onGreen: '#FFFFFF',
-    line: '#EBEEEA',
-    lineStrong: '#C9D6CF',
-    cardLine: '#D8DED7',
+    line: '#EBEBEB',
+    lineStrong: '#CDCDCD',
+    cardLine: '#DEDEDE',
     danger: '#963F34',
     dangerSoft: '#FBECE9',
     warn: '#8A5100',
     warnSoft: '#FFF4DF',
     money: '#087B57',
-    skeleton: '#E9F0EC',
-    scrim: '#183A3066',
+    skeleton: '#EEEEEE',
+    scrim: '#00000066',
     /**
      * The white veil a full-screen step panel lies on over the map (the Zadaci search, Discovery V47): the map still shows
      * through it, the white cards on it are what is read. No blur: there is no blur package, and none is added for this.
@@ -74,7 +68,7 @@ export const sys = {
     orangeEdge: '#E57917',
     orangeHalo: '#FFD2A8',
     /** A fact beside its icon on a card (where, when): a step darker than muted, so a scanned list reads. */
-    fact: '#4F6157',
+    fact: '#4B4B4B',
     /** A count that asks for attention, on white: few places left. */
     attentionInk: '#985223',
     /** The words on a waiting chip, which sits on orangeSoft. */
@@ -87,30 +81,29 @@ export const sys = {
      */
     onDark: palette.onDark,
   },
-  /** Conversation surfaces: owner 25 September asks for youthful depth and nuanced white, composed for each purpose.
-   * Scoped here so other accepted screens keep their current values until their own composition is updated. */
+  /** White conversations; speaker alignment, a quiet edge and the solid own-message fill establish hierarchy. */
   conversation: {
-    ground: '#EBF4EF',
-    surface: '#FAFDFB',
-    summary: '#DDEEE4',
-    edge: '#C1D9CD',
+    ground: '#FFFFFF',
+    surface: '#FFFFFF',
+    summary: '#FFFFFF',
+    edge: '#DEDEDE',
     user: '#07543F',
     onUser: '#FFFFFF',
-    iconWell: '#D2ECDD',
+    iconWell: '#F5F5F5',
   },
   /** Public map geography: colors only, independent from the interactive brand markers and their states. */
   map: {
-    ground: '#F4F6F2',
-    residential: '#ECF0E9',
+    ground: '#F7F7F7',
+    residential: '#F0F0F0',
     park: '#D5E8DB',
     woodland: '#C8DFD0',
     water: '#B7D8E5',
     waterLine: '#9EC7D6',
     waterLabel: '#466F7F',
-    building: '#E3E8E0',
-    buildingEdge: '#D5DDD3',
+    building: '#E6E6E6',
+    buildingEdge: '#D8D8D8',
     road: '#FFFFFF',
-    roadEdge: '#CBD6CE',
+    roadEdge: '#D1D1D1',
     path: '#C5D3C6',
     transit: '#B4C1B8',
     boundary: '#A7B8AB',
@@ -201,31 +194,31 @@ export const sys = {
 
 /**
  * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (20px padding); an item in a
- * list is `cardCompact` (16px padding); both have the card corner. Both are white with V28's measured card edge
+ * list is `cardCompact` (16px padding); both have the card corner. Both are white with a neutral card edge
  * (`cardLine`) and NO shadow (emulator critique B5, 2026-09-24): a card lying on the white screen is drawn by its edge,
  * and a border plus a shadow on every card of a list was two outlines for one thing. With the shadow gone the edge is the
- * card's only outline, so it is `cardLine` (#D8DED7), not the faintest `line` (#EBEEEA, about 1.17:1 on white), which
+ * card's only outline, so it is `cardLine`, not the faintest `line`, which
  * left list cards and the white Početna tile with almost no visible edge (round 2c). Shadow means "this floats above the
  * screen", so it is kept for what really floats (`floating`: sheets, map controls, the tab bar). Something inside a
- * card is never another card: it is a flat tint at control radius.
+ * card is never another card: use spacing and a rule between its sections.
  */
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
   borderColor: sys.color.cardLine, padding: 20 };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 /** boxShadow needs Android 9+; minSdk is 24, so the phones before it get an elevation instead. */
 const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28;
-/** The lift of a layer that floats over the screen (V28's measured two-layer shadow). Never on a card in a list. */
+/** Neutral lift for floating layers; no green veil on the white canvas. Never on every card in a list. */
 export const floating: ViewStyle = NO_BOX_SHADOW ? { elevation: 1 }
-  : { boxShadow: '0px 5px 18px rgba(23, 59, 39, 0.063), 0px 1px 2px rgba(23, 59, 39, 0.027)' };
+  : { boxShadow: '0px 5px 18px rgba(0, 0, 0, 0.063), 0px 1px 2px rgba(0, 0, 0, 0.027)' };
 /**
  * The lift of a sheet over the map, in the system's shadow ink (review r3b: it was spelled in each sheet). A `docked`
  * sheet rises from the bottom edge (the Zadaci list), so its shadow falls upwards; a `detached` one floats free above
  * it (the PeekSheet with a pin's card), so its shadow falls below, deeper than `floating` because it covers more.
  */
 export const sheetLift = {
-  docked: (NO_BOX_SHADOW ? { elevation: 6 } : { boxShadow: '0px -2px 12px rgba(23, 59, 39, 0.08)' }) as ViewStyle,
+  docked: (NO_BOX_SHADOW ? { elevation: 6 } : { boxShadow: '0px -2px 12px rgba(0, 0, 0, 0.08)' }) as ViewStyle,
   detached: (NO_BOX_SHADOW ? { elevation: 6 }
-    : { boxShadow: '0px 10px 28px rgba(23, 59, 39, 0.14), 0px 2px 6px rgba(23, 59, 39, 0.06)' }) as ViewStyle,
+    : { boxShadow: '0px 10px 28px rgba(0, 0, 0, 0.14), 0px 2px 6px rgba(0, 0, 0, 0.06)' }) as ViewStyle,
 } as const;
 /** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
 export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
@@ -234,8 +227,8 @@ export const field = { ...fieldBox, ...withInter(sys.type.body), color: sys.colo
 /** A note inside a screen or a card: a flat tint, no border, no shadow. */
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 /**
- * A chosen pill chip (Discovery V47 review: one look over the map and in the search panel): the pale green with a 2 px
- * green edge, and the caller writes its label in green (5.7:1 on greenSoft) beside a green tick. Never the green fill:
+ * A chosen pill chip (one look over the map and in the search panel): a neutral well with a 2 px
+ * green edge, and the caller writes its label in green beside a green tick. Never the green fill:
  * that is the one primary action's. A free chip has a 1 px edge, so a chosen one takes 1 px off its side padding
  * (`CHIP_CHOSEN_INSET`) and its words do not move.
  */

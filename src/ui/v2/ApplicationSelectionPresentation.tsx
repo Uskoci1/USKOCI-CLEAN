@@ -347,7 +347,7 @@ const s = StyleSheet.create({
   listHeader: { gap: sys.space.md, marginBottom: sys.space.xs },
   // A row that opens something is a command: never under 48.
   brief: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: ACTION_MIN_HEIGHT,
-    padding: sys.space.base, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
+    paddingVertical: sys.space.base, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   briefCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm, minHeight: 52 },
   counts: { flexGrow: 1, color: sys.color.ink },
@@ -364,7 +364,8 @@ const s = StyleSheet.create({
   // The offer sheet: its pinned actions, a state band on a flat tint (never a card inside the sheet), the outcome.
   sheetFooter: { gap: sys.space.xs },
   offerContent: { gap: sys.space.lg },
-  offerTerms: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, padding: sys.space.lg, gap: sys.space.base },
+  offerTerms: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.base,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   offerPrice: { gap: sys.space.xs },
   offerAmount: { ...sys.type.pageTitle, color: sys.color.money, fontVariant: ['tabular-nums'] },
   offerTime: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },

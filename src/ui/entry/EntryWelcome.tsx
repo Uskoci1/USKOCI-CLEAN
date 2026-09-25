@@ -152,7 +152,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const panel = useAnimatedStyle(() => {
     const background = brandFrame(time.get(), phone, measuredLogo).background;
     const alpha = .045 * (1 + background.greenPercent / 101);
-    return { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: `rgba(20,61,53,${alpha})` }] };
+    return { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: `rgba(0,0,0,${alpha})` }] };
   });
   const slogan = useAnimatedStyle(() => { const f = brandFrame(time.get(), phone, measuredLogo).slogan; return { opacity: f.opacity, transform: [{ translateY: f.y }] }; });
   const footer = useAnimatedStyle(() => {
@@ -286,7 +286,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
 const styles = StyleSheet.create({
   finalColumn: { opacity: 1, transform: [{ translateX: 0 }] },
   finalContent: { opacity: 1, transform: [{ translateY: 0 }] },
-  finalPanel: { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: 'rgba(20,61,53,0.045)' }] },
+  finalPanel: { boxShadow: [{ offsetX: 0, offsetY: 16, blurRadius: 36, color: 'rgba(0,0,0,0.045)' }] },
   root: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   half: { position: 'absolute', top: 0, bottom: 0 },
   column: { position: 'absolute', top: 0 },
@@ -296,22 +296,22 @@ const styles = StyleSheet.create({
   copy: { position: 'absolute' },
   title: { fontWeight: '800', letterSpacing: -.8, includeFontPadding: false },
   body: { fontWeight: '400', includeFontPadding: false },
-  arrow: { position: 'absolute', width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFFBEE', alignItems: 'center', justifyContent: 'center' },
+  arrow: { position: 'absolute', width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   photo: { position: 'absolute', borderRadius: 22, borderWidth: 1, borderColor: '#FFFFFF50', overflow: 'hidden', transformOrigin: 'top center',
-    boxShadow: [{ offsetX: 0, offsetY: 14, blurRadius: 28, color: '#102F2A33' }, { inset: true, offsetX: 0, offsetY: 1, blurRadius: 0, color: '#FFFFFF50' }] },
+    boxShadow: [{ offsetX: 0, offsetY: 14, blurRadius: 28, color: '#00000033' }, { inset: true, offsetX: 0, offsetY: 1, blurRadius: 0, color: '#FFFFFF50' }] },
   annotation: { position: 'absolute' },
   readableNote: { fontFamily: 'serif', fontSize: 10, lineHeight: 12.7, fontStyle: 'italic', includeFontPadding: false },
   seam: { position: 'absolute', top: 0, zIndex: 2, width: 3, backgroundColor: '#FFFFFFF5',
     boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: 4, color: '#FFFFFFEB' }, { offsetX: 0, offsetY: 0, blurRadius: 10, color: '#FFFFFF70' }, { offsetX: 0, offsetY: 0, blurRadius: 18, color: '#FFFFFF29' }] },
   footer: { position: 'absolute', zIndex: 3, width: '100%', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, gap: 2 },
-  signIn: { minHeight: 48, maxWidth: '94%', backgroundColor: '#FFFDF5', borderRadius: 25, paddingVertical: 10, paddingHorizontal: 16,
+  signIn: { minHeight: 48, maxWidth: '94%', backgroundColor: '#FFFFFF', borderRadius: 25, paddingVertical: 10, paddingHorizontal: 16,
     flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center' },
   signInText: { color: ENTRY_V49.ink, fontSize: 14, lineHeight: 18.2, fontWeight: '700', textAlign: 'center', flexShrink: 1, includeFontPadding: false },
   registerHitArea: { minHeight: 48, minWidth: 112, alignItems: 'center', justifyContent: 'flex-start' },
-  registerPill: { minHeight: 32, backgroundColor: '#FFF7E2ED', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14 },
+  registerPill: { minHeight: 32, backgroundColor: '#FFFFFF', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14 },
   registerText: { color: ENTRY_V49.ink, fontSize: 12, lineHeight: 14.4, fontWeight: '600', textAlign: 'center', includeFontPadding: false },
   error: { color: '#943A30', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, fontSize: 14, lineHeight: 21 },
-  doorway: { backgroundColor: '#F5F7F3' },
+  doorway: { backgroundColor: '#FFFFFF' },
   preparation: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', gap: 24 },
   preparationBrand: { alignItems: 'center' },
   preparationStatus: { alignItems: 'center', gap: 12 },

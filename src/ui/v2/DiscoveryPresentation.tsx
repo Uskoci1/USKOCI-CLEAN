@@ -528,7 +528,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   body: { flex: 1 },
   separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 24 },
-  ground: { flex: 1, backgroundColor: sys.color.wash },
+  ground: { flex: 1, backgroundColor: sys.color.ground },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },

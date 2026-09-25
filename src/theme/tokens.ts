@@ -1,13 +1,8 @@
 /**
- * USKOČI — dizajn tokeni
- *
- * Tonovi su vlasnikovi i zaključani: forest, teal, ivory, cream, narandžasta.
- * Ono što je dodato je LESTVICA. Originalna paleta je imala rupu od 0.439 u
- * svetlini između teal2 i line, pa ništa nije moglo da se odigne ni od čega.
- * Ovde je najveći razmak 0.160, a podloga i kartica se razlikuju za 0.087.
- *
- * Svaki par teksta i podloge ispod je proveren na WCAG AA (4.5:1).
- * Ne dodavati boju koja nije prošla tu proveru.
+ * USKOČI — base scales and legacy illustration palette.
+ * Screens consume ui/system/tokens. Owner correction, 2026-09-25: white reading surfaces,
+ * neutral shadows, color in art and actions. Historical ivory/sage values are not screen backgrounds.
+ * Text/background pairs must pass WCAG AA (4.5:1); current measurements belong to the R12 report.
  */
 
 export const palette = {
@@ -26,8 +21,8 @@ export const palette = {
 
   // svetla strana — razmaknuta da postoji dubina
   cream050: '#F8EBD7', // vlasnikov cream
-  ground: '#FBF1E2', // podloga aplikacije
-  surface: '#FFFCF7', // kartica
+  ground: '#FFFFFF', // podloga aplikacije
+  surface: '#FFFFFF', // kartica
   raised: '#FFFFFF', // modal, sheet, ono što lebdi
 
   // narandžasta ima DVA tokena i to nije stilski hir:
@@ -40,7 +35,7 @@ export const palette = {
   // tekst
   ink: '#0E3D37', // na svetloj = 11.78
   inkMuted: '#586B62', // na beloj = 5.7 (original #657872 je padao na 3.98)
-  onDark: '#FBF2E5', // na forest800 = 10.87
+  onDark: '#FFFFFF',
   // onDarkMuted je uklonjen 2026-09-24: prolazio je samo na penzionisanoj forest podlozi, a na zelenoj daje 2.4.
 
   // semantika — nikad sama, uvek uz ikonu ili tekst
@@ -151,21 +146,21 @@ export const touch = {
 export const elevation = {
   /** A card resting on a white screen: definition without a grey smear (V4.9 card shadow). */
   soft: {
-    shadowColor: '#173D35',
+    shadowColor: '#000000',
     shadowOpacity: 0.04,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 6 },
     elevation: 1,
   },
   card: {
-    shadowColor: '#0E3D37',
+    shadowColor: '#000000',
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
   raised: {
-    shadowColor: '#0E3D37',
+    shadowColor: '#000000',
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },

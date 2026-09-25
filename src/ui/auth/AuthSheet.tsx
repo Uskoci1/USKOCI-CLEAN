@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { authTheme as c } from './authTheme';
+import { sys } from '../system/tokens';
 
 /** Presentation only. AuthScreen retains the real command, recovery and Back guards. */
 export function AuthSheet({ visible, expanded, backdrop, children }: {
@@ -21,11 +21,6 @@ export function AuthSheet({ visible, expanded, backdrop, children }: {
     </View>
     {visible ? <View style={styles.overlay} accessibilityViewIsModal>
       <View testID="auth-reference-sheet" style={[styles.sheet, { maxHeight: keyboard || expanded || fontScale > 1.3 || height < 700 ? '97%' : '76%' }]}>
-        <Svg pointerEvents="none" accessible={false} style={StyleSheet.absoluteFill} width="100%" height="100%">
-          <Defs><LinearGradient id="auth-sheet" x1="0%" y1="0%" x2="30%" y2="100%">
-            <Stop offset={0} stopColor={c.top} /><Stop offset={0.56} stopColor={c.surface} /><Stop offset={1} stopColor={c.bottom} />
-          </LinearGradient></Defs><Rect width="100%" height="100%" fill="url(#auth-sheet)" />
-        </Svg>
         {children}
       </View>
     </View> : null}
@@ -34,7 +29,7 @@ export function AuthSheet({ visible, expanded, backdrop, children }: {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: c.sheet },
-  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(3,35,29,.52)', justifyContent: 'flex-end', paddingTop: 16 },
+  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: sys.color.scrim, justifyContent: 'flex-end', paddingTop: 16 },
   sheet: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', overflow: 'hidden',
     borderTopLeftRadius: 32, borderTopRightRadius: 32, borderWidth: 1, borderBottomWidth: 0,
     borderColor: c.line, backgroundColor: c.surface },

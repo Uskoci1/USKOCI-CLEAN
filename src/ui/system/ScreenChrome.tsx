@@ -40,7 +40,7 @@ export const chrome = {
  * The one icon button of the chrome (round-1 critique B2: five icon-button shapes became one). A 44 px white circle with
  * the hairline inside a 48 px touch area, and a 22 px Phosphor regular glyph in ink. The arrow back, the X, "···", the
  * profile, the bell, search, filters, the Dogovori calendar and the week arrows all draw it.
- * - `active` (a toggle: search, filters) is weight and colour together, the pale green fill and the filled green glyph,
+ * - `active` (a toggle: search, filters) is weight and colour together, a neutral well and the filled green glyph,
  *   and is spoken as selected.
  * - `disabled` draws the glyph muted. The control is never faded: a faded ghost reads as broken, not as "not now".
  * - `tone="green"` is for the root bar's own two, the profile and the bell (critique B1: orange is the screen's one
