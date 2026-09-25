@@ -139,18 +139,19 @@ describe('the value slot', () => {
     expect(texts()).not.toContain('ukupno'); expect(texts()).not.toContain('po osobi');
   });
 
-  it('stands beside a two-line title at normal text, and under a three-line title at large text', async () => {
+  it('gives the title three full-width lines at normal and large text without changing the value', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     let title = textNode('Farbanje dnevne sobe');
-    expect(title.props.numberOfLines).toBe(2);
-    expect(style(title.parent!)).toMatchObject({ flexDirection: 'row' });
-    expect(title.parent!.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === '5.500 RSD')).toHaveLength(1);
+    expect(title.props.numberOfLines).toBe(3);
+    expect(style(title)).not.toHaveProperty('flex');
+    expect(texts()).toContain('5.500 RSD');
     await act(async () => tree.unmount());
     mockScale = 1.3;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     title = textNode('Farbanje dnevne sobe');
     expect(title.props.numberOfLines).toBe(3);
-    expect(style(title.parent!).flexDirection).not.toBe('row');
+    expect(style(title)).not.toHaveProperty('flex');
+    expect(texts()).toContain('5.500 RSD');
   });
 });
 
@@ -172,18 +173,14 @@ describe('the places and the person', () => {
     expect(texts()).not.toContain('Nikola Petrović'); expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
   });
 
-  it('put the person bottom right with the one initials rule and a rating that says how many reviews it stands on', async () => {
+  it('puts the publisher after the terms with the one initials rule and a rating that says how many reviews it stands on', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     expect(tree.root.findByType('Avatar' as React.ElementType).props).toMatchObject({ initials: 'NP' });
     expect(texts()).toContain('Nikola Petrović'); expect(texts()).toContain('4,8 (12)'); expect(facts()).toContain('star');
     // The person is heard with the card (review r3 item 4), with the count its rating stands on.
     expect(presses()[0].props.accessibilityValue.text).toContain('Nikola Petrović, ocena 4,8, 12 ocena');
-    // The person closes the foot row on the right, after the places.
-    const [foot] = tree.root.findAll(node => node.type === ('View' as React.ElementType) && style(node).justifyContent === 'space-between'
-      && node.findAllByType('Avatar' as React.ElementType).length > 0);
-    expect(style(foot)).toMatchObject({ flexDirection: 'row' });
-    const order = foot.findAll(node => node.type === ('Avatar' as React.ElementType) || (node.type === ('T' as React.ElementType) && node.props.children === 'Traži 2 osobe'));
-    expect(order.map(node => node.type)).toEqual(['T', 'Avatar']);
+    expect(texts().indexOf('Nikola Petrović')).toBeGreaterThan(texts().indexOf('Traži 2 osobe'));
+    expect(tree.root.findByType('Avatar' as React.ElementType).props.size).toBe(56);
   });
 
   it.each([
@@ -290,10 +287,12 @@ describe('my own task\'s next step', () => {
 });
 
 describe('the card', () => {
-  it.each([1, 1.3])('keeps its facts on fixed lines (no wrapping row) and is a hairline card without a shadow (text scale %s)', async scale => {
+  it.each([1, 1.3])('keeps each fact in its own row and is a hairline card without a shadow (text scale %s)', async scale => {
     mockScale = scale;
     await render(<TaskCard item={task({ detalji: detail({}, { bitniUslovi: ['Zgrada bez lifta'] }) })} onOpen={jest.fn()} />);
-    for (const node of tree.root.findAll(candidate => typeof candidate.type === 'string')) expect(style(node).flexWrap).not.toBe('wrap');
+    for (const words of ['Liman, Novi Sad', '24. sep · 17:00', 'Zgrada bez lifta']) {
+      expect(style(textNode(words).parent!).flexWrap).not.toBe('wrap');
+    }
     expect(style(frame())).toMatchObject({ borderWidth: 1, backgroundColor: sys.color.surface });
     for (const key of ['boxShadow', 'elevation', 'shadowColor', 'shadowOpacity']) expect(style(frame())).not.toHaveProperty(key);
     expect(presses()).toHaveLength(1);
@@ -333,7 +332,7 @@ describe('review r3', () => {
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })} onOpen={jest.fn()} />);
     const amount = textNode('125.000 RSD');
     expect(amount.props.numberOfLines).toBeUndefined();
-    expect(style(amount.parent!)).toMatchObject({ flexShrink: 0 }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
+    expect(style(amount.parent!)).toMatchObject({ flexWrap: 'wrap' }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
     const word = textNode('Tražim ponude');
     expect(style(word.parent!)).not.toHaveProperty('maxWidth');
@@ -343,14 +342,13 @@ describe('review r3', () => {
   });
 
   // Item 3: with a long name "Traži 2 osobe" ended in "…". The count never shrinks beside the person; the name does.
-  it('never shrinks the count of places beside the person; the name gives way', async () => {
+  it('gives capacity and the publisher separate space, retaining the entire count at large text', async () => {
     await render(<TaskCard item={task({ narucilacIme: 'Aleksandra Stojanović-Petrović' })} onOpen={jest.fn()} />);
     const count = textNode('Traži 2 osobe');
-    expect(style(count).flexShrink ?? 0).toBe(0); expect(style(count.parent!)).toMatchObject({ flexShrink: 0 });
+    expect(count.props.numberOfLines).toBe(2);
     const name = textNode('Aleksandra Stojanović-Petrović');
     expect(name.props.numberOfLines).toBe(1);
-    const side = tree.root.find(node => node.type === ('View' as React.ElementType) && style(node).maxWidth === '62%');
-    expect(style(side)).toMatchObject({ flexShrink: 1, minWidth: 0 });
+    expect(count.parent!.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
     // On its own line at large text the count may take a second line instead of running off the card.
     await act(async () => tree.unmount()); mockScale = 1.3;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
@@ -421,12 +419,12 @@ describe('review r3', () => {
   });
 
   // Item 12: beside a word, which can take 42% of the width, a long title was cut at two lines on 320–360 dp.
-  it('gives the title three lines beside a word and two beside an amount', async () => {
+  it('gives the title three lines for every price mode', async () => {
     await render(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />);
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
     await act(async () => tree.update(<TaskCard item={task({ ponudjenaCena: undefined, osnovaCene: null })} onOpen={jest.fn()} />));
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
     await act(async () => tree.update(<TaskCard item={task()} onOpen={jest.fn()} />));
-    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(2);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
   });
 });

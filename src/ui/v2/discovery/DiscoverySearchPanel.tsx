@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
+import { CaretDown, Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
@@ -12,7 +12,7 @@ import { ChromeIconButton } from '../../system/ScreenChrome';
 import { Segmented } from '../../system/Segmented';
 import { osoba, zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, floating, sys } from '../../system/tokens';
+import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, sys } from '../../system/tokens';
 import { V2Action } from '../V2Action';
 import { DateRangeGrid } from './DateRangeGrid';
 import { CLEAR_ALL, PRICE, WHEN, WHERE, placesWords, said, undatedWords, whenWords, whereWords } from './discoveryWords';
@@ -39,6 +39,7 @@ const ANYWHERE = { query: '', place: null, area: null, pinPlace: null } as const
 export type SearchStep = 'gde' | 'kada' | 'kako' | 'koliko' | 'cena';
 const LABEL: Record<SearchStep, string> = { gde: 'Gde', kada: 'Kada', kako: 'Kako se radi', koliko: 'Koliko vas dolazi', cena: 'Cena' };
 const QUESTION: Record<SearchStep, string> = { gde: 'Gde?', kada: 'Kada?', kako: 'Kako se radi?', koliko: 'Koliko vas dolazi?', cena: 'Cena' };
+const STEP_ART: Record<SearchStep, FactArtKind> = { gde: 'pin', kada: 'calendar', kako: 'remote', koliko: 'users', cena: 'money' };
 /** A step still at its "everything" value: where a choice elsewhere moves on to. */
 function unset(step: SearchStep, draft: SearchDraft): boolean {
   switch (step) {
@@ -120,8 +121,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (value: number)
 }
 
 /**
- * Zadaci search (Discovery V47; the interaction of Airbnb's search, USKOČI's own look): full-screen step cards over a
- * white veil on the map. Exactly one card is open and asks its question large; every other card is one row, its name
+ * Zadaci search: a white, ruled workspace. Exactly one section is open and asks its question large; every other section is one row, its name
  * left and what it holds right (at large text, its name over its value), and a tap opens that one. A single-tap choice
  * moves on to the next step still unset, unless a screen reader is on; a choice made of more taps (a range of dates, the
  * count of people) stays open until it is complete. Every choice is a draft: the footer's one green action applies it all
@@ -147,6 +147,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
 }) {
   const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
   const [open, setOpen] = useState<SearchStep>(start);
+  const scroll = useRef<ScrollView>(null);
+  const revealed = useRef<SearchStep | null>(null);
   const [timeMode, setTimeMode] = useState<'dates' | 'flex'>(() => dateRange(view.dates) ? 'dates' : 'flex');
   /** The first tap of a range: where it starts, until its end is tapped (the draft already holds that one day). */
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -219,8 +221,15 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
       </View>
     </>,
     kada: () => <>
-      <Segmented options={[{ key: 'dates', label: 'Datumi' }, { key: 'flex', label: 'Fleksibilno' }]} value={timeMode}
-        onChange={mode => { setTimeMode(mode); setRangeStart(null); }} />
+      {large ? <View accessibilityRole="tablist" accessibilityLabel="Izbor termina" style={s.timeModes}>
+        {(['dates', 'flex'] as const).map(mode => <Press key={mode} accessibilityRole="tab"
+          accessibilityLabel={mode === 'dates' ? 'Datumi' : 'Fleksibilno'} accessibilityState={{ selected: timeMode === mode }}
+          onPress={() => { setTimeMode(mode); setRangeStart(null); }} haptic="select" style={[s.timeMode, timeMode === mode && s.timeModeOn]}>
+          <T variant="bodyStrong" style={s.grow}>{mode === 'dates' ? 'Datumi' : 'Fleksibilno'}</T>
+          {timeMode === mode ? <Check size={20} color={sys.color.green} weight="bold" /> : null}
+        </Press>)}
+      </View> : <Segmented options={[{ key: 'dates', label: 'Datumi' }, { key: 'flex', label: 'Fleksibilno' }]} value={timeMode}
+        onChange={mode => { setTimeMode(mode); setRangeStart(null); }} />}
       {timeMode === 'flex'
         ? <Choice label="Kada" options={WHEN} value={draft.dates ? null : draft.when} onChange={when => choose('kada', { when, dates: null })} />
         : <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />}
@@ -249,19 +258,32 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.frame}>
         <SafeAreaView edges={['top', 'bottom']} style={s.frame}>
           <View style={s.top}>
+            <T variant="heading" accessibilityRole="header" style={s.grow}>Pretraga</T>
             <ChromeIconButton label="Zatvori pretragu" hint="Lista ostaje kakva je bila." icon={X} onPress={onClose} />
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.cards}>
+          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.cards}>
             {steps.map(step => step === open
-              ? <View key={step} testID={`search-step-${step}`} style={[s.card, s.open]}>
-                <T variant="pageTitle" accessibilityRole="header" style={s.question}>{QUESTION[step]}</T>
+              ? <View key={step} testID={`search-step-${step}`} style={[s.card, s.open]} onLayout={event => {
+                // Reveal a newly expanded section once. Later keyboard/text layouts must not take over scrolling.
+                if (revealed.current === step) return;
+                revealed.current = step;
+                if (!reader) scroll.current?.scrollTo?.({ y: Math.max(0, event.nativeEvent.layout.y - 12), animated: !reduced });
+              }}>
+                <View style={s.questionRow}>
+                  <FactArt kind={STEP_ART[step]} size={30} />
+                  <T variant="pageTitle" accessibilityRole="header" style={s.question}>{QUESTION[step]}</T>
+                </View>
                 {body[step]()}
               </View>
               : <Press key={step} testID={`search-step-${step}`} accessibilityRole="button" accessibilityLabel={LABEL[step]}
                 accessibilityValue={{ text: value(step) }} accessibilityState={{ expanded: false }} haptic="select" scaleTo={0.99}
-                onPress={() => { Keyboard.dismiss(); setRangeStart(null); setOpen(step); }} style={[s.card, s.row, large && s.rowStacked]}>
-                <T variant="copy" tone="muted" style={s.rowLabel}>{LABEL[step]}</T>
-                <T variant="bodyStrong" style={[s.rowValue, large && s.rowValueStacked]} numberOfLines={large ? 2 : 1}>{value(step)}</T>
+                onPress={() => { Keyboard.dismiss(); setRangeStart(null); setOpen(step); }} style={[s.card, s.row]}>
+                <FactArt kind={STEP_ART[step]} size={24} />
+                <View style={s.grow}>
+                  <T variant="note" tone="muted" style={s.rowLabel}>{LABEL[step]}</T>
+                  <T variant="bodyStrong" style={s.rowValue} numberOfLines={large ? 3 : 2}>{value(step)}</T>
+                </View>
+                <CaretDown size={18} weight="bold" color={sys.color.muted} />
               </Press>)}
           </ScrollView>
           <View testID="search-actions" style={[s.footer, stackedActions && s.footerStacked]}>
@@ -277,24 +299,24 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
 }
 
 const s = StyleSheet.create({
-  // The map shows through a white veil: the cards are what is read, the map is where they are about.
-  veil: { flex: 1, backgroundColor: sys.color.veil },
+  veil: { flex: 1, backgroundColor: sys.color.surface },
   frame: { flex: 1 },
   grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink },
-  top: { alignItems: 'flex-end', paddingHorizontal: sys.space.base, paddingTop: sys.space.sm },
-  cards: { paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.lg, gap: sys.space.md },
-  // Each step is its own white card that floats over the veil, drawn by the card edge (the faintest hairline all but
-  // vanished on the veil).
-  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine, ...floating },
-  open: { paddingHorizontal: sys.space.md, paddingTop: sys.space.lg, paddingBottom: sys.space.base, gap: sys.space.base },
-  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg },
-  // Large text: the name over what it holds, so neither is cut to a few letters at 320 dp.
-  rowStacked: { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: sys.space.xs, paddingVertical: sys.space.md },
-  rowLabel: { flexShrink: 1 },
-  rowValue: { color: sys.color.ink, flex: 1, minWidth: 0, textAlign: 'right' },
-  rowValueStacked: { flex: 0, textAlign: 'left' },
-  question: { color: sys.color.ink, paddingHorizontal: sys.space.sm },
+  top: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: 24, paddingTop: sys.space.sm,
+    paddingBottom: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  cards: { paddingHorizontal: 24, paddingBottom: sys.space.lg },
+  card: { backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  open: { paddingTop: 28, paddingBottom: 28, gap: 22 },
+  row: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 20 },
+  rowLabel: { marginBottom: 4 },
+  rowValue: { color: sys.color.ink },
+  questionRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  question: { color: sys.color.ink, flex: 1 },
+  timeModes: { gap: 8 },
+  timeMode: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, padding: 12,
+    borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control },
+  timeModeOn: { borderColor: sys.color.green, backgroundColor: sys.color.wash },
   // The one text field of the system, with the search glass before it and the clear button in it.
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
   input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm }),
@@ -315,7 +337,7 @@ const s = StyleSheet.create({
   chipTextOn: { color: sys.color.green, fontWeight: '600' },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md, paddingHorizontal: sys.space.sm },
   step: { width: 48, height: 48, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },
-  stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0, textAlign: 'center' },
   footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.md,
     paddingBottom: sys.space.md, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
   // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into

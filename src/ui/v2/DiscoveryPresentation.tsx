@@ -252,6 +252,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // Layout: the body under the chrome, the tools' lower edge, the sheet's measured top line.
   const [bodyHeight, setBodyHeight] = useState(0), [toolsBottom, setToolsBottom] = useState(TOOLS_ESTIMATE), [peek, setPeek] = useState(PEEK_ESTIMATE);
+  const [toolsMeasured, setToolsMeasured] = useState(false);
   const [creditsHeight, setCreditsHeight] = useState(Platform.OS === 'web' ? 0 : 48);
   const creditsRoom = mapShown && creditsHeight ? creditsHeight + GAP : 0;
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
@@ -467,6 +468,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
           onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
           onCreditsHeight={next => setCreditsHeight(current => current === next ? current : next)}
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
           focusBottom={CARD_BOTTOM + GAP + creditsRoom + Math.min(360, Math.round(windowHeight / 2))} />
@@ -477,7 +479,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
         onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={area || pinPlace ? showAll : undefined}
-        onLayout={bottom => setToolsBottom(current => current === bottom ? current : bottom)}
+        onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
       <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
         sunk={cardShown}>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
+import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '../marketplaceView';
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn();
 jest.mock('@maplibre/maplibre-react-native', () => {
@@ -56,6 +56,8 @@ const source = () => tree.root.findByType('Source' as React.ElementType);
 const annotations = () => tree.root.findAllByType('Annotation' as React.ElementType);
 const pills = () => tree.root.findAllByType(PricePill).map(pill => pill.props);
 const ready = async () => act(async () => { native().props.onDidFinishLoadingMap(); });
+const measureFrame = async (height = 790) => act(async () => tree.root.find(node => String(node.type) === 'View'
+  && typeof node.props.onLayout === 'function').props.onLayout({ nativeEvent: { layout: { width: 400, height } } }));
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style);
 beforeEach(() => {
   jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -160,14 +162,94 @@ test('a newly chosen pin is eased into the clear band between the tools and its 
   expect(mockJump).toHaveBeenCalledWith({ center: [20.41, 44.83] }); expect(mockEase).not.toHaveBeenCalled();
 });
 
-// Review r3 item 3: the first fit used a fixed 80 at the bottom, so a sheet that starts half open covered the pins.
-test('the first fit keeps the pins between the tools and where the list sheet starts', async () => {
+// R13: the old constructor froze a 534dp pre-layout bottom estimate on a 790dp map. Top199 + bottom558
+// left only33dp to fit the local pins. The measured sheet is395dp, not half the entire phone window.
+test('initial framing waits for native readiness, frame and measured overlays, then fits once without changing search area', async () => {
+  extra = { cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
   await render();
-  const padding = () => tree.root.findByType('Camera' as React.ElementType).props.initialViewState.padding;
-  expect(padding()).toEqual({ top: 75, right: 50, bottom: 80, left: 50 });
-  await act(async () => tree.unmount());
-  extra = { toolsBottom: 60, fitBottom: 412 }; await render();
-  expect(padding()).toEqual({ top: 135, right: 50, bottom: 24 + 412, left: 50 });
+  const provisional = tree.root.findByType('Camera' as React.ElementType).props.initialViewState;
+  expect(provisional.padding).toEqual({ top: 24, right: 50, bottom: 24, left: 50 });
+  await ready(); expect(mockFit).not.toHaveBeenCalled();
+  await measureFrame(); expect(mockFit).not.toHaveBeenCalled();
+  const viewport = { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9] };
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: false } }));
+  expect(setViewport).not.toHaveBeenCalled();
+  extra = { cameraLayoutReady: true, toolsBottom: 124, fitBottom: 467 }; await update();
+  expect(mockFit).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledWith(publicInitialBounds(rows), {
+    padding: { top: 199, right: 50, bottom: 491, left: 50 }, duration: 0,
+  });
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(setViewport).toHaveBeenCalledWith(viewport); expect(search).not.toHaveBeenCalled();
+  // Later data, tools, sheet positions and rotation are not permission to steal the camera again.
+  rows = [...rows, row('later', 45.25, 19.83)];
+  extra = { cameraLayoutReady: true, toolsBottom: 60, fitBottom: 76 }; await update(); await measureFrame(820);
+  expect(mockFit).toHaveBeenCalledTimes(1);
+});
+
+test('very large overlay measurements leave a usable initial fit window instead of the native one-pixel clamp', async () => {
+  extra = { cameraLayoutReady: true, toolsBottom: 250, fitBottom: 300 };
+  await render(); await measureFrame(460); await ready();
+  const padding = mockFit.mock.calls[0][1].padding;
+  expect(460 - padding.top - padding.bottom).toBeGreaterThanOrEqual(96);
+  expect(padding.top).toBeGreaterThan(0); expect(padding.bottom).toBeGreaterThan(0);
+  expect(search).not.toHaveBeenCalled();
+});
+
+test('saved viewport survives delayed layout and never receives an automatic initial fit', async () => {
+  const viewport = { center: [19.83, 45.25], zoom: 14, bounds: [19.8, 45.2, 19.9, 45.3] };
+  extra = { viewport, cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
+  await render(); await measureFrame(); await ready();
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ center: viewport.center, zoom: 14 });
+  extra = { ...extra, cameraLayoutReady: true, fitBottom: 467 }; await update();
+  expect(mockFit).not.toHaveBeenCalled();
+});
+
+test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before layout wins over the pending first fit', async intent => {
+  extra = { cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
+  await render(); await measureFrame(); await ready();
+  const viewport = { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9] };
+  if (intent === 'pan') {
+    await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
+    await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: true } }));
+  }
+  if (intent === 'zoom') {
+    await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: false } }));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+    expect(mockZoom).toHaveBeenCalledTimes(1);
+  }
+  if (intent === 'pin') {
+    mockProject.mockResolvedValue([200, 400]); mockUnproject.mockResolvedValue([20.46, 44.81]);
+    selectedId = 'money'; await update(); expect(mockEase).toHaveBeenCalledTimes(1);
+  }
+  if (intent === 'nearby') {
+    extra = { ...extra, centerNearby: { key: 8, center: [19.84, 45.26] } }; await update();
+    expect(mockEase).toHaveBeenCalledWith({ center: [19.84, 45.26], zoom: 12, duration: sys.motion.camera });
+  }
+  if (intent === 'fitTo') {
+    extra = { ...extra, fitTo: { key: 9, bounds: [19.8, 45.2, 19.9, 45.3], bottom: 200 } }; await update();
+    expect(mockFit).not.toHaveBeenCalled();
+  }
+  extra = { ...extra, cameraLayoutReady: true, fitBottom: 467 }; await update();
+  if (intent === 'fitTo') {
+    expect(mockFit).toHaveBeenCalledTimes(1);
+    expect(mockFit).toHaveBeenCalledWith([19.8, 45.2, 19.9, 45.3], expect.objectContaining({ duration: sys.motion.camera }));
+    expect(fitted).toHaveBeenCalledWith(9);
+  } else expect(mockFit).not.toHaveBeenCalled();
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  if (intent === 'pan') expect(search).toHaveBeenCalledWith(viewport.bounds);
+  else expect(search).not.toHaveBeenCalled();
+});
+
+test('a selection made before map readiness remains in charge when layout arrives later', async () => {
+  extra = { cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
+  await render(); selectedId = 'money'; await update();
+  expect(mockEase).not.toHaveBeenCalled(); expect(mockFit).not.toHaveBeenCalled();
+  await ready();
+  expect(mockEase).toHaveBeenCalledWith({ center: [20.46, 44.81], duration: sys.motion.camera });
+  await measureFrame(); extra = { ...extra, cameraLayoutReady: true, fitBottom: 467 }; await update();
+  expect(mockEase).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
 });
 
 // Review r3 item 11: a chosen pin's card rests on the sheet's top line, where the zoom and the credits ride.
@@ -251,7 +333,8 @@ test('a fit to a chosen place is the camera\'s own move, made once, and never an
   extra = { toolsBottom: 60, fitTo: { key: 1, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 200 } };
   await render();
   expect(mockFit).not.toHaveBeenCalled();
-  await ready();
+  await ready(); expect(mockFit).not.toHaveBeenCalled();
+  await measureFrame(800);
   expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.47, 44.82], { padding: { top: 135, right: 50, bottom: 224, left: 50 }, duration: sys.motion.camera });
   expect(fitted).toHaveBeenCalledWith(1);
   await update(); expect(mockFit).toHaveBeenCalledTimes(1);
@@ -260,15 +343,28 @@ test('a fit to a chosen place is the camera\'s own move, made once, and never an
   expect(search).not.toHaveBeenCalled();
   // Under reduced motion it jumps.
   await act(async () => tree.unmount()); mockReduced = true; mockFit.mockReset();
-  extra = { fitTo: { key: 2, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 100 } }; await render(); await ready();
+  extra = { fitTo: { key: 2, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 100 } }; await render(); await measureFrame(800); await ready();
   expect(mockFit.mock.calls[0][1].duration).toBe(0);
+});
+
+test('an explicit fit also waits for measured layout and retains a useful map window at large text', async () => {
+  extra = { cameraLayoutReady: false, toolsBottom: 250, fitTo: { key: 17, bounds: [19.8, 45.2, 19.9, 45.3], bottom: 300 } };
+  await render(); await ready(); await measureFrame(460);
+  expect(mockFit).not.toHaveBeenCalled(); expect(fitted).not.toHaveBeenCalled();
+  extra = { ...extra, cameraLayoutReady: true }; await update();
+  expect(mockFit).toHaveBeenCalledTimes(1); expect(fitted).toHaveBeenCalledWith(17);
+  const [bounds, options] = mockFit.mock.calls[0];
+  expect(bounds).toEqual([19.8, 45.2, 19.9, 45.3]);
+  expect(460 - options.padding.top - options.padding.bottom).toBeGreaterThanOrEqual(96);
+  expect(options.duration).toBe(sys.motion.camera);
+  await measureFrame(600); await update(); expect(mockFit).toHaveBeenCalledTimes(1);
 });
 
 // Review of V47 (coverage): a zoom tap marks the next settle as the person's. A fit the app makes right after it (a place
 // chosen in the search) is the camera's own move, and its settle must not become the list's area on the zoom's account.
 test('a zoom-button intent followed by a programmatic fit sets no area', async () => {
-  extra = { toolsBottom: 60 };
-  await render(); await ready();
+  extra = { toolsBottom: 60, viewport: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9] } };
+  await render(); await measureFrame(800); await ready();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
   expect(mockZoom).toHaveBeenCalledTimes(1);

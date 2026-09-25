@@ -12,7 +12,7 @@ import { useTextScale } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { CardFact, CardFoot, CardFootLine, CardHead, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
+import { CardDecision, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardTitle, CardWaitingLine,
   faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue } from './TaskFace';
 
 /** How far the whole card gives under the finger: a large surface gives less than a button (`sys.motion.pressScale`). */
@@ -69,7 +69,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   const next = own ? ownerNext(item) : null;
   const publisher = !ownerView && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
   const person = 'narucilacIme' in item && publisher
-    ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} /> : null;
+    ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} size={56} /> : null;
   const waitingFoot = next?.kind === 'waiting' && onApplications ? next : null;
   const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, requirement,
     places: next?.kind === 'draft' ? null : placesText(item.pokrivenost, audience).spoken,
@@ -87,15 +87,17 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
-      <CardHead title={title} value={value} large={large} />
+      <CardTitle title={title} lines={3} style={s.title} />
+      <CardDecision value={value} large={large}
+        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} large />} />
       <View style={s.facts}>
-        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={16} />} text={place.text} />
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
         {/* Two lines at every text size: "Fleksibilan raspon · 24. sep – 30. sep" lost its end date on one (review r3 item 1). */}
-        <CardFact art={<FactArt kind="calendar" size={16} />} text={schedule} lines={2} />
+        <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
         {requirement ? <CardRequirement requirement={requirement} /> : null}
       </View>
-      {next?.kind === 'draft' ? <CardNext label={DRAFT_NEXT} />
-        : <CardFoot large={large} places={<CardPlaces places={item.pokrivenost} audience={audience} large={large} />} person={person} />}
+      {person ? <View style={s.publisher}>{person}</View> : null}
+      {next?.kind === 'draft' ? <CardNext label={DRAFT_NEXT} /> : null}
       {next?.kind === 'none' ? <CardNote text={NOTHING_TO_CHOOSE} /> : null}
       {next?.kind === 'waiting' && !waitingFoot ? <CardWaitingLine text={next.text} /> : null}
     </Press>
@@ -115,9 +117,11 @@ const s = StyleSheet.create({
   // card stays one target up to its edge.
   card: { ...cardCompact, padding: 0 },
   disabled: { opacity: 0.55 },
-  body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
+  body: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, gap: 16, borderRadius: sys.radius.cardCompact },
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
-  facts: { gap: 8 },
+  title: { fontSize: 22, lineHeight: 28, letterSpacing: -0.45 },
+  facts: { gap: 10 },
+  publisher: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 14 },
   footCompact: { paddingHorizontal: 14 },
   // Bare: the card that holds the face draws the edge, the corner and the padding across; the face adds none of them.
   bare: { borderWidth: 0, borderRadius: 0 },

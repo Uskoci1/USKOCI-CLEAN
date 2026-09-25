@@ -194,15 +194,23 @@ export function CardHead({ title, value, large }: { title: string; value: TaskVa
  * The value slot. An amount is money (colour, weight, tabular figures) and is never cut: it keeps its own width and the
  * title gives way (card review r3 item 2). A word is a quiet label, capped at 42% so it cannot squeeze the title.
  */
-export function CardValue({ value, large }: { value: TaskValue; large: boolean }) {
+export function CardValue({ value, large, prominent = false }: { value: TaskValue; large: boolean; prominent?: boolean }) {
   if (value.kind === 'amount') {
     return <View style={large ? s.valueRow : valueStyles.amountSide}>
-      <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
+      <T style={[valueStyles.amount, prominent && s.decisionAmount, large && valueStyles.alignStart]}>{value.amount}</T>
       {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
     </View>;
   }
   return <View style={large ? s.valueRow : valueStyles.wordSide}>
     <T style={[valueStyles.valueWord, large && valueStyles.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
+  </View>;
+}
+
+/** A task's real value and capacity, below its full-width title. Large text gives each its own row. */
+export function CardDecision({ value, places, large }: { value: TaskValue; places: ReactNode; large: boolean }) {
+  return <View style={[s.decision, large && s.decisionStacked]}>
+    <View style={s.decisionValue}><CardValue value={value} large prominent /></View>
+    {places ? <View style={s.decisionPlaces}>{places}</View> : null}
   </View>;
 }
 
@@ -220,10 +228,10 @@ export function CardRequirement({ requirement }: { requirement: TaskRequirement 
 }
 
 /** Who posted the task: the one avatar and the one initials rule of the app, the name, and the honest rating. */
-export const CardPerson = memo(function CardPerson({ name, rating, count }: { name: string; rating: string | null | undefined; count: number | null | undefined }) {
+export const CardPerson = memo(function CardPerson({ name, rating, count, size = 40 }: { name: string; rating: string | null | undefined; count: number | null | undefined; size?: 32 | 40 | 56 }) {
   const trust = ratingWords(rating, count);
   return <View style={s.person}>
-    <Avatar initials={inicijali(name)} size={40} />
+    <Avatar initials={inicijali(name)} size={size} />
     <View style={s.personText}>
       <T style={s.personName} numberOfLines={1}>{name}</T>
       {trust ? <View style={s.rating}>
@@ -375,7 +383,12 @@ const s = StyleSheet.create({
   headStacked: { gap: 8 },
   title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
+  decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 16, rowGap: 10 },
+  decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  decisionValue: { flexShrink: 1, maxWidth: '100%' },
+  decisionPlaces: { flexShrink: 1, maxWidth: '100%' },
+  decisionAmount: { fontSize: 22, lineHeight: 28, letterSpacing: -0.5 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   art: { width: 20, height: 23, alignItems: 'center', justifyContent: 'center' },
   factText: { flex: 1, minWidth: 0, fontSize: 16, lineHeight: 23, fontWeight: '500', color: sys.color.fact },

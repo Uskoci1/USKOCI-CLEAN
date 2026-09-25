@@ -4,13 +4,13 @@ import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
 import type { NearbyCameraTarget } from '../../ui/v2/DiscoveryMap.types';
 import { Linking, StyleSheet } from 'react-native';
 let mockFocused = true, mockReduced = false;
-const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn();
+const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockFit = jest.fn();
 const mockNearbyLoad = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: () => mockNearbyLoad() }));
 jest.mock('@maplibre/maplibre-react-native', () => {
  const React = require('react');
  return { Map: 'NativeMap', Images: 'Images', Layer: 'Layer', ViewAnnotation: 'Annotation',
- Camera: React.forwardRef((props: any, ref: any) => { React.useImperativeHandle(ref, () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom })); return React.createElement('Camera', props); }),
+ Camera: React.forwardRef((props: any, ref: any) => { React.useImperativeHandle(ref, () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom, fitBounds: mockFit })); return React.createElement('Camera', props); }),
  GeoJSONSource: React.forwardRef(({ children, ...props }: any, ref: any) => { React.useImperativeHandle(ref, () => ({ getClusterExpansionZoom: mockExpand })); return React.createElement('Source', props, children); }) };
 });
 jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -34,11 +34,15 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
 const native = () => tree.root.findByType('NativeMap' as React.ElementType);
 const source = () => tree.root.findByType('Source' as React.ElementType);
-const ready = async () => act(async () => native().props.onDidFinishLoadingMap());
+const ready = async () => act(async () => {
+ tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function')
+  .props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } });
+ native().props.onDidFinishLoadingMap();
+});
 const region = { center: [0, 0], zoom: 4, bounds: [-1, -1, 1, 1] };
 const cluster = { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { cluster: true, cluster_id: 7 } };
 const pressFeature = async (features: unknown[]) => act(async () => source().props.onPress({ nativeEvent: { features }, stopPropagation: jest.fn() }));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, select, setViewport, search, list, clear]) fn.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockFit, select, setViewport, search, list, clear]) fn.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();

@@ -189,19 +189,17 @@ it.each([
   }
 });
 
-// Critique B1/B20 (2026-09-24): one orange fill on the screen (the publish tile); what waits is a pale band with no
-// orange outline; rows are at least 64 tall.
-it('rows on Početna are at least 64 tall, and the publish tile is the one orange surface: nothing else wears an orange edge', async () => {
+// R13: white launch surfaces and reading rows; the artwork and the action words carry color. Targets stay generous.
+it('keeps the launch actions and rating row white with at least 64dp personal-list targets', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   mockSource.mojiDogovori.mockResolvedValue([completed('d1'), completed('d2')]);
   await render();
   expect(tile('Moji zadaci. 1 aktivan').minHeight).toBeGreaterThanOrEqual(64);
   expect(tile('Moje prijave. Još nemaš prijavu').minHeight).toBeGreaterThanOrEqual(64);
-  expect(tile('Objavi zadatak').backgroundColor).toBe(sys.color.orange);
-  // The card edge is `cardLine` since round 2c (the faint `line` left the white tile almost without an edge).
-  expect(tile('Uskoči i zaradi')).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.cardLine });
+  expect(tile('Objavi zadatak').backgroundColor).toBe(sys.color.surface);
+  expect(tile('Uskoči i zaradi').backgroundColor).toBe(sys.color.surface);
   const strip = tile('Oceni 2 završena Dogovora');
-  expect(strip.backgroundColor).toBe(sys.color.orangeSoft); expect(strip.borderWidth ?? 0).toBe(0);
+  expect(strip.backgroundColor).toBe(sys.color.surface); expect(strip.borderWidth ?? 0).toBe(0);
 });
 
 const completed = (id: string) => ({ ...agreement(id, 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true });

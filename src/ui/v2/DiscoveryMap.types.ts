@@ -39,6 +39,8 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
    * it (a sheet that starts half open would otherwise hide the pins it was opened for). Without it the fit keeps 56.
    */
   fitBottom?: number;
+  /** False until the screen has measured its body and floating tools. Initial bounds fit must not freeze estimates. */
+  cameraLayoutReady?: boolean;
   /**
    * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The
    * zoom and the credits ride above it instead of lying under it.

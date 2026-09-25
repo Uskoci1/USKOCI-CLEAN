@@ -7,16 +7,17 @@ import { needGeographyRows, needRequirementRows, readableTitle } from '../../dat
 import { inicijali } from '../../lib/inicijali';
 import { vreme } from '../../lib/vreme';
 import { osoba } from '../system/plural';
-import { DetailDescription, DetailFact, DetailFacts, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader, ProductPerson,
-  ProductRequirements, ProductTitle, productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
+import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
+  productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { SkeletonCard } from '../system/Skeleton';
 import { FactArt } from '../system/FactArt';
-import { brandAction, card, floating, sys } from '../system/tokens';
+import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
+import { TaskDecisionLogistics, TaskDecisionPerson, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -32,9 +33,9 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
 }
 
 /**
- * A task somebody else posted: first decide whether its work and terms suit me. One white brief puts the
- * title and truthful price first, groups place/time/capacity, then closes with the person behind the task.
- * Description and requirements stay open below, followed by existing photos, the approximate place and questions.
+ * A task somebody else posted: first decide whether its work and terms suit me. The open white page puts the
+ * work and truthful price first, groups place/time/capacity, then closes the brief with the person behind it.
+ * Real photos and requirements follow before the longer description, approximate place and questions.
  * The name comes into the bar once the large title has scrolled away; reporting the person who posted it waits
  * behind the bar's "···". The one action, chosen by what I am to this task, stays at the foot.
  * Presentation only; the route owns reads, deadline and guards.
@@ -77,7 +78,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ProductHeader back={back} disabled={busy} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
       right={menu.button} />
-    <ScrollView contentContainerStyle={s.content} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
+    <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
       {loading || error || missing ? <View style={s.state} accessibilityLiveRegion="polite">
         {loading ? <><View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T></>
           : <View style={card}><T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Zadatak trenutno nije moguće učitati.' : 'Zadatak nije dostupan.'}</T>
@@ -88,35 +89,22 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
       {need ? <>
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <ProductTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</ProductTitle>
-          {price ? <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.terms}>
-            <View style={s.termsArt}><FactArt kind={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} size={32}
-              muted={!price.isAmount && need.rezimCene !== 'OFFERS'} /></View>
-            <View style={s.termsCopy}>
-              <T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
-              {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
-            </View>
-          </View> : null}
-          <View style={s.logistics}>
-            <DetailFacts>
-              <DetailFact art={remote ? 'remote' : 'pin'} label={remote ? 'Način rada' : 'Lokacija'} value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-              <DetailFact art="calendar" label="Termin" value={need.vremeTekst} />
-              <DetailFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)}
-                note={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
-                spokenNote={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-            </DetailFacts>
-          </View>
+          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
+          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
+          <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
+            filled={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+            spokenFilled={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
           {/* The publisher closes the brief, before the longer reading. A missing rating stays explicitly missing. */}
-          <ProductPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
-            initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 32)} onPress={onRequesterProfile} disabled={busy} />
+          <TaskDecisionPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
+            initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy} />
         </View>
         {/* What went wrong with reporting from the "···". While the person's profile is open, its sheet says it itself (as an
             alert), so this line would repeat it and announce from behind the sheet; the route clears it on focus and when
             the sheet closes. */}
         {safety?.error && !requesterProfile ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
-        {need.opis ? <DetailSection title="O zadatku"><DetailDescription text={need.opis} /></DetailSection> : null}
-        <ProductRequirements rows={needRequirementRows(need)} />
         {ready && !stale ? photos : null}
+        <TaskDecisionRequirements rows={needRequirementRows(need)} />
+        {need.opis ? <DetailSection title="O zadatku"><DetailDescription text={need.opis} /></DetailSection> : null}
         {/* The place is one section: the approximate pin, what is private, and the stops of a route. It used
             to be said three times — a fact, a map and a "Mesto izvršenja" row that opened into the same words. */}
         {!remote && (map || route.length) ? <DetailSection title="Mesto zadatka">
@@ -158,23 +146,12 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
-  content: { paddingHorizontal: 20, paddingTop: sys.space.sm, gap: sys.space.xl, paddingBottom: 32 },
+  content: { paddingHorizontal: 24, paddingTop: 8, gap: 28, paddingBottom: 40 },
   state: { gap: 12 },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
-  hero: { ...floating, padding: sys.space.base, gap: sys.space.base, backgroundColor: sys.color.surface,
-    borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.line },
-  terms: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  termsArt: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.control,
-    backgroundColor: sys.color.greenSoft },
-  termsCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  amount: { ...sys.type.priceLarge, color: sys.color.money },
-  priceWords: { ...sys.type.bodyStrong, color: sys.color.ink },
-  // Full-width white logistics: rules group the facts without tinted tiles or nested gutters.
-  logistics: { marginHorizontal: -sys.space.base, paddingHorizontal: sys.space.base, paddingVertical: sys.space.base,
-    backgroundColor: sys.color.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  hero: { gap: 24, backgroundColor: sys.color.surface },
   badgeRow: { flexDirection: 'row' },
-  privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, padding: sys.space.md,
-    borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+  privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   // The reason and the way on share a line while they fit; at a large text size the action moves under the reason.
   closed: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12 },

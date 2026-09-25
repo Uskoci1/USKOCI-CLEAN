@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Plus } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -12,10 +12,11 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys, card, cardCompact, floating } from '../system/tokens';
+import { sys, floating } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeIllustration } from './HomeIllustration';
+import { HomeLaunchArt } from './HomeLaunchArt';
 
 /**
  * Početna, the overview (owner's information architecture, 2026-09-23): the two big start tiles, what waits for me,
@@ -24,8 +25,9 @@ import { HomeIllustration } from './HomeIllustration';
  * example people, dates, counts or commands enter the app. Both start actions remain available before any read
  * completes and when a read fails.
  *
- * One orange fill on the screen, the publish tile (emulator critique B1, 2026-09-24); what waits for me is marked by
- * orange dots and dark-orange words on a pale band, never by another orange surface or an orange outline.
+ * R13 composition: two illustrated white start doors, an open attention list, one distinct appointment and quiet
+ * personal-list navigation. The artwork carries the brand; reading surfaces stay white. No decorative stats,
+ * inferred greeting or made-up task state enters this presentation.
  *
  * A row only ever navigates. Nothing here confirms, withdraws, selects or completes.
  */
@@ -43,22 +45,18 @@ export type HomePresentationProps = {
 };
 
 /**
- * A start tile: its picture above what it does and one quiet line. Side by side the picture
- * leads in a soft well, the title reads 18/24 and the hint 14/20, all from the top, so two tiles that wrap differently still
- * start on one line. Stacked — a narrow phone or large text — the tile becomes a 72 dp row with the picture beside the
- * words, instead of two tall boxes that pushed everything under the tab bar (B4).
+ * Two equally useful front doors share a white launch area. Large purpose-made illustrations sit directly on white,
+ * above the action and its short explanation. Narrow/large-text layouts become rows without a fixed height.
  */
 function StartTile({ label, title, hint, publish = false, stacked, onPress }: {
   label: string; title: string; hint: string; publish?: boolean; stacked: boolean; onPress: () => void;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
-    haptic="select" onPress={onPress} style={[s.action, stacked && s.actionStacked, publish && s.publish]}>
-    <View style={[s.actionArt, publish && s.publishArt]}>
-      {publish ? <Plus size={28} weight="bold" color={sys.color.onOrange} /> : <FactArt kind="map" size={32} />}
-    </View>
+    haptic="select" onPress={onPress} style={[s.action, stacked && s.actionStacked]}>
+    <HomeLaunchArt kind={publish ? 'publish' : 'discover'} compact={stacked} />
     <View style={[s.actionCopy, stacked && s.actionCopyStacked]}>
-      <T variant="heading" style={[s.actionTitle, publish && s.onOrange]}>{title}</T>
-      <T variant="note" style={[s.actionHint, publish ? s.onOrange : s.muted]}>{hint}</T>
+      <T variant="heading" style={s.actionTitle}>{title}</T>
+      <T variant="note" style={[s.actionHint, s.muted]}>{hint}</T>
     </View>
   </Press>;
 }
@@ -72,7 +70,7 @@ function AttentionRow({ row, onOpen, last = false }: {
   return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
     onPress={() => onOpen(row.target)} style={[s.row, last && s.lastRow]}>
     <View style={[s.rowIcon, s.attentionIcon]}>
-      <FactArt kind={art} size={28} />
+      <FactArt kind={art} size={32} />
       {/* Something here waits for me: an orange dot on the picture, the one mark of attention (B1). */}
       <View style={s.attentionDot} />
     </View>
@@ -80,7 +78,7 @@ function AttentionRow({ row, onOpen, last = false }: {
       <T variant="bodyStrong">{readableTitle(row.title)}</T>
       <T variant="note" tone="muted">{row.detail}</T>
     </View>
-    <CaretRight size={18} color={sys.color.muted} />
+    <View style={s.rowDirection}><CaretRight size={18} color={sys.color.ink} /></View>
   </Press>;
 }
 
@@ -94,18 +92,18 @@ function AppointmentCard({ row, onOpen, stacked }: {
     <View style={[s.appointmentWhen, stacked && s.appointmentWhenStacked]}>
       <View style={[s.appointmentMarker, stacked && s.appointmentMarkerStacked]}>
         <View style={s.calendarIcon}><FactArt kind="calendar" size={32} /></View>
-        {stacked ? <CaretRight size={20} color={sys.color.green} /> : null}
+        {stacked ? <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View> : null}
       </View>
       <View style={[s.rowCopy, stacked && s.appointmentTimeStacked]}>
         {appointment?.timeText ? <T variant="heading" style={s.appointmentTime}>{appointment.timeText}</T> : null}
         {appointment?.roleLabel ? <T variant="note" tone="muted">{appointment.roleLabel}</T> : null}
       </View>
-      {!stacked ? <CaretRight size={20} color={sys.color.green} /> : null}
+      {!stacked ? <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View> : null}
     </View>
     <View style={s.appointmentBody}>
-      <T variant="cardTitle">{readableTitle(row.title)}</T>
+      <T variant="cardTitle" style={s.appointmentTitle}>{readableTitle(row.title)}</T>
       {appointment ? appointment.counterpartName ? <View style={s.appointmentPerson}>
-        <FactArt kind="person" size={24} />
+        <FactArt kind="person" size={28} />
         <T variant="bodyStrong" style={s.rowCopy}>{appointment.counterpartName}</T>
       </View> : null : <T variant="note" tone="muted">{row.detail}</T>}
     </View>
@@ -131,7 +129,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
   return <View style={s.section}>
     <View style={s.sectionHead} accessible accessibilityRole="header"
       accessibilityLabel={count != null && count > 0 ? `${title}: ${plural(count, 'stavka', 'stavke', 'stavki')}` : title}>
-      <T variant="heading" style={s.flexible}>{title}</T>
+      <T variant="heading" style={[s.flexible, s.sectionTitle]}>{title}</T>
       {count != null && count > 0 ? <View style={s.counter}><T variant="meta" style={s.link}>{count}</T></View> : null}
     </View>
     {children}
@@ -198,6 +196,7 @@ export function HomePresentation(p: HomePresentationProps) {
       {/* The tiles are the first thing on screen and never move: nothing above them waits for a read. */}
       <View style={[s.actions, stacked && s.actionsStacked]}>
         <StartTile label="Objavi zadatak" title="Objavi zadatak" hint="Opiši šta ti treba" publish stacked={stacked} onPress={p.onPublish} />
+        <View style={stacked ? s.actionDividerStacked : s.actionDivider} />
         {/* A no-break space keeps "i" with "zaradi": the tile wrapped as "Uskoči i / zaradi", a lone "i" (B3). */}
         <StartTile label="Uskoči i zaradi" title={'Uskoči i zaradi'} hint="Nađi posao blizu" stacked={stacked} onPress={p.onEarn} />
       </View>
@@ -225,7 +224,7 @@ export function HomePresentation(p: HomePresentationProps) {
           onPress={() => p.onRatings(home.ratingDueAgreementId)}
           accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'}>
-          <View style={s.ratingsDot} />
+          <FactArt kind="star" size={24} />
           <T variant="note" style={s.ratingsDueText}>{oceniDogovore(home.ratingsDue)}</T>
           <CaretRight size={18} color={sys.color.warn} />
         </Press> : null}
@@ -254,65 +253,69 @@ function oceniDogovore(count: number): string {
 }
 
 const s = StyleSheet.create({
-  // What waits for my rating: a pale warm band with an orange dot and dark-orange words, no outline (B1: the orange
-  // halo border was one more orange line on a screen whose one orange fill is the publish tile).
+  // A rating is still a real pending action, but its illustration and words carry the accent, not a tinted band.
   ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 52, marginTop: sys.space.sm,
-    paddingHorizontal: sys.space.base, borderRadius: sys.radius.control, backgroundColor: sys.color.orangeSoft },
-  ratingsDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
+    paddingVertical: sys.space.md, backgroundColor: sys.color.surface },
   ratingsDueText: { flex: 1, color: sys.color.warn, fontWeight: '600' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   // The bottom padding leaves air between the last row and the inset tab bar below the list when it is scrolled to its end.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  flexible: { flexShrink: 1 }, muted: { color: sys.color.muted }, onOrange: { color: sys.color.onOrange },
+  flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
   hero: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 108, marginTop: sys.space.xxl },
   heroCopy: { flex: 1, minWidth: 0 },
-  actions: { flexDirection: 'row', alignItems: 'stretch', gap: sys.space.md },
-  actionsStacked: { flexDirection: 'column' },
-  // Picture, title and hint from the top; no arrow: the tile is the button, its picture says where it goes.
-  action: { ...card, ...floating, flex: 1, minWidth: 0, minHeight: 96, padding: sys.space.base, gap: sys.space.md, justifyContent: 'flex-start' },
-  // Stacked: one 72 dp row, the picture beside the words.
-  actionStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', flexDirection: 'row', alignItems: 'center', minHeight: 72,
-    paddingVertical: sys.space.md },
-  publish: { backgroundColor: sys.color.orange, borderColor: sys.color.orange },
-  actionArt: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash,
-    alignItems: 'center', justifyContent: 'center' },
-  publishArt: { backgroundColor: sys.color.orangeHalo },
+  // One open launch area, not another pair of boxed content cards. The large illustrations are the primary targets.
+  actions: { flexDirection: 'row', alignItems: 'stretch', paddingTop: sys.space.sm, paddingBottom: sys.space.base,
+    borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  actionsStacked: { flexDirection: 'column', paddingTop: 0, paddingBottom: sys.space.sm },
+  action: { flex: 1, minWidth: 0, minHeight: 152, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
+    gap: sys.space.sm, borderRadius: sys.radius.control, backgroundColor: sys.color.surface, justifyContent: 'flex-start' },
+  actionStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', flexDirection: 'row', alignItems: 'center', minHeight: 84,
+    paddingHorizontal: sys.space.xs, paddingVertical: sys.space.md, gap: sys.space.base },
+  actionDivider: { width: 1, alignSelf: 'stretch', marginVertical: sys.space.base, marginHorizontal: sys.space.xs,
+    backgroundColor: sys.color.line },
+  actionDividerStacked: { height: StyleSheet.hairlineWidth, marginLeft: 72, backgroundColor: sys.color.line },
   actionCopy: { gap: sys.space.xs },
   actionCopyStacked: { flex: 1, minWidth: 0 },
-  actionTitle: { fontSize: 18, lineHeight: 24, color: sys.color.green },
+  actionTitle: { fontSize: 20, lineHeight: 25, letterSpacing: -0.6, color: sys.color.ink },
   actionHint: { fontSize: 14, lineHeight: 20 },
-  // What needs my answer: a hairline card like every other list, each row marked by its orange dot.
-  attention: { ...cardCompact, paddingVertical: 0 },
-  // Sections sit 32 apart, and a title stands 8 above what it names (critique B20).
+  // Attention is an open inbox: the action comes first, the exact subject/reason is never truncated.
+  attention: { backgroundColor: sys.color.surface },
   section: { marginTop: sys.space.xxl },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 26, marginBottom: sys.space.sm },
-  counter: { minWidth: 26, minHeight: 26, paddingHorizontal: 7, paddingVertical: 3, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.greenSoft, alignItems: 'center', justifyContent: 'center' },
-  link: { color: sys.color.green, fontWeight: '600' },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
+  sectionTitle: { fontSize: 22, lineHeight: 28, letterSpacing: -0.6 },
+  counter: { minWidth: 28, minHeight: 28, paddingHorizontal: sys.space.xs,
+    backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+  link: { color: sys.color.attentionInk, fontSize: 18, lineHeight: 24, fontWeight: '600', fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingVertical: sys.space.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   lastRow: { borderBottomWidth: 0 },
   rowIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
-  attentionIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell },
+  attentionIcon: { width: 40, height: 40, backgroundColor: sys.color.surface },
+  rowDirection: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   attentionDot: { position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
   calendarIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
-  // Time, task and person share white; a rule separates the appointment's reading groups.
-  appointment: { ...cardCompact, ...floating, padding: 0, borderColor: sys.color.lineStrong },
-  appointmentWhen: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base,
-    paddingVertical: sys.space.md, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line,
-    borderTopLeftRadius: sys.radius.cardCompact - 1, borderTopRightRadius: sys.radius.cardCompact - 1 },
+  // Home's one elevated object is the appointment; a green leading rule groups the work and the person below its time.
+  appointment: { ...floating, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine,
+    backgroundColor: sys.color.surface, padding: sys.space.base },
+  appointmentWhen: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingBottom: sys.space.base,
+    backgroundColor: sys.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   appointmentWhenStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
   appointmentMarker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
   appointmentMarkerStacked: { alignSelf: 'stretch' },
-  appointmentTime: { color: sys.color.green },
+  appointmentTime: { color: sys.color.green, fontSize: 20, lineHeight: 27, letterSpacing: -0.4 },
+  appointmentDirection: { width: 32, height: 32, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash,
+    alignItems: 'center', justifyContent: 'center' },
   appointmentTimeStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
-  appointmentBody: { padding: sys.space.base, gap: sys.space.md },
+  appointmentBody: { gap: sys.space.md, borderLeftWidth: 3, borderLeftColor: sys.color.green,
+    paddingLeft: sys.space.md, marginTop: sys.space.base, paddingBottom: sys.space.xs },
+  appointmentTitle: { fontSize: 22, lineHeight: 28, letterSpacing: -0.6 },
   appointmentPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   rowCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // Open navigation rows: the illustrated icons supply color, without a tinted group behind them.
-  mine: { marginTop: sys.space.xxl, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
+  mine: { marginTop: sys.space.xxl, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line,
+    paddingTop: sys.space.xs },
   mineIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
   more: { paddingVertical: sys.space.sm },

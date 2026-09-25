@@ -37,6 +37,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
+import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { sys } from '../../ui/system/tokens';
@@ -648,6 +649,20 @@ test('while it is still read which tasks are mine, the list says no count and do
 });
 
 // Review r3 item 3: the first fit of the pins keeps them above where the sheet starts.
+test('camera layout is ready only after body and tools measurements replace whole-window estimates', async () => {
+  mockWindow = { width: 411, height: 924, scale: 2.625, fontScale: 1 };
+  rows = [row('one', at(45.25, 19.83)), row('two', at(45.26, 19.85))];
+  await render();
+  expect(map().props.cameraLayoutReady).toBe(false);
+  expect(map().props.fitBottom).toBe(534);
+  await layOutBody(790);
+  expect(map().props.cameraLayoutReady).toBe(false);
+  await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(124));
+  expect(map().props.cameraLayoutReady).toBe(true);
+  expect(map().props.fitBottom).toBe(467);
+  expect(listSheet().props.snapPoints[1]).toBe(395);
+});
+
 test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
   const layOut = async () => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();

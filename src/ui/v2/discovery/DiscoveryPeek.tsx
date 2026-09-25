@@ -13,7 +13,7 @@ import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardFact, CardFoot, CardHead, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
+import { CardDecision, CardFact, CardPerson, CardPlaces, CardStatus, CardTitle, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
   taskValue } from '../TaskFace';
 import { V2Action } from '../V2Action';
 
@@ -58,7 +58,7 @@ function PinTask({ item, applied, onOpen, onLayout }: {
   // The task's own time in the one time format ("24. sep · 12:00–19:00"): a window or a flexible range keeps both ends.
   const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
   const publisher = 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
-  const person = 'narucilacIme' in item && publisher ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} /> : null;
+  const person = 'narucilacIme' in item && publisher ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} size={56} /> : null;
   const places = item.pokrivenost ? placesText(item.pokrivenost, 'worker') : null;
   const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, places: places?.spoken,
     person: 'narucilacIme' in item && publisher ? personSpoken(publisher, item.narucilacOcena, item.narucilacBrojOcena) : null });
@@ -67,13 +67,14 @@ function PinTask({ item, applied, onOpen, onLayout }: {
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: spoken }}
       haptic="select" scaleTo={0.99} onPress={onOpen} style={s.pinBody}>
       {head ? <View style={s.clearOfClose}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
-      <View style={s.clearOfClose}><CardHead title={title} value={value} large /></View>
+      <View style={s.clearOfClose}><CardTitle title={title} lines={3} style={s.taskTitle} /></View>
+      <CardDecision value={value} large={large}
+        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience="worker" large /> : null} />
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
         <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
       </View>
-      {item.pokrivenost || person ? <CardFoot large={large} person={person}
-        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience="worker" large={large} /> : null} /> : null}
+      {person ? <View style={s.publisher}>{person}</View> : null}
     </Press>
   </View>;
 }
@@ -151,10 +152,12 @@ const s = StyleSheet.create({
   // The single card's face spans the whole card, its padding included, so every part of it opens the task. Its lines
   // are as far apart as a task card's.
   pin: { margin: -sys.space.base },
-  pinBody: { padding: sys.space.base, gap: sys.space.sm, borderRadius: sys.radius.card },
+  pinBody: { padding: 20, gap: 16, borderRadius: sys.radius.card },
+  taskTitle: { fontSize: 22, lineHeight: 28, letterSpacing: -0.45 },
+  publisher: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   // The first line keeps clear of the × in the corner (one chrome control wide).
   clearOfClose: { marginRight: chrome.control },
-  facts: { gap: sys.space.xs },
+  facts: { gap: 10 },
   close: { position: 'absolute', top: CLOSE_INSET, right: CLOSE_INSET },
   head: { flexDirection: 'row', alignItems: 'center', minHeight: chrome.control },
   title: { flex: 1, color: sys.color.ink },

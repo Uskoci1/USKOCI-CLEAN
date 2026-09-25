@@ -172,11 +172,11 @@ export default function PrilikaDetaljiEkran() {
     retry={retry} apply={compose}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}
-    // The poster row asks for 32 px, the profile sheet for its large portrait. Without a photo, or while it cannot be
+    // The poster row asks for 56 px, the profile sheet for its large portrait. Without a photo, or while it cannot be
     // read, the row shows the one Avatar with the poster's letters (a drawn person when there is no name), as every
     // other person row does; ProfilePhoto's own stand-in drew a 15 px glyph there. The letters come from the copy on
     // screen, so the last loaded copy shown during a reload or after a failed read keeps them beside the name (review r3b).
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null}
-      fallback={size === 32 ? <Avatar size={32}
+      fallback={size === 32 || size === 56 ? <Avatar size={size}
         initials={prilika && profileId === prilika.narucilacProfilId ? inicijali(prilika.narucilacIme) : null} /> : undefined} />} />;
 }

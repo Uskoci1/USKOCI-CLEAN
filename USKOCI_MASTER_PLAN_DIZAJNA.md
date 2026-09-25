@@ -20,6 +20,12 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
+R13 is the current composition batch: `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
+Home, Discovery cards/search, task detail and offer are rebuilt around their decisions, with clean white surfaces,
+larger portraits and original illustrated Home entry points. Initial map framing waits for measured space.
+The batch receipt separates completed tests, APK and bounded native review. Old visual recipes are not binding layout
+constraints. Business truth, privacy, recovery and accessibility remain. R12 is the preceding surface foundation.
+
 R12 is the current surface refinement: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
 Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth
 forms. The 22 measured text pairs pass AA; completed tests and exact-build/native evidence belong to its receipt.
@@ -41,7 +47,7 @@ remote upload to the existing Claude page remains unconfirmed after file-chooser
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R12 dated directories under `docs/implementation/design-system/`; R12 is the current surface batch.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R13 dated directories under `docs/implementation/design-system/`; R13 is the current composition batch over R12's white surface foundation.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work

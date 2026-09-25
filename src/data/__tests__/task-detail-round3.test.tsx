@@ -91,18 +91,18 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads title and terms first, then logistics and publisher, before description, requirements, photos, place and questions', async () => {
+  it('reads the decision brief first, then real photos and requirements before the longer description, place and questions', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = ['Selidba stana', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', 'Ana Anić', 'Dva sprata bez lifta.', 'Kombi',
-      'FOTOGRAFIJE', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
+    const order = ['Selidba stana', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', 'Ana Anić', 'FOTOGRAFIJE', 'Kombi',
+      'Dva sprata bez lifta.', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    // The poster's face is the small one, beside their role and rating in one quiet line.
-    expect(all).toContain('FOTO 32'); expect(all).toContain('Traži pomoć · Ocena 4,8');
+    // R13 gives the real publisher a readable portrait without changing the role or rating facts.
+    expect(all).toContain('FOTO 56'); expect(all).toContain('Traži pomoć · Ocena 4,8');
     // No rating is invented when the server has none.
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null }} />));
     expect(texts()).toContain('Traži pomoć · Ocena nije dostupna');
@@ -132,7 +132,7 @@ describe('a stranger\'s task', () => {
     await render(<Stranger onRequesterProfile={open} />);
     const row = byLabel('Ana Anić, Traži pomoć, Ocena 4,8')!;
     // Review of step 5b: centred, the face slid to the middle of a name and caption wrapped by a large text size.
-    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ alignItems: 'flex-start', minHeight: 48 });
+    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ alignItems: 'flex-start', minHeight: 56 });
     expect(row.props.accessibilityHint).toBe('Otvara javni profil');
     await act(async () => row.props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   });

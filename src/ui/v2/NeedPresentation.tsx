@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
-import { DetailDescription, DetailFact, DetailFacts, DetailLink, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
-  ProductRequirements, ProductTitle, productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
+import { DetailDescription, DetailLink, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
+  productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
@@ -15,6 +15,7 @@ import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
 import { countryName } from '../location/CountryField';
+import { TaskDecisionLogistics, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
@@ -84,7 +85,7 @@ function applicationsDetail(need: PotrebaProjekcija): { text: string; attention:
  * The owner's own Task, recomposed from zero (owner, 2026-09-23). The owner comes here to see whether the
  * task is live and who applied, so the screen reads: the name and its state, what happened to a command
  * they sent (only while there is something to say), the applications (the owner's next step), the same
- * four facts a stranger sees, the words, what it needs, photos, the place as others see it and the
+ * decision facts a stranger sees, real photos, what it needs, the words, the place as others see it and the
  * questions. What changes the task is needed rarely, so it waits behind the bar's "···" (owner step 5b,
  * 2026-09-24): the edit, closing the remaining search, cancelling or deleting, each with its own
  * confirmation. One footer action: review for a draft, applications once there are any. Only existing
@@ -148,12 +149,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
-          <ProductTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</ProductTitle>
           {state ? <View style={s.stateRow} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
             <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
             <T variant="bodyStrong" style={{ color: state.tone === 'green' ? sys.color.green : sys.color.muted }}>{state.title}</T>
             {state.detail ? <T variant="note" tone="muted" style={s.grow}>{`· ${state.detail}`}</T> : null}
           </View> : null}
+          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
         {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
         {blocked ? <View style={[inset, s.blocked]} accessibilityLiveRegion="polite">
@@ -164,21 +165,17 @@ export function NeedPresentation(props: NeedPresentationProps) {
             they pressed: the check, the command running, its uncertain, confirmed or refused outcome. It draws nothing
             while there is nothing to say. */}
         {props.lifecycleActions}
-        {!draft && counted ? <DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
+        {!draft && counted ? <View style={s.applications}><DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
           accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
-          trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /> : null}
-        <DetailFacts>
-          <DetailFact art={remote ? 'remote' : 'pin'} label={remote ? 'Način rada' : 'Lokacija'} value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <DetailFact art="calendar" label="Termin" value={need.vremeTekst} />
-          {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
-          <DetailFact art="users" label="Potrebno" value={osoba(need.pokrivenost.ukupno)}
-            note={draft ? undefined : `${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
-            spokenNote={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-          {price ? <DetailFact art="money" label="Budžet" value={price.value} note={price.note} money={price.isAmount} /> : null}
-        </DetailFacts>
-        {need.opis ? <DetailSection><DetailDescription text={need.opis} /></DetailSection> : null}
-        <ProductRequirements rows={requirements} />
+          trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /></View> : null}
+        {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
+        {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
+        <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
+          filled={draft ? undefined : `${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+          spokenFilled={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
         {props.photos}
+        <TaskDecisionRequirements rows={requirements} />
+        {need.opis ? <DetailSection title="O zadatku"><DetailDescription text={need.opis} /></DetailSection> : null}
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the
             point and the owner's own read never asked for it. Same coarse pair, same map, one section. */}
         {!remote && (props.map || route.length) ? <DetailSection title="Mesto zadatka">
@@ -205,14 +202,15 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
   state: { padding: 20, gap: 16 },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 24 },
-  hero: { gap: 10 },
+  content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40, gap: 28 },
+  hero: { gap: 16 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   stateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   blocked: { backgroundColor: sys.color.warnSoft, gap: 4 },
   warnTitle: { color: sys.color.warn },
   privacy: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  applications: { padding: 16, borderWidth: 1, borderColor: sys.color.cardLine, borderRadius: sys.radius.card, backgroundColor: sys.color.surface },
   countPill: { minWidth: 26, height: 26, borderRadius: sys.radius.pill, paddingHorizontal: 8, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   countText: { color: sys.color.onOrange, letterSpacing: 0, lineHeight: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },

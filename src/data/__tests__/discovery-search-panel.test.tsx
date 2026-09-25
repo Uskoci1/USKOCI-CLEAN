@@ -299,11 +299,17 @@ test('at large text a closed step stacks its name over its value; the chosen cir
   expect(StyleSheet.flatten(kada().props.style).flexDirection).toBe('row');
   await act(async () => tree.unmount());
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
-  expect(StyleSheet.flatten(kada().props.style).flexDirection).toBe('column');
+  expect(StyleSheet.flatten(kada().props.style).flexDirection).toBe('row');
   const [label, value] = kada().findAllByType('T' as React.ElementType);
-  expect(StyleSheet.flatten(label.props.style).flexShrink).toBe(1);
-  expect(value.props.numberOfLines).toBe(2); expect(StyleSheet.flatten(value.props.style).textAlign).toBe('left');
+  // Label/value now share an unrestricted vertical text column beside their pictogram at every size.
+  expect(label.parent).toBe(value.parent);
+  expect(StyleSheet.flatten(value.parent!.props.style)).toMatchObject({ flex: 1, minWidth: 0 });
+  expect(value.props.numberOfLines).toBe(3);
   await tap('Kada');
+  const flex = tree.root.findByProps({ accessibilityLabel: 'Fleksibilno' });
+  expect(flex.props.accessibilityRole).toBe('tab');
+  expect(StyleSheet.flatten(flex.parent!.props.style).flexDirection).not.toBe('row');
+  expect(flex.findByType('T' as React.ElementType).props.numberOfLines).toBeUndefined();
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
   const grid = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
     && StyleSheet.flatten(node.props.style)?.marginHorizontal === -sys.space.md)[0];
@@ -331,6 +337,18 @@ test('search text uses the bundled regular face without asking the platform to s
   const style = StyleSheet.flatten(tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' }).props.style);
   expect(style.fontFamily).toBe('Inter-Regular');
   expect(style.fontWeight).toBeUndefined();
+});
+
+test('expanding a filter reveals it once, while later layout changes leave manual scrolling alone', async () => {
+  const scrollTo = jest.fn();
+  await act(async () => { tree = create(panelOf(), { createNodeMock: node => node.type === 'ScrollView' ? { scrollTo } : null }); });
+  await tap('Kada');
+  const section = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'search-step-kada')[0];
+  await act(async () => section().props.onLayout({ nativeEvent: { layout: { y: 88 } } }));
+  expect(scrollTo).toHaveBeenCalledWith({ y: 76, animated: true });
+  await act(async () => section().props.onLayout({ nativeEvent: { layout: { y: 112 } } }));
+  expect(scrollTo).toHaveBeenCalledTimes(1);
+  expect(apply).not.toHaveBeenCalled();
 });
 
 test.each([[320, 1], [320, 2], [412, 1.3], [412, 2]])(

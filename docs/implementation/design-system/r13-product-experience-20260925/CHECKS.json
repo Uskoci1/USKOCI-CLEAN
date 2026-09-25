@@ -1,0 +1,16 @@
+{
+  "batch": "R13 product experience, 2026-09-25",
+  "sourceBinding": "Committed with the checked application source; RECEIPT.json records the exact commit and APK afterward.",
+  "typescript": {"command": "npx tsc --noEmit -p tsconfig.json", "exitCode": 0},
+  "jest": {"command": "npx jest -w 3 --testTimeout=30000", "exitCode": 0, "suitesPassed": 314, "suitesTotal": 314, "testsPassed": 6098, "testsTotal": 6098, "seconds": 117.568, "warning": "Existing worker teardown warning remains; Jest force-exited a worker after successful tests."},
+  "integrationCorrections": [
+    "Unknown price stays Cena nije navedena; its added receipt assertion failed before the correction and passed afterward.",
+    "Publisher uses supported 56 dp Avatar size instead of unsupported 44 dp.",
+    "Public detail route now gives the existing initials fallback to the new 56 dp photo; 96 dp public-profile photo behavior is unchanged.",
+    "Peek layout assertions now inspect full-width title and decision row; scroll, close and overflow assertions remain.",
+    "Large-text people input gets the full available line between the existing stepper buttons."
+  ],
+  "diffWhitespace": "git diff --check passed",
+  "native": "Pending exact-source APK; tests are not native or phone acceptance.",
+  "controlPublication": "Regenerated locally; upload to the existing private Claude artifact remains unconfirmed."
+}

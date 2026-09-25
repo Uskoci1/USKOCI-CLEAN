@@ -9,7 +9,7 @@ import { novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
-import { DetailSection, ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, osobuAkuz, plural } from '../system/plural';
@@ -20,13 +20,14 @@ import { useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, inset, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
-import { CardFact, CardHead, CardPlaces, CardTitle, placesText, taskSpoken, taskValue } from './TaskFace';
+import { CardFact, CardPlaces, placesText, taskSpoken, taskValue, valueSpoken } from './TaskFace';
 import { V2Action } from './V2Action';
 
 /**
- * The worker's one application to someone else's task (round 6, unit `prijava`, 2026-09-24). It reads as a checkout step,
- * not a form: the task as its own face at the top (bare, no card), then what the worker offers, how many people come,
- * when, and a short note, with ONE green action pinned at the foot. The existing explicit review stands before sending.
+ * The worker's one application to someone else's task (R13, 2026-09-25): a compact task context, one clear amount,
+ * people and time as adjacent terms, then the optional message. The review and confirmed result use the same open
+ * receipt, including the exact message. White is the reading surface; ink, fact art and the amount establish hierarchy.
+ * ONE green action stays at the foot. The existing explicit review stands before sending.
  *
  * Presentation only. Every guard stays in the route (`app/(app)/prilike/[id]/prijava.tsx`): the task revision, the durable
  * journal, the idempotent request id, the unknown-outcome readback and the exact replay. The reasons drawn beside a grey
@@ -104,11 +105,14 @@ function windowText(start: string | null | undefined, end: string | null | undef
 const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** The screen's frame: the bar that says whose application this is, a keyboard-safe body, and the pinned foot. */
-function ComposerFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
+function ComposerFrame({ back, children, footer, revealResult = false }: { back: () => void; children: ReactNode; footer?: ReactNode; revealResult?: boolean }) {
+  const scroll = useRef<ScrollView>(null);
+  // The confirmation replaces a possibly long draft. Show its outcome, not the old scroll position in the note.
+  useEffect(() => { if (revealResult) scroll.current?.scrollTo({ y: 0, animated: false }); }, [revealResult]);
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ProductHeader title="Tvoja prijava" backLabel="Nazad na zadatak" back={back} />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
+      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
       {footer ? <View style={s.footer}>{footer}</View> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
@@ -127,10 +131,9 @@ export function ComposerUnavailable({ loading, message, retry, back }: { loading
 }
 
 /**
- * The task this application answers, as the task's own face: bare, not pressable (Back returns to it), heard once. A
- * price the task names is said once, by the "Cena zadatka" row that carries its rule (r6: it stood in the corner too),
- * so that face keeps only its title (`CardTitle`, the card system's own title-without-a-value); "Tražim ponude" stays in
- * the corner, where it is the task's one word about money. The place may take two lines, as the time already does.
+ * Compact context for the offer, heard once and not pressable (Back returns to the task). A fixed price appears only
+ * in its own amount section; an offer-taking task keeps its truthful "Tražim ponude" caption. Place and time retain
+ * two lines and the worker's capacity wording stays visible. The form's amount is the strongest value on this screen.
  */
 function TaskHead({ opportunity, large }: { opportunity: PrilikaProjekcija; large: boolean }) {
   const title = readableTitle(opportunity.naslov), value = taskValue(opportunity);
@@ -139,16 +142,25 @@ function TaskHead({ opportunity, large }: { opportunity: PrilikaProjekcija; larg
   const spoken = priced ? [title, opportunity.podrucjeTekst, opportunity.vremeTekst, places.spoken].filter(part => part.trim().length > 0).join(', ')
     : `${title}, ${taskSpoken({ value, place: opportunity.podrucjeTekst, schedule: opportunity.vremeTekst, places: places.spoken })}`;
   return <View accessible accessibilityLabel={spoken} style={s.task}>
-    {priced ? <CardTitle title={title} lines={3} /> : <CardHead title={title} value={value} large={large} />}
-    <CardFact art={<FactArt kind="pin" size={16} />} text={opportunity.podrucjeTekst} lines={2} />
-    <CardFact art={<FactArt kind="calendar" size={16} />} text={opportunity.vremeTekst} lines={2} />
+    <View style={s.contextLabel}>
+      <T variant="meta" tone="muted">Za zadatak</T>
+      {!priced ? <T variant="meta" tone="muted">{valueSpoken(value)}</T> : null}
+    </View>
+    <T style={s.taskTitle} numberOfLines={3}>{title}</T>
+    <View style={s.taskFacts}>
+      <CardFact art={<FactArt kind="pin" size={20} />} text={opportunity.podrucjeTekst} lines={2} />
+      <CardFact art={<FactArt kind="calendar" size={20} />} text={opportunity.vremeTekst} lines={2} />
+    </View>
     <CardPlaces places={opportunity.pokrivenost} audience="worker" large={large} />
   </View>;
 }
 
 /** A question the composer asks, in the words a person would say it; never a small letter-spaced word above a box. */
 function Question({ children, optional }: { children: string; optional?: boolean }) {
-  return <T variant="bodyStrong" style={s.ink}>{children}{optional ? <T variant="bodyStrong" tone="muted"> · nije obavezna</T> : null}</T>;
+  return <View style={s.question}>
+    <T variant="bodyStrong" style={s.ink}>{children}</T>
+    {optional ? <T variant="note" tone="muted">Nije obavezna</T> : null}
+  </View>;
 }
 
 /**
@@ -156,13 +168,37 @@ function Question({ children, optional }: { children: string; optional?: boolean
  * with the task's own window beside it (`proposed`), the same word the composer's Termin row uses; otherwise nothing.
  */
 function SentFacts({ price, people, time, flexible, proposed }: { price: string | null; people: string; time: string; flexible: boolean; proposed: string | null }) {
-  return <ProductFacts>
-    <ProductFact art="money" label="Ukupna ponuda" value={price ?? 'Proveri unetu cenu'} prominent prominentAs={price ? 'amount' : 'label'}
-      note={price ? 'Ukupno za sve ljude koje dovodiš' : undefined} />
-    <ProductFact art="users" label="Ljudi" value={people} />
-    <ProductFact art="calendar" label="Termin" value={time}
-      note={flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : undefined} />
-  </ProductFacts>;
+  const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : null;
+  return <View style={s.receipt}>
+    <View accessible accessibilityLabel={`Ukupna ponuda: ${price ?? 'Proveri unetu cenu'}${price ? ', ukupno za sve ljude koje dovodiš' : ''}`} style={s.receiptAmount}>
+      <View style={s.receiptLabel}>
+        <FactArt kind="money" size={28} />
+        <T variant="meta" tone="muted">Ukupna ponuda</T>
+      </View>
+      <T style={price ? s.receiptMoney : s.unknownPrice}>{price ?? 'Proveri unetu cenu'}</T>
+      {price ? <T variant="note" tone="muted">Ukupno za sve ljude koje dovodiš</T> : null}
+    </View>
+    <View accessible accessibilityLabel={`Ljudi: ${people}`} style={s.receiptRow}>
+      <FactArt kind="users" size={28} />
+      <View style={s.grow}><T variant="meta" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{people}</T></View>
+    </View>
+    <View accessible accessibilityLabel={`Termin: ${time}${timeNote ? `, ${timeNote}` : ''}`} style={s.receiptRow}>
+      <FactArt kind="calendar" size={28} />
+      <View style={s.grow}>
+        <T variant="meta" tone="muted">Termin</T><T variant="bodyStrong" style={s.ink}>{time}</T>
+        {timeNote ? <T variant="note" tone="muted">{timeNote}</T> : null}
+      </View>
+    </View>
+  </View>;
+}
+
+/** The review, saved intent and confirmed receipt all expose the same trimmed message the command sends. */
+function SentMessage({ note }: { note: string }) {
+  const message = note.trim();
+  return <View style={s.sentMessage}>
+    <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Poruka</T>
+    <T selectable variant="body" tone={message ? 'ink' : 'muted'}>{message || 'Bez dodatne poruke.'}</T>
+  </View>;
 }
 
 /** The exact time of this application, in the one sheet engine; nothing is applied until "Potvrdi termin". */
@@ -226,6 +262,9 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const [editingTime, setEditingTime] = useState(initialSheet === 'time');
   const [review, setReview] = useState<{ key: string } | null>(() => initialSheet === 'review' ? { key: reviewKey } : null);
   const large = useTextScale() >= 1.3;
+  const { width } = useWindowDimensions();
+  const stackPeople = large || width < 390;
+  const [focused, setFocused] = useState<'price' | 'note' | null>(null);
   // The success mark springs only when the send was confirmed while this screen was open.
   const confirmedAtMount = useRef(confirmed).current;
   // While the keyboard is up the footer keeps only the action and its reason: at 320 dp and Large text the summary
@@ -304,30 +343,39 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const sentFacts = <SentFacts price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
     proposed={exact && exact !== fixed ? fixed ?? need.vremeTekst : null} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
-  return <ComposerFrame back={back} footer={footer}>
-    <TaskHead opportunity={opportunity} large={large} />
+  return <ComposerFrame back={back} footer={footer} revealResult={confirmed}>
+    {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
     {confirmed ? <View style={s.section}>
       <View style={s.outcome}>
-        <SuccessMark fresh={!confirmedAtMount} size={64} />
+        <SuccessMark fresh={!confirmedAtMount} size={72} />
         {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
-        <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} variant="title" style={s.ink}>Prijava je poslata.</T>
+        <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} style={s.resultTitle}>Prijava je poslata.</T>
         <T variant="copy" tone="muted">Ako tvoja ponuda bude izabrana, odmah nastaje Dogovor. Prijavu pratiš u Mojim prijavama.</T>
       </View>
+      <TaskHead opportunity={opportunity} large={large} />
       {sentFacts}
-    </View> : locked ? <View style={s.section}>
+      <SentMessage note={draft.note} />
+    </View> : <>
+    <TaskHead opportunity={opportunity} large={large} />
+    {locked ? <View style={s.section}>
       {/* The facts of the saved offer stand under their own name: hairline, air, heading, then the facts (r6: the band
           between the task face's hairline and the price fact's own line stood empty). */}
       <T accessibilityRole="header" variant="heading" style={s.ink}>Tvoja ponuda</T>
       {sentFacts}
+      <SentMessage note={draft.note} />
       {/* After a known refusal the same offer is not repeated, so the sentence about repeating it is not said. */}
       {!reset ? <T variant="meta" tone="muted">Termin, cena i broj ljudi ostaju isti.</T> : null}
     </View> : <>
       <View style={s.section}>
         {offers ? <>
-          <Question>Ukupna cena za ljude koje dovodiš</Question>
-          <View style={[s.priceBox, issue.price === 'invalid' && s.fieldDanger]}>
+          <View style={s.amountHeading}>
+            <FactArt kind="money" size={28} />
+            <Question>Ukupna cena</Question>
+          </View>
+          <View style={[s.priceBox, focused === 'price' && s.fieldFocused, issue.price === 'invalid' && s.fieldDanger]}>
             <TextInput accessibilityLabel="Ukupna cena za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
-              editable={!disabled} style={s.priceInput}
+              editable={!disabled} style={s.priceInput} placeholder="Iznos" placeholderTextColor={sys.color.muted}
+              onFocus={() => setFocused('price')} onBlur={() => setFocused(null)}
               accessibilityHint={issue.price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.' : undefined}
               onChangeText={value => { if (!disabled) change({ ...draft, price: value }); }} />
             <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
@@ -336,36 +384,38 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
           <T variant="note" tone="muted">Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.</T>
         </> : <FixedPrice need={need} count={count} />}
       </View>
-      <View style={s.section}>
-        <Question>Koliko ljudi dolazi</Question>
-        {/* A count the price fixes is a fact row like the Termin row (art, value, the reason under it), not a second heading. */}
-        {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo Zadatak`} style={s.term}>
+      <View style={s.terms}>
+      <View style={[s.peopleRow, stackPeople && s.peopleStacked]}>
+        <View style={[s.peopleQuestion, stackPeople && s.unflex]}>
           <FactArt kind="users" size={28} />
+          <View style={s.grow}>
+            <Question>Koliko ljudi dolazi</Question>
+            {!peopleLocked ? <T variant="note" tone={issue.people === 'over' ? 'danger' : 'muted'} accessibilityLiveRegion="polite">
+              {left > 0 ? `Ima mesta za još ${osobuAkuz(left)}.` : 'Sva mesta su popunjena.'}</T> : null}
+          </View>
+        </View>
+        {/* A count the price fixes is a fact row like the Termin row (art, value, the reason under it), not a second heading. */}
+        {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo Zadatak`} style={[s.lockedPeople, stackPeople && s.unflex]}>
           <View style={s.grow}>
             <T variant="bodyStrong" style={s.ink}>{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T>
             <T variant="note" tone="muted">Cena važi za ceo Zadatak</T>
           </View>
-        </View> : <>
-          <View style={s.stepper}>
+        </View> : <View style={[s.stepper, stackPeople && s.stepperStacked]}>
             <ChromeIconButton label="Jedna osoba manje" icon={Minus} disabled={disabled || count === null || count <= 1}
               onPress={() => { if (!disabled && count !== null && count > 1) step(count - 1); }} />
             <TextInput accessibilityLabel="Koliko ljudi dolazi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled}
-              style={[s.peopleInput, issue.people === 'over' && s.fieldDanger]}
+              style={[s.peopleInput, stackPeople && s.peopleInputStacked, issue.people === 'over' && s.fieldDanger]}
               onChangeText={value => { if (!disabled) change({ ...draft, people: value }); }} />
             <ChromeIconButton label="Jedna osoba više" icon={Plus} disabled={disabled || (count !== null ? count >= left : left < 1)}
               onPress={() => { const next = count === null ? 1 : count + 1; if (!disabled && next <= left) step(next); }} />
-          </View>
-          <T variant="note" tone={issue.people === 'over' ? 'danger' : 'muted'} accessibilityLiveRegion="polite">
-            {left > 0 ? `Ima mesta za još ${osobuAkuz(left)}.` : 'Sva mesta su popunjena.'}</T>
-        </>}
+          </View>}
       </View>
-      <View style={s.section}>
-        <Question>Termin</Question>
         <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" accessibilityHint="Otvara izbor tačnog termina"
-          accessibilityValue={{ text: time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={1}
+          accessibilityValue={{ text: time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
           onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} style={s.term}>
           <FactArt kind="calendar" size={28} />
           <View style={s.grow}>
+            <T variant="meta" tone="muted">Termin</T>
             <T variant="bodyStrong" style={s.ink}>{time}</T>
             <T variant="note" tone="muted">{exact ? 'Tvoj predlog' : 'Termin zadatka'}</T>
           </View>
@@ -375,10 +425,12 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       <View style={s.section}>
         <Question optional>Kratka napomena</Question>
         <TextInput accessibilityLabel="Kratka napomena" multiline maxLength={NOTE_LIMIT} value={draft.note} editable={!disabled}
-          style={s.note} placeholder="Npr. šta donosiš ili kada možeš da dođeš." placeholderTextColor={sys.color.muted}
+          style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. šta donosiš ili kada možeš da dođeš." placeholderTextColor={sys.color.muted}
+          onFocus={() => setFocused('note')} onBlur={() => setFocused(null)}
           onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
         {draft.note.length >= NOTE_COUNTER_FROM ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{`Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}`}</T> : null}
       </View>
+    </>}
     </>}
     {editingTime && !disabled && !reviewing ? <ExactTimeSheet draft={draft} timezone={timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
       taskTime={fixed ?? need.vremeTekst} close={() => setEditingTime(false)}
@@ -390,13 +442,12 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       </>}>
       {() => <>
         <View style={s.reviewTask}>
-          <T variant="bodyStrong" style={s.ink} numberOfLines={2}>{readableTitle(opportunity.naslov)}</T>
+          <T variant="meta" tone="muted">Za zadatak</T>
+          <T style={s.taskTitle} numberOfLines={3}>{readableTitle(opportunity.naslov)}</T>
           <T variant="note" tone="muted">{opportunity.podrucjeTekst}</T>
         </View>
         {sentFacts}
-        <DetailSection title="Poruka">
-          <T variant="body" tone={draft.note.trim() ? 'ink' : 'muted'}>{draft.note.trim() || 'Bez dodatne poruke.'}</T>
-        </DetailSection>
+        <SentMessage note={draft.note} />
         <T variant="meta" tone="muted">Ako tvoja ponuda bude izabrana, odmah nastaje Dogovor.</T>
       </>}
     </ProductSheet> : null}
@@ -434,20 +485,49 @@ function FixedPrice({ need, count }: { need: PotrebaProjekcija; count: number | 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
   content: { paddingHorizontal: SIDE, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, gap: sys.space.lg },
-  // The task face: bare on white, a hairline and air under it; the same lines a task card draws, no card.
+  // The context belongs to the draft; it is quieter than the amount without hiding the task's time or capacity.
   task: { gap: sys.space.sm, paddingBottom: sys.space.lg, borderBottomWidth: 1, borderColor: sys.color.line },
-  section: { gap: sys.space.sm },
-  priceBox: { ...fieldBox, minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0 },
-  priceInput: withInter({ ...sys.type.price, flex: 1, minWidth: 0, color: sys.color.ink, paddingVertical: sys.space.sm }),
+  contextLabel: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: sys.space.sm },
+  taskTitle: { ...sys.type.title, color: sys.color.ink },
+  taskFacts: { gap: sys.space.xs },
+  question: { gap: sys.space.xs, flexShrink: 1 },
+  section: { gap: sys.space.md },
+  amountHeading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  priceBox: { ...fieldBox, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
+    backgroundColor: sys.color.surface, paddingVertical: 0, borderColor: sys.color.lineStrong },
+  priceInput: withInter({ ...sys.type.display, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0,
+    color: sys.color.money, paddingVertical: sys.space.md }),
+  fieldFocused: { borderColor: sys.color.green },
   fieldDanger: { borderColor: sys.color.danger },
   fixed: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   fixedValue: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: sys.space.sm, flex: 1, minWidth: 0 },
-  money: { ...sys.type.priceSmall, color: sys.color.money },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  peopleInput: withInter({ ...fieldBox, ...sys.type.price, width: 72, minHeight: 56, textAlign: 'center', color: sys.color.ink, paddingHorizontal: sys.space.sm }),
-  term: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.sm },
-  note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, minHeight: 96, textAlignVertical: 'top' }),
-  outcome: { gap: sys.space.md, alignItems: 'flex-start', paddingBottom: sys.space.sm },
+  money: { ...sys.type.hero, fontVariant: ['tabular-nums'], color: sys.color.money, maxWidth: '100%', flexShrink: 1 },
+  terms: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.lg,
+    borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  peopleStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  peopleQuestion: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, gap: sys.space.md },
+  unflex: { flex: 0 },
+  lockedPeople: { flex: 1, minWidth: 0 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  stepperStacked: { alignSelf: 'stretch' },
+  peopleInput: withInter({ ...sys.type.price, width: 64, minHeight: 56, textAlign: 'center', color: sys.color.ink,
+    paddingHorizontal: sys.space.xs, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control }),
+  peopleInputStacked: { flex: 1, width: undefined, minWidth: 0 },
+  term: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.lg },
+  note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface,
+    minHeight: 120, textAlignVertical: 'top', padding: sys.space.base }),
+  outcome: { gap: sys.space.md, alignItems: 'flex-start', paddingBottom: sys.space.lg },
+  resultTitle: { ...sys.type.hero, color: sys.color.ink },
+  receipt: { gap: sys.space.md },
+  // An amount owns the whole row; its icon must not steal reading width from a long total or enlarged text.
+  receiptAmount: { alignItems: 'flex-start', gap: sys.space.xs, paddingVertical: sys.space.base,
+    borderBottomWidth: 1, borderColor: sys.color.line },
+  receiptLabel: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  receiptMoney: { ...sys.type.display, fontVariant: ['tabular-nums'], color: sys.color.money, maxWidth: '100%' },
+  unknownPrice: { ...sys.type.bodyStrong, color: sys.color.ink },
+  receiptRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
+  sentMessage: { gap: sys.space.sm, borderTopWidth: 1, borderColor: sys.color.line, paddingTop: sys.space.lg },
   reviewTask: { gap: sys.space.xs },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },
   notice: { ...inset, backgroundColor: sys.color.warnSoft, gap: sys.space.xs },

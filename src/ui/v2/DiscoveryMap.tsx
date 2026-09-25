@@ -47,6 +47,15 @@ const CREDITS = [
 
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
+/** The native SDK otherwise clips an over-padded fit to about one pixel. Keep a useful window at large text. */
+function boundedFitPadding(frame: { width: number; height: number }, toolsBottom: number, fitBottom: number) {
+  const top = 75 + toolsBottom, bottom = 24 + fitBottom;
+  const verticalBudget = Math.max(0, frame.height - Math.min(96, frame.height / 2));
+  const verticalScale = Math.min(1, verticalBudget / Math.max(1, top + bottom));
+  const side = Math.floor(Math.min(50, Math.max(0, (frame.width - Math.min(96, frame.width / 2)) / 2)));
+  return { top: Math.floor(top * verticalScale), right: side, bottom: Math.floor(bottom * verticalScale), left: side };
+}
+
 /**
  * Uses installed MapLibre v11 GeoJSON clustering; no map input becomes a business fact. The native source carries
  * only IDs and rounded public points (`publicFeatures`); what a pin says is drawn from the current read, by ID, as a
@@ -75,10 +84,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
   const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
-  // The first fit keeps the pins between the tools and where the list sheet starts: a sheet that starts half open (few
-  // tasks, or many without a pin) would otherwise cover the very pins it was opened beside (review r3 item 3).
+  // Restore a remembered camera verbatim. A new map gets only an unoccluded provisional bounds view: the screen's
+  // first render still holds whole-window sheet estimates, so those must never be frozen into the native camera.
+  const initialFitPending = useRef(!props.viewport && data.features.length > 0);
   const initial = useRef(props.viewport ? { center: props.viewport.center, zoom: props.viewport.zoom }
-    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 24 + (props.fitBottom ?? 56), left: 50 } }
+    : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 24, right: 50, bottom: 24, left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
     mounted.current = true;
@@ -127,6 +137,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
     const properties = feature.properties;
     if (properties?.cluster === true && Number.isInteger(properties.cluster_id)) {
+      initialFitPending.current = false;
       const place = await stackOf(properties.cluster_id, Number(properties.point_count));
       if (!owns() || load.current !== 'ready') return;
       if (place) { latest.current.props.onSelectPlace?.(place); return; }
@@ -142,7 +153,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // Android reports rendered/tile geometry, which need not equal source
       // doubles. Resolve the current public item by ID; its canonical coarse
       // point owns the selected annotation. Never adopt native coordinates.
-      if (point) latest.current.props.onSelect(actual.id);
+      if (point) { initialFitPending.current = false; latest.current.props.onSelect(actual.id); }
     }
   };
   const selected = props.items.find(item => item.id === props.selectedId), point = selected && publicPoint(selected);
@@ -159,6 +170,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     focus.current = key;
     const target = selectedPlace?.point ?? point;
     if (!key || !target) return;
+    initialFitPending.current = false;
     // Bringing the chosen pin into view is the camera's own move: it never becomes the list's area, and a zoom tap the
     // person made just before it is not carried over onto it.
     intent.current = 0;
@@ -200,23 +212,38 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const zoomTarget = useRef<number | null>(null);
   const changeZoom = (delta: number) => {
     if (!owns() || load.current !== 'ready' || !viewport) return;
+    initialFitPending.current = false;
     const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
     zoomTarget.current = next;
     // A zoom button is the person moving the map, though the camera makes the move: the list follows where it settles.
     intent.current = Date.now();
     camera.current?.zoomTo(next, { duration: reduced ? 0 : sys.motion.toggle });
   };
+  // Exactly one first fit after BOTH native frame and screen overlays are measured. It is not a live camera binding:
+  // changing rows, sheet height, tools or font size later cannot take the map away from the person's chosen view.
+  useEffect(() => {
+    if (!initialFitPending.current || status !== 'ready' || !owns()) return;
+    // A deliberate camera destination always wins, even if it is still waiting for the layout below.
+    if (props.fitTo || props.centerNearby) { initialFitPending.current = false; return; }
+    if (!frame || props.cameraLayoutReady === false || !camera.current) return;
+    const bounds = publicInitialBounds(props.items);
+    initialFitPending.current = false;
+    if (!bounds) return;
+    cancelArea(); intent.current = 0;
+    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
+  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // A place chosen in the search: the camera brings its pins into view once, as its own move (never an area).
   const fitted = useRef<number | null>(null);
   useEffect(() => {
     const request = props.fitTo;
-    if (status !== 'ready' || !request || fitted.current === request.key || !owns()) return;
+    if (status !== 'ready' || !request || fitted.current === request.key || !owns() || !frame || props.cameraLayoutReady === false) return;
+    initialFitPending.current = false;
     fitted.current = request.key;
     intent.current = 0;
-    camera.current?.fitBounds?.(request.bounds, { padding: { top: 75 + (props.toolsBottom ?? 0), right: 50, bottom: 24 + request.bottom, left: 50 },
+    camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom),
       duration: reduced ? 0 : sys.motion.camera });
     props.onFitted?.(request.key);
-  }, [props.fitTo?.key, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [props.fitTo?.key, status, props.cameraLayoutReady, frame]); // eslint-disable-line react-hooks/exhaustive-deps
   // One explicit location capture only moves the camera; it is never a pin or an area filter. Its viewport follows
   // the same in-memory screen path as a normal pan. No tracking marker or continuous subscription belongs to the map.
   const centeredNearby = useRef<number | null>(null);
@@ -224,6 +251,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const target = props.centerNearby;
     if (status !== 'ready' || !target || target.key === centeredNearby.current || !owns() || !camera.current) return;
     if (target.center.length !== 2 || !target.center.every(Number.isFinite) || Math.abs(target.center[0]) > 180 || Math.abs(target.center[1]) > 90) return;
+    initialFitPending.current = false;
     centeredNearby.current = target.key;
     cancelArea(); intent.current = 0;
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
@@ -279,7 +307,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // pill's own press is not taken as a tap on the ground under it.
       onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) latest.current.props.onClear?.(); }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
-      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) cancelArea(); }}
+      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
       // phone that left both zoom buttons dead, with no reason beside them, on every fresh open of
@@ -287,7 +315,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // map says where it is; persisting that position upward still waits for ready, so a neutral
       // world overview never becomes the remembered viewport, nor the list's area.
       onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
-        if (value && load.current === 'ready') {
+        if (event.nativeEvent?.userInteraction === true) initialFitPending.current = false;
+        if (value && load.current === 'ready' && !initialFitPending.current) {
           latest.current.props.onViewport(value);
           // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a zoom
           // button or a cluster they tapped. The camera's own moves (the first fit, a chosen pin, a chosen place) never.

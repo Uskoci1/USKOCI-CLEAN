@@ -66,11 +66,11 @@ afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = unde
 describe('the poster without a photo', () => {
   it('stands in with the one Avatar and the poster\'s letters on the row; the profile sheet keeps its own portrait', async () => {
     await render();
-    const [row] = photos(32);
+    const [row] = photos(56);
     expect(row.props).toMatchObject({ profileId: 'requester-a', initial: null });
     // ProfilePhoto draws `fallback` when there is no photo or it cannot be read; it used to draw its own 15 px glyph here.
     expect(row.props.fallback.type).toBe(Avatar);
-    expect(row.props.fallback.props).toEqual({ size: 32, initials: 'AA' });
+    expect(row.props.fallback.props).toEqual({ size: 56, initials: 'AA' });
     // The sheet's 96 px portrait is not the row's: ProfilePhoto keeps its own large stand-in there.
     mockProfile.mockResolvedValue({ profilId: 'requester-a', ime: 'Ana Anić', grad: null, naslov: null, poverenje: null, biografija: null });
     await act(async () => { presentation().props.onRequesterProfile(); });
@@ -82,7 +82,7 @@ describe('the poster without a photo', () => {
   it('draws a person, not invented letters, when the poster has no name', async () => {
     mockLoad.mockResolvedValue(detail({ narucilacIme: '' }));
     await render();
-    expect(photos(32)[0].props.fallback.props).toEqual({ size: 32, initials: null });
+    expect(photos(56)[0].props.fallback.props).toEqual({ size: 56, initials: null });
   });
 
   // Review r3b (vd, should fix 4): the letters come from the copy on screen, so the last loaded copy shown after a failed
@@ -93,7 +93,7 @@ describe('the poster without a photo', () => {
     await act(async () => { presentation().props.retry(); });
     await act(async () => { await Promise.resolve(); });
     expect(presentation().props).toMatchObject({ stale: true, error: true, missing: true });
-    expect(photos(32)[0].props.fallback.props).toEqual({ size: 32, initials: 'AA' });
+    expect(photos(56)[0].props.fallback.props).toEqual({ size: 56, initials: 'AA' });
   });
 });
 

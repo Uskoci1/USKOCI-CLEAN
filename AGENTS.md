@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+R13 PRODUCT EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
+The owner permits creative recomposition: old visual recipes must not force generic or cramped UI. Keep R12's clean
+white reading surfaces, real facts and existing domain/recovery/privacy guards. This batch recomposes Home, task cards,
+search, task detail and offer, with larger portraits, original purpose-made Home art and measured initial map framing.
+Read its CHECKS/RECEIPT for completed verification and native scope; implementation is not phone or store acceptance.
+Preserve larger coherent batches. No backend, payment, provider, dependency or real business mutation.
+
 R12 WHITE SURFACES (2026-09-25): the owner's latest explicit correction rejects mint backgrounds and pale large
 panels. Read `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`. White reading surfaces,
 neutral control wells/rules/shadows; color comes from icons, words, photos and clear actions. This supersedes the
