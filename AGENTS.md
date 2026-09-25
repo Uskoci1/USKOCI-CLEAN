@@ -1,5 +1,16 @@
 # USKOČI — repository entry map
 
+R18 CONTINUITY / REAL JOURNEY (2026-09-25): source `74f514d7`. Read
+`docs/implementation/design-system/r18-continuity-20260925/REPORT.md`, RECEIPT.json and REAL_JOURNEY.md.
+Own-task labels/retry, retained bounded chat refresh, bounded rating enrichment with explicit unknown state,
+and separate AI latest-message row are implemented. Types and 317 suites/6185 tests pass; exact-source loaders pass.
+Attested ABI-specific APKs are installed on phone/emulator. Owner authorized one real DEV test task, necessary
+text AI calls and a smartphone equipment addition; native flow passed through both saved ratings. That paid-AI
+allowance is fulfilled. No server-code/schema, microphone, dependency or payment change. Read exact native limits:
+RC-03 is mitigation, not aggregate; chat paging/incoming and Discovery parity remain. R18-E01–E04 / V01–V03 are open.
+P1 composition is next; no full-app, owner visual or store acceptance. Local control updated; remote chooser failed.
+
+
 PREMIUM RESEARCH PLAN (2026-09-25): read
 `docs/implementation/design-system/premium-research-plan-20260925/PLAN.md` before the next UI batch.
 The owner's research document was mapped to current code, 40 active routes and five redirects, with all
