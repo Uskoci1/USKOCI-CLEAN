@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
+import { ArrowClockwise, PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
@@ -77,10 +77,12 @@ export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljal
 }
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
-function ChatAction({ label, text = label, onPress, tone = 'green', center = false }: { label: string; text?: string; onPress: () => void;
-  tone?: 'green' | 'ink' | 'onMine'; center?: boolean }) {
-  return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress} style={[s.chatAction, center && s.center]}>
-    <T variant="action" style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
+function ChatAction({ label, text = label, onPress, tone = 'green', center = false, refresh = false }: { label: string; text?: string; onPress: () => void;
+  tone?: 'green' | 'ink' | 'onMine'; center?: boolean; refresh?: boolean }) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress}
+    style={[s.chatAction, refresh && s.refreshAction, center && s.center]}>
+    {refresh ? <ArrowClockwise size={16} color={sys.color.green} /> : null}
+    <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
   </Press>;
 }
 
@@ -97,6 +99,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const [chosen, setChosen] = useState<string | null>(null);
   // The photo tools stay behind the pill's "+" until asked for, or while a photo is chosen, prepared or explained.
   const [attachOpen, setAttachOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const list = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const initialScroll = useRef(true);
@@ -175,7 +178,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             stands under the empty state's words, as the error state's action does, not above its drawing (verify r4c
             item 2). */}
         {!error && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-          ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /> : null}
+          ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh /> : null}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
           <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
@@ -188,7 +191,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {terminal ? <T variant="copy" tone="muted" style={s.centerText}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
             <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T>
-            <ChatAction label="Osveži poruke" onPress={() => void refresh()} center /></>}
+            <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh /></>}
         </View> : null}
         {shown.map((message, index) => {
           const moment = messageMoment(message.vremeTekst);
@@ -255,9 +258,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       </View> : null}
       </ScrollView>
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
-        <View style={s.pill}>
+        <View style={[s.pill, focused && s.pillFocused]}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
+            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
             scrollEnabled style={[s.input, compact && { paddingTop: 8, paddingBottom: 8,
               maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 16)) }]} />
           <View style={s.toolbar}>
@@ -294,6 +298,8 @@ const s = StyleSheet.create({
   stateBlock: { gap: 8, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 },
   stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
+  refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
+    borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },
   day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
     borderRadius: sys.radius.control, backgroundColor: sys.conversation.surface, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
   bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
@@ -317,6 +323,7 @@ const s = StyleSheet.create({
   details: { gap: sys.space.sm, paddingTop: sys.space.sm },
   pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
+  pillFocused: { borderColor: sys.color.green },
   toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },

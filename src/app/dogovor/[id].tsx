@@ -357,7 +357,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           : <ProductHeader back={backToAgreements} title="Dogovor" />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-          <AgreementHero agreement={dogovor} />
+          {/* The current step leads; accepted terms remain immediately below it. */}
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
               <T variant="meta" tone="muted">Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.</T>
@@ -373,6 +373,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
             </View> : null}
           </NextStepCard>
+          <AgreementHero agreement={dogovor} />
           {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
           {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
           {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}

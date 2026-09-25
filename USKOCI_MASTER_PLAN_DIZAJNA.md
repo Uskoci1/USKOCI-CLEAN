@@ -20,7 +20,12 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
-R13 is the current composition batch: `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
+R14 continues the product pass: `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
+Stronger reading text at unchanged sizes, clearer Agreement cards/next step, full-width photo recovery, and open
+profile/settings groups are implemented. Types and 314 suites / 6,114 tests pass. R14 APK/native verification is
+recorded separately; R13's installed app must not be mistaken for the new source. No new server or payment behavior.
+
+R13 is the preceding core journey batch: `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
 Home, Discovery cards/search, task detail and offer are rebuilt around their decisions, with clean white surfaces,
 larger portraits and original illustrated Home entry points. Initial map framing waits for measured space.
 The batch receipt separates completed tests, APK and bounded native review. Old visual recipes are not binding layout

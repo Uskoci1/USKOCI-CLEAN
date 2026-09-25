@@ -54,7 +54,9 @@ export function AgreementThreadPresentation({ agreement, person, back, onOvervie
   }}>
     {compact ? <View testID="agreement-thread-compact-bar" style={s.bar}>
       <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={back} />
-      <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" style={s.barTitle}>Poruke</T>
+      <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1} style={s.barTitle}>
+        {person && scale < 1.6 ? person.ime : 'Poruke'}
+      </T>
       <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora: ${title}${waiting ? `. ${waiting}` : ''}`}
         accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka." onPress={onOverview} haptic="select" hitSlop={0} style={s.overview}>
         {waiting ? <View style={s.dot} /> : null}
@@ -75,7 +77,8 @@ const s = StyleSheet.create({
   frame: { flex: 1, minHeight: 0 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: sys.conversation.ground },
   barTitle: { flex: 1, minWidth: 0 },
-  overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 8 },
+  overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.warn },
   tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
   context: { gap: 16, paddingBottom: 24, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: sys.conversation.edge },

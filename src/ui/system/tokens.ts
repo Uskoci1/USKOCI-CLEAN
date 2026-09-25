@@ -39,7 +39,7 @@ export const sys = {
     control: '#E8E8E8',
     iconWell: '#F5F5F5',
     ink: '#202020',
-    muted: '#626262',
+    muted: '#525252',
     green: '#076E4E',
     /** Legacy name: a neutral selection well; the icon, edge or label carries green. */
     greenSoft: '#F3F3F3',
@@ -68,7 +68,7 @@ export const sys = {
     orangeEdge: '#E57917',
     orangeHalo: '#FFD2A8',
     /** A fact beside its icon on a card (where, when): a step darker than muted, so a scanned list reads. */
-    fact: '#4B4B4B',
+    fact: '#404040',
     /** A count that asks for attention, on white: few places left. */
     attentionInk: '#985223',
     /** The words on a waiting chip, which sits on orangeSoft. */
@@ -154,7 +154,7 @@ export const sys = {
      * The answer in voice mode, read at a glance from arm's length while the thread's own `speech` (16/26) is read up
      * close: the same voice, a step larger.
      */
-    speechLarge: { fontSize: 20, lineHeight: 30, fontWeight: '400' } as TextStyle,
+    speechLarge: { fontSize: 20, lineHeight: 30, fontWeight: '500' } as TextStyle,
   },
   /**
    * Motion, in milliseconds. Short, and only on a real change of state: a press, a switch, something arriving or

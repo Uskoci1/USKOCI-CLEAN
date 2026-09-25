@@ -52,11 +52,11 @@ it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on
   expect(mockWrite).not.toHaveBeenCalled();
 });
 
-it('keeps regular profile fields and the bold capacity input on their bundled Inter faces', async () => {
+it('keeps medium profile fields and the bold capacity input on their bundled Inter faces', async () => {
   await render();
   const name = StyleSheet.flatten(control('Ime na radnom profilu').props.style);
   const capacity = StyleSheet.flatten(control('Koliko ljudi možeš da obezbediš').props.style);
-  expect(name.fontFamily).toBe('Inter-Regular');
+  expect(name.fontFamily).toBe('Inter-Medium');
   expect(name.fontWeight).toBeUndefined();
   expect(capacity).toMatchObject({ fontFamily: 'Inter-Bold', fontVariant: ['tabular-nums'], fontSize: 20, lineHeight: 26 });
   expect(capacity.fontWeight).toBeUndefined();

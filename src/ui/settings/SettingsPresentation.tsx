@@ -14,11 +14,11 @@ import { V2Action } from '../v2/V2Action';
  * Shared settings system: every profile/account/support/legal surface is built
  * from these pieces, so restyling them here moves the whole family at once.
  * Exports, props and spoken labels are unchanged; native text stays scalable and
- * no row has a fixed height. White screen, one card per group, rows with a 40px
- * icon disc, a 16/600 label and a 14px detail; one green brand action per screen.
+ * no row has a fixed height. White screen, open groups, colored artwork beside a
+ * 16/600 label and a 14px detail; one green brand action per screen.
  *
- * One rhythm (step 11a, 2026-09-24): blocks are 24 apart and carry no margins of their own, every row is at least
- * 56 dp (12 over and under its words), a group's name is a quiet 13 px line and not a tracked capital label, and a
+ * R14 rhythm: blocks are 28 apart and carry no margins of their own, every row is at least
+ * 56 dp, a group's name is a strong 13 px line rather than a tracked capital label, and a
  * control that cannot be used now draws its words in muted ink instead of fading into a ghost. A destructive row is
  * the last row of the last group, in the danger colour.
  */
@@ -61,13 +61,13 @@ export function SettingsIntro({ title, children }: { kicker?: string; title?: st
 }
 
 /**
- * Rows that belong together, in one card. The name above it is optional and quiet (13 px, muted): it names the group
- * for a screen reader as a header, and it is not an eyebrow. The line under it, when given, says what the whole group
- * means once instead of on every row.
+ * Related settings form an open section, not another rounded box. The small ink title and whitespace separate
+ * purposes; rules separate commands. The optional footer explains the section once. Forms/decisions can still use
+ * SettingsPanel when they need a contained surface.
  */
 export function SettingsGroup({ title, footer, children }: { title?: string; footer?: string; children: ReactNode }) {
   return <View style={styles.group}>
-    {title ? <SettingsText variant="meta" tone="muted" accessibilityRole="header" style={styles.groupTitle}>{title}</SettingsText> : null}
+    {title ? <SettingsText variant="meta" accessibilityRole="header" style={styles.groupTitle}>{title}</SettingsText> : null}
     <View style={styles.list}>{children}</View>
     {footer ? <SettingsText variant="note" tone="muted" style={styles.groupFooter}>{footer}</SettingsText> : null}
   </View>;
@@ -197,8 +197,8 @@ export const settingsStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, flexGrow: 1, gap: 24 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, gap: 8 },
+  content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32, flexGrow: 1, gap: 28 },
+  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, gap: 8 },
   body: { ...sys.type.body },
   strong: { ...sys.type.bodyStrong },
   meta: { ...sys.type.meta, fontWeight: '500' },
@@ -209,11 +209,11 @@ const styles = StyleSheet.create({
   intro: { paddingTop: 0, gap: 6 },
   lead: { marginTop: 0 },
   group: { gap: 8 },
-  groupTitle: { fontWeight: '600', paddingHorizontal: 4 },
-  groupFooter: { paddingHorizontal: 4 },
-  list: { ...card, padding: 0, paddingHorizontal: 16 },
-  row: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', gap: 12, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  rowIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
+  groupTitle: { fontWeight: '700' },
+  groupFooter: { paddingTop: 4 },
+  list: { backgroundColor: sys.color.surface },
+  row: { minHeight: 56, paddingVertical: 14, flexDirection: 'row', gap: 12, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  rowIcon: { width: 32, height: 40, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   rowIconDanger: { backgroundColor: sys.color.dangerSoft },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
   person: { minHeight: 56, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sys.color.line },

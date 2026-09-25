@@ -19,8 +19,9 @@ const SIX = 'Već je izabrano 6 fotografija.';
 
 /**
  * The photo tray behind the "+" of Poruke (round 6): the two tools first, because they are what the tray was opened
- * for, then the rule of the photos in one line, then the prepared photos as a row of thumbnails, each with its state and
- * its own remove or retry. Every call is the photos controller's own; nothing here picks, sends or deletes by itself.
+ * for, then the privacy/size rule and selected photos. Ready photos share a compact strip; pending/reserved/retry
+ * explanations get full reading width with their exact remove or retry. Every call is the photos controller's own;
+ * nothing here picks, sends or deletes by itself.
  * Every command is spoken by its visible words first, so a person who says what they see is understood.
  */
 export function AgreementPhotoComposer({ photos, capturing }: { photos: AgreementPhotosController; capturing: boolean }) {
@@ -33,6 +34,36 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
   const pending = photos.items.some(item => !item.receipt || !['READY', 'CANCELLED', 'FAILED'].includes(item.receipt.state));
   const why = !tools || disabled ? null : pending ? 'Prvo sačekaj ishod fotografije koja se šalje.' : photos.items.length >= 6 ? SIX
     : photos.loaded ? 'Osveži uslove Dogovora pre nove fotografije.' : null;
+  // Ready thumbnails can share a strip. A recovery sentence cannot fit inside a 96 dp picture, especially with
+  // enlarged text: give the selected set full-width rows until every explanation can retire. The order and the
+  // controller's reserved/retry decisions stay exactly the same.
+  const preparedItems = photos.items.map(item => {
+    const reserved = photos.reserved(item);
+    return { item, reserved, retry: !reserved && photos.canRetry(item.ref.clientRequestId) && item.receipt?.state !== 'READY' };
+  });
+  const roomy = preparedItems.some(({ item, reserved, retry }) => !item.receipt?.photo || reserved || retry);
+  const prepared = preparedItems.map(({ item, reserved, retry }, index) => <View key={item.ref.clientRequestId}
+    testID={`agreement-photo-item-${index + 1}`} style={roomy ? s.recoveryItem : s.item}>
+    {roomy ? <View style={s.recoveryHeading}>
+      {item.receipt?.photo ? <AuthorizedPhoto assetId={item.receipt.photo.assetId} agreementId={photos.agreementId}
+        label={`Pripremljena fotografija ${index + 1}`} contentFit="cover" style={s.recoveryThumb} />
+        : <View style={s.recoveryArt}><ImageIcon size={24} color={sys.color.muted} /></View>}
+      <T variant="bodyStrong" style={s.flex}>{`Fotografija ${index + 1}`}</T>
+    </View> : item.receipt?.photo ? <AuthorizedPhoto assetId={item.receipt.photo.assetId} agreementId={photos.agreementId}
+      label={`Pripremljena fotografija ${index + 1}`} contentFit="cover" style={s.thumb} /> : null}
+    {!item.receipt?.photo ? <T variant="meta" tone="muted">{item.receipt?.state === 'ABSENT'
+      ? 'Slanje fotografije nije započeto.' : 'Ishod slanja fotografije još nije potvrđen.'}</T> : null}
+    {reserved ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proveri njen ishod.</T> : <View style={roomy ? s.recoveryActions : undefined}>
+      <Press accessibilityRole="button" accessibilityLabel={`Ukloni pripremljenu fotografiju ${index + 1}`} accessibilityState={{ disabled }} disabled={disabled}
+        onPress={() => { void photos.remove(item.ref); }} style={s.text}>
+        <T variant="meta" style={disabled ? s.toolOff : s.toolOn}>Ukloni</T>
+      </Press>
+      {retry ? <Press accessibilityRole="button" accessibilityLabel={`Proveri i ponovi fotografiju ${index + 1}`}
+        accessibilityState={{ disabled }} disabled={disabled} onPress={() => { void photos.retry(item.ref); }} style={s.text}>
+        <T variant="meta" style={disabled ? s.toolOff : s.toolOn}>Proveri i ponovi</T>
+      </Press> : null}
+    </View>}
+  </View>);
   return <View style={s.tray}>
     <View style={s.tools}>
       <Press accessibilityRole="button" accessibilityLabel="Galerija · dodaj fotografiju" accessibilityHint={why ?? undefined}
@@ -58,27 +89,8 @@ export function AgreementPhotoComposer({ photos, capturing }: { photos: Agreemen
     {photos.message === PHOTO_PERMISSION_MESSAGE ? <PermissionRecovery compact message={photos.message} alternative="Dodaj fotografiju iz galerije" onAlternative={() => { void photos.pick('LIBRARY'); }} />
       : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
     {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Ukloni fotografije pripremljene za raniju verziju i ponovo ih izaberi uz važeće uslove.</T> : null}
-    {/* A row scrolls sideways, so it takes the height of its tallest photo and its actions: a height cap would clip the
-        retry of a photo still on its way (review r6). */}
-    {photos.items.length ? <ScrollView horizontal keyboardShouldPersistTaps="handled" contentContainerStyle={s.row}>
-      {photos.items.map((item, index) => <View key={item.ref.clientRequestId} style={s.item}>
-        {item.receipt?.photo ? <AuthorizedPhoto assetId={item.receipt.photo.assetId} agreementId={photos.agreementId}
-          label={`Pripremljena fotografija ${index + 1}`} contentFit="cover" style={s.thumb} />
-          : <View style={s.pending}><T variant="meta" tone="muted">{item.receipt?.state === 'ABSENT' ? 'Slanje fotografije nije započeto.' : 'Ishod slanja fotografije još nije potvrđen.'}</T></View>}
-        {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proveri njen ishod.</T> : <>
-          {/* Both commands under a photo are green text like the rest of the tray: a command is never plain ink. */}
-          <Press accessibilityRole="button" accessibilityLabel={`Ukloni pripremljenu fotografiju ${index + 1}`} accessibilityState={{ disabled }} disabled={disabled}
-            onPress={() => { void photos.remove(item.ref); }} style={s.text}>
-            <T variant="meta" style={disabled ? s.toolOff : s.toolOn}>Ukloni</T>
-          </Press>
-          {photos.canRetry(item.ref.clientRequestId) && item.receipt?.state !== 'READY' ? <Press accessibilityRole="button"
-            accessibilityLabel={`Proveri i ponovi fotografiju ${index + 1}`} accessibilityState={{ disabled }} disabled={disabled}
-            onPress={() => { void photos.retry(item.ref); }} style={s.text}>
-            <T variant="meta" style={disabled ? s.toolOff : s.toolOn}>Proveri i ponovi</T>
-          </Press> : null}
-        </>}
-      </View>)}
-    </ScrollView> : null}
+    {photos.items.length ? roomy ? <View testID="agreement-photo-recovery-list" style={s.recoveryList}>{prepared}</View>
+      : <ScrollView horizontal keyboardShouldPersistTaps="handled" contentContainerStyle={s.row}>{prepared}</ScrollView> : null}
     {photos.saved.length ? <>
       <Press accessibilityRole="button" accessibilityLabel="Prikaži ranije pripremljene fotografije" accessibilityState={{ disabled, expanded: showSaved }}
         disabled={disabled} onPress={() => setShowSaved(old => !old)} style={s.disclosure}>
@@ -111,8 +123,13 @@ const s = StyleSheet.create({
   row: { gap: sys.space.md },
   item: { width: THUMB + sys.space.base, gap: 2 },
   thumb: { width: THUMB, height: THUMB, borderRadius: sys.radius.control, overflow: 'hidden' },
-  // A photo still on its way is a tinted square of the same width that may grow with its sentence at a large text size.
-  pending: { width: THUMB, minHeight: THUMB, borderRadius: sys.radius.control, backgroundColor: sys.color.wash, padding: sys.space.sm, justifyContent: 'center' },
+  recoveryList: { gap: sys.space.base },
+  recoveryItem: { alignSelf: 'stretch', gap: sys.space.sm, paddingTop: sys.space.base, borderTopWidth: 1, borderColor: sys.color.line },
+  recoveryHeading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  recoveryArt: { width: 48, height: 48, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.lineStrong,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
+  recoveryThumb: { width: 64, height: 64, borderRadius: sys.radius.control, overflow: 'hidden' },
+  recoveryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.base },
   disclosure: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   flex: { flex: 1 },
 });

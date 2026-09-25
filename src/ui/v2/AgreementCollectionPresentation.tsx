@@ -21,7 +21,7 @@ import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { agreementPeople, agreementRole, agreementStateText, agreementTerm } from './AgreementPresentation';
 import { CARD_PRESS_SCALE } from './TaskCard';
-import { CardFact, WaitingDot, faceStyles } from './TaskFace';
+import { WaitingDot, faceStyles } from './TaskFace';
 
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
 export type AgreementCollectionSection = 'active' | 'history';
@@ -46,12 +46,12 @@ const awaitsMyRating = (item: DogovorProjekcija) => item.stanje === 'COMPLETED' 
 const isActive = (item: DogovorProjekcija) => item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER' || awaitsMyRating(item);
 const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
-const Separator = () => <View style={{ height: 12 }} />;
+const Separator = () => <View style={{ height: 20 }} />;
 const keyOf = (item: DogovorProjekcija) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
-/** The other person's face on a card: the list-row step of the one Avatar scale, the photo at the same size. */
-const AVATAR = 40;
+/** Recognize the person before opening their agreement; photos and fallback share the same footprint. */
+const AVATAR = 56;
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 type Attention = { kind: 'change' | 'confirm' | 'rate'; title: string; line: string };
@@ -87,8 +87,8 @@ function AttentionFoot({ attention }: { attention: Attention }) {
 
 /**
  * One Dogovor, person first (owner step 8): the other person and what they are to me, the state when it says
- * something, the task, then the accepted facts one per line — the term as one full line with its zone under it, the
- * agreed amount with what it covers, the place and, beyond one person, how many. The body is one press that opens the
+ * something, the task, then the accepted logistics and a separate amount line. The full term keeps its zone under it;
+ * the place and, beyond one person, how many remain visible. The body is one press that opens the
  * Dogovor, with no caret: the whole card is the target (B16). When the Dogovor waits for me, its foot says what for;
  * the rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2).
  * Nothing is drawn that the list does not carry: no last message, no rating, no date heading built from the task.
@@ -133,30 +133,34 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
         <View style={s.person}>
           {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
           <View style={s.personCopy}>
-            <T style={s.personName} numberOfLines={1}>{name}</T>
-            {role ? <T variant="meta" tone="muted" numberOfLines={1}>{role}</T> : null}
+            <T style={s.personName} numberOfLines={2}>{name}</T>
+            {role ? <T variant="meta" tone="muted" numberOfLines={2}>{role}</T> : null}
+            {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
+              <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
           </View>
         </View>
-        {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
-          <T variant="label" style={[s.status, { color: tone }]}>{status}{item.verzija > 1 ? ` · verzija ${item.verzija}` : ''}</T></View> : null}
         <T style={s.title} numberOfLines={3}>{title}</T>
         <View style={s.facts}>
           {/* The term is the Dogovor's own fact: one full line, the zone note on its own quiet line (B15). */}
           <View style={s.fact}>
-            <View style={s.art}><FactArt kind="calendar" size={16} /></View>
+            <View style={s.art}><FactArt kind="calendar" size={20} /></View>
             <View style={s.factCopy}>
               <T style={s.term} numberOfLines={2}>{term.line}</T>
               {term.zone ? <T style={s.zone}>{term.zone}</T> : null}
             </View>
           </View>
-          {/* A missing amount is said in words and never wears the amount's green or its "ukupno". */}
           <View style={s.fact}>
-            <View style={s.art}><FactArt kind="money" size={16} /></View>
-            {amount ? <T style={s.factCopy}><T style={s.amount}>{amount}</T><T style={s.basis}> ukupno</T></T>
-              : <T style={[s.factCopy, s.noAmount]}>{BEZ_IZNOSA}</T>}
+            <View style={s.art}><FactArt kind={remote ? 'remote' : 'pin'} size={20} /></View>
+            <T style={[s.factCopy, s.factText]}>{place}</T>
           </View>
-          <CardFact art={<FactArt kind={remote ? 'remote' : 'pin'} size={16} />} text={place} />
-          {people ? <CardFact art={<FactArt kind="users" size={16} />} text={people} /> : null}
+          {people ? <View style={s.fact}><View style={s.art}><FactArt kind="users" size={20} /></View>
+            <T style={[s.factCopy, s.factText]}>{people}</T></View> : null}
+        </View>
+        {/* Accepted money has its own reading line. Missing money remains a sentence, never a monetary emphasis. */}
+        <View style={s.acceptedPrice}>
+          <View style={s.art}><FactArt kind="money" size={20} /></View>
+          {amount ? <T style={s.factCopy}><T style={s.amount}>{amount}</T><T style={s.basis}> ukupno</T></T>
+            : <T style={[s.factCopy, s.noAmount]}>{BEZ_IZNOSA}</T>}
         </View>
         {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
         {ownProposal ? <View style={s.note}><FactArt kind="clock" size={16} muted />
@@ -282,25 +286,26 @@ const s = StyleSheet.create({
   tabTrack: { borderBottomWidth: 0 },
   toolbar: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingTop: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
+  chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.surface },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
-  list: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 28, flexGrow: 1 },
+  list: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },
   // The shared card: white, the card corner, one hairline and no shadow. The body carries the padding, so the whole
   // card stays one target up to its edge; the foot is the wash under one hairline (`ownerFoot`).
   card: { ...cardCompact, padding: 0 },
   body: { borderRadius: sys.radius.cardCompact },
-  main: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, gap: 10 },
+  main: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, gap: 16 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  personCopy: { flex: 1, minWidth: 0 },
+  personCopy: { flex: 1, minWidth: 0, gap: 3 },
   personName: { fontSize: 16, lineHeight: 21, fontWeight: '700', color: sys.color.ink },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0.3 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0 },
   title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
-  facts: { gap: 4 },
-  // The same fact column as a task card: a 16 px drawing in a 16 × 19 box, 8 px to the words.
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  art: { width: 16, height: 19, alignItems: 'center', justifyContent: 'center' },
+  facts: { gap: 10 },
+  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  art: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
+  factText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.ink },
+  acceptedPrice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   // The term is what a Dogovor is about beside the person, so it reads a step stronger than the other facts.
   term: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.ink, fontVariant: ['tabular-nums'] },
   zone: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },

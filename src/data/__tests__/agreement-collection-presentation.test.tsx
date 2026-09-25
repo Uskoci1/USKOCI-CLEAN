@@ -72,7 +72,7 @@ test('a person without a name gets the drawn person, never an empty disc, on the
   const people = () => tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'person');
   const emptyLetters = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.children.length === 0 || node.children.every(child => child === ''));
   rows = [nameless]; await render();
-  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]);
+  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 56]]);
   expect(people()).toHaveLength(1); expect(emptyLetters()).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<AgreementPersonBar person={nameless.ucesnici[1]} back={() => {}} />); });

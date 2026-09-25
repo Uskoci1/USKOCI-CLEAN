@@ -87,6 +87,9 @@ it('responds to the measured keyboard space without remounting the draft or losi
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   await measure(410);
   expect(tree.root.findAllByType(AgreementPersonBar)).toHaveLength(0);
+  // At ordinary text size the keyboard bar still names whom I am replying to; the full identity remains in history.
+  expect(button(`Poruke: ${agreement.ucesnici[0].ime}`).props.children).toBe(agreement.ucesnici[0].ime);
+  expect(text(history().findByProps({ testID: 'agreement-thread-context' }))).toContain(agreement.ucesnici[0].ime);
   expect(button('Napiši poruku')).toBe(input);
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
   expect(tray.props.photos).toBe(props.chat.photos);

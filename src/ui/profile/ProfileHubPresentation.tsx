@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { SignOut, Camera } from 'phosphor-react-native';
+import { SignOut, Camera, CaretRight } from 'phosphor-react-native';
 import { FactArt } from '../system/FactArt';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
@@ -30,11 +30,10 @@ export type ProfileHubIdentity =
       /** The rating line under the name, or nothing. */ reputation: ReactNode };
 
 /**
- * The profile hub (2026-09-24): the person first — photo, name, place and rating in one identity row — and then short
- * grouped rows to everything they set up. A row says a state, never where it goes. The name is edited in its own row
- * ("Ime na profilu"): one control per job. On a narrow phone, with large text or with a long name the identity stacks
- * (photo on top), so a 28 px name never breaks into three lines beside the photo. Logout is a quiet action; there is no
- * primary action here.
+ * The profile hub: identity and its edit action, work setup, two everyday schedule shortcuts, then account/help and
+ * privacy. Open sections carry the hierarchy; only the two independent shortcuts need a surface of their own.
+ * A row says the actual read state. The name is edited once, immediately below the identity. Narrow phones, large
+ * text and long names stack the identity without truncating it. Logout is quiet; there is no primary action here.
  * Presentation only: the route owns the reads, the single-flight guard and logout.
  */
 export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, onBack, onLogout, logoutError, stacked: forced }: {
@@ -43,16 +42,17 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
   /** A fixed layout for the design gallery; otherwise it follows the width and the rounded text scale. */ stacked?: boolean;
 }) {
   const { width } = useWindowDimensions(), textScale = useTextScale();
-  // A long name stacks too: beside the photo a 28 px name of more than about 24 letters needs three lines at 390 dp, and a
+  // A long name stacks too: beside the photo a name of more than about 24 letters needs multiple lines at 390 dp, and a
   // person's own name is never cut with an ellipsis (review of step 9, 2026-09-24). The letters are weighed by the text
   // scale, so a larger text stacks a shorter name; stacked, the name takes every line it needs (round 5c).
   const longName = identity.state === 'ready' && (identity.name?.length ?? 0) * textScale > LONG_NAME;
   const stacked = forced ?? (width < 360 || textScale >= 1.3 || longName);
+  const stackedShortcuts = forced ?? (width < 360 || textScale >= 1.3);
   const nameLines = stacked ? undefined : 2;
   const row = [s.identity, stacked && s.stacked];
   const copy = [s.copy, stacked && s.copyStacked];
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>
-    <View style={styles.identity}>
+    <View style={s.identitySection}>
       {identity.state === 'loading' ? <View testID="profile-identity" accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={row}>
         {/* The shape of what is coming, standing still: the photo's disc, and one quiet line where the name will be. */}
         <View style={s.skeletonDisc} />
@@ -73,28 +73,35 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
           {identity.photoReady ? <View style={[styles.avatarBadge, BADGE]}><Camera size={14} color={sys.color.ink} /></View> : null}
         </Press>
         <View style={copy}>
-          {identity.name ? <T variant="display" accessibilityRole="header" style={styles.name} numberOfLines={nameLines}>{identity.name}</T>
-            : <T variant="display" tone="muted" accessibilityRole="header" style={styles.name} numberOfLines={nameLines}>Ime još nije uneto</T>}
+          {identity.name ? <T variant="title" accessibilityRole="header" style={s.name} numberOfLines={nameLines}>{identity.name}</T>
+            : <T variant="title" tone="muted" accessibilityRole="header" style={s.name} numberOfLines={nameLines}>Ime još nije uneto</T>}
           {identity.place ? <View style={styles.identityCity}><FactArt kind="pin" size={18} />
             <T variant="copy" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
           {identity.reputation}
         </View>
       </View>}
+      <SettingsRow label="Ime na profilu" icon={<FactArt kind="person" size={26} />} disabled={busy} last
+        onPress={() => open('/profil/podaci')} />
     </View>
 
     <SettingsGroup title="Kako mogu da uskočim">
       {/* The one fact that decides whether a task is ever offered to you is whether this part is set up and active. */}
       <SettingsRow label="Veštine, alat i tim" detail={capabilityDetail} icon={<FactArt kind="users" size={26} />} disabled={busy}
         onPress={() => open('/profil/radnik')} />
-      <SettingsRow label="Područje rada" detail={workArea} icon={<FactArt kind="pin" size={26} />} disabled={busy}
+      <SettingsRow label="Područje rada" detail={workArea} icon={<FactArt kind="pin" size={26} />} disabled={busy} last
         onPress={() => open('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" icon={<FactArt kind="clock" size={26} />} disabled={busy} onPress={() => open('/profil/dostupnost')} />
-      <SettingsRow label="Kalendar obaveza" icon={<FactArt kind="calendar" size={26} />} disabled={busy} last onPress={() => open('/raspored')} />
+      <View style={[s.shortcuts, stackedShortcuts && s.shortcutsStacked]}>
+        <ProfileShortcut label="Dostupnost" kind="clock" stacked={stackedShortcuts} disabled={busy} onPress={() => open('/profil/dostupnost')} />
+        <ProfileShortcut label="Kalendar obaveza" kind="calendar" stacked={stackedShortcuts} disabled={busy} onPress={() => open('/raspored')} />
+      </View>
     </SettingsGroup>
-    <SettingsGroup title="Nalog">
-      <SettingsRow label="Ime na profilu" icon={<FactArt kind="person" size={26} />} disabled={busy} onPress={() => open('/profil/podaci')} />
-      <SettingsRow label="Podešavanja obaveštenja" icon={<FactArt kind="bell" size={26} />} disabled={busy} last
+    <SettingsGroup title="Nalog i pomoć">
+      <SettingsRow label="Podešavanja obaveštenja" icon={<FactArt kind="bell" size={26} />} disabled={busy}
         onPress={() => open('/profil/obavestenja')} />
+      {/* The detail names the right to a new review, not just a generic contact link. */}
+      <SettingsRow label="Podrška" detail="Privatni zahtevi, odgovori i ponovni pregled." icon={<FactArt kind="support" size={26} />}
+        disabled={busy} onPress={() => open('/podrska')} />
+      <SettingsRow label="O aplikaciji" icon={<FactArt kind="info" size={26} />} disabled={busy} last onPress={() => open('/profil/o-aplikaciji')} />
     </SettingsGroup>
     {/* Needed once in a long while, so these rows sit lower and without the icon disc. Their words are privacy wording and
         stay as they are; "Privatnost i podaci" is the one visible way to closing the account. */}
@@ -108,12 +115,6 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
       <SettingsRow compact label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka."
         disabled={busy} last onPress={() => open('/profil/pravna')} />
     </SettingsGroup>
-    <SettingsGroup title="USKOČI">
-      {/* The detail stays: it names the right to a new review. */}
-      <SettingsRow label="Podrška" detail="Privatni zahtevi, odgovori i ponovni pregled." icon={<FactArt kind="support" size={26} />}
-        disabled={busy} onPress={() => open('/podrska')} />
-      <SettingsRow label="O aplikaciji" icon={<FactArt kind="info" size={26} />} disabled={busy} last onPress={() => open('/profil/o-aplikaciji')} />
-    </SettingsGroup>
     <View style={styles.logout}>
       {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Probaj ponovo.</T> : null}
       <SettingsAction label={busy ? 'Sačekaj…' : 'Odjavi se'} kind="quiet" disabled={busy}
@@ -123,12 +124,32 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
   </SettingsScreen>;
 }
 
+/** Two recurring commands, never a guessed availability state or an invented calendar count. */
+function ProfileShortcut({ label, kind, stacked, disabled, onPress }: {
+  label: string; kind: 'clock' | 'calendar'; stacked: boolean; disabled: boolean; onPress: () => void;
+}) {
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
+    haptic={disabled ? 'none' : 'select'} scaleTo={0.98} onPress={onPress} style={[s.shortcut, stacked && s.shortcutStacked]}>
+    <View style={s.shortcutTop}><FactArt kind={kind} size={30} muted={disabled} />
+      <CaretRight size={18} color={sys.color.muted} /></View>
+    <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'}>{label}</T>
+  </Press>;
+}
+
 const s = StyleSheet.create({
+  identitySection: { gap: 16, paddingTop: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stacked: { flexDirection: 'column', alignItems: 'flex-start', gap: 12 },
   copy: { flex: 1, minWidth: 0, gap: 4 },
   copyStacked: { flex: 0, alignSelf: 'stretch' },
   shrink: { flexShrink: 1 },
   retry: { alignSelf: 'flex-start', marginTop: 4 },
+  name: { ...sys.type.title, letterSpacing: -0.5 },
+  shortcuts: { flexDirection: 'row', gap: 12, paddingTop: 12 },
+  shortcutsStacked: { flexDirection: 'column' },
+  shortcut: { flex: 1, minWidth: 0, gap: 12, padding: 16, borderRadius: sys.radius.cardCompact,
+    borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
+  shortcutStacked: { flex: 0 },
+  shortcutTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   skeletonDisc: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill, backgroundColor: sys.color.skeleton },
 });

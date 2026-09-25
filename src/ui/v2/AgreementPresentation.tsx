@@ -136,17 +136,22 @@ export function AgreementHero({ agreement: a, compact = false, onOpen, waiting =
     <CaretRight size={18} color={sys.color.muted} />
   </Press>;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
-  // The same facts as a task, in the same order, so an agreed Dogovor reads like the task it grew out of.
+  // Separate accepted logistics from the accepted total. No current-task edit can change either of these facts.
   return <View style={s.hero}>
+    <View style={s.termsHeading}>
+      <T variant="meta" style={s.termsLabel}>Prihvaćeni uslovi</T>
+      {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
+    </View>
     <ProductTitle>{readableTitle(a.naslov)}</ProductTitle>
     <View style={s.facts}>
       <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
       <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
       {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
-      {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
+    </View>
+    {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
+    <View style={s.acceptedPrice}>
       <AgreementFact art="money" label="Dogovoreno ukupno" value={amount || BEZ_IZNOSA} basis={amount ? 'ukupno' : null} money={/\d/.test(amount)} />
     </View>
-    {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
   </View>;
 }
 
@@ -179,18 +184,21 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { gap: 12 },
-  facts: { gap: 4 },
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 7 },
+  hero: { gap: 16 },
+  termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  termsLabel: { color: sys.color.muted, fontWeight: '600' },
+  facts: { gap: 8 },
+  acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 8 },
+  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
   // The box is the drawing's own 24, so it does not spill 1 px over and under (review r4 rd, small note).
   factArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
   factValue: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: sys.color.ink },
   factMoney: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
   factBasis: { fontSize: 14, lineHeight: 22, fontWeight: '500', color: sys.color.muted },
-  // Inside the conversation's head it is a flat tint at the control corner, never a card with its own edge.
+  // The accepted-summary shortcut stays light; a hairline separates it from the transcript without another tinted box.
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: 12,
-    borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+    borderBottomWidth: 1, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
   // The waiting foot's line (TaskFace `CardWaitingLine`), allowed a second line: a whole step does not fit one.
   waiting: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   waitingText: { flexShrink: 1, fontWeight: '700', color: sys.color.warn },

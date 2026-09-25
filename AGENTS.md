@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+R14 READABLE EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
+The owner's latest direction is stronger readable type, without enlarging normal letters or prices. Body/copy/note/
+speech use bundled Inter Medium; secondary ink is darker. Agreement cards separate identity/logistics/total; the
+actual overview and gallery put the existing next step first. Chat photo recovery has full reading width. Profile
+and settings use open purpose-based groups. Preserve all actual facts/commands/recovery, white surfaces and existing
+fluid motion. Combined types and 314 suites / 6,114 tests pass; APK/native acceptance is separate in the R14 receipt.
+No backend, payment, provider or dependency change. Keep coherent batches, not an APK for every small style edit.
+
 R13 PRODUCT EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
 The owner permits creative recomposition: old visual recipes must not force generic or cramped UI. Keep R12's clean
 white reading surfaces, real facts and existing domain/recovery/privacy guards. This batch recomposes Home, task cards,

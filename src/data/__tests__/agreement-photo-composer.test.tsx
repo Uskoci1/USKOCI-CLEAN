@@ -21,7 +21,7 @@ beforeEach(() => { photos = { agreementId: gid, loaded: true, busy: false, items
   retry: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), restore: jest.fn().mockResolvedValue(undefined) }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 // Round 6: every command is spoken by its visible words first ("Galerija", "Kamera", "Osveži fotografije", "Proveri i ponovi").
-it('starts only an explicit picker, keeps media uncertainty recoverable, and bounds the independent preview scroller', async () => {
+it('starts only an explicit picker and gives an uncertain photo full reading width without hiding its exact remove command', async () => {
   photos.items = [{ ref, receipt: null }]; photos.available = false; photos.message = 'Ishod nije potvrđen.';
   await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.refresh).not.toHaveBeenCalled();
@@ -30,10 +30,29 @@ it('starts only an explicit picker, keeps media uncertainty recoverable, and bou
   // The tools are grey because a photo is still on its way: the tray says so, and the tools speak it as their hint.
   expect(texts()).toContain('Prvo sačekaj ishod fotografije koja se šalje.');
   expect(button('Kamera · fotografiši za poruku').props.accessibilityHint).toBe('Prvo sačekaj ishod fotografije koja se šalje.');
-  // The prepared photos are a sideways row: it takes the height of its tallest item, so no action under a photo is clipped.
-  const row = tree.root.findByType('ScrollView' as React.ElementType).props; expect(row.horizontal).toBe(true); expect(row.style?.maxHeight).toBeUndefined();
+  // R14: recovery words must not be squeezed into the horizontal thumbnail strip (R11-N02).
+  const row = tree.root.findByProps({ testID: 'agreement-photo-recovery-list' });
+  const explanation = row.findAllByType('T' as React.ElementType).find(node => node.props.children === 'Ishod slanja fotografije još nije potvrđen.');
+  expect(explanation).toBeDefined();
+  expect(tree.root.findAllByType('ScrollView' as React.ElementType)).toHaveLength(0);
+  expect(row.findByProps({ testID: 'agreement-photo-item-1' }).props.style.width).toBeUndefined();
   await act(async () => button('Ukloni pripremljenu fotografiju 1').props.onPress()); expect(photos.remove).toHaveBeenCalledWith(ref);
   await act(async () => button('Osveži fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
+});
+
+it('keeps ready photos in the compact strip and expands reserved explanations without enabling removal or retry', async () => {
+  photos.items = [{ ref, receipt }]; photos.canRetry = jest.fn(() => true);
+  await act(async () => { tree = create(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  expect(tree.root.findByType('ScrollView' as React.ElementType).props.horizontal).toBe(true);
+  expect(tree.root.findAllByProps({ testID: 'agreement-photo-recovery-list' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i ponovi fotografiju 1' })).toHaveLength(0);
+  photos = { ...photos, reserved: () => true };
+  await act(async () => { tree.update(<AgreementPhotoComposer photos={photos} capturing={false} />); });
+  const recovery = tree.root.findByProps({ testID: 'agreement-photo-recovery-list' });
+  expect(recovery.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Fotografija je vezana za poslatu poruku. Proveri njen ishod.')).toBe(true);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ukloni pripremljenu fotografiju 1' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i ponovi fotografiju 1' })).toHaveLength(0);
+  expect(photos.remove).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled();
 });
 it('says why the tools are withheld by cause, and nothing while the tray is busy or the read itself failed', async () => {
   photos.available = false; photos.items = Array.from({ length: 6 }, (_, n) => ({ ref: { ...ref, clientRequestId: `${rid.slice(0, -1)}${n}` }, receipt }));
