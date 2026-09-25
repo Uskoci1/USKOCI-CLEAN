@@ -32,7 +32,21 @@ White reading surfaces, strong moderate-sized type, real facts and current domai
 Typecheck exits 0. Full Jest: **314 suites / 6,114 tests pass**, 119.778 seconds. Existing worker teardown warning remains.
 Focused task/detail coverage: 5 suites / 106 tests; scoped Agreement coverage: 6 suites / 50 tests. Existing visual
 expectations were adjusted for the owner's new composition; behavior, privacy and recovery assertions remain.
-No new tests merely mirror styling. Source-bound APK and native review are recorded separately when completed.
+No new tests merely mirror styling.
+
+Source `13bb55c0fb957bae723f4811a615926b92090ca6` was built by APK run
+[36150477204](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36150477204). Both attestations and exact
+source/tree/run/hash/ABI were checked before successful emulator installation. Eight views were visually reviewed:
+six inert presentation views and two actual routes read-only. See `CHECKS.json`, `APK.json`, `CAPTURES.json`,
+`NATIVE_REVIEW.md` and `RECEIPT.json`. Ordinary text size is the baseline; one 320dp/font-1.3 view checks reflow
+without prescribing larger normal typography. Emulator settings were restored. Real screenshots remain local.
+
+Control rows B04/B06/A08/D01/D02 are updated and `node scripts/control/osvezi.mjs` completed. No phone light was
+promoted; the server snapshot is still from 24 September. Import on the original authenticated Claude artifact
+remains unconfirmed: its documented file chooser timed out and no file was uploaded. The generated local state
+is retained. A local `R15_PREGLED.html` compares original R14/R15 screenshots with explicit fixture/read-only labels.
+The browser URL policy rejected opening this local HTML; no alternate surface or serving workaround was attempted.
+The page is delivered as a file, not claimed as browser-verified. The original native screenshots were inspected.
 
 This is a three-surface client presentation batch. No backend, DEV data, Edge, payment, dependency, provider or key
 change. It does not close keyboard anchoring R14-N01, real journeys, phone/iOS acceptance or store gates. The control

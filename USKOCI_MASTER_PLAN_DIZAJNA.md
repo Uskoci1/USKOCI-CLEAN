@@ -24,7 +24,11 @@ R15 follows the owner's explicit distinction between work to choose and work alr
 `docs/implementation/design-system/r15-distinct-work-surfaces-20260925/REPORT.md`. Tasks use a green work heading,
 illustrated facts and separated terms in a softly lifted white card; details use an open reading sequence; Agreements
 use a person-led accepted appointment. No blanket card-outline recipe survives this correction. Types and all
-314 suites / 6,114 tests pass. Read the batch receipt for APK/native evidence; no new domain behavior or release acceptance.
+314 suites / 6,114 tests pass. Source 13bb55c0 / APK 36150477204 is attested and installed on the emulator. Eight
+bounded native views cover ordinary task/Agreement composition, long/missing terms, one narrow-text view and two
+real routes opened read-only. Read the batch receipt for scope; no new domain behavior or release acceptance.
+Control rows B04/B06/A08/D01/D02 are refreshed locally. Remote import is unconfirmed after the documented file
+chooser timed out; the DEV snapshot remains dated 24 September. Phone lights and R14-N01 stay open.
 
 R14 continues the product pass: `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
 Stronger reading text at unchanged sizes, clearer Agreement cards/next step, full-width photo recovery, and open
@@ -68,7 +72,7 @@ remote upload to the existing Claude page remains unconfirmed after file-chooser
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R14 dated directories under `docs/implementation/design-system/`; R14 continues R13's composition over R12's white surface foundation.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R15 dated directories under `docs/implementation/design-system/`; R15 distinguishes tasks and accepted Agreements over the R12–R14 foundation.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work

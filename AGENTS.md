@@ -5,7 +5,10 @@ The owner rejects identical-looking task cards, task details and Agreements. A t
 with a green heading and separate terms band; its bare map preview has no nested shadow. Detail is an open reading
 page; Agreements are person-led accepted appointments without the advertisement outline. Preserve actual facts,
 commands, recovery, ordinary type sizes and white surfaces. This supersedes old rules forcing one card outline.
-Types and 314 suites / 6,114 tests pass; APK/native scope is recorded separately. R14-N01 and release gates stay open.
+Types and 314 suites / 6,114 tests pass. Source 13bb55c0 / APK 36150477204 is attested and installed on the emulator;
+eight bounded views (six inert, two real read-only) are recorded in the R15 receipt. Ordinary text remains the design
+baseline; the narrow view is a separate resilience check. Remote control upload remains unconfirmed after the file
+chooser timeout. R14-N01, physical-phone/whole-journey acceptance and release gates stay open.
 
 R14 READABLE EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
 The owner's latest direction is stronger readable type, without enlarging normal letters or prices. Body/copy/note/
