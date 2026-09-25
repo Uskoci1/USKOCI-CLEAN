@@ -19,7 +19,7 @@ import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 import { useAgreementPhotos } from '../../hooks/useAgreementPhotos';
 import { agreementPhotoClientService } from '../../data/agreementPhotoClientService';
 import { useSesija, sesijaSada } from '../../store/sesija';
-import { AgreementChat } from '../../ui/AgreementChat';
+import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
@@ -348,20 +348,14 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {/* The bar names the person this Dogovor is with, on both tabs, and what they are to me under the name. The state
-          is said once, by the step under the terms (round-1 critique A13). Only a Dogovor that does not name the other
-          side keeps the word "Dogovor". */}
-      {other ? <AgreementPersonBar person={other} back={backToAgreements} />
-        : <ProductHeader back={backToAgreements} title="Dogovor" />}
-      {/* The tabs stand right under the bar on both tabs, so switching never moves them; the terms' summary is the
-          conversation's own head, under them. */}
-      <View style={s.tabs}>
-        <AgreementTabs tab={tab} onChange={setTab} />
-        {tab === 'poruke' ? <AgreementHero agreement={dogovor} compact waiting={waitingForMe} onOpen={() => setTab('pregled')} /> : null}
-      </View>
-      {tab === 'poruke' ? <AgreementChat messages={namedMessages} loading={messages.loading} error={messages.error}
-        writable={writable} terminal={!dogovor.chatDostupan} refresh={messages.refresh} refreshWorkspace={workspace.refresh} outbox={outbox} state={outboxState} photos={photos}
-        support={{ canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } }} /> : <>
+      {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other} back={backToAgreements}
+        waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
+          error: messages.error, writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh,
+          outbox, state: outboxState, photos,
+          support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
+        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
+          : <ProductHeader back={backToAgreements} title="Dogovor" />}
+        <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
           <AgreementHero agreement={dogovor} />
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>

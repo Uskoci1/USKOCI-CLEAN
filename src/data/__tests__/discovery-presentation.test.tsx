@@ -37,6 +37,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
+import { ActionSheet } from '../../ui/system/ActionSheet';
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { sys } from '../../ui/system/tokens';
 /** TaskCard is memoised; the test renderer holds the function it wraps. */
@@ -265,7 +266,7 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
 
 // Emulator, round 3c: a card inside a card. The floating card is the card; what it says sits in it bare. Owner decision
 // (2026-09-24): no photos in the list, the map preview or any card; a task's photos appear only in the task itself.
-test('the pin card says the task bare and honestly, with no photo; the list\'s cards keep their frame', async () => {
+test('pin and discovery list keep the truthful task face without redundant surrounding frames', async () => {
   rows = [row('a'), row('bb', { naslov: 'Selidba klavira u Zemunu', podrucjeTekst: 'Zemun, Beograd', osnovaCene: 'TOTAL', narucilacIme: 'Mila',
     narucilacOcena: '4,8', narucilacBrojOcena: 12, pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 0.33 },
     schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-26T10:00:00+02:00', endsAt: '2026-09-26T12:00:00+02:00' }, taskTimezone: 'Europe/Belgrade' }),
@@ -288,9 +289,9 @@ test('the pin card says the task bare and honestly, with no photo; the list\'s c
   // A task that asks for offers says so in words that never look like an amount.
   await tap('Zatvori pregled zadatka'); await act(async () => map().props.onSelect('ponude'));
   expect(texts(peek()!)).toContain('Tražim ponude');
-  // The list's cards keep their frame.
+  // The results sheet already provides the list surface; its rows have quiet separators instead of nested cards.
   const listed = listSheet().findAllByType(CARD);
-  expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => !node.props.bare)).toBe(true);
+  expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => node.props.bare)).toBe(true);
 });
 
 test('tasks on one public point are one place: its card says how many and each row opens its own task', async () => {
@@ -427,14 +428,18 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
   });
 });
 
-test('"Dodaj zadatak" is the chrome\'s icon button with an orange glyph on white, and keeps its route command', async () => {
+test('secondary entries stay reachable from one menu without taking map space with a second header', async () => {
   await render();
-  const add = press('Dodaj zadatak');
-  // Review r3 item 2: this pinned `orangeEdge` (2.97:1 on white, under the 3:1 a control's only glyph needs); the glyph
-  // is now the orange that reads, `orangeInk`. Still an orange glyph on white, never an orange fill.
-  expect(add.findByType('Plus' as React.ElementType).props.color).toBe(sys.color.orangeInk);
-  expect(StyleSheet.flatten(add.findByProps({ testID: 'chrome-circle' }).props.style).backgroundColor).toBe(sys.color.surface);
-  await act(async () => add.props.onPress()); expect(newTask).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  expect(press('Pretraži zadatke')).toBeTruthy();
+  await tap('Još mogućnosti');
+  const menu = tree.root.findByType(ActionSheet);
+  expect(menu.props.actions.map((action: { label: string }) => action.label)).toEqual(['Objavi zadatak', 'Moj profil']);
+  expect(newTask).not.toHaveBeenCalled(); expect(profile).not.toHaveBeenCalled();
+  await act(async () => menu.props.actions[0].onPress()); expect(newTask).toHaveBeenCalledTimes(1);
+  await act(async () => menu.props.actions[1].onPress()); expect(profile).toHaveBeenCalledTimes(1);
+  await act(async () => menu.props.onClose());
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
 });
 
 test('reading, not read and nothing in this view keep their meanings, through the one state view', async () => {

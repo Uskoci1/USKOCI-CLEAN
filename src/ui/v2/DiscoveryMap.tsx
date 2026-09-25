@@ -376,9 +376,10 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // Full-width and independent of zoom: at large text the rail scrolls, preserving all three names and touch targets.
   attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base,
-    minHeight: 48, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
-  creditRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.sm },
+    minHeight: 48 },
+  creditRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   creditLink: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingVertical: sys.space.xs },
-  credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
+  credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.ink, backgroundColor: sys.color.veil,
+    borderRadius: sys.space.xs, paddingHorizontal: sys.space.xs, paddingVertical: 2,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

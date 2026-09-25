@@ -117,11 +117,11 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.55 },
   body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
-  facts: { gap: 4 },
+  facts: { gap: 8 },
   footCompact: { paddingHorizontal: 14 },
   // Bare: the card that holds the face draws the edge, the corner and the padding across; the face adds none of them.
   bare: { borderWidth: 0, borderRadius: 0 },
-  bodyBare: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0 },
+  bodyBare: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0, gap: 16 },
   // Inside another card the waiting foot is a flat tint at the control corner, never a card's bottom strip.
   // (Its own lower corners are named, so they are named again here: a named corner wins over `borderRadius`.)
   footBare: { borderTopWidth: 0, borderRadius: sys.radius.control, borderBottomLeftRadius: sys.radius.control,

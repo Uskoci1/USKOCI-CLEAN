@@ -73,9 +73,10 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 
 // From pkg011-slice1: the title is a header, it is the tab's own name and never an app mode. V41 (2026-09-23): the tab
 // header draws the mark, and the name reaches a screen reader as the header's label.
-test('the header is read as the tab is named, "USKOČI, Zadaci", and never as an app mode', async () => {
+test('Discovery leads with task search and no repeated wordmark or app-mode heading', async () => {
   await render();
-  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI, Zadaci').length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI, Zadaci')).toHaveLength(0);
+  expect(press('Pretraži zadatke').props.accessibilityRole).toBe('button');
   expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
   expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pronađi zadatak'))).toHaveLength(0);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(false);

@@ -103,9 +103,9 @@ it('previews the actual offer message without marking it viewed; opening keeps t
   const message = 'Dolazimo nas dvojica. Donosimo trake. Kombi je veliki i može da stane ispred ulaza.';
   mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);
   await render(Candidates);
-  const hint = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityHint;
-  expect(hint).toContain('4.500 RSD'); expect(hint).toContain('2 osobe');
-  expect(hint).toContain('10:00–11:00 (po vremenu u Srbiji)'); expect(hint).toContain(message);
+  const spoken = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityValue.text;
+  expect(spoken).toContain('4.500 RSD'); expect(spoken).toContain('2 osobe');
+  expect(spoken).toContain('10:00–11:00 (po vremenu u Srbiji)'); expect(spoken).toContain(message);
   expect(text()).toContain(message); expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
@@ -122,10 +122,10 @@ it('keeps a long accessible message preview bounded and opens the full saved mes
   const message = 'Donosimo trake i veliki kombi. 🚚 '.repeat(12);
   mockCandidates.mockResolvedValue([{ ...k(), napomena: message }]);
   await render(Candidates);
-  const hint = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityHint;
-  expect(hint).toContain(message.slice(0, 100)); expect(hint).not.toContain(message.trim());
-  expect(hint.length).toBeLessThan(message.length); expect(hint).toContain('…');
-  expect(hint).toContain('Otvori ponudu za celu poruku.');
+  const spoken = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Milan')[0].props.accessibilityValue.text;
+  expect(spoken).toContain(message.slice(0, 100)); expect(spoken).not.toContain(message.trim());
+  expect(spoken.length).toBeLessThan(message.length); expect(spoken).toContain('…');
+  expect(spoken).toContain('Otvori ponudu za celu poruku.');
   expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj ponudu: Milan');
   expect(text()).toContain(message); expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled();
@@ -374,7 +374,7 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   // The card that cannot be chosen says why on its own bottom line, and the list says once what that means.
   const stale = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj ponudu: Ranija ponuda')[0];
   expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Potrebna nova provera')).toHaveLength(1);
-  expect(stale.props.accessibilityHint).toContain('Potrebna nova provera.');
+  expect(stale.props.accessibilityValue.text).toContain('Potrebna nova provera.');
   expect(text()).toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
   expect(press('Pogledaj ponudu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj ponudu: Milan')).toBeDefined();
   await tap('Pogledaj ponudu: Ranija ponuda'); expect(text()).toContain('Potrebna nova provera');

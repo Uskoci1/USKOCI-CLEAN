@@ -1,5 +1,5 @@
 import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import { Check, Crosshair, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
+import { Check, Crosshair, DotsThree, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
@@ -26,8 +26,9 @@ const CHIP_SIDE = sys.space.md;
 /**
  * The top of the Zadaci map (Discovery V47; Airbnb's search bar, USKOČI's look). One white search pill says the current
  * search in two lines — where, then when and the other conditions — and opens the search panel. Beside it "Uslovi
- * pretrage" opens the same panel at its conditions and counts how many are on, and "Dodaj zadatak" keeps its orange
- * glyph. Under them one row of quick chips toggles real filters at once; a chosen chip is the one chosen-chip look of the
+ * pretrage" opens the same panel at its conditions and counts how many are on. The adjacent menu preserves secondary
+ * destinations without another header (a standalone caller may instead offer its publication shortcut).
+ * Under them one row of quick chips toggles real filters at once; a chosen chip is the one chosen-chip look of the
  * system (pale green, green edge, green words and a tick). The chips fold away when the caller says so (the list at its
  * full height and scrolled); the pill stays.
  *
@@ -36,7 +37,7 @@ const CHIP_SIDE = sys.space.md;
  * list's count and move the sheet each time the map moves (review of V47). It lies over the pill's end, so the pill is
  * exactly as tall with it as without it.
  */
-export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onClearWhere,
+export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onMore, onClearWhere,
   onLayout, onChipsHeight, nearby }: {
   /** Line 1: where the search looks. */ where: string;
   /** Line 2: when, and the other conditions (or "Dodaj uslove"). */ conditions: string;
@@ -44,6 +45,8 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   chips: readonly QuickChip[]; chipsShown: boolean;
   nearby?: { onPress: () => void; busy: boolean; message?: string; onSettings?: () => void };
   onSearch: () => void; onConditions: () => void; onNew?: () => void;
+  /** Secondary account/publication entries share one menu so the map does not need a second header. */
+  onMore?: () => void;
   /** Set while the list is narrowed to the map's area or to one point: the pill's "×" takes that narrowing away. */
   onClearWhere?: () => void;
   /**
@@ -70,7 +73,9 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
       </ChromeIconButton>
     </View>
-    {onNew ? <View style={s.tool}><View style={s.lift} />
+    {onMore ? <View style={s.tool}><View style={s.lift} />
+      <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." icon={DotsThree} onPress={onMore} />
+    </View> : onNew ? <View style={s.tool}><View style={s.lift} />
       <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={onNew} />
     </View> : null}
   </>;

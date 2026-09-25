@@ -18,7 +18,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
  *
  *   1. status, only when it says something the list does not already say (HITNO, "Prijava poslata", "Tvoj zadatak",
  *      the state of my own task, except the state its section is named for);
- *   2. the title with the VALUE SLOT beside it, which is never empty: the amount, or a quiet word;
+ *   2. the title with the amount beside it, or a quiet value label on its own line;
  *   3. where (one line); 4. when (up to two lines, so the end of a range is never cut off);
  *   5. at most one requirement a worker decides on (a condition, a vehicle, a tool; never a skill, which reads as a
  *      category);
@@ -179,14 +179,14 @@ export function CardStatus({ status, urgency, now }: { status: { text: string; q
 }
 
 /**
- * Line 2: the title, and the value slot beside it (under it at large text, so the title keeps its width). Beside an
- * amount the title has two lines; beside a word, which can take up to 42% of the width, it keeps three, so a long title
- * is not cut off at 320–360 dp (card review r3 item 12).
+ * An amount sits beside a two-line title at ordinary text sizes. Non-numeric value labels and large-text amounts
+ * sit below the full-width, three-line title, so a long task name is not squeezed by an explanation of its price.
  */
 export function CardHead({ title, value, large }: { title: string; value: TaskValue; large: boolean }) {
-  return <View style={large ? s.headStacked : s.head}>
-    <T style={[s.title, !large && s.titleSide]} numberOfLines={large || value.kind !== 'amount' ? 3 : 2}>{title}</T>
-    <CardValue value={value} large={large} />
+  const stacked = large || value.kind !== 'amount';
+  return <View style={stacked ? s.headStacked : s.head}>
+    <T style={[s.title, !stacked && s.titleSide]} numberOfLines={stacked ? 3 : 2}>{title}</T>
+    <CardValue value={value} large={stacked} />
   </View>;
 }
 
@@ -223,7 +223,7 @@ export function CardRequirement({ requirement }: { requirement: TaskRequirement 
 export const CardPerson = memo(function CardPerson({ name, rating, count }: { name: string; rating: string | null | undefined; count: number | null | undefined }) {
   const trust = ratingWords(rating, count);
   return <View style={s.person}>
-    <Avatar initials={inicijali(name)} size={32} />
+    <Avatar initials={inicijali(name)} size={40} />
     <View style={s.personText}>
       <T style={s.personName} numberOfLines={1}>{name}</T>
       {trust ? <View style={s.rating}>
@@ -372,24 +372,24 @@ const s = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  headStacked: { gap: 4 },
-  title: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
+  headStacked: { gap: 8 },
+  title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  art: { width: 16, height: 19, alignItems: 'center', justifyContent: 'center' },
-  factText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact },
+  art: { width: 20, height: 23, alignItems: 'center', justifyContent: 'center' },
+  factText: { flex: 1, minWidth: 0, fontSize: 16, lineHeight: 23, fontWeight: '500', color: sys.color.fact },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 },
   footStacked: { gap: 8, marginTop: 2 },
   places: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   placesStacked: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  placesText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
+  placesText: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
   placesTextStacked: { flexShrink: 1 },
   personSide: { flexShrink: 1, minWidth: 0, maxWidth: '62%' },
   personStacked: { alignSelf: 'flex-end', maxWidth: '100%' },
   person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   personText: { flexShrink: 1, minWidth: 0 },
-  personName: { fontSize: 13, lineHeight: 17, fontWeight: '600', color: sys.color.ink },
+  personName: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: sys.color.ink },
   rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { flexShrink: 1, fontSize: 13, lineHeight: 17, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   next: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },

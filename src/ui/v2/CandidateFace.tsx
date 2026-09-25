@@ -19,16 +19,15 @@ import { CardFact, valueStyles } from './TaskFace';
  * first, so the card reads the way the decision is made:
  *
  *   1. what state the offer is in, only when it cannot simply be chosen ("Potrebna nova provera", "Izabrana prijava");
- *   2. the person — the one Avatar (or their photo), the name and the rating with the count it stands on — with the
- *      VALUE SLOT beside it: the total in the money colour and what it covers ("ukupno · 2 osobe");
- *   3. one line of their own message (the whole text is on the offer);
+ *   2. the person — the one Avatar (or their photo), the name and the rating with the count it stands on;
+ *   3. the total and what it covers, then two lines of their own message (the whole text is on the offer);
  *   4. the time they proposed, only when they proposed one (without it the offer takes the task's own time, which every
  *      card would repeat).
  *
  * A line either says something or is not drawn. Nothing here invents a rating, a count, a time or a state: a missing
  * rating says it is missing, a count is the server's own words, and an amount without figures is never dressed as money.
- * At the owner's large text, and on a phone under 360 dp, the value moves under the person as a whole line, so a name is
- * never squeezed into a third of the card; a name may take three lines. The card is ONE press that opens the offer and is
+ * The value always has its own row, so identity and terms never compete for width; a name may take three lines.
+ * At large text the total and its basis stack too. The card is ONE press that opens the offer and is
  * heard once, as the person and everything the card shows.
  *
  * Pure helpers first (tested on their own), then the parts the list, the comparison and the offer are built from.
@@ -140,43 +139,43 @@ export function CandidateStatusLine({ status }: { status: { text: string; tone: 
 }
 
 /**
- * The value slot, in the task card's value type (`valueStyles`). An amount keeps its whole width and the name gives way;
- * a word is quiet and never money-coloured.
+ * The total and its basis read together below identity. They wrap naturally and stack at large text; a missing price
+ * stays a quiet word, never money-coloured. No term is constrained to a single line.
  */
 export function CandidateValueSlot({ value, large }: { value: CandidateValue; large: boolean }) {
-  if (value.kind === 'unpriced') return <View style={large ? s.valueLine : s.valueSide}>
-    <T style={[valueStyles.valueWord, large && valueStyles.alignStart]} numberOfLines={2}>{UNPRICED}</T></View>;
-  return <View style={large ? s.valueLine : s.valueSide}>
-    <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
-    <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T>
+  if (value.kind === 'unpriced') return <View style={s.valueLine}>
+    <T variant="bodyStrong" tone="muted">{UNPRICED}</T></View>;
+  return <View style={[s.valueLine, large && s.valueStack]}>
+    <T style={s.amount}>{value.amount}</T>
+    <T variant="note" tone="muted">{value.basis}</T>
   </View>;
 }
 
 /**
  * An offer in the list: one press that opens it, heard as the person and everything the card shows. The drawing is the
- * shared hairline card with no shadow; a chosen offer carries the selection's green edge.
+ * quiet white row with a separator, leaving the person and terms to lead; a chosen offer keeps a green separator.
  */
 export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, onOpen, photo, large, narrow = false }: {
   candidate: KandidatProjekcija; timezone?: string | null; onOpen: () => void; photo?: ReactNode;
-  /** The owner's large text: the value takes its own line and the message two. */ large: boolean;
-  /** A phone under 360 dp: the value takes its own line, so a name is not squeezed into a third of the card. */ narrow?: boolean;
+  /** The owner's large text: the total and its basis stack. */ large: boolean;
+  /** A narrow phone uses the same stacked terms. */ narrow?: boolean;
 }) {
   const status = candidateStatus(k), value = candidateValue(k), time = candidateTime(k, timezone);
   const message = k.napomena?.trim() ?? '';
-  const stacked = large || narrow;
-  return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`} accessibilityHint={candidateSpoken(k, time)}
+  return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`}
+    accessibilityValue={{ text: candidateSpoken(k, time) }} accessibilityHint="Otvara celu ponudu."
     haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.card, k.stanje === 'SELECTED' && s.chosen]}>
     {status ? <CandidateStatusLine status={status} /> : null}
     <View style={s.head}>
-      <CandidateAvatar candidate={k} size={40} photo={photo} />
+      <CandidateAvatar candidate={k} size={56} photo={photo} />
       <View style={s.identity}>
         <T style={s.name} numberOfLines={3}>{k.ime}</T>
         <CandidateTrustLine candidate={k} />
       </View>
-      {stacked ? null : <CandidateValueSlot value={value} large={false} />}
+      <CaretRight size={20} color={sys.color.muted} />
     </View>
-    {stacked ? <CandidateValueSlot value={value} large /> : null}
-    {message ? <T style={s.message} numberOfLines={large ? 2 : 1} ellipsizeMode="tail">{message}</T> : null}
+    <CandidateValueSlot value={value} large={large || narrow} />
+    {message ? <T style={s.message} numberOfLines={2} ellipsizeMode="tail">{message}</T> : null}
     {time ? <CardFact art={<FactArt kind="calendar" size={16} />} text={time} lines={2} /> : null}
   </Press>;
 });
@@ -191,7 +190,7 @@ export function compareIdentityHeight(scale: number): number {
   const text = 3 * sys.type.cardTitleCompact.lineHeight! + 2 * TRUST_LINE;
   return Math.ceil(40 + 2 * COMPARE_IDENTITY_GAP + text * scale);
 }
-const TRUST_LINE = 17, COMPARE_IDENTITY_GAP = 6;
+const TRUST_LINE = 20, COMPARE_IDENTITY_GAP = 6;
 
 /**
  * An offer as a comparison column: the same person on top, then the same three cells in the same order in every column —
@@ -203,11 +202,12 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
 }) {
   const status = candidateStatus(k), value = candidateValue(k), time = candidateTime(k, timezone);
   const scale = useTextScale();
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`} accessibilityHint={candidateSpoken(k, time)}
+  return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
+    accessibilityValue={{ text: candidateSpoken(k, time) }} accessibilityHint="Otvara celu ponudu."
     haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.compare, k.stanje === 'SELECTED' && s.chosen]}>
     <View style={[s.compareIdentity, aligned && { minHeight: compareIdentityHeight(scale) }]}>
       <CandidateAvatar candidate={k} size={40} photo={photo} />
-      <T style={s.name} numberOfLines={3}>{k.ime}</T>
+      <T style={s.compareName} numberOfLines={3}>{k.ime}</T>
       <CandidateTrustLine candidate={k} />
     </View>
     <View style={s.cell}><T variant="label" tone="muted">Ukupno</T>
@@ -246,26 +246,27 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  personAction: { ...sys.type.note, fontWeight: '600', color: sys.color.green },
-  // Type and spacing from the tokens (review r4 rk item 6): the spacing scale's 8, the compact card title, the note.
-  card: { ...cardCompact, gap: sys.space.sm },
-  // Selection is green (owner, 2026-09-24): the chosen offer keeps the white card and takes the green edge.
+  personAction: { ...sys.type.bodyStrong, color: sys.color.green },
+  card: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.md,
+    borderBottomWidth: 1, borderColor: sys.color.line },
   chosen: { borderColor: sys.color.green },
   status: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  identity: { flex: 1, minWidth: 0, gap: 2 },
-  name: { ...sys.type.cardTitleCompact, color: sys.color.ink },
+  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  identity: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  name: { ...sys.type.cardTitle, color: sys.color.ink },
   trust: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trustText: { flexShrink: 1, fontSize: 13, lineHeight: TRUST_LINE, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
-  // The amount keeps its whole width, whatever the phone and the text size: the name beside it is what gives way.
-  valueSide: { alignItems: 'flex-end', flexShrink: 0, maxWidth: '46%' },
-  valueLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 8 },
-  message: { ...sys.type.note, color: sys.color.ink },
-  compare: { ...cardCompact, flex: 1, minWidth: 0, padding: 14, gap: 8 },
+  trustText: { flexShrink: 1, fontSize: 14, lineHeight: TRUST_LINE, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
+  valueLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: sys.space.xs },
+  valueStack: { flexDirection: 'column', alignItems: 'flex-start' },
+  amount: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'left' },
+  message: { ...sys.type.body, color: sys.color.ink },
+  compare: { ...cardCompact, flex: 1, minWidth: 0, padding: sys.space.base, gap: sys.space.md,
+    borderColor: sys.color.line, backgroundColor: sys.color.wash },
+  compareName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   compareIdentity: { gap: COMPARE_IDENTITY_GAP },
-  cell: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderColor: sys.color.line },
+  cell: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line },
   compareAmount: { ...sys.type.priceRow, color: sys.color.money },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64 },
+  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base, minHeight: 64, paddingVertical: sys.space.xs },
 });

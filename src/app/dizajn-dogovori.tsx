@@ -7,6 +7,7 @@ import { Bell } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
+import { AgreementThreadPresentation } from '../ui/v2/AgreementThreadPresentation';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
 import { Press } from '../ui/Press';
 import { ProductHeader } from '../ui/product/ProductDetails';
@@ -102,15 +103,20 @@ const PENDING: ChatProps['state']['entries'] = [
 const PHOTOS = { agreementId: 'zona', loaded: true, busy: false, ready: false, hasSelection: false, available: false, items: [], saved: [],
   message: null, versionConflict: false, canSubmit: () => false, capture: () => null, refresh: later, pick: later, retry: later, remove: later,
   restore: later, reserved: () => false, canRetry: () => false } as unknown as AgreementPhotosController;
+/** No asset/receipt exists, so this pending-media fixture cannot initiate an authorized-photo read. */
+const PENDING_PHOTOS: AgreementPhotosController = { ...PHOTOS, hasSelection: true, canRetry: () => true,
+  items: [{ ref: { agreementId: 'zona', agreementVersion: 1, clientRequestId: 'galerija-fotografija' }, receipt: null }],
+  message: 'Ishod fotografije nije potvrđen. Proveri pre novog pokušaja.' };
 
 type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'recovery'
-  | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed';
+  | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed' | 'chat-media';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
   { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'recovery', label: 'Pregled · provera ishoda' }, { key: 'done', label: 'Pregled · završen' },
   { key: 'chat', label: 'Poruke' }, { key: 'chat-waiting', label: 'Poruke · čeka te' }, { key: 'chat-empty', label: 'Poruke · prazne' }, { key: 'chat-loading', label: 'Poruke · učitavanje' },
   { key: 'chat-error', label: 'Poruke · greška' }, { key: 'chat-closed', label: 'Poruke · zatvoren' },
+  { key: 'chat-media', label: 'Poruke · fotografija na čekanju' },
 ];
 
 /** The root bar as the Dogovori tab draws it, with a bell that reads nothing. */
@@ -126,19 +132,21 @@ function ListScene({ items, loading = false, error = false, initial = 'active' }
     onHome={noop} header={STILL_HEADER} />;
 }
 
-function Chat({ messages = MESSAGES, entries = PENDING, loading = false, error = false, terminal = false }: {
+function Chat({ messages = MESSAGES, entries = PENDING, loading = false, error = false, terminal = false, photos = PHOTOS, thread }: {
   messages?: PorukaProjekcija[]; entries?: ChatProps['state']['entries']; loading?: boolean; error?: boolean; terminal?: boolean;
+  photos?: AgreementPhotosController;
+  thread: Omit<ComponentProps<typeof AgreementThreadPresentation>, 'chat'>;
 }) {
   const [draft, setDraft] = useState('');
   const outbox = { setDraft, sendDraft: later, retry: later, start: later, reconcile: later } as unknown as ChatProps['outbox'];
-  return <AgreementChat messages={messages} loading={loading} error={error} writable={!terminal} terminal={terminal} refresh={later}
-    refreshWorkspace={later} outbox={outbox} state={{ phase: 'ready', draft, capturing: false, entries, error: null }} photos={PHOTOS} />;
+  return <AgreementThreadPresentation {...thread} chat={{ messages, loading, error, writable: !terminal, terminal, refresh: later,
+    refreshWorkspace: later, outbox, state: { phase: 'ready', draft, capturing: false, entries, error: null }, photos }} />;
 }
 
 /** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled and its footer, or the Poruke. */
 function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false }: {
   item: DogovorProjekcija; me: UcesnikProjekcija; ownRating?: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE'; brand: string;
-  initialTab?: AgreementTab; chat?: ComponentProps<typeof Chat>; recovery?: boolean;
+  initialTab?: AgreementTab; chat?: Omit<ComponentProps<typeof Chat>, 'thread'>; recovery?: boolean;
 }) {
   const [tab, setTab] = useState<AgreementTab>(initialTab);
   const other = item.ucesnici.find(person => !person.viSte);
@@ -156,12 +164,10 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   // What waits for me, at the head of Poruke, as the route says it.
   const waiting = agreementWaitsForMe({ state: item.stanje, requester: isRequester, change, ownRating });
   return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-    {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
-    <View style={s.tabs}>
-      <AgreementTabs tab={tab} onChange={setTab} />
-      {tab === 'poruke' ? <AgreementHero agreement={item} compact waiting={waiting} onOpen={() => setTab('pregled')} /> : null}
-    </View>
-    {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan} /> : <>
+    {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan}
+      thread={{ agreement: item, person: other, back: noop, waiting, onOverview: () => setTab('pregled') }} /> : <>
+      {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
+      <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
       <ScrollView contentContainerStyle={s.content}>
         <AgreementHero agreement={item} />
         {/* The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
@@ -234,6 +240,7 @@ function Scene({ scene }: { scene: SceneKey }) {
     case 'chat-empty': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [] }} />;
     case 'chat-loading': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [], loading: true }} />;
     case 'chat-error': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ error: true, entries: [] }} />;
+    case 'chat-media': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ photos: PENDING_PHOTOS }} />;
     case 'chat-closed': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" initialTab="poruke" chat={{ entries: [] }} />;
   }
 }

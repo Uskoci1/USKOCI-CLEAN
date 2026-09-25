@@ -20,6 +20,13 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 ## Current execution checkpoint — 2026-09-25
 
+R11 continuation: `docs/implementation/design-system/r11-screen-composition-20260925/SCREEN_AUDIT.md` now maps all
+40 active destinations and five redirects, including each control/search purpose, states and return path. The
+associated inventory and capture plan separate real routes from inert gallery coverage and unobserved contexts.
+This batch implements the search-led Discovery composition, spacious offers, adaptive human-chat context and quieter
+AI speaker identity. No logo or bottom bar is required on every screen. The R11 report/receipt owns exact checks,
+APK and native scope; a source inventory is not a completed device acceptance pass.
+
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
 decisions. Exact-source checks, APK and device evidence belong in the R7–R10 dated directories under `docs/implementation/design-system/`; R10 is the latest client checkpoint.

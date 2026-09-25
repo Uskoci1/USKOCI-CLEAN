@@ -12,7 +12,7 @@ import { Appear, useAppear } from '../system/Appear';
 import type { AvatarSize } from '../system/Avatar';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
-import { DetailSection, ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osobuAkuz, prijava } from '../system/plural';
@@ -67,7 +67,7 @@ function BrandAction({ label, onPress, disabled, loading, reason, send }: {
     icon={send ? <PaperPlaneTilt size={20} color={sys.color.onGreen} weight="fill" /> : undefined} style={brandAction} />;
 }
 function ErrorMessage({ error }: { error?: string | null }) {
-  return error ? <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View> : null;
+  return error ? <View style={s.notice}><T accessibilityRole="alert" accessibilityLiveRegion="polite" variant="body" style={s.ink}>{error}</T></View> : null;
 }
 /** A person's picture at the size its place asks for, handed in by the screen; the Avatar with their letters when absent. */
 export type CandidatePhoto = (candidate: KandidatProjekcija, size: AvatarSize) => ReactNode;
@@ -87,7 +87,7 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
   columnWidth: number | null; large: boolean; narrow: boolean; open: (candidate: KandidatProjekcija) => void; photo?: CandidatePhoto;
 }) {
   const openThis = useCallback(() => open(candidate), [open, candidate]);
-  const face = photo?.(candidate, 40);
+  const face = photo?.(candidate, compare ? 40 : 56);
   return <Appear index={index} animate={animate} style={columnWidth ? { width: columnWidth } : undefined}>
     {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} onOpen={openThis}
       photo={face} aligned={columnWidth !== null} />
@@ -125,8 +125,8 @@ function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void 
 /**
  * Candidates of one Task (owner's step 7, 2026-09-24): the offers as person-first cards (`CandidateFace`), or side by
  * side for a fast decision (owner decision 3, TARG-034). Two columns only while they fit: a phone at least 360 wide and a
- * text size under the owner's Large (read rounded, since Android hands Large over as 1.2999999523); the same two conditions
- * move a card's total under the person. An offer opens as a sheet over this list, so the list is still where the person
+ * text size under the owner's Large (read rounded, since Android hands Large over as 1.2999999523). Every list row gives
+ * identity and terms their own width. An offer opens as a sheet over this list, so the list is still where the person
  * left it when they close it.
  */
 export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, photo, textScale: forcedScale }: {
@@ -180,11 +180,11 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
     <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
       ListHeaderComponent={<View style={s.listHeader}><TaskBrief need={need} open={openTask} />
-        {candidates.length ? <View style={s.toolbar}><T variant="meta" tone="muted" style={s.grow}>{counts}</T>
+        {candidates.length ? <View style={s.toolbar}><T variant="bodyStrong" style={s.counts}>{counts}</T>
           {candidates.length > 1 ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}
             accessibilityHint="Otvara izbor redosleda" accessibilityState={{ expanded: sorting }} haptic="select"
             onPress={() => setSorting(value => !value)} style={s.sortButton}>
-            <T variant="meta" style={s.sortText}>{SORT_LABEL[sort]}</T><CaretDown size={16} color={sys.color.ink} />
+            <T variant="note" style={s.sortText}>{SORT_LABEL[sort]}</T><CaretDown size={18} color={sys.color.ink} />
           </Press> : null}</View> : null}
         {sorting && candidates.length > 1 ? <View accessibilityRole="radiogroup" style={s.sortMenu}>{SORTS.map((option, at) =>
           <Press key={option} accessibilityRole="radio" accessibilityLabel={SORT_LABEL[option]} accessibilityState={{ checked: sort === option }}
@@ -299,21 +299,28 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <View style={s.sheetFooter}>{primary}{quiet}</View> : undefined}>
-    {() => <>
+    {() => <View style={s.offerContent}>
       <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
       {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
         {status ? <CandidateStatusLine status={status} /> : null}
         {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>
           <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.bandAction} /></> : null}
       </View> : null}
-      <ProductFacts>
-        <ProductFact art="money" label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={value.kind === 'amount' ? value.amount : UNPRICED}
-          prominent prominentAs={value.kind === 'amount' ? 'amount' : 'label'} />
-        <ProductFact art="calendar" label="Termin" value={time ?? need.vremeTekst} note={time ? undefined : 'Termin zadatka'} />
-      </ProductFacts>
-      <DetailSection title="Poruka">
+      <View style={s.offerTerms}>
+        <View accessible accessibilityLabel={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}: ${value.kind === 'amount' ? value.amount : UNPRICED}`} style={s.offerPrice}>
+          <T variant="note" tone="muted">Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T>
+          {value.kind === 'amount' ? <T style={s.offerAmount}>{value.amount}</T> : <T variant="bodyStrong" tone="muted">{UNPRICED}</T>}
+        </View>
+        <View accessible accessibilityLabel={`Termin: ${time ?? need.vremeTekst}${time ? '' : ', Termin zadatka'}`} style={s.offerTime}>
+          <FactArt kind="calendar" size={24} />
+          <View style={s.offerTimeCopy}><T variant="bodyStrong" style={s.ink}>{time ?? need.vremeTekst}</T>
+            <T variant="note" tone="muted">{time ? 'Predloženi termin' : 'Termin zadatka'}</T></View>
+        </View>
+      </View>
+      <View style={s.offerMessage}>
+        <T accessibilityRole="header" variant="heading" style={s.ink}>Poruka</T>
         {message ? <T selectable variant="body" style={s.ink}>{candidate.napomena}</T> : <T variant="body" tone="muted">Bez poruke.</T>}
-      </DetailSection>
+      </View>
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
           owner as labels; what the applicant wants to say is in the message above. */}
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
@@ -326,7 +333,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       <ErrorMessage error={error} />
       {confirmation.sheet}
       <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />
-    </>}
+    </View>}
   </ProductSheet>;
 }
 const s = StyleSheet.create({
@@ -337,24 +344,32 @@ const s = StyleSheet.create({
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   center: { textAlign: 'center' },
-  listHeader: { gap: 4, marginBottom: 12 },
+  listHeader: { gap: sys.space.md, marginBottom: sys.space.xs },
   // A row that opens something is a command: never under 48.
-  brief: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: ACTION_MIN_HEIGHT, paddingTop: 4, paddingBottom: 14,
-    borderBottomWidth: 1, borderColor: sys.color.line },
-  briefCopy: { flex: 1, minWidth: 0, gap: 2 },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 },
-  sortButton: { minHeight: ACTION_MIN_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8 },
-  sortText: { color: sys.color.ink, fontWeight: '600' },
+  brief: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: ACTION_MIN_HEIGHT,
+    padding: sys.space.base, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
+  briefCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm, minHeight: 52 },
+  counts: { flexGrow: 1, color: sys.color.ink },
+  sortButton: { minHeight: ACTION_MIN_HEIGHT, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sortText: { flexShrink: 1, color: sys.color.ink, fontWeight: '600' },
   sortMenu: { ...cardCompact, padding: 0, marginBottom: 8, overflow: 'hidden' },
   sortOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   sortDivider: { borderTopWidth: 1, borderColor: sys.color.line },
-  separator: { height: sys.space.md },
+  separator: { height: sys.space.sm },
   columnRow: { gap: sys.space.md },
   listFooter: { gap: 4, paddingTop: 12 },
   footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8 },
   footerAction: { alignSelf: 'center', marginTop: 8 },
   // The offer sheet: its pinned actions, a state band on a flat tint (never a card inside the sheet), the outcome.
   sheetFooter: { gap: sys.space.xs },
+  offerContent: { gap: sys.space.lg },
+  offerTerms: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, padding: sys.space.lg, gap: sys.space.base },
+  offerPrice: { gap: sys.space.xs },
+  offerAmount: { ...sys.type.pageTitle, color: sys.color.money, fontVariant: ['tabular-nums'] },
+  offerTime: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },
+  offerTimeCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  offerMessage: { gap: sys.space.md },
   band: { ...inset, backgroundColor: sys.color.wash, gap: sys.space.sm },
   bandWarn: { backgroundColor: sys.color.warnSoft },
   bandGreen: { backgroundColor: sys.color.greenSoft },

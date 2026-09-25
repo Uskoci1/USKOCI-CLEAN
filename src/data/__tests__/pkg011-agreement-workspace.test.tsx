@@ -10,11 +10,15 @@ const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '
 const mockRead = jest.fn(), mockMessages = jest.fn(), mockMessagesRead = jest.fn();
 let mockParams: Record<string, string> = { id: mockAgreementId };
 let mockReducedMotion = false;
+// These established assertions describe the roomy composition. The native Jest preset defaults to fontScale 2;
+// choose this viewport explicitly and exercise the large-text composition separately below.
+let mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn(), oznaciPorukeProcitanim: mockMessagesRead };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'android' };
+    if (key === 'useWindowDimensions') return () => mockWindow;
     if (key === 'AppState') return { currentState: 'active', addEventListener: () => ({ remove: () => {} }) };
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
@@ -31,7 +35,9 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
 // component that reads useReducedMotion directly, so the whole tree sees the value this suite chose.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReducedMotion }));
-jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: 'AgreementChat' }));
+// Keep the chat's presentation slot visible: compact identity/terms are children of its real history scroll.
+jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: (props: { context?: React.ReactNode }) =>
+  require('react').createElement('AgreementChat', props, props.context) }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 0 }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
@@ -61,6 +67,7 @@ async function render(workspace: Record<string, unknown>) {
   await act(async () => { tree = create(<Dogovor />); });
 }
 beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0);
+  mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
@@ -381,6 +388,49 @@ test('the top bar names the other person and what they are to me on both tabs, a
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
+describe('the compact conversation keeps complete identity and accepted terms reachable', () => {
+  beforeEach(() => {
+    mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
+    mockParams = { id: mockAgreementId, tab: 'poruke' };
+  });
+  test.each([
+    ['saved', { prikaz: '3.000 RSD' }, '3.000 RSD'],
+    ['missing', { iznos: 0, valuta: 'RSD', prikaz: '' }, 'Iznos nije sačuvan'],
+  ])('keeps the %s amount truthful and returns to its accepted overview', async (kind, cena, amount) => {
+    await render(base({ cena, vremeTekst: '26. sep · 10:00–12:00 (po vremenu u Srbiji)' }));
+    const chat = tree.root.findByType('AgreementChat' as any);
+    expect(chat.props.compact).toBe(true);
+    const context = chat.findByProps({ testID: 'agreement-thread-context' });
+    expect(context.findByProps({ accessibilityLabel: `Dogovoreno ukupno: ${amount}` })).toBeTruthy();
+    expect(context.findByProps({ accessibilityLabel: 'Termin: 26. sep · 10:00–12:00, Po vremenu u Srbiji' })).toBeTruthy();
+    expect(headers()).toContain('Marko');
+    expect(texts()).toContain('Uskače na tvoj zadatak');
+    expect(texts()).not.toContain('Još nema ocena');
+    if (kind === 'missing') {
+      expect(texts()).not.toContain('0 RSD');
+      expect(texts()).not.toContain('ukupno');
+    }
+    expect(tree.root.findByProps({ accessibilityLabel: 'Poruke: Marko' })).toBeTruthy();
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uslovi Dogovora: Pomoć pri selidbi' }).props.onPress());
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    expect(tree.root.findByProps({ accessibilityLabel: `Dogovoreno ukupno: ${amount}` })).toBeTruthy();
+    expect(labels()).toContain('Poruke');
+    expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(mockMessages).toHaveBeenCalledTimes(1);
+  });
+  test('names the real waiting action without losing the accepted amount, and its Back still leaves the Agreement', async () => {
+    await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }));
+    const waiting = 'Završetak je označen i čeka tvoju potvrdu';
+    expect(labels()).toContain(`Uslovi Dogovora: Pomoć pri selidbi. ${waiting}`);
+    expect(texts()).toContain(waiting);
+    expect(texts()).toContain('3.000 RSD');
+    expect(headers()).toContain('Marko');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+});
+
 test('a Dogovor that does not name the other side keeps the word Dogovor and says its state once, in the step', async () => {
   const lone = base({ stanje: 'AWAITING_REQUESTER' }, 'uskocer') as { ucesnici: { viSte: boolean }[] };
   await render({ ...lone, ucesnici: lone.ucesnici.filter(person => person.viSte) });

@@ -47,7 +47,7 @@ export type AiConversationShellProps = {
  * The AI conversation (owner step 6, 2026-09-24, after the owner's Gemini reference): one chrome (the arrow back, the
  * title, "···"), the live card pinned above an independent thread, and a floating composer.
  *
- * - The assistant speaks on a lightly raised white surface under the USKOČI mark; the person's own words are
+ * - The assistant speaks on a lightly raised white surface with a quiet speaker label; the person's own words are
  *   forest-green bubbles on the right. Nothing is typed out that has not arrived: streamed text is the
  *   server's own deltas, and while nothing has arrived three dots say that an answer is being written.
  * - The composer gives text its full width; attachments and speech sit in a separate toolbar, with send at the right.
@@ -128,7 +128,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>
         {pinned && inlineSummary ? <View testID="ai-inline-card">{pinned}</View> : null}
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
-          <AssistantPresence reduced={reduced} />
+          <AssistantPresence />
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>
@@ -223,29 +223,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
   </SafeAreaView>;
 }
 
-/** The small USKOČI mark that says who is speaking; a screen reader hears the turn's own label instead. */
+/** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
 function Mark() {
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
-    <BrandMark size={28} /><T variant="note" style={s.markName}>USKOČI</T>
+    <T variant="note" style={s.markName}>AI asistent</T>
   </View>;
 }
 
 /**
- * The assistant, present before the first word: the brand mark on a soft disc that breathes — a slow, small swell, the
- * way something alive and waiting does. Gate: the welcome is seen once per conversation, so it may carry this; purpose:
- * state indication, "somebody is here and listening". Under reduced motion it holds still.
+ * Brand identity belongs to the opening. An idle welcome is static: nothing is listening or processing yet.
+ * Only the real busy state below carries continuing motion.
  */
-function AssistantPresence({ reduced }: { reduced: boolean }) {
-  const breath = useSharedValue(0);
-  useEffect(() => {
-    if (reduced) { cancelAnimation(breath); breath.set(0); return; }
-    breath.set(withRepeat(withTiming(1, { duration: 1800 }), -1, true));
-    return () => cancelAnimation(breath);
-  }, [breath, reduced]);
-  const halo = useAnimatedStyle(() => ({ transform: [{ scale: 1 + breath.get() * 0.08 }], opacity: 0.55 + breath.get() * 0.45 }));
+function AssistantPresence() {
   return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
-    {/* Under reduced motion the halo is a plain view: nothing here animates. */}
-    {reduced ? <View style={s.presenceHalo} /> : <Animated.View style={[s.presenceHalo, halo]} />}
+    <View style={s.presenceHalo} />
     <View style={s.presenceDisc}><BrandMark size={48} /></View>
     <View style={s.presenceAccent} />
   </View>;
@@ -264,7 +255,7 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
 }
 
 /**
- * One turn. The assistant has a reading surface under the mark; the person's bubble is aligned right.
+ * One turn. The assistant has a reading surface under its speaker label; the person's bubble is aligned right.
  * Persisted turns do not rerender for each keystroke or incoming chunk. Side, colour and shape say who is speaking; the
  * labels are for a screen reader.
  */
@@ -299,7 +290,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
-  // A quiet white reading surface against the tinted canvas; the logo identifies the speaker.
+  // A quiet white reading surface against the tinted canvas; the label identifies the speaker.
   assistant: { ...floating, gap: 10, alignSelf: 'stretch', padding: 16, borderRadius: sys.radius.card,
     borderBottomLeftRadius: 8, backgroundColor: sys.conversation.surface },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -12,9 +12,9 @@ import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoverySh
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Appear, useAppear } from '../system/Appear';
+import { ActionSheet } from '../system/ActionSheet';
 import { useReducedMotion } from '../system/motion';
 import { zadataka } from '../system/plural';
-import { ScreenHeader } from '../system/ScreenHeader';
 import { StateView } from '../system/StateView';
 import { floating, sys } from '../system/tokens';
 import { DiscoveryMap } from './DiscoveryMap';
@@ -29,7 +29,7 @@ import { TaskCard } from './TaskCard';
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
-  onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
+  onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
   /** Which of the shown tasks are mine (never listed here) and which I have applied to (labelled). */
   relations?: { owned: ReadonlySet<string>; applied: ReadonlySet<string> };
   /**
@@ -64,7 +64,7 @@ const FOLD_MARGIN = sys.space.sm;
 export const OFFSET_SETTLE_MS = 250;
 /** How long the list's area stays still before iOS VoiceOver hears the new count (Android hears it by the live region). */
 export const AREA_ANNOUNCE_MS = 1000;
-const Separator = () => <View style={{ height: GAP }} />;
+const Separator = () => <View style={s.separator} />;
 const keyOf = (item: MarketplaceItem) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
@@ -84,14 +84,14 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
       accessibilityLabel={`Bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
       <T variant="meta" style={s.sectionTitle}>Bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
     </View> : null}
-    <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} relation={applied ? 'APPLIED' : undefined} /></Appear>
+    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={applied ? 'APPLIED' : undefined} /></Appear>
   </>;
 });
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24; critique A5–A7, B8–B12; Discovery V47, Airbnb's interaction in
- * USKOČI's look). The map fills the screen under the root chrome. Over it floats the search bar: one white pill that says
- * the search in two lines and opens the search panel, "Uslovi pretrage", "Dodaj zadatak", and a row of quick chips that
+ * USKOČI's look). Search is the screen's header. Over the map floats one white pill that says
+ * the search in two lines and opens the search panel, "Uslovi pretrage", a menu of secondary destinations, and quick chips that
  * toggle real filters at once (they fold away while the whole list is up and scrolled well past them).
  *
  * The list is a sheet over the map with three heights, and it follows the map: after the person's own move settles, the
@@ -111,6 +111,9 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
  */
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error, view } = props, reduced = useReducedMotion(), focused = useIsFocused();
+  const [more, setMore] = useState(false);
+  useEffect(() => { setMore(false); }, [props.scopeKey]);
+  useEffect(() => { if (!focused) setMore(false); }, [focused]);
   const nearby = useNearbyMap(props.scopeKey, focused);
   const { height: windowHeight } = useWindowDimensions();
   const relations = props.relations;
@@ -456,8 +459,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   </View>;
 
   return <SafeAreaView edges={['top']} style={s.screen}>
-    {/* The root chrome: the tab bar already says this is Zadaci, so the name reaches a screen reader with the mark. */}
-    <ScreenHeader title="Zadaci" onProfile={props.onProfile} />
+    {/* Search is this screen's header. Identity belongs to Home; the existing account/publication entries stay in Još. */}
     <View style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
       <View style={StyleSheet.absoluteFill}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
@@ -473,7 +475,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
         nearby={{ onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
         chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
-        onNew={props.onNew ? () => { Keyboard.dismiss(); props.onNew?.(); } : undefined}
+        onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => setToolsBottom(current => current === bottom ? current : bottom)}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
@@ -514,12 +516,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     </View>
     {search ? <DiscoverySearchPanel items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
       start={search} reduced={reduced} readiness={readiness} onApply={apply} onClose={() => setSearch(null)} /> : null}
+    {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
+      ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
+      { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },
+      ...(props.onNotifications ? [{ key: 'notifications', label: 'Obaveštenja', icon: 'bell' as const, onPress: props.onNotifications }] : []),
+    ]} /> : null}
   </SafeAreaView>;
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   body: { flex: 1 },
+  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 24 },
   ground: { flex: 1, backgroundColor: sys.color.wash },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
@@ -533,9 +541,9 @@ const s = StyleSheet.create({
   appliedChip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, maxWidth: '100%', paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft },
   appliedText: { fontWeight: '600', color: sys.color.green, flexShrink: 1 },
-  list: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl, flexGrow: 1 },
+  list: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, flexGrow: 1 },
   // The pill is 48 high and 16 above the bottom: the list's end keeps 80 clear under it.
-  listUnderPill: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge + sys.space.xxl, flexGrow: 1 },
+  listUnderPill: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base, paddingBottom: sys.space.huge + sys.space.xxl, flexGrow: 1 },
   empty: { flex: 1, paddingVertical: sys.space.sm },
   undated: { paddingTop: sys.space.base, textAlign: 'center' },
   // The quiet heading of the tasks without a point: the list's own words, never a card.

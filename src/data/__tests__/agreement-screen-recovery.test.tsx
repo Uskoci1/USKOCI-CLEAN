@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockAccount = '10000000-0000-4000-8000-000000000001';
 let mockAccountRevision = 0;
 let mockPlatform = 'android';
+let mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
 let mockFocused = true;
 const mockAppListeners = new Set<(state: string) => void>();
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
@@ -20,6 +21,7 @@ jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: mockPlatform };
+    if (key === 'useWindowDimensions') return () => mockWindow;
     if (key === 'AppState') return { currentState: 'active', addEventListener: (_event: string, listener: (state: string) => void) => {
       mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
     } };
@@ -84,6 +86,7 @@ beforeEach(() => {
   mockAccountRevision = 0;
   mockFocused = true;
   mockPlatform = 'android';
+  mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
   mockRouter.canGoBack.mockReturnValue(true);
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([ownMessage]);
   mockProblemSubmit.mockReset().mockResolvedValue({ ok: false, kod: 'NOT_CONFIGURED', poruka: 'unconfirmed' });
@@ -133,6 +136,22 @@ describe('D03 actual route and scoped resource integration', () => {
     await act(async () => button('Pregled').props.onPress());
     expect(avoidance.props.enabled).toBe(false);
     expect(texts()).toContain(workspace.naslov);
+    expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(mockMessages).toHaveBeenCalledTimes(1);
+  });
+  it('opens the same accepted overview from the compact thread without replacing its owned outbox or rereading', async () => {
+    mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
+    await render();
+    await act(async () => button('Poruke').props.onPress());
+    const chat = tree.root.findByType('AgreementChat' as any);
+    expect(chat.props.compact).toBe(true);
+    expect(chat.props.outbox).toBe(mockOutbox);
+    expect(chat.props.state).toBe(mockOutboxState);
+    await act(async () => button(`Uslovi Dogovora: ${workspace.naslov}`).props.onPress());
+    expect(texts()).toContain('3.000 RSD');
+    expect(texts()).toContain('Fleksibilno');
+    await act(async () => button('Poruke').props.onPress());
+    expect(tree.root.findByType('AgreementChat' as any).props.outbox).toBe(mockOutbox);
     expect(mockRead).toHaveBeenCalledTimes(1);
     expect(mockMessages).toHaveBeenCalledTimes(1);
   });

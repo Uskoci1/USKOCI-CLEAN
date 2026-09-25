@@ -1,5 +1,12 @@
 # USKOČI — repository entry map
 
+R11 SCREEN COMPOSITION (2026-09-25): read `docs/implementation/design-system/r11-screen-composition-20260925/REPORT.md`
+and `SCREEN_AUDIT.md`. The source inventory covers 40 active destinations and five redirects; fixtures are not live
+journey proof. Discovery is search-led with secondary entries in one menu; offers have larger portraits and quieter
+terms; public profile keeps its 96 dp portrait; compact human chat moves full identity/terms into history; AI turns
+no longer repeat the brand mark and idle welcome art is static. Final verification/APK evidence belongs to the R11
+receipt when present. No backend, payment, dependency or real business mutation. Preserve larger implementation batches.
+
 R10 HOME AND DISCOVERY (2026-09-25): app source `0f4d7644`. Read `docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md` and its receipt.
 Home uses an agenda card with unchanged time/person facts; map search, attribution and preview/list heights adapt
 to narrow/large-text layouts; navigation keeps whole labels and selected state. Internal Home fixtures are inert;

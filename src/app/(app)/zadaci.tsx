@@ -71,5 +71,6 @@ function Discovery() {
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}
+      onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;
 }

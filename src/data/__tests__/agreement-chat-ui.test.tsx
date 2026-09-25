@@ -137,6 +137,22 @@ describe('D03 actual message component', () => {
     expect(tree.root.findAllByType('KeyboardAvoidingView' as any)).toHaveLength(0);
     expect(button('Pošalji poruku')).toBeTruthy();
   });
+  it('returns to the photo controls when explicitly opening them from older history', async () => {
+    const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, items: [], message: null,
+      versionConflict: false, canSubmit: () => false, capture: () => null } as any;
+    await render({ photos });
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => scroll.props.onContentSizeChange(300, 3000));
+    await act(async () => scroll.props.onScroll({ nativeEvent: {
+      contentOffset: { y: 400 }, layoutMeasurement: { height: 300 }, contentSize: { height: 3000 },
+    } }));
+    scrollToEnd.mockClear();
+    await act(async () => button('Fotografije uz poruku').props.onPress());
+    expect(scroll.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);
+    await act(async () => scroll.props.onContentSizeChange(300, 3600));
+    expect(scrollToEnd).toHaveBeenCalledWith({ animated: false });
+    expect(outbox.sendDraft).not.toHaveBeenCalled();
+  });
   it('unknown delivery has exact-command retry and no invented sent/read state', async () => {
     state = { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] };
     await render({ state });

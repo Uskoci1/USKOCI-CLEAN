@@ -60,7 +60,7 @@ const flat = (style: unknown) => Object.assign({}, ...[style].flat(4).filter(Boo
 const stars = (root: ReactTestInstance) => root.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'star');
 
 describe('the candidate row', () => {
-  it('leads with the person: picture, name and rating, then the total with what it covers, one line of the message and one press', async () => {
+  it('leads with the person, then the total with what it covers, a message preview and one press', async () => {
     const opened: string[] = [];
     await act(async () => { tree = create(<CandidateListPresentation need={need} candidates={[k()]} open={candidate => opened.push(candidate.prijavaId)}
       back={noop} refresh={noop} />); });
@@ -73,10 +73,12 @@ describe('the candidate row', () => {
     expect(order).toEqual(['avatar:MP', 'Milan Petrović', '4,8 · 11 recenzija', '4.500 RSD', 'ukupno · 2 osobe', 'Dolazimo sa trakama i kombijem.']);
     const amount = row.findAll(node => node.props.children === '4.500 RSD')[0];
     expect(flat(amount.props.style).color).toBe(sys.color.money);
-    expect(row.findAll(node => node.props.children === 'Dolazimo sa trakama i kombijem.')[0].props.numberOfLines).toBe(1);
+    expect(row.findAll(node => node.props.children === 'Dolazimo sa trakama i kombijem.')[0].props.numberOfLines).toBe(2);
     // No proposed interval: no time line (the task's own time would repeat on every card).
     expect(row.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'calendar')).toHaveLength(0);
-    expect(row.props.accessibilityHint).toMatch(/^Ocena 4,8, 11 recenzija\. Ukupno 4\.500 RSD; 2 osobe; termin Zadatka\./);
+    // Essential offer facts remain available when the person has disabled screen-reader hints.
+    expect(row.props.accessibilityValue.text).toMatch(/^Ocena 4,8, 11 recenzija\. Ukupno 4\.500 RSD; 2 osobe; termin Zadatka\./);
+    expect(row.props.accessibilityHint).toBe('Otvara celu ponudu.');
     // One target: nothing inside the card is a press of its own.
     expect(row.findAll(node => node.type === ('Press' as unknown as React.ElementType))).toHaveLength(1);
     await act(async () => row.props.onPress()); expect(opened).toEqual(['application-1']);
@@ -88,7 +90,7 @@ describe('the candidate row', () => {
     expect(texts(row)).toMatch(/20\. sep( 2026)? · 10:00–11:00/);
     const status = row.findAll(node => node.props.children === 'Potrebna nova provera')[0];
     expect(flat(status.props.style).color).toBe(sys.color.warn);
-    expect(row.props.accessibilityHint).toContain('Potrebna nova provera.');
+    expect(row.props.accessibilityValue.text).toContain('Potrebna nova provera.');
   });
 
   it('never invents a rating or a count: a star only beside a figure, and a missing rating says it is missing', async () => {
@@ -111,6 +113,32 @@ describe('the candidate row', () => {
     expect(candidateValue({ cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, pokrivaMesta: 1 })).toEqual({ kind: 'unpriced' });
   });
 
+  it('requests the portrait at the size of its stand-in in both list and comparison', async () => {
+    const photo = jest.fn((_candidate: KandidatProjekcija, _size: number) => null);
+    await render(<CandidateListPresentation need={need} candidates={[k(), k({ prijavaId: 'application-2' })]}
+      open={noop} back={noop} refresh={noop} photo={photo} />);
+    expect(photo.mock.calls.map(call => call[1])).toEqual([56, 56]);
+    expect(tree.root.findAll(node => node.type === ('Avatar' as unknown as React.ElementType)).map(node => node.props.size)).toEqual([56, 56]);
+    photo.mockClear();
+    await act(async () => pressNamed('Uporedi').props.onPress());
+    expect(photo.mock.calls.map(call => call[1])).toEqual([40, 40]);
+    expect(tree.root.findAll(node => node.type === ('Avatar' as unknown as React.ElementType)).map(node => node.props.size)).toEqual([40, 40]);
+    expect(pressNamed('Otvori prijavu: Milan Petrović').props.accessibilityValue.text).toContain('Ukupno 4.500 RSD; 2 osobe');
+  });
+
+  it('keeps long terms separate from the name and lets the full people basis wrap at enlarged text', async () => {
+    mockWidth = 320; mockFontScale = 2;
+    await render(list([k({ ime: 'Aleksandra Stefanović-Radosavljević', pokrivaMesta: 123,
+      cena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })]));
+    const row = pressNamed('Pogledaj ponudu: Aleksandra Stefanović-Radosavljević');
+    const amount = row.findAll(node => node.props.children === '125.000 RSD')[0];
+    const basis = row.findAll(node => node.props.children === 'ukupno · 123 osobe')[0];
+    expect(amount.props.numberOfLines).toBeUndefined(); expect(basis.props.numberOfLines).toBeUndefined();
+    expect(flat(amount.parent!.props.style).flexDirection).toBe('column');
+    expect(texts(amount.parent!)).not.toContain('Aleksandra');
+    expect(row.props.accessibilityValue.text).toContain('125.000 RSD; 123 osobe');
+  });
+
   it('draws the empty list as the one empty state, saying what happens next without promising anyone will apply', async () => {
     await render(list([]));
     expect(texts()).toContain('Još nema prijava');
@@ -125,8 +153,8 @@ describe('the candidate row', () => {
 // Review r4 rk item 6: two columns hold their person part to the height of the fullest one (the 40 px picture, a
 // three-line name, a two-line rating and the gaps), at the text size in use; a fixed 132 was shorter than that.
 it('holds a comparison column’s person part to the height of a three-line name and a two-line rating', () => {
-  expect(compareIdentityHeight(1)).toBe(40 + 2 * 6 + 3 * 21 + 2 * 17);
-  expect(compareIdentityHeight(1.2)).toBe(Math.ceil(40 + 2 * 6 + (3 * 21 + 2 * 17) * 1.2));
+  expect(compareIdentityHeight(1)).toBe(40 + 2 * 6 + 3 * 21 + 2 * 20);
+  expect(compareIdentityHeight(1.2)).toBe(Math.ceil(40 + 2 * 6 + (3 * 21 + 2 * 20) * 1.2));
   expect(compareIdentityHeight(1)).toBeGreaterThan(132);
 });
 
@@ -159,7 +187,7 @@ describe('the comparison', () => {
   it.each([
     ['at Large', 390, 1.2999999523, 'left'],
     ['on a 320 dp phone', 320, 1, 'left'],
-    ['beside the person on a 390 dp phone at normal text', 390, 1, 'right'],
+    ['below the person on a 390 dp phone at normal text', 390, 1, 'left'],
   ])('places the total %s', async (_name, width, fontScale, align) => {
     mockWidth = width; mockFontScale = fontScale;
     await render(list([k()]));
@@ -234,6 +262,19 @@ describe('the offer sheet', () => {
     expect(texts()).toContain('Više ljudi nego što je preostalo');
     await act(async () => pressNamed('Osveži prijave').props.onPress()); expect(refresh).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps the exact full note and total-for-people terms on the offer while selection still waits for confirmation', async () => {
+    const note = `  ${'Donosimo trake i zaštitu za nameštaj. '.repeat(12)}\nPozovite pre dolaska.  `;
+    const choose = jest.fn();
+    await render(offer({ candidate: k({ napomena: note }), choose }));
+    const full = tree.root.findAll(node => node.type === ('T' as unknown as React.ElementType) && node.props.children === note)[0];
+    expect(full.props.selectable).toBe(true); expect(full.props.numberOfLines).toBeUndefined();
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Ukupno za 2 osobe: 4.500 RSD')).toHaveLength(1);
+    await act(async () => pressNamed('Izaberi ovu ponudu').props.onPress());
+    expect(choose).not.toHaveBeenCalled();
+    expect(texts()).toContain('4.500 RSD ukupno, dolaze 2 osobe');
+    expect(texts()).toContain('Termin izabrane osobe ponovo se proverava pri izboru.');
+  });
 });
 
 describe('the public profile sheet', () => {
@@ -264,5 +305,33 @@ describe('the public profile sheet', () => {
     await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data: null }} onClose={noop} onRetry={onRetry} />));
     expect(texts()).toContain('Javni profil trenutno nije dostupan.');
     await act(async () => pressNamed('Pokušaj ponovo').props.onPress()); expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the public portrait consistent with initials, and does not turn unavailable trust into a claim', async () => {
+    const data = profile();
+    data.poverenje = { ...data.poverenje, ocenaProsek: 4.9, brojRecenzija: 27, identitetVerifikovan: true,
+      ocenaDostupna: false, recenzijeDostupne: false, verifikacijaIdentitetaDostupna: false };
+    const photo = jest.fn((_id: string, _size?: number) => null);
+    await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} photo={photo} />);
+    expect(photo).toHaveBeenCalledWith('profile-1', 96);
+    expect(texts()).toContain('Nije dostupna'); expect(texts()).not.toContain('4,9'); expect(texts()).not.toContain('27 recenzija');
+    expect(texts()).not.toContain('Identitet je potvrđen');
+    await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />));
+    const portrait = tree.root.findAll(node => node.props.testID === 'public-profile-portrait')[0];
+    expect(flat(portrait.props.style)).toMatchObject({ width: 96, height: 96 });
+    expect(texts(portrait)).toBe('MM');
+    expect(portrait.props.importantForAccessibility).toBe('no-hide-descendants');
+  });
+
+  it.each([[320, 1], [390, 1.2999999523], [390, 2]])('stacks full trust facts at width %s and scale %s without clamping the biography', async (width, fontScale) => {
+    mockWidth = width; mockFontScale = fontScale;
+    const data = { ...profile(), biografija: 'Radim sa bratom. '.repeat(35) };
+    await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />);
+    const rating = tree.root.findAll(node => node.props.accessibilityLabel === 'Ocena: još nema ocena')[0];
+    expect(flat(rating.parent!.props.style).flexDirection).toBe('column');
+    expect(flat(rating.props.style).flexBasis).toBe('auto');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Završeni Dogovori: 2')).toHaveLength(1);
+    const bio = tree.root.findAll(node => node.props.children === data.biografija)[0];
+    expect(bio.props.numberOfLines).toBeUndefined(); expect(bio.props.selectable).toBe(true);
   });
 });

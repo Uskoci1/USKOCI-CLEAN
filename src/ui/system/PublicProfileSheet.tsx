@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import type { JavniProfilPoverenje, JavniProfilProjekcija } from '../../contracts/projections';
 import { inicijali } from '../../lib/inicijali';
 import { ProductSheet } from '../product/ProductSheet';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { Avatar } from './Avatar';
 import { FactArt } from './FactArt';
 import { plural } from './plural';
 import { StateView } from './StateView';
+import { useTextScale } from './textScale';
 import { sys } from './tokens';
 
 export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
@@ -31,32 +31,37 @@ export const SAFETY_LABEL = 'Prijavi ili blokiraj osobu';
  */
 export function PublicProfileSheet({ state, onClose, onRetry, photo, safety }: {
   state: PublicProfileState; onClose: () => void; onRetry: () => void;
-  /**
-   * The person's portrait, at the size the calling screen gives it (the task and the candidates both hand their 96 px
-   * portrait with the photo's own stand-in); the 56 px Avatar with their letters when the screen hands none.
-   */
+  /** The public portrait and its initials stand-in both keep the larger 96 dp profile size. */
   photo?: (profileId: string, size?: number) => ReactNode;
   safety?: SafetyEntry;
 }) {
+  const { width } = useWindowDimensions();
+  const textScale = useTextScale();
+  const stacked = width < 360 || textScale >= 1.3;
   if (!state) return null;
   const profile = state.loading ? null : state.data, trust = profile?.poverenje;
   const name = profile ? profile.ime?.trim() || 'Ime nije dostupno' : null;
+  const initials = profile ? inicijali(profile.ime) : null;
   return <ProductSheet title={name ?? 'Javni profil'} closeLabel="Zatvori javni profil" backdropHint="Zatvara javni profil." onClose={onClose}>
     {() => state.loading ? <StateView kind="loading" title="Učitavamo javni profil…" skeleton={{ count: 1, rows: 2 }} />
       : !profile ? <StateView kind="error" title="Javni profil trenutno nije dostupan." body="Proveri vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />
-      : <>
-        <View style={s.identity}>
-          <View style={s.face}>{photo ? photo(profile.profilId) : <Avatar initials={inicijali(profile.ime)} size={56} />}</View>
-          <View style={s.identityCopy}>
-            {profile.naslov ? <T variant="bodyStrong" style={s.ink}>{profile.naslov}</T> : null}
-            {profile.grad ? <View style={s.place}><FactArt kind="pin" size={16} /><T variant="note" tone="muted" style={s.grow}>{profile.grad}</T></View> : null}
+      : <View style={s.content}>
+        <View style={[s.identity, stacked && s.identityStack]}>
+          <View testID="public-profile-portrait" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.face}>
+            {photo?.(profile.profilId, 96) ?? (initials
+              ? <T maxFontSizeMultiplier={1} numberOfLines={1} style={s.initials}>{initials}</T>
+              : <FactArt kind="person" size={48} />)}
+          </View>
+          <View style={[s.identityCopy, stacked && s.identityCopyStack]}>
+            {profile.naslov ? <T variant="heading" style={s.ink}>{profile.naslov}</T> : null}
+            {profile.grad ? <View style={s.place}><FactArt kind="pin" size={18} /><T variant="body" tone="muted" style={s.grow}>{profile.grad}</T></View> : null}
           </View>
         </View>
-        {trust ? <TrustFacts trust={trust} /> : null}
+        {trust ? <TrustFacts trust={trust} stacked={stacked} /> : null}
         {profile.biografija ? <View style={s.section}>
-          <T variant="meta" tone="muted">O sebi</T>
-          <T variant="body" style={s.ink}>{profile.biografija}</T>
+          <T accessibilityRole="header" variant="heading" style={s.ink}>O sebi</T>
+          <T selectable variant="body" style={s.ink}>{profile.biografija}</T>
         </View> : null}
         {safety ? <View style={s.safety}>
           <Press accessibilityRole="button" accessibilityLabel={`${SAFETY_LABEL}: ${name}`}
@@ -69,9 +74,9 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety }: {
               <T variant="note" tone="muted">Osoba koju prijavljuješ ne vidi prijavu.</T>
             </View>
           </Press>
-          {safety.error ? <T accessibilityRole="alert" variant="note" tone="danger">{safety.error}</T> : null}
+          {safety.error ? <T accessibilityRole="alert" accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
         </View> : null}
-      </>}
+      </View>}
   </ProductSheet>;
 }
 
@@ -80,22 +85,23 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety }: {
  * A rating is written the Serbian way ("4,8") beside the count it stands on; no reviews yet says so, an unavailable
  * rating says that, and a verified identity appears only when the server reports it.
  */
-function TrustFacts({ trust }: { trust: JavniProfilPoverenje }) {
+function TrustFacts({ trust, stacked }: { trust: JavniProfilPoverenje; stacked: boolean }) {
   const noReviews = trust.recenzijeDostupne && trust.brojRecenzija === 0;
   const rating = trust.ocenaDostupna && typeof trust.ocenaProsek === 'number' && Number.isFinite(trust.ocenaProsek)
     ? trust.ocenaProsek.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }) : null;
   const reviews = trust.recenzijeDostupne && typeof trust.brojRecenzija === 'number' && trust.brojRecenzija > 0 ? reviewsText(trust.brojRecenzija) : null;
   return <View style={s.trust}>
-    <View style={s.cells}>
-      <View accessible accessibilityLabel={`Ocena: ${noReviews ? 'još nema ocena' : rating ?? 'nije dostupna'}${reviews && !noReviews ? `, ${reviews}` : ''}`} style={s.cell}>
+    <View style={[s.cells, stacked && s.cellsStack]}>
+      <View accessible accessibilityLabel={`Ocena: ${noReviews ? 'još nema ocena' : rating ?? 'nije dostupna'}${reviews && !noReviews ? `, ${reviews}` : ''}`}
+        style={[s.cell, stacked && s.cellStack]}>
         <T variant="meta" tone="muted">Ocena</T>
         {noReviews ? <T variant="bodyStrong" style={s.ink}>Još nema ocena</T>
           : rating ? <View style={s.place}><FactArt kind="star" size={18} /><T style={s.value}>{rating}</T></View>
           : <T variant="bodyStrong" tone="muted">Nije dostupna</T>}
         {reviews && !noReviews ? <T variant="meta" tone="muted">{reviews}</T> : null}
       </View>
-      <View style={s.rule} />
-      <View accessible accessibilityLabel={`Završeni Dogovori: ${trust.zavrseniBroj}`} style={s.cell}>
+      <View style={stacked ? s.ruleAcross : s.rule} />
+      <View accessible accessibilityLabel={`Završeni Dogovori: ${trust.zavrseniBroj}`} style={[s.cell, stacked && s.cellStack]}>
         <T variant="meta" tone="muted">Završeni Dogovori</T>
         <T style={s.value}>{String(trust.zavrseniBroj)}</T>
       </View>
@@ -108,18 +114,26 @@ function TrustFacts({ trust }: { trust: JavniProfilPoverenje }) {
 const s = StyleSheet.create({
   ink: { color: sys.color.ink }, green: { color: sys.color.green }, danger: { color: sys.color.danger },
   grow: { flex: 1, minWidth: 0 },
+  content: { gap: sys.space.lg, paddingTop: sys.space.sm, paddingBottom: sys.space.sm },
   identity: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
-  face: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
-  identityCopy: { flex: 1, minWidth: 0, gap: 4 },
+  identityStack: { flexDirection: 'column', alignItems: 'flex-start' },
+  face: { width: 96, height: 96, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
+    borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, overflow: 'hidden' },
+  initials: { ...sys.type.display, color: sys.color.green, letterSpacing: 0, textAlign: 'center' },
+  identityCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.sm },
+  identityCopyStack: { width: '100%', flexShrink: 0 },
   place: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trust: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, gap: sys.space.md },
+  trust: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, padding: sys.space.lg, gap: sys.space.base },
   cells: { flexDirection: 'row', alignItems: 'stretch', gap: sys.space.base },
-  cell: { flex: 1, minWidth: 0, gap: 2 },
+  cellsStack: { flexDirection: 'column' },
+  cell: { flexGrow: 1, flexBasis: 0, minWidth: 0, gap: sys.space.sm },
+  cellStack: { flexGrow: 0, flexBasis: 'auto' },
   rule: { width: 1, backgroundColor: sys.color.line },
+  ruleAcross: { height: 1, backgroundColor: sys.color.line },
   value: { ...sys.type.priceSmall, color: sys.color.ink },
   verified: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
-  section: { gap: 4 },
-  safety: { gap: sys.space.sm, paddingTop: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
+  section: { gap: sys.space.md },
+  safety: { gap: sys.space.sm, paddingTop: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line },
   safetyRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, paddingVertical: sys.space.xs },
   safetyArt: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.dangerSoft, alignItems: 'center', justifyContent: 'center' },
 });

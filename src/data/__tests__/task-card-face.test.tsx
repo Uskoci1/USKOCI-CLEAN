@@ -329,13 +329,17 @@ describe('review r3', () => {
   });
 
   // Item 2: at 320 dp "125.000 RSD" read "125.00…" inside a 42% cap. An amount keeps its whole width; the title gives way.
-  it('never cuts an amount: it has no line cap and no width cap, and a word keeps its 42% cap', async () => {
+  it('never cuts an amount and gives non-numeric price wording its own full-width row', async () => {
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })} onOpen={jest.fn()} />);
     const amount = textNode('125.000 RSD');
     expect(amount.props.numberOfLines).toBeUndefined();
     expect(style(amount.parent!)).toMatchObject({ flexShrink: 0 }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
-    expect(style(textNode('Tražim ponude').parent!)).toMatchObject({ maxWidth: '42%', flexShrink: 0 });
+    const word = textNode('Tražim ponude');
+    expect(style(word.parent!)).not.toHaveProperty('maxWidth');
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    expect(style(textNode('Farbanje dnevne sobe'))).not.toHaveProperty('flex');
+    expect(style(word)).not.toMatchObject({ color: sys.color.money });
   });
 
   // Item 3: with a long name "Traži 2 osobe" ended in "…". The count never shrinks beside the person; the name does.

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
@@ -10,6 +10,7 @@ import { Press } from './Press';
 import { FactArt } from './system/FactArt';
 import { plural } from './system/plural';
 import { floating, sys } from './system/tokens';
+import { useTextScale } from './system/textScale';
 import { T } from './Text';
 import { withInter } from './interFont';
 import { positiveInteger, uuid } from '../data/serverReceipt';
@@ -28,6 +29,9 @@ type Props = {
   state: ReturnType<Outbox['getSnapshot']>;
   photos?: AgreementPhotosController;
   support?: { canAct: () => boolean; navigate: (action: () => void) => void };
+  /** The surrounding frame moves identity/accepted terms into history when the keyboard or text needs the space. */
+  context?: ReactNode;
+  compact?: boolean;
 };
 
 const errors: Record<OutboxError, string> = {
@@ -86,7 +90,9 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
  * own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
-export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos }: Props) {
+export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos,
+  context, compact = false }: Props) {
+  const textScale = useTextScale();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
   // The photo tools stay behind the pill's "+" until asked for, or while a photo is chosen, prepared or explained.
@@ -152,12 +158,14 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   let previousDay: string | null = null;
   return (
     <View style={s.screen}>
-      <ScrollView ref={list} keyboardShouldPersistTaps="handled" onContentSizeChange={followLatest} onLayout={followLatest}
+      <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
+        onContentSizeChange={followLatest} onLayout={followLatest}
         scrollEventThrottle={100} onScroll={({ nativeEvent: event }) => {
           nearBottom.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
         }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
         contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
+        {context}
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
         {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
             update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
@@ -231,8 +239,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone={entry.state==='failed'?'ink':'onMine'}
               onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }} />}
         </View>)}
-      </ScrollView>
-      <View style={s.composerArea}>
+      {/* Photo preparation and recovery can be taller than the remaining keyboard viewport. They belong to its
+          scroll, directly above writing, so their complete explanation and every exact retry remain reachable. */}
+      {state.error || state.phase === 'error' || terminal || !writable || denied || length > 2000 || photoPanel ? <View testID="agreement-chat-details" style={s.details}>
         {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
         {state.phase === 'error' ? <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} /> : null}
         {/* A closed Dogovor keeps its conversation to read; the composer, the photo tools and the refresh helper
@@ -243,15 +252,19 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {!terminal && (!writable || denied) ? <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
         {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
-        {terminal ? null : <View style={s.pill}>
+      </View> : null}
+      </ScrollView>
+      {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
+        <View style={s.pill}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
-            style={s.input} />
+            scrollEnabled style={[s.input, compact && { paddingTop: 8, paddingBottom: 8,
+              maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 16)) }]} />
           <View style={s.toolbar}>
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}
               accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
-              onPress={() => setAttachOpen(open => !open)} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
+              onPress={() => { nearBottom.current = true; setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
               {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <Plus size={24} color={sys.color.green} />}
               <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T>
             </Press> : null}
@@ -263,14 +276,15 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
               </View>
             </Press>
           </View>
-        </View>}
-      </View>
+        </View>
+      </View> : null}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.conversation.ground },
+  screen: { flex: 1, minHeight: 0, backgroundColor: sys.conversation.ground },
+  history: { flex: 1, minHeight: 0 },
   list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1 },
   // A short conversation sits on the composer, where a reply is written; a state stands in the middle.
   listBottom: { justifyContent: 'flex-end' },
@@ -298,7 +312,9 @@ const s = StyleSheet.create({
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
   // One lifted writing surface. Its full-width draft stays above controls instead of being squeezed between them.
-  composerArea: { paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
+  composerArea: { flexShrink: 0, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
+  composerCompact: { paddingTop: 4, paddingBottom: 8 },
+  details: { gap: sys.space.sm, paddingTop: sys.space.sm },
   pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
   toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
