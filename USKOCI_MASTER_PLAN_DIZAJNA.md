@@ -11,6 +11,13 @@ screen for its purpose, using a recognizable green foundation, illustrated icons
 soft normal motion. Shadows distinguish surfaces and hierarchy rather than outlining every control. Earlier
 V28/white-only rules are references, not vetoes. Preserve domain behavior, recovery, privacy and truthful facts.
 
+Owner screenshot refinement, 25 September: read
+`docs/implementation/design-system/OWNER_AIRBNB_REFERENCES_20260925.md` before the next Discovery/filter pass.
+Seven owner-supplied images clarify generous white space, larger reading text, quieter cards and one search-led
+map/results composition. The current R10 map already has the combined sheet and branded points; next refinement
+reduces competing header chrome and visual weight while preserving identity access, complete attribution and all
+true task facts. This is recorded design intent, not a new implemented screen or APK. It does not restart the plan.
+
 ## Current execution checkpoint — 2026-09-25
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
