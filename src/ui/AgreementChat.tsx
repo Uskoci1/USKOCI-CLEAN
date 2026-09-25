@@ -9,7 +9,7 @@ import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
 import { plural } from './system/plural';
-import { sys } from './system/tokens';
+import { floating, sys } from './system/tokens';
 import { T } from './Text';
 import { withInter } from './interFont';
 import { positiveInteger, uuid } from '../data/serverReceipt';
@@ -74,17 +74,16 @@ export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljal
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
 function ChatAction({ label, text = label, onPress, tone = 'green', center = false }: { label: string; text?: string; onPress: () => void;
-  tone?: 'green' | 'ink'; center?: boolean }) {
+  tone?: 'green' | 'ink' | 'onMine'; center?: boolean }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress} style={[s.chatAction, center && s.center]}>
-    <T variant="action" style={{ color: tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
+    <T variant="action" style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
   </Press>;
 }
 
 /**
- * The conversation of a Dogovor, calm and modern (owner step 8): the other person's messages on the left, white with the
- * card edge, mine on the right on pale green, each with its clock small and muted, a day named once above its messages, and
- * a floating pill to write in, in the look of the AI conversation's composer (text and send, with the photo tools behind
- * its "+"). Pending sends render under the list with their real outbox state (never a text-match guess), and no delivery
+ * The Dogovor keeps its human speakers distinct: nuanced white incoming messages and forest-green outgoing messages,
+ * with readable clocks and a day named once. Writing uses the full composer width; photo and send controls have their
+ * own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos }: Props) {
@@ -197,11 +196,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             <Press accessibilityRole="button" accessibilityLabel={messageSpoken(message, moment)} accessibilityHint="Dugi pritisak nudi prijavu podršci."
               onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
               style={[s.bubble, message.moja ? s.mine : s.theirs, sameRun ? s.run : s.turn]}>
-              {message.telo ? <T selectable style={s.body}>{message.telo}</T> : null}
+              {message.telo ? <T selectable style={[s.body,message.moja&&s.onMine]}>{message.telo}</T> : null}
               {message.fotografije?.map((photo, photoIndex) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
                 agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${photoIndex + 1}`}
                 style={s.photo} /> : null)}
-              <T style={s.time}>{moment.clock}</T>
+              <T style={[s.time,message.moja&&s.onMine]}>{moment.clock}</T>
             </Press>
             {/* This stood under every message, full width, doubling the height of the transcript. It belongs to the
                 message a person actually wants to report, which is the one they hold. It stands under that bubble, on
@@ -219,17 +218,17 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             unconfirmed send may be older than today). */}
         {local.map((entry, index) => <View key={entry.command.clientMessageId}
           style={[s.bubble, s.mine, entry.state === 'failed' && s.failed, index || shown[shown.length - 1]?.moja ? s.run : s.turn]}>
-          {entry.command.body ? <T selectable style={s.body}>{entry.command.body}</T> : null}
+          {entry.command.body ? <T selectable style={[s.body,entry.state!=='failed'&&s.onMine]}>{entry.command.body}</T> : null}
           {entry.command.photos?.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
             agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
             style={s.photo} />)}
-          <T style={[s.time, entry.state === 'failed' && s.timeFailed]} accessibilityLiveRegion="polite">
+          <T style={[s.time, entry.state === 'failed' ? s.timeFailed : s.onMine]} accessibilityLiveRegion="polite">
             {entry.state === 'sending' ? 'Šalje se…' : entry.state === 'confirmed' ? 'Poslato'
               : entry.state === 'unknown' ? 'Slanje nije potvrđeno' : 'Nije poslato'}
           </T>
           {entry.state === 'failed' && entry.error ? <T variant="meta" tone="muted">{errors[entry.error]}</T> : null}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
-            <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone="ink"
+            <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone={entry.state==='failed'?'ink':'onMine'}
               onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }} />}
         </View>)}
       </ScrollView>
@@ -245,22 +244,25 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         {terminal ? null : <View style={s.pill}>
-          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
-            accessibilityHint={forcedWhy}
-            accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
-            onPress={() => setAttachOpen(open => !open)} haptic={forced ? 'none' : 'select'} style={s.tool}>
-            {photoPanel ? <X size={22} color={forced ? sys.color.muted : sys.color.ink} /> : <Plus size={22} color={sys.color.ink} />}
-          </Press> : null}
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
-            style={[s.input, !photos && s.inputAlone]} />
-          <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
-            accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} style={s.sendArea}>
-            <View style={[s.send, canSend && s.sendReady]}>
-              {state.capturing ? <ActivityIndicator color={sys.color.muted} />
-                : <PaperPlaneTilt size={20} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
-            </View>
-          </Press>
+            style={s.input} />
+          <View style={s.toolbar}>
+            {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
+              accessibilityHint={forcedWhy}
+              accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
+              onPress={() => setAttachOpen(open => !open)} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
+              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <Plus size={24} color={sys.color.green} />}
+              <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T>
+            </Press> : null}
+            <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
+              accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
+              <View style={[s.send, canSend && s.sendReady]}>
+                {state.capturing ? <ActivityIndicator color={sys.color.muted} />
+                  : <PaperPlaneTilt size={22} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
+              </View>
+            </Press>
+          </View>
         </View>}
       </View>
     </View>
@@ -268,7 +270,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground },
+  screen: { flex: 1, backgroundColor: sys.conversation.ground },
   list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1 },
   // A short conversation sits on the composer, where a reply is written; a state stands in the middle.
   listBottom: { justifyContent: 'flex-end' },
@@ -276,34 +278,39 @@ const s = StyleSheet.create({
   loading: { paddingVertical: 24 },
   center: { alignSelf: 'center' }, centerText: { textAlign: 'center' }, ink: { color: sys.color.ink },
   stateBlock: { gap: 8, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 },
-  stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
-  day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
+  day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
+    borderRadius: sys.radius.control, backgroundColor: sys.conversation.surface, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
   bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
   // A turn of the conversation leaves air; the next message of the same person sits close under the last.
   turn: { marginTop: 12 }, run: { marginTop: 4 },
-  mine: { alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 8 },
-  // The other person's messages are white with the card edge, so the two sides differ by more than their place: the wash
-  // (#F2F7F4) beside pale green (#EFF6F0) read as one colour (review r4 rd item 5).
-  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: 8 },
+  mine: { alignSelf: 'flex-end', backgroundColor: sys.conversation.user, borderBottomRightRadius: 8 },
+  // Position and surface both identify the speaker. Status and retry text follow the same contrast as their bubble.
+  theirs: { alignSelf: 'flex-start', backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge, borderBottomLeftRadius: 8 },
   // The support entry of a held message stands under it, on its side, as wide as a bubble may be.
   supportEntry: { maxWidth: '82%', marginTop: 4 },
   supportMine: { alignSelf: 'flex-end' }, supportTheirs: { alignSelf: 'flex-start' },
   failed: { backgroundColor: sys.color.dangerSoft },
-  body: { fontSize: 16, lineHeight: 22, color: sys.color.ink },
+  body: { ...sys.type.body, color: sys.color.ink },
+  onMine: { color: sys.conversation.onUser },
   photo: { width: 220, maxWidth: '100%' },
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
-  // The composer floats: no rule above it, only air around one soft pill.
-  composerArea: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, gap: 8, backgroundColor: sys.color.surface },
-  pill: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
-  tool: { width: COMMAND, height: COMMAND, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  input: withInter({ flex: 1, minHeight: COMMAND, maxHeight: 140, fontSize: 16, lineHeight: 22, color: sys.color.ink, paddingHorizontal: 4,
-    paddingTop: 13, paddingBottom: 13, textAlignVertical: 'top' }),
-  inputAlone: { paddingHorizontal: 14 },
+  // One lifted writing surface. Its full-width draft stays above controls instead of being squeezed between them.
+  composerArea: { paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
+  pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
+    borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
+  toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
+    borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
+  toolLabel: { flexShrink: 1, color: sys.color.green },
+  toolLabelDisabled: { color: sys.color.muted },
+  input: withInter({ ...sys.type.body, minWidth: 0, minHeight: COMMAND, maxHeight: 140, color: sys.color.ink,
+    paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md, textAlignVertical: 'top' }),
   // The send is a 48 px target around a 40 px circle: green with a white glyph when a message can go, a grey well
   // with a muted glyph when it cannot (never faded), a quiet spinner while photos are being captured.
-  sendArea: { width: COMMAND, height: COMMAND, alignItems: 'center', justifyContent: 'center' },
+  sendArea: { width: COMMAND, height: COMMAND, marginLeft: 'auto', alignItems: 'center', justifyContent: 'center' },
   send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
   sendReady: { backgroundColor: sys.color.green },
 });

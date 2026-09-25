@@ -207,10 +207,26 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
     expect(mockSource.podeliTelefon).not.toHaveBeenCalled();
     expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(button('Potvrdi završetak').props.accessibilityState.busy).toBe(true);
     mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED' });
     await act(async () => resolve({ ok: true, podatak: null }));
     expect(texts()).toContain('Dogovor je završen');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
+  });
+  it('keeps completion idle while a different command is being saved', async () => {
+    let resolve!: (result: unknown) => void;
+    mockSource.podeliTelefon.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+    await render();
+    await act(async () => button('Kontakt').props.onPress());
+    await act(async () => button('Podeli svoj broj').props.onPress());
+    expect(mockSource.podeliTelefon).toHaveBeenCalledTimes(1);
+    expect(button('Potvrdi završetak').props.disabled).toBe(true);
+    expect(button('Potvrdi završetak').props.accessibilityState.busy).not.toBe(true);
+    expect(tree.root.findByProps({ testID: 'agreement-action-footer' })
+      .findAll(node => String(node.type) === 'T').flatMap(node => node.children)).toContain('Čuvamo promenu…');
+    await act(async () => resolve({ ok: true, podatak: null }));
+    expect(button('Potvrdi završetak').props.disabled).toBe(false);
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
   });
   it('an unknown completion remains fenced until explicit successful reconciliation', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce({ ok: false, kod: 'TIMEOUT', poruka: 'secret upstream detail' });
@@ -222,6 +238,12 @@ describe('D03 actual route and scoped resource integration', () => {
     await act(async () => complete());
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
     expect(button('Potvrdi završetak').props.disabled).toBe(true);
+    // The recovery command is in the fixed action region, not below all Agreement sections.
+    const footer = tree.root.findByProps({ testID: 'agreement-action-footer' });
+    expect(footer.findByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toBeTruthy();
+    expect(footer.findByProps({ testID: 'agreement-action-recovery' })
+      .findByProps({ accessibilityRole: 'alert' }).props.children).toContain('Promena nije potvrđena');
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(1);
     mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED' });
     await act(async () => button('Osveži status Dogovora').props.onPress());
     expect(texts()).toContain('Dogovor je završen');

@@ -230,12 +230,11 @@ describe('D03 actual message component', () => {
       expect(lines()).toEqual(expect.arrayContaining(['09:40', '09:41', '10:02', '10:03']));
       expect(lines().some(line => line.includes('23. sep ·'))).toBe(false);
     });
-    it('draws the other person left in white with the card edge and mine right on pale green, the clock small and muted, no name in the bubble', async () => {
+    it('distinguishes speakers with readable white and forest surfaces while keeping names and times in the spoken message', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00'), message('2', true, 'Ćao', '10:01')] });
-      // Review r4 rd item 5 (was: theirs on the wash, #F2F7F4, beside mine on #EFF6F0 — one colour to the eye).
-      expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.color.surface,
-        borderWidth: 1, borderColor: sys.color.cardLine });
-      expect(flat(bubble('Ti')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft });
+      expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.conversation.surface,
+        borderWidth: 1, borderColor: sys.conversation.edge });
+      expect(flat(bubble('Ti')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.conversation.user });
       // The name is heard with the bubble, not drawn in it: the bar above already names the person. Review r4 rd item 2:
       // what the bubble says and when is heard with it too.
       expect(bubble('Marko')[0].props.accessibilityLabel).toBe('Marko: Zdravo, Danas, 10:00');
@@ -243,17 +242,25 @@ describe('D03 actual message component', () => {
       expect(lines()).not.toContain('Marko');
       const clock = tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('10:00'))[0];
       expect(flat(clock.props.style)).toMatchObject({ fontSize: 12, color: sys.color.muted });
+      const mine = bubble('Ti')[0].findAll(node => String(node.type) === 'T');
+      expect(mine.map(node => flat(node.props.style).color)).toEqual([sys.conversation.onUser, sys.conversation.onUser]);
       expect(texts()).not.toContain('Povuci naniže');
     });
-    it('writes in one floating pill: a green send when a message can go, a grey one that is never faded when it cannot', async () => {
+    it('gives the multiline draft a full row above the toolbar while keeping the send state and target intact', async () => {
       await render();
       const send = button('Pošalji poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
       expect(circle(send).backgroundColor).toBe(sys.color.green); expect(flat(send.props.style).opacity).toBeUndefined();
-      const pill = send.parent!;
-      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.color.wash, borderRadius: sys.radius.sheet });
-      expect(pill.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(1);
+      const toolbar = send.parent!;
+      const pill = toolbar.parent!;
+      expect(flat(toolbar.props.style)).toMatchObject({ minHeight: 48, flexDirection: 'row' });
+      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.sheet });
+      const input = pill.findByProps({ accessibilityLabel: 'Napiši poruku' });
+      expect(input.props.multiline).toBe(true);
+      expect(input.parent).toBe(pill);
+      expect(pill.children.indexOf(input)).toBeLessThan(pill.children.indexOf(toolbar));
+      expect(toolbar.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '' }} />));
       expect(button('Pošalji poruku').props.disabled).toBe(true);
       expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.control);

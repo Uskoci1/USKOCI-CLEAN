@@ -115,6 +115,11 @@ it('offers a return to the latest answer without taking the reader away from ear
   expect(p.onSend).not.toHaveBeenCalled();expect(p.onChange).not.toHaveBeenCalled();
   await act(async()=>tree.root.findByProps({testID:'ai-latest'}).props.onPress());
   expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(0);
+  // Android may send a throttled intermediate event but finish the animation without another onScroll.
+  await act(async()=>scroll(300));
+  await act(async()=>tree.root.findByProps({testID:'ai-conversation-thread'}).props.onMomentumScrollEnd({
+    nativeEvent:{contentOffset:{y:800},contentSize:{height:1200},layoutMeasurement:{height:400}}}));
+  expect(tree.root.findAllByProps({testID:'ai-latest'})).toHaveLength(0);
 });
 it('a different conversation drops the previous scroll hint',async()=>{
   const p=props();p.conversationKey='first';p.messages=[{id:'a',fromAi:true,body:'Prvi razgovor'}];

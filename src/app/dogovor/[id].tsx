@@ -9,7 +9,7 @@ import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceNote, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
@@ -79,6 +79,8 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
   const [completionReview, setCompletionReview] = useState<CompletionReview | null>(null);
+  const [completing, setCompleting] = useState(false);
+  const completionDisplay = useRef<object | null>(null);
   const completionReviewRef = useRef<CompletionReview | null>(null), completionReadEpoch = useRef(0);
   const closeCompletionReview = useCallback(() => {
     completionReviewRef.current = null; setCompletionReview(null);
@@ -86,7 +88,10 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const formFocus = useRef<object | null>(null);
   useFocusEffect(useCallback(() => {
     const focus = {}; formFocus.current = focus;
-    return () => { if (formFocus.current === focus) { formFocus.current = null; closeCompletionReview(); } };
+    return () => { if (formFocus.current === focus) {
+      formFocus.current = null; closeCompletionReview();
+      completionDisplay.current = null; setCompleting(false);
+    } };
   }, [accountId, accountRevision, closeCompletionReview]));
   const renderedFormFocus = formFocus.current;
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
@@ -238,7 +243,10 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   };
   const complete = async () => {
     if (!canComplete || !enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
-    await workspace.save(async () => {
+    const display = {};
+    try { await workspace.save(async () => {
+      // Display ownership only: the existing editor still decides whether this write can start.
+      completionDisplay.current = display; setCompleting(true);
       const result = await bounded<Ishod<unknown>>(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id));
       // A known server denial keeps its own copy; anything else is an unconfirmed outcome.
       if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
@@ -251,7 +259,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
         ? 'Oznaka da je posao gotov nije upisana. Osveži status Dogovora.' : 'Potvrda završetka nije upisana. Osveži status Dogovora.' };
       return next;
-    });
+    }); } finally {
+      if (completionDisplay.current === display) { completionDisplay.current = null; setCompleting(false); }
+    }
   };
   // This is presentation staging only. The existing completion command still
   // owns every permission, serialization, timeout and readback rule.
@@ -277,7 +287,9 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
 
   // ---- presentation (state above is untouched by PKG-011) ----
   const openMessages = () => setTab('poruke');
-  const completeLabel = workspace.busy ? 'Čuvamo promenu…' : worker ? 'Posao je gotov' : 'Potvrdi završetak';
+  const completeLabel = worker ? 'Posao je gotov' : 'Potvrdi završetak';
+  const footerStatus = workspace.loading ? 'Učitavamo Dogovor…'
+    : workspace.busy && !completing ? 'Čuvamo promenu…' : null;
   const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
   // One brand action per state: completion when the server allows it, the review after
   // completion, otherwise the conversation. The conversation is always one tap away: the Poruke tab.
@@ -413,10 +425,12 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
             </View>)}
           </AgreementSection> : null}
           {problemPanel}
-          {workspace.error ? <WorkspaceNote tone="danger"><T accessibilityRole="alert" variant="body" style={s.danger}>{workspace.error}</T>
-            <V2Action label="Osveži status Dogovora" disabled={workspace.busy} onPress={() => void osvezi()} /></WorkspaceNote> : null}
         </ScrollView>
-        <WorkspaceFooter brand={brand} />
+        <WorkspaceFooter brand={brand} loading={canComplete && workspace.busy && completing} statusText={footerStatus}
+          notice={workspace.error || workspace.uncertain ? {
+            message: workspace.error ?? 'Proveravamo ishod prethodne radnje.',
+            refresh: () => void osvezi(), refreshing: workspace.busy || workspace.loading,
+          } : null} />
       </>}
     </KeyboardAvoidingView>
   </SafeAreaView>;

@@ -91,12 +91,12 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads title, facts with the person who posts it, words, requirements, photos, place and questions, in that order', async () => {
+  it('reads title and terms first, then logistics and publisher, before description, requirements, photos, place and questions', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = ['Selidba stana', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', '9.000 RSD', 'Ana Anić', 'Dva sprata bez lifta.', 'Kombi',
+    const order = ['Selidba stana', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', 'Ana Anić', 'Dva sprata bez lifta.', 'Kombi',
       'FOTOGRAFIJE', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
@@ -106,6 +106,25 @@ describe('a stranger\'s task', () => {
     // No rating is invented when the server has none.
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null }} />));
     expect(texts()).toContain('Traži pomoć · Ocena nije dostupna');
+  });
+
+  it.each<{ name: string; patch: Partial<PrilikaProjekcija>; value: string; note: string | null; amount: boolean }>([
+    { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'Ukupno za ceo zadatak', amount: true },
+    { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'Po osobi · ukupno 18.000 RSD', amount: true },
+    { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined },
+      value: 'Tražim ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
+    { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false },
+  ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount }) => {
+    await render(<Stranger need={{ ...task, ...patch }} />);
+    const copy = texts();
+    expect(copy.filter(text => text === value)).toHaveLength(1);
+    expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Beograd, Vračar'));
+    const label = `Budžet: ${value}${note ? `, ${note}` : ''}`;
+    expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.accessibilityLabel === label)).toHaveLength(1);
+    if (note) expect(copy).toContain(note);
+    else expect(copy).not.toContain('Ukupno za ceo zadatak');
+    const terms = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === value)[0];
+    expect(StyleSheet.flatten(terms.props.style).color).toBe(amount ? sys.color.money : sys.color.ink);
   });
 
   it('puts the poster\'s face on the first line of the name, as every other fact\'s picture, and keeps the row one touch target', async () => {

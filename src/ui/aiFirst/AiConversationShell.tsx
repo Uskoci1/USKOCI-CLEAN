@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowUp, ArrowUpRight, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
 import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
@@ -88,6 +88,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // Speech that closes (the conversation ended, or it cannot take speech any more) takes voice mode with it.
   useEffect(() => { if (!p.voice) setVoiceMode(false); }, [p.voice]);
   useEffect(() => { nearBottom.current = true; setReadingEarlier(false); }, [p.conversationKey]);
+  const syncReadingPosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const atBottom = contentSize.height - contentOffset.y - layoutMeasurement.height < 80;
+    if (nearBottom.current !== atBottom) { nearBottom.current = atBottom; setReadingEarlier(!atBottom); }
+  };
 
   const hasText = p.value.trim().length > 0;
   const sendShown = hasText || p.pending;
@@ -115,11 +120,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
         // there is a thread, the thread starts at the top as threads do.
         contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
-        onScroll={event => { const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-          const atBottom = contentSize.height - contentOffset.y - layoutMeasurement.height < 80;
-          // React updates only at this boundary, never once per scrolling frame.
-          if (nearBottom.current !== atBottom) { nearBottom.current = atBottom; setReadingEarlier(!atBottom); }
-        }} scrollEventThrottle={100}
+        // The terminal event is not throttled: an animated return can otherwise leave the shortcut visible at the end.
+        // React updates only at the reading boundary, never once per scrolling frame.
+        onScroll={syncReadingPosition} onMomentumScrollEnd={syncReadingPosition} onScrollEndDrag={syncReadingPosition} scrollEventThrottle={100}
         onLayout={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}
         // With no messages the intro is the entire content, and scrolling to its end cuts its first line off the top.
         onContentSizeChange={() => { if (nearBottom.current && p.messages.length) thread.current?.scrollToEnd({ animated: false }); }}>

@@ -103,12 +103,12 @@ const PHOTOS = { agreementId: 'zona', loaded: true, busy: false, ready: false, h
   message: null, versionConflict: false, canSubmit: () => false, capture: () => null, refresh: later, pick: later, retry: later, remove: later,
   restore: later, reserved: () => false, canRetry: () => false } as unknown as AgreementPhotosController;
 
-type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker'
+type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'recovery'
   | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
-  { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'done', label: 'Pregled · završen' },
+  { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'recovery', label: 'Pregled · provera ishoda' }, { key: 'done', label: 'Pregled · završen' },
   { key: 'chat', label: 'Poruke' }, { key: 'chat-waiting', label: 'Poruke · čeka te' }, { key: 'chat-empty', label: 'Poruke · prazne' }, { key: 'chat-loading', label: 'Poruke · učitavanje' },
   { key: 'chat-error', label: 'Poruke · greška' }, { key: 'chat-closed', label: 'Poruke · zatvoren' },
 ];
@@ -136,9 +136,9 @@ function Chat({ messages = MESSAGES, entries = PENDING, loading = false, error =
 }
 
 /** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled and its footer, or the Poruke. */
-function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat }: {
+function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false }: {
   item: DogovorProjekcija; me: UcesnikProjekcija; ownRating?: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE'; brand: string;
-  initialTab?: AgreementTab; chat?: ComponentProps<typeof Chat>;
+  initialTab?: AgreementTab; chat?: ComponentProps<typeof Chat>; recovery?: boolean;
 }) {
   const [tab, setTab] = useState<AgreementTab>(initialTab);
   const other = item.ucesnici.find(person => !person.viSte);
@@ -183,13 +183,13 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         <WorkspaceRows>
           <WorkspaceRow art="tasks" label="Zadatak" onPress={noop} />
           {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
-          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" onPress={noop} /> : null}
+          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={recovery} onPress={noop} /> : null}
           <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
         </WorkspaceRows>
         <AgreementSection art="phone" label="Kontakt" summary="Podeli svoj broj kada ti odgovara">
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
           <T variant="body" style={s.ink}>Broj druge strane: još nije podeljen</T>
-          {active ? <V2Action label="Podeli svoj broj" onPress={noop} /> : null}
+          {active ? <V2Action label="Podeli svoj broj" disabled={recovery} onPress={noop} /> : null}
         </AgreementSection>
         {/* The rest of the route's Pregled, still: the location section (its grant is not read here, so only its
             closed-Dogovor sentence and the refresh note are drawn) and the problem card. */}
@@ -206,10 +206,11 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         </WorkspaceCard> : active ? <WorkspaceCard>
           <T variant="bodyStrong" style={s.ink}>Nešto nije u redu?</T>
           <T variant="meta" tone="muted">Prijava problema zaustavlja automatski završetak i vidi je druga strana.</T>
-          <V2Action label="Prijavi problem" kind="quiet" onPress={noop} />
+          <V2Action label="Prijavi problem" kind="quiet" disabled={recovery} onPress={noop} />
         </WorkspaceCard> : null}
       </ScrollView>
-      <WorkspaceFooter brand={{ label: footer, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }} />
+      <WorkspaceFooter brand={{ label: footer, disabled: recovery, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }}
+        notice={recovery ? { message: 'Ishod prethodne radnje još nije potvrđen. Osveži status pre nego što nastaviš.', refresh: noop, refreshing: false } : null} />
     </>}
   </View>;
 }
@@ -226,6 +227,7 @@ function Scene({ scene }: { scene: SceneKey }) {
     case 'worker': return <DogovorScene item={LIST[2]} me={ME_WORKER} brand="Otvori poruke" />;
     case 'group': return <DogovorScene item={LIST[4]} me={ME_REQUESTER} brand="Otvori poruke" />;
     case 'waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" />;
+    case 'recovery': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" recovery />;
     case 'done': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" />;
     case 'chat': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" />;
     case 'chat-waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" initialTab="poruke" />;

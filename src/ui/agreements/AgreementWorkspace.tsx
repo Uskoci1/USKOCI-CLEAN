@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
@@ -93,10 +93,17 @@ export function agreementWaitsForMe({ state, requester, change, ownRating }: {
  * tint remains only when the step waits for someone.
  */
 export function NextStepCard({ title, body, tone = 'green', children }: { title: string; body?: string | null; tone?: WorkspaceTone; children?: ReactNode }) {
+  const previousTitle = useRef(title);
+  useEffect(() => {
+    if (title === previousTitle.current) return;
+    previousTitle.current = title;
+    // Android reads the persistent live text below. VoiceOver needs the changed step explicitly, never its initial title.
+    if (title && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(title);
+  }, [title]);
   const waits = tone === 'warn' || tone === 'danger';
   return <View accessibilityRole="summary" style={waits ? [inset, s.tinted, { backgroundColor: toneSoft[tone] }] : s.next}>
     <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
-      <T variant="bodyStrong" style={s.nextTitle}>{title}</T></View>
+      <T variant="bodyStrong" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
     {body ? <T variant="note" tone="muted" style={s.nextBody}>{body}</T> : null}
     {children}
   </View>;
@@ -107,7 +114,7 @@ export function WorkspaceRow({ label, hint, art, disabled = false, onPress }: { 
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99}
     onPress={onPress} style={[s.row, disabled && s.rowDisabled]}>
     {art ? <View style={s.rowArt}><FactArt kind={art} size={26} /></View> : null}
-    <View style={s.rowCopy}><T variant="bodyStrong" style={s.rowLabel}>{label}</T>{hint ? <T variant="note" tone="muted">{hint}</T> : null}</View>
+    <View style={s.rowCopy}><T variant="bodyStrong" style={[s.rowLabel, disabled && s.rowLabelOff]}>{label}</T>{hint ? <T variant="note" tone="muted">{hint}</T> : null}</View>
     <CaretRight size={20} color={sys.color.muted} />
   </Press>;
 }
@@ -123,9 +130,30 @@ export function WorkspaceNote({ children, tone = 'muted' }: { children: ReactNod
  * Sticky footer: exactly one brand action per state. The second button, "Otvori poruke", is gone: the
  * Poruke tab stands at the top of the same screen, so the footer said it twice and took a quarter of it.
  */
-export function WorkspaceFooter({ brand }: { brand: { label: string; onPress: () => void; disabled?: boolean } }) {
-  return <View style={s.footer}>
-    <V2Action label={brand.label} disabled={brand.disabled} onPress={brand.onPress} style={brandAction} />
+export function WorkspaceFooter({ brand, loading = false, statusText, notice }: {
+  brand: { label: string; onPress: () => void; disabled?: boolean };
+  loading?: boolean;
+  statusText?: string | null;
+  notice?: { message: string; refresh: () => void; refreshing: boolean } | null;
+}) {
+  const recoveryMessage = notice?.message || null;
+  const announcedRecovery = useRef<string | null>(null);
+  useEffect(() => {
+    if (recoveryMessage === announcedRecovery.current) return;
+    announcedRecovery.current = recoveryMessage;
+    // The recovery mounts with its text, so announce it directly on both platforms instead of also using a live region.
+    // Clearing the message resets the episode: the same failure after a later attempt must be heard again.
+    if (recoveryMessage) AccessibilityInfo.announceForAccessibility(recoveryMessage);
+  }, [recoveryMessage]);
+  return <View testID="agreement-action-footer" style={[s.footer, notice && s.footerWithNotice]}>
+    {notice ? <ScrollView testID="agreement-action-recovery" style={s.feedbackScroll}
+      contentContainerStyle={s.feedback} keyboardShouldPersistTaps="handled">
+      <T accessibilityRole="alert" variant="note" style={s.feedbackText}>{notice.message}</T>
+      <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
+        disabled={notice.refreshing} onPress={notice.refresh} />
+    </ScrollView> : statusText ? <T variant="note" style={s.feedbackText}>{statusText}</T> : null}
+    <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
+      onPress={brand.onPress} style={brandAction} />
   </View>;
 }
 
@@ -139,9 +167,14 @@ const s = StyleSheet.create({
   nextBody: { paddingLeft: 17 },
   row: { minHeight: 60, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14, borderTopWidth: 1, borderColor: sys.color.line },
   rowArt: { width: 32, alignItems: 'center' },
-  rowDisabled: { opacity: 0.5 },
+  rowDisabled: { backgroundColor: sys.color.wash },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
   rowLabel: { color: sys.color.ink },
+  rowLabelOff: { color: sys.color.muted },
   note: { ...inset, padding: 16, gap: 8 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  footerWithNotice: { maxHeight: '50%', flexShrink: 1 },
+  feedbackScroll: { maxHeight: 180, flexGrow: 0, flexShrink: 1 },
+  feedback: { padding: 12, gap: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.warnSoft },
+  feedbackText: { color: sys.color.ink },
 });
