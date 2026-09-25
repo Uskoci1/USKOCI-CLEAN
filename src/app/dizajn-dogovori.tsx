@@ -1,8 +1,8 @@
 import { useState, type ComponentProps } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Bell } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
@@ -155,7 +155,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   const proposal = change.waits ? PROPOSALS[item.id] ?? null : null;
   // What waits for me, at the head of Poruke, as the route says it.
   const waiting = agreementWaitsForMe({ state: item.stanje, requester: isRequester, change, ownRating });
-  return <View style={s.fill}>
+  return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
     <View style={s.tabs}>
       <AgreementTabs tab={tab} onChange={setTab} />
@@ -212,7 +212,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
       <WorkspaceFooter brand={{ label: footer, disabled: recovery, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }}
         notice={recovery ? { message: 'Ishod prethodne radnje još nije potvrđen. Osveži status pre nego što nastaviš.', refresh: noop, refreshing: false } : null} />
     </>}
-  </View>;
+  </KeyboardAvoidingView>;
 }
 
 function Scene({ scene }: { scene: SceneKey }) {
@@ -240,8 +240,16 @@ function Scene({ scene }: { scene: SceneKey }) {
 
 export default function DizajnDogovori() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
+  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const requested = typeof params.scene === 'string' ? params.scene : undefined;
+  const direct = SCENES.find(option => option.key === requested)?.key;
   const [scene, setScene] = useState<SceneKey>('list');
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
+  // A known scene can occupy the real route's viewport for keyboard and large-text checks.
+  // This remains the same inert internal fixture; arbitrary queries cannot select data or bypass the store guard.
+  if (direct) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    <View key={direct} style={s.fill}><Scene scene={direct} /></View>
+  </SafeAreaView>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title="Dogovori · galerija" onBack={() => router.back()} />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.picker} contentContainerStyle={s.pickerRow}>

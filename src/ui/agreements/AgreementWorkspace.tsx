@@ -1,10 +1,11 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { brandAction, sys, inset } from '../system/tokens';
+import { useTextScale } from '../system/textScale';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
@@ -126,6 +127,20 @@ export function WorkspaceNote({ children, tone = 'muted' }: { children: ReactNod
   return <View style={[s.note, { backgroundColor: toneSoft[tone] }]}>{children}</View>;
 }
 
+/** Native ScrollView has no useful intrinsic height here. Measure only the message; both commands stay outside it. */
+function RecoveryMessage({ message, limit }: { message: string; limit: number }) {
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  return <ScrollView testID="agreement-action-recovery" style={[s.feedbackScroll, { height: Math.min(contentHeight ?? limit, limit) }]}
+    keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={contentHeight === null || contentHeight > limit}
+    onContentSizeChange={(_width, height) => {
+      if (!Number.isFinite(height) || height <= 0) return;
+      const measured = Math.ceil(height);
+      setContentHeight(current => current === measured ? current : measured);
+    }}>
+    <T accessibilityRole="alert" variant="note" style={s.feedbackText}>{message}</T>
+  </ScrollView>;
+}
+
 /**
  * Sticky footer: exactly one brand action per state. The second button, "Otvori poruke", is gone: the
  * Poruke tab stands at the top of the same screen, so the footer said it twice and took a quarter of it.
@@ -136,6 +151,9 @@ export function WorkspaceFooter({ brand, loading = false, statusText, notice }: 
   statusText?: string | null;
   notice?: { message: string; refresh: () => void; refreshing: boolean } | null;
 }) {
+  const { width, height } = useWindowDimensions(), textScale = useTextScale();
+  // Bound the reading area, never the footer: enlarged command labels keep their full natural touch height.
+  const messageLimit = Math.max(48, Math.min(180, Math.floor(height / 4)));
   const recoveryMessage = notice?.message || null;
   const announcedRecovery = useRef<string | null>(null);
   useEffect(() => {
@@ -145,13 +163,12 @@ export function WorkspaceFooter({ brand, loading = false, statusText, notice }: 
     // Clearing the message resets the episode: the same failure after a later attempt must be heard again.
     if (recoveryMessage) AccessibilityInfo.announceForAccessibility(recoveryMessage);
   }, [recoveryMessage]);
-  return <View testID="agreement-action-footer" style={[s.footer, notice && s.footerWithNotice]}>
-    {notice ? <ScrollView testID="agreement-action-recovery" style={s.feedbackScroll}
-      contentContainerStyle={s.feedback} keyboardShouldPersistTaps="handled">
-      <T accessibilityRole="alert" variant="note" style={s.feedbackText}>{notice.message}</T>
+  return <View testID="agreement-action-footer" style={s.footer}>
+    {notice ? <View style={s.feedback}>
+      <RecoveryMessage key={JSON.stringify([notice.message, width, textScale])} message={notice.message} limit={messageLimit} />
       <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
         disabled={notice.refreshing} onPress={notice.refresh} />
-    </ScrollView> : statusText ? <T variant="note" style={s.feedbackText}>{statusText}</T> : null}
+    </View> : statusText ? <T variant="note" style={s.feedbackText}>{statusText}</T> : null}
     <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
       onPress={brand.onPress} style={brandAction} />
   </View>;
@@ -172,9 +189,8 @@ const s = StyleSheet.create({
   rowLabel: { color: sys.color.ink },
   rowLabelOff: { color: sys.color.muted },
   note: { ...inset, padding: 16, gap: 8 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  footerWithNotice: { maxHeight: '50%', flexShrink: 1 },
-  feedbackScroll: { maxHeight: 180, flexGrow: 0, flexShrink: 1 },
+  footer: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  feedbackScroll: { flexGrow: 0, flexShrink: 0 },
   feedback: { padding: 12, gap: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.warnSoft },
   feedbackText: { color: sys.color.ink },
 });

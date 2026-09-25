@@ -1,13 +1,16 @@
 import React, { StrictMode } from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockPlatform = 'ios';
+let mockWindow = { width: 411, height: 844, scale: 1, fontScale: 1 };
 const mockAnnounce = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: mockPlatform };
     if (key === 'AccessibilityInfo') return { announceForAccessibility: mockAnnounce };
+    if (key === 'useWindowDimensions') return () => mockWindow;
     return ['View', 'ScrollView'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -27,7 +30,7 @@ const render = async (element: React.ReactElement) => { await act(async () => { 
 const update = async (element: React.ReactElement) => { await act(async () => tree!.update(element)); };
 const spoken = () => mockAnnounce.mock.calls.map(([message]) => message);
 
-beforeEach(() => { jest.clearAllMocks(); mockPlatform = 'ios'; });
+beforeEach(() => { jest.clearAllMocks(); mockPlatform = 'ios'; mockWindow = { width: 411, height: 844, scale: 1, fontScale: 1 }; });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 
 test('VoiceOver hears each changed step once, never the initial title or body-only changes', async () => {
@@ -87,4 +90,55 @@ test('announcements preserve footer recovery callbacks and the separate completi
   expect(actions()[0].props).toMatchObject({ onPress: mockComplete, disabled: true, loading: false });
   expect(tree!.root.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Učitavamo Dogovor…']);
   expect(spoken()).toEqual(['Radnja nije potvrđena.']);
+});
+
+const recoveryScroll = () => tree!.root.findByProps({ testID: 'agreement-action-recovery' });
+const messageHeight = () => StyleSheet.flatten(recoveryScroll().props.style).height as number;
+const measureMessage = async (height: number) => {
+  await act(async () => recoveryScroll().props.onContentSizeChange(mockWindow.width - 64, height));
+};
+
+test('keeps Refresh and the guarded primary outside the message scroller without capping their shared footer', async () => {
+  await render(<WorkspaceFooter brand={brand} notice={notice('Ishod prethodne radnje još nije potvrđen. Osveži status pre nego što nastaviš.')} />);
+  expect(recoveryScroll().findAll(node => String(node.type) === 'V2Action')).toHaveLength(0);
+  const refresh = tree!.root.findByProps({ label: 'Osveži status Dogovora' });
+  const primary = tree!.root.findByProps({ label: 'Potvrdi završetak' });
+  expect(refresh.props).toMatchObject({ disabled: false, onPress: mockRefresh });
+  expect(primary.props).toMatchObject({ disabled: true, onPress: mockComplete });
+  await act(async () => refresh.props.onPress());
+  expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockComplete).not.toHaveBeenCalled();
+  const footer = StyleSheet.flatten(tree!.root.findByProps({ testID: 'agreement-action-footer' }).props.style);
+  expect(footer.maxHeight).toBeUndefined(); expect(footer.flexShrink).toBe(0);
+});
+
+test('gives the message explicit space before measurement, fits short content, and bounds long scrolling content to the viewport', async () => {
+  const message = 'Radnja nije potvrđena. Osveži status Dogovora.';
+  await render(<WorkspaceFooter brand={brand} notice={notice(message)} />);
+  expect(messageHeight()).toBeGreaterThan(0);
+  await measureMessage(60);
+  expect(messageHeight()).toBe(60); expect(recoveryScroll().props.scrollEnabled).toBe(false);
+  await measureMessage(600);
+  const tallViewportLimit = messageHeight();
+  expect(tallViewportLimit).toBeLessThan(600); expect(tallViewportLimit).toBeGreaterThan(0);
+  expect(recoveryScroll().props.scrollEnabled).toBe(true);
+  mockWindow = { ...mockWindow, height: 480 };
+  await update(<WorkspaceFooter brand={brand} notice={notice(message)} />);
+  expect(messageHeight()).toBeLessThan(tallViewportLimit); expect(messageHeight()).toBeGreaterThan(0);
+  expect(recoveryScroll().props.scrollEnabled).toBe(true);
+  expect(spoken()).toEqual([message]);
+});
+
+test('remeasures new text and enlarged narrow text instead of retaining a stale short message height', async () => {
+  await render(<WorkspaceFooter brand={brand} notice={notice('Osveži status Dogovora.')} />);
+  await measureMessage(40);
+  expect(messageHeight()).toBe(40);
+  mockWindow = { ...mockWindow, width: 320, fontScale: 2 };
+  await update(<WorkspaceFooter brand={brand} notice={notice('Osveži status Dogovora.')} />);
+  expect(messageHeight()).toBeGreaterThan(40);
+  await measureMessage(240);
+  expect(messageHeight()).toBeLessThan(240); expect(recoveryScroll().props.scrollEnabled).toBe(true);
+  await update(<WorkspaceFooter brand={brand} notice={notice('Dogovor nije osvežen.')} />);
+  await measureMessage(80);
+  expect(messageHeight()).toBe(80); expect(recoveryScroll().props.scrollEnabled).toBe(false);
+  expect(spoken()).toEqual(['Osveži status Dogovora.', 'Dogovor nije osvežen.']);
 });
