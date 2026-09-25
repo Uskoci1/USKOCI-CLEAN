@@ -37,9 +37,17 @@ decorative loop was added. This batch does not claim measured frame-rate or hapt
 
 Combined typecheck exited 0; full Jest passed **314 suites / 6,114 tests** in 126.267 seconds (exit 0). Existing worker
 teardown warning remains. `git diff --check` passes. Test output is stored locally at `outputs/r6-integration/r14-jest.json`.
-Source-bound APK and native evidence are recorded in `RECEIPT.json` when completed. Source implementation is not phone
-or store acceptance. No backend, payment, dependency, provider, key or DEV data change. The installed R13 app remains
-the baseline until a source-bound R14 APK is verified and installed. Remote control-table upload is unconfirmed.
+Source `668ca648d5f09be92a17fee4dbc4723f22ba1f2b` is built by APK run
+[36144235695](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36144235695). Both attestations match its source,
+tree and APK hash. The APK is installed on the emulator with app data preserved. Fifteen bounded image/XML views
+were reviewed, including docked chat keyboard and 320 dp/font-2 photo recovery. See `NATIVE_REVIEW.md`, `CAPTURES.json`,
+`APK.json`, `CHECKS.json` and `RECEIPT.json`. R13 before images remain explicitly bound to the older source.
+
+R11-N02's photo status width is corrected within that scope. R14-N01 remains: keep the latest-message anchor when
+opening the keyboard without disturbing someone reading history. Manual scrolling reaches the latest message.
+Phone/iOS, actual business journeys, provider/microphone, legal/store and other screen follow-ups remain open.
+No backend, payment, dependency, provider, key or DEV data change. The control table was regenerated locally;
+remote upload to the original artifact is unconfirmed after its documented file chooser timed out.
 
 Earlier scoped Agreement work is documented in `../R14_AGREEMENTS_20260925.md`; this report includes the integrator's
 subsequent route/gallery next-step reorder. Historical R13 evidence remains unchanged.

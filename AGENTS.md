@@ -5,7 +5,9 @@ The owner's latest direction is stronger readable type, without enlarging normal
 speech use bundled Inter Medium; secondary ink is darker. Agreement cards separate identity/logistics/total; the
 actual overview and gallery put the existing next step first. Chat photo recovery has full reading width. Profile
 and settings use open purpose-based groups. Preserve all actual facts/commands/recovery, white surfaces and existing
-fluid motion. Combined types and 314 suites / 6,114 tests pass; APK/native acceptance is separate in the R14 receipt.
+fluid motion. Combined types and 314 suites / 6,114 tests pass. Source 668ca648 / APK 36144235695 is attested and
+installed on the emulator; fifteen bounded native views are recorded in the R14 receipt. Photo-recovery width is
+verified there; latest-message anchoring on keyboard open remains R14-N01. Phone and whole-journey acceptance stay open.
 No backend, payment, provider or dependency change. Keep coherent batches, not an APK for every small style edit.
 
 R13 PRODUCT EXPERIENCE (2026-09-25): read `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.

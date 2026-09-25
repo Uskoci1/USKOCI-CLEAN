@@ -22,8 +22,13 @@ true task facts. This is recorded design intent, not a new implemented screen or
 
 R14 continues the product pass: `docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md`.
 Stronger reading text at unchanged sizes, clearer Agreement cards/next step, full-width photo recovery, and open
-profile/settings groups are implemented. Types and 314 suites / 6,114 tests pass. R14 APK/native verification is
-recorded separately; R13's installed app must not be mistaken for the new source. No new server or payment behavior.
+profile/settings groups are implemented. Types and 314 suites / 6,114 tests pass. Source 668ca648 / APK 36144235695
+is attested and installed on the emulator. Fifteen bounded native views include docked-keyboard chat, narrow
+photo recovery, profile/settings, AI reading and real read-only Discovery/search. R11-N02's photo status width is
+corrected in that scope. R14-N01 remains: preserve the latest-message anchor when opening the keyboard, without
+moving a reader of history. See the R14 native report for all scope limits. Phone and actual journeys stay open.
+No new server or payment behavior. Control state is regenerated locally; the original remote artifact upload is
+unconfirmed after its file chooser timed out.
 
 R13 is the preceding core journey batch: `docs/implementation/design-system/r13-product-experience-20260925/REPORT.md`.
 Home, Discovery cards/search, task detail and offer are rebuilt around their decisions, with clean white surfaces,
@@ -36,7 +41,7 @@ R13 correction source 1b018b17: types and 314 suites / 6,113 tests pass; APK 361
 emulator. Four fresh ordinary-text views confirm calmer offer amounts and public pin neighborhood framing; fourteen
 initial views remain separately bound. Phone, iOS and real journeys are still open.
 
-R12 is the current surface refinement: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
+R12 is the preceding surface foundation: `docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md`.
 Shared white/neutral surfaces now cover AI, messages, summaries, Home, offers, public profiles, Discovery and auth
 forms. The 22 measured text pairs pass AA; completed tests and exact-build/native evidence belong to its receipt.
 This does not close the R11 composition follow-ups or functional/store gates below.
@@ -57,7 +62,7 @@ remote upload to the existing Claude page remains unconfirmed after file-chooser
 
 This section is the current design/AI continuation plan. The dated audit below is history, not a list of defects
 that all still exist. `docs/control/redovi.json` remains the execution tracker; this file explains the design
-decisions. Exact-source checks, APK and device evidence belong in the R7–R13 dated directories under `docs/implementation/design-system/`; R13 is the current composition batch over R12's white surface foundation.
+decisions. Exact-source checks, APK and device evidence belong in the R7–R14 dated directories under `docs/implementation/design-system/`; R14 continues R13's composition over R12's white surface foundation.
 No completion percentage is inferred from passing tests or the historical 181 R6 entries.
 
 ### Implemented foundation and remaining visual work
@@ -160,19 +165,19 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 ### Finish order after this client package
 
-R8–R10 have source, passing automated checks and bounded native observations. Their receipts identify each APK
+R8–R14 have source, passing automated checks and bounded native observations. Their receipts identify each APK
 and distinguish inert galleries from existing DEV reads. No whole-flow or phone acceptance follows from these.
 
-1. **Human chat at extreme text size with a keyboard:** reserve writing/attachment/send space and let secondary
-   terms/header content yield or scroll. The normal-size R10 composer is observed; 320 dp/font 2 remains crowded
-   and partly covered. Preserve all accepted-terms access, pending media, recovery and terminal read-only behavior.
-2. **Offers, candidate choice and public identity:** person-led list with an appropriately sized portrait,
-   clear offered total/people/message and optional aligned comparison. Selection keeps its explicit confirmation.
-   Profile groups truthful identity, experience and available trust information; missing ratings stay missing.
-   Three compositions and the bounded source reads are in the R10 report; implementation is not claimed.
-3. **Profile/settings and remaining screens:** group by the user's purpose, preserving existing save, activation,
-   export/deletion and recovery guards. Carry the same typography, tonal white surfaces, illustrated facts and
-   responsive action hierarchy; inspect loading, empty, unavailable and error states with each coherent batch.
+1. **Human chat continuity:** R14's full-width pending-photo recovery and reachable commands are observed at
+   normal and 320 dp/font-2 docked keyboard settings. Next fix R14-N01's latest-message anchor across keyboard
+   layout changes, then review group/support conversations and long histories. Preserve accepted terms, media
+   recovery and terminal read-only behavior.
+2. **Safety and long forms:** carry forward R11-N01's person/task context and confirmation, R11-N05's form
+   composition, and native authentication/recovery context. Preserve target IDs, exact commands and uncertainty
+   recovery. R11/R13's offer, candidate and public-profile improvements are implemented; real acceptance is still owed.
+3. **Remaining account/settings states:** R14 has implemented the open profile/settings groups and schedule
+   shortcuts. Continue with unavailable/error/saving variants and dense push explanations, preserving save,
+   activation, export/deletion and recovery. Do not restart the completed normal-state composition.
 4. **Functional and release tracks:** keep server/read-model, pagination, human-chat read boundaries, AI provider
    and voice, push, legal/privacy and store work separate from visual completion. Follow the control rows below.
 
