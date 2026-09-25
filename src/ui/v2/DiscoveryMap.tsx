@@ -357,8 +357,8 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // The credits stay visible and linked, as quiet 12 px words with a light halo instead of a white slab (critique B9).
   attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP,
-    flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
-  creditLink: { minHeight: 48, minWidth: 48, maxWidth: '100%', paddingHorizontal: sys.space.xs, justifyContent: 'center' },
+    flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.xs },
+  creditLink: { minHeight: 48, minWidth: 48, maxWidth: '100%', justifyContent: 'center' },
   credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });
