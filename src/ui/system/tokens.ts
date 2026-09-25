@@ -87,6 +87,25 @@ export const sys = {
      */
     onDark: palette.onDark,
   },
+  /** Public map geography: colors only, independent from the interactive brand markers and their states. */
+  map: {
+    ground: '#F4F6F2',
+    residential: '#ECF0E9',
+    park: '#D5E8DB',
+    woodland: '#C8DFD0',
+    water: '#B7D8E5',
+    waterLine: '#9EC7D6',
+    waterLabel: '#466F7F',
+    building: '#E3E8E0',
+    buildingEdge: '#D5DDD3',
+    road: '#FFFFFF',
+    roadEdge: '#CBD6CE',
+    path: '#C5D3C6',
+    transit: '#B4C1B8',
+    boundary: '#A7B8AB',
+    label: '#50665B',
+    roadLabel: '#637169',
+  },
   /**
    * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
    * Where the drawing used a colour a hair off the palette it now uses the palette colour (its ground shadow is iconWell,

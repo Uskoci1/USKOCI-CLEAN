@@ -9,7 +9,7 @@ jest.mock('@maplibre/maplibre-react-native', () => {
   const host = (name: string, handle: () => object) => React.forwardRef(({ children, ...props }: any, ref: any) => {
     React.useImperativeHandle(ref, handle); return React.createElement(name, props, children);
   });
-  return { Layer: 'Layer', ViewAnnotation: 'Annotation',
+  return { Layer: 'Layer', Images: 'Images', ViewAnnotation: 'Annotation',
     Map: host('NativeMap', () => ({ queryRenderedFeatures: async () => mockRendered, project: mockProject, unproject: mockUnproject })),
     Camera: host('Camera', () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom, fitBounds: mockFit })),
     GeoJSONSource: host('Source', () => ({ getClusterExpansionZoom: mockExpand, getClusterLeaves: async () => mockLeaves })) };
@@ -192,11 +192,16 @@ test('the zoom and the credits ride on the sheet, step up above a chosen pin\'s 
   expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
 });
 
-test('many pins stay a bounded number of pills; the rest remain dots', async () => {
+test('many pins stay a bounded number of pills; native logo markers cover the remaining public points', async () => {
   rows = Array.from({ length: 60 }, (_, index) => row(`n${index}`, 44 + index / 50, 20));
   mockRendered = rows.map(item => feature(item.id));
   await render(); await ready();
   expect(annotations()).toHaveLength(PILL_LIMIT);
+  const logo = tree.root.findByProps({ id: 'need-pin-marks' });
+  expect(logo.props.filter).toEqual(['!', ['has', 'point_count']]);
+  expect(logo.props.layout).toMatchObject({ 'icon-image': 'uskoci-task', 'icon-allow-overlap': true, 'icon-ignore-placement': true });
+  expect(tree.root.findByType('Images' as React.ElementType).props.images['uskoci-task']).toBeDefined();
+  expect(source().props.hitbox).toEqual({ top: 24, right: 24, bottom: 24, left: 24 });
 });
 
 // Discovery V47 (the selected pin, Airbnb's pattern in USKOČI's look): the chosen pin is the one filled dark-green pill

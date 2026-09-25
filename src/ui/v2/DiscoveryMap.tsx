@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Camera, GeoJSONSource, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
+import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { Minus, Plus } from 'phosphor-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
   from '../../data/marketplaceView';
@@ -20,8 +20,9 @@ import { PricePill, type PillContent } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
-/** At most this many price pills at once; past it the rest stay dots (a pill is a view, a dot is a layer). */
+/** Rich labels are bounded; every other unclustered public point still has a native USKOČI logo marker. */
 export const PILL_LIMIT = 40;
+const PIN_IMAGES = { 'uskoci-task': require('../../../assets/entry-splash-mark.png') };
 /** A changed list reaches the native source a moment later; the visible pins are read after it. */
 const PILL_SETTLE_MS = 300;
 /**
@@ -86,7 +87,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   }, []);
   const mark = (value: 'ready' | 'failed') => { if (!owns() || load.current === 'failed') return; load.current = value; setStatus(value); };
   // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
-  // only IDs of the current read become pills. A failed read leaves the dots.
+  // only IDs of the current read become pills. A failed read leaves the native logo markers.
   const query = useRef(0);
   const readVisiblePins = async () => {
     if (!owns() || load.current !== 'ready') return;
@@ -95,7 +96,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       const features = await map.current?.queryRenderedFeatures?.({ layers: ['need-pins'] });
       if (!owns() || ask !== query.current || !Array.isArray(features)) return;
       setVisibleIds([...new Set(features.flatMap(feature => typeof feature?.properties?.needId === 'string' ? [feature.properties.needId as string] : []))]);
-    } catch { /* Dots remain; nothing is invented. */ }
+    } catch { /* Native logo markers remain; nothing is invented. */ }
   };
   useEffect(() => {
     if (status !== 'ready') return;
@@ -291,15 +292,19 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         }
         void readVisiblePins(); }}>
       <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
+      <Images images={PIN_IMAGES} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={60} clusterMaxZoom={16}
+        hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
-        {/* Clusters wear the brand green with their count; a pin is a small dot under its price pill (HITNO red). */}
+        {/* Rich pills cover these native logo markers. The same mark remains beyond the rich-label budget. */}
         <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': sys.color.green, 'circle-stroke-width': 3, 'circle-stroke-color': sys.color.surface }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.surface }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
-          paint={{ 'circle-radius': 7, 'circle-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green],
-            'circle-stroke-width': 2, 'circle-stroke-color': sys.color.surface }} />
+          paint={{ 'circle-radius': 22, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
+            'circle-stroke-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green] }} />
+        <Layer id="need-pin-marks" type="symbol" filter={['!', ['has', 'point_count']]}
+          layout={{ 'icon-image': 'uskoci-task', 'icon-size': 30 / 640, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
       </GeoJSONSource>
       {pills.filter(place => place.key !== chosenKey).map(place => {
         const content = contentOf(place), urgent = urgentPlace(place);

@@ -1,5 +1,6 @@
 import { currentMapStyle, forgetMapStyle, LATIN_PLACE_NAME, latinLabels, loadMapStyle, MAP_STYLE_DEADLINE_MS, MAP_STYLE_RETRY_MS, MAP_STYLE_URL }
   from '../mapStyle';
+import { uskociMapColors } from '../mapAppearance';
 
 /**
  * Map labels in Serbian Latin (Zadaci, 2026-09-24). The fixture is a small copy of the shapes the OpenFreeMap positron
@@ -64,7 +65,7 @@ describe('loadMapStyle', () => {
     const [first, second] = await Promise.all([loadMapStyle(fetcher), loadMapStyle(fetcher)]);
     expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher).toHaveBeenCalledWith(MAP_STYLE_URL);
     expect(first).toBe(second); expect(typeof first).toBe('string');
-    expect(JSON.parse(first as string)).toEqual(latinLabels(fixture()));
+    expect(JSON.parse(first as string)).toEqual(latinLabels(uskociMapColors(fixture())));
     expect(field(JSON.parse(first as string), 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
     expect(await loadMapStyle(fetcher)).toBe(first); expect(currentMapStyle(Date.now(), fetcher)).toBe(first);
     expect(fetcher).toHaveBeenCalledTimes(1);

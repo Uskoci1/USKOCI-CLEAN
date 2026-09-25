@@ -52,6 +52,7 @@ module.exports = {
   PointAnnotation: host('NativePointAnnotation'),
   ViewAnnotation: host('NativeViewAnnotation'),
   Layer: host('NativeLayer'),
+  Images: host('NativeImages'),
   SymbolLayer: host('NativeSymbolLayer'),
   CircleLayer: host('NativeCircleLayer'),
   GeoJSONSource: host('NativeGeoJSONSource'),

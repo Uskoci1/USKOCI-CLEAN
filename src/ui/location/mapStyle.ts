@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import type { Map } from '@maplibre/maplibre-react-native';
 import { RESOLVED_PIN_MAP_STYLE } from './ResolvedPinMap.types';
+import { uskociMapColors } from './mapAppearance';
 
 /**
  * Map labels in Serbian Latin (Zadaci, 2026-09-24).
@@ -112,7 +113,7 @@ export function loadMapStyle(fetcher: Fetcher | null = network()): Promise<MapSt
       .then(response => response.ok ? response.json() : Promise.reject(new Error('MAP_STYLE_UNAVAILABLE')))
       .then(json => {
         if (!usable(json)) { fail(); return; }
-        ready = JSON.stringify(latinLabels(json)); failedAt = null;
+        ready = JSON.stringify(latinLabels(uskociMapColors(json))); failedAt = null;
         answer(ready);
       })
       .catch(fail);

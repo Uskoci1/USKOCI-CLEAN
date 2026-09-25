@@ -9,7 +9,7 @@ const mockNearbyLoad = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: () => mockNearbyLoad() }));
 jest.mock('@maplibre/maplibre-react-native', () => {
  const React = require('react');
- return { Map: 'NativeMap', Layer: 'Layer', ViewAnnotation: 'Annotation',
+ return { Map: 'NativeMap', Images: 'Images', Layer: 'Layer', ViewAnnotation: 'Annotation',
  Camera: React.forwardRef((props: any, ref: any) => { React.useImperativeHandle(ref, () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom })); return React.createElement('Camera', props); }),
  GeoJSONSource: React.forwardRef(({ children, ...props }: any, ref: any) => { React.useImperativeHandle(ref, () => ({ getClusterExpansionZoom: mockExpand })); return React.createElement('Source', props, children); }) };
 });

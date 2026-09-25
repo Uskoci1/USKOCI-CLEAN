@@ -103,7 +103,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
         <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
       </Press> : null}
       {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
-        haptic="select" scaleTo={0.97} hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
+        haptic="select" scaleTo={0.97} hitSlop={0} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
         {chip.selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
         <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
       </Press>)}
@@ -143,7 +143,7 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
-  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   chipOn: { ...chipChosen, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink },
