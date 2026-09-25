@@ -1,9 +1,11 @@
+import { useRef, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactArt } from '../../ui/system/FactArt';
 import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
-import { nested, sys } from '../../ui/system/tokens';
+import { floating, nested, sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
 
@@ -36,6 +38,8 @@ const TAB_CAPSULE = nested(sys.radius.card, TAB_BAR_PADDING);
 
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;
+// At enlarged text, longer Serbian names earn more width instead of breaking in the middle of a word.
+const LABEL_SPACE = { index: 7.5, zadaci: 6.25, dogovori: 8.5 } as const;
 type Primary = keyof typeof PRIMARY;
 function isPrimary(name: string): name is Primary { return Object.hasOwn(PRIMARY, name); }
 function sectionOf(state: { index: number; routes: readonly { name: string; key: string }[];
@@ -122,6 +126,21 @@ function withoutLeft<State>(state: State, left: { name: string; key?: string } |
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const fontScale = useTextScale();
+  const { width } = useWindowDimensions();
+  const roomyLabels = fontScale >= 1.3 || width < 340;
+  const measureKey = `${width}:${fontScale}`;
+  const currentMeasureKey = useRef(measureKey); currentMeasureKey.current = measureKey;
+  const [labelMetrics, setLabelMetrics] = useState<{ key: string; heights: Partial<Record<Primary, number>> }>({ key: '', heights: {} });
+  const labelHeight = Math.max(sys.type.label.lineHeight * fontScale,
+    ...(labelMetrics.key === measureKey ? Object.values(labelMetrics.heights) : []));
+  const rememberLabelHeight = (name: string, height: number) => {
+    if (!isPrimary(name) || currentMeasureKey.current !== measureKey || !Number.isFinite(height) || height <= 0) return;
+    const measured = Math.ceil(height);
+    setLabelMetrics(current => {
+      if (current.key === measureKey && current.heights[name] === measured) return current;
+      return { key: measureKey, heights: { ...(current.key === measureKey ? current.heights : {}), [name]: measured } };
+    });
+  };
   const reducedMotion = useSystemReducedMotion();
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
@@ -150,18 +169,23 @@ export default function TabLayout() {
       tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
       tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children }) => <T variant="label" numberOfLines={2}
+      tabBarLabel: ({ children }) => <T key={measureKey} variant="label"
+        onTextLayout={({ nativeEvent }) => rememberLabelHeight(route.name,
+          Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}
         style={{ color: selected ? sys.color.green : sys.color.muted, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
       tabBarIcon: () => isPrimary(route.name) ? <FactArt kind={PRIMARY[route.name]} size={30} muted={!selected} /> : null,
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
-          style={[style, { borderRadius: TAB_CAPSULE, backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
-      tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden' },
-      tabBarStyle: { backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
-        borderRadius: sys.radius.card, elevation: 0, shadowOpacity: 0,
-        height: 70 + Math.ceil(Math.max(0, fontScale - 1) * 40), padding: TAB_BAR_PADDING,
-        marginHorizontal: 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
+          style={[style, { paddingHorizontal: roomyLabels ? 0 : 5, borderRadius: TAB_CAPSULE,
+            backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
+      tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
+        flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
+      tabBarStyle: { ...floating, backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
+        borderRadius: sys.radius.card,
+        // Icon + gap + native button padding + bar padding + actual label height; no font shrinking or truncation.
+        height: Math.max(70, Math.ceil(30 + 3 + 10 + TAB_BAR_PADDING * 2 + labelHeight)), padding: TAB_BAR_PADDING,
+        marginHorizontal: roomyLabels ? 8 : 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />

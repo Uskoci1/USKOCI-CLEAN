@@ -1,4 +1,6 @@
-import { Children, type ReactElement } from 'react';
+import { Children, createElement, type ReactElement } from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { Tabs } from 'expo-router';
 import { readdirSync, readFileSync } from 'fs';
 import { join, relative, resolve } from 'path';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,13 +37,18 @@ const detailRoutes = [
 function configuration(bottom = 0, fontScale = 1) {
   jest.mocked(useSafeAreaInsets).mockReturnValue({ top: 24, left: 0, right: 0, bottom });
   jest.mocked(useWindowDimensions).mockReturnValue({ width: 390, height: 844, scale: 3, fontScale });
-  const layout = TabLayout();
+  // Layout now measures native label heights with hooks. Read its configuration through React,
+  // rather than invoking a component as an ordinary function outside the hook lifecycle.
+  let tree!: ReactTestRenderer;
+  act(() => { tree = create(createElement(TabLayout)); });
+  const layout = tree.root.findByType(Tabs);
   const screens = (Children.toArray(layout.props.children) as ReactElement<ScreenProps>[])
     .map((screen) => screen.props);
   const route = { name: 'index', key: 'home' };
   const options = layout.props.screenOptions({ route, navigation: {
     getState: () => ({ index: 0, routes: [route], history: [{ type: 'route', key: route.key }] }),
   } });
+  act(() => tree.unmount());
   return { screens, options };
 }
 

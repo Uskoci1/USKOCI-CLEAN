@@ -248,7 +248,8 @@ export default function DizajnDogovori() {
   // A known scene can occupy the real route's viewport for keyboard and large-text checks.
   // This remains the same inert internal fixture; arbitrary queries cannot select data or bypass the store guard.
   if (direct) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <View key={direct} style={s.fill}><Scene scene={direct} /></View>
+    {/* No extra View: KeyboardAvoidingView must share the real route's SafeArea coordinate origin. */}
+    <Scene key={direct} scene={direct} />
   </SafeAreaView>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title="Dogovori · galerija" onBack={() => router.back()} />

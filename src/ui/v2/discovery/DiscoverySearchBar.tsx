@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Check, Crosshair, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
@@ -54,23 +54,53 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   /** The room the row of chips takes, the gap above it included: exactly what the list gains when they fold away. */
   onChipsHeight?: (room: number) => void;
 }) {
+  const { width } = useWindowDimensions();
+  const separateTools = useTextScale() >= 1.3 || width < 360;
   const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
   const measureChips = (event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
-    if (height > 0) onChipsHeight?.(height + sys.space.sm);
+    // The separate tool row remains when chips fold. Only the rail's extra height is reclaimed by the list.
+    if (height > 0) onChipsHeight?.(separateTools ? Math.max(0, height - chrome.control) : height + sys.space.sm);
   };
-  // Large text: each line of the pill may take two lines rather than be cut off after a few words (at 320 dp).
-  const lines = useTextScale() >= 1.3 ? 2 : 1;
+  const tools = <>
+    <View style={s.tool}><View style={s.lift} />
+      <ChromeIconButton label={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
+        icon={SlidersHorizontal} active={conditionCount > 0} onPress={onConditions}>
+        {conditionCount ? <View testID="conditions-badge" style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
+      </ChromeIconButton>
+    </View>
+    {onNew ? <View style={s.tool}><View style={s.lift} />
+      <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={onNew} />
+    </View> : null}
+  </>;
+  const quickFilters = chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+    accessibilityLabel="Brzi filteri" style={separateTools ? s.rail : undefined}
+    contentContainerStyle={[s.chips, separateTools && s.chipsBesideTools]} onLayout={measureChips}>
+    {nearby ? <Press accessibilityRole="button" accessibilityLabel="U blizini"
+      accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
+      accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
+      haptic="select" scaleTo={0.97} hitSlop={0} onPress={nearby.onPress} style={[s.chip, s.nearby]}>
+      {nearby.busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <Crosshair size={18} color={sys.color.green} />}
+      <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
+    </Press> : null}
+    {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
+      haptic="select" scaleTo={0.97} hitSlop={0} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
+      {chip.selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
+      <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
+    </Press>)}
+  </ScrollView> : null;
   return <View pointerEvents="box-none" style={s.bar} onLayout={measure}>
-    <View pointerEvents="box-none" style={s.row}>
+    <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}>
       <View style={s.search}>
         <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
           accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={0.98} onPress={onSearch}
-          style={[s.pill, onClearWhere && s.pillClearable]}>
+          style={[s.pill, separateTools && s.pillWide, onClearWhere && s.pillClearable]}>
           <MagnifyingGlass size={20} color={sys.color.green} />
           <View style={s.lines}>
-            <T variant="bodyStrong" style={s.where} numberOfLines={lines}>{where}</T>
-            <T variant="meta" tone="muted" numberOfLines={lines}>{conditions}</T>
+            {/* The full-width summary keeps two lines at every text size. Full values remain in its spoken value and search panel. */}
+            <T variant="bodyStrong" style={s.where} numberOfLines={1}>{where}</T>
+            <T variant="meta" tone="muted" numberOfLines={1}>{conditions}</T>
           </View>
         </Press>
         {onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
@@ -78,36 +108,11 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           <View style={s.clearCircle}><X size={16} weight="bold" color={sys.color.ink} /></View>
         </Press> : null}
       </View>
-      <View style={s.tool}><View style={s.lift} />
-        <ChromeIconButton label={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
-          icon={SlidersHorizontal} active={conditionCount > 0} onPress={onConditions}>
-          {/* Green, not orange: the "+" beside it is the screen's one orange accent (review r3 item 6). */}
-          {conditionCount ? <View testID="conditions-badge" style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
-        </ChromeIconButton>
-      </View>
-      {/* A deliberate deviation from master plan step 4, which puts the "+" "u zaglavlju liste" (in the list's header;
-          review r3 item 14): it stays in the floating row, which B12 allows, because this row is on screen at every
-          height of the sheet, while the list's header is only a top line at its lowest height. */}
-      {onNew ? <View style={s.tool}><View style={s.lift} />
-        <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={onNew} />
-      </View> : null}
+      {separateTools ? null : tools}
     </View>
-    {chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-      accessibilityLabel="Brzi filteri" contentContainerStyle={s.chips} onLayout={measureChips}>
-      {nearby ? <Press accessibilityRole="button" accessibilityLabel="U blizini"
-        accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
-        accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
-        haptic="select" scaleTo={0.97} hitSlop={0} onPress={nearby.onPress} style={[s.chip, s.nearby]}>
-        {nearby.busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <Crosshair size={18} color={sys.color.green} />}
-        <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
-      </Press> : null}
-      {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
-        haptic="select" scaleTo={0.97} hitSlop={0} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
-        {chip.selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
-        <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
-      </Press>)}
-    </ScrollView> : null}
+    {separateTools ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
+      {quickFilters ?? <View style={s.rail} />}{tools}
+    </View> : quickFilters}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
       {nearby.onSettings ? <Press accessibilityRole="button" accessibilityLabel="Podešavanja lokacije" hitSlop={0}
@@ -127,6 +132,8 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.surface, ...floating },
   // The words end where the clear button begins.
   pillClearable: { paddingRight: CLEAR_WIDTH },
+  pillWide: { borderRadius: sys.radius.card },
+  rail: { flex: 1, minWidth: 0 },
   lines: { flex: 1, minWidth: 0 },
   where: { lineHeight: 20, color: sys.color.ink },
   // Over the pill's right end, from its top edge to its bottom edge: never taller than the pill, never under 48 wide.
@@ -141,6 +148,7 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.green, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
+  chipsBesideTools: { paddingHorizontal: 0 },
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,

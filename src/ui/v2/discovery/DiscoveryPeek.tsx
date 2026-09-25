@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { CaretRight, X } from 'phosphor-react-native';
 import { pinLabel, type MarketplaceItem } from '../../../data/marketplaceView';
@@ -87,11 +87,13 @@ function PinTask({ item, applied, onOpen, onLayout }: {
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
  * text it may take more of the window than other cards rather than be cut off.
  */
-export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduced, onOpen, onShowPlace, onClose, onHeight }: {
+export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
   /** The tasks on the chosen place, in the list's order. */ place: readonly MarketplaceItem[];
   applied: (item: MarketplaceItem) => boolean;
   active: boolean; bottomInset: number; reduced: boolean;
+  /** Available map space below search and attribution; the existing scroll keeps a taller preview reachable. */
+  maxHeight?: number;
   onOpen: (item: MarketplaceItem) => void;
   /** Shows every task of the chosen place in the list. */ onShowPlace: () => void;
   onClose: () => void;
@@ -99,19 +101,26 @@ export function DiscoveryPeek({ item, place, applied, active, bottomInset, reduc
   onHeight?: (height: number) => void;
 }) {
   const { height: windowHeight } = useWindowDimensions();
-  const share = useTextScale() >= 1.3 ? PIN_CARD_LARGE_SHARE : PEEK_MAX_SHARE;
+  const preferredShare = useTextScale() >= 1.3 ? PIN_CARD_LARGE_SHARE : PEEK_MAX_SHARE;
+  const share = maxHeight !== undefined && Number.isFinite(maxHeight) && maxHeight > 0 && windowHeight > 0
+    ? Math.min(preferredShare, maxHeight / windowHeight) : preferredShare;
   const cap = Math.round(windowHeight * share);
+  const measuredHeight = useRef<number | null>(null);
+  useEffect(() => {
+    // A resized map can change the viewport without laying out the unchanged content again.
+    if (measuredHeight.current !== null) onHeight?.(Math.min(measuredHeight.current, cap));
+  }, [cap, onHeight]);
   // One card per choice (the screen keys it by the task or the place), so this runs once for each card that comes up.
   const opened = item ? `Pregled zadatka: ${readableTitle(item.naslov)}` : `${zadataka(place.length)} na ovom mestu`;
   useEffect(() => { AccessibilityInfo.announceForAccessibility?.(opened); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // The single card reaches the sheet's edges itself (its whole face is the press); a place's rows sit in its padding.
   const measureCard = (event: LayoutChangeEvent) => {
     const whole = Math.ceil(event.nativeEvent.layout.height);
-    if (whole > 0) onHeight?.(Math.min(whole, cap));
+    if (whole > 0) { measuredHeight.current = whole; onHeight?.(Math.min(whole, cap)); }
   };
   const measureRows = (event: LayoutChangeEvent) => {
     const content = Math.ceil(event.nativeEvent.layout.height);
-    if (content > 0) onHeight?.(Math.min(PEEK_FRAME + content, cap));
+    if (content > 0) { measuredHeight.current = PEEK_FRAME + content; onHeight?.(Math.min(PEEK_FRAME + content, cap)); }
   };
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
     handle={false} maxShare={share} onClose={onClose} scrollable

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +12,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys, card, cardCompact } from '../system/tokens';
+import { sys, card, cardCompact, floating } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeIllustration } from './HomeIllustration';
@@ -30,6 +31,8 @@ import { HomeIllustration } from './HomeIllustration';
  */
 export type HomePresentationProps = {
   home: HomeSnapshot | null; loading: boolean; refreshing: boolean; error: boolean;
+  /** Internal galleries supply the same chrome with an inert bell; the live header remains the default. */
+  header?: ReactNode;
   onPublish: () => void; onEarn: () => void; onProfile: () => void; onOpen: (target: HomeTarget) => void;
   /**
    * What waits for my rating. With the one Dogovor's id (the Dogovori read already gave it) the route opens that
@@ -40,8 +43,8 @@ export type HomePresentationProps = {
 };
 
 /**
- * A start tile: its picture above what it does and one quiet line (critique B3, 2026-09-24). Side by side the picture
- * leads at 28, the title reads 18/22 and the hint 14/18, all from the top, so two tiles that wrap differently still
+ * A start tile: its picture above what it does and one quiet line. Side by side the picture
+ * leads in a soft well, the title reads 18/24 and the hint 14/20, all from the top, so two tiles that wrap differently still
  * start on one line. Stacked — a narrow phone or large text — the tile becomes a 72 dp row with the picture beside the
  * words, instead of two tall boxes that pushed everything under the tab bar (B4).
  */
@@ -50,7 +53,9 @@ function StartTile({ label, title, hint, publish = false, stacked, onPress }: {
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
     haptic="select" onPress={onPress} style={[s.action, stacked && s.actionStacked, publish && s.publish]}>
-    {publish ? <Plus size={28} weight="bold" color={sys.color.onOrange} /> : <FactArt kind="map" size={28} />}
+    <View style={[s.actionArt, publish && s.publishArt]}>
+      {publish ? <Plus size={28} weight="bold" color={sys.color.onOrange} /> : <FactArt kind="map" size={32} />}
+    </View>
     <View style={[s.actionCopy, stacked && s.actionCopyStacked]}>
       <T variant="heading" style={[s.actionTitle, publish && s.onOrange]}>{title}</T>
       <T variant="note" style={[s.actionHint, publish ? s.onOrange : s.muted]}>{hint}</T>
@@ -58,18 +63,18 @@ function StartTile({ label, title, hint, publish = false, stacked, onPress }: {
   </Press>;
 }
 
-function Row({ row, onOpen, kind, last = false }: {
-  row: HomeRow; onOpen: (target: HomeTarget) => void; kind: 'attention' | 'agreement'; last?: boolean;
+function AttentionRow({ row, onOpen, last = false }: {
+  row: HomeRow; onOpen: (target: HomeTarget) => void; last?: boolean;
 }) {
   // The same coloured illustration the cards use for this kind of thing (owner, 2026-09-23: thin grey glyphs sat here while the rest of the app was illustrated).
-  const art: FactArtKind = kind === 'agreement' ? 'calendar' : row.target.kind === 'CANDIDATES' ? 'users'
+  const art: FactArtKind = row.target.kind === 'CANDIDATES' ? 'users'
     : row.target.kind === 'APPLICATION' ? 'offers' : row.target.kind === 'AGREEMENT' ? 'agreements' : 'tasks';
   return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
-    onPress={() => onOpen(row.target)} style={[s.row, kind === 'agreement' && s.agreement, last && s.lastRow]}>
-    <View style={[s.rowIcon, kind === 'attention' && s.attentionIcon, kind === 'agreement' && s.calendarIcon]}>
-      <FactArt kind={art} size={kind === 'agreement' ? 30 : 28} />
+    onPress={() => onOpen(row.target)} style={[s.row, last && s.lastRow]}>
+    <View style={[s.rowIcon, s.attentionIcon]}>
+      <FactArt kind={art} size={28} />
       {/* Something here waits for me: an orange dot on the picture, the one mark of attention (B1). */}
-      {kind === 'attention' ? <View style={s.attentionDot} /> : null}
+      <View style={s.attentionDot} />
     </View>
     <View style={s.rowCopy}>
       <T variant="bodyStrong">{readableTitle(row.title)}</T>
@@ -79,13 +84,41 @@ function Row({ row, onOpen, kind, last = false }: {
   </Press>;
 }
 
+/** The projection's time can be exact, flexible or absent; no date is extracted from a display sentence. */
+function AppointmentCard({ row, onOpen, stacked }: {
+  row: HomeRow; onOpen: (target: HomeTarget) => void; stacked: boolean;
+}) {
+  const appointment = row.appointment;
+  return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`}
+    accessibilityHint="Otvara Dogovor." haptic="select" scaleTo={0.99} onPress={() => onOpen(row.target)} style={s.appointment}>
+    <View style={[s.appointmentWhen, stacked && s.appointmentWhenStacked]}>
+      <View style={[s.appointmentMarker, stacked && s.appointmentMarkerStacked]}>
+        <View style={s.calendarIcon}><FactArt kind="calendar" size={32} /></View>
+        {stacked ? <CaretRight size={20} color={sys.color.green} /> : null}
+      </View>
+      <View style={[s.rowCopy, stacked && s.appointmentTimeStacked]}>
+        {appointment?.timeText ? <T variant="heading" style={s.appointmentTime}>{appointment.timeText}</T> : null}
+        {appointment?.roleLabel ? <T variant="note" tone="muted">{appointment.roleLabel}</T> : null}
+      </View>
+      {!stacked ? <CaretRight size={20} color={sys.color.green} /> : null}
+    </View>
+    <View style={s.appointmentBody}>
+      <T variant="cardTitle">{readableTitle(row.title)}</T>
+      {appointment ? appointment.counterpartName ? <View style={s.appointmentPerson}>
+        <FactArt kind="person" size={24} />
+        <T variant="bodyStrong" style={s.rowCopy}>{appointment.counterpartName}</T>
+      </View> : null : <T variant="note" tone="muted">{row.detail}</T>}
+    </View>
+  </Press>;
+}
+
 /** A front door to one of my lists: its name and, once read, what is in it. It opens the list even when unread. */
 function MineRow({ art, title, detail, onPress, last = false }: {
   art: FactArtKind; title: string; detail: string | null; onPress: () => void; last?: boolean;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} haptic="select" scaleTo={0.99}
     onPress={onPress} style={[s.row, last && s.lastRow]}>
-    <View style={s.rowIcon}><FactArt kind={art} size={28} /></View>
+    <View style={s.mineIcon}><FactArt kind={art} size={32} /></View>
     <View style={s.rowCopy}>
       <T variant="bodyStrong">{title}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
@@ -159,7 +192,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nisu učitane' : null;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
     {/* The one header of the three tabs (V41): profile left, the mark in the middle, the inbox right. */}
-    <ScreenHeader title="Početna" onProfile={p.onProfile} />
+    {p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
       {/* The tiles are the first thing on screen and never move: nothing above them waits for a read. */}
@@ -183,7 +216,7 @@ export function HomePresentation(p: HomePresentationProps) {
         {attentionUnavailable ? <Unavailable what="Podaci o obavezama" onRefresh={p.onRefresh} /> : null}
         {home.attention.length > 0 ? <View style={s.attention}>
           {home.attention.map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
-            <Row row={item} onOpen={p.onOpen} kind="attention" last={index === home.attention.length - 1} /></Appear>)}
+            <AttentionRow row={item} onOpen={p.onOpen} last={index === home.attention.length - 1} /></Appear>)}
         </View> : null}
         {home.attentionMore > 0 ? <T variant="note" tone="muted" style={s.more}>I još {home.attentionMore} u tvojim zadacima, prijavama i Dogovorima.</T> : null}
         {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
@@ -201,7 +234,7 @@ export function HomePresentation(p: HomePresentationProps) {
       {/* One next Dogovor, and only when there is one; the rest are in the Dogovori tab. A failed read says so. */}
       {home?.agreements.kind === 'unavailable' ? <Section title="Sledeći Dogovor"><Unavailable what="Dogovori" onRefresh={p.onRefresh} /></Section>
         : next ? <Section title="Sledeći Dogovor">
-          <Appear index={0} animate={agreements.isNew(next.id)}><Row row={next} onOpen={p.onOpen} kind="agreement" /></Appear>
+          <Appear index={0} animate={agreements.isNew(next.id)}><AppointmentCard row={next} onOpen={p.onOpen} stacked={stacked} /></Appear>
         </Section> : null}
 
       <View style={s.mine}>
@@ -236,15 +269,18 @@ const s = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'stretch', gap: sys.space.md },
   actionsStacked: { flexDirection: 'column' },
   // Picture, title and hint from the top; no arrow: the tile is the button, its picture says where it goes.
-  action: { ...card, flex: 1, minWidth: 0, minHeight: 96, padding: sys.space.base, gap: sys.space.md, justifyContent: 'flex-start' },
+  action: { ...card, ...floating, flex: 1, minWidth: 0, minHeight: 96, padding: sys.space.base, gap: sys.space.md, justifyContent: 'flex-start' },
   // Stacked: one 72 dp row, the picture beside the words.
   actionStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', flexDirection: 'row', alignItems: 'center', minHeight: 72,
     paddingVertical: sys.space.md },
   publish: { backgroundColor: sys.color.orange, borderColor: sys.color.orange },
+  actionArt: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash,
+    alignItems: 'center', justifyContent: 'center' },
+  publishArt: { backgroundColor: sys.color.orangeHalo },
   actionCopy: { gap: sys.space.xs },
   actionCopyStacked: { flex: 1, minWidth: 0 },
-  actionTitle: { fontSize: 18, lineHeight: 22 },
-  actionHint: { fontSize: 14, lineHeight: 18 },
+  actionTitle: { fontSize: 18, lineHeight: 24, color: sys.color.green },
+  actionHint: { fontSize: 14, lineHeight: 20 },
   // What needs my answer: a hairline card like every other list, each row marked by its orange dot.
   attention: { ...cardCompact, paddingVertical: 0 },
   // Sections sit 32 apart, and a title stands 8 above what it names (critique B20).
@@ -260,12 +296,25 @@ const s = StyleSheet.create({
   attentionIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell },
   attentionDot: { position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
-  calendarIcon: { width: 48, height: 48, borderRadius: sys.radius.chip, backgroundColor: sys.color.wash },
-  // A card on its own: its bottom edge is the card's hairline, not the thinner row divider.
-  agreement: { ...cardCompact, paddingVertical: sys.space.md, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  calendarIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
+    alignItems: 'center', justifyContent: 'center' },
+  // One lifted appointment: time has its own tonal header, with the task and person on white below.
+  appointment: { ...cardCompact, ...floating, padding: 0, borderColor: sys.color.lineStrong },
+  appointmentWhen: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base,
+    paddingVertical: sys.space.md, backgroundColor: sys.color.wash,
+    borderTopLeftRadius: sys.radius.cardCompact - 1, borderTopRightRadius: sys.radius.cardCompact - 1 },
+  appointmentWhenStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
+  appointmentMarker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
+  appointmentMarkerStacked: { alignSelf: 'stretch' },
+  appointmentTime: { color: sys.color.green },
+  appointmentTimeStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  appointmentBody: { padding: sys.space.base, gap: sys.space.md },
+  appointmentPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   rowCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // The two front doors close the screen as plain rows under a hairline, not as two more cards.
-  mine: { marginTop: sys.space.xxl },
+  // The two front doors share a flat, quiet ground; the appointment above carries the elevation.
+  mine: { marginTop: sys.space.xxl, paddingHorizontal: sys.space.base, borderRadius: sys.radius.card, backgroundColor: sys.color.wash },
+  mineIcon: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.surface,
+    alignItems: 'center', justifyContent: 'center' },
   more: { paddingVertical: sys.space.sm },
   unavailable: { gap: sys.space.xs, paddingVertical: sys.space.md, alignItems: 'flex-start' },
   skeletonBlock: { marginTop: sys.space.xxl, gap: sys.space.base },

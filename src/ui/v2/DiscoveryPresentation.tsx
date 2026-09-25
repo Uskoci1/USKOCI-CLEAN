@@ -198,8 +198,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const mapShown = !loading && !error && !(pending && !started.current) && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
   // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
-  const highest = !loading && !error && !listed.length && mapShown ? SNAP.half : SNAP.full;
-  useEffect(() => { if (sheetIndex > highest) setSheetIndex(highest); }, [sheetIndex, highest]);
+  const emptyOverMap = !loading && !error && !listed.length && mapShown;
 
   // A chosen pin: one task, or a place several tasks share, of what the map shows. The list's area never takes it away;
   // a new read that no longer has it does.
@@ -250,22 +249,35 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // Layout: the body under the chrome, the tools' lower edge, the sheet's measured top line.
   const [bodyHeight, setBodyHeight] = useState(0), [toolsBottom, setToolsBottom] = useState(TOOLS_ESTIMATE), [peek, setPeek] = useState(PEEK_ESTIMATE);
+  const [creditsHeight, setCreditsHeight] = useState(Platform.OS === 'web' ? 0 : 48);
+  const creditsRoom = mapShown && creditsHeight ? creditsHeight + GAP : 0;
+  const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
+  // The measured fixed header may be taller than the available map at large text. In that case its whole content
+  // joins the registered list scroll; a minimum based on that header must never override the attribution reserve.
+  const availableSheet = bodyHeight ? Math.max(3, bodyHeight - toolsBottom - creditsRoom - GAP) : 0;
+  const scrollHeader = !!availableSheet && peek + 2 > availableSheet;
   // A chosen pin's card: the list's top line steps out of sight behind it, and the map's zoom and credits step up above it.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
   const [cardHeight, setCardHeight] = useState(0);
   const snapPoints = useMemo(() => {
-    const low = cardShown ? HIDDEN : peek;
+    const collapsed = scrollHeader ? Math.min(headerLeadHeight, availableSheet - 2) : peek;
+    const low = cardShown ? HIDDEN : collapsed;
     if (!bodyHeight) return [low, '50%', '88%'];
-    const full = Math.max(peek + 2, bodyHeight - toolsBottom - GAP);
-    return [low, Math.min(full - 1, Math.max(peek + 1, Math.round(bodyHeight / 2))), full];
-  }, [bodyHeight, toolsBottom, peek, cardShown]);
+    const full = availableSheet;
+    return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.round(bodyHeight / 2))), full];
+  }, [bodyHeight, availableSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
+  // An oversized empty-state header still needs the registered scroll's full stop. It does not acquire a second
+  // brand action: the map shortcut remains absent for an empty list, as before.
+  const highest = emptyOverMap && !scrollHeader ? SNAP.half : SNAP.full;
+  useEffect(() => { if (sheetIndex > highest) setSheetIndex(highest); }, [sheetIndex, highest]);
   const position = useSharedValue(0);
   const expanded = sheetIndex === SNAP.full;
   // The floating "Mapa" stands over the end of the list at the full height.
-  const pillShown = expanded && mapShown;
+  const pillShown = expanded && mapShown && !emptyOverMap;
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
-  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? peek : halfSheet) + GAP;
+  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + creditsRoom;
+  const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - creditsRoom - CARD_BOTTOM - 2 * GAP - HIDDEN) : undefined;
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
   useEffect(() => {
     if (!focused || !expanded || !mapShown || cardShown || search !== null) return;
@@ -319,7 +331,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const contentHeight = useRef(0);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
   // The list's own window at the full height: the sheet there, less its top line.
-  const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - peek : 0;
+  const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
@@ -423,14 +435,19 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // (while there is a higher height to go to; an empty list over the map stops at half).
   const canRise = sheetIndex < highest;
   const openList = () => { Keyboard.dismiss(); clearSelection(); setSheetIndex(sheetIndex === SNAP.peek ? SNAP.half : SNAP.full); };
-  const header = <View style={s.header}
+  const header = <View testID="discovery-list-header" style={s.header}
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
+    <View testID="discovery-list-header-lead" onLayout={event => {
+      const next = Math.ceil(event.nativeEvent.layout.height) + sys.space.sm;
+      if (next > sys.space.sm) setHeaderLeadHeight(current => current === next ? current : next);
+    }}>
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
     {canRise ? <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ expanded: sheetIndex > SNAP.peek }}
       accessibilityHint={sheetIndex === SNAP.peek ? 'Otvara listu zadataka.' : 'Otvara celu listu.'} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
       : <View testID="list-count-words" accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
+    </View>
     {appliedChips.length ? <View style={s.applied}>{appliedChips.map(chip => <Press key={chip.key} accessibilityRole="button"
       accessibilityLabel={removeWords(chip.label)} haptic="select" hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }}
       onPress={() => change({ ...chip.clear, selectedId: null, selectedPlace: null })} style={s.appliedChip}>
@@ -448,8 +465,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
           onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          onCreditsHeight={next => setCreditsHeight(current => current === next ? current : next)}
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
-          focusBottom={CARD_BOTTOM + GAP + Math.min(360, Math.round(windowHeight / 2))} />
+          focusBottom={CARD_BOTTOM + GAP + creditsRoom + Math.min(360, Math.round(windowHeight / 2))} />
           : <View style={s.ground} />}
       </View>
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
@@ -459,13 +477,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => setToolsBottom(current => current === bottom ? current : bottom)}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
-      <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={header}
+      <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
         sunk={cardShown}>
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
             the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem}
+          ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={section ? `${section.at}:${section.count}` : ''}
           refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
           onScrollBeginDrag={() => { restore.current = null; }}
@@ -489,6 +508,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </Animated.View> : null}
       {cardShown ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
         item={chosen} place={placeTasks} applied={applied} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
+        maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
     </View>
@@ -502,6 +522,8 @@ const s = StyleSheet.create({
   body: { flex: 1 },
   ground: { flex: 1, backgroundColor: sys.color.wash },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
+  // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
+  scrollingHeader: { marginHorizontal: -sys.space.lg },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: sys.space.xs, backgroundColor: sys.color.lineStrong },
   // The honest count, centred on the sheet's top line: a button while the list can still go higher.
   countRow: { minHeight: 48, justifyContent: 'center', borderRadius: sys.radius.control },

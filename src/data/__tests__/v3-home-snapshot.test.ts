@@ -68,10 +68,33 @@ describe('Početna — composed from the reads that already exist, with no mode'
       applications: known({ total: 1, attention: 0, active: 1, finished: 0 }) });
     // One next Dogovor (2026-09-23); the other is one tab away and is counted, not dropped.
     expect(home.agreements).toEqual(known({ more: 1, rows: [
-      { id: 'agreement:g-a', title: 'Dogovor g-a', detail: 'Tvoj zadatak · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-a' } }] }));
+      { id: 'agreement:g-a', title: 'Dogovor g-a', detail: 'Tvoj zadatak · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-a' },
+        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Tvoj zadatak' } }] }));
     expect(composeHome(reads({ agreements: known([agreement('g-c', 'uskocer')]) })).agreements).toEqual(known({ more: 0, rows: [
-      { id: 'agreement:g-c', title: 'Dogovor g-c', detail: 'Uskačeš · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-c' } }] }));
+      { id: 'agreement:g-c', title: 'Dogovor g-c', detail: 'Uskačeš · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-c' },
+        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Uskačeš' } }] }));
     expect(home.firstRun).toBe(false);
+  });
+
+  it.each(['25. sep · 17:00–19:00', 'Fleksibilno · tokom sledeće nedelje', ''])(
+    'keeps the supplied appointment time %j and person separate without deriving a date from the sorting key', timeText => {
+      const source = agreement('structured', 'uskocer', { vremeTekst: timeText, pocinje: '2026-09-25T09:00:00Z' });
+      source.ucesnici[1].ime = 'Jelena · Servis';
+      const home = composeHome(reads({ agreements: known([source]) }));
+      expect(home.agreements.kind).toBe('known');
+      if (home.agreements.kind !== 'known') return;
+      expect(home.agreements.value.rows[0]).toMatchObject({
+        appointment: { timeText, counterpartName: 'Jelena · Servis', roleLabel: 'Uskačeš' },
+        detail: ['Uskačeš', 'Jelena · Servis', timeText].filter(Boolean).join(' · '),
+      });
+    });
+
+  it('does not invent a role or date when the Agreement has no participant or time display', () => {
+    const home = composeHome(reads({ agreements: known([agreement('unknown', 'uskocer', { ucesnici: [], vremeTekst: '' })]) }));
+    expect(home.agreements).toEqual(known({ more: 0, rows: [{
+      id: 'agreement:unknown', title: 'Dogovor unknown', target: { kind: 'AGREEMENT', agreementId: 'unknown' },
+      detail: 'Druga strana', appointment: { timeText: '', counterpartName: 'Druga strana', roleLabel: null },
+    }] }));
   });
 
   it('orders attention by what blocks a person first, bounds it, and counts the rest honestly', () => {

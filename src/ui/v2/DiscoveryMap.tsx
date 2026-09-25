@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
@@ -67,7 +67,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
-  const [creditHeight, setCreditHeight] = useState(96);
+  const [creditHeight, setCreditHeight] = useState(48);
   const mounted = useRef(true), load = useRef(status);
   const data = useMemo(() => publicFeatures(props.items), [props.items]);
   const places = useMemo(() => pinPlaces(props.items), [props.items]);
@@ -229,9 +229,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
     props.onNearbyConsumed?.(target.key);
   }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
-  // The zoom and the credits ride on the list sheet's top edge when the screen has one. When the sheet leaves them no
-  // room under the tools they step out of the screen entirely, so an unseen control can never take a touch.
-  const height = frame?.height ?? 0, sheetTop = props.sheetTop, roomTop = (props.toolsBottom ?? 0) + Math.max(ZOOM_CAPSULE.height, creditHeight) + 2 * GAP;
+  // Credits have their own reserved strip. Zoom is optional when the sheet leaves too little clear map above it.
+  const height = frame?.height ?? 0, sheetTop = props.sheetTop;
+  const creditsTop = (props.toolsBottom ?? 0) + creditHeight + 2 * GAP;
+  const zoomTop = creditsTop + ZOOM_CAPSULE.height + GAP;
   // A chosen pin's card rests on the sheet's top line, exactly where they ride; they step up above it (review r3 item
   // 11), at the sheet's pace or at once under reduced motion, so zoom stays a tap away and the credits stay in sight.
   const cover = useSharedValue(props.coverBottom ?? 0);
@@ -239,12 +240,16 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const next = Math.max(0, props.coverBottom ?? 0);
     cover.value = reduced ? next : withSpring(next, sys.motion.springSheet);
   }, [props.coverBottom, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ride = useAnimatedStyle(() => {
+  const zoomRide = useAnimatedStyle(() => {
     const top = (sheetTop ? sheetTop.value : height) - cover.value;
-    return top < roomTop ? { transform: [{ translateY: -2 * height }], opacity: 0 } : { transform: [{ translateY: Math.min(0, top - height) }], opacity: 1 };
-  }, [height, roomTop, sheetTop, cover]);
-  const controls = <>
-    {status === 'ready' ? <View style={s.zoom}>
+    return top < zoomTop ? { transform: [{ translateY: -2 * height }], opacity: 0 } : { transform: [{ translateY: Math.min(0, top - height) }], opacity: 1 };
+  }, [height, zoomTop, sheetTop, cover]);
+  const creditsRide = useAnimatedStyle(() => {
+    const top = (sheetTop ? sheetTop.value : height) - cover.value;
+    // Never inherit zoom's fit/opacity branch. The screen reserves this measured height at its full sheet stop.
+    return { transform: [{ translateY: Math.min(0, Math.max(creditsTop, top) - height) }] };
+  }, [height, creditsTop, sheetTop, cover]);
+  const zoom = status === 'ready' ? <View style={[s.zoom, { bottom: creditHeight + 2 * GAP }]}>
       {([['Uvećaj mapu', Plus, 1], ['Umanji mapu', Minus, -1]] as const).map(([label, Glyph, delta], index) => <View key={label}>
         {index ? <View style={s.zoomRule} /> : null}
         <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !viewport }} disabled={!viewport}
@@ -252,12 +257,19 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           haptic="select" onPress={() => changeZoom(delta)} hitSlop={index ? { left: 2, right: 2, bottom: 6 } : { left: 2, right: 2, top: 6 }} style={s.zoomButton}>
           <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
       </View>)}
-    </View> : null}
-    <View style={s.attribution} onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setCreditHeight(next); }}>
+    </View> : null;
+  const credits = <View testID="discovery-map-credits" style={[s.attribution, { height: creditHeight }]} onLayout={event => {
+    const next = Math.ceil(event.nativeEvent.layout.height);
+    if (Number.isFinite(next) && next >= 48) { setCreditHeight(current => current === next ? current : next); props.onCreditsHeight?.(next); }
+  }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator persistentScrollbar keyboardShouldPersistTaps="handled"
+      accessibilityLabel="Izvori mape" contentContainerStyle={s.creditRow} onContentSizeChange={(_width, tall) => {
+        if (Number.isFinite(tall) && tall > 0) setCreditHeight(Math.max(48, Math.ceil(tall)));
+      }}>
       {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0} style={s.creditLink}
         onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}><T variant="label" style={s.credit}>{credit.text}</T></Press>)}
-    </View>
-  </>;
+    </ScrollView>
+  </View>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
     <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
       attribution={false} tintColor={sys.color.muted}
@@ -328,8 +340,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           <PricePill content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /></View>
       </ViewAnnotation> : null}
     </Map>
-    {sheetTop && height ? <Animated.View pointerEvents="box-none" style={[s.ride, { height }, ride]}>{controls}</Animated.View>
-      : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{controls}</View>}
+    {sheetTop && height ? <>
+      <Animated.View testID="discovery-map-zoom-ride" pointerEvents="box-none" style={[s.ride, { height }, zoomRide]}>{zoom}</Animated.View>
+      <Animated.View testID="discovery-map-credits-ride" pointerEvents="box-none" style={[s.ride, { height }, creditsRide]}>{credits}</Animated.View>
+    </> : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{zoom}{credits}</View>}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
       {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>
         : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proveri vezu. Zadaci i filteri ostaju u listi.</T>
@@ -360,10 +374,11 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
-  // The credits stay visible and linked, as quiet 12 px words with a light halo instead of a white slab (critique B9).
-  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base + ZOOM_CAPSULE.width + GAP,
-    flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.xs },
-  creditLink: { minHeight: 48, minWidth: 48, maxWidth: '100%', justifyContent: 'center' },
+  // Full-width and independent of zoom: at large text the rail scrolls, preserving all three names and touch targets.
+  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base,
+    minHeight: 48, borderRadius: sys.radius.control, backgroundColor: sys.color.surface },
+  creditRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.sm },
+  creditLink: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingVertical: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.muted,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

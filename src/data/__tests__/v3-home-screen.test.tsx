@@ -26,6 +26,8 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { StyleSheet } from 'react-native';
 import { sys } from '../../ui/system/tokens';
+import { HomePresentation } from '../../ui/home/HomePresentation';
+import { composeHome } from '../homeSnapshot';
 import Pocetna from '../../app/(app)/index';
 
 let tree: ReactTestRenderer;
@@ -74,6 +76,51 @@ it('shows one account on both sides at once, as two counted doors and the next D
   expect(copy).not.toContain('Svi Dogovori');
   await act(async () => row('Dogovor g-a').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'g-a' } });
+});
+
+it.each([[390, 1], [320, 2]])('keeps the appointment time, role, task and person readable and separately worded at %idp / font %i', async (width, fontScale) => {
+  mockWindow = { width, height: 844, scale: 3, fontScale };
+  const title = 'Popravka police u dnevnoj sobi i postavljanje velikog ogledala';
+  const timeText = 'Fleksibilno · tokom sledeće nedelje';
+  const person = 'Jelena Petrović · Servis';
+  const source = { ...agreement('agenda', 'uskocer'), naslov: title, vremeTekst: timeText, pocinje: '2026-09-25T09:00:00Z' };
+  source.ucesnici[1].ime = person;
+  mockSource.mojiDogovori.mockResolvedValue([source]);
+  await render();
+  const card = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith(title))[0];
+  const facts = card.findAll(node => String(node.type) === 'T');
+  expect(facts.map(node => node.props.children)).toEqual([timeText, 'Uskačeš', title, person]);
+  expect(card.props.accessibilityLabel).toBe(`${title}. Uskačeš · ${person} · ${timeText}`);
+  expect(card.props.accessibilityHint).toBe('Otvara Dogovor.');
+  // Large text gets the whole card width below the calendar/caret row, with no shortened text or fixed-height ancestor.
+  if (fontScale === 2) expect(StyleSheet.flatten(facts[0].parent?.parent?.props.style).flexDirection).toBe('column');
+  for (const fact of facts) {
+    expect(fact.props.numberOfLines).toBeUndefined(); expect(fact.props.allowFontScaling).not.toBe(false);
+    for (let ancestor: ReactTestInstance | null = fact; ancestor && ancestor !== card.parent; ancestor = ancestor.parent) {
+      const style = StyleSheet.flatten(ancestor.props.style) ?? {};
+      expect(style.height).toBeUndefined(); expect(style.maxHeight).toBeUndefined();
+    }
+  }
+  expect(text()).not.toContain('2026-09-25');
+  await act(async () => card.props.onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agenda' } });
+});
+
+it('keeps a legacy HomeRow readable and navigable without parsing its detail into appointment facts', async () => {
+  const home = composeHome({ needs: { kind: 'known', value: [] }, applications: { kind: 'known', value: [] },
+    agreements: { kind: 'known', value: [] } });
+  const target = { kind: 'AGREEMENT' as const, agreementId: 'legacy' };
+  const detail = 'Jelena · vreme još nije određeno';
+  home.firstRun = false;
+  home.agreements = { kind: 'known', value: { more: 0, rows: [{ id: 'agreement:legacy', title: 'Dogovor legacy', detail, target }] } };
+  const onOpen = jest.fn();
+  await act(async () => { tree = create(<HomePresentation home={home} loading={false} refreshing={false} error={false}
+    onOpen={onOpen} onPublish={jest.fn()} onEarn={jest.fn()} onProfile={jest.fn()} onRatings={jest.fn()}
+    onMyTasks={jest.fn()} onMyApplications={jest.fn()} onRefresh={jest.fn()} />); });
+  const card = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Dogovor legacy'))[0];
+  expect(card.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Dogovor legacy', detail]);
+  await act(async () => card.props.onPress());
+  expect(onOpen).toHaveBeenCalledWith(target);
 });
 
 it('a row only navigates, and to the exact place: a waiting choice opens its candidates, the two doors open my lists', async () => {

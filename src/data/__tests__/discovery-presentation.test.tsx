@@ -12,7 +12,8 @@ jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: a
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
-  const List = ({ data, renderItem, ListEmptyComponent, ...props }: any) => React.createElement('List', props,
+  const List = ({ data, renderItem, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props,
+    ListHeaderComponent,
     data.length ? data.map((item: any, index: number) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item, index }))) : ListEmptyComponent);
   // One stable function: a new one on every read would be a new component type, and React would mount the sheet again.
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
@@ -587,6 +588,7 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
 test('at the full height the quick chips fold only for a list longer than its window without them, and return at its top', async () => {
   jest.useFakeTimers();
   try {
+    mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
     rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOutBody();
     const chips = () => tree.root.findAllByProps({ accessibilityLabel: 'Brzi filteri' });
     const scroll = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
@@ -644,11 +646,11 @@ test('while it is still read which tasks are mine, the list says no count and do
 test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
   const layOut = async () => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + 48 + 2 * sys.space.md);
   await act(async () => tree.unmount());
   rows = rows.slice(0, 3); await render(); await layOut();
   expect(listSheet().props.index).toBe(1);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + 48 + 2 * sys.space.md);
   expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md);
 });
 
@@ -664,7 +666,7 @@ test('the map\'s first mount waits for what is mine, then fits only what is list
   relations = { owned: new Set(['t0', 't1']), applied: new Set() }; relationsPending = false; await update();
   expect(map().props.items).toHaveLength(3);
   expect(listSheet().props.index).toBe(1);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + 48 + 2 * sys.space.md);
   // A later read of the labels (a new list) does not take the map away again.
   relationsPending = true; await update();
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
@@ -841,9 +843,8 @@ test('a time choice says under the list how many tasks it leaves out because the
   await act(async () => quick('Danas').props.onPress()); expect(list().props.ListFooterComponent).toBeNull();
 });
 
-// Review of V47, item 16: at large text the search pill's two lines may each take two lines; the pin card may take more
-// of the window rather than be cut off. At the usual text size both keep their compact form.
-test('at large text the search pill\'s lines wrap and the pin card may take more of the window', async () => {
+// R10: large text gets the whole search row, instead of four squeezed lines beside two tools.
+test('at large text the search stays two lines with separate tools and the pin preview may use more room', async () => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
   const lines = () => press('Pretraži zadatke').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
   expect(lines()).toEqual([1, 1]);
@@ -851,7 +852,10 @@ test('at large text the search pill\'s lines wrap and the pin card may take more
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
   await act(async () => tree.unmount());
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
-  expect(lines()).toEqual([2, 2]);
+  expect(lines()).toEqual([1, 1]);
+  const searchRow = tree.root.findByProps({ testID: 'discovery-search-row' });
+  expect(searchRow.findAllByProps({ accessibilityLabel: 'Uslovi pretrage' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'discovery-search-tools' }).findByProps({ accessibilityLabel: 'Uslovi pretrage' })).toBeTruthy();
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
 });
@@ -872,6 +876,60 @@ test('over the map: the pill has the card edge; a chip has no shadow; a chosen c
   await act(async () => tree.unmount()); initial = { ...initial, query: 'Pomoć' }; await render();
   const remove = press('Ukloni uslov: „Pomoć“');
   expect(StyleSheet.flatten(remove.props.style).minHeight + remove.props.hitSlop.top + remove.props.hitSlop.bottom).toBeGreaterThanOrEqual(48);
+});
+
+test('measured credits reserve space above the full list and a selected preview, including after resizing', async () => {
+  mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 }; await render(); await layOutBody(500);
+  const searchBar = tree.root.findByProps({ testID: 'discovery-search-row' }).parent!;
+  await act(async () => searchBar.props.onLayout({ nativeEvent: { layout: { y: 12, height: 144 } } }));
+  await act(async () => map().props.onCreditsHeight(56));
+  const clearTop = 156 + 56 + 2 * sys.space.md;
+  expect(500 - listSheet().props.snapPoints[2]).toBe(clearTop);
+  await act(async () => map().props.onSelect('bb'));
+  const preview = () => tree.root.findByType(DiscoveryPeek);
+  const cap = peek()!.props.maxDynamicContentSize;
+  expect(cap).toBeLessThan(640 * 0.75);
+  const body = preview().findAll(node => String(node.type) === 'View' && node.props.onLayout?.name === 'measureCard')[0];
+  await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
+  const creditsEdge = () => 500 - HIDDEN - map().props.coverBottom;
+  expect(creditsEdge() - sys.space.md - 56).toBeGreaterThanOrEqual(156 + sys.space.md);
+  // A larger map increases the cap even if the preview's long content needs no new layout.
+  await layOutBody(600);
+  expect(peek()!.props.maxDynamicContentSize).toBeGreaterThan(cap);
+  expect(map().props.coverBottom).toBe(Math.round(peek()!.props.maxDynamicContentSize) + 2 * sys.space.md);
+  expect(snapshot.selectedId).toBe('bb'); expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
+});
+
+test.each([false, true])('a tall filter header scrolls at the capped full stop without covering credits (empty: %s)', async empty => {
+  mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 };
+  initial = { ...initial, query: empty ? 'Nema takvog zadatka' : 'Pomoć', place: 'Beograd', when: 'next7',
+    viewport: { center: [20.45, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.6, 44.9] } };
+  rows = rows.map(item => ({ ...item, schedule: { kind: 'TODAY_FLEXIBLE', startsAt: null, endsAt: null } } as MarketplaceItem));
+  await render(); await layOutBody(430);
+  const bar = tree.root.findByProps({ testID: 'discovery-search-row' }).parent!;
+  await act(async () => bar.props.onLayout({ nativeEvent: { layout: { y: 12, height: 144 } } }));
+  await act(async () => map().props.onCreditsHeight(48));
+  const header = () => tree.root.findByProps({ testID: 'discovery-list-header' });
+  await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
+  await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
+  expect(listSheet().props.snapPoints).toEqual([96, 201, 202]);
+  expect(430 - listSheet().props.snapPoints[2]).toBe(156 + 48 + 2 * sys.space.md);
+  expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
+  expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-scrolling-header' }).props.style).marginHorizontal).toBe(-sys.space.lg);
+  expect(removable()).toHaveLength(3);
+  // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
+  await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
+  expect(listSheet().props.snapPoints[2]).toBe(202);
+  await act(async () => listSheet().props.onChange(2));
+  expect(listSheet().props.index).toBe(2);
+  if (empty) expect(pressable('Mapa')).toHaveLength(0);
+  await tap('Ukloni uslov: Beograd');
+  expect(snapshot.place).toBeNull(); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
+  // Once the map has room again the exact same header can return to the fixed slot.
+  await layOutBody(700);
+  expect(tree.root.findAllByProps({ testID: 'discovery-scrolling-header' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
 });
 
 describe('U blizini: an explicit camera-only location capture', () => {

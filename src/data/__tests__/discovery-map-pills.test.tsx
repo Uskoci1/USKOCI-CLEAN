@@ -171,25 +171,48 @@ test('the first fit keeps the pins between the tools and where the list sheet st
 });
 
 // Review r3 item 11: a chosen pin's card rests on the sheet's top line, where the zoom and the credits ride.
-test('the zoom and the credits ride on the sheet, step up above a chosen pin\'s card, and leave when it leaves no room', async () => {
+test('credits keep their own full-width strip when zoom cannot fit, including above a selected preview', async () => {
   extra = { sheetTop: { value: 600 }, toolsBottom: 60 };
   await render();
   const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
   await ready();
-  const ride = () => flat(tree.root.find(node => String(node.type) === 'View' && node.props.pointerEvents === 'box-none' && flat(node)?.height === 800));
+  const ride = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom-ride' }));
+  const creditsRide = () => flat(tree.root.findByProps({ testID: 'discovery-map-credits-ride' }));
+  const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
   // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
   // worked out on a render, so one more render reads it.
   const settle = async () => { await update(); await update(); };
   expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
+  expect(creditsRide().transform).toEqual([{ translateY: 600 - 800 }]);
+  expect(flat(credits())).toMatchObject({ left: sys.space.base, right: sys.space.base });
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).not.toHaveLength(0);
   extra = { ...extra, coverBottom: 250 }; await settle();
   expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 250 - 800 }], opacity: 1 });
-  // A card so tall that no room is left under the tools: they step out of the screen rather than sit over the tools.
-  extra = { ...extra, coverBottom: 500 }; await settle();
+  expect(creditsRide().transform).toEqual([{ translateY: 600 - 250 - 800 }]);
+  // Only 80 dp remain under the tools: the attribution still fits, while the zoom capsule does not.
+  extra = { ...extra, coverBottom: 460 }; await settle();
   expect(ride().opacity).toBe(0);
+  expect(creditsRide().opacity).not.toBe(0);
+  expect(creditsRide().transform).toEqual([{ translateY: 140 - 800 }]);
+  expect(credits().findAll(node => node.props.accessibilityRole === 'link')).toHaveLength(3);
   extra = { ...extra, coverBottom: 0 }; await settle();
   expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
+});
+
+test('credit height follows native content measurement and reaches the screen without changing the map query', async () => {
+  const measured = jest.fn(); extra = { onCreditsHeight: measured, sheetTop: { value: 300 }, toolsBottom: 150 };
+  await render(); await ready();
+  const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
+  const rail = tree.root.findByProps({ accessibilityLabel: 'Izvori mape' });
+  expect(rail.props.horizontal).toBe(true);
+  await act(async () => rail.props.onContentSizeChange(670, 63.2));
+  expect(flat(credits()).height).toBe(64);
+  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: 64 } } }));
+  expect(measured).toHaveBeenLastCalledWith(64);
+  await act(async () => rail.props.onContentSizeChange(600, Number.NaN));
+  expect(flat(credits()).height).toBe(64);
+  expect(search).not.toHaveBeenCalled(); expect(setViewport).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
 });
 
 test('many pins stay a bounded number of pills; native logo markers cover the remaining public points', async () => {

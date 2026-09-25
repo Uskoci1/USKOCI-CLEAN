@@ -30,6 +30,8 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   sheetTop?: SharedValue<number>;
   /** The floating search bar's bottom edge, in pixels from the map's top: fits and the credits keep clear of it. */
   toolsBottom?: number;
+  /** Measured independent attribution strip; the screen reserves it above the list and selected preview. */
+  onCreditsHeight?: (height: number) => void;
   /** How much of the map's bottom a chosen pin's card covers, so the camera brings the pin into the clear band. */
   focusBottom?: number;
   /**

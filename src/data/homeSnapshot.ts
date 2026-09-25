@@ -23,7 +23,9 @@ export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string };
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget };
 export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string };
-export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget };
+export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget;
+  /** Display facts kept separate for the appointment card; time is already worded by the Agreement projection. */
+  appointment?: { timeText: string; counterpartName: string; roleLabel: 'Tvoj zadatak' | 'Uskačeš' | null } };
 type Preview<Row> = { rows: Row[]; more: number };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<Preview<HomeRow>>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
@@ -67,8 +69,11 @@ const counterpart = (row: DogovorProjekcija) => row.ucesnici.find(person => !per
 
 function agreementRow(row: DogovorProjekcija): HomeRow {
   const side = mySide(row);
+  const roleLabel = side === 'narucilac' ? 'Tvoj zadatak' : side === 'uskocer' ? 'Uskačeš' : null;
+  const counterpartName = counterpart(row);
   return { id: `agreement:${row.id}`, title: row.naslov, target: { kind: 'AGREEMENT', agreementId: row.id },
-    detail: [side === 'narucilac' ? 'Tvoj zadatak' : side === 'uskocer' ? 'Uskačeš' : null, counterpart(row), row.vremeTekst].filter(Boolean).join(' · ') };
+    detail: [roleLabel, counterpartName, row.vremeTekst].filter(Boolean).join(' · '),
+    appointment: { timeText: row.vremeTekst, counterpartName, roleLabel } };
 }
 
 export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>): HomeSnapshot {
