@@ -81,14 +81,20 @@ describe('W04 public-safe detail read', () => {
     expect(result?.rokZaPrijaveIso).toBeNull();
     // A failed profile read leaves the review count unknown, never zero (step 5a, 2026-09-24).
     expect(result?.narucilacBrojOcena).toBeNull();
+    expect(result?.narucilacAvatarId).toBeNull();
   });
 
-  it('carries the review count the requester\'s public profile discloses', async () => {
+  it('carries the review count and authorized portrait reference from the same requester public profile', async () => {
+    const assetId = '33333333-3333-4333-8333-333333333333';
+    const path = `11111111-1111-4111-8111-111111111111/v5/${assetId}/${'a'.repeat(64)}.jpg`;
     maybeSingle.mockResolvedValue({ data: row(), error: null });
-    publicProfile.mockResolvedValueOnce({ profilId: 'requester-a', uloga: 'narucilac', ime: 'Ana', avatarPutanja: null, grad: null, naslov: null, biografija: null,
+    publicProfile.mockResolvedValueOnce({ profilId: 'requester-a', uloga: 'narucilac', ime: 'Ana', avatarPutanja: path, grad: null, naslov: null, biografija: null,
       poverenje: { ocenaProsek: 5, brojRecenzija: 1, zavrseniBroj: 1, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true,
         verifikacijaIdentitetaDostupna: false } });
-    await expect(supabaseIzvor.prilika('task-a')).resolves.toMatchObject({ narucilacIme: 'Ana', narucilacOcena: '5,0', narucilacBrojOcena: 1 });
+    const result = await supabaseIzvor.prilika('task-a');
+    expect(result).toMatchObject({ narucilacIme: 'Ana', narucilacOcena: '5,0', narucilacBrojOcena: 1, narucilacAvatarId: assetId });
+    expect(JSON.stringify(result)).not.toContain(path);
+    expect(publicProfile).toHaveBeenCalledTimes(1);
   });
 
   it.each(['ACTIVE', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'ARCHIVED', 'DRAFT', 'UNKNOWN'])('keeps readable %s tasks read-only', async status => {

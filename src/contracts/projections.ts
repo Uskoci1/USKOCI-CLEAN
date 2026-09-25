@@ -125,6 +125,8 @@ export type PrilikaProjekcija = {
   uslovi: string[];
   /** Bezbedan profile id za P0C-01 public-profile RPC/deep link; nije account id. */
   narucilacProfilId: string;
+  /** Asset iz već pročitanog javnog profila; bajtovi i dalje traže autorizaciju uz profilId. Bez URL-a ili Storage putanje. */
+  narucilacAvatarId?: string | null;
   narucilacIme: string;
   narucilacOcena: string | null;
   /**

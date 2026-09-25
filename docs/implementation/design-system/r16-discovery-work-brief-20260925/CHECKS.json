@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-09-25T16:45:13.328821+00:00",
+  "types": {
+    "command": "npx tsc --noEmit -p tsconfig.json",
+    "exitCode": 0
+  },
+  "jest": {
+    "command": "npx jest -w 3 --testTimeout=30000",
+    "suites": 315,
+    "tests": 6130,
+    "failed": 0,
+    "exitCode": 0
+  },
+  "firstRun": "Two suites had obsolete component/accordion expectations; kept semantic guard assertions and reran the complete suite.",
+  "native": "Pending artifact build/install/inspection; not inferred from source checks."
+}

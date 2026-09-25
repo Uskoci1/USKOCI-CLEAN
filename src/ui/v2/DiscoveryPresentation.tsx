@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
-  type NativeScrollEvent } from 'react-native';
+  type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
@@ -26,6 +26,7 @@ import { DiscoverySearchPanel, type SearchDraft, type SearchReadiness, type Sear
 import { CLEAR_ALL, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, datesWords, placesWords, quoted, removeWords, said,
   undatedWords, whereWords } from './discovery/discoveryWords';
 import { TaskCard } from './TaskCard';
+import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
@@ -73,8 +74,9 @@ const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
 
-const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied, onOpen, section }: {
+const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied, onOpen, section, portraitVisible }: {
   item: MarketplaceItem; index: number; animate: boolean; applied: boolean; onOpen: (item: MarketplaceItem) => void;
+  portraitVisible: boolean;
   /** The first task without a point under a map area: the quiet heading of those tasks, with how many there are. */
   section?: number;
 }) {
@@ -84,7 +86,8 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, applied,
       accessibilityLabel={`Bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
       <T variant="meta" style={s.sectionTitle}>Bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
     </View> : null}
-    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={applied ? 'APPLIED' : undefined} /></Appear>
+    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={applied ? 'APPLIED' : undefined}
+      portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
   </>;
 });
 
@@ -383,9 +386,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Under a map area the tasks without a point follow the area's own, under their quiet heading.
   const section = withoutPoint.length ? { at: inArea.length, count: withoutPoint.length } : null;
   const sectionRef = useRef(section); sectionRef.current = section;
+  // The render window is wider than the visible list. Start authorized photo reads only for settled visible rows,
+  // and unmount them when the sheet is hidden or this route loses focus; AuthorizedPhoto aborts on unmount.
+  // Gorhom sizes its content to the highest detent even at half height, so native viewability is trusted only at full.
+  const [portraitIds, setPortraitIds] = useState<ReadonlySet<string>>(() => new Set());
+  const portraitViewability = useRef({ itemVisiblePercentThreshold: 30, minimumViewTime: 180 }).current;
+  const onVisibleRows = useCallback(({ viewableItems }: { viewableItems: ViewToken<MarketplaceItem>[] }) => {
+    const next = new Set(viewableItems.filter(token => token.isViewable).slice(0, 6).map(token => token.item.id));
+    setPortraitIds(current => current.size === next.size && [...next].every(id => current.has(id)) ? current : next);
+  }, []);
+  useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
+  const showPortraits = focused && !cardShown && sheetIndex === SNAP.full;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <DiscoveryRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} applied={applied(item)} onOpen={openItem}
-      section={sectionRef.current?.at === index ? sectionRef.current.count : undefined} />, [applied, openItem]);
+      portraitVisible={showPortraits && portraitIds.has(item.id)}
+      section={sectionRef.current?.at === index ? sectionRef.current.count : undefined} />, [applied, openItem, showPortraits, portraitIds]);
 
   // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
   const empty = <View style={s.empty}>
@@ -488,6 +503,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
             the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem}
+          viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={section ? `${section.at}:${section.count}` : ''}
           refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
@@ -529,7 +545,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   body: { flex: 1 },
-  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 24 },
+  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 18 },
   ground: { flex: 1, backgroundColor: sys.color.ground },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.

@@ -11,7 +11,7 @@ import { useMapStyle, type MapStyle } from '../location/mapStyle';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
-import { floating, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { zadataka } from '../system/plural';
 import { useReducedMotion } from '../system/motion';
 import { displaysUrgent } from '../../lib/needUrgency';
@@ -340,9 +340,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
         {/* Rich pills cover these native logo markers. The same mark remains beyond the rich-label budget. */}
-        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 23, 'circle-color': sys.color.green, 'circle-stroke-width': 3, 'circle-stroke-color': sys.color.surface }} />
+        <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 20, 'circle-color': sys.color.surface, 'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
-          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.surface }} />
+          layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.green }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 22, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
             'circle-stroke-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green] }} />
@@ -401,7 +401,7 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   ride: { position: 'absolute', left: 0, right: 0, top: 0 },
   // One capsule with a hairline between its halves (critique B11), bottom-right above the sheet.
   zoom: { position: 'absolute', right: sys.space.base, bottom: GAP, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, ...floating },
+    borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.soft },
   zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
@@ -411,6 +411,6 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   creditRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   creditLink: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingVertical: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.ink, backgroundColor: sys.color.veil,
-    borderRadius: sys.space.xs, paddingHorizontal: sys.space.xs, paddingVertical: 2,
+    borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

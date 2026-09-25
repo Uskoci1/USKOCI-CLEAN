@@ -17,7 +17,7 @@ import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
-import { TaskDecisionLogistics, TaskDecisionPerson, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
+import { TaskDecisionLogistics, TaskDecisionPerson, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -34,8 +34,8 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
 
 /**
  * A task somebody else posted: first decide whether its work and terms suit me. The open white page puts the
- * work first, then place/time/capacity and a distinct price band, before the person behind it.
- * Real photos and requirements follow before the longer description, approximate place and questions.
+ * work first, genuine task photos when present, and compact terms. The description and requirements are readable
+ * before publisher context, approximate place and questions.
  * The name comes into the bar once the large title has scrolled away; reporting the person who posted it waits
  * behind the bar's "···". The one action, chosen by what I am to this task, stays at the foot.
  * Presentation only; the route owns reads, deadline and guards.
@@ -90,21 +90,23 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
+        </View>
+        {ready && !stale ? photos : null}
+        <View style={s.brief}>
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
             filled={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
             spokenFilled={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
           {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
-          {/* The publisher closes the brief, before the longer reading. A missing rating stays explicitly missing. */}
+        </View>
+        {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
+        <TaskDecisionRequirements rows={needRequirementRows(need)} />
+        {/* Trust follows an understanding of the work. A missing rating stays explicitly missing. */}
+        <View style={s.publisher}>
           <TaskDecisionPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
             initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy} />
+          {/* The profile sheet announces its own reporting errors; avoid announcing the same error behind it. */}
+          {safety?.error && !requesterProfile ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
         </View>
-        {/* What went wrong with reporting from the "···". While the person's profile is open, its sheet says it itself (as an
-            alert), so this line would repeat it and announce from behind the sheet; the route clears it on focus and when
-            the sheet closes. */}
-        {safety?.error && !requesterProfile ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
-        {ready && !stale ? photos : null}
-        <TaskDecisionRequirements rows={needRequirementRows(need)} />
-        {need.opis ? <DetailSection title="O zadatku"><DetailDescription text={need.opis} /></DetailSection> : null}
         {/* The place is one section: the approximate pin, what is private, and the stops of a route. It used
             to be said three times — a fact, a map and a "Mesto izvršenja" row that opened into the same words. */}
         {!remote && (map || route.length) ? <DetailSection title="Mesto zadatka">
@@ -146,10 +148,12 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
-  content: { paddingHorizontal: 24, paddingTop: 8, gap: 28, paddingBottom: 40 },
+  content: { paddingHorizontal: sys.space.xl, paddingTop: sys.space.sm, gap: sys.space.xl, paddingBottom: 40 },
   state: { gap: 12 },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
-  hero: { gap: 24, backgroundColor: sys.color.surface },
+  hero: { gap: sys.space.md, backgroundColor: sys.color.surface },
+  brief: { gap: sys.space.base },
+  publisher: { gap: sys.space.md, paddingTop: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line },
   badgeRow: { flexDirection: 'row' },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },

@@ -11,10 +11,13 @@ import { sys } from '../../ui/system/tokens';
  * requirement a worker decides on (never a skill), and a foot with the places and the person. My own task's next step
  * is a target of its own beside the body, never inside it. Card review r3 (items 1–12) is pinned under "review r3".
  */
-let mockScale = 1, mockReduced = false;
+let mockScale = 1, mockReduced = false, mockWidth = 411;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
-  return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
+  return new Proxy(native, { get(target, key) {
+    if (key === 'useWindowDimensions') return () => ({ width: mockWidth, height: 900, scale: 2, fontScale: mockScale });
+    return key === 'View' ? 'View' : Reflect.get(target, key);
+  } });
 });
 // The shared Jest stand-in, with a shared value that keeps its box across renders and can be read back, so the card's
 // press can be seen to move its frame.
@@ -64,7 +67,7 @@ const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) 
 const presses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType));
 const facts = () => tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind);
 const frame = () => tree.root.findAll(node => node.type === ('View' as React.ElementType))[0];
-beforeEach(() => { mockScale = 1; mockReduced = false; });
+beforeEach(() => { mockScale = 1; mockReduced = false; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 describe('the requirement line', () => {
@@ -74,11 +77,11 @@ describe('the requirement line', () => {
     for (const kind of ['info', 'vehicle', 'tool']) expect(facts()).not.toContain(kind);
   });
 
-  it('shows the task\'s own conditions first, as one plain line of at most two lines with the info art, and nothing else', async () => {
+  it('shows the task\'s own conditions first, wrapping every supplied condition with the info art', async () => {
     await render(<TaskCard item={task({ detalji: detail({}, { vestine: ['Krečenje'], vozila: ['Kombi'], alati: ['Bušilica'],
       bitniUslovi: ['Zgrada bez lifta', 'Orman je već rasklopljen'] }) })} onOpen={jest.fn()} />);
     const line = textNode('Zgrada bez lifta · Orman je već rasklopljen');
-    expect(line.props.numberOfLines).toBe(2);
+    expect(line.props.numberOfLines).toBeUndefined();
     expect(facts()).toContain('info');
     expect(texts().join(' ')).not.toMatch(/Kombi|Bušilica|Krečenje/);
     expect(facts()).not.toContain('vehicle'); expect(facts()).not.toContain('tool');
@@ -141,17 +144,17 @@ describe('the value slot', () => {
     expect(texts()).not.toContain('ukupno'); expect(texts()).not.toContain('po osobi');
   });
 
-  it('gives the title three full-width lines at normal and large text without changing the value', async () => {
+  it('allows the whole title to wrap and gives it full width at larger text without changing the value', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     let title = textNode('Farbanje dnevne sobe');
-    expect(title.props.numberOfLines).toBe(3);
-    expect(style(title)).not.toHaveProperty('flex');
+    expect(title.props.numberOfLines).toBeUndefined();
+    expect(style(title)).toMatchObject({ flex: 1, minWidth: 0 });
     expect(texts()).toContain('5.500 RSD');
     await act(async () => tree.unmount());
     mockScale = 1.3;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     title = textNode('Farbanje dnevne sobe');
-    expect(title.props.numberOfLines).toBe(3);
+    expect(title.props.numberOfLines).toBeUndefined();
     expect(style(title)).not.toHaveProperty('flex');
     expect(texts()).toContain('5.500 RSD');
   });
@@ -181,8 +184,20 @@ describe('the places and the person', () => {
     expect(texts()).toContain('Nikola Petrović'); expect(texts()).toContain('4,8 (12)'); expect(facts()).toContain('star');
     // The person is heard with the card (review r3 item 4), with the count its rating stands on.
     expect(presses()[0].props.accessibilityValue.text).toContain('Nikola Petrović, ocena 4,8, 12 ocena');
-    expect(texts().indexOf('Nikola Petrović')).toBeGreaterThan(texts().indexOf('Traži 2 osobe'));
-    expect(tree.root.findByType('Avatar' as React.ElementType).props.size).toBe(56);
+    expect(texts().indexOf('Nikola Petrović')).toBeGreaterThan(texts().indexOf('5.500 RSD'));
+    expect(tree.root.findByType('Avatar' as React.ElementType).props.size).toBe(40);
+  });
+
+  it('uses caller-supplied media and restores initials when absent without changing the card action or rating', async () => {
+    const open = jest.fn();
+    await render(<TaskCard item={task()} portrait={React.createElement('Portrait')} onOpen={open} />);
+    expect(tree.root.findAllByType('Portrait' as React.ElementType)).toHaveLength(1);
+    expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
+    expect(texts()).toContain('4,8 (12)');
+    await act(async () => presses()[0].props.onPress());
+    expect(open).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<TaskCard item={task()} onOpen={open} />));
+    expect(tree.root.findByType('Avatar' as React.ElementType).props.initials).toBe('NP');
   });
 
   it.each([
@@ -322,10 +337,10 @@ describe('the card', () => {
 
 describe('review r3', () => {
   // Item 1: "Fleksibilan raspon · 24. sep – 30. sep" lost its end date on one line at 360 dp.
-  it.each([1, 1.3])('gives the time two lines at every text size (text scale %s)', async scale => {
+  it.each([1, 1.3])('retains the complete time range at every text size (text scale %s)', async scale => {
     mockScale = scale;
     await render(<TaskCard item={task({ vremeTekst: 'Fleksibilan raspon · 24. sep – 30. sep' })} onOpen={jest.fn()} />);
-    expect(textNode('Fleksibilan raspon · 24. sep – 30. sep').props.numberOfLines).toBe(2);
+    expect(textNode('Fleksibilan raspon · 24. sep – 30. sep').props.numberOfLines).toBeUndefined();
   });
 
   // Item 2: at 320 dp "125.000 RSD" read "125.00…" inside a 42% cap. An amount keeps its whole width; the title gives way.
@@ -333,11 +348,11 @@ describe('review r3', () => {
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })} onOpen={jest.fn()} />);
     const amount = textNode('125.000 RSD');
     expect(amount.props.numberOfLines).toBeUndefined();
-    expect(style(amount.parent!)).toMatchObject({ flexWrap: 'wrap' }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
+    expect(style(amount.parent!)).toMatchObject({ flexShrink: 0 }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
     const word = textNode('Tražim ponude');
     expect(style(word.parent!)).not.toHaveProperty('maxWidth');
-    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     expect(style(textNode('Farbanje dnevne sobe'))).not.toHaveProperty('flex');
     expect(style(word)).not.toMatchObject({ color: sys.color.money });
   });
@@ -346,14 +361,14 @@ describe('review r3', () => {
   it('gives capacity and the publisher separate space, retaining the entire count at large text', async () => {
     await render(<TaskCard item={task({ narucilacIme: 'Aleksandra Stojanović-Petrović' })} onOpen={jest.fn()} />);
     const count = textNode('Traži 2 osobe');
-    expect(count.props.numberOfLines).toBe(2);
+    expect(count.props.numberOfLines).toBeUndefined();
     const name = textNode('Aleksandra Stojanović-Petrović');
     expect(name.props.numberOfLines).toBe(1);
     expect(count.parent!.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
     // On its own line at large text the count may take a second line instead of running off the card.
     await act(async () => tree.unmount()); mockScale = 1.3;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(textNode('Traži 2 osobe').props.numberOfLines).toBe(2);
+    expect(textNode('Traži 2 osobe').props.numberOfLines).toBeUndefined();
   });
 
   // Item 4: a screen reader heard only the title; the facts were unreachable on iOS and 3–5 extra stops on Android.
@@ -420,12 +435,13 @@ describe('review r3', () => {
   });
 
   // Item 12: beside a word, which can take 42% of the width, a long title was cut at two lines on 320–360 dp.
-  it('gives the title three lines for every price mode', async () => {
+  it('retains the entire title for every price mode, including a narrow phone', async () => {
+    mockWidth = 320;
     await render(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />);
-    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={task({ ponudjenaCena: undefined, osnovaCene: null })} onOpen={jest.fn()} />));
-    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={task()} onOpen={jest.fn()} />));
-    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBe(3);
+    expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
   });
 });

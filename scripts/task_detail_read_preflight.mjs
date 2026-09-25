@@ -16,6 +16,8 @@ const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needCli
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation',
   // Pure modules the read path imports since 2026-09-19 (task relations) and 2026-09-21 (money text).
   'data/taskRelation', 'lib/novac',
+  // Existing v5 reference parser extracted for the already-read public portrait projection (R16).
+  'data/mediaAssetId',
   // The one time format (2026-09-23): message times on the read path.
   'lib/vreme'];
 export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {

@@ -19,7 +19,7 @@ export function PricePill({ content, urgent = false, selected = false }: { conte
   return <View collapsable={false} style={s.frame}>
     <View testID="price-pill" style={[s.pill, !words && s.markOnly, urgent && s.urgent, selected && s.selected]}>
       <View style={s.mark} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <BrandMark size={28} />
+        <BrandMark size={26} />
       </View>
       {urgent ? <Lightning size={14} weight="fill" color={selected ? sys.color.onGreen : sys.color.danger} /> : null}
       {words ? <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.text, TONE[content.tone], selected && s.onGreen]}>{words}</T> : null}
@@ -30,11 +30,11 @@ export function PricePill({ content, urgent = false, selected = false }: { conte
 const s = StyleSheet.create({
   // Room around the pill for its lift: the map draws the annotation as a picture of exactly this frame.
   frame: { padding: sys.space.xs },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingLeft: 5, paddingRight: sys.space.md, paddingVertical: 5,
+  pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, paddingLeft: 4, paddingRight: sys.space.md, paddingVertical: 3,
     borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface,
-    shadowColor: sys.color.ink, shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  markOnly: { paddingRight: 5, minWidth: 48 },
-  mark: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+    shadowColor: sys.color.ink, shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  markOnly: { paddingRight: 4, minWidth: 40 },
+  mark: { width: 32, height: 32, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   urgent: { borderColor: sys.color.danger },
   selected: { backgroundColor: sys.color.green, borderColor: sys.color.green },
   // The meta size (13), set a little tighter so the pill stays a small mark on the map.

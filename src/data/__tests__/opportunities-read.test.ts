@@ -83,10 +83,40 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
         zahtevi: { vestine: ['Selidbe'], alati: [], vozila: [], dozvole: [], bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false } },
       pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
       // A failed profile read leaves the review count unknown (null), never zero (step 5a, 2026-09-24).
-      uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacIme: '', narucilacOcena: null, narucilacBrojOcena: null,
+      uslovi: ['Selidbe'], narucilacProfilId: 'requester-1', narucilacAvatarId: null, narucilacIme: '', narucilacOcena: null, narucilacBrojOcena: null,
       priblizno: { lat: 44.8, lng: 20.4 }, rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined,
     }]);
   });
+
+  it('reuses each public profile read for its portrait asset without passing through the storage path', async () => {
+    const assetId = '33333333-3333-4333-8333-333333333333';
+    const path = `11111111-1111-4111-8111-111111111111/v5/${assetId}/${'a'.repeat(64)}.jpg`;
+    mockRpc.mockResolvedValueOnce(page([item(), item({ id: 'need-2' })]));
+    publicProfile.mockResolvedValueOnce({ ime: 'Nikola', avatarPutanja: path,
+      poverenje: { ocenaDostupna: false, recenzijeDostupne: false } });
+
+    const rows = await supabaseIzvor.otvorenePrilike();
+
+    expect(rows.map(row => row.narucilacAvatarId)).toEqual([assetId, assetId]);
+    expect(publicProfile).toHaveBeenCalledTimes(1);
+    expect(publicProfile).toHaveBeenCalledWith('requester-1');
+    expect(JSON.stringify(rows)).not.toContain(path);
+    expect(mockRpc.mock.calls.map(([name]) => name)).toEqual(['rpc_list_open_tasks_v3']);
+  });
+
+  it.each([null, '', 'https://example.test/avatar.jpg', 'profile-media/requester-1/avatar.jpg',
+    `11111111-1111-4111-8111-111111111111/v5/not-an-asset/${'a'.repeat(64)}.jpg`])(
+    'leaves the portrait unavailable for a missing or unsupported public reference: %s', async avatarPutanja => {
+      mockRpc.mockResolvedValueOnce(page([item()]));
+      publicProfile.mockResolvedValueOnce({ ime: 'Nikola', avatarPutanja,
+        poverenje: { ocenaDostupna: false, recenzijeDostupne: false } });
+
+      const [row] = await supabaseIzvor.otvorenePrilike();
+
+      expect(row.narucilacAvatarId).toBeNull();
+      expect(publicProfile).toHaveBeenCalledTimes(1);
+      expect(mockRpc.mock.calls.map(([name]) => name)).toEqual(['rpc_list_open_tasks_v3']);
+    });
 
   // One task card (step 5a, 2026-09-24): the rating travels with how many reviews it stands on, taken from the same
   // profile read the list already makes; nothing is counted or guessed when that read does not disclose reviews.

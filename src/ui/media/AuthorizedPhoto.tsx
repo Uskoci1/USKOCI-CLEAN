@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
 import { mediaClientService } from '../../data/mediaClientService';
-import { uuid } from '../../data/serverReceipt';
+export { mediaAssetId } from '../../data/mediaAssetId';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
@@ -21,7 +21,6 @@ function jpegDataUri(bytes: ArrayBuffer): string {
   }
   chunks.push(part); return 'data:image/jpeg;base64,' + chunks.join('');
 }
-
 export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; caseId?: string; agreementId?: string; messageId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover';
   /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode }) {
   const { user, accountRevision } = useSesija();
@@ -53,9 +52,4 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
       </View>
         : <ActivityIndicator size="small" accessibilityLabel="Učitavanje fotografije" color={sys.color.green} />}
   </View>;
-}
-
-export function mediaAssetId(ref: string): string | null {
-  const match = /^([a-f0-9-]{36})\/v5\/([a-f0-9-]{36})\/[a-f0-9]{64}\.jpg$/i.exec(ref);
-  return match && uuid(match[1]) && uuid(match[2]) ? match[2] : null;
 }

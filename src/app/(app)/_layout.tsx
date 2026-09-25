@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactArt } from '../../ui/system/FactArt';
 import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
-import { floating, nested, sys } from '../../ui/system/tokens';
+import { nested, sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';
 
@@ -181,7 +181,7 @@ export default function TabLayout() {
             backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
       tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
-      tabBarStyle: { ...floating, backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
+      tabBarStyle: { ...sys.elevation.soft, backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
         borderRadius: sys.radius.card,
         // Icon + gap + native button padding + bar padding + actual label height; no font shrinking or truncation.
         height: Math.max(70, Math.ceil(30 + 3 + 10 + TAB_BAR_PADDING * 2 + labelHeight)), padding: TAB_BAR_PADDING,

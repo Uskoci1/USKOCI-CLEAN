@@ -118,7 +118,7 @@ test('reduced motion opens search at once; Nearby waits for its own tap and no d
 
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.
 test('the search panel offers price modes as radios and its apply action is the only brand action', async () => {
-  await render(); await tap('Uslovi pretrage'); await tap('Cena');
+  await render(); await tap('Uslovi pretrage');
   const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
   expect(radio).toHaveLength(1);
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);

@@ -5,7 +5,7 @@ import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { plural } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, chipChosen, floating, sys } from '../../system/tokens';
+import { CHIP_CHOSEN_INSET, chipChosen, sys } from '../../system/tokens';
 
 /** A quick chip over the map: one existing filter, toggled at once, without opening the search. */
 export type QuickChip = { key: string; label: string; selected: boolean; onPress: () => void };
@@ -29,7 +29,7 @@ const CHIP_SIDE = sys.space.md;
  * pretrage" opens the same panel at its conditions and counts how many are on. The adjacent menu preserves secondary
  * destinations without another header (a standalone caller may instead offer its publication shortcut).
  * Under them one row of quick chips toggles real filters at once; a chosen chip is the one chosen-chip look of the
- * system (pale green, green edge, green words and a tick). The chips fold away when the caller says so (the list at its
+ * system (neutral well, green edge, green words and a tick). The chips fold away when the caller says so (the list at its
  * full height and scrolled); the pill stays.
  *
  * While the list is narrowed to the map's area or to one point, the pill carries its own "×" at its right end, "Prikaži
@@ -66,17 +66,17 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
     if (height > 0) onChipsHeight?.(separateTools ? Math.max(0, height - chrome.control) : height + sys.space.sm);
   };
   const tools = <>
-    <View style={s.tool}><View style={s.lift} />
+    <View style={s.tool}>
       <ChromeIconButton label={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
-        icon={SlidersHorizontal} active={conditionCount > 0} onPress={onConditions}>
+        icon={SlidersHorizontal} active={conditionCount > 0} quiet onPress={onConditions}>
         {conditionCount ? <View testID="conditions-badge" style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
       </ChromeIconButton>
     </View>
-    {onMore ? <View style={s.tool}><View style={s.lift} />
-      <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." icon={DotsThree} onPress={onMore} />
-    </View> : onNew ? <View style={s.tool}><View style={s.lift} />
-      <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} onPress={onNew} />
+    {onMore ? <View style={s.tool}>
+      <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." icon={DotsThree} quiet onPress={onMore} />
+    </View> : onNew ? <View style={s.tool}>
+      <ChromeIconButton label="Dodaj zadatak" hint="Otvara novi Zadatak." icon={AddGlyph} quiet onPress={onNew} />
     </View> : null}
   </>;
   const quickFilters = chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
@@ -97,6 +97,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   </ScrollView> : null;
   return <View pointerEvents="box-none" style={s.bar} onLayout={measure}>
     <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}>
+      <View style={s.searchSurface}>
       <View style={s.search}>
         <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
           accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={0.98} onPress={onSearch}
@@ -113,10 +114,11 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           <View style={s.clearCircle}><X size={16} weight="bold" color={sys.color.ink} /></View>
         </Press> : null}
       </View>
-      {separateTools ? null : tools}
+      {separateTools ? null : <View style={s.inlineTools}>{tools}</View>}
+      </View>
     </View>
     {separateTools ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
-      {quickFilters ?? <View style={s.rail} />}{tools}
+      {quickFilters ?? <View style={s.rail} />}<View style={s.toolCluster}>{tools}</View>
     </View> : quickFilters}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
@@ -130,11 +132,13 @@ const s = StyleSheet.create({
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.base },
   search: { flex: 1, minWidth: 0 },
-  // The search pill: white, a capsule, the one `floating` lift, and two lines of words. Its edge is the card edge: the
-  // faintest hairline all but vanished over the map's own light ground.
+  // One lifted surface owns the search and its controls. The map no longer carries three competing white discs.
+  searchSurface: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 4,
+    borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line,
+    ...sys.elevation.soft },
   pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, paddingLeft: sys.space.base,
-    paddingRight: sys.space.lg, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.cardLine,
-    backgroundColor: sys.color.surface, ...floating },
+    paddingRight: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.surface },
   // The words end where the clear button begins.
   pillClearable: { paddingRight: CLEAR_WIDTH },
   pillWide: { borderRadius: sys.radius.card },
@@ -145,9 +149,9 @@ const s = StyleSheet.create({
   clear: { position: 'absolute', top: 0, bottom: 0, right: 0, width: CLEAR_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   clearCircle: { width: 28, height: 28, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   tool: { width: chrome.control, height: chrome.control },
-  // The white disc under a chrome button, centred in its 48 px touch area.
-  lift: { position: 'absolute', top: (chrome.control - chrome.circle) / 2, left: (chrome.control - chrome.circle) / 2, width: chrome.circle,
-    height: chrome.circle, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, ...floating },
+  inlineTools: { flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: sys.color.line, paddingLeft: 2 },
+  toolCluster: { flexDirection: 'row', borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line },
   // It grows with the text size rather than cut its number.
   badge: { position: 'absolute', top: 0, right: 0, minWidth: 20, minHeight: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.green, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
@@ -157,7 +161,7 @@ const s = StyleSheet.create({
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
-    borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+    borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { ...chipChosen, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink },
   chipTextOn: { color: sys.color.green, fontWeight: '700' },

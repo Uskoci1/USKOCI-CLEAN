@@ -13,27 +13,11 @@ import { T } from '../Text';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /**
- * The one face of a task in a list (owner's step 5a, 2026-09-24; emulator critique A8, A9, A10, B13, B14). A list is
- * scanned, so every card is the same fixed lines in the same order, and a line either says something or is not drawn:
- *
- *   1. status, only when it says something the list does not already say (HITNO, "Prijava poslata", "Tvoj zadatak",
- *      the state of my own task, except the state its section is named for);
- *   2. the title with the amount beside it, or a quiet value label on its own line;
- *   3. where (one line); 4. when (up to two lines, so the end of a range is never cut off);
- *   5. at most one requirement a worker decides on (a condition, a vehicle, a tool; never a skill, which reads as a
- *      category);
- *   6. the foot: how many people, and who posted it.
- *
- * No line wraps into the next one (no flex-wrap in the facts): the card of the phone screenshots put the poster on a
- * line of its own at one text size and beside a chip at another. At the owner's large text the value moves under the
- * title and the person under the places, as whole lines. Nothing here invents a rating, a count or a state, and a word
- * about money never wears the money colour or weight. What never gives way to a long neighbour: an amount (the title
- * gives way), the count of places (the name gives way) and the end of a time range.
- *
- * The parts are drawings only: the card is one target and says all of it once (`taskSpoken`), so a screen reader
- * does not stop on every fact (card review r3 item 4).
- *
- * Pure helpers first (tested on their own), then the parts `TaskCard` is built from.
+ * A compact work brief: conditional state, title with truthful terms, grouped place/time/material requirements,
+ * then human identity and capacity. Long text stays readable; narrower or enlarged-text cards stack whole groups.
+ * No helper invents a rating, count, state or price basis, and a word about money never wears an amount's styling.
+ * The parts are drawings only: the card is one target and says every fact once (`taskSpoken`).
+ * Pure helpers first, then reusable parts for the list and selected map preview.
  */
 
 /* ------------------------------------------------------------------------------------------------ what it says */
@@ -178,15 +162,15 @@ export function CardStatus({ status, urgency, now }: { status: { text: string; q
   </View>;
 }
 
-/**
- * An amount sits beside a two-line title at ordinary text sizes. Non-numeric value labels and large-text amounts
- * sit below the full-width, three-line title, so a long task name is not squeezed by an explanation of its price.
- */
+/** The title and its terms form one brief. Long titles, larger text and verbal prices keep a full-width heading. */
 export function CardHead({ title, value, large }: { title: string; value: TaskValue; large: boolean }) {
-  const stacked = large || value.kind !== 'amount';
+  const stacked = large || value.kind !== 'amount' || title.length > 42 || value.amount.length > 12;
   return <View style={stacked ? s.headStacked : s.head}>
-    <T style={[s.title, !stacked && s.titleSide]} numberOfLines={stacked ? 3 : 2}>{title}</T>
-    <CardValue value={value} large={stacked} />
+    <T style={[s.title, s.briefTitle, !stacked && s.titleSide]}>{title}</T>
+    <View style={s.briefTerms}>
+      {value.kind === 'offers' ? <FactArt kind="offers" size={24} /> : null}
+      <View style={s.briefValue}><CardValue value={value} large={stacked} prominent /></View>
+    </View>
   </View>;
 }
 
@@ -197,12 +181,13 @@ export function CardHead({ title, value, large }: { title: string; value: TaskVa
 export function CardValue({ value, large, prominent = false }: { value: TaskValue; large: boolean; prominent?: boolean }) {
   if (value.kind === 'amount') {
     return <View style={large ? s.valueRow : valueStyles.amountSide}>
-      <T style={[valueStyles.amount, prominent && s.decisionAmount, large && valueStyles.alignStart]}>{value.amount}</T>
+      <T style={[valueStyles.amount, prominent && s.decisionAmount, large && valueStyles.alignStart, large && s.valueWrap]}>{value.amount}</T>
       {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
     </View>;
   }
   return <View style={large ? s.valueRow : valueStyles.wordSide}>
-    <T style={[valueStyles.valueWord, prominent && value.kind === 'offers' && s.offerWord, large && valueStyles.alignStart]} numberOfLines={2}>{VALUE_WORDS[value.kind]}</T>
+    <T style={[valueStyles.valueWord, prominent && value.kind === 'offers' && s.offerWord, large && valueStyles.alignStart, large && s.valueWrap]}
+      numberOfLines={large ? undefined : 2}>{VALUE_WORDS[value.kind]}</T>
   </View>;
 }
 
@@ -221,20 +206,27 @@ export function CardDecision({ value, places, large }: { value: TaskValue; place
 export function CardFact({ art, text, lines = 1 }: { art: ReactNode; text: string; lines?: number }) {
   return <View style={s.fact}>
     <View style={s.art}>{art}</View>
-    <T style={s.factText} numberOfLines={lines}>{text}</T>
+    <T style={s.factText} numberOfLines={lines || undefined}>{text}</T>
   </View>;
 }
 
 /** Line 5: a condition draws the "info" fact, a vehicle the van and a tool the toolbox, all at fact size. */
 export function CardRequirement({ requirement }: { requirement: TaskRequirement }) {
-  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={16} />} text={requirement.text} lines={2} />;
+  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={16} />} text={requirement.text} lines={0} />;
 }
 
 /** Who posted the task: the one avatar and the one initials rule of the app, the name, and the honest rating. */
-export const CardPerson = memo(function CardPerson({ name, rating, count, size = 40 }: { name: string; rating: string | null | undefined; count: number | null | undefined; size?: 32 | 40 | 56 }) {
+export const CardPerson = memo(function CardPerson({ name, rating, count, size = 40, portrait }: {
+  name: string; rating: string | null | undefined; count: number | null | undefined; size?: 32 | 40 | 56;
+  /** Authorized media supplied by the caller; this drawing starts no profile or photo read. */
+  portrait?: ReactNode;
+}) {
   const trust = ratingWords(rating, count);
   return <View style={s.person}>
-    <Avatar initials={inicijali(name)} size={size} />
+    <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
+      style={{ width: size, height: size, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 }}>
+      {portrait ?? <Avatar initials={inicijali(name)} size={size} />}
+    </View>
     <View style={s.personText}>
       <T style={s.personName} numberOfLines={1}>{name}</T>
       {trust ? <View style={s.rating}>
@@ -244,6 +236,14 @@ export const CardPerson = memo(function CardPerson({ name, rating, count, size =
     </View>
   </View>;
 });
+
+/** A person anchors the brief; capacity is a neighboring fact, with its own line at larger text sizes. */
+export function CardBriefFoot({ places, person, large }: { places: ReactNode; person: ReactNode; large: boolean }) {
+  return <View style={[s.briefFoot, large && s.briefFootStacked]}>
+    {person ? <View style={large ? s.briefPersonStacked : s.briefPerson}>{person}</View> : null}
+    {places ? <View style={!large && person ? s.briefCapacity : undefined}>{places}</View> : null}
+  </View>;
+}
 
 /** Line 6: places on the left, the person anchored bottom right; at large text they are two whole lines. */
 export function CardFoot({ places, person, large }: { places: ReactNode; person: ReactNode; large: boolean }) {
@@ -261,7 +261,7 @@ export function CardPlaces({ places, audience, large = false }: { places: Pokriv
   const words = placesText(places, audience);
   return <View style={large ? s.placesStacked : s.places}>
     <FactArt kind="users" size={16} />
-    <T style={[s.placesText, large && s.placesTextStacked]} numberOfLines={large ? 2 : 1}>{words.text}</T>
+    <T style={[s.placesText, large && s.placesTextStacked]} numberOfLines={large ? undefined : 1}>{words.text}</T>
   </View>;
 }
 
@@ -384,16 +384,20 @@ const s = StyleSheet.create({
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   headStacked: { gap: 8 },
+  briefTitle: { color: sys.color.green },
+  briefTerms: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, flexShrink: 0 },
+  briefValue: { flexShrink: 1, minWidth: 0 },
   title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
+  valueWrap: { flexShrink: 1, maxWidth: '100%' },
   decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 16, rowGap: 10 },
   decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
   decisionValue: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, flexShrink: 1, maxWidth: '100%' },
   decisionArt: { paddingTop: 2 },
   decisionCopy: { flexShrink: 1, minWidth: 0 },
   decisionPlaces: { flexShrink: 1, maxWidth: '100%' },
-  decisionAmount: { fontSize: 22, lineHeight: 28, letterSpacing: -0.5 },
+  decisionAmount: { ...sys.type.priceSmall },
   offerWord: { fontSize: 16, lineHeight: 22, fontWeight: '600', color: sys.color.green },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   art: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
@@ -406,6 +410,12 @@ const s = StyleSheet.create({
   placesTextStacked: { flexShrink: 1 },
   personSide: { flexShrink: 1, minWidth: 0, maxWidth: '62%' },
   personStacked: { alignSelf: 'flex-end', maxWidth: '100%' },
+  briefFoot: { flexDirection: 'row', alignItems: 'center', columnGap: sys.space.base, rowGap: sys.space.md,
+    borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
+  briefFootStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  briefPerson: { flex: 1.5, minWidth: 0 },
+  briefPersonStacked: { alignSelf: 'stretch' },
+  briefCapacity: { flex: 1, minWidth: 0 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   personText: { flexShrink: 1, minWidth: 0 },
   personName: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: sys.color.ink },

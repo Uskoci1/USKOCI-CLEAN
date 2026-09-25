@@ -35,6 +35,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
+jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
 import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
@@ -134,6 +135,26 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
   expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada · Dodaj uslove' });
   await tap('Ukloni uslov: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+});
+
+test('portraits mount only for visible rows and unmount behind a pin, a collapsed sheet or an unfocused route', async () => {
+  rows = rows.map(item => ({ ...item, narucilacIme: 'Ana', narucilacProfilId: 'profile-a' }));
+  initial = { ...initial, sheet: 'full' }; await render();
+  const portraits = () => list().findAllByType('TaskPublisherPortrait' as React.ElementType).map(node => node.props.item.id);
+  expect(portraits()).toEqual([]);
+  await act(async () => list().props.onViewableItemsChanged({ viewableItems: [
+    { item: rows[0], isViewable: true }, { item: rows[1], isViewable: false },
+  ] }));
+  expect(portraits()).toEqual(['a']);
+  await act(async () => map().props.onSelect('bb'));
+  expect(portraits()).toEqual([]);
+  // Closing a pin deliberately returns to the collapsed map sheet; photos resume only when the list opens.
+  await tap('Zatvori pregled zadatka'); expect(portraits()).toEqual([]);
+  await act(async () => listSheet().props.onChange(2)); expect(portraits()).toEqual(['a']);
+  await act(async () => listSheet().props.onChange(0)); expect(portraits()).toEqual([]);
+  await act(async () => listSheet().props.onChange(1)); expect(portraits()).toEqual([]);
+  await act(async () => listSheet().props.onChange(2)); expect(portraits()).toEqual(['a']);
+  mockFocused = false; await update(); expect(portraits()).toEqual([]);
 });
 
 test('my own tasks are simply not listed, nothing says they are hidden, and a task I applied to says so', async () => {
@@ -353,7 +374,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    await tap('Cena'); await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
@@ -379,21 +400,21 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tap('Uslovi pretrage');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
-    await choose('Danas'); await tap('Cena'); await choose('Navedena cena');
+    await choose('Danas'); await choose('Navedena cena');
     await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
     expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
-    await tap('Kada'); expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
+    expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
   test('"Kako se radi" is offered only when a task says how it is done, in the panel and as quick chips', async () => {
     await render(); await tap('Uslovi pretrage');
-    expect(texts()).not.toContain('Kako se radi'); expect(texts()).toContain('Kada?'); expect(texts()).toContain('Koliko vas dolazi');
+    expect(texts()).not.toContain('Kako se radi'); expect(texts()).toContain('Kada'); expect(texts()).toContain('Koliko vas dolazi');
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Na daljinu')).toHaveLength(0);
     await tap('Zatvori pretragu'); await act(async () => tree.unmount());
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tap('Uslovi pretrage');
     expect(texts()).toContain('Kako se radi');
-    await tap('Kako se radi'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     await tap('Zatvori pretragu');
     expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
   });
@@ -414,7 +435,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await act(async () => chip('2+ mesta').props.onPress()); expect(snapshot.places).toBe(2);
     await act(async () => chip('2+ mesta').props.onPress()); expect(snapshot.places).toBe(1);
     // The choice the panel can make beyond two people is said on the same chip, and removed by it.
-    await tap('Uslovi pretrage, 1 aktivan'); await tap('Koliko vas dolazi');
+    await tap('Uslovi pretrage, 1 aktivan');
     for (const _ of [1, 2]) await act(async () => press('Povećaj broj osoba').props.onPress());
     await act(async () => showAction().props.onPress());
     expect(snapshot.places).toBe(3); expect(chip('3+ mesta').props.accessibilityState).toEqual({ selected: true });
@@ -882,9 +903,9 @@ test('at large text the search stays two lines with separate tools and the pin p
 
 // Review of V47, items 17 and 19: over the map the pill is drawn by the card edge, and the chips carry no shadow that the
 // scrolling row would cut off; a chosen chip is the one chosen-chip look (pale green, green edge and words, a tick).
-test('over the map: the pill has the card edge; a chip has no shadow; a chosen chip is pale green with a tick', async () => {
+test('over the map: search and tools share one edge; a quick chip has no shadow and selection stays visible', async () => {
   await render();
-  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderColor).toBe(sys.color.cardLine);
+  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
   const free = StyleSheet.flatten(quick('Navedena cena').props.style);
   expect(free.boxShadow).toBeUndefined(); expect(free.elevation).toBeUndefined();
   await act(async () => quick('Navedena cena').props.onPress());

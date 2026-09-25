@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+R16 DISCOVERY / WORK BRIEF (2026-09-25): owner resumed after visual diagnosis. Read
+`docs/implementation/design-system/r16-discovery-work-brief-20260925/REPORT.md`.
+Search/tools share one surface; filters are open groups; task cards and detail lead with work and actual terms.
+Authorized public portraits use existing projection reads and only mount in fully visible list rows or the selected pin.
+White surfaces, ordinary Inter sizes, actual facts and all guards remain. No backend/payment/dependency changes.
+Types and 315 suites / 6,130 tests pass. Artifact/native evidence is recorded separately; no visual acceptance is implied.
+Home/Agreement/AI composition is the next batch. R14-N01 and release gates remain open.
+
 VISUAL DIAGNOSIS AFTER OWNER REJECTION (2026-09-25): read
 `docs/implementation/design-system/design-diagnosis-20260925/REPORT.md` before further UI work.
 The owner paused implementation and rejected R15's visual quality. White and readable ordinary-size text remain;

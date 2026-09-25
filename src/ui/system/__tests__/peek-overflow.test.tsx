@@ -22,7 +22,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 
 import { PeekSheet } from '../PeekSheet';
 import { DiscoveryPeek } from '../../v2/discovery/DiscoveryPeek';
-import { CardTitle, CardDecision, CardFact } from '../../v2/TaskFace';
+import { CardHead, CardFact } from '../../v2/TaskFace';
 
 const task = (id = 'one'): MarketplaceItem => ({
   id, revizija: 1, naslov: 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu', opis: '', stanje: 'OBJAVLJENA',
@@ -58,8 +58,10 @@ test.each([1, 2])('the pin body can scroll within its existing cap while close s
   expect(StyleSheet.flatten(close.props.style)).toMatchObject({ width: 48, height: 48 });
   const overlay = tree.root.findAll(node => node.props.pointerEvents === 'box-none' && StyleSheet.flatten(node.props.style)?.position === 'absolute');
   expect(overlay).toHaveLength(1); expect(under(close, overlay[0])).toBe(true);
-  expect(scroll.findByType(CardTitle).props.lines).toBe(3);
-  expect(scroll.findByType(CardDecision).props.value).toMatchObject({ kind: 'amount', amount: '25.000 RSD' });
+  const heading = scroll.findByType(CardHead);
+  expect(heading.props.title).toBe(pin.naslov);
+  expect(heading.find(node => String(node.type) === 'T' && node.props.children === pin.naslov).props.numberOfLines).toBeUndefined();
+  expect(heading.props.value).toMatchObject({ kind: 'amount', amount: '25.000 RSD' });
   expect(scroll.findAllByType(CardFact)).toHaveLength(2);
   expect(scroll.findAll(node => String(node.type) === 'T' && node.props.children === 'Nikola Petrović')).toHaveLength(1);
   // Feed an overflow measurement: the map clears the visible cap, while all facts remain in the registered scrollable.

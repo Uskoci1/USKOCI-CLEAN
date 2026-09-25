@@ -91,13 +91,13 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads the decision brief first, then real photos and requirements before the longer description, place and questions', async () => {
+  it('reads genuine photos, compact terms and work before requirements and publisher context', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = ['Selidba stana', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', '9.000 RSD', 'Ana Anić', 'FOTOGRAFIJE', 'Kombi',
-      'Dva sprata bez lifta.', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
+    const order = ['Selidba stana', 'FOTOGRAFIJE', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', '9.000 RSD',
+      'Dva sprata bez lifta.', 'Kombi', 'Ana Anić', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);

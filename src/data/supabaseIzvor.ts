@@ -6,6 +6,7 @@ import { calendarFailure } from './calendarErrors';
 import { positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
+import { mediaAssetId } from './mediaAssetId';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
 import { readNeedUrgencies } from './needUrgencyClientService';
@@ -210,6 +211,7 @@ export const supabaseIzvor: SupabaseIzvor = {
         pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
         uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
         narucilacProfilId: r.requester_profile_id,
+        narucilacAvatarId: narucilac?.avatarPutanja ? mediaAssetId(narucilac.avatarPutanja) : null,
         narucilacIme: narucilac?.ime || '',
         narucilacOcena: formatPublicRating(narucilac),
         narucilacBrojOcena: publicReviewCount(narucilac),
@@ -272,6 +274,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       pokrivenost: pokrivenost(data.required_slots, data.covered_slots),
       uslovi: [...(data.required_skills || []), ...(data.required_tools || []), ...(data.required_vehicles || [])],
       narucilacProfilId: data.requester_profile_id,
+      narucilacAvatarId: narucilac?.avatarPutanja ? mediaAssetId(narucilac.avatarPutanja) : null,
       narucilacIme: narucilac?.ime || '',
       narucilacOcena: formatPublicRating(narucilac),
       narucilacBrojOcena: publicReviewCount(narucilac),

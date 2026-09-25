@@ -1,22 +1,30 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import { T } from '../../Text';
 import { Press } from '../../Press';
 import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { sys } from '../../system/tokens';
-import { DetailSection, type productPriceParts } from '../../product/ProductDetails';
+import type { productPriceParts } from '../../product/ProductDetails';
 
 /** An open page title: its layout still belongs to the screen's measured chrome handoff. */
 export function TaskDecisionTitle({ children, onLayout }: { children: ReactNode; onLayout: (event: LayoutChangeEvent) => void }) {
   return <T accessibilityRole="header" onLayout={onLayout} style={s.title}>{children}</T>;
 }
 
+/** The work itself reads as open sections; only changes of context need a separating rule. */
+export function TaskDecisionSection({ title, children }: { title: string; children: ReactNode }) {
+  return <View style={s.section}>
+    <T accessibilityRole="header" variant="heading" style={s.ink}>{title}</T>
+    {children}
+  </View>;
+}
+
 /** The same truthful price helper, with a different visual weight for amounts and statements about a price. */
 export function TaskDecisionPrice({ price, offers = false }: { price: ReturnType<typeof productPriceParts>; offers?: boolean }) {
   return <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
-    <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={32} muted={!price.isAmount && !offers} /></View>
+    {price.isAmount || offers ? <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={24} /></View> : null}
     <View style={s.priceCopy}>
       <T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
       {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
@@ -25,30 +33,25 @@ export function TaskDecisionPrice({ price, offers = false }: { price: ReturnType
 }
 
 /**
- * Place stays a complete reading row. Time and people share one band only when the text has room; no date is
- * parsed, shortened or guessed. Larger system text and narrow phones keep the same facts in one column.
+ * Three aligned facts read as one group. The complete time and capacity wrap naturally rather than becoming
+ * separate illustrated tiles. No date, place, or count is parsed, shortened or guessed.
  */
 export function TaskDecisionLogistics({ remote, place, time, people, filled, spokenFilled }: {
   remote: boolean; place: string; time: string; people: string; filled?: string; spokenFilled?: string;
 }) {
-  const { width, fontScale } = useWindowDimensions();
-  const paired = width >= 380 && fontScale <= 1.3;
   return <View style={s.logistics}>
     <View accessible accessibilityLabel={`${remote ? 'Način rada' : 'Lokacija'}: ${remote ? 'Na daljinu' : place}`} style={s.place}>
-      <FactArt kind={remote ? 'remote' : 'pin'} size={32} />
-      <View style={s.copy}><T style={s.value}>{remote ? 'Na daljinu' : place}</T></View>
+      <FactArt kind={remote ? 'remote' : 'pin'} size={24} />
+      <View style={s.copy}><T style={s.factValue}>{remote ? 'Na daljinu' : place}</T></View>
     </View>
-    <View style={[s.planning, paired && s.planningPaired]}>
-      <View accessible accessibilityLabel={`Termin: ${time}`} style={[s.planningFact, paired && s.timeColumn]}>
-        <FactArt kind="calendar" size={28} />
-        <View style={s.copy}><T variant="meta" tone="muted">Termin</T><T style={s.value}>{time}</T></View>
-      </View>
-      <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`}
-        style={[s.planningFact, paired && s.peopleColumn]}>
-        <FactArt kind="users" size={28} />
-        <View style={s.copy}><T variant="meta" tone="muted">Potrebno</T><T style={s.value}>{people}</T>
-          {filled ? <T variant="note" tone="muted">{filled}</T> : null}</View>
-      </View>
+    <View accessible accessibilityLabel={`Termin: ${time}`} style={s.planningFact}>
+      <FactArt kind="calendar" size={24} />
+      <View style={s.copy}><T style={s.factValue}>{time}</T></View>
+    </View>
+    <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`} style={s.planningFact}>
+      <FactArt kind="users" size={24} />
+      <View style={s.capacityCopy}><T style={[s.factValue, s.capacityValue]}>{people}</T>
+        {filled ? <T variant="note" tone="muted" style={s.capacityValue}>{filled}</T> : null}</View>
     </View>
   </View>;
 }
@@ -75,44 +78,44 @@ const REQUIREMENT_ART: Record<string, FactArtKind> = {
 /** Requirement groups keep every supplied value visible; icons identify groups instead of decorating each chip. */
 export function TaskDecisionRequirements({ rows }: { rows: { label: string; value: string }[] }) {
   if (!rows.length) return null;
-  return <DetailSection title="Važno za ovaj zadatak">
+  return <TaskDecisionSection title="Važno za ovaj zadatak">
     <View style={s.requirements}>{rows.map((row, index) => {
       const lines = row.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
       const bullets = lines.length > 0 && lines.every(line => /^[•\-–]\s*/.test(line));
       const values = bullets ? lines.map(line => line.replace(/^[•\-–]\s*/, '')).filter(Boolean) : [row.value];
       return <View key={`${row.label}:${index}`} style={s.requirement}>
-        <View style={s.requirementArt}><FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={28} /></View>
+        <View style={s.requirementArt}><FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={24} /></View>
         <View style={s.copy}><T variant="meta" tone="muted">{row.label}</T>
           {values.map((value, at) => <T key={`${at}:${value}`} selectable variant="body" style={s.ink}>{value}</T>)}
         </View>
       </View>;
     })}</View>
-  </DetailSection>;
+  </TaskDecisionSection>;
 }
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  title: { ...sys.type.hero, color: sys.color.green, lineHeight: 36, letterSpacing: -0.8 },
-  price: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 20,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  title: { ...sys.type.pageTitle, color: sys.color.green },
+  section: { gap: sys.space.md },
+  price: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingTop: sys.space.base,
+    borderTopWidth: 1, borderColor: sys.color.line },
   priceCopy: { flex: 1, minWidth: 0, gap: 4 },
   priceArt: { paddingTop: 2 },
-  amount: { ...sys.type.priceLarge, fontSize: 28, lineHeight: 36, color: sys.color.money },
-  priceWords: { ...sys.type.title, color: sys.color.ink },
-  logistics: { gap: 24 },
-  place: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  planning: { gap: 20 },
-  planningPaired: { flexDirection: 'row', gap: 20 },
-  planningFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  timeColumn: { flex: 1.4, minWidth: 0, flexDirection: 'column', gap: 8 },
-  peopleColumn: { flex: 1, minWidth: 0, flexDirection: 'column', gap: 8, borderLeftWidth: 1, borderLeftColor: sys.color.line, paddingLeft: 20 },
+  amount: { ...sys.type.priceLarge, color: sys.color.money },
+  priceWords: { ...sys.type.bodyStrong, color: sys.color.ink },
+  logistics: { gap: sys.space.sm },
+  place: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  planningFact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  capacityCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: sys.space.md, rowGap: sys.space.xs },
+  capacityValue: { maxWidth: '100%', flexShrink: 1 },
   copy: { flex: 1, minWidth: 0, gap: 2 },
   value: { ...sys.type.bodyStrong, color: sys.color.ink },
+  factValue: { ...sys.type.body, color: sys.color.fact },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, minHeight: 56, paddingVertical: 4 },
   portrait: { width: 56, height: 56, flexShrink: 0, borderRadius: sys.radius.pill, overflow: 'hidden' },
   personCopy: { flex: 1, minWidth: 0, gap: 4, paddingTop: 4 },
   caret: { alignSelf: 'center' },
-  requirements: { gap: 20 },
-  requirement: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  requirements: { gap: sys.space.base },
+  requirement: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   requirementArt: { paddingTop: 2 },
 });
