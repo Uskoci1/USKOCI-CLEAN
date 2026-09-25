@@ -101,6 +101,28 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it.each(['narucilac', 'uskocer'])('opens the authoritative task from the leading accepted card for %s', async role => {
+    const taskId = '40000000-0000-4000-8000-000000000001';
+    mockRead.mockResolvedValue({ ...workspace, izvor: { zadatakId: taskId, prijavaId: null },
+      ucesnici: workspace.ucesnici.map(party => ({ ...party, uloga: party.viSte ? role : role === 'narucilac' ? 'uskocer' : 'narucilac' })) });
+    await render();
+    const open = button(`Otvori zadatak: ${workspace.naslov}`);
+    expect(open.props.accessibilityValue.text).toContain('3.000 RSD ukupno');
+    await act(async () => open.props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: role === 'narucilac' ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: taskId } });
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Zadatak' })).toHaveLength(0);
+    // The retained callback is still guarded when a different account owns the screen.
+    const retained = open.props.onPress;
+    mockRouter.push.mockClear(); mockAccountRevision++;
+    await act(async () => retained());
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+  it('keeps accepted terms readable without a fake task destination when the source is absent', async () => {
+    await render();
+    expect(texts()).toContain(workspace.naslov);
+    expect(texts()).toContain('3.000 RSD');
+    expect(tree.root.findAllByProps({ accessibilityLabel: `Otvori zadatak: ${workspace.naslov}` })).toHaveLength(0);
+  });
   it.each(['messages', 'photos'] as const)('bounds a stalled %s read, admits explicit retry, and ignores the late retired answer', async stage => {
     jest.useFakeTimers();
     let late!: (rows: unknown[]) => void;

@@ -10,18 +10,16 @@ import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
-import { sys } from '../system/tokens';
-import { useTextScale } from '../system/textScale';
+import { floating, sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
-import { WaitingDot } from './TaskFace';
 
 export type AgreementTab = 'pregled' | 'poruke';
-const TABS = [{ key: 'pregled', label: 'Pregled' }, { key: 'poruke', label: 'Poruke' }] as const;
-/** Pregled | Poruke are the two main sections of a Dogovor (V5 CODEX §16); actions live in rows and sheets. */
+/** Kept for the historical local preview; the live workspace now opens chat from its header. */
 export function AgreementTabs({ tab, onChange }: { tab: AgreementTab; onChange: (tab: AgreementTab) => void }) {
-  return <Segmented options={TABS} value={tab} onChange={onChange} appearance="underline" />;
+  return <Segmented options={[{ key: 'pregled', label: 'Pregled' }, { key: 'poruke', label: 'Poruke' }]}
+    value={tab} onChange={onChange} appearance="underline" />;
 }
 
 const states: Record<DogovorProjekcija['stanje'], string> = {
@@ -76,11 +74,11 @@ export const agreementPeople = (agreement: Pick<DogovorProjekcija, 'pokrivenost'
  * the one chrome's detail bar with the face as its lead. No rating is drawn: the Dogovor does not carry one, and
  * "Još nema ocena" would be a claim about someone who may have many.
  */
-export function AgreementPersonBar({ person, back }: { person: UcesnikProjekcija; back: () => void }) {
+export function AgreementPersonBar({ person, back, right }: { person: UcesnikProjekcija; back: () => void; right?: ReactNode }) {
   // The one Avatar: a missing name draws the person, never an empty disc.
   const initials = <Avatar initials={person.inicijali} size={40} />;
   return <ScreenChrome variant="detail" onBack={back} title={person.ime} subtitle={agreementRole(person) || undefined}
-    lead={person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials} />;
+    lead={person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials} right={right} />;
 }
 
 /**
@@ -102,59 +100,44 @@ export function AgreementFact({ art, label, value, note, basis, money = false }:
 }
 
 /**
- * Accepted terms, never copied from the current Task. Compact form under the tabs of Poruke leads back to the overview.
- * The state itself is said once, by the step under these facts.
+ * Accepted terms, never copied from the current Task. The card opens the source task when its id is known.
+ * The current state is shown by the next step underneath.
  */
-export function AgreementHero({ agreement: a, compact = false, onOpen, waiting = null }: {
-  agreement: DogovorProjekcija; compact?: boolean; onOpen?: () => void;
-  /**
-   * Compact only: what the Dogovor waits for from me (`agreementWaitsForMe`), or null. It takes the summary's second
-   * line, with the waiting dot, and is heard after the summary's name.
-   */
-  waiting?: string | null;
+export function AgreementHero({ agreement: a, onOpenTask, disabled = false }: {
+  agreement: DogovorProjekcija;
+  /** Only provided when the authoritative source task id is available. Terms remain the accepted snapshot. */
+  onOpenTask?: () => void; disabled?: boolean;
 }) {
   const people = agreementPeople(a);
-  const scale = useTextScale();
   // The spoken name carries the visible title, so a Voice Access user can say what they see (verify r4c item 7).
   const title = readableTitle(a.naslov);
-  if (compact) return <Press accessibilityRole="button" accessibilityLabel={`Pregled uslova: ${title}${waiting ? `. ${waiting}` : ''}`}
-    onPress={onOpen} haptic="select" style={s.compact}>
-    <FactArt kind="agreements" size={24} />
-    <View style={s.grow}>
-      <T variant="bodyStrong" style={s.ink} numberOfLines={1}>{title}</T>
-      {/* When the Dogovor waits for me, that is the line (review r4 rd: the bar used to say the state above Poruke, and
-          the conversation then no longer said it): the waiting foot's orange dot and words, up to two lines. The terms
-          are one press away. Otherwise the price, and the people beyond one; the person is in the bar right above, so
-          "1 osoba" beside them said them twice. At large text the sentence gets four lines, so it is never cut to "…"
-          at 320 dp, and the dot stands beside its first line (verify r4c item 1). */}
-      {waiting ? <View style={s.waiting}>
-        <View style={{ height: Math.round(sys.type.note.lineHeight * scale), justifyContent: 'center' }}><WaitingDot /></View>
-        <T variant="note" style={s.waitingText} numberOfLines={scale >= 1.3 ? 4 : 2}>{waiting}</T></View>
-        : <T variant="note" tone="muted" numberOfLines={1}>{a.cena.prikaz || BEZ_IZNOSA}{people ? ` · ${people}` : ''}</T>}
-    </View>
-    <CaretRight size={18} color={sys.color.muted} />
-  </Press>;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
-  // The route presents the real next step first. These accepted terms read as an appointment record, not another
-  // task advertisement: schedule leads; work, place and group size follow; the total remains a restrained receipt.
-  return <View style={s.hero}>
+  // The task anchors the Agreement. Its title opens the real source, while the displayed price/time remain
+  // the accepted Agreement snapshot rather than a later edited advertisement.
+  const content = <>
     <View style={s.termsHeading}>
-      <T variant="meta" style={s.termsLabel}>Prihvaćeni uslovi</T>
+      <T variant="meta" style={s.termsLabel}>Dogovoreni uslovi</T>
       {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
     </View>
-    <View style={s.acceptedAppointment}>
-      <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
+    <View style={s.titleRow}>
       <T accessibilityRole="header" style={s.acceptedTitle}>{title}</T>
-      <View style={s.facts}>
-        <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
-        {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
-      </View>
+      {onOpenTask ? <CaretRight size={22} color={sys.color.green} /> : null}
+    </View>
+    <View style={s.facts}>
+      <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
+      <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
     </View>
     {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
     <View style={s.acceptedPrice}>
       <AgreementFact art="money" label="Dogovoreno ukupno" value={amount || BEZ_IZNOSA} basis={amount ? 'ukupno' : null} money={/\d/.test(amount)} />
+      {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
     </View>
-  </View>;
+  </>;
+  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`}
+    accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor. Prikazani uslovi su prihvaćeni u Dogovoru."
+    accessibilityValue={{ text: `${remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'}. ${term.line}. ${amount || BEZ_IZNOSA}${amount ? ' ukupno' : ''}` }}
+    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
+    : <View style={s.hero}>{content}</View>;
 }
 
 /**
@@ -186,11 +169,12 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { gap: 20 },
+  hero: { ...floating, gap: 12, padding: 18, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
   termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   termsLabel: { color: sys.color.muted, fontWeight: '600' },
-  acceptedAppointment: { borderLeftWidth: 2, borderLeftColor: sys.color.green, paddingLeft: 18, gap: 12 },
-  acceptedTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.ink },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  acceptedTitle: { flex: 1, fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.green },
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
@@ -200,12 +184,6 @@ const s = StyleSheet.create({
   factValue: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: sys.color.ink },
   factMoney: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
   factBasis: { fontSize: 14, lineHeight: 22, fontWeight: '500', color: sys.color.muted },
-  // The accepted-summary shortcut stays light; a hairline separates it from the transcript without another tinted box.
-  compact: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: 12,
-    borderBottomWidth: 1, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
-  // The waiting foot's line (TaskFace `CardWaitingLine`), allowed a second line: a whole step does not fit one.
-  waiting: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  waitingText: { flexShrink: 1, fontWeight: '700', color: sys.color.warn },
   people: { borderTopWidth: 1, borderTopColor: sys.color.line },
   person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
 });

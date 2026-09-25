@@ -74,8 +74,10 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   const person = 'narucilacIme' in item && publisher
     ? <CardPerson name={publisher} rating={item.narucilacOcena} count={item.narucilacBrojOcena} size={40} portrait={portrait} /> : null;
   const waitingFoot = next?.kind === 'waiting' && onApplications ? next : null;
+  const briefLead = person ?? (next?.kind === 'none' ? <CardNote text={NOTHING_TO_CHOOSE} />
+    : next?.kind === 'waiting' && !waitingFoot ? <CardWaitingLine text={next.text} /> : null);
   const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, requirement,
-    places: next?.kind === 'draft' ? null : placesText(item.pokrivenost, audience).spoken,
+    places: next?.kind === 'draft' ? null : placesText(item.pokrivenost, audience, 'fraction').spoken,
     person: 'narucilacIme' in item && publisher ? personSpoken(publisher, item.narucilacOcena, item.narucilacBrojOcena) : null,
     next: next?.kind === 'draft' ? DRAFT_NEXT : next?.kind === 'none' ? NOTHING_TO_CHOOSE : next?.kind === 'waiting' && !waitingFoot ? next.text : null });
 
@@ -97,11 +99,9 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
         <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={0} />
         {requirement ? <CardRequirement requirement={requirement} /> : null}
       </View>
-      {person || next?.kind !== 'draft' ? <CardBriefFoot person={person} large={large}
-        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} large />} /> : null}
+      {briefLead || next?.kind !== 'draft' ? <CardBriefFoot person={briefLead} large={large} capacityAtEnd
+        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} display="fraction" large />} /> : null}
       {next?.kind === 'draft' ? <CardNext label={DRAFT_NEXT} /> : null}
-      {next?.kind === 'none' ? <CardNote text={NOTHING_TO_CHOOSE} /> : null}
-      {next?.kind === 'waiting' && !waitingFoot ? <CardWaitingLine text={next.text} /> : null}
     </Press>
     {/* No hit slop: the hairline is the border between the two targets, and a touch just above it opens the task. */}
     {waitingFoot ? <Press accessibilityRole="button" accessibilityLabel={`${waitingFoot.text}, ${title}`} accessibilityHint="Otvara prijave za izbor."

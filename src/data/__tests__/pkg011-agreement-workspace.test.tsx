@@ -88,7 +88,7 @@ test('a confirmed Agreement without server permission leads with the conversatio
 });
 test('when the server allows completion, completion is the brand action and the conversation stays one tap away', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
-  // The conversation is one tap away as the Poruke tab at the top; the footer no longer repeats it as a second button.
+  // The conversation is one tap away through the header icon; completion keeps the primary footer.
   expect(brand()).toEqual(['Potvrdi završetak']); expect(labels()).toContain('Poruke'); expect(labels()).not.toContain('Otvori poruke');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
   expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
@@ -220,12 +220,16 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     expect(texts()).toContain('3.000 RSD'); expect(texts()).toContain('ukupno');
     expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
   });
-  test('the summary above Poruke writes it in words too', async () => {
+  test('Poruke opens the accepted overview where the missing amount stays words, never an invented price', async () => {
     mockParams = { id: mockAgreementId, tab: 'poruke' };
     await render(base({ cena: missing }));
-    const summary = tree.root.findByProps({ accessibilityLabel: 'Pregled uslova: Pomoć pri selidbi' });
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(1);
+    expect(texts()).not.toContain('0 RSD');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    const summary = tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' });
     const copy = summary.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join('');
-    expect(copy).toContain('Iznos nije sačuvan'); expect(copy).not.toContain('0 RSD');
+    expect(copy).toContain('Iznos nije sačuvan'); expect(copy).not.toContain('0 RSD'); expect(copy).not.toContain('ukupno');
   });
   test('the completion review writes it as a label, never in the amount style', async () => {
     await render(base({ cena: missing, radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
@@ -237,13 +241,9 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     expect(texts()).not.toContain('0 RSD');
   });
 });
-// Review r4 rd ("Poruke no longer says when a Dogovor waits for me"): the bar used to say the state above Poruke. The
-// summary there now says what waits for ME, in the step's own words, as its second line and in its spoken name; what waits
-// for the other side, and a rating the read could not answer for, claim nothing and keep the terms.
-describe('the summary above Poruke says what waits for me', () => {
-  const summary = () => presses().filter(node => String(node.props.accessibilityLabel).startsWith('Pregled uslova: '))[0];
-  const copyOf = (node: ReturnType<typeof summary>) => node.findAll(child => String(child.type) === 'T')
-    .flatMap(child => child.children.filter(text => typeof text === 'string')).join(' ');
+// R19: ordinary chat keeps its true waiting notice and a header entry to all accepted terms. It no longer
+// duplicates the accepted card above the transcript. Other-side waits and unknown ratings claim nothing.
+describe('Poruke says what waits for me and keeps accepted terms one press away', () => {
   beforeEach(() => { mockParams = { id: mockAgreementId, tab: 'poruke' }; });
   // The fixtures are built when each test runs (`proposal` is declared further down this file).
   test.each([
@@ -254,9 +254,13 @@ describe('the summary above Poruke says what waits for me', () => {
     ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka tvoju ocenu'],
   ])('%s', async (_name, workspace, words) => {
     await render(workspace());
-    expect(summary().props.accessibilityLabel).toBe(`Pregled uslova: Pomoć pri selidbi. ${words}`);
-    // The line takes the price's place; the terms are one press away.
-    expect(copyOf(summary())).toContain(words); expect(copyOf(summary())).not.toContain('3.000 RSD');
+    expect(labels()).toContain('Pregled');
+    expect(texts()).toContain(words); expect(texts()).not.toContain('3.000 RSD');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mesto: Beograd' })).toBeTruthy();
   });
   test.each([
     ['the worker, whose completion waits for the other side', () => base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer')],
@@ -265,10 +269,17 @@ describe('the summary above Poruke says what waits for me', () => {
     ['a rating the read could not answer for', () => { mockReviewContext.mockResolvedValue({ ok: false, kod: 'REVIEW_READ_UNAVAILABLE', poruka: 'x' });
       return base({ stanje: 'COMPLETED', chatDostupan: false }); }],
     ['a confirmed Dogovor with nothing to do', () => base()],
-  ])('%s: no waiting line, and the terms stay', async (_name, workspace) => {
+  ])('%s: no false waiting notice, and the accepted terms remain accessible', async (_name, workspace) => {
     await render(workspace());
-    expect(summary().props.accessibilityLabel).toBe('Pregled uslova: Pomoć pri selidbi');
-    expect(copyOf(summary())).toContain('3.000 RSD');
+    expect(labels()).toContain('Pregled');
+    expect(texts()).not.toContain('Završetak je označen i čeka tvoju potvrdu');
+    expect(texts()).not.toContain('Predlog izmene čeka tvoj odgovor');
+    expect(texts()).not.toContain('Čeka tvoju ocenu');
+    expect(texts()).not.toContain('3.000 RSD');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mesto: Beograd' })).toBeTruthy();
   });
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
@@ -303,22 +314,24 @@ test('a pending change whose content cannot be read still says it exists and lea
 });
 
 // PKG-048 (F12 / D02): a Dogovor is the end of one lived flow, so it says where it came from. Each side
-// opens its own end, and a server that does not carry the ids offers no row at all.
-// Round-1 critique A14 (owner step 8): the rows are named for what they open, "Zadatak" and "Tvoja prijava", with no
-// sentence under them (they were "Zadatak iz kog je nastao Dogovor" and "Tvoja ponuda", each with a subtitle).
+// opens its own end, and a server that does not carry the ids offers no invented destination.
+// R19: the leading accepted-terms card opens the Task; the worker's own offer remains a distinct row.
 const row = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
 const rowTexts = (label: string) => row(label).findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string'));
 test('the requester reaches the Zadatak this Dogovor grew out of, and is offered no Prijava of their own', async () => {
   await render(base());
-  expect(labels()).toContain('Zadatak'); expect(rowTexts('Zadatak')).toEqual(['Zadatak']);
+  expect(labels()).toContain('Otvori zadatak: Pomoć pri selidbi');
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Dogovoreni uslovi', '3.000 RSD']));
+  expect(labels()).not.toContain('Zadatak');
   expect(labels()).not.toContain('Tvoja prijava'); expect(labels()).not.toContain('Prijava');
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: mockNeedId } });
 });
 test('the worker reaches the Prilika and the offer they sent', async () => {
   await render(base({}, 'uskocer'));
-  expect(rowTexts('Zadatak')).toEqual(['Zadatak']); expect(rowTexts('Tvoja prijava')).toEqual(['Tvoja prijava']);
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak' }).props.onPress());
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Dogovoreni uslovi', '3.000 RSD']));
+  expect(labels()).not.toContain('Zadatak'); expect(rowTexts('Tvoja prijava')).toEqual(['Tvoja prijava']);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: mockNeedId } });
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tvoja prijava' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: mockApplicationId } });
@@ -329,7 +342,9 @@ test.each([
 ])('%s offers no source row instead of one that leads nowhere', async (_label, patch) => {
   await render(base(patch, 'uskocer'));
   expect(labels()).not.toContain('Zadatak');
+  expect(labels()).not.toContain('Otvori zadatak: Pomoć pri selidbi');
   expect(labels()).not.toContain('Tvoja prijava');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
   // The rest of the screen is unaffected.
   expect(labels()).toContain('Izmene i otkazivanje Dogovora');
 });
@@ -376,7 +391,7 @@ test('a refused settlement leaves the conversation exactly as it was', async () 
 // A13 (owner step 8): what they are to me stands under the name; the state is said once, by the step.
 const headers = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
 const bar = () => tree.root.findAll(node => node.props.variant === 'detail' && typeof node.type !== 'string')[0];
-test('the top bar names the other person and what they are to me on both tabs, and its arrow still goes back', async () => {
+test('the top bar keeps the other person on both views, then Back returns to the overview before leaving', async () => {
   await render(base());
   expect(headers()).toContain('Marko'); expect(headers()).not.toContain('Dogovor'); expect(texts()).toContain('Dogovoreno');
   expect(bar().props.subtitle).toBe('Uskače na tvoj zadatak');
@@ -385,6 +400,11 @@ test('the top bar names the other person and what they are to me on both tabs, a
   expect(texts()).not.toContain('Još nema ocena');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruke' }).props.onPress());
   expect(headers()).toContain('Marko'); expect(headers()).not.toContain('Poruke');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
+  expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(headers()).toContain('Marko');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
@@ -418,12 +438,17 @@ describe('the compact conversation keeps complete identity and accepted terms re
     expect(mockRead).toHaveBeenCalledTimes(1);
     expect(mockMessages).toHaveBeenCalledTimes(1);
   });
-  test('names the real waiting action without losing the accepted amount, and its Back still leaves the Agreement', async () => {
+  test('names the real waiting action without losing accepted terms, and compact Back visits the overview before leaving', async () => {
     await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }));
     const waiting = 'Završetak je označen i čeka tvoju potvrdu';
     expect(labels()).toContain(`Uslovi Dogovora: Pomoć pri selidbi. ${waiting}`);
     expect(texts()).toContain(waiting);
     expect(texts()).toContain('3.000 RSD');
+    expect(headers()).toContain('Marko');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
+    expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
     expect(headers()).toContain('Marko');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
     expect(mockRouter.back).toHaveBeenCalledTimes(1);

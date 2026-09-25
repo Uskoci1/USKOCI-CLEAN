@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef } from '@maplibre/maplibre-react-native';
-import { Minus, Plus } from 'phosphor-react-native';
+import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
+import { Info, Minus, Plus } from 'phosphor-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
   from '../../data/marketplaceView';
 import { readableTitle } from '../../data/needDetailPresentation';
@@ -14,6 +14,7 @@ import { V2Action } from './V2Action';
 import { sys } from '../system/tokens';
 import { zadataka } from '../system/plural';
 import { useReducedMotion } from '../system/motion';
+import { ActionSheet } from '../system/ActionSheet';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { PricePill, type PillContent } from './discovery/PricePill';
@@ -46,6 +47,25 @@ const CREDITS = [
 ] as const;
 
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
+
+/** The SDK snapshots Android annotation views before an asynchronously drawn child is necessarily ready. */
+function PillAnnotation({ id, point, label, content, urgent, selected, onPress }: {
+  id: string; point: { lng: number; lat: number }; label: string; content: PillContent;
+  urgent?: boolean; selected?: boolean; onPress?: () => void;
+}) {
+  const annotation = useRef<ViewAnnotationRef>(null), draw = useRef<number | null>(null), alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; if (draw.current !== null) cancelAnimationFrame(draw.current); }; }, []);
+  const refreshLogo = useCallback(() => {
+    if (!alive.current) return;
+    if (draw.current !== null) cancelAnimationFrame(draw.current);
+    draw.current = requestAnimationFrame(() => { draw.current = null; if (alive.current) annotation.current?.refresh(); });
+  }, []);
+  return <ViewAnnotation ref={annotation} id={id} lngLat={[point.lng, point.lat]} anchor="center" onPress={onPress}>
+    <View collapsable={false} accessible accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}>
+      <PricePill content={content} urgent={urgent} selected={selected} onReady={refreshLogo} />
+    </View>
+  </ViewAnnotation>;
+}
 
 /** The native SDK otherwise clips an over-padded fit to about one pixel. Keep a useful window at large text. */
 function boundedFitPadding(frame: { width: number; height: number }, toolsBottom: number, fitBottom: number) {
@@ -80,6 +100,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const [creditHeight, setCreditHeight] = useState(48);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const mounted = useRef(true), load = useRef(status);
   const data = useMemo(() => publicFeatures(props.items), [props.items]);
   const places = useMemo(() => pinPlaces(props.items), [props.items]);
@@ -290,17 +311,14 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
       </View>)}
     </View> : null;
-  const credits = <View testID="discovery-map-credits" style={[s.attribution, { height: creditHeight }]} onLayout={event => {
+  const credits = <View testID="discovery-map-credits" style={s.attribution} onLayout={event => {
     const next = Math.ceil(event.nativeEvent.layout.height);
     if (Number.isFinite(next) && next >= 48) { setCreditHeight(current => current === next ? current : next); props.onCreditsHeight?.(next); }
   }}>
-    <ScrollView horizontal showsHorizontalScrollIndicator persistentScrollbar keyboardShouldPersistTaps="handled"
-      accessibilityLabel="Izvori mape" contentContainerStyle={s.creditRow} onContentSizeChange={(_width, tall) => {
-        if (Number.isFinite(tall) && tall > 0) setCreditHeight(Math.max(48, Math.ceil(tall)));
-      }}>
-      {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0} style={s.creditLink}
-        onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}><T variant="label" style={s.credit}>{credit.text}</T></Press>)}
-    </ScrollView>
+    <Press accessibilityRole="button" accessibilityLabel="Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap"
+      accessibilityHint="Otvara izvore i licence mape." hitSlop={0} style={s.creditLink} onPress={() => { if (owns()) setSourcesOpen(true); }}>
+      <T variant="label" style={s.credit}>© OpenStreetMap · © OpenMapTiles</T><Info size={14} color={sys.color.muted} />
+    </Press>
   </View>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
     <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
@@ -358,28 +376,28 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         const content = contentOf(place), urgent = urgentPlace(place);
         // The native side keys its annotations by `id`: an id that changes with the content, as the React key does, keeps
         // an insert-before-remove in one commit from leaving a dead pill behind (review r3 item 8).
-        return <ViewAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} lngLat={[place.point.lng, place.point.lat]} anchor="center"
+        return <PillAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} point={place.point}
+          content={content} urgent={urgent}
+          label={place.ids.length > 1 ? placeWords(place) : `${urgent ? 'HITNO, ' : ''}${readableTitle(byId.get(place.ids[0])?.naslov)}, ${content.spoken}`}
           onPress={() => { if (!owns() || load.current !== 'ready') return;
             pillTap.current = Date.now();
             if (place.ids.length > 1 && latest.current.props.onSelectPlace) latest.current.props.onSelectPlace(place.key);
-            else latest.current.props.onSelect(place.ids[0]); }}>
-          <View collapsable={false} accessible accessibilityRole="button"
-            accessibilityLabel={place.ids.length > 1 ? placeWords(place) : `${urgent ? 'HITNO, ' : ''}${readableTitle(byId.get(place.ids[0])?.naslov)}, ${content.spoken}`}>
-            <PricePill content={content} urgent={urgent} /></View>
-        </ViewAnnotation>;
+            else latest.current.props.onSelect(place.ids[0]); }} />;
       })}
-      {selectedPlace ? <ViewAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" lngLat={[selectedPlace.point.lng, selectedPlace.point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${placeWords(selectedPlace)}, izabrano`}>
-          <PricePill content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected /></View>
-      </ViewAnnotation> : point && selected ? <ViewAnnotation key={`selected-need:${selected.id}`} id="selected-need" lngLat={[point.lng, point.lat]} anchor="center">
-        <View collapsable={false} accessible accessibilityLabel={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}>
-          <PricePill content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /></View>
-      </ViewAnnotation> : null}
+      {selectedPlace ? <PillAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" point={selectedPlace.point}
+        label={`${placeWords(selectedPlace)}, izabrano`} content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected />
+        : point && selected ? <PillAnnotation key={`selected-need:${selected.id}`} id="selected-need" point={point}
+          label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}
+          content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /> : null}
     </Map>
     {sheetTop && height ? <>
       <Animated.View testID="discovery-map-zoom-ride" pointerEvents="box-none" style={[s.ride, { height }, zoomRide]}>{zoom}</Animated.View>
       <Animated.View testID="discovery-map-credits-ride" pointerEvents="box-none" style={[s.ride, { height }, creditsRide]}>{credits}</Animated.View>
     </> : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{zoom}{credits}</View>}
+    {sourcesOpen ? <ActionSheet title="Izvori mape" reduced={reduced} onClose={() => setSourcesOpen(false)} actions={CREDITS.map(credit => ({
+      key: credit.url, label: credit.text, icon: 'map' as const, hint: 'Otvara izvor u pregledaču.',
+      onPress: () => { void Linking.openURL(credit.url).catch(() => {}); },
+    }))} /> : null}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
       {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>
         : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proveri vezu. Zadaci i filteri ostaju u listi.</T>
@@ -410,12 +428,11 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
-  // Full-width and independent of zoom: at large text the rail scrolls, preserving all three names and touch targets.
+  // Two required names remain visible, wrapping at larger text. One 48dp target opens every source, no scrolling rail.
   attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base,
     minHeight: 48 },
-  creditRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
-  creditLink: { minHeight: 48, minWidth: 48, justifyContent: 'center', paddingVertical: sys.space.xs },
+  creditLink: { alignSelf: 'flex-start', maxWidth: '100%', minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.ink, backgroundColor: sys.color.veil,
-    borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1,
+    flexShrink: 1, borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1,
     textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { assertLocalDeviceProofTargets } from '../supabase/proofs/ru5_device_ui_local_guard.mjs';
 
 const modules = ['contracts/workerCapacity', 'data/supabaseIzvor', 'data/needClientService', 'data/needUrgencyClientService', 'data/publicProfileClientService',
+  'data/publicProfileEnrichment',
   'data/calendarErrors', 'data/legacyRpcFailure', 'data/serverReceipt', 'data/needDetailPresentation', 'lib/capabilityTerms',
   'lib/calendarTime', 'lib/market', 'lib/location', 'ui/calendar/calendarPresentation',
   // Pure modules the read path imports since 2026-09-19 (task relations) and 2026-09-21 (money text).
@@ -34,7 +35,7 @@ export function readSourceAdapters(sourceRoot, worker, workerId, trace = []) {
       if (target === 'store/sesija') return { sesijaSada: () => ({ user: { id: workerId }, accountRevision: 1, sessionEpoch: 1 }) };
       return load(target);
     };
-    vm.runInNewContext(javascript, { exports, require, setTimeout, clearTimeout, AbortController, Intl,
+    vm.runInNewContext(javascript, { exports, require, setTimeout, clearTimeout, setInterval, clearInterval, AbortController, Intl,
       console: { error: () => trace.push({ sourceDiagnostic: 'SUPPRESSED_SAFE_SOURCE_ERROR' }) } }, { filename: name + '.ts', timeout: 1000 });
     return exports;
   };

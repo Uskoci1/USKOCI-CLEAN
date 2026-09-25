@@ -2,6 +2,7 @@ import type { Ishod } from './ports';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { failure, readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { readMediaBinary } from './mediaBinaryRead';
 
 export type MediaAsset = Readonly<{ assetId:string; accountId:string; scope:'TASK'|'AVATAR'; conversationId:string|null; profileId:string|null;
   clientRequestId:string; state:'PROCESSING'|'STAGED'|'READY'|'FAILED'; selected:boolean; ref:string|null; sha256:string|null;
@@ -138,10 +139,8 @@ export const mediaClientService={
       ...(context.caseId?{caseId:context.caseId}:{}), ...(context.agreementId?{agreementId:context.agreementId}:{}),
       ...(context.messageId?{messageId:context.messageId}:{})};
     return readOwnedResult({account,errors,fallback:'MEDIA_UNAVAILABLE',invalid:'MEDIA_INVALID_RESPONSE',request:async()=>{
-      const result=await supabaseKlijent().functions.invoke('uskoci-media',{body:{assetId,...readContext},headers:{'x-media-operation':agreement?'agreement-read':'read'},signal:options.signal});
-      if(result.error)return result;
-      if(!(result.data instanceof Blob)||result.data.type!=='image/jpeg'||result.data.size<1||result.data.size>5242880)return {data:null,error:null};
-      return {data:{bytes:await result.data.arrayBuffer(),contentType:'image/jpeg',assetId},error:null};
+      const result=await readMediaBinary({account,body:{assetId,...readContext},operation:agreement?'agreement-read':'read',signal:options.signal});
+      return result.data ? {data:{...result.data,assetId},error:null} : result;
     },decode:raw=>{const r=record(raw);return r&&r.bytes instanceof ArrayBuffer&&r.contentType==='image/jpeg'&&sameId(r.assetId,assetId)
       ?{bytes:r.bytes,contentType:'image/jpeg',assetId}:null;}});
   },

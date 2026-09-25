@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bell } from 'phosphor-react-native';
+import { Bell, ChatCircle } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
@@ -16,7 +16,7 @@ import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../ui/v2/AgreementCollectionPresentation';
 import { V2Action } from '../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement,
+import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement,
   type AgreementTab } from '../ui/v2/AgreementPresentation';
 
 /**
@@ -165,10 +165,13 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   const waiting = agreementWaitsForMe({ state: item.stanje, requester: isRequester, change, ownRating });
   return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan}
-      thread={{ agreement: item, person: other, back: noop, waiting, onOverview: () => setTab('pregled') }} /> : <>
-      {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
-      <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
+      thread={{ agreement: item, person: other, waiting, onOverview: () => setTab('pregled') }} /> : <>
+      {other ? <AgreementPersonBar person={other} back={noop}
+        right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />
+        : <ProductHeader back={noop} title="Dogovor"
+          right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />}
       <ScrollView contentContainerStyle={s.content}>
+        <AgreementHero agreement={item} onOpenTask={item.izvor?.zadatakId ? noop : undefined} disabled={recovery} />
         {/* The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
             and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer). */}
         <NextStepCard tone={step.tone} title={step.title} body={step.body}>
@@ -181,13 +184,11 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
             {proposal.mozeOdgovoriti ? null : <V2Action label="Pogledaj predlog" kind="quiet" onPress={noop} />}
           </View> : null}
         </NextStepCard>
-        <AgreementHero agreement={item} />
         {isGroupAgreement(item) ? <AgreementPeople agreement={item} /> : null}
         {/* The route's GroupConversationEntry reads the group; still here, in the words it says when the task has fewer
             than two independent people chosen, which is true of the group fixture (one worker for two places). */}
         {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
         <WorkspaceRows>
-          <WorkspaceRow art="tasks" label="Zadatak" onPress={noop} />
           {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
           {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={recovery} onPress={noop} /> : null}
           <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />

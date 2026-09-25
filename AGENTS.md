@@ -1,5 +1,18 @@
 # USKOČI — repository entry map
 
+R19 TASK / AGREEMENT / MEDIA (2026-09-25): read
+`docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md` and the versioned CHECKS/RECEIPT when present.
+This coherent client package adds short bottom-right capacity, a source-task-led Agreement, contextual chat,
+paged actual task photos, branded map annotations, independent remote filtering and a rising/dimming map list.
+It also bounds optional author enrichment to four concurrent reads/four seconds and repairs JPEG binary reads:
+the installed Functions SDK consumed image/jpeg as text. Upload/JSON commands and authority/recovery stay intact.
+Read FUNCTIONAL_RECONCILIATION, PROFILE_SCALING, MAP_AUDIT and MEDIA_BINARY_READ for evidence and limits.
+AI_ACCOUNT_AUDIT and FLOWS_AUDIT reconcile current client chains with old reports. Late safety-entry callbacks
+are retired and push taps reuse Inbox; these client fixes do not prove real moderation or OS delivery.
+Fresh read-only DEV ledger is 202; private certificate query denied, so retention/certificate are not freshly verified.
+No server/Edge/payment/dependency change or renewed paid-AI allowance. Whole-app, phone and store acceptance must
+come from the exact later receipt, never from this entry. Phone USB was disconnected during preparation.
+
 R18 CONTINUITY / REAL JOURNEY (2026-09-25): source `74f514d7`. Read
 `docs/implementation/design-system/r18-continuity-20260925/REPORT.md`, RECEIPT.json and REAL_JOURNEY.md.
 Own-task labels/retry, retained bounded chat refresh, bounded rating enrichment with explicit unknown state,

@@ -74,7 +74,7 @@ test('the active tab speaks tasks waiting for a choice, then removes the count w
  expect(cards()).toHaveLength(2);
  rows = rows.map(item => ({ ...item, brojPrijavaZaIzbor: 0 }));
  await act(async () => tree.update(<Screen />));
- expect(press('Aktivni').props.accessibilityValue).toBeUndefined();
+ expect(press('Aktivni').props.accessibilityValue).toEqual({ text: '' });
  expect(cards()).toHaveLength(2);
 });
 test('filter working copy can cancel and hardware back does not apply; Apply preserves selected choice', async () => {

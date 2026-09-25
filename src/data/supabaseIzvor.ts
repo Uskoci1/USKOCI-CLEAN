@@ -6,6 +6,7 @@ import { calendarFailure } from './calendarErrors';
 import { positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
 import { sesijaSada } from '../store/sesija';
 import { publicProfileClientService } from './publicProfileClientService';
+import { enrichPublicProfiles } from './publicProfileEnrichment';
 import { mediaAssetId } from './mediaAssetId';
 import { readPublicNeedDetail } from './needClientService';
 import { needScheduleText } from './needDetailPresentation';
@@ -123,18 +124,17 @@ function publicReviewCount(profile: JavniProfilProjekcija | null | undefined): n
  * still fails loudly when called directly by a profile screen.
  */
 async function safePublicProfiles(profileIds: Array<string | null | undefined>) {
-  const ids = [...new Set(profileIds.filter((id): id is string => typeof id === 'string' && id.length > 0))];
-  const entries = await Promise.all(
-    ids.map(async (id) => {
-      try {
-        return [id, await publicProfileClientService.javniProfil(id)] as const;
-      } catch (error) {
-        console.error('[Public profile projection unavailable]', { profileId: id, error });
-        return [id, null] as const;
-      }
-    }),
+  const owner = sesijaSada();
+  const accountId = owner.user?.id;
+  const revision = owner.accountRevision;
+  return enrichPublicProfiles(
+    profileIds,
+    (id, signal) => publicProfileClientService.javniProfil(id, signal),
+    () => {
+      const current = sesijaSada();
+      return !!accountId && current.user?.id === accountId && current.accountRevision === revision;
+    },
   );
-  return new Map<string, JavniProfilProjekcija | null>(entries);
 }
 
 type SupabaseIzvor = Omit<

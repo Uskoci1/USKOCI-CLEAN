@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import BottomSheet, { type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
-import type { SharedValue } from 'react-native-reanimated';
+import BottomSheet, { type BottomSheetBackdropProps, type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { SHEET_SPRING } from '../../product/ProductSheet';
 import { sheetLift, sys } from '../../system/tokens';
 
@@ -14,6 +14,13 @@ const ListBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
 const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
   importantForAccessibility="no" style={[style, s.background, s.sunk]} />;
 
+/** A real dim, driven by the sheet on the UI thread. The search stays above it and it never steals a map gesture. */
+function MapBackdrop({ animatedIndex, style, topInset }: BottomSheetBackdropProps & { topInset: number }) {
+  const animated = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, animatedIndex.value - SNAP.half)) * 0.18 }));
+  return <Animated.View testID="discovery-sheet-dim" pointerEvents="none" accessible={false} accessibilityElementsHidden
+    importantForAccessibility="no-hide-descendants" style={[style, s.backdrop, { top: topInset }, animated]} />;
+}
+
 /**
  * The list of Zadaci as a sheet over the map (owner step 4, 2026-09-24): the sheet IS the list, so there is no Lista/Mapa
  * switch. It never closes; it rests at one of three heights and its top line (the count, which is also the button that
@@ -23,16 +30,20 @@ const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
  * screen ends where the tab bar begins, so the sheet never slides under the bar and the bar shows at every height. Under
  * reduced motion it changes height at once.
  */
-export function DiscoveryListSheet({ index, snapPoints, position, reduced, onIndex, header, sunk = false, children }: {
+export function DiscoveryListSheet({ index, snapPoints, position, reduced, onIndex, header, sunk = false,
+  mapVisible = false, topInset = 0, children }: {
   index: number; snapPoints: readonly (number | string)[];
   /** Where the sheet's top edge is, for the map's controls that ride on it. */ position?: SharedValue<number>;
   reduced: boolean; onIndex: (index: number) => void;
+  /** Map-only backdrop; the search header is never dimmed. */ mapVisible?: boolean; topInset?: number;
   /** The top line: always visible, never scrolled away. */ header: ReactNode;
   /** A pin's card lies over the sheet's top line: the sheet steps out of sight and out of reach behind it. */ sunk?: boolean;
   /** The list itself (a `BottomSheetFlatList`). */ children: ReactNode;
 }) {
+  const backdrop = useCallback((props: BottomSheetBackdropProps) => <MapBackdrop {...props} topInset={topInset} />, [topInset]);
   return <BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
     animateOnMount={false} animatedPosition={position} onChange={next => { if (next >= 0) onIndex(next); }}
+    backdropComponent={mapVisible && !sunk ? backdrop : undefined}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING} handleComponent={null} backgroundComponent={sunk ? SunkBackground : ListBackground}
     accessible={false} accessibilityRole="none" accessibilityLabel={sunk ? null : 'Lista zadataka'}
     keyboardBehavior="extend" keyboardBlurBehavior="restore">
@@ -47,5 +58,6 @@ const s = StyleSheet.create({
   background: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
     borderWidth: 1, borderBottomWidth: 0, borderColor: sys.color.line, ...sheetLift.docked },
   sunk: { opacity: 0 },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: '#000000' },
   content: { flex: 1 },
 });

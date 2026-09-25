@@ -87,11 +87,11 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {stale ? <T variant="note" tone="muted">Poslednji učitani podaci. Osveži zadatak pre nastavka.</T> : null}
       </View> : null}
       {need ? <>
+        {ready && !stale ? photos : null}
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
-        {ready && !stale ? photos : null}
         <View style={s.brief}>
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
             filled={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}

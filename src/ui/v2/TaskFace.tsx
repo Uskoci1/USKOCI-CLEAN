@@ -81,7 +81,10 @@ export const REQUIREMENT_ART: Record<TaskRequirement['kind'], FactArtKind> = { c
  * How many people, said to the one reading it. A worker asks how many places are left ("Traži 2 osobe", "Još 1 od 2
  * mesta"); the owner follows the progress of their own task ("0/2 popunjeno").
  */
-export function placesText(places: Pokrivenost, audience: 'worker' | 'owner'): { text: string; spoken: string } {
+export function placesText(places: Pokrivenost, audience: 'worker' | 'owner', display: 'words' | 'fraction' = 'words'): { text: string; spoken: string } {
+  // A list card compares filled/total at a glance; its single accessible card still explains the fraction in full.
+  // Composer and detail-like previews keep the audience-specific words unless they explicitly opt in.
+  if (display === 'fraction') return { text: `${places.popunjeno}/${places.ukupno}`, spoken: `${places.popunjeno} od ${places.ukupno} mesta popunjeno` };
   if (audience === 'owner') return { text: `${places.popunjeno}/${places.ukupno} popunjeno`, spoken: `${places.popunjeno} od ${places.ukupno} mesta popunjeno` };
   if (places.preostalo <= 0) return { text: 'Sva mesta su popunjena', spoken: 'Sva mesta su popunjena' };
   if (places.popunjeno <= 0) return { text: `Traži ${osobuAkuz(places.ukupno)}`, spoken: `Traži ${osobuAkuz(places.ukupno)}` };
@@ -241,11 +244,13 @@ export const CardPerson = memo(function CardPerson({ name, rating, count, size =
   </View>;
 });
 
-/** A person anchors the brief; capacity is a neighboring fact, with its own line at larger text sizes. */
-export function CardBriefFoot({ places, person, large }: { places: ReactNode; person: ReactNode; large: boolean }) {
+/** A person or next-step note anchors the brief; a compact capacity stays at its lower right, including stacked mode. */
+export function CardBriefFoot({ places, person, large, capacityAtEnd = false }: {
+  places: ReactNode; person: ReactNode; large: boolean; capacityAtEnd?: boolean;
+}) {
   return <View style={[s.briefFoot, large && s.briefFootStacked]}>
     {person ? <View style={large ? s.briefPersonStacked : s.briefPerson}>{person}</View> : null}
-    {places ? <View style={!large && person ? s.briefCapacity : undefined}>{places}</View> : null}
+    {places ? <View style={capacityAtEnd ? s.briefCapacityEnd : !large && person ? s.briefCapacity : undefined}>{places}</View> : null}
   </View>;
 }
 
@@ -261,11 +266,13 @@ export function CardFoot({ places, person, large }: { places: ReactNode; person:
  * The count of places. Beside the person it never shrinks, so a long name is what gives way ("Nikola Petrov…"), never
  * "Traži 2 os…" (card review r3 item 3); on its own line at large text it may take a second line.
  */
-export function CardPlaces({ places, audience, large = false }: { places: Pokrivenost; audience: 'worker' | 'owner'; large?: boolean }) {
-  const words = placesText(places, audience);
+export function CardPlaces({ places, audience, large = false, display = 'words' }: {
+  places: Pokrivenost; audience: 'worker' | 'owner'; large?: boolean; display?: 'words' | 'fraction';
+}) {
+  const words = placesText(places, audience, display);
   return <View style={large ? s.placesStacked : s.places}>
     <FactArt kind="users" size={16} />
-    <T style={[s.placesText, large && s.placesTextStacked]} numberOfLines={large ? undefined : 1}>{words.text}</T>
+    <T style={[s.placesText, display === 'fraction' && s.placesFraction, large && s.placesTextStacked]} numberOfLines={large ? undefined : 1}>{words.text}</T>
   </View>;
 }
 
@@ -411,6 +418,7 @@ const s = StyleSheet.create({
   places: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   placesStacked: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   placesText: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
+  placesFraction: { fontWeight: '700', color: sys.color.ink },
   placesTextStacked: { flexShrink: 1 },
   personSide: { flexShrink: 1, minWidth: 0, maxWidth: '62%' },
   personStacked: { alignSelf: 'flex-end', maxWidth: '100%' },
@@ -420,6 +428,7 @@ const s = StyleSheet.create({
   briefPerson: { flex: 1.5, minWidth: 0 },
   briefPersonStacked: { alignSelf: 'stretch' },
   briefCapacity: { flex: 1, minWidth: 0 },
+  briefCapacityEnd: { alignSelf: 'flex-end', marginLeft: 'auto', flexShrink: 0 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   personText: { flexShrink: 1, minWidth: 0 },
   personName: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: sys.color.ink },

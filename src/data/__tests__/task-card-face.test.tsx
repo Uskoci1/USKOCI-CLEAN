@@ -40,7 +40,7 @@ jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('../../ui/system/textScale', () => ({ useTextScale: () => mockScale }));
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', Lightning: 'Lightning' }));
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
-import { ownerNext, taskStatus } from '../../ui/v2/TaskFace';
+import { CardPlaces, ownerNext, placesText, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -161,20 +161,29 @@ describe('the value slot', () => {
 });
 
 describe('the places and the person', () => {
-  it('tell a worker how many people are wanted or how many places are left', async () => {
-    const places = (ukupno: number, popunjeno: number) => task({ pokrivenost: { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno } });
-    await render(<TaskCard item={places(2, 0)} onOpen={jest.fn()} />); expect(texts()).toContain('Traži 2 osobe');
-    await act(async () => tree.update(<TaskCard item={places(1, 0)} onOpen={jest.fn()} />)); expect(texts()).toContain('Traži 1 osobu');
-    await act(async () => tree.update(<TaskCard item={places(5, 0)} onOpen={jest.fn()} />)); expect(texts()).toContain('Traži 5 osoba');
-    await act(async () => tree.update(<TaskCard item={places(2, 1)} onOpen={jest.fn()} />)); expect(texts()).toContain('Još 1 od 2 mesta');
-    expect(texts().join(' ')).not.toMatch(/popunjeno/);
+  it.each([[2, 0], [3, 1], [3, 2], [3, 3]])('show filled/total only (%s total, %s filled), while explaining it to a screen reader', async (ukupno, popunjeno) => {
+    const pokrivenost = { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno };
+    await render(<TaskCard item={task({ pokrivenost })} onOpen={jest.fn()} />);
+    expect(texts()).toContain(`${popunjeno}/${ukupno}`);
+    expect(texts().join(' ')).not.toMatch(/popunjeno|osob|mesta/);
+    expect(facts()).toContain('users');
+    expect(presses()[0].props.accessibilityValue.text).toContain(`${popunjeno} od ${ukupno} mesta popunjeno`);
+  });
+
+  it('retains the full audience-specific count in the shared component used by the composer and preview', async () => {
+    const places = { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 };
+    await render(<CardPlaces places={places} audience="worker" />);
+    expect(texts()).toEqual(['Još 2 od 3 mesta']);
+    expect(placesText(places, 'worker').spoken).toBe('Još 2 od 3 mesta');
+    await act(async () => tree.update(<CardPlaces places={places} audience="owner" />));
+    expect(texts()).toEqual(['1/3 popunjeno']);
   });
 
   it('show the owner the progress, on the own list and on a task of mine met in discovery, with no person', async () => {
     await render(<TaskCard item={mine()} onOpen={jest.fn()} />);
-    expect(texts()).toContain('0/2 popunjeno'); expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
+    expect(texts()).toContain('0/2'); expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
     await act(async () => tree.update(<TaskCard item={task()} relation="OWNED" onOpen={jest.fn()} />));
-    expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('0/2 popunjeno');
+    expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('0/2');
     expect(texts()).not.toContain('Nikola Petrović'); expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
   });
 
@@ -357,18 +366,22 @@ describe('review r3', () => {
     expect(style(word)).not.toMatchObject({ color: sys.color.money });
   });
 
-  // Item 3: with a long name "Traži 2 osobe" ended in "…". The count never shrinks beside the person; the name does.
-  it('gives capacity and the publisher separate space, retaining the entire count at large text', async () => {
-    await render(<TaskCard item={task({ narucilacIme: 'Aleksandra Stojanović-Petrović' })} onOpen={jest.fn()} />);
-    const count = textNode('Traži 2 osobe');
-    expect(count.props.numberOfLines).toBeUndefined();
-    const name = textNode('Aleksandra Stojanović-Petrović');
-    expect(name.props.numberOfLines).toBe(1);
-    expect(count.parent!.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
-    // On its own line at large text the count may take a second line instead of running off the card.
-    await act(async () => tree.unmount()); mockScale = 1.3;
-    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(textNode('Traži 2 osobe').props.numberOfLines).toBeUndefined();
+  // R19: the full fraction has a stable lower-right anchor, including a stacked narrow/large-text layout.
+  it.each([[411, 1], [320, 2]])('keeps the compact count bottom-right with or without a person at width %s, text scale %s', async (width, scale) => {
+    mockWidth = width; mockScale = scale;
+    for (const item of [task({ narucilacIme: 'Aleksandra Stojanović-Petrović' }), mine({ brojPrijavaZaIzbor: 0 })]) {
+      await render(<TaskCard item={item} onOpen={jest.fn()} />);
+      const count = textNode('0/2');
+      expect(count.props.numberOfLines).toBeUndefined();
+      expect(style(count)).toMatchObject({ fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] });
+      const anchor = tree.root.find(node => node.type === ('View' as React.ElementType) && style(node).marginLeft === 'auto');
+      expect(style(anchor)).toMatchObject({ alignSelf: 'flex-end', flexShrink: 0 });
+      expect(anchor.findAll(node => node === count)).toHaveLength(1);
+      expect(anchor.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
+      if ('stanje' in item) expect(texts()).toContain('Još nema prijava za izbor');
+      else expect(textNode('Aleksandra Stojanović-Petrović').props.numberOfLines).toBe(1);
+      await act(async () => tree.unmount());
+    }
   });
 
   // Item 4: a screen reader heard only the title; the facts were unreachable on iOS and 3–5 extra stops on Android.
@@ -377,7 +390,7 @@ describe('review r3', () => {
     const [body] = presses();
     expect(body.props.accessibilityLabel).toBe('Otvori priliku Farbanje dnevne sobe');
     expect(body.props.accessibilityValue).toEqual({ text: 'HITNO, Prijava poslata, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
-      + 'Potrebno vozilo: Kombi, Traži 2 osobe, Nikola Petrović, ocena 4,8, 12 ocena' });
+      + 'Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena' });
     // Every accessible element inside the card sits under a subtree hidden from assistive technology (the HITNO badge).
     const hidden = (node: ReactTestInstance): boolean => node !== body && (node.props.importantForAccessibility === 'no-hide-descendants'
       && node.props.accessibilityElementsHidden === true || !!node.parent && hidden(node.parent));

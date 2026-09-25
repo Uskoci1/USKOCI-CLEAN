@@ -7,6 +7,7 @@ jest.mock('../supabaseClient', () => {
   return { supabaseKlijent: () => ({ from, rpc }), __testMocks: { maybeSingle, eq, select, from, rpc } };
 });
 jest.mock('../publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: jest.fn() } }));
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: 'reader-a' }, accountRevision: 1 }) }));
 
 import { supabaseIzvor } from '../supabaseIzvor';
 import { publicProfileClientService } from '../publicProfileClientService';
@@ -77,7 +78,7 @@ describe('W04 public-safe detail read', () => {
     expect(result).toMatchObject({ id: 'task-a', naslov: 'Pomoć pri selidbi', primaNovePrijave: true,
       podrucjeTekst: 'Centar, Novi Sad', narucilacIme: '', narucilacOcena: null, ponudjenaCena: { iznos: 5000, valuta: 'RSD' } });
     expect(JSON.stringify(result)).not.toContain('PRIVATE');
-    expect(publicProfile).toHaveBeenCalledWith('requester-a');
+    expect(publicProfile).toHaveBeenCalledWith('requester-a', expect.any(AbortSignal));
     expect(result?.rokZaPrijaveIso).toBeNull();
     // A failed profile read leaves the review count unknown, never zero (step 5a, 2026-09-24).
     expect(result?.narucilacBrojOcena).toBeNull();

@@ -1,13 +1,15 @@
 import {mediaClientService as service,decodeMediaAsset,decodeTaskPhotos,type MediaAsset} from '../mediaClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CID='22222222-2222-4222-8222-222222222222',
  ASSET='33333333-3333-4333-8333-333333333333',KEY='44444444-4444-4444-8444-444444444444',PROFILE='55555555-5555-4555-8555-555555555555';
-let mockSession={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn(),mockInvoke=jest.fn();
+let mockSession={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn(),mockInvoke=jest.fn(),mockReadBinary=jest.fn();
 jest.mock('../../store/sesija',()=>({sesijaSada:()=>mockSession}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({rpc:mockRpc,functions:{invoke:mockInvoke}})}));
+jest.mock('../mediaBinaryRead',()=>({readMediaBinary:(input:unknown)=>mockReadBinary(input)}));
 const asset=(state:MediaAsset['state']='READY'):MediaAsset=>({assetId:ASSET,accountId:OWNER,scope:'TASK',conversationId:CID,profileId:null,clientRequestId:KEY,
  state,selected:true,ref:state==='READY'?`${OWNER}/v5/${ASSET}/${'a'.repeat(64)}.jpg`:null,sha256:state==='READY'?'a'.repeat(64):null,
  width:state==='READY'?1600:null,height:state==='READY'?800:null,byteSize:state==='READY'?120000:null,contentType:'image/jpeg',authoritative:true});
-beforeEach(()=>{mockSession={user:{id:OWNER},accountRevision:1};mockRpc.mockReset();mockInvoke.mockReset();mockInvoke.mockResolvedValue({data:asset(),error:null});});
+beforeEach(()=>{mockSession={user:{id:OWNER},accountRevision:1};mockRpc.mockReset();mockInvoke.mockReset();mockReadBinary.mockReset();
+ mockReadBinary.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});mockInvoke.mockResolvedValue({data:asset(),error:null});});
 it('validates the exact fifteen-field READY receipt against immutable owner/asset/SHA path',()=>{
  expect(Object.keys(asset())).toHaveLength(15);expect(decodeMediaAsset(asset(),OWNER)).toEqual(asset());
  for(const patch of [{accountId:OTHER},{ref:'https://external.invalid/private.jpg'},{sha256:'b'.repeat(64)},{profileId:PROFILE},{width:1601},{url:'PRIVATE'}])
@@ -64,29 +66,32 @@ it('public gallery rejects extra account/storage metadata from the server',async
 it('case photo read sends only the selected asset and private case identity through the existing gateway',async()=>{
  const controller=new AbortController();mockInvoke.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});
  const context={caseId:CID};const pending=service.readMedia(ASSET,context,{signal:controller.signal});context.caseId=OTHER;
- await pending;expect(mockInvoke).toHaveBeenCalledTimes(1);
- expect(mockInvoke.mock.calls[0]).toEqual(['uskoci-media',{body:{assetId:ASSET,caseId:CID},headers:{'x-media-operation':'read'},signal:controller.signal}]);
+ await pending;expect(mockReadBinary).toHaveBeenCalledTimes(1);
+ expect(mockReadBinary.mock.calls[0][0]).toEqual({account:{accountId:OWNER,accountRevision:1},body:{assetId:ASSET,caseId:CID},operation:'read',signal:controller.signal});
+ expect(mockInvoke).not.toHaveBeenCalled();
  expect(mockRpc).not.toHaveBeenCalled();
 });
 it('uses the private Agreement byte operation for an owned draft or exact canonical message, without Storage paths',async()=>{
  mockInvoke.mockResolvedValue({data:null,error:{message:'MEDIA_NOT_FOUND'}});
  await service.readMedia(ASSET,{agreementId:CID});
- expect(mockInvoke.mock.calls[0][1]).toEqual({body:{assetId:ASSET,agreementId:CID},headers:{'x-media-operation':'agreement-read'},signal:undefined});
+ expect(mockReadBinary.mock.calls[0][0]).toEqual({account:{accountId:OWNER,accountRevision:1},body:{assetId:ASSET,agreementId:CID},operation:'agreement-read',signal:undefined});
  await service.readMedia(ASSET,{agreementId:CID,messageId:KEY});
- expect(mockInvoke.mock.calls[1][1]).toEqual({body:{assetId:ASSET,agreementId:CID,messageId:KEY},headers:{'x-media-operation':'agreement-read'},signal:undefined});
+ expect(mockReadBinary.mock.calls[1][0]).toEqual({account:{accountId:OWNER,accountRevision:1},body:{assetId:ASSET,agreementId:CID,messageId:KEY},operation:'agreement-read',signal:undefined});
+ expect(mockInvoke).not.toHaveBeenCalled();
 });
 it.each([{messageId:KEY},{agreementId:CID,caseId:KEY},{agreementId:CID,needId:KEY},{agreementId:CID,profileId:PROFILE},
  {agreementId:CID,messageId:'bad'},{agreementId:CID,path:'PRIVATE'}])('rejects mixed Agreement photo authority before HTTP %#',async context=>{
- await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();
+ await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();expect(mockReadBinary).not.toHaveBeenCalled();
 });
 it.each([{caseId:'bad'},{caseId:CID,needId:CID},{caseId:CID,profileId:PROFILE},{caseId:CID,path:'PRIVATE'},
  {needId:CID,profileId:PROFILE},{caseId:''}])('rejects ambiguous or leaked photo read context before HTTP %#',async context=>{
- await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();
+ await expect(service.readMedia(ASSET,context)).resolves.toMatchObject({ok:false,kod:'MEDIA_NOT_FOUND'});expect(mockInvoke).not.toHaveBeenCalled();expect(mockReadBinary).not.toHaveBeenCalled();
 });
 it('cancelled case image request does not invoke the gateway and an account ABA rejects a late response',async()=>{
  const controller=new AbortController();controller.abort();
  await expect(service.readMedia(ASSET,{caseId:CID},{signal:controller.signal})).resolves.toMatchObject({ok:false});expect(mockInvoke).not.toHaveBeenCalled();
- mockInvoke.mockImplementation(async()=>{mockSession.accountRevision=3;return{data:null,error:{message:'MEDIA_NOT_FOUND'}};});
+ expect(mockReadBinary).not.toHaveBeenCalled();
+ mockReadBinary.mockImplementation(async()=>{mockSession.accountRevision=3;return{data:null,error:{message:'MEDIA_NOT_FOUND'}};});
  await expect(service.readMedia(ASSET,{caseId:CID})).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
 });
 describe('PKG-008 — explicit cancellation of an owned Task upload command',()=>{

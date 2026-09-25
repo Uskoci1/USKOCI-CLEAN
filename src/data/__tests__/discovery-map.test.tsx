@@ -273,13 +273,11 @@ test('Nearby then manual pan then refresh/remount restores the pan without repla
   expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: elsewhere.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
   await ready(); expect(mockEase).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
 });
-test('complete map credits replace native attribution with real 48 dp links', async () => {
-  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined); await render(); await ready();
+test('visible map attribution has one 48 dp source control instead of a competing scrolling rail', async () => {
+  await render(); await ready();
   expect(native().props.attribution).toBe(false);
-  for (const [text, url] of [['© OpenStreetMap', 'https://www.openstreetmap.org/copyright'],
-    ['© OpenMapTiles', 'https://www.openmaptiles.org/'], ['OpenFreeMap', 'https://openfreemap.org/']]) {
-    const link = tree.root.findByProps({ accessibilityLabel: text });
-    expect(link.props.accessibilityRole).toBe('link'); expect(StyleSheet.flatten(link.props.style).minHeight).toBeGreaterThanOrEqual(48);
-    await act(async () => link.props.onPress()); expect(open).toHaveBeenLastCalledWith(url);
-  }
+  const control = tree.root.findByProps({ accessibilityLabel: 'Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap' });
+  expect(control.props.accessibilityRole).toBe('button');
+  expect(StyleSheet.flatten(control.props.style).minHeight).toBeGreaterThanOrEqual(48);
+  expect(tree.root.findAll(node => node.props.persistentScrollbar)).toHaveLength(0);
 });

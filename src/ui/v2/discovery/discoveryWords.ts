@@ -48,8 +48,9 @@ export const quoted = (text: string) => `„${text.trim()}“`;
  * Line 1 of the search pill, and the value of the "Gde" step: one public point (a place's whole set, "Na ovom mestu"),
  * the chosen place (with the searched words, when there are both), the searched words, the map's area, or "Svi zadaci".
  */
-export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace'>): string {
+export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace' | 'where'>): string {
   const place = typeof view.place === 'string' ? view.place.trim() : '', query = view.query.trim();
+  if (view.where === 'remote') return query ? `Na daljinu · ${quoted(query)}` : 'Na daljinu';
   const where = view.pinPlace ? PIN_PLACE : place;
   if (where) return query ? `${where} · ${quoted(query)}` : where;
   if (query) return quoted(query);

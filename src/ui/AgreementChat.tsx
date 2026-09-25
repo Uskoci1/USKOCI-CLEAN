@@ -335,8 +335,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-            scrollEnabled style={[s.input, compact && { paddingTop: 8, paddingBottom: 8,
-              maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 16)) }]} />
+            // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
+            // line plus padding, which clipped the first line while the caret scrolled to the last one.
+            scrollEnabled style={[s.input, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
+              compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
           <View style={s.toolbar}>
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}

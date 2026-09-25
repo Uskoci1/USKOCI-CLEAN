@@ -58,7 +58,8 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
   const items = options.map(option => {
     const selected = option.key === value;
     return <Press key={option.key} accessibilityRole="tab" accessibilityLabel={option.label} accessibilityState={{ selected }}
-      accessibilityValue={option.badge != null && option.badgeLabel ? { text: option.badgeLabel } : undefined}
+      // Android must receive an explicit empty text to retire a previously spoken count.
+      accessibilityValue={{ text: option.badge != null && option.badgeLabel ? option.badgeLabel : '' }}
       haptic="select" scaleTo={0.98} onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
       style={[s.segment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>

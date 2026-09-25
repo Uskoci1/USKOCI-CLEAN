@@ -5,6 +5,8 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex, type TaskRelationIndex } from '../taskRelation';
 let mockReduced = false, mockFocused = true;
+const mockReactions = new Set<{ prepare: () => unknown; react: (next: unknown, previous: unknown) => void; previous: unknown }>();
+const mockRnDeliveries: (() => void)[] = [];
 const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
   requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
@@ -31,6 +33,20 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-router', () => ({ useIsFocused: () => mockFocused }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
+// Evaluate the UI-thread styles at explicit sheet positions; native gesture/frame timing still needs device review.
+jest.mock('react-native-reanimated', () => {
+  const React = require('react'), shared = jest.requireActual('../../../__mocks__/react-native-reanimated');
+  return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value, get(): unknown { return this.value; },
+    set(next: unknown) { this.value = typeof next === 'function' ? next(this.value) : next; } }).current,
+    useAnimatedStyle: (updater: () => object) => updater(),
+    useAnimatedReaction: (prepare: () => unknown, react: (next: unknown, previous: unknown) => void) => {
+      const entry = React.useRef({ prepare, react, previous: null }).current;
+      entry.prepare = prepare; entry.react = react;
+      React.useEffect(() => { mockReactions.add(entry); return () => { mockReactions.delete(entry); }; }, []);
+    },
+    runOnJS: (fn: (...args: unknown[]) => void) => (...args: unknown[]) => { mockRnDeliveries.push(() => fn(...args)); },
+  };
+});
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
@@ -58,7 +74,7 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 44.8 + Number(id.length) / 100, lng: 20.4 + id.charCodeAt(0) / 1000 },
   ...patch } as unknown as MarketplaceItem);
 const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
-let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined;
+let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined, scopeKey = 'a:1';
 let relationsPending = false, relationsError = false;
 const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
   ...own.map(needId => ({ needId, relation: 'OWNER' })),
@@ -70,7 +86,7 @@ let navigated = false;
 const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
-  return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey="a:1" view={view}
+  return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
     onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
 }
@@ -79,6 +95,8 @@ const scrollToOffset = jest.fn();
 // The list's ref is its native scroll view on a phone; here it is a stand-in that hears where the list is asked to scroll.
 const render = async () => act(async () => { tree = create(<Screen />, { createNodeMock: element => element.type === 'List' ? { scrollToOffset } : null }); });
 const update = async () => act(async () => tree.update(<Screen />));
+const sampleUi = () => { for (const entry of mockReactions) { const next = entry.prepare(); entry.react(next, entry.previous); entry.previous = next; } };
+const deliverUi = async () => act(async () => { sampleUi(); while (mockRnDeliveries.length) mockRnDeliveries.shift()!(); });
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const pressable = (label: string) => tree.root.findAllByProps({ accessibilityLabel: label });
 const tap = async (label: string) => act(async () => press(label).props.onPress());
@@ -100,7 +118,7 @@ const cards = () => listSheet().findAll(node => String(node.type) === 'Press' &&
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
 const list = () => tree.root.findByType('List' as React.ElementType);
 /** The body under the chrome, laid out: the sheet's heights become numbers. */
-const layOutBody = async (height = 800) => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height } } }));
+const layOutBody = async (height = 800) => act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height } } }));
 /** A quick chip over the map (a toggle, spoken as selected or not). */
 const quick = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
   && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
@@ -114,6 +132,7 @@ const search = async (words: string) => {
   await act(async () => showAction().props.onPress());
 };
 beforeEach(() => {
+  scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0;
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
@@ -124,6 +143,153 @@ beforeEach(() => {
 // The sheet's top line: the honest count, which is also the button that opens the list (Discovery V47).
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
+
+test('the remote quick filter clears an old point and place, keeps the camera and shows remote work without a map', async () => {
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, viewport, area: viewport.bounds, pinPlace: '45.25,19.83', place: 'Novi Sad', price: 'OFFERS', query: 'Pomoć' };
+  rows = [row('local', { ...at(45.25, 19.83), podrucjeTekst: 'Novi Sad', rezimCene: 'OFFERS' }),
+    row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' }, rezimCene: 'OFFERS' }), row('unknown', { priblizno: null })];
+  await render();
+  await act(async () => quick('Na daljinu').props.onPress());
+  expect(snapshot).toMatchObject({ where: 'remote', area: null, place: null, pinPlace: null, viewport, price: 'OFFERS', query: 'Pomoć', sheet: 'full' });
+  expect(cards()).toEqual(['online']);
+  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
+  expect(pressable('U blizini')).toHaveLength(0);
+  expect(texts()).not.toContain('bez tačke na mapi');
+  expect(listSheet().props.backdropComponent).toBeUndefined();
+  await layOutBody(800);
+  await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(112));
+  expect(listSheet().props.snapPoints[2]).toBe(800 - 112 - sys.space.md);
+});
+
+test('the full list fills below search, dims only the map while rising, and keeps its camera when returning', async () => {
+  mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, viewport, sheet: 'half', listOffset: 160 };
+  await render(); await layOutBody(760);
+  await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(116));
+  const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
+  const top = 116 + sys.space.md;
+  expect(listSheet().props.snapPoints[2]).toBe(760 - top);
+  expect(layer().props.importantForAccessibility).toBe('auto');
+  const pins = map().props.items;
+  const position = listSheet().props.animatedPosition;
+  let shade: ReactTestRenderer;
+  const drawShade = (index: number) => listSheet().props.backdropComponent({ animatedIndex: { value: index }, animatedPosition: position });
+  await act(async () => { shade = create(drawShade(1.5)); });
+  const dim = () => shade!.root.findByProps({ testID: 'discovery-sheet-dim' });
+  expect(StyleSheet.flatten(dim().props.style)).toMatchObject({ top, opacity: 0.09 });
+  expect(dim().props.pointerEvents).toBe('none');
+  expect(dim().props.importantForAccessibility).toBe('no-hide-descendants');
+  await act(async () => shade!.update(drawShade(1)));
+  expect(StyleSheet.flatten(dim().props.style).opacity).toBe(0);
+  await act(async () => shade!.unmount());
+  position.value = top;
+  await act(async () => listSheet().props.onChange(2));
+  await deliverUi();
+  expect(layer().props.importantForAccessibility).toBe('no-hide-descendants');
+  expect(layer().props.pointerEvents).toBe('none');
+  expect(StyleSheet.flatten(layer().props.style).opacity).toBe(0);
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-search-backing' }).props.style).opacity).toBe(1);
+  expect(press('Pretraži zadatke')).toBeTruthy();
+  expect(map().props.items).toBe(pins);
+  expect(snapshot.viewport).toEqual(viewport); expect(snapshot.listOffset).toBe(160);
+  await tap('Mapa');
+  position.value = 760 - Number(listSheet().props.snapPoints[0]);
+  await act(async () => listSheet().props.onChange(0));
+  await deliverUi();
+  expect(layer().props.importantForAccessibility).toBe('auto');
+  expect(layer().props.pointerEvents).toBe('auto');
+  expect(StyleSheet.flatten(layer().props.style).opacity).toBe(1);
+  expect(map().props.items).toBe(pins);
+  expect(snapshot.viewport).toEqual(viewport); expect(snapshot.listOffset).toBe(160);
+});
+
+test('an interrupted half-to-full rise returning to the original half stop leaves the map usable without any finish callback', async () => {
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, viewport, sheet: 'half' };
+  await render(); await layOutBody(760);
+  const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
+  const position = listSheet().props.animatedPosition;
+  const halfPosition = 760 - Number(listSheet().props.snapPoints[1]);
+  const fullPosition = 760 - Number(listSheet().props.snapPoints[2]);
+  position.value = halfPosition;
+  // Gorhom's actual callback sequence: original index remains 1 while it starts towards 2.
+  await act(async () => listSheet().props.onAnimate?.(1, 2));
+  position.value = (halfPosition + fullPosition) / 2;
+  await update();
+  // The gesture interrupts the spring and returns to 1. handleOnAnimate and completion both suppress callbacks
+  // when the target equals animatedCurrentIndex. Deliberately do NOT send an invented onChange(1) here.
+  position.value = halfPosition;
+  await update();
+  expect(listSheet().props.index).toBe(1);
+  expect(layer().props.pointerEvents).toBe('auto');
+  expect(layer().props.accessibilityElementsHidden).toBe(false);
+  expect(layer().props.importantForAccessibility).toBe('auto');
+  expect(StyleSheet.flatten(layer().props.style).opacity).toBe(1);
+  expect(snapshot.viewport).toEqual(viewport);
+  await act(async () => map().props.onSelect('bb'));
+  expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
+});
+
+test.each([false, true])('a button-requested full sheet cancelled back to native half uses physical coverage without onChange (touches full: %s)', async touchesFull => {
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, viewport, sheet: 'half' };
+  await render(); await layOutBody(760);
+  const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
+  const position = listSheet().props.animatedPosition;
+  const halfPosition = 760 - Number(listSheet().props.snapPoints[1]);
+  const fullPosition = 760 - Number(listSheet().props.snapPoints[2]);
+  position.value = halfPosition; await deliverUi();
+  await act(async () => countLine().props.onPress());
+  expect(listSheet().props.index).toBe(2); // requested destination, native's last settled index is still 1
+  expect(layer().props.pointerEvents).toBe('auto');
+  // Many intermediate frames schedule no repeated JS delivery while the physical boundary stays uncovered.
+  for (const fraction of [0.2, 0.4, 0.7, 0.9]) {
+    position.value = halfPosition + (fullPosition - halfPosition) * fraction; sampleUi();
+  }
+  expect(mockRnDeliveries).toHaveLength(0);
+  if (touchesFull) {
+    position.value = fullPosition; sampleUi(); sampleUi(); sampleUi();
+    expect(mockRnDeliveries).toHaveLength(1);
+    await deliverUi();
+    expect(layer().props.pointerEvents).toBe('none');
+    expect(layer().props.accessibilityElementsHidden).toBe(true);
+  }
+  // No onChange(2), no onAnimate back to 1, and no onChange(1): exactly the suppressed native callbacks.
+  position.value = halfPosition;
+  await deliverUi(); await update();
+  expect(listSheet().props.index).toBe(2); // prove the physical boundary does not accidentally rely on a corrected request
+  expect(layer().props.pointerEvents).toBe('auto');
+  expect(layer().props.accessibilityElementsHidden).toBe(false);
+  expect(layer().props.importantForAccessibility).toBe('auto');
+  expect(StyleSheet.flatten(layer().props.style).opacity).toBe(1);
+  expect(snapshot.viewport).toEqual(viewport);
+  await act(async () => map().props.onSelect('bb'));
+  expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
+});
+
+test.each(['scope', 'focus'] as const)('a queued covered-map delivery from a retired %s owner cannot hide the current map', async retirement => {
+  initial = { ...initial, sheet: 'half' };
+  await render(); await layOutBody(760);
+  const position = listSheet().props.animatedPosition;
+  position.value = 760 - Number(listSheet().props.snapPoints[2]);
+  sampleUi();
+  expect(mockRnDeliveries).toHaveLength(1);
+  const late = mockRnDeliveries.shift()!;
+  if (retirement === 'scope') { scopeKey = 'b:2'; await update(); }
+  else { mockFocused = false; await update(); mockFocused = true; await update(); }
+  position.value = 760 - Number(listSheet().props.snapPoints[1]);
+  await act(async () => late());
+  const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
+  expect(layer().props.pointerEvents).toBe('auto');
+  expect(layer().props.accessibilityElementsHidden).toBe(false);
+  // The new owner's first observation still runs even if an earlier owner's covered value was the same.
+  position.value = 760 - Number(listSheet().props.snapPoints[2]);
+  await deliverUi();
+  expect(layer().props.pointerEvents).toBe('none');
+  expect(layer().props.accessibilityElementsHidden).toBe(true);
+});
 
 test('one screen: the map under the tools and the list as its sheet; no Lista/Mapa switch and no "Pogledaj listu"', async () => {
   await render();
@@ -314,8 +480,9 @@ test('pin and discovery list keep the truthful task face without redundant surro
   const card = press('Otvori zadatak: Selidba klavira u Zemunu');
   const words = texts(peek()!);
   expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
-  expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('Još 2 od 3 mesta'); expect(words).toContain('Mila');
+  expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('1/3'); expect(words).toContain('Mila');
   expect(card.props.accessibilityValue.text).toContain('2.000 RSD ukupno');
+  expect(card.props.accessibilityValue.text).toContain('1 od 3 mesta popunjeno');
   // Nothing in it is framed as a card of its own, and nothing is a photo or a place for one.
   const edged = card.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
   expect(edged).toHaveLength(0);
@@ -701,7 +868,7 @@ test('camera layout is ready only after body and tools measurements replace whol
 });
 
 test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
-  const layOut = async () => act(async () => map().parent!.parent!.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
+  const layOut = async () => layOutBody(800);
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
   expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + 48 + 2 * sys.space.md);
   await act(async () => tree.unmount());
@@ -936,12 +1103,12 @@ test('over the map: search and tools share one edge; a quick chip has no shadow 
   expect(StyleSheet.flatten(remove.props.style).minHeight + remove.props.hitSlop.top + remove.props.hitSlop.bottom).toBeGreaterThanOrEqual(48);
 });
 
-test('measured credits reserve space above the full list and a selected preview, including after resizing', async () => {
+test('full list uses the map band below search while a selected preview still reserves readable credits after resizing', async () => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 }; await render(); await layOutBody(500);
   const searchBar = tree.root.findByProps({ testID: 'discovery-search-row' }).parent!;
   await act(async () => searchBar.props.onLayout({ nativeEvent: { layout: { y: 12, height: 144 } } }));
   await act(async () => map().props.onCreditsHeight(56));
-  const clearTop = 156 + 56 + 2 * sys.space.md;
+  const clearTop = 156 + sys.space.md;
   expect(500 - listSheet().props.snapPoints[2]).toBe(clearTop);
   await act(async () => map().props.onSelect('bb'));
   const preview = () => tree.root.findByType(DiscoveryPeek);
@@ -958,7 +1125,7 @@ test('measured credits reserve space above the full list and a selected preview,
   expect(snapshot.selectedId).toBe('bb'); expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
 });
 
-test.each([false, true])('a tall filter header scrolls at the capped full stop without covering credits (empty: %s)', async empty => {
+test.each([false, true])('a tall filter header scrolls at the full stop below search, keeping lower map stops clear of credits (empty: %s)', async empty => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 };
   initial = { ...initial, query: empty ? 'Nema takvog zadatka' : 'Pomoć', place: 'Beograd', when: 'next7',
     viewport: { center: [20.45, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.6, 44.9] } };
@@ -970,15 +1137,16 @@ test.each([false, true])('a tall filter header scrolls at the capped full stop w
   const header = () => tree.root.findByProps({ testID: 'discovery-list-header' });
   await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints).toEqual([96, 201, 202]);
-  expect(430 - listSheet().props.snapPoints[2]).toBe(156 + 48 + 2 * sys.space.md);
+  expect(listSheet().props.snapPoints).toEqual([96, 202, 262]);
+  expect(430 - listSheet().props.snapPoints[2]).toBe(156 + sys.space.md);
+  expect(430 - listSheet().props.snapPoints[1]).toBe(156 + 48 + 2 * sys.space.md);
   expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
   expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-scrolling-header' }).props.style).marginHorizontal).toBe(-sys.space.lg);
   expect(removable()).toHaveLength(3);
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints[2]).toBe(202);
+  expect(listSheet().props.snapPoints[2]).toBe(262);
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
   if (empty) expect(pressable('Mapa')).toHaveLength(0);

@@ -73,6 +73,15 @@ test('remeasures label/count width and the following tab position instead of ass
   expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 198.5, useNativeDriver: true }));
 });
 
+test('explicitly retires a previously spoken count when its badge disappears', async () => {
+  await render();
+  expect(tab('Aktivni').props.accessibilityValue).toEqual({ text: '3 Dogovora' });
+  await update(control('active', { options: [{ key: 'active', label: 'Aktivni' }, options[1]] }));
+  // Android retains the old content description if value becomes an object with no text key.
+  expect(tab('Aktivni').props.accessibilityValue).toEqual({ text: '' });
+  expect(tab('Istorija').props.accessibilityValue).toEqual({ text: '2 Dogovora' });
+});
+
 test('reduced motion places the underline at the measured target and updated width without starting a transition', async () => {
   mockReduced = true;
   const timing = jest.spyOn(Animated, 'timing');

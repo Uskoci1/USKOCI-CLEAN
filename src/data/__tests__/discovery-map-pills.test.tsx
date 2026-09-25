@@ -1,15 +1,16 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '../marketplaceView';
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn(), mockQuery = jest.fn();
+const mockAnnotationRefresh = jest.fn();
 jest.mock('@maplibre/maplibre-react-native', () => {
   const React = require('react');
   const host = (name: string, handle: () => object) => React.forwardRef(({ children, ...props }: any, ref: any) => {
     React.useImperativeHandle(ref, handle); return React.createElement(name, props, children);
   });
-  return { Layer: 'Layer', Images: 'Images', ViewAnnotation: 'Annotation',
+  return { Layer: 'Layer', Images: 'Images', ViewAnnotation: host('Annotation', () => ({ refresh: mockAnnotationRefresh })),
     Map: host('NativeMap', () => ({ queryRenderedFeatures: mockQuery, project: mockProject, unproject: mockUnproject })),
     Camera: host('Camera', () => ({ easeTo: mockEase, jumpTo: mockJump, zoomTo: mockZoom, fitBounds: mockFit })),
     GeoJSONSource: host('Source', () => ({ getClusterExpansionZoom: mockExpand, getClusterLeaves: async () => mockLeaves })) };
@@ -26,6 +27,7 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
+jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
 import { DiscoveryMap, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
 import { sys } from '../../ui/system/tokens';
@@ -64,6 +66,7 @@ beforeEach(() => {
   rows = base(); selectedId = null; selectedPlace = null; extra = {}; mockFocused = true; mockReduced = false;
   mockRendered = ['money', 'offer', 'stack-1', 'stack-2', 'urgent', 'noprice', 'money'].map(feature); mockLeaves = [];
   mockQuery.mockReset().mockImplementation(async () => mockRendered);
+  mockAnnotationRefresh.mockReset();
   for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockProject, mockUnproject, mockFit, select, selectPlace, setViewport, search, list, clear, fitted]) fn.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
@@ -382,7 +385,8 @@ test('credits keep their own full-width strip when zoom cannot fit, including ab
   expect(ride().opacity).toBe(0);
   expect(creditsRide().opacity).not.toBe(0);
   expect(creditsRide().transform).toEqual([{ translateY: 140 - 800 }]);
-  expect(credits().findAll(node => node.props.accessibilityRole === 'link')).toHaveLength(3);
+  expect(credits().findAll(node => node.props.accessibilityRole === 'button')).toHaveLength(1);
+  expect(credits().findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
   extra = { ...extra, coverBottom: 0 }; await settle();
   expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
 });
@@ -391,15 +395,42 @@ test('credit height follows native content measurement and reaches the screen wi
   const measured = jest.fn(); extra = { onCreditsHeight: measured, sheetTop: { value: 300 }, toolsBottom: 150 };
   await render(); await ready();
   const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
-  const rail = tree.root.findByProps({ accessibilityLabel: 'Izvori mape' });
-  expect(rail.props.horizontal).toBe(true);
-  await act(async () => rail.props.onContentSizeChange(670, 63.2));
-  expect(flat(credits()).height).toBe(64);
-  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: 64 } } }));
+  expect(tree.root.findAll(node => node.props.persistentScrollbar)).toHaveLength(0);
+  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: 63.2 } } }));
   expect(measured).toHaveBeenLastCalledWith(64);
-  await act(async () => rail.props.onContentSizeChange(600, Number.NaN));
-  expect(flat(credits()).height).toBe(64);
+  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: Number.NaN } } }));
+  expect(measured).toHaveBeenCalledTimes(1);
   expect(search).not.toHaveBeenCalled(); expect(setViewport).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+});
+
+test('compact visible attribution opens all three original provider links without a scrolling rail', async () => {
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+  await render(); await ready();
+  const credits = tree.root.findByProps({ testID: 'discovery-map-credits' });
+  expect(credits.findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
+  await act(async () => credits.findByProps({ accessibilityRole: 'button' }).props.onPress());
+  const panel = tree.root.findByType('MapSources' as React.ElementType);
+  expect(panel.props.actions.map((action: { label: string }) => action.label)).toEqual(['© OpenStreetMap', '© OpenMapTiles', 'OpenFreeMap']);
+  for (const action of panel.props.actions) await act(async () => action.onPress());
+  expect(openURL.mock.calls.map(([url]) => url)).toEqual([
+    'https://www.openstreetmap.org/copyright', 'https://www.openmaptiles.org/', 'https://openfreemap.org/',
+  ]);
+  expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
+});
+
+test('a loaded logo refreshes its annotation once after drawing, and a retired pin cannot refresh', async () => {
+  await render(); await ready();
+  const oldReady = tree.root.findAllByType(PricePill)[0].props.onReady;
+  await act(async () => { oldReady(); oldReady(); jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  await act(async () => oldReady());
+  selectedId = 'money'; await update();
+  await act(async () => { oldReady(); jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  // A selected pin has its own loaded snapshot and refresh; it never revives the retired one.
+  const selected = tree.root.findAllByType(PricePill).find(pill => pill.props.selected)!;
+  await act(async () => { selected.props.onReady(); jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(2);
 });
 
 test('many pins stay a bounded number of pills; native logo markers cover the remaining public points', async () => {

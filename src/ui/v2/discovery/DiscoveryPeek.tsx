@@ -62,7 +62,7 @@ function PinTask({ item, relation, onOpen, onLayout }: {
   const publisher = !owned && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
   const person = 'narucilacIme' in item && publisher ? <CardPerson name={publisher} rating={item.narucilacOcena}
     count={item.narucilacBrojOcena} size={40} portrait={<TaskPublisherPortrait item={item} size={40} />} /> : null;
-  const places = item.pokrivenost ? placesText(item.pokrivenost, owned ? 'owner' : 'worker') : null;
+  const places = item.pokrivenost ? placesText(item.pokrivenost, owned ? 'owner' : 'worker', 'fraction') : null;
   const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, places: places?.spoken,
     person: 'narucilacIme' in item && publisher ? personSpoken(publisher, item.narucilacOcena, item.narucilacBrojOcena) : null });
   const head = status || urgent;
@@ -75,8 +75,8 @@ function PinTask({ item, relation, onOpen, onLayout }: {
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
         <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
       </View>
-      <CardBriefFoot person={person} large={large}
-        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} large /> : null} />
+      <CardBriefFoot person={person} large={large} capacityAtEnd
+        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large /> : null} />
     </Press>
   </View>;
 }

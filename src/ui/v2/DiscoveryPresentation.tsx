@@ -3,11 +3,11 @@ import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, u
   type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
-import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { BottomSheetFlatList, type BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
 import { MapTrifold, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
-  pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, sameBounds, saysWhen, saysWorkMode, undatedCount, type DiscoveryShown,
+  pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, type DiscoveryShown,
   type DiscoverySnap, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -111,7 +111,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
  * Presentation only: every callback is the route's own guarded command.
  */
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
-  const { items, loading, error, view } = props, reduced = useReducedMotion(), focused = useIsFocused();
+  const { items, loading, error } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
   const [more, setMore] = useState(false);
   useEffect(() => { setMore(false); }, [props.scopeKey]);
   useEffect(() => { if (!focused) setMore(false); }, [focused]);
@@ -124,7 +124,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const latestView = useRef(view); latestView.current = view;
   const onViewRef = useRef(props.onView); onViewRef.current = props.onView;
   const change = useCallback((patch: Partial<MarketplaceView>) => {
-    const next = { ...latestView.current, ...patch };
+    const next = remoteDiscoveryScope({ ...latestView.current, ...patch });
     latestView.current = next;
     onViewRef.current(next);
   }, []);
@@ -191,14 +191,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // has a point on the map (a filter left only "Na daljinu"), it takes the screen, over a map with nothing on it. The map's
   // area is not a reason: moving the map never moves the sheet the person is looking past.
   useEffect(() => {
+    if (!loading && where === 'remote') { setSheetIndex(SNAP.full); return; }
     if (!started.current || loading || sheetIndex !== SNAP.peek) return;
     if (!mapped.length) setSheetIndex(SNAP.half);
     else if (mappedWithoutPin === mapped.length) setSheetIndex(SNAP.full);
-  }, [loading, mapped.length, mappedWithoutPin]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, mapped.length, mappedWithoutPin, where]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
-  const mapShown = !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
+  const mapShown = where !== 'remote' && !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
   // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
   const emptyOverMap = !loading && !error && !listed.length && mapShown;
@@ -256,26 +257,54 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [creditsHeight, setCreditsHeight] = useState(Platform.OS === 'web' ? 0 : 48);
   const creditsRoom = mapShown && creditsHeight ? creditsHeight + GAP : 0;
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
-  // The measured fixed header may be taller than the available map at large text. In that case its whole content
-  // joins the registered list scroll; a minimum based on that header must never override the attribution reserve.
-  const availableSheet = bodyHeight ? Math.max(3, bodyHeight - toolsBottom - creditsRoom - GAP) : 0;
-  const scrollHeader = !!availableSheet && peek + 2 > availableSheet;
+  // At the full stop the map is covered, so the list uses all the room below search. Lower stops and pin previews
+  // still leave the attribution visible. A very tall count/filter header joins the list scroll instead of pinning it.
+  const listTop = toolsBottom + GAP;
+  const availableSheet = bodyHeight ? Math.max(3, bodyHeight - listTop) : 0;
+  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - creditsRoom) : 0;
+  const scrollHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
   // A chosen pin's card: the list's top line steps out of sight behind it, and the map's zoom and credits step up above it.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
   const [cardHeight, setCardHeight] = useState(0);
   const snapPoints = useMemo(() => {
-    const collapsed = scrollHeader ? Math.min(headerLeadHeight, availableSheet - 2) : peek;
+    const collapsed = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
     const low = cardShown ? HIDDEN : collapsed;
     if (!bodyHeight) return [low, '50%', '88%'];
     const full = availableSheet;
-    return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.round(bodyHeight / 2))), full];
-  }, [bodyHeight, availableSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
+    return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
+  }, [bodyHeight, availableSheet, mapClearSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
   // An oversized empty-state header still needs the registered scroll's full stop. It does not acquire a second
   // brand action: the map shortcut remains absent for an empty list, as before.
   const highest = emptyOverMap && !scrollHeader ? SNAP.half : SNAP.full;
   useEffect(() => { if (sheetIndex > highest) setSheetIndex(highest); }, [sheetIndex, highest]);
-  const position = useSharedValue(0);
+  // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
+  const position = useSharedValue(windowHeight);
   const expanded = sheetIndex === SNAP.full;
+  // Hide the covered native map only when the sheet physically reaches its full stop; keep it mounted, with its
+  // exact camera, while the list is up. The white search backing closes the remaining top edge of the list surface.
+  const mapVisibility = useAnimatedStyle(() => ({ opacity: bodyHeight > 0 && position.value <= listTop + 0.5 ? 0 : 1 }), [bodyHeight, listTop]);
+  const searchBacking = useAnimatedStyle(() => {
+    if (!bodyHeight) return { opacity: 0 };
+    const halfTop = bodyHeight - Number(snapPoints[1]);
+    return { opacity: Math.max(0, Math.min(1, (halfTop - position.value) / Math.max(1, halfTop - listTop))) };
+  }, [bodyHeight, listTop, snapPoints]);
+  // Requested index is not physical coverage: a button's spring can return to its old stop without onChange.
+  // Only crossing the actual full-height boundary reaches JS. New scope/focus owners reject already queued work.
+  const coverageSequence = useRef(0);
+  const coverageOwner = useMemo(() => ({ sequence: ++coverageSequence.current, active: true }), [props.scopeKey, focused]);
+  const currentCoverageOwner = useRef(coverageOwner); currentCoverageOwner.current = coverageOwner;
+  useEffect(() => { coverageOwner.active = true; return () => { coverageOwner.active = false; }; }, [coverageOwner]);
+  const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
+  const receiveCoverage = useCallback((covered: boolean) => {
+    if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
+    setCoverage(previous => previous?.owner === coverageOwner && previous.covered === covered ? previous : { owner: coverageOwner, covered });
+  }, [coverageOwner, focused]);
+  const coverageSequenceValue = coverageOwner.sequence;
+  useAnimatedReaction(() => ({ covered: mapShown && bodyHeight > 0 && position.value <= listTop + 0.5, owner: coverageSequenceValue }),
+    (next, previous) => {
+      if (next.covered !== previous?.covered || next.owner !== previous?.owner) runOnJS(receiveCoverage)(next.covered);
+    }, [position, mapShown, bodyHeight, listTop, coverageSequenceValue, receiveCoverage]);
+  const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
   // The floating "Mapa" stands over the end of the list at the full height.
   const pillShown = expanded && mapShown && !emptyOverMap;
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
@@ -314,10 +343,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const toggle = (patch: Partial<MarketplaceView>) => change({ ...patch, selectedId: null, selectedPlace: null });
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
   const chips: QuickChip[] = [
+    // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
+    ...(['remote', 'onsite'] as const).filter(key => workModes || view.where === key).map(key => ({ key: `where:${key}`, label: said(WHERE, key),
+      selected: view.where === key, onPress: () => toggle({ where: view.where === key ? 'any' : key }) })),
     ...QUICK_WHEN.filter(key => timed || currentWhen === key).map(key => ({ key: `when:${key}`, label: said(WHEN, key), selected: currentWhen === key,
       onPress: () => toggle({ when: currentWhen === key ? 'any' : key as WhenFilter, dates: null }) })),
-    ...(['onsite', 'remote'] as const).filter(key => workModes || view.where === key).map(key => ({ key: `where:${key}`, label: said(WHERE, key),
-      selected: view.where === key, onPress: () => toggle({ where: view.where === key ? 'any' : key }) })),
     ...(['MY_PRICE', 'OFFERS'] as const).filter(key => view.price === key || items.some(item => item.rezimCene === key)).map(key => ({
       key: `price:${key}`, label: said(PRICE, key), selected: view.price === key, onPress: () => toggle({ price: view.price === key ? 'all' : key }) })),
     ...(atLeast(freePlaces) > 1 || items.some(item => (openPlaces(item) ?? 0) >= 2) ? [{ key: 'places',
@@ -432,7 +462,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The count says what is listed, honestly: under a map area, the area's tasks and, apart, those with no point at all;
   // on one point, that point's tasks. It is independent of the account overlay.
   const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
-    withoutPoint: withoutPoint.length, pinless: mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
+    withoutPoint: withoutPoint.length, pinless: view.where === 'remote' ? 0 : mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
   const spoken = `${line.words}${line.extra}`;
   const count = <T variant="bodyStrong" numberOfLines={2} style={s.count}>
     {line.words}{line.extra ? <T variant="note" tone="muted">{line.extra}</T> : null}
@@ -478,8 +508,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* Search is this screen's header. Identity belongs to Home; the existing account/publication entries stay in Još. */}
-    <View style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
-      <View style={StyleSheet.absoluteFill}>
+    <View testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
+      <Animated.View testID="discovery-map-layer" style={[StyleSheet.absoluteFill, mapShown && mapVisibility]}
+        pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
+        importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
@@ -490,16 +522,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
           focusBottom={CARD_BOTTOM + GAP + creditsRoom + Math.min(360, Math.round(windowHeight / 2))} />
           : <View style={s.ground} />}
-      </View>
+      </Animated.View>
+      <Animated.View testID="discovery-search-backing" pointerEvents="none" accessible={false} importantForAccessibility="no"
+        style={[s.searchBacking, { height: listTop + sys.radius.sheet }, searchBacking]} />
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
-        nearby={{ onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
+        nearby={where === 'remote' ? undefined : { onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
         chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
         onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
       <DiscoveryListSheet index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
-        sunk={cardShown}>
+        sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
@@ -553,6 +587,7 @@ const s = StyleSheet.create({
   body: { flex: 1 },
   separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 18 },
   ground: { flex: 1, backgroundColor: sys.color.ground },
+  searchBacking: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: sys.color.surface },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },

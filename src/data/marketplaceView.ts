@@ -276,8 +276,13 @@ export function publicArea(item: MarketplaceItem): string | null {
  * on that point (`inArea`), and nothing else joins them, not even the tasks without a point.
  */
 export type DiscoveryShown = { mapped: MarketplaceItem[]; inArea: MarketplaceItem[]; withoutPoint: MarketplaceItem[]; listed: MarketplaceItem[] };
+/** Remote work has no geographic scope. Keep shared conditions and the remembered camera, never a stale place. */
+export function remoteDiscoveryScope<T extends { where?: WhereFilter; place?: string | null; area?: PublicBounds | null; pinPlace?: string | null }>(view: T): T {
+  return view.where === 'remote' ? { ...view, area: null, place: null, pinPlace: null } : view;
+}
 export function discoveryShown(items: readonly MarketplaceItem[], view: MarketplaceView, _mine: ReadonlySet<string> | undefined,
   now: Date = new Date()): DiscoveryShown {
+  view = remoteDiscoveryScope(view);
   const mapped = marketplaceItems(items, { ...view, area: null }, false, now);
   const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
   if (pin !== null) {

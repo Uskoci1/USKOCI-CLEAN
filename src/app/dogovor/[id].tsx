@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Platform, KeyboardAvoidingView, TextInput, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { ChatCircle } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
 import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, AgreementTabs, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
@@ -355,17 +357,25 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other} back={backToAgreements}
+      {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
           writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh,
           outbox, state: outboxState, photos,
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
-          : <ProductHeader back={backToAgreements} title="Dogovor" />}
-        <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
+        {other ? <AgreementPersonBar person={other} back={backToAgreements}
+          right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />
+          : <ProductHeader back={backToAgreements} title="Dogovor"
+            right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />}
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-          {/* The current step leads; accepted terms remain immediately below it. */}
+          <AgreementHero agreement={dogovor} disabled={!enabled}
+            onOpenTask={me && dogovor.izvor?.zadatakId ? () => {
+              const needId = dogovor.izvor?.zadatakId;
+              if (!needId || !formCurrent()) return;
+              router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
+                : { pathname: '/prilike/[id]', params: { id: needId } });
+            } : undefined} />
+          {/* The task is the natural entry to its detail; the next step follows accepted terms. */}
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
               <T variant="meta" tone="muted">Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.</T>
@@ -381,19 +391,11 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
             </View> : null}
           </NextStepCard>
-          <AgreementHero agreement={dogovor} />
           {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
           {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
           {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
           {me ? <WorkspaceRows>
-            {/* PKG-048: where this Dogovor came from. The server says so only since 2026-09-23, so a reader
-                that does not carry the ids offers nothing here rather than a row that leads nowhere. Each
-                side opens its own end: the requester their Zadatak, the worker the Prilika and their Prijava.
-                The rows are named for what they open, with no sentence under them (round-1 critique A14). */}
-            {dogovor.izvor?.zadatakId ? <WorkspaceRow art="tasks" label="Zadatak" disabled={!enabled}
-              onPress={() => { const needId = dogovor.izvor?.zadatakId; if (!needId || !formCurrent()) return;
-                router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
-                  : { pathname: '/prilike/[id]', params: { id: needId } }); }} /> : null}
+            {/* PKG-048 task source now belongs to the opening card; no duplicate destination row. */}
             {/* The requester has no screen that opens one Prijava by its id, so no "Prijava" row is drawn for them. */}
             {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow art="offers" label="Tvoja prijava" disabled={!enabled}
               onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
@@ -443,7 +445,6 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   status: { padding: 24, gap: 16 }, center: { textAlign: 'center' },
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
-  tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
   stack: { gap: 8, marginTop: 4 }, change: { gap: 2 },
   input: { ...field, minHeight: 100, textAlignVertical: 'top' },

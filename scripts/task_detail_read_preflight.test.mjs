@@ -36,6 +36,7 @@ test('current actual source dependency graph loads with only transport/account i
   assert.ok(adapters.sources.some(item => item.path === 'src/lib/location.ts'));
   assert.ok(adapters.sources.some(item => item.path === 'src/data/legacyRpcFailure.ts'));
   assert.ok(adapters.sources.some(item => item.path === 'src/data/needUrgencyClientService.ts'));
+  assert.ok(adapters.sources.some(item => item.path === 'src/data/publicProfileEnrichment.ts'));
   assert.ok(adapters.sources.some(item => item.path === 'src/contracts/workerCapacity.ts'));
   assert.ok(adapters.sources.some(item => item.path === 'src/data/mediaAssetId.ts'));
   assert.ok(adapters.sources.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));

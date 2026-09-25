@@ -70,7 +70,8 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    // top of the Inbox this push just opened. Recording the same destination makes the order stop
    // mattering — whichever of the two finishes last, both of them mean the Inbox.
    if (cold) pendingRoute.remember('/obavestenja');
-   router.push('/obavestenja');
+   // Reuse an already open Inbox instead of stacking another copy on each tap.
+   router.navigate('/obavestenja');
    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
   }
   function reconcile() {

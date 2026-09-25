@@ -58,6 +58,7 @@ module.exports = {
   useReducedMotion: () => false,
   useSharedValue: (value) => ({ value }),
   useAnimatedStyle: () => ({}),
+  useAnimatedReaction: () => undefined,
   useAnimatedProps: () => ({}),
   useFrameCallback: () => ({ setActive: () => undefined, isActive: false }),
   useDerivedValue: (factory) => ({ value: typeof factory === 'function' ? factory() : undefined }),

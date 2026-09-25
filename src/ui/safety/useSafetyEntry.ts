@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService } from '../../data/safetyClientService';
 import type { SafetyEntry } from '../system/PublicProfileSheet';
 
@@ -13,20 +13,34 @@ export function useSafetyEntry(profileId: string | null | undefined,
   context?: { needId?: string | null; agreementId?: string | null }): SafetyEntry | undefined {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pending = useRef(false);
   const needId = context?.needId ?? null, agreementId = context?.agreementId ?? null;
+  const scope = useRef<{ profileId: typeof profileId; needId: string | null; agreementId: string | null; pending: boolean } | null>(null);
+  const rendered = useRef({ profileId, needId, agreementId });
+  rendered.current = { profileId, needId, agreementId };
+  useFocusEffect(useCallback(() => {
+    const next = { profileId, needId, agreementId, pending: false };
+    scope.current = next; setBusy(false); setError(null);
+    return () => { if (scope.current === next) scope.current = null; };
+  }, [profileId, needId, agreementId]));
   const onPress = useCallback(() => {
-    if (!profileId || pending.current) return;
-    pending.current = true; setBusy(true); setError(null);
-    const settle = () => { pending.current = false; setBusy(false); };
+    const owner = scope.current;
+    if (!profileId || !owner || owner.pending || owner.profileId !== profileId
+      || owner.needId !== needId || owner.agreementId !== agreementId) return;
+    // The service owns account/target authority; this scope owns only the screen's
+    // intent. Returning to the same screen cannot revive a lookup from before blur.
+    const current = () => scope.current === owner && rendered.current.profileId === profileId
+      && rendered.current.needId === needId && rendered.current.agreementId === agreementId;
+    owner.pending = true; setBusy(true); setError(null);
+    const settle = () => { owner.pending = false; setBusy(false); };
     void safetyClientService.readTarget(profileId).then(result => {
+      if (!current()) return;
       settle();
       if (!result.ok) { setError(result.poruka); return; }
       const target = result.podatak.available ? result.podatak.target : null;
       if (!target) { setError('Korisnik trenutno nije dostupan.'); return; }
       router.navigate({ pathname: '/bezbednost', params: { targetAccountId: target.targetAccountId,
         ...(needId ? { needId } : {}), ...(agreementId ? { agreementId } : {}) } });
-    }, () => { settle(); setError('Nismo uspeli da otvorimo bezbednost. Pokušaj ponovo.'); });
+    }, () => { if (!current()) return; settle(); setError('Nismo uspeli da otvorimo bezbednost. Pokušaj ponovo.'); });
   }, [profileId, needId, agreementId]);
   return profileId ? { onPress, busy, error } : undefined;
 }

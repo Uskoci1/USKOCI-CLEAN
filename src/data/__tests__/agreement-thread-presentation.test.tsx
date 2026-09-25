@@ -41,7 +41,7 @@ async function render() { await act(async () => { tree = create(<AgreementThread
 
 beforeEach(() => {
   mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
-  props = { agreement, person: agreement.ucesnici[0], back: jest.fn(), onOverview: jest.fn(), waiting: 'Potvrdi završetak',
+  props = { agreement, person: agreement.ucesnici[0], onOverview: jest.fn(), waiting: 'Potvrdi završetak',
     chat: { messages: [], loading: false, error: false, writable: true, terminal: false, refresh: jest.fn().mockResolvedValue(undefined),
       refreshWorkspace: jest.fn().mockResolvedValue(undefined),
       outbox: { setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined), retry: jest.fn().mockResolvedValue(undefined), start: jest.fn() } as any,
@@ -70,12 +70,14 @@ it('gives 320 dp / font scale 2 history the full identity and accepted terms whi
   await act(async () => button(overview).props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(1);
   await act(async () => button('Nazad').props.onPress());
-  expect(props.back).toHaveBeenCalledTimes(1);
+  expect(props.onOverview).toHaveBeenCalledTimes(2);
   const composer = tree.root.findByProps({ testID: 'agreement-chat-composer' });
   expect(history().findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
   expect(flat(composer.props.style).flexShrink).toBe(0);
   expect(button('Napiši poruku').props).toMatchObject({ value: 'Moj sačuvani nacrt', multiline: true, scrollEnabled: true });
-  expect(flat(button('Napiši poruku').props.style).maxHeight).toBeLessThan(90);
+  // Two complete large-text lines can be seen instead of clipping a multiline draft to a one-line viewport.
+  expect(flat(button('Napiši poruku').props.style).maxHeight).toBeGreaterThanOrEqual(120);
+  expect(flat(button('Napiši poruku').props.style).maxHeight).toBeLessThanOrEqual(140);
   expect(flat(button('Pošalji poruku').props.style)).toMatchObject({ width: 48, height: 48 });
 });
 
@@ -100,6 +102,18 @@ it('responds to the measured keyboard space without remounting the draft or losi
   expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);
   expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
   expect(props.chat.refresh).not.toHaveBeenCalled();
+});
+
+it('keeps Back on the same Agreement overview before and after the keyboard compresses the chat', async () => {
+  await render();
+  await act(async () => button('Nazad').props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(1);
+  await measure(410);
+  await act(async () => button('Nazad').props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(2);
+  await measure(790);
+  await act(async () => button('Nazad').props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(3);
 });
 
 it('keeps storage recovery and a forced pending-photo tray in the scroll, with the writing actions outside it', async () => {

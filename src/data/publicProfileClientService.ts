@@ -6,7 +6,9 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type PublicProfileService = Pick<Izvor, 'javniProfil'>;
+type PublicProfileService = {
+  javniProfil(profileId: string, signal?: AbortSignal): ReturnType<Izvor['javniProfil']>;
+};
 
 function mapPublicProfile(raw: any): JavniProfilProjekcija {
   if (!raw || typeof raw !== 'object') throw new Error('PUBLIC_PROFILE_INVALID_PROJECTION');
@@ -61,12 +63,17 @@ function mapPublicProfile(raw: any): JavniProfilProjekcija {
  * verification, completed-work, availability, radius, tool or vehicle truth.
  */
 export const publicProfileClientService: PublicProfileService = {
-  async javniProfil(profileId) {
+  async javniProfil(profileId, signal) {
     const id = profileId.trim();
     if (!id) return null;
 
     let result;
-    try { result = await supabase.rpc('rpc_get_public_profile', { p_profile_id: id }); }
+    try {
+      if (signal?.aborted) throw new Error('PUBLIC_PROFILE_READ_ABORTED');
+      const request = supabase.rpc('rpc_get_public_profile', { p_profile_id: id });
+      result = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request);
+      if (signal?.aborted) throw new Error('PUBLIC_PROFILE_READ_ABORTED');
+    }
     catch { throw new Error('PUBLIC_PROFILE_READ_FAILED'); }
     const { data, error } = result;
     if (error) throw new Error(error.message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : 'PUBLIC_PROFILE_READ_FAILED');

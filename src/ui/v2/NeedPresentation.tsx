@@ -146,6 +146,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View>
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
+        {props.photos}
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
@@ -168,7 +169,6 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {!draft && counted ? <View style={s.applications}><DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
           accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
           trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /></View> : null}
-        {props.photos}
         <View style={s.brief}>
           {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}

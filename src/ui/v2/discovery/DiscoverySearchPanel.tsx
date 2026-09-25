@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretUp, Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
-import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, saysWorkMode, serbianToday, undatedCount,
+import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
 import { T } from '../../Text';
@@ -22,7 +22,7 @@ export type SearchDraft = { query: string; place: string | null; area: PublicBou
   pinPlace: string | null;
   when: WhenFilter; dates: DateRange | null; where: WhereFilter; places: number; price: MarketplaceView['price'] };
 export const NO_SEARCH: SearchDraft = { query: '', place: null, area: null, pinPlace: null, when: 'any', dates: null, where: 'any', places: 1, price: 'all' };
-export const draftOf = (view: MarketplaceView): SearchDraft => ({ query: view.query, place: view.place ?? null, area: view.area,
+export const draftOf = (view: MarketplaceView): SearchDraft => remoteDiscoveryScope({ query: view.query, place: view.place ?? null, area: view.area,
   pinPlace: view.pinPlace ?? null, when: view.when ?? 'any', dates: dateRange(view.dates), where: view.where ?? 'any', places: atLeast(view.places),
   price: view.price });
 /**
@@ -152,7 +152,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   // "Kako se radi" is offered only when some task says how it is done, or when it is already on and must be removable.
   const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(others);
   const today = serbianToday(now);
-  const edit = (patch: Partial<SearchDraft>) => setDraft(current => ({ ...current, ...patch }));
+  const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
   const clearAll = () => { setDraft(NO_SEARCH); setRangeStart(null); };
   // Only a deliberate expansion reveals its editor, once. Typing, count updates and keyboard reflow never take over.
   const revealEditor = (editor: 'gde' | 'kada', offset = 0) => {
@@ -211,7 +211,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
                 accessibilityState={{ expanded: placeOpen }} haptic="select" hitSlop={0} scaleTo={0.99} onPress={togglePlace} style={s.placeSummary}>
                 <FactArt kind="pin" size={24} />
                 <View style={s.grow}>
-                  <T variant="note" tone="muted">Mesto ili reč</T>
+                  <T variant="note" tone="muted">{draft.where === 'remote' ? 'Reč iz zadatka' : 'Mesto ili reč'}</T>
                   <T variant="bodyStrong" style={s.ink} numberOfLines={large ? 3 : 2}>{whereWords(draft)}</T>
                 </View>
                 {placeOpen ? <CaretUp size={18} weight="bold" color={sys.color.muted} /> : <CaretDown size={18} weight="bold" color={sys.color.muted} />}
@@ -219,12 +219,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
               {placeOpen ? <View testID="search-place-editor" style={s.placeEditor} onLayout={() => revealEditor('gde')}>
                 <View style={s.field}>
                   <MagnifyingGlass size={20} color={sys.color.green} />
-                  <TextInput accessibilityLabel="Pretraži mesta i zadatke" placeholder="Mesto ili reč iz zadatka" placeholderTextColor={sys.color.muted}
+                  <TextInput accessibilityLabel="Pretraži mesta i zadatke" placeholder={draft.where === 'remote' ? 'Reč iz zadatka' : 'Mesto ili reč iz zadatka'} placeholderTextColor={sys.color.muted}
                     value={draft.query} onChangeText={query => edit({ query: query.slice(0, 1000) })} maxLength={1000} style={s.input}
                     returnKeyType="search" onSubmitEditing={Keyboard.dismiss} />
                   {draft.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" haptic="select" hitSlop={0} style={s.clear}
                     onPress={() => edit({ query: '' })}><X size={18} weight="bold" color={sys.color.ink} /></Press> : null}
                 </View>
+                {draft.where === 'remote' ? <T variant="note" tone="muted">Zadaci na daljinu ne zavise od oblasti mape.</T> : <>
                 <T variant="note" tone="muted">Mesta iz dostupnih zadataka</T>
                 <View accessibilityRole="radiogroup" accessibilityLabel="Mesta" style={s.suggestions}>
                   <Suggestion art="tasks" text="Svi zadaci" count={known(everywhere)} checked={!draft.place && !draft.area && !draft.query.trim() && !draft.pinPlace}
@@ -235,7 +236,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
                     checked={!!draft.place && placeKey(draft.place) === placeKey(place.text)}
                     onPress={() => edit({ ...ANYWHERE, place: place.text })} />)}
                   {typed && !shownPlaces.length ? <T variant="note" tone="muted">Nijedno mesto ne sadrži ove reči. Traže se u naslovima i uslovima zadataka.</T> : null}
-                </View>
+                </View></>}
               </View> : null}
             </View>
             <View testID="search-step-kada" style={s.section} onLayout={event => { sectionY.current.kada = event.nativeEvent.layout.y; }}>

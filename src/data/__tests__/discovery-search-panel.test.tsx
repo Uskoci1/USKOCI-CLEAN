@@ -74,6 +74,19 @@ beforeEach(() => {
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
+test('choosing remote clears geographic scope in the draft, retains conditions, and applies only on confirmation', async () => {
+  view = { ...view, place: 'Liman, Novi Sad', area: [19.8, 45.2, 19.9, 45.3], pinPlace: '45.25,19.84',
+    price: 'MY_PRICE', query: 'Pomoć', places: 2 };
+  await render(); await choose('Na daljinu');
+  expect(show().props.label).toBe('Prikaži 1 zadatak');
+  expect(placeValue()).toBe('Na daljinu · „Pomoć“');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesta' })).toHaveLength(0);
+  expect(apply).not.toHaveBeenCalled(); expect(view.pinPlace).toBe('45.25,19.84');
+  await act(async () => show().props.onPress());
+  expect(lastDraft()).toMatchObject({ where: 'remote', area: null, place: null, pinPlace: null,
+    query: 'Pomoć', price: 'MY_PRICE', places: 2 });
+});
+
 test('search opens places, while filters open grouped conditions with local place/date editors', async () => {
   await render();
   expect(openStep()).toEqual(['gde']); expect(texts()).toContain('Pretraga');
@@ -95,7 +108,8 @@ test('search opens places, while filters open grouped conditions with local plac
 
 test('choices stay in context and remain selected, without applying or collapsing the active editor', async () => {
   view = { ...view, where: 'remote' }; await render();
-  await choose(/^Svi zadaci/);
+  expect(placeValue()).toBe('Na daljinu');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesta' })).toHaveLength(0);
   expect(openStep()).toEqual(['gde']);
   await choose('Ovaj vikend');
   expect(openStep()).toEqual(['gde']);

@@ -18,6 +18,49 @@ const view = (patch: Partial<MarketplaceView> = {}): MarketplaceView => ({ ...in
 const NOW = new Date('2026-09-24T08:00:00Z');
 const window = (startsAt: string | null, endsAt: string | null = null) => ({ schedule: { kind: 'FIXED_WINDOW' as const, startsAt, endsAt } });
 
+test('remote discovery ignores restored geographic scope but keeps every shared filter and never invents remote mode', () => {
+  const remote = (id: string, patch: Record<string, unknown> = {}) => item(id, { detalji: { rezimLokacije: 'REMOTE' },
+    priblizno: null, rezimCene: 'OFFERS', ...window('2026-09-24T14:00:00+02:00'), ...patch } as Partial<MarketplaceItem>);
+  const rows = [remote('yes'), remote('tomorrow', window('2026-09-25T14:00:00+02:00')), remote('money', { rezimCene: 'MY_PRICE' }),
+    remote('one-person', { pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } }),
+    remote('other-words', { naslov: 'Drugi posao' }), item('unknown', { priblizno: null })];
+  const scope = view({ where: 'remote', place: 'Novi Sad', area: [19, 45, 20, 46], pinPlace: '45.25,19.83',
+    query: 'Pomoć', when: 'today', price: 'OFFERS', places: 2 });
+  expect(ids(discoveryItems(rows, scope, undefined, NOW))).toEqual(['yes']);
+  expect(whereWords(scope)).toBe('Na daljinu · „Pomoć“');
+  expect(scope.area).toEqual([19, 45, 20, 46]); // normalized view never mutates the remembered input
+});
+
+test('1000 local fixture tasks preserve area counts and remote independence when repeatedly zooming between Novi Sad and Serbia', () => {
+  const group = (prefix: string, count: number, patch: Partial<MarketplaceItem>) =>
+    Array.from({ length: count }, (_, index) => item(`${prefix}-${index}`, patch));
+  const noviSad = group('ns', 300, { priblizno: { lat: 45.25, lng: 19.83 }, detalji: { rezimLokacije: 'STATIONARY' } as MarketplaceItem['detalji'] });
+  const belgrade = group('bg', 350, { priblizno: { lat: 44.81, lng: 20.46 }, detalji: { rezimLokacije: 'STATIONARY' } as MarketplaceItem['detalji'] });
+  const outside = group('outside', 100, { priblizno: { lat: 48.2, lng: 16.37 }, detalji: { rezimLokacije: 'STATIONARY' } as MarketplaceItem['detalji'] });
+  const remote = group('remote', 200, { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] });
+  const unknown = group('unknown', 50, { priblizno: null });
+  const rows = [...noviSad, ...belgrade, ...outside, ...remote, ...unknown];
+  expect(rows).toHaveLength(1000);
+  const regions = [[19.7, 45.1, 20, 45.4], [18.8, 42.2, 23, 46.2]] as const;
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (const [index, bounds] of regions.entries()) {
+      const area = [...bounds] as [number, number, number, number];
+      const shown = discoveryShown(rows, view({ area }), undefined, NOW);
+      const local = index === 0 ? noviSad : [...noviSad, ...belgrade];
+      expect(ids(shown.inArea)).toEqual(ids(local));
+      expect(ids(shown.withoutPoint)).toEqual(ids([...remote, ...unknown]));
+      expect(shown.listed).toHaveLength(local.length + 250);
+      expect(new Set(ids(shown.listed)).size).toBe(shown.listed.length);
+      expect(shown.inArea.some(task => task.id.startsWith('remote') || task.id.startsWith('unknown'))).toBe(false);
+      const remoteShown = discoveryShown(rows, view({ where: 'remote', area, place: 'Novi Sad', pinPlace: '45.25,19.83', query: 'Pomoć' }), undefined, NOW);
+      expect(ids(remoteShown.listed)).toEqual(ids(remote));
+      expect(remoteShown.listed).toHaveLength(200);
+      expect(publicFeatures(remoteShown.listed).features).toHaveLength(0);
+    }
+  }
+  expect(discoveryItems(rows, view({ where: 'remote', query: 'Pomoć remote-199' }), undefined, NOW)).toEqual([remote[199]]);
+});
+
 describe('Kada, read in the task\'s own zone', () => {
   const today = item('today', window('2026-09-24T14:00:00+02:00', '2026-09-24T16:00:00+02:00'));
   const tomorrow = item('tomorrow', window('2026-09-25T09:00:00+02:00', '2026-09-25T11:00:00+02:00'));

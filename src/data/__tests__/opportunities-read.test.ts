@@ -9,6 +9,9 @@ jest.mock('../publicProfileClientService', () => ({
 import { supabaseIzvor } from '../supabaseIzvor';
 import { publicProfileClientService } from '../publicProfileClientService';
 
+let mockSession = { user: { id: 'reader-a' }, accountRevision: 1 };
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
+
 const { mockRpc } = jest.requireMock('../supabaseClient').__testMocks as { mockRpc: jest.Mock };
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
 
@@ -30,7 +33,8 @@ const item = (change: Record<string, unknown> = {}) => ({
 const page = (items: unknown[], hasMore = false) => ({ data: { items, hasMore, asOf: '2026-09-19T00:00:00Z' }, error: null });
 
 describe('W03 authoritative discovery read, through the bounded server reader', () => {
-  beforeEach(() => { jest.clearAllMocks(); mockRpc.mockReset(); publicProfile.mockReset(); });
+  beforeEach(() => { jest.clearAllMocks(); mockRpc.mockReset(); publicProfile.mockReset();
+    mockSession = { user: { id: 'reader-a' }, accountRevision: 1 }; });
 
   it('propagates a failed read so the screen cannot report no tasks', async () => {
     const failure = { code: '08006', message: 'Connection unavailable' };
@@ -72,7 +76,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     publicProfile.mockResolvedValueOnce(null);
 
     const result = await supabaseIzvor.otvorenePrilike();
-    expect(publicProfile).toHaveBeenCalledWith('requester-1');
+    expect(publicProfile).toHaveBeenCalledWith('requester-1', expect.any(AbortSignal));
     expect(result).toEqual([{
       id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
       podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin',
@@ -99,7 +103,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
 
     expect(rows.map(row => row.narucilacAvatarId)).toEqual([assetId, assetId]);
     expect(publicProfile).toHaveBeenCalledTimes(1);
-    expect(publicProfile).toHaveBeenCalledWith('requester-1');
+    expect(publicProfile).toHaveBeenCalledWith('requester-1', expect.any(AbortSignal));
     expect(JSON.stringify(rows)).not.toContain(path);
     expect(mockRpc.mock.calls.map(([name]) => name)).toEqual(['rpc_list_open_tasks_v3']);
   });
@@ -118,8 +122,29 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
       expect(mockRpc.mock.calls.map(([name]) => name)).toEqual(['rpc_list_open_tasks_v3']);
     });
 
-  // One task card (step 5a, 2026-09-24): the rating travels with how many reviews it stands on, taken from the same
-  // profile read the list already makes; nothing is counted or guessed when that read does not disclose reviews.
+  it('keeps every task when optional author reads fail, with unknown rather than zero trust', async () => {
+    mockRpc.mockResolvedValueOnce(page([item(), item({ id: 'need-2', requesterProfileId: 'requester-2' })]));
+    publicProfile.mockRejectedValue(new Error('PUBLIC_PROFILE_READ_FAILED'));
+    const rows = await supabaseIzvor.otvorenePrilike();
+    expect(rows.map(row => row.id)).toEqual(['need-1', 'need-2']);
+    for (const row of rows) expect(row).toMatchObject({ narucilacIme: '', narucilacOcena: null,
+      narucilacBrojOcena: null, narucilacAvatarId: null });
+  });
+
+  it('retires optional author data after an A-B-A account change without erasing public tasks', async () => {
+    mockRpc.mockResolvedValueOnce(page([item()]));
+    publicProfile.mockImplementationOnce(async () => {
+      mockSession = { user: { id: 'reader-b' }, accountRevision: 2 };
+      mockSession = { user: { id: 'reader-a' }, accountRevision: 3 };
+      return { ime: 'Late name', avatarPutanja: null,
+        poverenje: { ocenaDostupna: true, ocenaProsek: 5, brojRecenzija: 2, recenzijeDostupne: true } };
+    });
+    const rows = await supabaseIzvor.otvorenePrilike();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'need-1', narucilacIme: '', narucilacOcena: null, narucilacBrojOcena: null });
+  });
+
+  // The rating travels with its actual review count; unavailable metadata is not a guessed zero.
   it('carries the review count the public profile discloses, 0 when there are none and null when it is not disclosed', async () => {
     const trust = (patch: Record<string, unknown>) => ({ profilId: 'requester-1', uloga: 'narucilac', ime: 'Nikola', avatarPutanja: null, grad: null,
       naslov: null, biografija: null, poverenje: { ocenaProsek: null, brojRecenzija: null, zavrseniBroj: 0, identitetVerifikovan: false,

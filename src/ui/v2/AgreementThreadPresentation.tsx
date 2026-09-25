@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import { ArrowLeft } from 'phosphor-react-native';
+import { ArrowLeft, ClipboardText } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { AgreementChat } from '../AgreementChat';
@@ -12,12 +12,11 @@ import { ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementHero, AgreementPersonBar, agreementRole, AgreementTabs } from './AgreementPresentation';
+import { AgreementHero, AgreementPersonBar, agreementRole } from './AgreementPresentation';
 
 type Props = {
   agreement: DogovorProjekcija;
   person?: UcesnikProjekcija;
-  back: () => void;
   onOverview: () => void;
   waiting?: string | null;
   chat: ComponentProps<typeof AgreementChat>;
@@ -29,7 +28,7 @@ type Props = {
  * role and accepted terms join the history scroll; the short bar always retains Back and the accepted overview.
  * The chat itself never remounts when that composition changes: its draft, selected message and photo tray survive.
  */
-export function AgreementThreadPresentation({ agreement, person, back, onOverview, waiting = null, chat }: Props) {
+export function AgreementThreadPresentation({ agreement, person, onOverview, waiting = null, chat }: Props) {
   const { height } = useWindowDimensions();
   const scale = useTextScale();
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
@@ -53,7 +52,7 @@ export function AgreementThreadPresentation({ agreement, person, back, onOvervie
     if (next > 0) setAvailableHeight(current => current === next ? current : next);
   }}>
     {compact ? <View testID="agreement-thread-compact-bar" style={s.bar}>
-      <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={back} />
+      <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onOverview} />
       <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1} style={s.barTitle}>
         {person && scale < 1.6 ? person.ime : 'Poruke'}
       </T>
@@ -63,11 +62,11 @@ export function AgreementThreadPresentation({ agreement, person, back, onOvervie
         <T variant="note" tone="green">Uslovi</T>
       </Press>
     </View> : <>
-      {person ? <AgreementPersonBar person={person} back={back} /> : <ProductHeader title="Dogovor" back={back} />}
-      <View style={s.tabs}>
-        <AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} />
-        <AgreementHero agreement={agreement} compact waiting={waiting} onOpen={onOverview} />
-      </View>
+      {person ? <AgreementPersonBar person={person} back={onOverview}
+        right={<ChromeIconButton label="Pregled" icon={ClipboardText} onPress={onOverview} />} />
+        : <ProductHeader title="Poruke" back={onOverview}
+          right={<ChromeIconButton label="Pregled" icon={ClipboardText} onPress={onOverview} />} />}
+      {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     <AgreementChat {...chat} compact={compact} context={context} />
   </View>;
@@ -80,7 +79,7 @@ const s = StyleSheet.create({
   overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.warn },
-  tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
+  waitingRow: { paddingHorizontal: 20, paddingBottom: 8 },
   context: { gap: 16, paddingBottom: 24, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: sys.conversation.edge },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   personCopy: { flex: 1, minWidth: 0, gap: 4 },

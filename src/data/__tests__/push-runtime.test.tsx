@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { pendingRoute } from '../../store/pendingRoute';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
+const mockNavigate = jest.fn();
 const mockSetHandler = jest.fn();
 let mockHandler: NotificationHandler | null = null;
 let mockActivity: AppStateStatus | null = 'active';
@@ -18,7 +19,7 @@ jest.mock('react-native', () => {
  const appState = { get currentState() { return mockActivity; }, addEventListener: jest.fn() };
  return new Proxy(native, { get(target, key) { return key === 'AppState' ? appState : Reflect.get(target, key); } });
 });
-jest.mock('expo-router', () => ({ router: { push: (path: string) => mockPush(path) } }));
+jest.mock('expo-router', () => ({ router: { push: (path: string) => mockPush(path), navigate: (path: string) => mockNavigate(path) } }));
 jest.mock('expo-notifications', () => ({
  setNotificationHandler: (handler: NotificationHandler | null) => { mockHandler = handler; mockSetHandler(handler); },
  addNotificationResponseReceivedListener: (callback: (x: unknown) => void) => { mockTap = callback; return { remove: jest.fn() }; },
@@ -33,9 +34,21 @@ let tree: Renderer.ReactTestRenderer;
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 async function mount(ready = true) { await act(async () => { tree = Renderer.create(<PushRuntime ready={ready} />); await flush(); }); }
 beforeEach(() => { jest.useRealTimers(); jest.resetAllMocks(); mockHandler = null; mockActivity = 'active'; jest.spyOn(AppState, 'addEventListener').mockImplementation((_name, callback) => { mockActive = callback; return { remove: jest.fn() }; }); mockState = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1, sessionEpoch: 1 }; mockCold.mockResolvedValue(null); mockClear.mockResolvedValue(undefined); mockSession.mockResolvedValue({ ok: true, podatak: { kind: 'NONE' } }); mockNative.mockResolvedValue({ kind: 'READY', token: 'ExpoPushToken[new]', platform: 'ANDROID' }); mockRotate.mockResolvedValue({ ok: true }); mockRevoke.mockResolvedValue(true); });
-afterEach(() => { act(() => tree?.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
+afterEach(() => { expect(mockPush).not.toHaveBeenCalled(); act(() => tree?.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 it('no registered session never acquires a token, requests permission, or auto-registers', async () => { await mount(); expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled(); });
-it('cold response and same live tap navigate once to the fixed owned Inbox', async () => { mockCold.mockResolvedValue(response()); await mount(); act(() => mockTap(response())); expect(mockPush.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1); });
+it('cold response and same live tap navigate once to the fixed owned Inbox', async () => { mockCold.mockResolvedValue(response()); await mount(); act(() => mockTap(response())); expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1); });
+it('distinct live Inbox taps reuse its route rather than stacking new Inbox screens', async () => {
+ await mount();
+ act(() => { mockTap(response('first')); mockTap(response('second')); mockTap(response('second')); });
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja'], ['/obavestenja']]);
+ expect(mockPush).not.toHaveBeenCalled();
+ expect(mockClear).toHaveBeenCalledTimes(2);
+});
+it('a cold Inbox tap also reuses navigation while preserving the startup destination', async () => {
+ pendingRoute.clear(); mockCold.mockResolvedValue(response()); await mount();
+ expect(mockNavigate).toHaveBeenCalledWith('/obavestenja'); expect(mockPush).not.toHaveBeenCalled();
+ expect(pendingRoute.take()).toBe('/obavestenja');
+});
 it('a cold tap leaves the Inbox where the layout looks for a destination, and a live tap does not', async () => {
   // The root layout resolves a stored return intent on the same cold start and replaces the route
   // when it finishes, which would land on top of the Inbox. Both now mean the same place.
@@ -44,13 +57,13 @@ it('a cold tap leaves the Inbox where the layout looks for a destination, and a 
   act(() => mockTap(response()));
   expect(pendingRoute.take()).toBeNull();
 });
-it.each([{ kind: 'INBOX', url: 'https://evil.test' }, { kind: 'AGREEMENT', id: 'private' }, [], null])('untrusted payload cannot select a route', async data => { await mount(); act(() => mockTap(response('one', data))); expect(mockPush).not.toHaveBeenCalled(); });
+it.each([{ kind: 'INBOX', url: 'https://evil.test' }, { kind: 'AGREEMENT', id: 'private' }, [], null])('untrusted payload cannot select a route', async data => { await mount(); act(() => mockTap(response('one', data))); expect(mockNavigate).not.toHaveBeenCalled(); });
 it('late cold response after account ABA is discarded, without a new-account cold replay', async () => {
  let done!: (value: unknown) => void; mockCold.mockReturnValue(new Promise(r => { done = r; })); await mount();
  mockState = { ...mockState, accountRevision: 3, sessionEpoch: 3 }; act(() => tree.update(<PushRuntime ready />)); await act(flush); done(response()); await act(flush);
- expect(mockPush).not.toHaveBeenCalled(); expect(mockCold).toHaveBeenCalledTimes(1);
+ expect(mockNavigate).not.toHaveBeenCalled(); expect(mockCold).toHaveBeenCalledTimes(1);
 });
-it('retained listener after unmount cannot navigate', async () => { await mount(); const previous = mockTap; act(() => tree.unmount()); act(() => previous(response())); expect(mockPush).not.toHaveBeenCalled(); });
+it('retained listener after unmount cannot navigate', async () => { await mount(); const previous = mockTap; act(() => tree.unmount()); act(() => previous(response())); expect(mockNavigate).not.toHaveBeenCalled(); });
 it('same explicit bound device rotates once and never enables preferences', async () => {
  mockSession.mockResolvedValue({ ok: true, podatak: device }); await mount();
  expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function)); expect(mockRotate).toHaveBeenCalledWith({ accountId: mockState.user!.id, accountRevision: 1 }, device, 'ExpoPushToken[new]', 'ANDROID');
@@ -71,7 +84,7 @@ it('a stuck native read times out and its late result cannot rotate', async () =
 });
 it('waits for router/auth readiness, then picks up cold tap once without remount', async () => {
  mockCold.mockResolvedValue(response()); await mount(false); expect(mockCold).not.toHaveBeenCalled(); expect(mockSession).not.toHaveBeenCalled();
- act(() => tree.update(<PushRuntime ready />)); await act(flush); expect(mockPush).toHaveBeenCalledTimes(1);
+ act(() => tree.update(<PushRuntime ready />)); await act(flush); expect(mockNavigate).toHaveBeenCalledTimes(1);
  act(() => tree.update(<PushRuntime ready={false} />)); act(() => tree.update(<PushRuntime ready />)); await act(flush); expect(mockCold).toHaveBeenCalledTimes(1);
 });
 it('web never invokes unsupported notification listener or native APIs', async () => {
@@ -100,9 +113,9 @@ it.each(['android', 'ios'] as const)('foreground public copy is immediate local 
  mockSession.mockClear(); mockCold.mockClear();
  expect(await present(platform === 'ios' ? notification({ attachments: [], launchImageName: '', threadIdentifier: '', summaryArgument: '', badge: null, interruptionLevel: 'active' }) : notification())).toEqual(visible);
  expect(mockSession).not.toHaveBeenCalled(); expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled(); expect(mockRevoke).not.toHaveBeenCalled();
- expect(mockCold).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
+ expect(mockCold).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled(); expect(mockNavigate).not.toHaveBeenCalled();
  act(() => { mockTap({ notification: notification() }); mockTap({ notification: notification() }); });
- expect(mockPush.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1);
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1);
 });
 it.each([
  { title: 'Private person' }, { body: 'Private address' }, { subtitle: 'Private summary' },
@@ -111,7 +124,7 @@ it.each([
  { categoryIdentifier: 'ACCEPT' }, { launchImageName: 'private' }, { targetContentIdentifier: 'private' }, { threadIdentifier: 'private' },
  { sound: 'defaultCritical' }, { interruptionLevel: 'critical' },
 ])('foreground rejects noncanonical visible content or payload: %j', async content => {
- await mount(); expect(await present(notification(content))).toEqual(hidden); expect(mockPush).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+ await mount(); expect(await present(notification(content))).toEqual(hidden); expect(mockNavigate).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
 });
 it.each([null, {}, { request: null }, { request: { identifier: '', content: notification().request.content, trigger: { type: 'push' } } },
  { request: { ...notification().request, trigger: { type: 'timeInterval' } } },
@@ -134,7 +147,7 @@ it.each(['different-account', 'account-ABA', 'session-refresh', 'logout'])('reta
  await mount();
  mockState = { ...mockState, ...(change === 'different-account' ? { user: { id: 'other-account' }, accountRevision: 2 }
   : change === 'account-ABA' ? { accountRevision: 3 } : change === 'session-refresh' ? { sessionEpoch: 2 } : { user: null, accountRevision: 2 }) };
- expect(await present()).toEqual(hidden); expect(mockPush).not.toHaveBeenCalled();
+ expect(await present()).toEqual(hidden); expect(mockNavigate).not.toHaveBeenCalled();
 });
 it('Auth/recovery readiness removes the handler and a retained callback remains closed after a new owner resumes', async () => {
  await mount(); const previous = mockHandler!;
@@ -145,7 +158,7 @@ it('Auth/recovery readiness removes the handler and a retained callback remains 
 it('unmounted foreground callback cannot show or acknowledge anything', async () => {
  await mount(); const previous = mockHandler!; act(() => tree.unmount());
  expect(mockSetHandler).toHaveBeenLastCalledWith(null); expect(await previous.handleNotification(notification() as Notification)).toEqual(hidden);
- expect(mockPush).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+ expect(mockNavigate).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
 });
 it('signed-out runtime never installs a foreground handler', async () => {
  mockState = { ...mockState, user: null }; await mount(); expect(mockSetHandler).not.toHaveBeenCalled();
