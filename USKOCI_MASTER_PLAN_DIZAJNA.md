@@ -32,8 +32,10 @@ remain. Human/AI chat source separates follow-latest intent from keyboard geomet
 changes. Measured underline motion preserves immediate selection and reduced motion. Narrow people filters,
 calendar endpoints, map fallback pins and remembered map bounds are refined within the existing contracts.
 
-Combined types and 316 suites / 6,151 tests pass; the R17 build and native review are pending at this checkpoint.
-Earlier APK receipts below belong only to their dated sources. R14-N01 and R16-N02/N03 await exact-build native verification;
+Combined types and 316 suites / 6,151 tests pass. Source 8500bf29 is attested and installed on the physical phone
+(36172923719) and emulator (36172928504); read both native reports and RECEIPT.json. The phone confirms the inspected
+pin/detail/back case, then USB disconnected. Emulator fixture checks do not replace real journeys; floating IME
+does not prove docked resize. R14-N01 and physical-phone filter acceptance remain open;
 R16-N01's post-install read failure has no established cause or verified fix. No server, Edge, DEV, payment,
 dependency, provider/microphone or real business command change belongs to R17. Provider quality, spoken AI,
 incoming-chat delivery/paging/read boundaries, Home history-rating reads, server-side Discovery filtering,
@@ -181,14 +183,14 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 | Surface / user's job | What is implemented | Current decision and next acceptance |
 | --- | --- | --- |
-| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. The spoken attention heading/count is already grouped. | R17 source quiets the existing appointment around work, time and person. No date parsing or invented fields; attention, partial reads and own-list counts remain. R17 native verification is pending; N+1 rating reads remain separate functional work. |
+| Home: decide what needs attention | Two entry actions; four server-owned attention reasons; next Agreement; own tasks and applications. The spoken attention heading/count is already grouped. | R17 source quiets the existing appointment around work, time and person. No date parsing or invented fields; attention, partial reads and own-list counts remain. R17 bounded fixture evidence is in its native reports; N+1 rating reads remain separate functional work. |
 | Discovery: find a suitable nearby task | Shared map/list, explicit-tap Nearby with one ephemeral foreground observation, clustering, shared-point groups, draft filters and honest result counts. Illustrated preview facts, one set of map credits and 48 dp quick filters are implemented. | R10 separates large-text search from tools, reserves the measured credit rail and caps selected/list previews without losing scrolling. Oversized filter headers join the registered list. GPS success, DN-01 and query scaling remain separate. |
 | Pins and map color | USKOČI logo + truthful price capsules, native logo fallback beyond the 40-label cap, selected green capsule, count clusters and rounded public points. Shared warmer map palette and Serbian Latin labels. | Existing branded palette/pins remain. R10 gives attribution its own measured rail independent of zoom visibility. Native fallback beyond 40 rich markers and physical-device fluidity remain unobserved; exact-build layout evidence is in the R10 receipt. |
 | Filters and changing views | Draft-before-Apply search, place/date/price/work-mode/free-place choices, chip removal, clear-all and unavailable counts. | Existing records revealed by a changed filter should appear immediately, not replay arrival motion. A genuinely arriving record may animate once. Sorting, saved-search alerts and server pagination remain separate verified-contract work. |
 | Task cards and detail | Shared truthful value slots, FactArt, requirements, availability, publisher; photos only inside task detail. | List head stays compact; the pin preview stacks the same title/value head to reserve its close control and long title. Place/time use separate illustrated rows. Keep exact address protected and missing price in ordinary text. |
 | Location forms | Separate public place/private address, point validation and command recovery. | Save itself is the confirmation (`confirmed: true`); the redundant checkbox is removed. Pending-point and unknown-outcome guards remain. Verify onsite, remote and worker area visually. |
 | Offers and candidate choice | Price/people/note, review before send, candidate comparison and explicit acceptance. | Retain approved acceptance wording and pricing semantics. Inter must also reach native amount/input fields with the correct bold face. Current-build real offer/selection acceptance is still owed. |
-| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. R17 source places work beside the actual portrait and gives accepted facts full width. Current-location sharing route/entries remain retired; server records preserved. | Independent rating, task-location disclosure and telephone consent remain. R17 keyboard/history changes need exact-build native acceptance; reconnect and terminal-media recovery remain explicit checks. |
+| Agreement and messages | State-dependent next action, accepted terms, thread, contact and protected task address. R17 source places work beside the actual portrait and gives accepted facts full width. Current-location sharing route/entries remain retired; server records preserved. | Independent rating, task-location disclosure and telephone consent remain. R17 fixture evidence is recorded; docked-keyboard resize, reconnect and real terminal-media recovery remain explicit checks. |
 | AI task and worker interview | Real owned conversation clients, review, correction, save/publication and durable recovery. R17 adds local draft disclosure separate from review authority and quieter turns; existing typed-draft ownership and recovery remain. | R17 source/native verification and current-build real provider, microphone and full journey acceptance are distinct. See AI table below. |
 | Profile, calendar, support/settings | Native screens and corresponding galleries already exist. | Apply the shared Inter face to input controls, then verify actual focused inputs, fixed footers, large text and all loading/error states. Do not infer whole-flow completion from galleries. |
 | Motion and accessibility | Shared durations, press feedback, live reduced-motion store and root gating, sheet springs, bounded map annotations, interrupted-bell reset, contextual spoken counts and no false arrival replay after filters. R8 adds once-per-answer announcements and silent stream-to-record replacement. | Normal motion stays enabled. Verify final native transitions and actual screen-reader delivery. |
@@ -208,7 +210,7 @@ This is a USKOČI design decision, not a claim to have reproduced another applic
 
 R8–R16 have source, passing automated checks and bounded native observations. Their receipts identify each APK
 and distinguish inert galleries from existing DEV reads. No whole-flow or phone acceptance follows from these.
-R17 is the current source batch; combined checks pass and exact-build native acceptance is pending at this checkpoint.
+R17 is installed with bounded native evidence; see its RECEIPT.json and NEXT.md for remaining acceptance and functional work.
 
 1. **Human chat continuity:** R14's full-width pending-photo recovery and reachable commands are observed at
    normal and 320 dp/font-2 docked keyboard settings. R17 source addresses R14-N01's latest-message anchor across

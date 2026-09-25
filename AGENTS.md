@@ -5,7 +5,10 @@ R17 CONVERSATION / APPOINTMENTS (2026-09-25): owner resumed the second compositi
 Home and Agreements lead with actual work and terms. AI drafts disclose locally, separately from guarded review;
 assistant groups are quieter. Human/AI history preserve follow intent through keyboard geometry and compensate
 context changes while reading history. Narrow filters and map return/fallback geometry are refined.
-Types and 316 suites / 6151 tests pass. Exact APK/native acceptance is recorded separately, not inferred here.
+Types and 316 suites / 6151 tests pass. Source 8500bf29 is attested and installed on the phone (36172923719)
+and emulator (36172928504). Read RECEIPT.json and both native reports: phone map/detail/back observed; USB then
+disconnected. Emulator galleries are bounded; floating IME does not close docked-keyboard finding R14-N01.
+NEXT.md records the next functional packages. Local control is current; remote import timed out, not published.
 No backend, provider, payment, microphone or dependency change. Existing functional and release gates remain open.
 
 R16 DISCOVERY / WORK BRIEF (2026-09-25): owner resumed after visual diagnosis. Read

@@ -38,7 +38,18 @@ Local evidence: `outputs/r6-integration/r16-phone/cold-discovery.png` and its ca
 
 ## Verification status
 
-See CHECKS.json for executed commands and RECEIPT.json for exact source/build/native scope when present.
-Until the new artifact is installed and reviewed, device results are pending. Full AI provider quality, spoken AI,
-incoming-chat delivery/paging/read boundary, Home history-rating reads, server-side discovery filtering and release
-gates are outside this batch and remain open. Existing control-row findings are not closed by visual work.
+Types and all 316 suites / 6,151 tests pass (existing worker teardown warning). Source `8500bf29` is attested
+and installed on the owner's physical phone (APK run 36172923719) and emulator (36172928504), preserving app data.
+Read CHECKS.json, RECEIPT.json and both NATIVE_REVIEW reports for the exact scope. The phone confirmed the selected
+pin and detail/back framing; its USB connection then disappeared, limiting the remaining inspection to the emulator.
+Emulator galleries are inert renderings, not completed marketplace or provider flows. Its floating keyboard does
+not establish the docked-keyboard resize case, so R14-N01 stays open. Ordinary typography remains the design baseline;
+320 dp/font-2 is only a separate resilience observation. No owner visual acceptance is claimed.
+
+Full AI provider quality, spoken AI, incoming-chat delivery/paging/read boundary, Home history-rating reads,
+server-side discovery filtering and release gates remain open. NEXT.md preserves the bounded next packages and
+their current-source evidence. Existing functional control-row findings are not closed by visual work.
+
+The control state is regenerated locally. Upload to the existing private Claude page was attempted in the signed-in
+owner session, but the documented file chooser timed out before the file could be supplied. The remote page still
+showed its older timestamp; publication is unconfirmed, not completed.

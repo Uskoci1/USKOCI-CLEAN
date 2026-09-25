@@ -11,5 +11,8 @@
     "exitCode": 0,
     "warning": "Existing worker teardown warning."
   },
-  "native": "Pending exact artifact installation and review; no phone acceptance from source tests."
+  "native": "Exact-source phone and emulator APKs attested and installed. Bounded observations are in separate native reports; docked-keyboard acceptance and whole journeys are not inferred.",
+  "source": "8500bf29db718230c8706a39609e3f73a6373b59",
+  "sourceTree": "463ee4b36c605a1ced36205388ea67128b8eafc8",
+  "followUp": "AI layout suite: 37 tests passed after two test-only typing corrections; final tsc passed. Runtime source unchanged after full-suite launch."
 }
