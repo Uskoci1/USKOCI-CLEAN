@@ -1,4 +1,4 @@
-import { applicationSelectionClientService as client, readSelectedAgreement } from '../applicationSelectionClientService';
+import { applicationRefusalGuidance, applicationSelectionClientService as client, conclusiveApplicationRefusal, readSelectedAgreement } from '../applicationSelectionClientService';
 import { candidateClientService } from '../candidateClientService';
 import type { IzborKomanda, PodnesiPrijavuKomanda } from '../ports';
 const mockRpc = jest.fn();
@@ -37,11 +37,38 @@ it.each([{ cenaRsd: 1.2 }, { pokrivenaMesta: 0 }, { predlozeniKraj: null }, { pr
   expect(await client.podnesiPrijavu({ ...submit(), ...delta })).toMatchObject({ ok: false, kod: 'APPLICATION_COMMAND_INVALID' });
   expect(mockRpc).not.toHaveBeenCalled();
 });
-it('maps the closed remaining search rejection to a known refusal instead of an unconfirmed outcome', async () => {
+it('keeps authored copy for an allowlisted message without treating message text alone as terminal refusal evidence', async () => {
   mockRpc.mockResolvedValueOnce({ data: null, error: { message: 'NEED_REMAINING_SEARCH_CLOSED', details: 'private trigger detail' } });
   const result = await client.podnesiPrijavu(submit());
   expect(result).toMatchObject({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED' });
+  expect(conclusiveApplicationRefusal(result)).toBe(false);
   expect(JSON.stringify(result)).not.toContain('private trigger detail');
+});
+it('binds a worker eligibility refusal to exact SQLSTATE and allowlisted hard blockers, with authored guidance only', async () => {
+  mockRpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'WORKER_NOT_ELIGIBLE',
+    details: '["MISSING_REQUIRED_TOOL","CALENDAR_CONFLICT"]', hint: 'private hint' } });
+  const result = await client.podnesiPrijavu(submit());
+  expect(result).toMatchObject({ ok: false, kod: 'WORKER_NOT_ELIGIBLE', applicationRefusal: true,
+    hardBlockers: ['MISSING_REQUIRED_TOOL', 'CALENDAR_CONFLICT'] });
+  expect(conclusiveApplicationRefusal(result)).toBe(true);
+  expect(applicationRefusalGuidance(result)).toEqual({
+    messages: ['Radnom profilu nedostaje alat koji ovaj Zadatak zahteva.', 'Termin se preklapa sa već potvrđenim Dogovorom.'],
+    profile: true, calendar: true,
+  });
+  expect(JSON.stringify(result)).not.toContain('private hint');
+});
+it.each([
+  ['wrong SQLSTATE', { code: '22023', message: 'WORKER_NOT_ELIGIBLE', details: '["MISSING_REQUIRED_TOOL"]' }],
+  ['malformed blocker detail', { code: 'P0001', message: 'WORKER_NOT_ELIGIBLE', details: 'private worker detail' }],
+  ['unknown blocker detail', { code: 'P0001', message: 'WORKER_NOT_ELIGIBLE', details: '["PRIVATE_NAME"]' }],
+  ['reused key', { code: '22023', message: 'IDEMPOTENCY_KEY_REUSED', details: 'different command' }],
+] as const)('does not certify %s as a terminal application refusal', async (_label, error) => {
+  mockRpc.mockResolvedValueOnce({ data: null, error });
+  const result = await client.podnesiPrijavu(submit());
+  expect(result.ok).toBe(false);
+  expect(conclusiveApplicationRefusal(result)).toBe(false);
+  expect(JSON.stringify(result)).not.toContain('private worker detail');
+  expect(JSON.stringify(result)).not.toContain('different command');
 });
 it('keeps flexible null/null distinct from an exact interval', async () => {
   mockRpc.mockResolvedValue({ data: receipt(), error: null });

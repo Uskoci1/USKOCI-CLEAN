@@ -245,12 +245,14 @@ function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
 }
 
 /** Composer of one application: what is offered, how many people come, an optional exact time, a short note, one send. */
-export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, refreshHelps = true, initialSheet }: {
+export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet }: {
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
   /** Why the brand action is grey, said next to it, with the one place that fixes it when there is one. */
   blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null;
+  /** Safe guidance beside a frozen/pending command. It never changes or retires that command. */
+  pendingHelp?: { lines: readonly string[]; actions: readonly { label: string; onPress: () => void }[] } | null;
   /** False when the error on screen is one a fresh read of the task cannot fix (the phone could not save the request). */
   refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
@@ -331,6 +333,11 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       <T style={s.summary}>{`${summary} · ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`}</T>
     </View> : null}
     {primary}
+    {pendingHelp && !confirmed ? <View style={s.blocked}>
+      {pendingHelp.lines.map((line, index) => <T key={`${index}:${line}`} variant="meta" tone="muted" style={s.center}>{line}</T>)}
+      {pendingHelp.actions.map(action => <V2Action key={action.label} kind="quiet" compact label={action.label}
+        onPress={action.onPress} disabled={busy} />)}
+    </View> : null}
     {/* A task read without its price (or its places) is fixed by a fresh read, so the way to it stands under the grey button. */}
     {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} /> : null}
     {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review

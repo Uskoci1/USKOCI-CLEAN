@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../../../../contracts/projections';
 import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
-import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../../../data/applicationSelectionClientService';
+import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
 import { fixedApplicationPeople, fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
@@ -139,20 +139,29 @@ export default function Prijava() {
       if (result.ok) await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
-    });
+    }, { settledFailure: conclusiveApplicationRefusal });
   };
   if (!data || !session.draft) return <ComposerUnavailable loading={editor.loading} message={editor.error ?? 'Podaci za prijavu nisu dostupni.'}
     retry={refresh} back={back} />;
   const pending = session.pending;
-  const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
-  const reset = pending && rejection && !editor.uncertain ? () => {
+  // Only SQLSTATE-bound submit evidence may retire this exact intent. A matching message,
+  // a fresh collection read or IDEMPOTENCY_KEY_REUSED never does.
+  const refusal = pending?.result && conclusiveApplicationRefusal(pending.result) ? pending.result : null;
+  const guidance = refusal ? applicationRefusalGuidance(refusal) : null;
+  const reset = pending && refusal && !editor.uncertain ? () => {
     if (!current() || editor.busy || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
-    // A known server refusal is this command's authoritative outcome; the identity may retire.
     if (user?.id) void applicationCommandJournal.clear(user.id, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
     session.pending = null;
     session.draft = withTaskPrice(session.draft!, data.need);
     setValidation(null); void editor.refresh();
   } : undefined;
+  const pendingHelp = pending && !data.receipt && (!refusal || guidance) ? {
+    lines: guidance?.messages.length ? guidance.messages : ['Sačuvana ponuda ostaje ista dok proveravaš radni profil.'],
+    actions: [
+      ...((!refusal || guidance?.profile) ? [{ label: 'Dopuni radni profil', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
+      ...(guidance?.calendar ? [{ label: 'Otvori raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
+    ],
+  } : null;
   return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
@@ -160,7 +169,7 @@ export default function Prijava() {
     // says in plain words what "Ponovi istu Prijavu" does. The repeat sends the same client_request_id with the same
     // payload, which the server answers with the stored result (idempotent replay), never a second application.
     error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain
-      ? reset && pending.result && !pending.result.ok ? `Ova ponuda nije primljena. ${pending.result.poruka}`
+      ? reset && refusal ? `Ova ponuda nije primljena. ${refusal.poruka}`
         : 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
       : null)}
     refreshHelps={validation !== NOT_SAVED_ON_DEVICE}
@@ -173,7 +182,7 @@ export default function Prijava() {
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
       : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
-    submit={submit} back={back} refresh={refresh} reset={reset}
+    submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId } }); }} />;
 }

@@ -152,16 +152,42 @@ it('while a send is in flight, the reason stands in its own live line beside the
   expect(reasonLines()[0].props.accessibilityLiveRegion).toBe('polite'); expect(reasonLines()[0].props.accessibilityElementsHidden).toBeUndefined();
   expect(press('Dopuni radni profil')).toBeDefined();
 });
-it('treats the closed remaining search server rejection as a known refusal that can be reset after refresh', async () => {
-  mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_REMAINING_SEARCH_CLOSED', poruka: 'Zadatak više ne prima nove prijave. Osveži Zadatak.' });
+it('a SQLSTATE-bound refusal is settled immediately, while its journal survives until the explicit new-offer choice', async () => {
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'NEED_NOT_OPEN', poruka: 'Zadatak više ne prima prijave i izbore.',
+    applicationRefusal: true, hardBlockers: [] });
   await offer(); await sendOffer();
-  expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Zadatak više ne prima nove prijave');
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(press('Proveri ishod')).toBeUndefined(); expect(press('Sastavi novu ponudu')).toBeDefined();
+  expect(text()).toContain('Ova ponuda nije primljena. Zadatak više ne prima prijave i izbore.');
+  const key = `uskoci.application.command.v1.owner-a.${mockId}`;
+  expect(mockStorage.has(key)).toBe(true);
+  await tap('Sastavi novu ponudu');
+  expect(mockStorage.has(key)).toBe(false); expect(press('Pregledaj ponudu')).toBeDefined();
+});
+it('shows allowlisted eligibility guidance and correction links without changing the frozen pending command', async () => {
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'WORKER_NOT_ELIGIBLE', poruka: 'Radni profil ili dostupnost ne ispunjavaju uslove Zadatka.',
+    applicationRefusal: true, hardBlockers: ['MISSING_REQUIRED_TOOL', 'CALENDAR_CONFLICT'] });
+  await offer(); await sendOffer();
+  const original = mockSubmit.mock.calls[0][0];
+  expect(text()).toContain('Radnom profilu nedostaje alat koji ovaj Zadatak zahteva.');
+  expect(text()).toContain('Termin se preklapa sa već potvrđenim Dogovorom.');
+  expect(press('Dopuni radni profil')).toBeDefined(); expect(press('Otvori raspored')).toBeDefined();
+  expect(press('Proveri ishod')).toBeUndefined(); expect(press('Sastavi novu ponudu')).toBeDefined();
+  await tap('Dopuni radni profil'); expect(mockRouter.push).toHaveBeenCalledWith('/profil/radnik');
+  expect(mockSubmit.mock.calls[0][0]).toEqual(original);
+  expect(mockStorage.size).toBe(1);
+});
+it.each([
+  ['eligibility message without proof', { ok: false, kod: 'WORKER_NOT_ELIGIBLE', poruka: 'Radni profil ili dostupnost ne ispunjavaju uslove Zadatka.' }],
+  ['reused key', { ok: false, kod: 'IDEMPOTENCY_KEY_REUSED', poruka: 'Ovaj zahtev je već vezan za drugu ponudu. Proveri sačuvano stanje.' }],
+] as const)('%s plus a fresh collection read cannot release an uncertain journal', async (_label, failure) => {
+  mockSubmit.mockResolvedValueOnce(failure);
+  await offer(); await sendOffer();
+  const key = `uskoci.application.command.v1.owner-a.${mockId}`;
+  expect(mockStorage.has(key)).toBe(true); expect(press('Proveri ishod')).toBeDefined();
   await tap('Proveri ishod');
-  // r6: the way on is one command, "Sastavi novu ponudu" (it was "Pregledaj uslove i uredi novu ponudu"), and the
-  // refusal's own reason stands beside it after the readback instead of a sentence about repeating the request.
-  expect(press('Sastavi novu ponudu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
-  expect(text()).toContain('Ova ponuda nije primljena. Zadatak više ne prima nove prijave.');
-  expect(text()).not.toContain('Pošalji istu ponudu'); expect(press('Ponovi istu Prijavu')).toBeUndefined();
+  expect(mockStorage.has(key)).toBe(true); expect(press('Sastavi novu ponudu')).toBeUndefined();
+  expect(press('Ponovi istu Prijavu')).toBeDefined();
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
@@ -258,14 +284,13 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await tap('Ponovi istu Prijavu');
     expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Sastavi novu ponudu')).toBeUndefined();
     await tap('Proveri ishod');
-    mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'NEED_REVISION_MISMATCH', poruka: 'Zadatak je promenjen.' });
+    mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'STALE_REVIEW_REQUIRED',
+      poruka: 'Zadatak ili Prijava su promenjeni. Pregledaj aktuelne podatke pre novog izbora.',
+      applicationRefusal: true, hardBlockers: [] });
     await tap('Ponovi istu Prijavu');
-    expect(text()).toContain('Zadatak je promenjen'); expect(mockStorage.has(JOURNAL())).toBe(true);
-    // The reset appears only after an explicit readback, exactly as for any known refusal.
-    expect(press('Sastavi novu ponudu')).toBeUndefined();
-    await tap('Proveri ishod'); expect(mockStorage.has(JOURNAL())).toBe(true);
-    // r6: after the readback the refusal's reason stays on screen beside the one way on; nothing says to repeat.
-    expect(text()).toContain('Ova ponuda nije primljena. Zadatak je promenjen.');
+    expect(text()).toContain('Zadatak ili Prijava su promenjeni'); expect(mockStorage.has(JOURNAL())).toBe(true);
+    expect(press('Proveri ishod')).toBeUndefined(); expect(press('Sastavi novu ponudu')).toBeDefined();
+    expect(text()).toContain('Ova ponuda nije primljena. Zadatak ili Prijava su promenjeni.');
     expect(text()).not.toContain('Pošalji istu ponudu'); expect(text()).not.toContain('ostaju isti');
     await tap('Sastavi novu ponudu');
     expect(mockStorage.size).toBe(0); expect(press('Pregledaj ponudu')).toBeDefined();

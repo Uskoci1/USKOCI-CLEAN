@@ -42,6 +42,99 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
   AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj predloženog termina.',
 };
+export const APPLICATION_ELIGIBILITY_BLOCKERS = [
+  'ACCOUNT_OR_PROFILE_RESTRICTED', 'OWN_NEED', 'IDENTITY_VERIFICATION_NOT_ADMITTED',
+  'MISSING_REQUIRED_TOOL', 'MISSING_REQUIRED_LICENSE', 'MISSING_REQUIRED_VEHICLE',
+  'INSUFFICIENT_EXPERIENCE', 'PROFILE_EXCLUSION', 'CALENDAR_CONFLICT',
+  'NEED_NOT_FOUND', 'WORKER_PROFILE_NOT_FOUND',
+] as const;
+export type ApplicationEligibilityBlocker = typeof APPLICATION_ELIGIBILITY_BLOCKERS[number];
+const blockerCopy: Readonly<Record<ApplicationEligibilityBlocker, string>> = {
+  ACCOUNT_OR_PROFILE_RESTRICTED: 'Radni profil trenutno nije aktivan za prijave.',
+  OWN_NEED: 'Ne možeš da se prijaviš na sopstveni Zadatak.',
+  IDENTITY_VERIFICATION_NOT_ADMITTED: 'Ovaj Zadatak traži potvrdu identiteta koja trenutno nije dostupna za ovu prijavu.',
+  MISSING_REQUIRED_TOOL: 'Radnom profilu nedostaje alat koji ovaj Zadatak zahteva.',
+  MISSING_REQUIRED_LICENSE: 'Radnom profilu nedostaje licenca koju ovaj Zadatak zahteva.',
+  MISSING_REQUIRED_VEHICLE: 'Radnom profilu nedostaje vozilo koje ovaj Zadatak zahteva.',
+  INSUFFICIENT_EXPERIENCE: 'Navedeno iskustvo ne ispunjava minimum ovog Zadatka.',
+  PROFILE_EXCLUSION: 'Ovaj posao je među poslovima koje si isključio u radnom profilu.',
+  CALENDAR_CONFLICT: 'Termin se preklapa sa već potvrđenim Dogovorom.',
+  NEED_NOT_FOUND: 'Zadatak više nije dostupan.',
+  WORKER_PROFILE_NOT_FOUND: 'Radni profil više nije dostupan.',
+};
+const profileBlockers = new Set<ApplicationEligibilityBlocker>([
+  'ACCOUNT_OR_PROFILE_RESTRICTED', 'MISSING_REQUIRED_TOOL', 'MISSING_REQUIRED_LICENSE',
+  'MISSING_REQUIRED_VEHICLE', 'INSUFFICIENT_EXPERIENCE', 'PROFILE_EXCLUSION', 'WORKER_PROFILE_NOT_FOUND',
+]);
+/** Exact no-write refusals observed in the deployed rpc_submit_response body.
+ * Message text alone is not evidence; ID reuse and concurrency/transport errors are deliberately absent. */
+const conclusiveSubmitSqlstate: Readonly<Record<string, string>> = {
+  NEED_NOT_FOUND: 'P0002',
+  NEED_NOT_OPEN: '22023',
+  OWN_NEED: '42501',
+  RESPONSE_WINDOW_EXPIRED: '22023',
+  STALE_REVIEW_REQUIRED: 'P0001',
+  PROFILE_NOT_OWNED_BY_ACCOUNT: '42501',
+  WORKER_PROFILE_NOT_READY: 'P0001',
+  NEED_FULL: 'P0001',
+  INVALID_COVERED_SLOTS: '22023',
+  TEAM_CAPACITY_EXCEEDED: '22023',
+  NEED_REMAINING_CAPACITY_EXCEEDED: '22023',
+  INVALID_PROPOSED_INTERVAL: '22023',
+  RESPONSE_ALREADY_SELECTED: 'P0001',
+  NEED_FIXED_INTERVAL_INVALID: '22023',
+  AGREEMENT_CALENDAR_INTERVAL_INVALID: '22023',
+  WORKER_NOT_ELIGIBLE: 'P0001',
+};
+export type ApplicationSubmitRefusal = {
+  ok: false; kod: string; poruka: string; applicationRefusal: true;
+  hardBlockers: readonly ApplicationEligibilityBlocker[];
+};
+function decodeHardBlockers(raw: unknown): ApplicationEligibilityBlocker[] | null {
+  if (typeof raw !== 'string' || raw.length > 1000) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value) || value.length < 1 || value.length > APPLICATION_ELIGIBILITY_BLOCKERS.length
+      || new Set(value).size !== value.length
+      || value.some(code => typeof code !== 'string' || !(APPLICATION_ELIGIBILITY_BLOCKERS as readonly string[]).includes(code))) return null;
+    return value as ApplicationEligibilityBlocker[];
+  } catch { return null; }
+}
+function decodeSubmitRefusal(raw: unknown): ApplicationSubmitRefusal | null {
+  const error = record(raw);
+  const kod = typeof error?.message === 'string' ? error.message : '';
+  const sqlstate = typeof error?.code === 'string' ? error.code : '';
+  if (!Object.prototype.hasOwnProperty.call(conclusiveSubmitSqlstate, kod)
+    || conclusiveSubmitSqlstate[kod] !== sqlstate
+    || !Object.prototype.hasOwnProperty.call(applicationSelectionErrors, kod)) return null;
+  let hardBlockers: ApplicationEligibilityBlocker[] = [];
+  if (kod === 'WORKER_NOT_ELIGIBLE') {
+    const decoded = decodeHardBlockers(error.details);
+    if (!decoded) return null;
+    hardBlockers = decoded;
+  }
+  return { ok: false, kod, poruka: applicationSelectionErrors[kod], applicationRefusal: true, hardBlockers };
+}
+export function conclusiveApplicationRefusal(result: Ishod<unknown>): result is ApplicationSubmitRefusal {
+  if (result.ok) return false;
+  const value = record(result);
+  if (value?.applicationRefusal !== true || !Object.prototype.hasOwnProperty.call(conclusiveSubmitSqlstate, result.kod)
+    || !Array.isArray(value.hardBlockers)) return false;
+  if (result.kod === 'WORKER_NOT_ELIGIBLE') return decodeHardBlockers(JSON.stringify(value.hardBlockers)) !== null;
+  return value.hardBlockers.length === 0;
+}
+export function applicationRefusalGuidance(result: Ishod<unknown>): {
+  messages: string[]; profile: boolean; calendar: boolean;
+} | null {
+  if (!conclusiveApplicationRefusal(result)) return null;
+  const messages = result.hardBlockers.map(code => blockerCopy[code]);
+  const profile = result.hardBlockers.some(code => profileBlockers.has(code))
+    || ['WORKER_PROFILE_NOT_READY', 'PROFILE_NOT_OWNED_BY_ACCOUNT', 'TEAM_CAPACITY_EXCEEDED'].includes(result.kod);
+  const calendar = result.hardBlockers.includes('CALENDAR_CONFLICT');
+  if (!messages.length && !profile && !calendar) return null;
+  return { messages: messages.length ? messages : [result.poruka], profile, calendar };
+}
+
 const hash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const key = (value: string) => value.trim().length >= 8 && value.trim().length <= 200;
 function interval(start: string | null, end: string | null) {
@@ -75,26 +168,49 @@ async function command<T>(rpc: string, args: Record<string, unknown>, decode: (r
 /** Sole canonical submit/select adapter. Explicit retries reuse the caller's
  * immutable request. Server still owns eligibility, calendar and atomic Agreement. */
 export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | 'izaberiPrijavu'> = {
-  podnesiPrijavu(k: PodnesiPrijavuKomanda) {
+  async podnesiPrijavu(k: PodnesiPrijavuKomanda) {
     if (!uuid(k.potrebaId) || !uuid(k.radnikProfilId) || !positiveInteger(k.potrebaRevizija) ||
         !positiveInteger(k.pokrivenaMesta) || !positiveInteger(k.cenaRsd) || !key(k.clientRequestId) ||
         !interval(k.predlozeniPocetak, k.predlozeniKraj) ||
-        (k.napomena !== null && (typeof k.napomena !== 'string' || k.napomena.length > 4000))) return Promise.resolve(invalid());
-    return command('rpc_submit_response', {
+        (k.napomena !== null && (typeof k.napomena !== 'string' || k.napomena.length > 4000))) return invalid();
+    const args = {
       p_need_id: k.potrebaId, p_need_revision: k.potrebaRevizija, p_worker_profile_id: k.radnikProfilId,
       p_covered_slots: k.pokrivenaMesta, p_price_rsd: k.cenaRsd,
       p_proposed_start_at: k.predlozeniPocetak, p_proposed_end_at: k.predlozeniKraj,
       p_scope_note: k.napomena, p_client_request_id: k.clientRequestId,
-    }, raw => {
-      const value = record(raw);
-      if (!value || !uuid(value.responseId) || !sameId(value.applicationId, value.responseId) ||
-          !positiveInteger(value.version) || value.needRevision !== k.potrebaRevizija || !hash(value.contentHash) ||
-          !['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(String(value.status)) ||
-          !['MY_PRICE', 'OFFERS'].includes(String(value.pricingMode)) || value.coveredSlots !== k.pokrivenaMesta ||
-          value.snapshotSchema !== 'APPLICATION_V1_SELF_DECLARED' || value.authoritative !== true ||
-          typeof value.idempotentReplay !== 'boolean') return null;
-      return { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash };
+    };
+    type Envelope =
+      | { kind: 'SUCCESS'; receipt: { prijavaId: string; verzija: number; hash: string } }
+      | { kind: 'REFUSAL'; refusal: ApplicationSubmitRefusal };
+    const outcome = await readOwnedResult<Envelope>({ write: true, errors: applicationSelectionErrors,
+      fallback: 'APPLICATION_SELECTION_UNCONFIRMED', invalid: 'APPLICATION_SELECTION_INVALID_RECEIPT',
+      request: async () => {
+        const response = await supabaseKlijent().rpc('rpc_submit_response', args);
+        const refusal = decodeSubmitRefusal(response.error);
+        if (refusal) return { data: { kind: 'REFUSAL', refusal }, error: null };
+        const calendar = calendarFailure(response.error);
+        if (calendar && !calendar.ok) return { data: null, error: { message: calendar.kod } };
+        return response.error ? response : { data: { kind: 'SUCCESS', raw: response.data }, error: null };
+      },
+      decode(raw) {
+        const envelope = record(raw);
+        if (envelope?.kind === 'REFUSAL') {
+          const refusal = envelope.refusal as Ishod<unknown>;
+          return conclusiveApplicationRefusal(refusal) ? { kind: 'REFUSAL', refusal } : null;
+        }
+        if (envelope?.kind !== 'SUCCESS') return null;
+        const value = record(envelope.raw);
+        if (!value || !uuid(value.responseId) || !sameId(value.applicationId, value.responseId) ||
+            !positiveInteger(value.version) || value.needRevision !== k.potrebaRevizija || !hash(value.contentHash) ||
+            !['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(String(value.status)) ||
+            !['MY_PRICE', 'OFFERS'].includes(String(value.pricingMode)) || value.coveredSlots !== k.pokrivenaMesta ||
+            value.snapshotSchema !== 'APPLICATION_V1_SELF_DECLARED' || value.authoritative !== true ||
+            typeof value.idempotentReplay !== 'boolean') return null;
+        return { kind: 'SUCCESS', receipt: { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash } };
+      },
     });
+    if (!outcome.ok) return outcome;
+    return outcome.podatak.kind === 'REFUSAL' ? outcome.podatak.refusal : { ok: true as const, podatak: outcome.podatak.receipt };
   },
   izaberiPrijavu(k: IzborKomanda) {
     if (!uuid(k.potrebaId) || !uuid(k.prijavaId) || !positiveInteger(k.potrebaRevizija) ||

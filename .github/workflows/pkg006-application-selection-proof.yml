@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - work/pre-v3-engine-integration-20260911
+      - work/uskoci-ui-unification-20260924
     paths:
       - 'src/app/(app)/prilike/[id]/prijava.tsx'
       - 'src/data/applicationCommandJournal.ts'
       - 'src/data/applicationSelectionClientService.ts'
+      - 'src/hooks/useOwnedEditor.ts'
+      - 'src/ui/v2/ApplicationComposerPresentation.tsx'
       - 'src/ui/v2/ApplicationSelectionPresentation.tsx'
       - 'src/app/(app)/moje-prijave.tsx'
       - 'src/ui/v2/MyApplicationsPresentation.tsx'

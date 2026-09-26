@@ -81,7 +81,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     };
   }, [accountId, accountRevision, refresh, identity]));
 
-  async function save(command: () => Promise<Ishod<T>>) {
+  async function save(command: () => Promise<Ishod<T>>, options?: { settledFailure?: (result: Ishod<unknown>) => boolean }) {
     const scope = owner.current;
     if (!scope?.current() || scope !== renderedScope || scope.generation !== renderedGeneration ||
       scope.identity !== identity || scope.writing || scope.reading ||
@@ -92,10 +92,16 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
       const result = await command();
       if (!scope.current()) return;
       if (result.ok) { scope.generation++; setData(result.podatak); setSaved(true); }
-      else {
+      else if (options?.settledFailure?.(result)) {
+        // A narrowly proven command-owned refusal is terminal for this write.
+        scope.generation++;
+        scope.reconcileRequired = false;
+        setError(result.poruka);
+        setUncertain(false);
+      } else {
         scope.reconcileRequired = true;
         setError(result.poruka);
-        // Any rejected/unknown write must be reconciled before another command.
+        // Unknown, malformed and non-proven write failures still require reconciliation.
         // Keep the draft visible until the user explicitly reads server state.
         setUncertain(true);
       }
