@@ -1,5 +1,15 @@
 # USKOČI — repository entry map
 
+R19 CURRENT ACCEPTANCE (2026-09-26): a69a26c6 is attested and installed on the phone (36229901348)
+and emulator (36229903151). Read RECEIPT.json and NATIVE_REVIEW.deep-return-chat in the R19 directory.
+Phone Android Back passes keyboard→same Agreement overview→list; real ten-row detail/Back preserves749dp.
+Emulator deep local1,000-row position now passes twice:9914→9913.9dp, same rows within3–4px.
+SPEED REMAINS OPEN: progressive remeasurement takes~7.3s after readiness; do not call it fluid or server-load proof.
+Next bounded experiment separates settled native mount identity from fresh focus/callback ownership, with remount
+fallback for interrupted transitions/changed account/data/layout; preserve the earlier spring/coverage fixes.
+Types and321suites/6326tests pass. No backend/Edge/provider/dependency changes. Dashboard regenerated locally;
+remote Artifact import remains unconfirmed. NEXT.md is the work order; older pending APK paragraphs below are history.
+
 R19 DEEP RETURN / ANDROID CHAT BACK (2026-09-26): source 03cc3e48 is installed and hash-verified on
 phone run 36227403801 and emulator 36227405570. Real ten-row map/detail/Back now restores 459/642 dp;
 phone immediate Back during detail loading also passes. Read NATIVE_REVIEW.explicit-viewport.

@@ -732,10 +732,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "R19 03cc3e48 / telefon 36227403801: mapa, lista, detalj i povratak potvrđeni, sačuvano 459 dp / potvrđeno 459,1 dp i pri brzom povratku iz učitavanja. Font 1,15 sačuvan. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.explicit-viewport.md"
+        "dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
       },
-      "problem": "Kratka stvarna lista sada čuva poziciju na oba uređaja. Lokalna lista od 1.000 redova na 03cc3e48 još skače sa redova 41–43 na 10–12. Ispravka delimično izmerenog sadržaja je u kodu i testovima; sledeći APK mora potvrditi dubok povratak. Serversko straničenje i opterećenje korisnicima nisu dokazani.",
-      "sledece": "Proveriti novu verziju na 1.000 lokalnih redova sa numeričkim tragom, bez probnih podataka na serveru. Novi kod čuva izvornu poziciju kroz više iscrtanih delova; ograničava je tek kada izmeri pravi kraj liste. CHECKS.deep-return-chat.json i DEEP_RETURN_AND_CHAT.md u R19 fascikli.",
+      "problem": "Gubljenje pozicije popravljeno: emulator36229903151 vraća isti 42. red od1.000, 9.914/9.913,9 dp. Vraćanje ipak traje oko7,3s na emulatoru — brzina nije prihvaćena. Serversko straničenje i opterećenje korisnicima ostaju.",
+      "sledece": "Ubrzati dubok povratak bez izmišljanja visina i bez gubitka kamera/filter/nalog zaštita. Ponoviti veliko lokalno stanje na telefonu. Završni dokazi R19: docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1099,10 +1099,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "R19 03cc3e48 / telefon 36227403801: pregled završenog probnog Dogovora, stvarni izvorni zadatak i postojeće poruke viđeni. Strelica u zaglavlju vraća pregled, Androidovo Nazad izlazi iz Dogovora — taj dodatni kvar se ispravlja. Bez novog slanja. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.explicit-viewport.md Ranije: R18 74f514d7, telefon 36183495466, emulator 36183499333: Aktivan, čekajući i završen Dogovor viđeni. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 2026-09-23: novi pregled Dogovora viđen na telefonu (build 077fd648, docs/implementation/design-system/g7-dogovor/G7_RECEIPT.json), samo Pregled; Poruke nisu otvarane. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: pregled Dogovora sa strane izvođača — uslovi, 3.000 RSD, sledeći korak sa pravilom 48h, učesnici, „Završio sam“ kao jedina narandžasta radnja, dve veze ka zadatku i prijavi (PKG-048). Isti ekran viđen ranije na telefonu za završen Dogovor."
+        "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
       },
-      "problem": "Androidovo Nazad iz poruka na 03cc3e48 napušta Dogovor; ispravka je napisana i testirana, potvrda na sledećem APK-u čeka.",
-      "sledece": "Task kartica na vrhu otvara stvarni zadatak. Proveriti novu obradu Androidovog Nazad: tastatura, zatim pregled, zatim prethodni ekran; bez gubitka nepotvrđenih komandi.",
+      "problem": "",
+      "sledece": "Androidov povratak potvrđen na telefonu. Zadržati karticu zadatka i prihvaćene uslove; ostaju vizuelno skraćen podnaslov osobe i širi tokovi iz NEXT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1137,10 +1137,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "R19 03cc3e48 / telefon 36227403801: pregled završenog probnog Dogovora, stvarni izvorni zadatak i postojeće poruke viđeni. Strelica u zaglavlju vraća pregled, Androidovo Nazad izlazi iz Dogovora — taj dodatni kvar se ispravlja. Bez novog slanja. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.explicit-viewport.md Ranije: R18 74f514d7, telefon 36183495466, emulator 36183499333: Poruke u oba smera uz ručno osvežavanje; clipping nacrta ostaje. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om. Dopuna 24.09: poziv PKG-050 jeste u izgrađenom APK-u 644cab09; prethodno „tek sa sledećim APK-om“ više nije aktuelno. Novi ACK rubni slučaj nije prihvaćen na uređaju (RC-01)."
+        "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md"
       },
       "problem": "Istorija poruka nema straničenje, dolazne poruke traže osvežavanje, precizna granica oznake pročitanog nije završena. Dva reda unosa uz tastaturu proverena su u probnom prikazu prvog R19 APK-a na emulatoru; stvarno aktivno slanje, uvećan tekst i fizički telefon ostaju zasebne provere. Glasovne poruke i dokumenti nisu implementirani.",
-      "sledece": "Nova obrada Androidovog Nazad ostaje vezana za vidljiv razgovor i isti nalog; testovi čuvaju neizvestan ishod. Potvrditi na novom APK-u. Straničenje, automatske dolazne poruke i granica pročitanog ostaju zaseban posao.",
+      "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Ilustracija praznog razgovora je malo odsečena uz tastaturu; tekst/radnje su vidljivi. Multiline/slanje nije ponovljeno. Straničenje, dolazne poruke i precizna granica pročitanog ostaju.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
