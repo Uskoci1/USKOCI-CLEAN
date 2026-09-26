@@ -1,82 +1,79 @@
-# Codex handoff — USKOČI media apply + bounded push proof
+# Codex handoff — USKOČI media and strictly bounded push proof
 
-Base source: `e996cbc7fbc4a74116b5ffacb210a4aad9e34450` on `work/uskoci-ui-unification-20260924`.  
+Branch: `work/uskoci-ui-unification-20260924`, repository `Uskoci1/USKOCI-CLEAN`.  
 Canonical DEV: `leqcwgzvjsxugfgzdmth`.  
-Read first: `docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md` and current `NEXT.md`.
+Read current `AGENTS.md`, `NEXT.md`, the control table and `PUSH_ROLE_RECHECK.json` before continuing. Historical preflight source was `e996cbc7`; always resolve current HEAD instead of resetting to that source.
 
 ## Hard rules
 
-- Do not deploy Edge, alter DEV data/config, activate push, register/send test events, or change provider settings until the owner says **`primeni`**.
-- Never print/fetch service-role, provider, Firebase or other secret values.
-- Do not create mass notifications.
-- Bind every acceptance claim to exact source/tree/build/device.
-- Preserve failed/unknown command journals and account/session fences.
+- Do not deploy Edge, alter DEV data/config, activate push, register devices/create test events or change provider settings until the owner explicitly authorizes the named package with **`primeni`**.
+- Do not request or display keys, tokens, private message bodies or raw personal data.
+- Do not activate mass notifications or retire another user's queue as test setup.
+- A brief global enable window is NOT a one-event send limit. The former zero-device/global-tick backlog-retirement plan is withdrawn.
+- Bind acceptance to exact source, test run, deployed version, build and physical device; distinguish those layers.
+- Preserve unknown-outcome journals and account/session/focus fences.
 
-## Package M1 — MEDIA_COMMAND_CANCELLED
+## M1 — MEDIA_COMMAND_CANCELLED
 
-No new source design is required.
+Historical comparison found one entrypoint difference: GitHub blob `544a5d2697be05302f115a65b088ec1e1ed39695` admits `MEDIA_COMMAND_CANCELLED` in safeCodes; deployed media v12 did not. Shared sanitizer was identical.
 
-Preflight:
-1. Re-read branch head and deployed `uskoci-media`.
-2. Require GitHub entry blob `544a5d2697be05302f115a65b088ec1e1ed39695`.
-3. Require deployed v12 entrypoint to differ in exactly one line: missing `MEDIA_COMMAND_CANCELLED` in `safeCodes`.
-4. Require shared sanitizer equality.
-5. Run the focused media client regression and exact Edge synthetic tests; run full types/Jest if environment permits.
+1. Re-read current GitHub and deployed `uskoci-media` files, including relative dependencies. If the difference was already applied, record that and do not deploy again.
+2. Keep the existing safe-code fix rather than redesigning uploads. Run the focused client regression and an exact Edge-handler test that returns the cancelled RPC error. A mocked client HTTP response alone is not an Edge execution proof.
+3. Preserve the no-retry rule, sanitization, immutable object identity, ownership checks and unknown-state behavior. RC-02 concurrency remains a separate package.
+4. Prepare a manifest of exact files/hashes, before/after test results and rollback source. Do not apply it to canonical DEV/Edge before explicit approval.
+5. After approval, deploy only the named package with verify_jwt preserved; fetch it again and compare actual content. Do not create a real upload/cancel command without an approved scenario.
 
-Only after owner says `primeni`:
-6. Deploy the exact GitHub `uskoci-media/index.ts` plus exact shared sanitizer, preserving verify_jwt=true.
-7. Re-read deployed function; assert new version, source contains exactly the expected safe-code line and shared file remains identical.
-8. Do not manufacture a real media command just to prove the string. Use the existing disposable/synthetic proof unless owner separately authorizes a real upload/cancel scenario.
-9. Update control: source/deployed/test/device separately. Do not mark whole media flow complete; RC-02 remains.
+## P1 — correct current observations
 
-## Package P1 — bounded owner push proof
+Read-only check `2026-09-26T11:55:24.347655Z` joined BOTH `user_id` and `role_context` to the delivery recipient:
 
-Do not start with a send.
+- 10 PUSH CREATED/unstarted deliveries target REQUESTER.
+- None has a matching REQUESTER preference row, so push is false for that role.
+- None has an active recipient device; 9 lack expiry.
+- Earlier account-wide aggregation incorrectly treated a preference in another role as REQUESTER consent. Do not repeat that claim.
+- Earlier observed attempt/readiness counts were both 0. Recheck them before further work.
+- Source/config inspection found that the R19 `rs.uskoci.dev` build lacks the matching Firebase configuration; UI success is not token-registration proof.
+- The disabled transport flag is a supported inference, NOT a directly observed env value. HTTP 200 alone does not establish its body or provider activity. Use an existing safe boolean/status observation if available; otherwise retain this limitation.
 
-Current observed baseline:
-- 10 PUSH CREATED/unstarted;
-- 0 attempts;
-- 0 readiness rows;
-- 0 active devices;
-- one inactive requester Android device;
-- requester push preference enabled;
-- current `rs.uskoci.dev` R19 build is not a push proof build;
-- 9/10 old PUSH rows have no expiry;
-- transport is effectively disabled by the deployed v14 kill-switch behavior.
+These are multiple independent preconditions, not a fully proven end-to-end diagnosis.
 
-After owner says `primeni`, execute as two separately stoppable stages.
+## P1A — read-only diagnosis before any test
 
-### P1A — backlog retirement with zero active devices
+1. Bind the owner's exact authenticated account and device; do not assume the R18 requester or any matching display name is the owner.
+2. For one approved task/profile pair inspect current task status/revision/deadline, task type/location/time, worker profile readiness, required tools/licences/vehicles/experience, exclusions and calendar conflicts.
+3. Separately inspect automatic-discovery gates: availability, preferred area, proactive notification setting and quiet hours. Manual application eligibility and proactive delivery eligibility are not interchangeable.
+4. Trace the matching opportunity and activity event, then the exact-role notification preference, category, suppression reason, delivery row, registered session-bound device and transport attempt. Stop at the first unproved transition; do not manufacture missing records.
+5. Check native package/provider capability and permission separately from server preferences. Neither cron success nor an ACTIVE Edge function proves dispatch or display on a phone.
+6. Save only safe counts/statuses/reason codes and exact source references. No secret retrieval is needed.
 
-1. Reconfirm active-device count = 0 immediately before activation.
-2. Reconfirm exact old unstarted backlog count and event-type summary.
-3. Enable transport only for the minimum controlled tick needed to let server suppression run while no device exists.
-4. Assert no provider attempt was created; old rows must become non-sendable/suppressed. If any attempt exists, disable and stop.
-5. Disable transport again.
-6. Reconfirm zero sendable historical backlog and zero active devices.
+## P1B — prepare enforceable isolation; do not globally enable
 
-Do not invent SQL UPDATE cleanup if the canonical transport/suppression path can settle the rows. If environment/config control cannot be bounded safely, stop and return an operation plan instead.
+The existing general queue claim must not be called as a one-notification test merely because a precheck sees one device.
 
-### P1B — one owner device, one event
+Prepare a separate candidate/proof, or use an already existing equivalent only after inspecting it, that enforces:
 
-1. Produce a dedicated Android proof build with an applicationId that has a matching Firebase client; preserve explicit user permission and no automatic enrollment.
-2. Install on the owner's physical phone. Do not use the current `rs.uskoci.dev` APK as push evidence.
-3. Owner explicitly enables notifications. Require native token READY and exact server read-back of one active session-bound Android device.
-4. Keep transport off.
-5. Create exactly one owner-authorized event, preferably one test message in the already-existing R18 test Agreement from the approved second test account. No batch generation.
-6. Verify exactly one new PUSH delivery exists for the event.
-7. Enable transport only for this isolated window. Require one attempt, then provider ticket/receipt. Verify no unrelated attempts.
-8. Verify lock-screen visibility and warm/cold tap to the correct current-account Inbox/destination.
-9. Disable transport immediately after receipt/evidence; optionally disable/revoke the proof registration.
-10. Save a receipt with counts, source/build hash, device, delivery state and provider outcome — never token/key values.
+- exactly one approved account + current recipient role + device registration revision + event/delivery identity;
+- a hard maximum of one provider dispatch, with durable attempt identity;
+- no claim, send, acknowledgement or suppression of unrelated queue rows;
+- explicit consent, category, quiet-hour, block, closure and session checks;
+- concurrency protection so a second worker/retry cannot send twice;
+- no replay after an unknown provider outcome, and expiry of the test authorization.
 
-## After M1/P1
+Prove wrong-account/device/event rejection and unchanged unrelated backlog in a disposable environment. Do not implement only an interface toggle or rely on time-window shutdown. Any server candidate, configuration change or test authorization still waits for the owner's explicit `primeni`.
 
-Resume current NEXT without rebuilding completed R19 surfaces:
-1. R18-E01/E02 feedback truth and correction link, preserving uncertain-command identity.
-2. Deep-return speed without losing the confirmed offset.
-3. R18-E04 / multiline composer / post-selection Back.
-4. Verified safety target name.
-5. Avatar pending/absent recovery.
-6. R18-E03 application projection.
-7. Server proposal packages remain proof-first and require a separate `primeni`.
+## P1C — one real approved test after isolation exists
+
+1. Agree the exact owner account/device and test state, for example locked screen followed by cold-start tap.
+2. Build/install a push-capable package with the correct applicationId/provider configuration. Let the owner grant OS permission and enable the intended role; verify exact registration/readback.
+3. Create only the approved event using the ordinary authorized app path and an approved counterpart account. Keep ordinary global sending disabled.
+4. Admit only that event/delivery/device under the bounded test authorization. Observe at most one provider dispatch and its ticket/receipt.
+5. Confirm actual phone display and tap to the correct account/destination. Provider acceptance is not proof of display.
+6. Record the result and close the test authorization. Leave unrelated backlog unchanged. Warm-start, denied-permission and other scenarios need separate bounded tests; do not claim them from one cold-start notification.
+
+No stage above has been executed on a real phone by this handoff.
+
+## Current client continuation
+
+The R18 refusal-recovery candidate is already written in `348c2ec6ac0d3afe2e51e5a15e7620b023646ca5`. Its exact proof is run `36240045849`; read the final run/receipt rather than assuming it passed. Preserve failed runs `36237862251`, `36238087977` and `36239846013` as historical evidence.
+
+Do not rebuild completed R19 UI. After the current client package is accepted in tests, next verify the exact APK/profile-return behavior and separately close reset/storage-failure races. Then follow current NEXT for deep-return speed, accessibility/multiline chat, verified safety target, avatar recovery and additive application facts. Server packages remain proof-first and separately approved.
