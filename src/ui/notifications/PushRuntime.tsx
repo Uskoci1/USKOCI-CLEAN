@@ -6,12 +6,7 @@ import { pendingRoute } from '../../store/pendingRoute';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
-
-// Exact public transport copy, plus the previously shipped wording for queued pushes.
-const publicInboxBodies = new Set([
- 'Imate novo obaveštenje. Otvorite aplikaciju.',
- 'Imaš novo obaveštenje. Otvori aplikaciju.',
-]);
+import { isPublicInboxCopy } from './publicInboxCopy';
 
 function publicInbox(notification: Notifications.Notification): boolean {
  const request = notification?.request, content = request?.content, trigger = request?.trigger;
@@ -20,7 +15,7 @@ function publicInbox(notification: Notifications.Notification): boolean {
  const data = content.data, value = content as unknown as Record<string, unknown>;
  // Only the existing worker's public copy may reach native presentation. Native
  // metadata is allowed, but no subtitle, attachment, category action or summary.
- if (content.title !== 'USKOČI' || !publicInboxBodies.has(content.body ?? '')
+ if (!isPublicInboxCopy(content.title, content.body)
   || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return false;
  if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
   .some(key => value[key] != null && value[key] !== '')) return false;

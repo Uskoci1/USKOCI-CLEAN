@@ -3,13 +3,14 @@ on:
   push:
     branches: [work/uskoci-ui-unification-20260924]
     paths:
-      - 'supabase/migrations/20260926175504_clean_notification_push_event_type.sql'
+      - 'supabase/candidates/20260926175504_clean_notification_push_event_type.sql'
       - 'supabase/functions/_shared/pushNotificationCopy.mjs'
       - 'supabase/functions/uskoci-push-transport/index.ts'
       - 'supabase/proofs/notifications/n09_push_transport_edge.test.mjs'
       - 'supabase/proofs/notifications/n09_push_transport_runtime.mjs'
       - 'supabase/proofs/notifications/n09_push_transport_proof.mjs'
       - 'supabase/proofs/pre_v3/push_readiness_proof.mjs'
+      - 'supabase/proofs/pre_v3/closure_runtime.mjs'
       - '.github/workflows/notification-a1-runtime-proof.yml'
   workflow_dispatch:
 permissions:

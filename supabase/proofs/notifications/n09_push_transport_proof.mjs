@@ -9,7 +9,7 @@ import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {loadPushHandler} from './n09_push_transport_runtime.mjs';
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;assertLocalDeviceProofTargets(url,db);
 const file='supabase/migrations/20260910193029_clean_n09_expo_push_transport.sql',source=readFileSync(file);
-const a1File='supabase/migrations/20260926175504_clean_notification_push_event_type.sql',a1Source=readFileSync(a1File);
+const a1File='supabase/candidates/20260926175504_clean_notification_push_event_type.sql',a1Source=readFileSync(a1File);
 const digest=x=>createHash('sha256').update(x).digest('hex');const q=x=>"'"+String(x).replaceAll("'","''")+"'";
 const out=env.N09_ARTIFACT_DIR??'artifacts/n09-push-transport';mkdirSync(out,{recursive:true});
 const report={unit:'N09_EXPO_PUSH_TRANSPORT',source_sha:env.GITHUB_SHA??null,run_id:env.GITHUB_RUN_ID??null,source_sql_sha256:digest(source),a1_sql_sha256:digest(a1Source),checks:[],live_access:false,provider_called:false,provider_response_stubbed:true,actual_auth:true,actual_database:true,actual_edge_handler:true,edge_gateway_proven:false,physical_push_proven:false,fixture_clock_simulated:true};

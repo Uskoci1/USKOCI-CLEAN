@@ -88,7 +88,9 @@ async function applySqlWithLockEvidence(r,body){
 export async function apply(r,file,predecessor){
  r.migrationStage={file,phase:'HISTORY_BEFORE'};
  const before=rows(migrationSnapshotQuery());assert.equal(before.length,predecessor);
- const path='supabase/migrations/'+file,b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));
+ // A1 is outside the frozen source-147 inventory; keep its historical proof ledger filename unchanged.
+ const directory=file==='20260926175504_clean_notification_push_event_type.sql'?'supabase/candidates/':'supabase/migrations/';
+ const path=directory+file,b=readFileSync(path);assert.deepEqual(b,execFileSync('git',['show',sha+':'+path]));
  r.migrationStage.phase='APPLY_AND_RECORD';
  await applySqlWithLockEvidence(r,b.toString());sql(`insert into supabase_migrations.schema_migrations(version,name,statements) values(${q(file.slice(0,14))},${q(file.slice(15,-4))},array[${q(b.toString())}]);notify pgrst,'reload schema'`);
  r.migrationStage.phase='VERIFY_HISTORY';

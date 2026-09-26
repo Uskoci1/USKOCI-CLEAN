@@ -12,6 +12,7 @@ jest.mock('@gorhom/bottom-sheet', () => ({
 }));
 const mockReactions = new Set<{ prepare: () => unknown; react: (next: unknown, previous: unknown) => void; previous: unknown }>();
 const mockRnDeliveries: (() => void)[] = [];
+const mockCellLayouts = new Map<string, jest.Mock>();
 const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
   requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
@@ -20,9 +21,14 @@ jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: a
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
-  const List = ({ data, renderItem, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props,
+  const List = ({ data, renderItem, CellRendererComponent, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props,
     ListHeaderComponent,
-    data.length ? data.map((item: any, index: number) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item, index }))) : ListEmptyComponent);
+    data.length ? data.map((item: any, index: number) => {
+      if (!CellRendererComponent) return React.createElement(React.Fragment, { key: item.id }, renderItem({ item, index }));
+      if (!mockCellLayouts.has(item.id)) mockCellLayouts.set(item.id, jest.fn());
+      return React.createElement(CellRendererComponent, { key: item.id, cellKey: item.id, item, index,
+        testID: `native-cell-${item.id}`, onLayout: mockCellLayouts.get(item.id) }, renderItem({ item, index }));
+    }) : ListEmptyComponent);
   // One stable function: a new one on every read would be a new component type, and React would mount the sheet again.
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
   const Keyboard = { dismiss: () => undefined };
@@ -127,9 +133,8 @@ const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
 const list = () => tree.root.findByType('List' as React.ElementType);
 // CellRendererComponent receives the final cell wrapper's absolute content position,
 // unlike renderItem's child layout. Forwarding the supplied native handler is required.
-const cellLayout = (index = rows.length - 1, onLayout = jest.fn()) => list().props.CellRendererComponent({
-  cellKey: rows[index].id, item: rows[index], index, onLayout, style: { flexDirection: 'column' }, children: null,
-}).props.onLayout;
+const nativeCell = (index = rows.length - 1) => list().findAll(node => String(node.type) === 'View' && node.props.testID === `native-cell-${rows[index].id}`)[0];
+const cellLayout = (index = rows.length - 1) => nativeCell(index).props.onLayout;
 const measureEnd = async (content: number, footer = 0, index = rows.length - 1) => act(async () => {
   const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
   cellLayout(index)({ nativeEvent: { layout: { y: content - padding - footer - 100, height: 100 } } });
@@ -161,7 +166,7 @@ const search = async (words: string) => {
 beforeEach(() => {
   tracing = false; nativeTrace.mockClear();
   mockNativeSheetState.value = 0;
-  scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0;
+  scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
@@ -332,24 +337,45 @@ test('a settled unchanged focus return retains the native sheet and measured lis
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 8000, animated: false });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000 } } });
+      listSheet().props.onChange(2);
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(8000);
+    const oldCell = nativeCell(), oldScroll = list().props.onScroll;
     scrollToOffset.mockClear();
     mockFocused = false; await update();
+    rows = rows.map(item => ({ ...item })); // A fresh but equal read is still the same layout.
     mockFocused = true; await update();
     expect(listSheet()).toBe(oldSheet);
+    expect(nativeCell() === oldCell).toBe(true);
     expect(scrollToOffset).not.toHaveBeenCalled();
     expect(snapshot.listOffset).toBe(8000);
-    expect(list().props.data.map((item: MarketplaceItem) => item.id)).toEqual(rows.map(item => item.id));
+    expect(cards()).toEqual(rows.map(item => item.id));
+    // No new content-size or layout event arrives. A fresh focus observation reuses the measured deep window.
+    await deliverUi();
+    expect(scrollToOffset).toHaveBeenCalledTimes(1);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+    await act(async () => {
+      oldScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000 } } });
+      list().props.onScrollBeginDrag();
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 7900 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(7900);
   } finally { jest.useRealTimers(); }
 });
 
-test('a native spring interrupted before blur still remounts on return even when the requested index never changed', async () => {
+test.each([1, 2])('an interrupted spring toward index %s remounts even when React never requested a new index', async target => {
   initial = { ...initial, sheet: 'half', listOffset: 160 };
   await render(); await layOutBody(760);
   const oldSheet = listSheet();
-  await act(async () => oldSheet.props.onAnimate?.(1, 2));
+  await act(async () => oldSheet.props.onAnimate?.(1, target));
   mockFocused = false; await update();
   mockFocused = true; await update();
   expect(listSheet()).not.toBe(oldSheet);
@@ -357,13 +383,27 @@ test('a native spring interrupted before blur still remounts on return even when
   expect(snapshot.listOffset).toBe(160);
 });
 
-test.each(['rows', 'layout'] as const)('a settled return remounts when %s changed while away', async changed => {
-  initial = { ...initial, sheet: 'half', listOffset: 160 };
-  await render(); await layOutBody(760);
+test.each(['rows', 'requirements', 'schedule', 'price basis', 'publisher', 'relation', 'height', 'width', 'font scale', 'scope', 'reverted rows'] as const)(
+  'a settled return remounts when %s changed while away', async changed => {
+  initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await layOutBody(760); await readyList();
+  await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 } } }); listSheet().props.onChange(2); });
   const oldSheet = listSheet();
   mockFocused = false; await update();
   if (changed === 'rows') rows = [...rows, row('new-layout-row')];
-  else mockWindow = { ...mockWindow, height: mockWindow.height + 120 };
+  else if (changed === 'requirements') rows = [row('a', { detalji: { zahtevi: { bitniUslovi: ['Dug uslov koji menja visinu kartice'] } } }), ...rows.slice(1)];
+  else if (changed === 'schedule') rows = [row('a', tomorrowFlexible), ...rows.slice(1)];
+  else if (changed === 'price basis') rows = [row('a', { osnovaCene: 'PER_PERSON' }), ...rows.slice(1)];
+  else if (changed === 'publisher') rows = [row('a', { narucilacIme: 'Novo javno ime' }), ...rows.slice(1)];
+  else if (changed === 'relation') relations = relationIndex(['a']);
+  else if (changed === 'height') mockWindow = { ...mockWindow, height: mockWindow.height + 120 };
+  else if (changed === 'width') mockWindow = { ...mockWindow, width: mockWindow.width - 120 };
+  else if (changed === 'font scale') mockWindow = { ...mockWindow, fontScale: 1.3 };
+  else if (changed === 'scope') scopeKey = 'b:2';
+  else {
+    const originalRows = rows;
+    rows = [row('temporary')]; await update(); rows = originalRows;
+  }
   await update();
   mockFocused = true; await update();
   expect(listSheet()).not.toBe(oldSheet);
@@ -442,6 +482,19 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
     expect(scrollToOffset).not.toHaveBeenCalled();
     await readyList(1000);
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+  } finally { jest.useRealTimers(); }
+});
+
+test('an accepted scroll still saves after folding the search header changes its viewport', async () => {
+  jest.useFakeTimers();
+  try {
+    initial = { ...initial, sheet: 'full' };
+    await render(); await readyList();
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 200 } } }));
+    expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(false);
+    await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(71));
+    await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
+    expect(snapshot.listOffset).toBe(200);
   } finally { jest.useRealTimers(); }
 });
 
@@ -531,7 +584,7 @@ test.each(['cell-first', 'content-first'])('a truly shorter virtualized list cla
     await render(); await layOutBody();
     const frame = StyleSheet.flatten(list().props.style).height;
     await readyList(frame + 1800);
-    const nativeLayout = jest.fn(), lastLayout = cellLayout(rows.length - 1, nativeLayout);
+    const nativeLayout = mockCellLayouts.get(rows[rows.length - 1].id)!, lastLayout = cellLayout();
     const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
     const finalEvent = { nativeEvent: { layout: { y: frame + 4000 - padding - 200, height: 200 } } };
     await act(async () => {
@@ -616,15 +669,62 @@ test('a final cell waits for the actual optional footer height before accepting 
     });
     expect(snapshot.listOffset).toBe(8000);
     const oldFooter = list().props.ListFooterComponent;
-    rows = [...rows]; await update();
-    // A fresh dataset needs a new native layout even when the footer has the same height.
+    const oldCell = nativeCell(0), oldContent = list().props.onContentSizeChange;
+    rows = rows.map(item => ({ ...item })); await update();
+    expect(list().props.ListFooterComponent.key).toBe(oldFooter.key);
+    expect(nativeCell(0)).toBe(oldCell);
+    rows = [{ ...rows[0], naslov: 'Promenjen raspored kartice' }, rows[1]]; await update();
+    // Changed row content needs a new native layout even when the footer has the same height.
     expect(list().props.ListFooterComponent.key).not.toBe(oldFooter.key);
+    expect(nativeCell(0)).not.toBe(oldCell);
     await measureEnd(frame + 1000, 80, 0);
-    await act(async () => oldFooter.props.onLayout({ nativeEvent: { layout: { height: 80 } } }));
+    await act(async () => {
+      oldContent(400, frame + 1000);
+      oldFooter.props.onLayout({ nativeEvent: { layout: { height: 80 } } });
+    });
     expect(snapshot.listOffset).toBe(8000);
     await act(async () => list().props.ListFooterComponent.props.onLayout({ nativeEvent: { layout: { height: 80 } } }));
+    expect(snapshot.listOffset).toBe(8000); // Fresh geometry must not reuse the previous data's scroll acknowledgement.
+    await act(async () => {
+      // The container's actual height did not change, so native emits no new content-size callback.
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
     expect(snapshot.listOffset).toBe(1000);
-    expect(scrollToOffset).toHaveBeenCalledTimes(1);
+    expect(scrollToOffset).toHaveBeenCalledTimes(2);
+  } finally { jest.useRealTimers(); }
+});
+
+test.each([0, 2000])('a width change reuses only a provisional content bound until its current end agrees (growth: %s)', async growth => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 20 }, (_, i) => row(`resize${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await readyList();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await act(async () => list().props.onContentSizeChange(400, frame + 1000));
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 1000 } } }));
+    const oldCell = cellLayout(), oldContent = list().props.onContentSizeChange;
+    mockWindow = { ...mockWindow, width: mockWindow.width - 100 }; await update();
+    const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
+    await act(async () => {
+      oldCell({ nativeEvent: { layout: { y: frame + 1000 - padding - 100, height: 100 } } });
+      oldContent(400, frame + 1000);
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    await measureEnd(frame + 1000 + growth);
+    if (growth) {
+      expect(snapshot.listOffset).toBe(8000); // The old height cannot certify this longer current end.
+      await act(async () => {
+        list().props.onContentSizeChange(400, frame + 1000 + growth);
+        list().props.onScroll({ nativeEvent: { contentOffset: { y: 1000 + growth } } });
+        jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+      });
+    }
+    // No fresh content callback is needed when final-cell geometry confirms the unchanged native height.
+    expect(snapshot.listOffset).toBe(1000 + growth);
   } finally { jest.useRealTimers(); }
 });
 

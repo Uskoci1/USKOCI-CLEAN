@@ -2,8 +2,7 @@ import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import type { Notification, NotificationHandler } from 'expo-notifications';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { pendingRoute } from '../../store/pendingRoute';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
@@ -92,20 +91,70 @@ it('web never invokes unsupported notification listener or native APIs', async (
 });
 
 const notification = (content: Record<string, unknown> = {}) => ({ date: 1, request: { identifier: 'foreground', trigger: { type: 'push' },
- content: { title: 'USKOČI', subtitle: null, body: 'Imaš novo obaveštenje. Otvori aplikaciju.', data: { kind: 'INBOX' },
+ content: { title: 'Nova poruka u Dogovoru', subtitle: null, body: 'Imaš novu poruku.', data: { kind: 'INBOX' },
   categoryIdentifier: null, sound: 'default', ...content } } });
 const hidden = { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
 const visible = { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false };
 const present = (value: unknown = notification()) => mockHandler!.handleNotification(value as Notification);
 
-it.each(['android', 'ios'] as const)('presents the actual transport body on %s without relaxing payload privacy', async platform => {
+// Execute the actual dependency-free Edge formatter through Node's native ESM
+// loader: the Expo Jest transform does not include .mjs. This checks its entire
+// public contract rather than parsing an obsolete literal in the worker source.
+type PublicCopy = { title: string; body: string };
+const transportContract = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
+ import { PUSH_EVENT_TYPES, notificationPushCopy } from './supabase/functions/_shared/pushNotificationCopy.mjs';
+ process.stdout.write(JSON.stringify({
+  eventTypes: PUSH_EVENT_TYPES,
+  copies: PUSH_EVENT_TYPES.flatMap(eventType => ['NORMAL', 'HITNO'].map(urgency => ({
+   eventType, urgency, ...notificationPushCopy(eventType, urgency),
+  }))),
+  generic: notificationPushCopy('UNKNOWN_EVENT'),
+ }));
+`], { cwd: process.cwd(), encoding: 'utf8', timeout: 15000 })) as {
+ eventTypes: string[];
+ copies: (PublicCopy & { eventType: string; urgency: string })[];
+ generic: PublicCopy;
+};
+const legacyCopies: PublicCopy[] = [
+ { title: 'USKOČI', body: 'Imate novo obaveštenje. Otvorite aplikaciju.' },
+ { title: 'USKOČI', body: 'Imaš novo obaveštenje. Otvori aplikaciju.' },
+];
+const allPublicCopies = [...transportContract.copies, transportContract.generic, ...legacyCopies];
+
+it('loads all A1 event types and both provider priority variants from the actual formatter', () => {
+ expect(transportContract.eventTypes).toHaveLength(24);
+ expect(transportContract.copies).toHaveLength(48);
+ expect(transportContract.copies.find(copy => copy.eventType === 'OPPORTUNITY_AVAILABLE' && copy.urgency === 'HITNO')?.title).toBe('HITNO — nova prilika');
+});
+it.each((['android', 'ios'] as const).flatMap(platform => transportContract.copies.map(copy => ({ platform, ...copy }))))(
+ 'presents actual $eventType/$urgency copy on $platform without relaxing payload privacy', async ({ platform, title, body }) => {
  jest.replaceProperty(Platform, 'OS', platform); await mount();
- const transport = readFileSync(join(process.cwd(), 'supabase/functions/uskoci-push-transport/index.ts'), 'utf8');
- const body = /title: 'USKOČI', body: '([^']+)'/.exec(transport)?.[1];
- expect(body).toBeDefined();
- expect(await present(notification({ body }))).toEqual(visible);
- expect(await present(notification({ body, data: { kind: 'INBOX', privateText: 'not allowed' } }))).toEqual(hidden);
- expect(await present(notification({ body: body + ' Private detail' }))).toEqual(hidden);
+ mockSession.mockClear();
+ expect(await present(notification({ title, body }))).toEqual(visible);
+ expect(await present(notification({ title, body, data: { kind: 'INBOX', privateText: 'not allowed' } }))).toEqual(hidden);
+ expect(await present(notification({ title, body: body + ' Private detail' }))).toEqual(hidden);
+ expect(await present(notification({ title: title + ' Private detail', body }))).toEqual(hidden);
+ expect(mockSession).not.toHaveBeenCalled(); expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled();
+ expect(mockRevoke).not.toHaveBeenCalled(); expect(mockNavigate).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+});
+it.each(['android', 'ios'] as const)('keeps generic fallback and both queued legacy copies compatible on %s', async platform => {
+ jest.replaceProperty(Platform, 'OS', platform); await mount();
+ for (const copy of [transportContract.generic, ...legacyCopies]) expect(await present(notification(copy))).toEqual(visible);
+});
+it.each(['android', 'ios'] as const)('keeps the two legacy internal-role copies suppressed on %s', async platform => {
+ jest.replaceProperty(Platform, 'OS', platform); await mount();
+ for (const copy of [
+  { title: 'Prijava je pregledana', body: 'Naručilac je pregledao tvoju prijavu.' },
+  { title: 'Prijava je završena', body: 'Za ovaj zadatak je izabran drugi uskočer.' },
+ ]) expect(await present(notification(copy))).toEqual(hidden);
+});
+it.each(['android', 'ios'] as const)('requires an exact public title/body tuple on %s', async platform => {
+ jest.replaceProperty(Platform, 'OS', platform); await mount();
+ const titles = [...new Set(allPublicCopies.map(copy => copy.title))], bodies = [...new Set(allPublicCopies.map(copy => copy.body))];
+ for (const title of titles) for (const body of bodies) {
+  const approved = allPublicCopies.some(copy => copy.title === title && copy.body === body);
+  expect(await present(notification({ title, body }))).toEqual(approved ? visible : hidden);
+ }
 });
 
 it.each(['android', 'ios'] as const)('foreground public copy is immediate local presentation only on %s; a later tap still opens Inbox once', async platform => {
@@ -118,7 +167,8 @@ it.each(['android', 'ios'] as const)('foreground public copy is immediate local 
  expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1);
 });
 it.each([
- { title: 'Private person' }, { body: 'Private address' }, { subtitle: 'Private summary' },
+ { title: 'Private person' }, { body: 'Private address' }, { title: null }, { body: null }, { title: ['Nova poruka u Dogovoru'] },
+ { body: { text: 'Imaš novu poruku.' } }, { subtitle: 'Private summary' },
  { data: { kind: 'INBOX', url: '/private' } }, { data: { kind: 'AGREEMENT' } }, { data: [] }, { data: null },
  { attachments: [{ url: 'https://private.example/image' }] }, { attachments: {} }, { summaryArgument: 'Private person' },
  { categoryIdentifier: 'ACCEPT' }, { launchImageName: 'private' }, { targetContentIdentifier: 'private' }, { threadIdentifier: 'private' },

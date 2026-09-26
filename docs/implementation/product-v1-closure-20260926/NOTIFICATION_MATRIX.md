@@ -2,6 +2,8 @@
 
 Status: **A1 PRODUCT CONTRACT / IMPLEMENTATION NEXT**.
 
+The two neutral body corrections for `RESPONSE_VIEWED` and `RESPONSE_NOT_SELECTED` below are a source-only proposal (2026-09-26), pending the owner's explicit `primeni` and Edge deployment. The client rejects their former internal-role wording; live compatibility for those two events remains pending that deployment.
+
 System notifications are OS-owned surfaces. The app icon can carry the USKOČI green/orange identity, but the OS must not be expected to render “USKO” green and “ČI” orange inside the system header. The in-app Inbox may render the full two-tone brand treatment.
 
 ## Global rules
@@ -22,10 +24,10 @@ System notifications are OS-owned surfaces. The app icon can carry the USKOČI g
 | OPPORTUNITY_AVAILABLE | Novi zadatak za tebe | Pojavila se nova prilika koja može da ti odgovara. | public title; rounded distance/locality; fixed price **or** “Traže se ponude”; remote | task / orange | Opportunity |
 | RESPONSE_RECEIVED | Nova prijava | Stigla je nova prijava na tvoj zadatak. | offered price only if contract allows | offer / green | Candidates |
 | RESPONSE_UPDATED | Prijava je izmenjena | Jedna prijava na tvoj zadatak je ažurirana. | approved offer summary | offer / green | Candidates |
-| RESPONSE_VIEWED | Prijava je pregledana | Naručilac je pregledao tvoju prijavu. | none | offer / green | My application |
+| RESPONSE_VIEWED | Prijava je pregledana | Tvoja prijava je pregledana. | none | offer / green | My application |
 | RESPONSE_SHORTLISTED | U užem si izboru | Tvoja prijava je izdvojena za dalji izbor. | none | offer / green | My application |
 | RESPONSE_SELECTED | Izabran si | Tvoja prijava je prihvaćena. Otvori Dogovor. | accepted price/time summary when server-certified | agreement / green | Agreement |
-| RESPONSE_NOT_SELECTED | Prijava je završena | Za ovaj zadatak je izabran drugi uskočer. | none | offer / neutral | My application |
+| RESPONSE_NOT_SELECTED | Prijava je završena | Za ovaj zadatak je izabrana druga osoba. | none | offer / neutral | My application |
 | RESPONSE_STALE | Proveri prijavu | Zadatak je promenjen nakon tvoje prijave. | none | offer / orange | My application |
 | RESPONSE_WITHDRAWN | Prijava je povučena | Jedna prijava više nije aktivna. | none | offer / neutral | Candidates / application |
 | RESPONSE_EXPIRED | Prijava je istekla | Ova prijava više nije aktivna. | none | offer / neutral | My application |

@@ -6,10 +6,10 @@ const expected = {
   OPPORTUNITY_AVAILABLE: ['Novi zadatak za tebe','Pojavila se nova prilika koja može da ti odgovara.'],
   RESPONSE_RECEIVED: ['Nova prijava','Stigla je nova prijava na tvoj zadatak.'],
   RESPONSE_UPDATED: ['Prijava je izmenjena','Jedna prijava na tvoj zadatak je ažurirana.'],
-  RESPONSE_VIEWED: ['Prijava je pregledana','Naručilac je pregledao tvoju prijavu.'],
+  RESPONSE_VIEWED: ['Prijava je pregledana','Tvoja prijava je pregledana.'],
   RESPONSE_SHORTLISTED: ['U užem si izboru','Tvoja prijava je izdvojena za dalji izbor.'],
   RESPONSE_SELECTED: ['Izabran si','Tvoja prijava je prihvaćena. Otvori Dogovor.'],
-  RESPONSE_NOT_SELECTED: ['Prijava je završena','Za ovaj zadatak je izabran drugi uskočer.'],
+  RESPONSE_NOT_SELECTED: ['Prijava je završena','Za ovaj zadatak je izabrana druga osoba.'],
   RESPONSE_STALE: ['Proveri prijavu','Zadatak je promenjen nakon tvoje prijave.'],
   RESPONSE_WITHDRAWN: ['Prijava je povučena','Jedna prijava više nije aktivna.'],
   RESPONSE_EXPIRED: ['Prijava je istekla','Ova prijava više nije aktivna.'],
@@ -32,6 +32,21 @@ const expected = {
 test('matrix covers the complete currently admitted event set exactly once', () => {
   assert.deepEqual([...PUSH_EVENT_TYPES].sort(), Object.keys(expected).sort());
   assert.equal(new Set(PUSH_EVENT_TYPES).size, PUSH_EVENT_TYPES.length);
+});
+
+test('system push copy never exposes internal side names in any event or priority', () => {
+  // The same owner copy rule applies to OS surfaces and the in-app source guard.
+  const internalSide = /Uskočer|uskočer|Naruči(lac|oc)|naruči(lac|oc)/;
+  const offenders = [];
+  for (const eventType of [...PUSH_EVENT_TYPES, 'UNKNOWN_EVENT']) {
+    for (const urgency of ['NORMAL', 'HITNO']) {
+      const copy = notificationPushCopy(eventType, urgency);
+      for (const field of ['title', 'body']) {
+        if (internalSide.test(copy[field])) offenders.push(`${eventType}/${urgency}/${field}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, []);
 });
 
 for (const [eventType,[title,body]] of Object.entries(expected)) {
