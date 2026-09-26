@@ -1,5 +1,11 @@
 # USKOČI — repository entry map
 
+PUSH-PROOF APK READY / DEVICE PENDING (2026-09-26): source `3d31a300`, run `36246861282`.
+Dedicated `rs.uskoci.preview` proof APK passed config isolation, native prebuild, ARM64 build and actual APK Firebase Messaging manifest attestation.
+SHA256 `dd9bb8e887bb5c78a2ff92f51060c257d33aa9d980dd76d5b9c90b086d2e9728`; 70,681,821 bytes.
+Fresh DEV after build: backlog 0, attempts 0, active devices 0; canonical push v16/media v13 unchanged. No phone install, token, provider send or lock-screen proof yet.
+Read `docs/implementation/release-hardening-20260926/PUSH_PROOF_APK.md`.
+
 SERVER APPLY (2026-09-26): media drift is applied and source-verified; `uskoci-media` is v13 and now contains `MEDIA_COMMAND_CANCELLED`. Historical push backlog was retired without provider IO: CREATED/unstarted 10→0, PUSH_OFF suppressed 30→40, attempts 0, active devices 0. Temporary maintenance v15 was removed immediately; live `uskoci-push-transport` is canonical GitHub v16. Read `docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md`. Real push/device delivery remains unproved.
 
 R18 STORAGE INTEGRITY CLIENT CI PASS (2026-09-26): read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and matching CHECKS. Reset now awaits durable retirement; double/late callbacks cannot release or erase another intent; same-key changed payload is rejected. Failing-before/passing-after tests and full Jest are recorded. Device/APK remains pending. No DEV/Edge/provider/push change; fresh DEV read was tool-blocked.

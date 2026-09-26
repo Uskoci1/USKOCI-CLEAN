@@ -10,6 +10,12 @@ The 11:55 UTC role-correct DEV join found 10 REQUESTER deliveries without a matc
 
 Do not execute the old global zero-device backlog tick or short enable window. Prepare enforceable one-account/device/event admission and a hard dispatch limit in isolation; no real registration, event, server/config change or send without named approval. The existing client/refusal proof does not close push or store acceptance.
 
+## Push proof checkpoint — APK ready, device pending
+
+Dedicated Android push-proof APK passed config isolation, native prebuild, real APK package/Firebase Messaging manifest checks and ARM64 source-bound attestation. Source `3d31a300`, run `36246861282`, APK SHA256 `dd9bb8e887bb5c78a2ff92f51060c257d33aa9d980dd76d5b9c90b086d2e9728`. Read `docs/implementation/release-hardening-20260926/PUSH_PROOF_APK.md`.
+
+It has **not** been installed or registered on a phone and sent no push. Fresh DEV after the build remains backlog=0, attempts=0, active devices=0; canonical push v16/media v13 remain active. Next push step is exactly one owner device + one approved event, not another backlog cleanup or blanket transport enable.
+
 ## First: improve deep-return speed, preserving the now-correct position
 
 Both exact `a69a26c6` APKs are installed with attested and installed hashes:
