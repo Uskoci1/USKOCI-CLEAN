@@ -109,7 +109,7 @@ function decodeSubmitRefusal(raw: unknown): ApplicationSubmitRefusal | null {
     || !Object.prototype.hasOwnProperty.call(applicationSelectionErrors, kod)) return null;
   let hardBlockers: ApplicationEligibilityBlocker[] = [];
   if (kod === 'WORKER_NOT_ELIGIBLE') {
-    const decoded = decodeHardBlockers(error.details);
+    const decoded = decodeHardBlockers(error?.details);
     if (!decoded) return null;
     hardBlockers = decoded;
   }
