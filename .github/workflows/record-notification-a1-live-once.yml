@@ -26,7 +26,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node scripts/control/osvezi.mjs
           git rm .github/workflows/record-notification-a1-live-once.yml
-          git add docs/control/stanje.json docs/control/out/tabla.html
+          git add docs/control/stanje.json
+          git add -f docs/control/out/tabla.html
           git diff --cached --check
           remote=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
           test "$remote" = "$GITHUB_SHA" || { echo 'Branch moved; refusing overwrite.'; exit 1; }
