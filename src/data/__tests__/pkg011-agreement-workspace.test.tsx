@@ -227,7 +227,7 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     expect(texts()).not.toContain('0 RSD');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
-    const summary = tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' });
+    const summary = tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: Iznos nije sačuvan' });
     const copy = summary.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join('');
     expect(copy).toContain('Iznos nije sačuvan'); expect(copy).not.toContain('0 RSD'); expect(copy).not.toContain('ukupno');
   });
@@ -315,13 +315,14 @@ test('a pending change whose content cannot be read still says it exists and lea
 
 // PKG-048 (F12 / D02): a Dogovor is the end of one lived flow, so it says where it came from. Each side
 // opens its own end, and a server that does not carry the ids offers no invented destination.
-// R19: the leading accepted-terms card opens the Task; the worker's own offer remains a distinct row.
+// The task link leads the overview; accepted terms stay separate from its current-detail destination.
 const row = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
 const rowTexts = (label: string) => row(label).findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string'));
 test('the requester reaches the Zadatak this Dogovor grew out of, and is offered no Prijava of their own', async () => {
   await render(base());
   expect(labels()).toContain('Otvori zadatak: Pomoć pri selidbi');
-  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Dogovoreni uslovi', '3.000 RSD']));
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Otvori zadatak']));
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak');
   expect(labels()).not.toContain('Tvoja prijava'); expect(labels()).not.toContain('Prijava');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' }).props.onPress());
@@ -329,7 +330,8 @@ test('the requester reaches the Zadatak this Dogovor grew out of, and is offered
 });
 test('the worker reaches the Prilika and the offer they sent', async () => {
   await render(base({}, 'uskocer'));
-  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Dogovoreni uslovi', '3.000 RSD']));
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Otvori zadatak']));
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak'); expect(rowTexts('Tvoja prijava')).toEqual(['Tvoja prijava']);
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: mockNeedId } });

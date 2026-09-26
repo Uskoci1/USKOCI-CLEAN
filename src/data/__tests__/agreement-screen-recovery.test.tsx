@@ -161,13 +161,21 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(mockBackListeners.size).toBe(0); expect(current()).toBe(false);
     expect(mockRouter.back).not.toHaveBeenCalled();
   });
-  it.each(['narucilac', 'uskocer'])('opens the authoritative task from the leading accepted card for %s', async role => {
+  it.each(['narucilac', 'uskocer'])('puts the linked task before the next step and accepted terms for %s', async role => {
     const taskId = '40000000-0000-4000-8000-000000000001';
     mockRead.mockResolvedValue({ ...workspace, izvor: { zadatakId: taskId, prijavaId: null },
       ucesnici: workspace.ucesnici.map(party => ({ ...party, uloga: party.viSte ? role : role === 'narucilac' ? 'uskocer' : 'narucilac' })) });
     await render();
     const open = button(`Otvori zadatak: ${workspace.naslov}`);
-    expect(open.props.accessibilityValue.text).toContain('3.000 RSD ukupno');
+    const taskCopy = open.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
+    expect(taskCopy).toContain(workspace.naslov);
+    expect(taskCopy).toContain('Otvori zadatak');
+    expect(taskCopy).not.toContain('Dogovoreni uslovi');
+    expect(taskCopy).not.toContain('3.000 RSD');
+    const copy = texts();
+    expect(copy.indexOf(workspace.naslov)).toBeLessThan(copy.indexOf('Dogovoreno'));
+    expect(copy.indexOf('Dogovoreno')).toBeLessThan(copy.indexOf('Dogovoreni uslovi'));
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
     await act(async () => open.props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: role === 'narucilac' ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: taskId } });
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Zadatak' })).toHaveLength(0);

@@ -95,14 +95,14 @@ it('credits the map once, through the app\x27s own links, with no SDK ornament',
 
 // r6 row 8 (2026-09-24): under "Na javnoj mapi prikazuje se približno područje" the map drew the same orange pin with a
 // tail as the private picker, over the city name. The public approximate view now draws a translucent green disc with a
-// hairline and no tail, speaks once as an area, and still never carries the private precision.
+// hairline and no tail. The existing brand is now inside that halo; the map still speaks once as an area and never carries private precision.
 it('draws the public approximate point as an area, not a pin, and speaks it once', async () => {
   await render({ position: { latitude: 45.123456, longitude: 19.654321 }, coarse: true, disabled: true }); await ready();
   expect(annotation().props).toMatchObject({ id: 'location-area', lngLat: [19.65, 45.12], anchor: 'center' });
-  expect(tree.root.findAllByType('Image' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByType('Image' as React.ElementType)).toHaveLength(1);
   const disc = annotation().findByProps({ accessibilityLabel: 'Približno područje na mapi' });
   expect(disc.props).toMatchObject({ accessible: true, accessibilityRole: 'image', pointerEvents: 'none' });
-  expect(disc.props.style).toMatchObject({ width: 56, height: 56, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge });
+  expect(disc.props.style).toMatchObject({ width: 64, height: 64, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge });
   expect(disc.props.onStartShouldSetResponder).toBeUndefined();
   const fill = disc.children[0] as ReactTestInstance;
   expect(fill.props.style).toMatchObject({ backgroundColor: sys.color.green, opacity: 0.16 });

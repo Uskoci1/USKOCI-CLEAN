@@ -4,6 +4,8 @@ import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/m
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;
+  /** A freshly published public task starts selected and must receive the same camera focus as a tap. */
+  focusSelectionOnMount?: boolean;
   /**
    * The list follows the map (Discovery V47): once a move of the person's own (a drag, a pinch, a zoom button, a cluster
    * tap) has settled and stayed still for `AREA_SETTLE_MS`, the map hands up the bounds it shows. The camera's own moves

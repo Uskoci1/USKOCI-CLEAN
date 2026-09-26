@@ -159,16 +159,15 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
 });
 
 describe('the Zadaci list and its sheet', () => {
-  // Review of V47: "Prikaži sve u listi" narrows the list to one public point. It is not an area: a task without a point
-  // never joins it, the map's area does not widen it, and the map keeps drawing every task.
-  it('one public point lists exactly the tasks on it, never a task without a point, whatever the area', () => {
+  // A chosen public point stays narrow geographically; point-free work follows separately.
+  it('one public point lists its tasks first and keeps point-free work available, whatever the area', () => {
     const rows = [item('s1', { priblizno: { lat: 44.7904, lng: 20.4498 } }), item('s2', { priblizno: { lat: 44.79, lng: 20.45 } }),
       item('near', { priblizno: { lat: 44.8, lng: 20.45 } }), item('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] }),
       item('nowhere', { priblizno: null }), item('mine', { priblizno: { lat: 44.79, lng: 20.45 } })];
     const shown = discoveryShown(rows, view({ pinPlace: '44.79,20.45', area: [0, 0, 1, 1] }), new Set(['mine']), NOW);
-    expect(ids(shown.listed)).toEqual(['s1', 's2', 'mine']); expect(ids(shown.inArea)).toEqual(['s1', 's2', 'mine']); expect(shown.withoutPoint).toEqual([]);
+    expect(ids(shown.listed)).toEqual(['s1', 's2', 'mine', 'online', 'nowhere']); expect(ids(shown.inArea)).toEqual(['s1', 's2', 'mine']); expect(ids(shown.withoutPoint)).toEqual(['online', 'nowhere']);
     expect(ids(shown.mapped)).toEqual(['s1', 's2', 'near', 'online', 'nowhere', 'mine']);
-    expect(ids(discoveryItems(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW))).toEqual(['s1', 's2', 'mine']);
+    expect(ids(discoveryItems(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW))).toEqual(['s1', 's2', 'mine', 'online', 'nowhere']);
     // The "Gde" places are counted as if no point were chosen (the remote task names no place; the one placed nowhere does).
     expect(placeSuggestions(rows, view({ pinPlace: '44.79,20.45' }), new Set(['mine']), NOW)).toEqual([{ text: 'Beograd', count: 5 }]);
     expect(initialMarketplaceView().pinPlace).toBeNull();
@@ -332,7 +331,8 @@ describe('Discovery V47: the words of the search', () => {
     expect(countLineWords({ ...ready, area: true, listed: 1, inArea: 0, withoutPoint: 1 })).toEqual({ words: 'U oblasti nema zadataka', extra: ' · 1 zadatak bez tačke na mapi' });
     expect(countLineWords({ ...ready, area: true })).toEqual({ words: 'U oblasti nema zadataka', extra: '' });
     expect(countLineWords({ ...ready, pinPlace: true, area: true, listed: 4, inArea: 4 })).toEqual({ words: '4 zadatka na ovom mestu', extra: '' });
-    expect(countLineWords({ ...ready, pinPlace: true })).toEqual({ words: 'Nema zadataka', extra: '' });
+    expect(countLineWords({ ...ready, pinPlace: true, listed: 5, inArea: 4, withoutPoint: 1 })).toEqual({ words: '4 zadatka na ovom mestu', extra: ' · 1 zadatak bez tačke na mapi' });
+    expect(countLineWords({ ...ready, pinPlace: true })).toEqual({ words: 'Na ovom mestu nema zadataka', extra: '' });
   });
   it('a range of days is written once, the month once when it can be', () => {
     expect(datesWords({ from: '2026-09-26', to: '2026-09-26' }, NOW)).toBe('26. sep');

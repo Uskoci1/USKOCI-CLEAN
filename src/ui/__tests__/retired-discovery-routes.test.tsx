@@ -217,6 +217,23 @@ test('after publishing, Back from the opened task returns home, not to the finis
   expect(router.canGoBack()).toBe(false);
 });
 
+test('publication landing on Zadaci has one Back to Početna after several earlier screens', async () => {
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate('/zadaci')); await settle();
+  await act(async () => router.navigate('/potrebe')); await settle();
+  await act(async () => router.navigate('/nova')); await settle();
+  await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId: 'c1' } })); await settle();
+  await act(async () => router.replace({ pathname: '/zadaci', params: {
+    publishedNeedId: '11111111-1111-4111-8111-111111111111', publishedRevision: '1',
+  } })); await settle();
+  expect(tabState().focused).toBe('zadaci');
+  expect(tabHistory()).toEqual(['index', 'zadaci']);
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+  expect(router.canGoBack()).toBe(false);
+});
+
 test('a task published from Moji zadaci goes Back to Moji zadaci and then home; a saved draft lands on Moji zadaci alone', async () => {
   await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
   await settle();

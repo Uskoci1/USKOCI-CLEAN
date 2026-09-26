@@ -8,6 +8,9 @@ jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mo
   useLocalSearchParams: () => ({}),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); } }); });
+// This route suite supplies its source and session in memory. Keep the pure serverReceipt
+// validators real, while preventing their unused transport import from starting Supabase Auth.
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected Supabase access in route test'); } }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (...args: unknown[]) => mockSwitch(...args) }));
 // Zadaci renders DiscoveryPresentation since owner step 4 (2026-09-24): the same props under the same test name, so every

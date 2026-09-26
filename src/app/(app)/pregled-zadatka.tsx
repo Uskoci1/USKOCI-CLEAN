@@ -453,7 +453,9 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {/* After the tap there is one way forward at a time — open the published task, publish the
             saved draft, or go and change it — and that one wears the brand green; the check of the
             outcome stands beside it in white. */}
-        {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={() => navigate(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: command.needId } }))} />
+        {published && command ? <V2Action label="Prikaži objavljen zadatak" style={brandAction} onPress={() => navigate(() => router.replace({
+          pathname: '/zadaci', params: { publishedNeedId: command.needId, publishedRevision: String(command.needRevision) },
+        }))} />
           : command ? <>
             {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?

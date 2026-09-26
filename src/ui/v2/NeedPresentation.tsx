@@ -18,7 +18,7 @@ import { countryName } from '../location/CountryField';
 import { TaskDecisionLogistics, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave',
-  DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
+  DELIMICNO_POPUNJENA: 'Objavljen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
 
 export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
@@ -36,16 +36,9 @@ export type NeedPresentationProps = {
   qaAction?: ReactNode;
 };
 
-/**
- * The state of the task in one line under its name: a dot in the state's colour, the state, and only a
- * fact that belongs to it ("1 od 2 dogovoreno · potraga traje"). The sentences that explained what
- * happens next ("Sledeće: prijave stižu ovde…") are gone: the screen shows the next step instead of
- * describing it (owner, 2026-09-23: no copy explaining where you are). A closed remaining search is said
- * here, once (it was also a note at the end of the screen), and a task whose search was closed before
- * every place was agreed never reads "Sva mesta su dogovorena". It is said in every state that can have a
- * search at all: a Dogovor cancelled after the search was closed can bring the agreed count back to 0, and
- * the task then reads "Objavljen" or "Čeka prijave" while nobody can apply (review of step 5b, 2026-09-24).
- */
+/** A short lifecycle word above the title; the capacity fraction lives with the task facts.
+ * Only an early closed search needs a sentence here, because the fraction alone would imply that
+ * more people can still apply. The same rule covers a later cancellation that returns the count to 0. */
 function stateLine(need: PotrebaProjekcija, remainingClosed: boolean): { title: string; detail?: string; tone: 'green' | 'muted' } {
   const { popunjeno, ukupno } = need.pokrivenost;
   const closedEarly = remainingClosed && popunjeno < ukupno ? `${popunjeno} od ${ukupno} dogovoreno · preostala potraga je zatvorena` : null;
@@ -53,8 +46,8 @@ function stateLine(need: PotrebaProjekcija, remainingClosed: boolean): { title: 
     case 'NACRT': return { title: STATUS.NACRT, tone: 'muted' };
     case 'OBJAVLJENA': case 'CEKA_PRIJAVE': return { title: STATUS[need.stanje], ...(closedEarly ? { detail: closedEarly } : {}), tone: 'green' };
     case 'DELIMICNO_POPUNJENA':
-      return { title: STATUS.DELIMICNO_POPUNJENA, detail: closedEarly ?? `${popunjeno} od ${ukupno} dogovoreno · potraga za ostalima traje`, tone: 'green' };
-    case 'POPUNJENA': return { title: STATUS.POPUNJENA, detail: closedEarly ?? 'Sva mesta su dogovorena', tone: 'green' };
+      return { title: STATUS.DELIMICNO_POPUNJENA, ...(closedEarly ? { detail: closedEarly } : {}), tone: 'green' };
+    case 'POPUNJENA': return { title: STATUS.POPUNJENA, ...(closedEarly ? { detail: closedEarly } : {}), tone: 'green' };
     default: return { title: STATUS.ZATVORENA, tone: 'muted' };
   }
 }
@@ -150,12 +143,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
+          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
           {state ? <View style={s.stateRow} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
             <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
             <T variant="bodyStrong" style={{ color: state.tone === 'green' ? sys.color.green : sys.color.muted }}>{state.title}</T>
             {state.detail ? <T variant="note" tone="muted" style={s.grow}>{`· ${state.detail}`}</T> : null}
           </View> : null}
-          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
         {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
         {blocked ? <View style={[inset, s.blocked]} accessibilityLiveRegion="polite">
@@ -166,18 +159,18 @@ export function NeedPresentation(props: NeedPresentationProps) {
             they pressed: the check, the command running, its uncertain, confirmed or refused outcome. It draws nothing
             while there is nothing to say. */}
         {props.lifecycleActions}
-        {!draft && counted ? <View style={s.applications}><DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
-          accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
-          trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /></View> : null}
         <View style={s.brief}>
           {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
-            filled={draft ? undefined : `${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+            filled={draft ? undefined : `${need.pokrivenost.popunjeno}/${need.pokrivenost.ukupno}`}
             spokenFilled={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
           {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
         </View>
         {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
         <TaskDecisionRequirements rows={requirements} />
+        {!draft && counted ? <View style={s.applications}><DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
+          accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
+          trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /></View> : null}
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the
             point and the owner's own read never asked for it. Same coarse pair, same map, one section. */}
         {!remote && (props.map || route.length) ? <DetailSection title="Mesto zadatka">

@@ -99,29 +99,35 @@ export function AgreementFact({ art, label, value, note, basis, money = false }:
   </View>;
 }
 
-/**
- * Accepted terms, never copied from the current Task. The card opens the source task when its id is known.
- * The current state is shown by the next step underneath.
- */
-export function AgreementHero({ agreement: a, onOpenTask, disabled = false }: {
+/** The accepted title identifies the source task; only its authoritative route makes this card a link. */
+export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false }: {
   agreement: DogovorProjekcija;
-  /** Only provided when the authoritative source task id is available. Terms remain the accepted snapshot. */
+  /** Only provided when the authoritative source task id is available. */
   onOpenTask?: () => void; disabled?: boolean;
 }) {
-  const people = agreementPeople(a);
-  // The spoken name carries the visible title, so a Voice Access user can say what they see (verify r4c item 7).
   const title = readableTitle(a.naslov);
-  const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
-  // The task anchors the Agreement. Its title opens the real source, while the displayed price/time remain
-  // the accepted Agreement snapshot rather than a later edited advertisement.
-  const content = <>
-    <View style={s.termsHeading}>
-      <T variant="meta" style={s.termsLabel}>Dogovoreni uslovi</T>
-      {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
-    </View>
-    <View style={s.titleRow}>
+  const content = <View style={s.titleRow}>
+    <FactArt kind="document" size={28} />
+    <View style={s.taskCopy}>
       <T accessibilityRole="header" style={s.acceptedTitle}>{title}</T>
-      {onOpenTask ? <CaretRight size={22} color={sys.color.green} /> : null}
+      <T variant="note" tone={onOpenTask ? 'green' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
+    </View>
+    {onOpenTask ? <CaretRight size={22} color={sys.color.green} /> : null}
+  </View>;
+  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`}
+    accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
+    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
+    : <View style={s.hero}>{content}</View>;
+}
+
+/** Accepted facts remain a readable record, separate from the source task's current detail. */
+export function AgreementTerms({ agreement: a }: { agreement: DogovorProjekcija }) {
+  const people = agreementPeople(a);
+  const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
+  return <View style={s.terms}>
+    <View style={s.termsHeading}>
+      <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Dogovoreni uslovi</T>
+      {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
     </View>
     <View style={s.facts}>
       <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
@@ -132,12 +138,12 @@ export function AgreementHero({ agreement: a, onOpenTask, disabled = false }: {
       <AgreementFact art="money" label="Dogovoreno ukupno" value={amount || BEZ_IZNOSA} basis={amount ? 'ukupno' : null} money={/\d/.test(amount)} />
       {people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
     </View>
-  </>;
-  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`}
-    accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor. Prikazani uslovi su prihvaćeni u Dogovoru."
-    accessibilityValue={{ text: `${remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'}. ${term.line}. ${amount || BEZ_IZNOSA}${amount ? ' ukupno' : ''}` }}
-    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
-    : <View style={s.hero}>{content}</View>;
+  </View>;
+}
+
+/** Combined context for compact chat and historical previews; the live overview inserts its next step between these. */
+export function AgreementHero(props: Parameters<typeof AgreementTaskLink>[0]) {
+  return <View style={s.context}><AgreementTaskLink {...props} /><AgreementTerms agreement={props.agreement} /></View>;
 }
 
 /**
@@ -169,12 +175,14 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { ...floating, gap: 12, padding: 18, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
+  hero: { ...floating, padding: sys.space.base, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
     borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
+  context: { gap: sys.space.base },
+  terms: { gap: sys.space.sm, paddingVertical: sys.space.sm },
   termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  termsLabel: { color: sys.color.muted, fontWeight: '600' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  acceptedTitle: { flex: 1, fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.green },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  taskCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  acceptedTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.ink },
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },

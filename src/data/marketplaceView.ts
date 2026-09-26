@@ -34,8 +34,8 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
   /** A chosen place on the map where several tasks share one public point (its `pointKey`); null when none. */
   selectedPlace?: string | null;
   /**
-   * Zadaci only (Discovery V47 review): the list narrowed to the tasks on one public point (its `pointKey`), from a place's
-   * "Prikaži sve u listi". It is not an area: the tasks without a point are not added to it, and it never moves `area`.
+   * Zadaci only: the list shows the tasks on one public point (its `pointKey`) first, from a place's
+   * "Prikaži sve u listi". It is not an area: tasks without a public point follow in their own section.
    * The next move of the map the person makes takes it away, as does the search pill's "Prikaži sve zadatke".
    */
   pinPlace?: string | null;
@@ -272,8 +272,9 @@ export function publicArea(item: MarketplaceItem): string | null {
  * (`withoutPoint`: online work, or a task placed nowhere), which an area can neither hold nor leave out, so they are
  * never lost. Without an area the list is `mapped`, in the read's order. No coordinate is ever invented.
  *
- * One public point (`pinPlace`, a place's "Prikaži sve u listi") is narrower than any area: the list is exactly the tasks
- * on that point (`inArea`), and nothing else joins them, not even the tasks without a point.
+ * One public point (`pinPlace`, a place's "Prikaži sve u listi") shows that point first. Tasks
+ * with no public point still follow in their own section: they must remain discoverable while
+ * someone explores any part of the map.
  */
 export type DiscoveryShown = { mapped: MarketplaceItem[]; inArea: MarketplaceItem[]; withoutPoint: MarketplaceItem[]; listed: MarketplaceItem[] };
 /** Remote work has no geographic scope. Keep shared conditions and the remembered camera, never a stale place. */
@@ -287,7 +288,8 @@ export function discoveryShown(items: readonly MarketplaceItem[], view: Marketpl
   const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
   if (pin !== null) {
     const here = mapped.filter(item => { const point = publicPoint(item); return !!point && pointKey(point) === pin; });
-    return { mapped, inArea: here, withoutPoint: [], listed: here };
+    const withoutPoint = mapped.filter(item => !publicPoint(item));
+    return { mapped, inArea: here, withoutPoint, listed: [...here, ...withoutPoint] };
   }
   if (!view.area) return { mapped, inArea: mapped, withoutPoint: [], listed: mapped };
   const inArea: MarketplaceItem[] = [], withoutPoint: MarketplaceItem[] = [];

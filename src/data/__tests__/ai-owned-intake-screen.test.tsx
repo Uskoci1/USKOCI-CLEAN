@@ -70,6 +70,7 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Path: 'SvgPath', Circle: 'SvgCircle', Ellipse: 'SvgEllipse', G: 'SvgGroup',
   Defs: 'SvgDefs', LinearGradient: 'SvgLinearGradient', Rect: 'SvgRect', Stop: 'SvgStop' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
+jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 // The point editor reaches the native map; the stand-in keeps its one contract that matters here: before confirmed
 // points are thrown away it asks its own question (a ConfirmSheet it renders itself), and only the answer closes it.
 jest.mock('../../ui/location/ConversationPointAsk', () => {
@@ -597,8 +598,8 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).toContain('Kada ti treba pomoć?');
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
-  const card = tree.root.findByProps({ testID: 'intake-draft-review' });
-  await act(async () => card.props.onPress());
+  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
+  await act(async () => review.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
 
@@ -628,11 +629,11 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
-  const card = tree.root.findByProps({ testID: 'intake-draft-review' });
-  expect(card.props.accessibilityLabel).toBe('Pregledaj zadatak');
+  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
   await options(); expect(menuItems('Pregledaj zadatak')).toHaveLength(1);
   await closeMenu();
-  await act(async () => { card.props.onPress(); card.props.onPress(); });
+  await act(async () => { review.props.onPress(); review.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
@@ -682,6 +683,11 @@ it('never names a category and does not call the draft ready while only the cate
   const done = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
   mockLoad.mockResolvedValue(done); await resume();
   expect(text()).toContain('Pregledaj zadatak');
+  expect(tree.root.findAllByProps({ testID: 'ai-footer-action' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
+  await act(async () => review.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
 });
 
 // Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.
@@ -691,7 +697,7 @@ it('the card of a task being changed says "Izmena" and names the review the way 
   mockLoad.mockResolvedValue(bound); await resume();
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
-  expect(tree.root.findByProps({ testID: 'intake-draft-review' }).props.accessibilityHint).toMatch(/Otvara pregled izmena\.$/);
+  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj izmene' })).toBeDefined();
 });
 
 // Review r4 ra item 6: the REVIEW/CLARIFY note describes the draft, so it stays on the card when the card is compact.
@@ -1031,4 +1037,16 @@ describe('conversation and current facts have separate presentation', () => {
     await render();
     expect(text()).not.toContain('Naslov');
   });
+});
+
+
+test('saved task photos are visible in the conversation through authorized asset references only', async () => {
+  const ref = `${id}/v5/${other}/${'a'.repeat(64)}.jpg`;
+  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.public_photo_paths', [ref, ref, 'https://example.test/private.jpg'])] }));
+  await resume();
+  const photos = tree.root.findAllByType('AuthorizedPhoto' as React.ElementType);
+  expect(photos.map(photo => photo.props.assetId)).toEqual([other]);
+  expect(text()).toContain('Fotografije zadatka');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj fotografije zadatka' }).props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
 });

@@ -204,18 +204,18 @@ it.each([
   mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); mockNeed.mockResolvedValue(value);
   await render(); expect(mockNeed).toHaveBeenCalledWith(NEED);
   expect(text()).toContain('Objava je zabeležena. Ponovo učitaj zadatak');
-  expect(text()).not.toContain('Zadatak je objavljen.'); expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(0);
+  expect(text()).not.toContain('Zadatak je objavljen.'); expect(tree.root.findAllByProps({ label: 'Prikaži objavljen zadatak' })).toHaveLength(0);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
-it('shows publication only after the current owned Need revision and published state are read, then opens its exact route', async () => {
+it('shows publication only after the current owned Need revision and published state are read, then opens Discovery for that task', async () => {
   const held = deferred(); mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); mockNeed.mockReturnValueOnce(held.promise);
   await render(); expect(text()).not.toContain('Zadatak je objavljen.');
   await act(async () => held.resolve({ id: NEED, narucilacId: OWNER, revizija: 1, stanje: 'CEKA_PRIJAVE' }));
-  expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Otvori zadatak').onPress;
+  expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Prikaži objavljen zadatak').onPress;
   await act(async () => { retained(); retained(); });
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: NEED } });
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/zadaci', params: { publishedNeedId: NEED, publishedRevision: '1' } });
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 

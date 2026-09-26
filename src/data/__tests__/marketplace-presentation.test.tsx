@@ -185,9 +185,10 @@ test('"Treba moja radnja" is a square checkbox, not a round radio', async () => 
 // under Nacrti, "Zatvoren" under Istorija); where the section does not say it, the card still does.
 test('a card does not repeat the state its section is named for, and still says it elsewhere', async () => {
  rows = [row('draft', { stanje: 'NACRT' }), row('closed', { stanje: 'ZATVORENA' }), row('partial', { stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })];
- await render(); expect(words()).toContain('Delimično popunjen');
+ await render(); expect(words()).toContain('1/2'); expect(words()).not.toContain('Delimično popunjen');
  await tap('Nacrti'); expect(press('Otvori Zadatak Pomoć draft')).toBeTruthy(); expect(words()).not.toContain('Nacrt');
  await tap('Istorija'); expect(press('Otvori Zadatak Pomoć closed')).toBeTruthy(); expect(words()).not.toContain('Zatvoren');
  await act(async () => tree.unmount()); initial.section = 'all'; await render();
- for (const state of ['Nacrt', 'Zatvoren', 'Delimično popunjen']) expect(words()).toContain(state);
+ for (const state of ['Nacrt', 'Zatvoren']) expect(words()).toContain(state);
+ expect(words()).toContain('1/2'); expect(words()).not.toContain('Delimično popunjen');
 });

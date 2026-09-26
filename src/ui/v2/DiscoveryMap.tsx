@@ -208,7 +208,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // A new choice gets a neighborhood view, never a tighter location: the target is still the rounded public point.
   // Native padding and zoom are applied together, avoiding a geographic offset computed at the old, possibly
   // continent-wide zoom. A closer settled/user-requested zoom survives; a choice restored on mount stays put.
-  const focus = useRef<string | null>(props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null);
+  const focus = useRef<string | null>(props.focusSelectionOnMount ? null
+    : props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null);
   useEffect(() => {
     const key = props.selectedPlace ? `place:${props.selectedPlace}` : props.selectedId ? `task:${props.selectedId}` : null;
     if (key !== focus.current) {

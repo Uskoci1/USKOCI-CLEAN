@@ -104,6 +104,8 @@ const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
 let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined, scopeKey = 'a:1';
 let relationsPending = false, relationsError = false;
 let tracing = false;
+let publicationFocus: { token: string; id: string; kind: 'map' | 'list' } | undefined;
+let publicationUnavailable: 'missing' | 'error' | undefined;
 const nativeTrace = jest.fn();
 const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
   ...own.map(needId => ({ needId, relation: 'OWNER' })),
@@ -112,10 +114,11 @@ const relationIndex = (own: string[], applied: string[] = [], covered = rows.map
 let snapshot: MarketplaceView, initial: MarketplaceView;
 /** Set once a task is opened: like the route, the screen then takes no more changes of its view (it is not in front). */
 let navigated = false;
-const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn();
+const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn(), openPublished = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
+    publicationFocus={publicationFocus} publicationUnavailable={publicationUnavailable} onOpenPublishedTask={openPublished}
     trace={tracing ? nativeTrace : undefined}
     onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
@@ -188,15 +191,47 @@ beforeEach(() => {
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
+  publicationFocus = undefined; publicationUnavailable = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
-  for (const fn of [open, refresh, newTask, profile, scrollToOffset]) fn.mockReset();
+  for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset]) fn.mockReset();
   for (const fn of [mockDefaultScroll, mockDefaultBeginDrag, mockDefaultEndDrag, mockDefaultMomentumBegin, mockDefaultMomentumEnd]) fn.mockReset();
   (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
 });
 // The sheet's top line: the honest count, which is also the button that opens the list (Discovery V47).
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
+
+test('published public point opens the exact task card even when another task shares its pin', async () => {
+  rows = [row('a', { priblizno: { lat: 44.79, lng: 20.45 } }), row('bb', { priblizno: { lat: 44.79, lng: 20.45 } })];
+  initial = { ...initial, selectedId: 'bb', sheet: 'peek' };
+  publicationFocus = { token: 'published:bb:1', id: 'bb', kind: 'map' };
+  await render();
+  expect(listSheet().props.index).toBe(0);
+  expect(map().props).toMatchObject({ selectedId: 'bb', selectedPlace: null, focusSelectionOnMount: true });
+  expect(tree.root.findByType(DiscoveryPeek).props.item.id).toBe('bb');
+  expect(cards()).toEqual(['a', 'bb']);
+});
+
+test('published remote task opens the full list with its public row first and the original count intact', async () => {
+  rows = [row('a'), row('remote', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }), row('bb')];
+  initial = { ...initial, sheet: 'full', listOffset: 0 };
+  publicationFocus = { token: 'published:remote:1', id: 'remote', kind: 'list' };
+  await render();
+  expect(listSheet().props.index).toBe(2);
+  expect(cards()).toEqual(['remote', 'a', 'bb']);
+  expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('3 zadatka');
+  expect(tree.root.findAllByType(DiscoveryPeek)).toHaveLength(0);
+});
+
+test('a published task absent from the public read offers its owned detail without inventing a public row', async () => {
+  publicationUnavailable = 'missing';
+  await render();
+  expect(texts()).toContain('Objavljen zadatak još nije u spisku otvorenih zadataka.');
+  expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  await tap('Otvori moj objavljen zadatak');
+  expect(openPublished).toHaveBeenCalledTimes(1);
+});
 
 test('the remote quick filter clears an old point and place, keeps the camera and shows remote work without a map', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
@@ -406,6 +441,28 @@ const dragSheet = async (index: number) => {
   nativeDetent(index); mockNativeHandleGesture.value = 5; mockNativeSheetState.value = index === 2 ? 2 : 0;
   await act(async () => listSheet().props.onChange(index)); await deliverUi();
 };
+
+test.each(['native probe', 'onChange'] as const)('confirming a requested peek through %s avoids a redundant native subtree commit', async confirmation => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`settlement${i}`));
+  const committed = jest.fn();
+  await act(async () => {
+    tree = create(<React.Profiler id="discovery" onRender={committed}><Screen /></React.Profiler>,
+      { createNodeMock: element => element.type === 'List' ? { scrollToOffset } : null });
+  });
+  await layOutBody(); await deliverUi(); await deliverUi();
+  expect(listSheet().props.index).toBe(0); expect(snapshot.sheet).toBe('peek');
+  committed.mockClear();
+  nativeDetent(0); mockNativeSheetState.value = 1;
+  if (confirmation === 'native probe') await deliverUi();
+  else await act(async () => listSheet().props.onChange(0));
+  // Matching native evidence clears command ownership without rewriting the unchanged React index.
+  // A render here also re-registers Gorhom's scrollable during its initial native settlement.
+  expect(committed).not.toHaveBeenCalled();
+  nativeDetent(1); await deliverUi();
+  // The pending request was actually fulfilled: a later native detent is no longer rejected by it.
+  expect(listSheet().props.index).toBe(1); expect(snapshot.sheet).toBe('half');
+  expect(committed).toHaveBeenCalled();
+});
 
 test('two unchanged deep returns remain retained without a duplicate native scroll event', async () => {
   rows = Array.from({ length: 40 }, (_, i) => row(`native${i}`));
@@ -1084,8 +1141,9 @@ test('confirmed own, applied, other and uncovered tasks stay visible with distin
   expect(relationOf('mine')).toBe('OWNED'); expect(relationOf('other')).toBeUndefined();
   expect(relationOf('applied')).toBe('APPLIED'); expect(relationOf('remote')).toBe('UNKNOWN');
   expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('Prijava poslata'); expect(texts()).toContain('Tvoj status nije potvrđen');
-  // The top line counts what is listed, and how many of those the map cannot show.
-  expect(texts()).toContain('4 zadatka'); expect(texts()).toContain(' · 1 zadatak bez tačke na mapi');
+  // The top line stays a single glanceable count; its accessible name retains the map context.
+  expect(texts()).toContain('4 zadatka');
+  expect(countLine().props.accessibilityLabel).toBe('4 zadatka · 1 zadatak bez tačke na mapi');
   await act(async () => map().props.onSelect('mine'));
   expect(texts(peek()!)).toContain('Tvoj zadatak');
   await tap('Zatvori pregled zadatka');
@@ -1240,9 +1298,9 @@ test('pin and discovery list keep the truthful task face without redundant surro
   // A task that asks for offers says so in words that never look like an amount.
   await tap('Zatvori pregled zadatka'); await act(async () => map().props.onSelect('ponude'));
   expect(texts(peek()!)).toContain('Tražim ponude');
-  // The results sheet already provides the list surface; its rows have quiet separators instead of nested cards.
+  // Each result is a distinct, scannable task card in the sheet.
   const listed = listSheet().findAllByType(CARD);
-  expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => node.props.bare)).toBe(true);
+  expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => node.props.compact && !node.props.bare)).toBe(true);
 });
 
 test('tasks on one public point are one place: its card says how many and each row opens its own task', async () => {
@@ -1262,9 +1320,8 @@ test('tasks on one public point are one place: its card says how many and each r
   await act(async () => map().props.onSelectPlace('44.90,20.50')); expect(snapshot).toMatchObject({ selectedId: 'other', selectedPlace: null });
 });
 
-// Review of V47, item 2: "Prikaži sve u listi" was an area around the point, and under an area every task without a point
-// joins the list: the whole set of one place came with every online task. It is now exactly that one point.
-test('a crowded place lists exactly its own tasks: no task without a point joins them, and it is not an area', async () => {
+// A selected place keeps mapped tasks at that point first, with point-free work in a separate section.
+test('a crowded place lists its own tasks then point-free work, without widening its map area', async () => {
   rows = [...['p1', 'p2', 'p3', 'p4'].map(id => row(id, at(44.79, 20.45))), row('far', at(45.2, 19.8)),
     row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
   await render();
@@ -1272,9 +1329,9 @@ test('a crowded place lists exactly its own tasks: no task without a point joins
   expect(texts(peek()!)).toContain('4 zadatka na ovom mestu');
   await click('Prikaži sve u listi');
   expect(snapshot).toMatchObject({ pinPlace: '44.79,20.45', area: null, selectedPlace: null }); expect(listSheet().props.index).toBe(2);
-  expect(cards()).toEqual(['p1', 'p2', 'p3', 'p4']);
-  expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(0);
-  expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('4 zadatka na ovom mestu');
+  expect(cards()).toEqual(['p1', 'p2', 'p3', 'p4', 'online']);
+  expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(1);
+  expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('5 zadataka');
   // The map still draws every task.
   expect(map().props.items).toHaveLength(6);
   // It is said by the search pill, "Na ovom mestu", and the pill's × takes it away; nothing is added under the count.
@@ -1460,8 +1517,9 @@ test('under a map area the list holds the area\'s tasks, then those without a po
   expect(cards()).toEqual(['in1', 'in2', 'online', 'nowhere']);
   const heading = tree.root.findAll(node => node.props.testID === 'section-without-point');
   expect(heading).toHaveLength(1);
-  expect(heading[0].props).toMatchObject({ accessibilityRole: 'header', accessibilityLabel: 'Bez tačke na mapi, 2 zadatka' });
-  expect(texts(heading[0])).toBe('Bez tačke na mapi 2');
+  expect(heading[0].props).toMatchObject({ accessibilityRole: 'header', accessibilityLabel: 'Na daljinu ili bez tačke na mapi, 2 zadatka' });
+  expect(texts(heading[0])).toBe('Na daljinu ili bez tačke na mapi 2');
+  expect(texts(countLine())).toBe('4 zadatka');
   // The heading stands right before the first task without a point.
   const order = listSheet().findAll(node => node.props.testID === 'section-without-point'
     || (String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))).map(node => node.props.testID ?? node.props.accessibilityLabel);
@@ -1472,6 +1530,7 @@ test('under a map area the list holds the area\'s tasks, then those without a po
   // An area with none of its own still keeps the tasks without a point, and says so.
   await act(async () => map().props.onArea([0, 0, 1, 1]));
   expect(cards()).toEqual(['online', 'nowhere']); expect(countLine().props.accessibilityLabel).toBe('U oblasti nema zadataka · 2 zadatka bez tačke na mapi');
+  expect(texts(countLine())).toBe('2 zadatka');
   // "Prikaži N zadataka" counts the same list.
   await tap('Uslovi pretrage');
   expect(showAction().props.label).toBe('Prikaži 2 zadatka');

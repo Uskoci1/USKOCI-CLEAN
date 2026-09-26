@@ -94,7 +94,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         </View>
         <View style={s.brief}>
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
-            filled={`${need.pokrivenost.popunjeno} / ${need.pokrivenost.ukupno} popunjeno`}
+            filled={`${need.pokrivenost.popunjeno}/${need.pokrivenost.ukupno}`}
             spokenFilled={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
           {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
         </View>

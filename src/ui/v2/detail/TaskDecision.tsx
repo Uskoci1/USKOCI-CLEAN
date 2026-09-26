@@ -50,8 +50,7 @@ export function TaskDecisionLogistics({ remote, place, time, people, filled, spo
     </View>
     <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`} style={s.planningFact}>
       <FactArt kind="users" size={24} />
-      <View style={s.capacityCopy}><T style={[s.factValue, s.capacityValue]}>{people}</T>
-        {filled ? <T variant="note" tone="muted" style={s.capacityValue}>{filled}</T> : null}</View>
+      <View style={s.capacityCopy}><T style={[s.factValue, s.capacityValue]}>{filled ?? people}</T></View>
     </View>
   </View>;
 }

@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+R21 FLOW CLARITY SOURCE (2026-09-27): read `docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md`. Task details lead with title/facts; occupancy is concise, Discovery rows are cards, confirmed publication resolves a fresh public row before opening its map/list context, and Agreement separates task link / next step / accepted terms. AI gains saved-photo preview and one ready-review action. Consolidated checks and exact APK/native acceptance are recorded in the same directory when available; do not infer device success from source. No server/Edge/dependency/AI-provider changes.
+
 CF02 SOURCE / R20 NATIVE UPDATE (2026-09-26): terminal Agreements now retain existing-photo
 recovery without allowing new media/message sends. Read `docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md`
 and CHECKS: types and322suites/6517tests pass; native photo acceptance remains pending.

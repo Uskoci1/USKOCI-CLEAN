@@ -9,7 +9,7 @@ import { T } from '../../ui/Text';
 import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementHero, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
@@ -385,14 +385,14 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
           : <ProductHeader back={backToAgreements} title="Dogovor"
             right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />}
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-          <AgreementHero agreement={dogovor} disabled={!enabled}
+          <AgreementTaskLink agreement={dogovor} disabled={!enabled}
             onOpenTask={me && dogovor.izvor?.zadatakId ? () => {
               const needId = dogovor.izvor?.zadatakId;
               if (!needId || !formCurrent()) return;
               router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
                 : { pathname: '/prilike/[id]', params: { id: needId } });
             } : undefined} />
-          {/* The task is the natural entry to its detail; the next step follows accepted terms. */}
+          {/* Identify the task first, then the next step, then the accepted snapshot. */}
           <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
             {active && me && !radnje ? <View style={s.stack}>
               <T variant="meta" tone="muted">Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.</T>
@@ -408,6 +408,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
                 : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
             </View> : null}
           </NextStepCard>
+          <AgreementTerms agreement={dogovor} />
           {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
           {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
           {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}

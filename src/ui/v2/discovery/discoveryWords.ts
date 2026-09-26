@@ -76,7 +76,8 @@ export const undatedWords = (count: number) => plural(count, 'zadatak bez datuma
  * tasks are mine) it says so; a read that failed says so; nothing found is "Nema zadataka" (the empty list under it says
  * why, in its own words). Otherwise one format, every count through the plural: the tasks listed, then apart and quieter
  * (`extra`) the tasks the map cannot show — "12 zadataka · 3 zadatka bez tačke na mapi", under an area
- * "2 zadatka u oblasti · 2 zadatka bez tačke na mapi" or "U oblasti nema zadataka", on one point "4 zadatka na ovom mestu".
+ * "2 zadatka u oblasti · 2 zadatka bez tačke na mapi" or "U oblasti nema zadataka"; on one point,
+ * the point's count is followed by the separate count of point-free tasks when present.
  */
 export function countLineWords({ status, listed, inArea, withoutPoint, pinless, area, pinPlace }: {
   status: 'loading' | 'error' | 'ready'; listed: number; inArea: number; withoutPoint: number;
@@ -86,7 +87,7 @@ export function countLineWords({ status, listed, inArea, withoutPoint, pinless, 
   if (status === 'loading') return { words: 'Učitavamo zadatke…', extra: '' };
   if (status === 'error') return { words: 'Zadaci nisu učitani', extra: '' };
   const without = (count: number) => count ? ` · ${zadataka(count)} bez tačke na mapi` : '';
-  if (pinPlace) return { words: listed ? `${zadataka(listed)} na ovom mestu` : 'Nema zadataka', extra: '' };
+  if (pinPlace) return { words: inArea ? `${zadataka(inArea)} na ovom mestu` : 'Na ovom mestu nema zadataka', extra: without(withoutPoint) };
   if (area) return { words: inArea ? `${zadataka(inArea)} u oblasti` : 'U oblasti nema zadataka', extra: without(withoutPoint) };
   return listed ? { words: zadataka(listed), extra: without(pinless) } : { words: 'Nema zadataka', extra: '' };
 }

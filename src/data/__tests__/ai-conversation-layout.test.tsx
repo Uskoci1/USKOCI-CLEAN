@@ -304,13 +304,13 @@ it('keeps a legal long amount complete in a constrained, wrapping value row at l
   expect(tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.accessibilityValue.text).toContain('100.000.000 RSD ukupno');
 });
 
-it('shows the assistant name once per consecutive group while retaining the identity of every accessible turn', async () => {
+it('shows the small USKOČI mark once per consecutive group while retaining the identity of every accessible turn', async () => {
   const p = props(); p.messages = [
     { id: 'a', fromAi: true, body: 'Prvo pitanje' }, { id: 'b', fromAi: true, body: 'Dopuna pitanja' },
     { id: 'u', fromAi: false, body: 'Odgovor' }, { id: 'c', fromAi: true, body: 'Sledeće pitanje' },
   ];
   await act(async () => { tree = create(<AiConversationShell {...p} streamingText="Dopuna" />); });
-  expect(tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'AI asistent')).toHaveLength(2);
+  expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(2);
   for (const message of p.messages) expect(tree.root.findAllByProps({ accessibilityLabel: `${message.fromAi ? 'USKOČI' : 'Ti'}: ${message.body}` })).toHaveLength(1);
   expect(tree.root.findByProps({ accessibilityLabel: 'USKOČI: Dopuna' }).props.accessibilityLiveRegion).toBe('none');
 });

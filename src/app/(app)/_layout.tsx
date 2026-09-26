@@ -65,7 +65,8 @@ function sectionOf(state: { index: number; routes: readonly { name: string; key:
  * screen, read or guard is involved.
  */
 const RETIRED = new Set(['mapa', 'prilike', 'moje-aktivnosti']);
-type TabHistory = { index: number; routes: readonly { name: string; key?: string }[]; history?: readonly { type: string; key?: string }[] };
+type TabHistory = { index: number; routes: readonly { name: string; key?: string; params?: Record<string, unknown> }[];
+  history?: readonly { type: string; key?: string }[] };
 function withoutRetired<State>(state: State): State {
   const tabs = state as unknown as TabHistory | null;
   if (!tabs || !Array.isArray(tabs.history) || !Array.isArray(tabs.routes)) return state;
@@ -109,6 +110,17 @@ function withoutLeft<State>(state: State, left: { name: string; key?: string } |
   const history = tabs.history.filter(entry => entry.type !== 'route' || !leaves(entry.key));
   return history.length === tabs.history.length ? state : { ...tabs, history } as unknown as State;
 }
+/** A completed publication is a new root visit to Zadaci. Its one Back destination is Početna,
+ * even if the person had visited several tabs before starting the AI conversation. */
+function publicationLanding<State>(state: State, left: { name: string; key?: string } | undefined): State {
+  const tabs = state as unknown as TabHistory | null;
+  if (!tabs || left?.name !== 'pregled-zadatka' || !Array.isArray(tabs.history)) return state;
+  const shown = tabs.routes[tabs.index], home = tabs.routes.find(route => route.name === 'index');
+  if (shown?.name !== 'zadaci' || !home?.key || !shown.key
+    || typeof shown.params?.publishedNeedId !== 'string'
+    || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(shown.params.publishedNeedId)) return state;
+  return { ...tabs, history: [{ type: 'route', key: home.key }, { type: 'route', key: shown.key }] } as unknown as State;
+}
 
 /**
  * A full screen has no tab bar (owner decision, 2026-09-18). The conversation, the review before
@@ -150,7 +162,7 @@ export default function TabLayout() {
       // Every replace is taken as a jump that leaves the screen it replaces (see `replacedAsJump`), and a retired entry
       // never stays in the history.
       getStateForAction: (state, action, options) => withoutRetired(replacedAsJump(action)
-        ? withoutLeft(original.getStateForAction(state, { ...action, type: 'JUMP_TO' }, options), state.routes[state.index])
+        ? publicationLanding(withoutLeft(original.getStateForAction(state, { ...action, type: 'JUMP_TO' }, options), state.routes[state.index]), state.routes[state.index])
         : original.getStateForAction(state, action, options)),
       getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}
     // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a

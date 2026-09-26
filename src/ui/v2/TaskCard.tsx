@@ -92,7 +92,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
-      <CardHead title={title} value={value} large={large} />
+      <CardHead title={title} value={value} large={large || compact} />
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={0} />
         {/* The complete range remains readable, including its end date on narrow or enlarged-text cards. */}
@@ -115,8 +115,8 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
 export const TaskCard = memo(TaskCardBase);
 
 const s = StyleSheet.create({
-  // The task's contained work brief contrasts with an open Agreement agenda; one soft edge, not border plus shadow.
-  card: { ...cardCompact, ...sys.elevation.card, borderWidth: 0, padding: 0 },
+  // A list task is a distinct white card. A neutral edge separates it from the white sheet without a second shadow.
+  card: { ...cardCompact, padding: 0 },
   disabled: { opacity: 0.55 },
   body: { padding: sys.space.lg, gap: sys.space.base, borderRadius: sys.radius.cardCompact },
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },

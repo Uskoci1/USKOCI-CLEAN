@@ -1,8 +1,10 @@
 import { lazy, Suspense, useState } from 'react';
-import { ActivityIndicator, Keyboard, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
 import { FactArt } from '../system/FactArt';
+import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
+import { mediaAssetId } from '../../data/mediaAssetId';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
@@ -67,7 +69,7 @@ const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko se
  * owned editor's guards. Safety and missing information remain visible in either state.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
-  editing = false, hiddenMissing = false }: {
+  editing = false, hiddenMissing = false, reviewAtEnd = false }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
@@ -76,6 +78,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   editing?: boolean;
   /** Something the server still needs is one people never see (the category): the card claims nothing is missing. */
   hiddenMissing?: boolean;
+  /** A complete draft gets one primary review action beside the composer instead of repeating it here. */
+  reviewAtEnd?: boolean;
 }) {
   const large = useTextScale() >= 1.3;
   const stackValue = large || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
@@ -107,18 +111,18 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
       : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null}
-    <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
+    {summary.value || !reviewAtEnd ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
       {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
         <CardValue value={summary.value} large />
       </View> : null}
-      <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
+      {!reviewAtEnd ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
         accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
         onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
         <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
         <CaretRight size={18} color={canReview ? sys.color.green : sys.color.muted} />
-      </Press>
-    </View>
+      </Press> : null}
+    </View> : null}
   </View>;
 }
 
@@ -139,6 +143,9 @@ export function IntakePresentation(props: Props) {
   // the conversation asks for it rather than leaving it to be discovered. Read from the facts
   // the conversation already holds, including the owner-private one; no extra server call.
   const held = (key: AiNeedV2Fact['key']) => conversation.facts.find(fact => fact.key === key)?.value;
+  const photoPaths = held('need.public_photo_paths');
+  const photoAssets = [...new Set((Array.isArray(photoPaths) ? photoPaths : [])
+    .map(path => typeof path === 'string' ? mediaAssetId(path) : null).filter((id): id is string => !!id))];
   const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
   const needsPoint = open && gap.total > 0 && gap.done < gap.total;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
@@ -154,6 +161,8 @@ export function IntakePresentation(props: Props) {
   // At the start nothing is filled, so the full list is eight items long; the card names the first few and counts the rest.
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
+  const readyForReview = open && props.canReview && conversation.safety !== 'BLOCK'
+    && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   // Current facts belong in the live card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
   const messages = conversation.messages;
@@ -188,10 +197,22 @@ export function IntakePresentation(props: Props) {
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={props.canReview}
       onReview={props.onReview} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
-      hiddenMissing={hiddenMissing} />}
-    actions={
-      // Only a hard block belongs in the thread. REVIEW and CLARIFY describe the draft, so they sit on its card.
-      safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : undefined}
+      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
+    footerAction={readyForReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} /> : undefined}
+    actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
+      {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
+        {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
+          disabled={props.photosDisabled} accessibilityState={{ disabled: !!props.photosDisabled }} onPress={props.onPhotos}
+          style={s.photoHeader}>
+          <T variant="bodyStrong">Fotografije zadatka</T><CaretRight size={20} color={sys.color.muted} />
+        </Press> : <T variant="bodyStrong">Fotografije zadatka</T>}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.photoRow}>
+          {photoAssets.map((assetId, index) => <AuthorizedPhoto key={assetId} assetId={assetId}
+            label={`Fotografija zadatka ${index + 1}`} contentFit="cover" style={s.photoTile} />)}
+        </ScrollView>
+      </View> : null}
+      {safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
+    </> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !needsPoint ? undefined : <>
@@ -220,6 +241,10 @@ export function IntakePresentation(props: Props) {
 }
 
 const s = StyleSheet.create({
+  photos: { gap: sys.space.sm },
+  photoHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  photoRow: { gap: sys.space.sm },
+  photoTile: { width: 104, height: 104, aspectRatio: 1 },
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.

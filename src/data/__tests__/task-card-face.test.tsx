@@ -294,14 +294,14 @@ describe('my own task\'s next step', () => {
     await act(async () => presses()[0].props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('says the states of my own task and nothing for an open one', async () => {
+  it('labels draft and closure while the capacity fraction conveys fullness', async () => {
     const status = async (stanje: string, word: string | null) => {
       await render(<TaskCard item={mine({ stanje, brojPrijavaZaIzbor: null })} onOpen={jest.fn()} />);
       for (const other of ['Nacrt', 'Delimično popunjen', 'Popunjen', 'Zatvoren']) expect(texts().includes(other)).toBe(other === word);
       await act(async () => tree.unmount());
     };
-    await status('OBJAVLJENA', null); await status('CEKA_PRIJAVE', null); await status('DELIMICNO_POPUNJENA', 'Delimično popunjen');
-    await status('POPUNJENA', 'Popunjen'); await status('ZATVORENA', 'Zatvoren');
+    await status('OBJAVLJENA', null); await status('CEKA_PRIJAVE', null); await status('DELIMICNO_POPUNJENA', null);
+    await status('POPUNJENA', null); await status('ZATVORENA', 'Zatvoren');
   });
 
   it('still says what waits when no route to it was handed over, inside the one body target, with the same dot and words', async () => {
@@ -319,7 +319,7 @@ describe('the card', () => {
     for (const words of ['Liman, Novi Sad', '24. sep · 17:00', 'Zgrada bez lifta']) {
       expect(style(textNode(words).parent!).flexWrap).not.toBe('wrap');
     }
-    expect(style(frame())).toMatchObject({ borderWidth: 0, backgroundColor: sys.color.surface, ...sys.elevation.card });
+    expect(style(frame())).toMatchObject({ borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface });
     expect(presses()).toHaveLength(1);
   });
 
@@ -419,7 +419,7 @@ describe('review r3', () => {
   // Item 9: the content used to shrink inside a frame that stood still. The frame is what scales, border and all.
   it('gives under the finger as one object, frame and all, from either target; under reduced motion nothing moves', async () => {
     await render(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />);
-    expect(style(frame())).toMatchObject({ borderWidth: 0, transform: [{ scale: 1 }] });
+    expect(style(frame())).toMatchObject({ borderWidth: 1, transform: [{ scale: 1 }] });
     const [body, next] = presses();
     expect(body.props.scaleTo).toBe(1); expect(next.props.scaleTo).toBe(1);
     const scale = mockShared[mockShared.length - 1];
@@ -442,7 +442,7 @@ describe('review r3', () => {
     await act(async () => tree.update(<TaskCard item={mine({ stanje: 'ZATVORENA' })} sectionSays="ZATVORENA" onOpen={jest.fn()} />));
     expect(texts()).not.toContain('Zatvoren');
     await act(async () => tree.update(<TaskCard item={mine({ stanje: 'DELIMICNO_POPUNJENA', brojPrijavaZaIzbor: null })} sectionSays="ZATVORENA" onOpen={jest.fn()} />));
-    expect(texts()).toContain('Delimično popunjen');
+    expect(texts()).not.toContain('Delimično popunjen');
     // A stranger's task has no own state for a section to name.
     expect(taskStatus(task(), 'APPLIED', 'ZATVORENA')).toEqual({ text: 'Prijava poslata', quiet: false });
   });

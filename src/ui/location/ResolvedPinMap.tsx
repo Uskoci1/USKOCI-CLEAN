@@ -28,8 +28,8 @@ const CREDITS = [
   { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
   { text: 'OpenFreeMap', url: 'https://openfreemap.org/' },
 ] as const;
-/** The public approximate area: a soft disc, no tail, so the picture promises no more than the two-decimal point does. */
-const AREA = 56;
+/** A branded approximate marker: its halo still makes the public two-decimal location visibly imprecise. */
+const AREA = 64;
 
 /** MapLibre rendering and lifetime pattern adapted from PR67; no provider or save authority. */
 function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; retry: () => void }) {
@@ -184,10 +184,13 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         onPress={event => { if (!drag.current) choose(event.nativeEvent.lngLat); }}>
         <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 13 : 18} />
         {pin && area ? <Marker id="location-area" lngLat={[pin.longitude, pin.latitude]} anchor="center">
-          {/* A translucent green disc with a hairline and no tail: the words under it promise an area, so does the
-              picture, and the city name reads through it. Nothing here is dragged, decoded or chosen. */}
+          {/* The brand mark gives the task detail the same identity as Discovery's pins. The halo, rather than a
+              sharp pin tip, continues to say that this public point is approximate. */}
           <View collapsable={false} accessible accessibilityRole="image" accessibilityLabel="Približno područje na mapi"
-            pointerEvents="none" style={styles.area}><View style={styles.areaFill} /></View>
+            pointerEvents="none" style={styles.area}>
+            <View style={styles.areaFill} />
+            <Image source={require('../../../assets/entry-splash-mark.png')} resizeMode="contain" accessible={false} style={styles.areaMark} />
+          </View>
         </Marker> : pin ? <Marker id="location-proposal" lngLat={[pin.longitude, pin.latitude]} anchor="bottom">
           {/* Marker uses a real Android view on the native map projection.
               Image decode is readiness only; screenshots verify visible pixels. */}
@@ -268,6 +271,8 @@ const styles = StyleSheet.create({
   creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
-  area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge, overflow: 'hidden' },
+  area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge,
+    overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   areaFill: { ...StyleSheet.absoluteFill, backgroundColor: sys.color.green, opacity: 0.16 },
+  areaMark: { width: 34, height: 34 },
 });

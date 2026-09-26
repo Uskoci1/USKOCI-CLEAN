@@ -144,7 +144,7 @@ test('the public Task leads with its title and four facts, offers the requester 
   // Recomposed from zero (owner, 2026-09-23): no status box repeating what the action already says ("Traži ponude" over
   // a fixed price of 9.000 RSD said the opposite of the price). Potrebno is heard as words, not as a slash.
   expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
-  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0 / 2 popunjeno');
+  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0/2');
   for (const fact of ['Lokacija: Beograd, Vračar', 'Termin: Sutra ujutru', 'Budžet: 9.000 RSD']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }

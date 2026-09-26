@@ -110,7 +110,8 @@ export function personSpoken(name: string, rating: string | null | undefined, co
   return trust ? `${name}, ${trust.spoken}` : name;
 }
 
-const OWN_STATUS: Partial<Record<StanjePotrebe, string>> = { NACRT: 'Nacrt', DELIMICNO_POPUNJENA: 'Delimično popunjen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
+// Capacity already conveys fullness; only draft and closure need separate lifecycle words.
+const OWN_STATUS: Partial<Record<StanjePotrebe, string>> = { NACRT: 'Nacrt', ZATVORENA: 'Zatvoren' };
 /**
  * The status line, only when it says something: every card in a list of open tasks is open, so that is never said, and
  * a card in a section named for its state (every card under Nacrti is a draft, every card under Istorija is closed) does

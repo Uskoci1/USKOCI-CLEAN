@@ -96,7 +96,7 @@ describe('a stranger\'s task', () => {
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = ['Selidba stana', 'FOTOGRAFIJE', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe', '9.000 RSD',
+    const order = ['Selidba stana', 'FOTOGRAFIJE', 'Beograd, Vračar', 'Sutra ujutru', '0/2', '9.000 RSD',
       'Dva sprata bez lifta.', 'Kombi', 'Ana Anić', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);

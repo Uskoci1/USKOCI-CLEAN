@@ -3,7 +3,8 @@ import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
+import { initialMarketplaceView, publicPoint, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
+import { sameId, uuid } from '../../data/serverReceipt';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
@@ -19,7 +20,10 @@ export default function Zadaci() {
   return <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function Discovery() {
-  const params = useLocalSearchParams<{ discoveryTrace?: string }>();
+  const params = useLocalSearchParams<{ discoveryTrace?: string; publishedNeedId?: string | string[]; publishedRevision?: string | string[] }>();
+  const publishedNeedId = uuid(params.publishedNeedId) ? params.publishedNeedId : null;
+  const publishedRevision = typeof params.publishedRevision === 'string' && /^[1-9]\d*$/.test(params.publishedRevision)
+    ? params.publishedRevision : null;
   // Bounded native diagnosis only: the gallery's package gate, narrowed to this exact DEV package.
   // No __DEV__ override, persisted flag, UI entry, identifiers, free text or native event objects.
   const traceEnabled = Constants.expoConfig?.android?.package === 'rs.uskoci.dev' && params.discoveryTrace === '1';
@@ -38,6 +42,10 @@ function Discovery() {
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
+  const publicationToken = publishedNeedId ? `${user?.id ?? ''}:${accountRevision}:${publishedNeedId}:${publishedRevision ?? ''}` : null;
+  const publicationRequested = useRef<string | null>(null);
+  const publicationCompleted = useRef<string | null>(null);
+  const [publication, setPublication] = useState<{ token: string; id: string; status: 'loading' | 'read' | 'map' | 'list' | 'missing' | 'error' } | null>(null);
   const traceView = useRef(view); traceView.current = view;
   useEffect(() => { if (traceEnabled) trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); }, [traceEnabled, trace]);
   useFocusEffect(useCallback(() => {
@@ -48,8 +56,13 @@ function Discovery() {
     // visit: come back to the screen and the guard compared an old token against a new one and
     // refused every press, silently, for the rest of that screen's life.
     setScope(owner);
-    return () => { trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); if (focus.current === owner) focus.current = null; };
-  }, [trace]));
+    return () => { trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); if (focus.current === owner) focus.current = null;
+      // A read retired by blur must be requested again on the next focus. A completed landing
+      // stays consumed, so returning from its detail keeps the person's map/list position.
+      if (publicationRequested.current === publicationToken && publicationCompleted.current !== publicationToken)
+        publicationRequested.current = null;
+    };
+  }, [trace, publicationToken]));
   const load = useCallback(async () => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try { return await Promise.race([source.otvorenePrilike(), new Promise<never>((_, reject) => {
@@ -57,6 +70,33 @@ function Discovery() {
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
   const resource = useFocusedResource(load, { coalesce: true });
+  // The public list may still contain the snapshot from a previous visit. A publication handoff waits
+  // for one fresh public read before it claims that the task has a pin or is in Discovery at all.
+  useEffect(() => {
+    if (!publicationToken || !publishedNeedId || !scope || focus.current !== scope || publicationRequested.current === publicationToken) return;
+    publicationRequested.current = publicationToken;
+    setPublication({ token: publicationToken, id: publishedNeedId, status: 'loading' });
+    void resource.refresh(true).then(() => {
+      if (publicationRequested.current === publicationToken && focus.current === scope
+        && sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision)
+        setPublication({ token: publicationToken, id: publishedNeedId, status: 'read' });
+    });
+  }, [publicationToken, publishedNeedId, scope, resource.refresh, user?.id, accountRevision, publication?.status]);
+  useEffect(() => {
+    if (!publication || publication.status !== 'read' || publication.token !== publicationToken || resource.loading || resource.refreshing) return;
+    if (!scope || focus.current !== scope || sesijaSada().user?.id !== user?.id || sesijaSada().accountRevision !== accountRevision) return;
+    if (resource.error || !resource.data) { setPublication({ ...publication, status: 'error' }); return; }
+    const item = resource.data.find(row => sameId(row.id, publication.id));
+    if (!item) { setPublication({ ...publication, status: 'missing' }); return; }
+    const status = publicPoint(item) ? 'map' : 'list';
+    setView({ ...initialMarketplaceView(), mode: 'map', selectedId: status === 'map' ? item.id : null,
+      sheet: status === 'map' ? 'peek' : 'full', listOffset: 0 });
+    setPublication({ ...publication, id: item.id, status });
+  }, [publication, publicationToken, resource.loading, resource.refreshing, resource.error, resource.data, scope, user?.id, accountRevision]);
+  useEffect(() => {
+    if (publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
+      && scope && focus.current === scope) publicationCompleted.current = publicationToken;
+  }, [publication, publicationToken, scope]);
   // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
   // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
   // for the tasks actually on this page, instead of my whole task list and my whole application
@@ -93,9 +133,22 @@ function Discovery() {
   return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       relationsError={relations.error}
+      publicationFocus={publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
+        ? { token: publication.token, id: publication.id, kind: publication.status } : undefined}
+      publicationUnavailable={publication?.token === publicationToken && (publication.status === 'missing' || publication.status === 'error')
+        ? publication.status : undefined}
+      onOpenPublishedTask={publication?.token === publicationToken && publication.id ? () => navigate(() => router.replace({
+        pathname: '/potrebe/[id]/pregled', params: { id: publication.id },
+      })) : undefined}
       trace={traceEnabled ? trace : undefined}
       onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
-        if (current()) { void resource.refresh(true); void relations.refresh(true); }
+        if (current()) {
+          if (publication?.token === publicationToken && (publication.status === 'missing' || publication.status === 'error')) {
+            publicationRequested.current = null;
+            setPublication(null); // the publication effect starts one fresh public read and re-evaluates its row
+          } else void resource.refresh(true);
+          void relations.refresh(true);
+        }
       }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNotifications={() => navigate(() => router.navigate('/obavestenja'))}

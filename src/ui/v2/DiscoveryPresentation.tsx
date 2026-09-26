@@ -41,6 +41,9 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
+  /** A confirmed publication, resolved against a fresh public list by the route. */
+  publicationFocus?: { token: string; id: string; kind: 'map' | 'list' };
+  publicationUnavailable?: 'missing' | 'error'; onOpenPublishedTask?: () => void;
   /** Account-owned answers, only for the IDs the read covered. Missing coverage remains UNKNOWN. */
   relations?: TaskRelationIndex;
   /** These labels do not delay public rows, counts, map fit or the sheet's initial position. */
@@ -89,10 +92,10 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   return <>
     {section !== undefined ? <View testID="section-without-point" accessible accessibilityRole="header"
-      accessibilityLabel={`Bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
-      <T variant="meta" style={s.sectionTitle}>Bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
+      accessibilityLabel={`Na daljinu ili bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
+      <T variant="meta" style={s.sectionTitle}>Na daljinu ili bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
     </View> : null}
-    <Appear index={index} animate={animate}><TaskCard item={item} bare onOpen={open} relation={relation}
+    <Appear index={index} animate={animate}><TaskCard item={item} compact onOpen={open} relation={relation}
       portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
   </>;
 });
@@ -250,8 +253,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const now = useMemo(() => new Date(), [items, when, dates, search]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = useMemo(() => ({ ...initialMarketplaceView(), query, price, area, when, where, places: freePlaces, place: chosenPlace, dates,
     pinPlace: pinPlace ?? null }), [query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
-  const { mapped, inArea, withoutPoint, listed } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, undefined, now),
+  const { mapped, inArea, withoutPoint, listed: ordinaryList } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, undefined, now),
     [loading, error, items, filters, now]);
+  // A published task without a public point cannot be selected on the map. Put its existing
+  // public row first in the open list; membership and the count remain exactly those of the read.
+  // A later map-area choice restores the usual area-first / point-free section order.
+  const listFocusId = props.publicationFocus?.kind === 'list' && !view.area && !view.pinPlace ? props.publicationFocus.id : null;
+  const listed = useMemo(() => {
+    if (!listFocusId) return ordinaryList;
+    const chosen = ordinaryList.find(item => item.id === listFocusId);
+    return chosen ? [chosen, ...ordinaryList.filter(item => item.id !== listFocusId)] : ordinaryList;
+  }, [ordinaryList, listFocusId]);
   const mappedWithoutPin = useMemo(() => mapped.filter(item => !publicPoint(item)).length, [mapped]);
   const groups = useMemo(() => pinPlaces(mapped), [mapped]);
   const byId = useMemo(() => new Map(mapped.map(item => [item.id, item] as const)), [mapped]);
@@ -274,13 +286,24 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const next = { index, sequence: sheetCommand.current.sequence + 1, pending: true };
     sheetCommand.current = next; applySheet(next);
   }, []);
+  const appliedPublication = useRef<string | null>(null);
+  useEffect(() => {
+    const request = props.publicationFocus;
+    if (!focused || !request || loading || error || appliedPublication.current === request.token) return;
+    appliedPublication.current = request.token;
+    setSheetIndex(request.kind === 'map' ? SNAP.peek : SNAP.full);
+  }, [focused, props.publicationFocus, loading, error, setSheetIndex]);
   const acceptSheetIndex = useCallback((index: number) => {
     const command = sheetCommand.current;
     // Native observations may reconcile a drag, but cannot cancel an explicit target before its spring starts.
     if (command.pending && command.index !== index) return false;
-    if (command.index !== index || command.pending) {
-      const next = { index, sequence: command.sequence + (command.index === index ? 0 : 1), pending: false };
+    if (command.index !== index) {
+      const next = { index, sequence: command.sequence + 1, pending: false };
       sheetCommand.current = next; applySheet(next);
+    } else if (command.pending) {
+      // Matching settlement fulfills the command without recommitting the unchanged native subtree.
+      // A later changed index or retired gesture still renders its new command ownership.
+      sheetCommand.current = { ...command, pending: false };
     }
     return true;
   }, []);
@@ -345,8 +368,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     setSheetIndex(SNAP.peek);
   };
   const clearSelection = () => { if (latestView.current.selectedId || latestView.current.selectedPlace) change({ selectedId: null, selectedPlace: null }); };
-  // "Prikaži sve u listi": the list narrows to exactly that one public point — not an area, so no task without a point
-  // joins it and the map's area is left as it was — and the search pill says so and takes it away.
+  // "Prikaži sve u listi": the mapped part narrows to this one public point; tasks without a
+  // point remain below in their own section. The search pill names the chosen point and clears it.
   const showPlace = () => {
     if (!place) return;
     change({ pinPlace: place.key, selectedId: null, selectedPlace: null });
@@ -799,8 +822,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
     withoutPoint: withoutPoint.length, pinless: view.where === 'remote' ? 0 : mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
   const spoken = `${line.words}${line.extra}`;
-  const count = <T variant="bodyStrong" numberOfLines={2} style={s.count}>
-    {line.words}{line.extra ? <T variant="note" tone="muted">{line.extra}</T> : null}
+  // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
+  // accessible name, the search summary and the list's own section heading.
+  const count = <T variant="bodyStrong" numberOfLines={1} style={s.count}>
+    {loading || error ? line.words : listed.length ? zadataka(listed.length) : 'Nema zadataka'}
   </T>;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
@@ -829,6 +854,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
       : <View testID="list-count-words" accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
     </View>
+    {props.publicationUnavailable ? <View style={s.relationsRecovery}>
+      <T variant="note" style={s.relationsMessage}>{props.publicationUnavailable === 'missing'
+        ? 'Objavljen zadatak još nije u spisku otvorenih zadataka.' : 'Spisak otvorenih zadataka nije učitan.'}</T>
+      {props.onOpenPublishedTask ? <Press accessibilityRole="button" accessibilityLabel="Otvori moj objavljen zadatak"
+        onPress={props.onOpenPublishedTask} style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Otvori moj zadatak</T></Press> : null}
+    </View> : null}
     {!loading && !error && items.length > 0 && props.relationsError ? <View style={s.relationsRecovery}>
       <T variant="note" tone="muted" style={s.relationsMessage}>Tvoj status uz zadatke nije učitan.</T>
       <Press accessibilityRole="button" accessibilityLabel="Proveri status zadataka" onPress={refreshList}
@@ -848,6 +879,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
+          focusSelectionOnMount={props.publicationFocus?.kind === 'map' && props.publicationFocus.id === chosen?.id}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
@@ -934,7 +966,7 @@ const s = StyleSheet.create({
   relationsRetryText: { color: sys.color.green },
   screen: { flex: 1, backgroundColor: sys.color.ground },
   body: { flex: 1 },
-  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 18 },
+  separator: { height: sys.space.md },
   ground: { flex: 1, backgroundColor: sys.color.ground },
   searchBacking: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: sys.color.surface },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },

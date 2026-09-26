@@ -66,10 +66,10 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
   expect(texts()).not.toMatch(/Ovo radiš kao|JA MOGU|MENI TREBA|iz Profila/);
   expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(await menuLabels()).toContain('Izmeni nacrt');
 });
-test('a published Task leads with its state, price and people, shows the applications row with a count, and has one brand action: the applications', async () => {
+test('a published Task leads with its title and facts, keeps applications below the work, and has one brand action', async () => {
   await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
-  expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).toContain('2 osobe');
+  expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).not.toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
   expect(labels()).toContain('Otvori prijave, ukupno 3');
   // V41 (2026-09-23): the one orange action carries the count of the applications that can be chosen.
@@ -83,7 +83,9 @@ test('a published Task leads with its state, price and people, shows the applica
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
   // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
-  expect(copy).toContain('0 / 2 popunjeno');
+  expect(copy).toContain('0/2');
+  expect(copy.indexOf('Prenos ormara')).toBeLessThan(copy.indexOf('Objavljen'));
+  expect(copy.indexOf('4.000 RSD')).toBeLessThan(copy.indexOf('3 prijave za izbor'));
   expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
 });
 test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {

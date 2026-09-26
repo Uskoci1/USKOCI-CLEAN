@@ -35,6 +35,8 @@ export type AiConversationShellProps = {
   /** The "···" of rare actions. Left out when there is nothing to offer, so the chrome shows no dead control. */
   onOptions?: () => void;
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
+  /** The conversation's next primary step, shown above the composer when the draft is ready. */
+  footerAction?: ReactNode;
   /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
   voice?: VoiceInput;
   /** The "+" at the start of the composer (the task's photos). Left out when there is nothing to attach to. */
@@ -255,6 +257,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
           is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
       <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
+        {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
         {/* The hold advice carries the way to speak without holding (review r4 ra item 7): once the field has text the
             waveform button gives way to send, and a person who cannot hold would otherwise have no speech at all. */}
         {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
@@ -306,8 +309,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
 /** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
 function Mark() {
-  return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
-    <T variant="note" style={s.markName}>AI asistent</T>
+  return <View testID="ai-assistant-mark" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
+    <BrandMark size={24} />
   </View>;
 }
 
@@ -376,7 +379,6 @@ const s = StyleSheet.create({
   // Long replies read on the canvas; alignment and the group label identify the speaker.
   assistant: { gap: 8, alignSelf: 'stretch', paddingVertical: 4, paddingHorizontal: 2 },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  markName: { color: sys.color.green, fontWeight: '600' },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
   // Own words have a distinct alignment and high-contrast forest fill.
