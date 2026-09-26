@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-26T10:53:54Z",
-  "grana": "HEAD",
-  "head": "a69a26c6",
-  "head_poruka": "Preserve deep discovery scroll and Android agreement chat navigation",
+  "osvezeno": "2026-09-26T12:00:41Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "a77c5547",
+  "head_poruka": "Record completed refusal CI evidence in the canonical control table",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -85,8 +85,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "PROBLEM": 32,
-  "NA TELEFONU NIJE PROVERENO": 30
+  "PROBLEM": 33,
+  "NA TELEFONU NIJE PROVERENO": 29
  },
  "redovi": [
   {
@@ -1907,8 +1907,8 @@
     "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "Dva stvarna slanja 23.09: tvoje sa telefona (2.000 RSD, adversarial_a) i jedno sa emulatora na tvoju reč (3.000 RSD, zadatak uskocibusiness-a, tvoj lični nalog). Oba su na serveru kao SUBMITTED i oba su napravila obaveštenje drugoj strani. Emulator: docs/implementation/functional-audit-20260922/device-20260923/ponuda-emulator/. Viđeno: zaključana cena kad naručilac zada iznos, pregled pre slanja, imenovano sletanje „Tvoja prijava“.",
-   "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server. R18-E01/E02: poznato odbijanje uslova i dalje traži Proveri ishod; razlog je opšti. Nedostajući telefon u opremi potvrđen je pre/posle odobrenog upisa.",
-   "sledece": "25.09. integracija prekinutog rada: Objedinjene Claude-ove dorade ponude, prikaza osobe i učitavanja. Serversko pravilo cene nije menjano. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: slanje ponude prerađeno kao korak plaćanja (zadatak na vrhu, cena, broj ljudi, termin, napomena, jedno zeleno dugme sa razlogom); sve zaštite, revizija, idempotencija i pregled pre slanja nepromenjeni. Galerija uskociapp://dizajn-prijava. Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“. R13 (25.09): pregledna ponuda i prikaz stvarno poslate poruke u potvrđenom i neizvesnom ishodu. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Istraživanje 25.09 — predlog, nije primenjeno: Ponuda: jasna cena/broj ljudi/termin/poruka, završni pregled i potvrda šta je stvarno poslato. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
+   "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server. R18-E01/E02: klijentsko razlikovanje potvrđenog odbijanja i nepoznatog ishoda provereno u CI-ju; tačan novi APK/telefon nije proveren. Novi paket ne potvrđuje stare navode o serverskoj ceni.",
+   "sledece": "R18-E01/E02 CI 26.09: kod 348c2ec6; TypeScript i 139 ciljanih / 6334 ukupnih testova prolaze. Potvrđeno odbijanje više nije prikazano kao nepoznat ishod, a poruka nije sakrivena opštom greškom. Tekst greške bez dokaza i ponovljen ključ ne oslobađaju sačuvan zahtev. Telefon i native prolaz još čekaju. Dokaz: docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md. 25.09. integracija prekinutog rada: Objedinjene Claude-ove dorade ponude, prikaza osobe i učitavanja. Serversko pravilo cene nije menjano. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: slanje ponude prerađeno kao korak plaćanja (zadatak na vrhu, cena, broj ljudi, termin, napomena, jedno zeleno dugme sa razlogom); sve zaštite, revizija, idempotencija i pregled pre slanja nepromenjeni. Galerija uskociapp://dizajn-prijava. Dva slanja prošla sa uređaja. OSTAJE druga strana: uskocibusiness na telefonu vidi prijavu i bira je → Dogovor. Serverski predlog PKG-049 (cena u MY_PRICE režimu) čeka tvoje odobrenje. Sitnica za kompoziciju: na sletanju termin piše „(Europe/Belgrade)“, a iznad „(po vremenu u Srbiji)“. R13 (25.09): pregledna ponuda i prikaz stvarno poslate poruke u potvrđenom i neizvesnom ishodu. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Istraživanje 25.09 — predlog, nije primenjeno: Ponuda: jasna cena/broj ljudi/termin/poruka, završni pregled i potvrda šta je stvarno poslato. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3294,7 +3294,7 @@
     "verzija_nacrta_sha256": "dc3a87b85f17e4906382e2f8a72db9f5dd621cd28f6e8632ff08d7b1020d98e5",
     "status": "ANALIZA_ODOBRENA_20260922"
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Profil/Podešavanja",
     "nivo": 2,
@@ -3347,8 +3347,8 @@
    },
    "note": {},
    "telefon_dokaz": "",
-   "problem": "Sveža provera 26.09: uzrok odsustva pokušaja је двострук. DEV има 10 PUSH delivery редова у CREATED са `push_started_at` null, 0 push attempt редова и 0 readiness редова; једини Android device је неактиван. Cron стварно позива `private.edge_worker_tick_v5`, Edge `uskoci-push-transport` враћа HTTP 200 сваког минута, али његов живи v14 код при искљученом `EXPO_PUSH_TRANSPORT_ENABLED` враћа DISABLED пре DB/provider рада. Комбинација нетакнутог backlog-а, 0 attempts/readiness и тог тачног кода практично потврђује да је transport kill-switch искључен; сама env вредност/тајна није читана. Тренутни R19 DEV APK додатно није push-capable build.",
-   "sledece": "Не укључивати transport глобално сада: 10 старих requester PUSH редова (4 RESPONSE_RECEIVED, 3 REVIEW_RECEIVED, 2 MESSAGE_RECEIVED, 1 COMPLETION_REQUIRED) још чека, а 9 нема expiry. Ограничени тест мора прво, уз посебно `примени`, затворити стари backlog без provider слања док нема активних уређаја; затим регистровати само власников proof телефон, направити тачно један одобрени нови догађај и посматрати један delivery → attempt → Expo ticket/receipt → lock-screen → tap → Inbox. Докaz: docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md. R19 ne uključuje push niti menja worker. Ispravljen je samo dupli Inbox u klijentskoj navigaciji. Pre prihvatanja: trenutna podešavanja, registracija uređaja, stvarna isporuka, dodir, hladan start i odgovarajući nalog. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md",
+   "problem": "26.09 11:55 UTC: svih 10 čekajućih PUSH poruka cilja REQUESTER, bez preference reda za tu ulogu i bez aktivnog uređaja. Prethodni account-wide push_enabled=true nije dokaz saglasnosti za REQUESTER. Efektivno isključen transport ostaje zaključak iz koda/efekata, ne direktno pročitana env vrednost. Stvarna dostava nije dokazana.",
+   "sledece": "Pratiti CODEX_HANDOFF.md i PUSH_ROLE_RECHECK.json. Najpre read-only dokazati tačan task/profile/event/recipient-role put. Za stvarnu probu pripremiti dokazivo ograničenje account/device/event i max jedan send, bez globalnog prozora i čišćenja tuđeg reda. Svaka primena, registracija i realan test čekaju posebno primeni. Dokumenti: docs/implementation/release-hardening-20260926/",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5286,8 +5286,8 @@
    "id": "B10",
    "oblast": "Obaveštenja",
    "nalaz_16_09": "0 poslatih",
-   "sada": "ОТВОРЕНО, узрок потврђен 26.09: 10 PUSH delivery редова су CREATED/unstarted, 0 attempts, 0 readiness; једини Android device је неактиван. Cron и Edge HTTP позиви раде, али deployed v14 има kill-switch који при искљученом transport-у враћа 200/DISABLED пре DB/provider рада; посматрано стање одговара том путу. Тренутни R19 `rs.uskoci.dev` APK нема Firebase конфигурацију за тај applicationId. Никакво стварно push слање није покренуто.",
-   "dokaz": "docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md"
+   "sada": "OTVORENO, ispravljen nalaz 26.09: 10 REQUESTER delivery redova nema odgovarajuću saglasnost po ulozi; 0 aktivnih uređaja. Nema dokaza isporuke. Flag transporta nije direktno očitan. Stari globalni tick/prozor nije bezbedan scenario jednog push-a; povučen u novoj predaji.",
+   "dokaz": "docs/implementation/release-hardening-20260926/PUSH_ROLE_RECHECK.json"
   },
   {
    "id": "B11",
@@ -5632,102 +5632,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36229903151,
-   "ime": "Build Android development APK",
-   "sha": "a69a26c6",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T08:28:58Z"
-  },
-  {
-   "id": 36229901348,
-   "ime": "Build Android development APK",
-   "sha": "a69a26c6",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T08:28:55Z"
-  },
-  {
-   "id": 36227405570,
-   "ime": "Build Android development APK",
-   "sha": "03cc3e48",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T07:38:42Z"
-  },
-  {
-   "id": 36227403801,
-   "ime": "Build Android development APK",
-   "sha": "03cc3e48",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T07:38:40Z"
-  },
-  {
-   "id": 36226688621,
-   "ime": "Build Android development APK",
-   "sha": "817b15f2",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-26T07:24:38Z"
-  },
-  {
-   "id": 36225404482,
-   "ime": "Build Android development APK",
-   "sha": "b5a82f69",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T06:59:34Z"
-  },
-  {
-   "id": 36223769011,
-   "ime": "Build Android development APK",
-   "sha": "ba3f7dc3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T06:26:43Z"
-  },
-  {
-   "id": 36221800194,
-   "ime": "Build Android development APK",
-   "sha": "46c87a38",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T05:46:38Z"
-  },
-  {
-   "id": 36221798008,
-   "ime": "Build Android development APK",
-   "sha": "46c87a38",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T05:46:35Z"
-  },
-  {
-   "id": 36197222607,
-   "ime": "Build Android development APK",
-   "sha": "cb8ea1b9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T22:32:45Z"
-  },
-  {
-   "id": 36197219982,
-   "ime": "Build Android development APK",
-   "sha": "cb8ea1b9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T22:32:43Z"
-  },
-  {
-   "id": 36193917101,
-   "ime": "Build Android development APK",
-   "sha": "3cdb3005",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T21:53:06Z"
-  }
- ]
+ "ci": null
 }

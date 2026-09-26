@@ -1,5 +1,8 @@
 # USKOČI — repository entry map
 
+R18 REFUSAL RECOVERY CLIENT CI PASS (2026-09-26): tested source 348c2ec6ac0d3afe2e51e5a15e7620b023646ca5; read
+`docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md` and E01_E02_CHECKS.json. The route no longer overrides a proven refusal with its stale pending flag; authored outcome copy is visible. Types, 139 focused and 6334 full Jest tests pass. Historical SQL proof remains 147 migrations, not live202 parity. Device/APK acceptance stays pending. No DEV/Edge/provider/push changes.
+
 RELEASE-HARDENING MEDIA/PUSH PREFLIGHT (2026-09-26): based on branch source `e996cbc7`; read
 `docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md` and `CODEX_HANDOFF.md` before touching media or push.
 Fresh read-only DEV: ledger 202; GitHub `uskoci-media` and deployed v12 differ in exactly one entrypoint line — only

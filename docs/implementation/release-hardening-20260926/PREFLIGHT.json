@@ -38,5 +38,16 @@
     "transportEffectiveState": "DISABLED_BY_OBSERVED_BEHAVIOR_AND_DEPLOYED_KILL_SWITCH_PATH",
     "envSecretRead": false,
     "status": "ROOT_CAUSE_CONFIRMED_REAL_DELIVERY_NOT_TESTED"
+  },
+  "pushInterpretationCorrection": {
+    "checkedAt": "2026-09-26T11:55:24.347655Z",
+    "source": "docs/implementation/release-hardening-20260926/PUSH_ROLE_RECHECK.json",
+    "supersededFields": [
+      "push.requesterPushEnabled",
+      "push.transportEffectiveState"
+    ],
+    "matchingRequesterRolePushEnabled": false,
+    "transportFlag": "NOT_DIRECTLY_VERIFIED",
+    "oldGlobalWindowPlan": "WITHDRAWN_DO_NOT_EXECUTE"
   }
 }

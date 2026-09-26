@@ -1,5 +1,7 @@
 # USKOČI release-hardening preflight — media i push
 
+> ISPRAVKA 26.09 11:55 UTC: push tvrdnja o saglasnosti ispod bila je account-wide, ne za odgovarajuću ulogu. Svih 10 REQUESTER poruka nema matching-role preference red. Kill-switch nije neposredno očitan. Prethodni globalni backlog/tick/prozor za test je POVUČEN; ne izvršavati ga. Merodavni su PUSH_ROLE_RECHECK.json i ažurirani CODEX_HANDOFF.md. Ostatak je istorijski zapis tog preflight-a.
+
 Checked: 2026-09-26T10:53:54Z  
 Repository: `Uskoci1/USKOCI-CLEAN`  
 Branch: `work/uskoci-ui-unification-20260924`  

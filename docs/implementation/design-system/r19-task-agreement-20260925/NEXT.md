@@ -2,15 +2,13 @@
 
 Updated 2026-09-26 against installed runtime source `a69a26c6`. This is the current work order; dated reports remain evidence, and `docs/control/redovi.json` remains the single tracker.
 
-## Release-hardening preflight — 26 September 2026
+## Release-hardening preflight — corrected 26 September 2026
 
-Owner priority temporarily moved media/push verification ahead of the next UI experiment. Read `docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md` and `CODEX_HANDOFF.md`.
+Read the current CODEX_HANDOFF.md and PUSH_ROLE_RECHECK.json under docs/implementation/release-hardening-20260926/. Media safe-code drift was identified historically; application still requires explicit primeni and fresh file comparison.
 
-- **Media:** current GitHub and deployed `uskoci-media` differ in exactly one entrypoint line: GitHub admits `MEDIA_COMMAND_CANCELLED` as a safe code, Edge v12 does not; shared sanitizer is identical. The GitHub/client regression already passes. This is **ready for apply, not deployed**; wait for explicit `primeni`.
-- **Push:** fresh DEV has 10 PUSH CREATED/unstarted, 0 attempts, 0 readiness, 0 active devices and one inactive requester Android device. The scheduler really invokes the v14 worker, but the deployed kill-switch path explains the repeated HTTP 200/no-side-effect ticks. The current R19 `rs.uskoci.dev` APK also lacks matching Firebase client configuration. Nine old PUSH rows have no expiry, so never enable transport after registering a device until the backlog is safely retired without provider IO.
-- **Bounded real test:** first settle historical backlog with zero active devices, then register exactly one owner proof device while transport is off, create one approved event, and open a short single-event transport window. No mass sending and no DEV/Edge/config mutation belongs to this preflight.
+The 11:55 UTC role-correct DEV join found 10 REQUESTER deliveries without a matching role preference and without an active device. Account-wide push preference was not consent for this role. The transport kill-switch remains an inference, not a directly read env value.
 
-After those gated operations, continue the existing order below; do not rebuild already accepted R19 surfaces.
+Do not execute the old global zero-device backlog tick or short enable window. Prepare enforceable one-account/device/event admission and a hard dispatch limit in isolation; no real registration, event, server/config change or send without named approval. The existing client/refusal proof does not close push or store acceptance.
 
 ## First: improve deep-return speed, preserving the now-correct position
 
@@ -41,9 +39,8 @@ See `CLIENT_GUARDS_AND_VIEWPORT.md` and `NATIVE_REVIEW.vector-diagnostic.md` for
 
 ## Next client work, after the APK result
 
-1. **Feedback truth: R18-E01/E02.** Show allowlisted eligibility blockers and useful correction links without discarding uncertain commands. `serverReceipt.readOwnedResult` retains an allowlisted error message, not SQLSTATE/details; matching text is not a definitive refusal receipt. The inspected submit SQL replays saved success before eligibility and raises `WORKER_NOT_ELIGIBLE` before writes. Immediate journal release requires narrowly validated, account/request-owned refusal evidence. Timeout, malformed/absent receipt and reused key remain uncertain.
+1. **Feedback truth: R18-E01/E02 — client CI pass, device pending.** Source 348c2ec6ac0d3afe2e51e5a15e7620b023646ca5 passes types, 139 focused tests and 6334 full-suite tests. The conclusive refusal now settles both route and editor flags and keeps its authored outcome visible. Message-only failures and reused keys retain uncertainty. Read `docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md` and `docs/implementation/release-hardening-20260926/E01_E02_CHECKS.json`. Do not rebuild this fix; next prove the exact APK/profile-return flow and separately test storage-clear failure/retained reset races. No DEV/Edge change or real push was made.
 
-   Bounded source review on 26 September: the submit adapter retains calendar details but drops eligibility `hardBlockers`; useful guidance can be added there and in `ApplicationComposerPresentation` without a server change. Permit only known blocker codes and authored text, never raw details or private names. A secondary `/profil/radnik` link must remain available alongside a pending request. Preserve its amount, people, time and request key across profile return/remount. The current composer derives refusal from error-map membership (including `IDEMPOTENCY_KEY_REUSED`) and offers reset after collection refresh; that refresh is not an owned refusal receipt. Add regressions that eligibility text/reused-key plus a fresh list cannot alone release an uncertain journal. This is a next-package finding, not an applied fix or fresh DEV-body verification.
 2. **Native continuity/accessibility.** Improve the remaining deep-return speed above, preserving its confirmed position and camera/selection/coverage/resets. Then verify/fix R18-E04's stale spoken Active count, R18-V01's docked multiline composer clipping and post-selection Back. The fresh phone empty-chat keyboard pass does not prove multiline sending. Its illustration clips slightly at the top and the normal person-bar subtitle ellipsizes; keep these polish items visible. A green test run does not close device findings.
 3. **Safety target context.** Confirmation exists; `readBlock`/`readTarget` do not supply a uniform verified name. Correlate any displayed name with authorized Agreement participants or public-profile + target reads. Do not trust route labels, walk all blocked pages for a name, or disable reporting if the name is unavailable.
 4. **Avatar recovery.** Keep the fixed binary read and profile-bound receipt. Before extending READY-only discard to known PROCESSING/STAGED assets, verify the active contract. Unknown/absent upload receipts retain the journal. TASK cancellation is not an avatar cancellation fence; no fake successful cancellation.
