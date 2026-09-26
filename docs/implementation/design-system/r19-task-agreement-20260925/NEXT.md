@@ -2,6 +2,8 @@
 
 ## Product V1 closure order — owner approved 26 September
 
+**Notification A1 source proof is green:** commit `edfc1468`, CI run `36258688611`. Privacy-safe fixed copy covers all 24 admitted event types; malformed/future events fall back to generic USKOČI copy; HITNO only changes the opportunity headline. 28/28 matrix tests and 44/44 existing N09 transport tests pass. This is source/proof only: live worker still uses the generic payload until the service RPC can return only the event type without exposing arbitrary delivery text.
+
 The product-level work order is now `docs/implementation/product-v1-closure-20260926/PLAN.md`. New work proceeds: Notifications 2.0 → Chat 2.0 (voice mandatory) → AI Taxonomy V1 → Matching/Dispatch V1 → Growth Projections → known closure → account/legal/release. Notification content is governed by `NOTIFICATION_MATRIX.md`; unknown types keep the generic privacy-safe fallback. Do not let AI create canonical categories per single Need; it creates candidates until promotion evidence exists.
 
 Real Android push is no longer merely device-pending: corrected push-proof APK opened on the owner's phone, exactly one session-bound Android device registered, exactly one bounded push attempt received an Expo ticket and the notification was observed on the phone; tap opened Inbox. A separate real MESSAGE_RECEIVED Inbox event opened an Agreement with its real messages. Read `docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md`. This does not yet claim one same real chat message travelled end-to-end, iOS push, or production/store acceptance.
