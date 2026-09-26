@@ -28,7 +28,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
-import { DiscoveryMap, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
+import { DiscoveryMap, PillAnnotation, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
 import { sys } from '../../ui/system/tokens';
 import { expression, latest, type StylePropertySpecification } from '@maplibre/maplibre-gl-style-spec';
@@ -433,18 +433,70 @@ test('compact visible attribution opens all three original provider links withou
   expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
 });
 
-test('a loaded logo refreshes its annotation once after drawing, and a retired pin cannot refresh', async () => {
-  await render(); await ready();
-  const oldReady = tree.root.findAllByType(PricePill)[0].props.onReady;
-  await act(async () => { oldReady(); oldReady(); jest.advanceTimersByTime(20); });
+const annotationLayout = (annotation: ReactTestInstance) => annotation.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function').props.onLayout;
+const pillSize = { nativeEvent: { layout: { width: 90, height: 48 } } };
+test.each(['load,layout,frame', 'load,frame,layout', 'layout,load,frame', 'layout,frame,load', 'frame,load,layout', 'frame,layout,load'])(
+  'logo snapshot waits for actual native attachment, layout and image load in order %s', async sequence => {
+    selectedId = 'money'; await render(); await ready();
+    const chosen = () => annotations().find(node => node.props.id === 'selected-need')!;
+    const events: Record<string, () => void> = {
+      load: chosen().findByType(PricePill).props.onReady,
+      layout: () => annotationLayout(chosen())(pillSize),
+      frame: native().props.onDidFinishRenderingFrameFully,
+    };
+    const order = sequence.split(',');
+    for (let index = 0; index < order.length; index++) {
+      await act(async () => events[order[index]]());
+      await act(async () => { jest.advanceTimersByTime(20); });
+      expect(mockAnnotationRefresh).toHaveBeenCalledTimes(index === order.length - 1 ? 1 : 0);
+    }
+    expect(native().props.onDidFinishRenderingFrameFully).toBeUndefined();
+    // A duplicate queued native frame is harmless; there is no continuing frame subscription/refresh loop.
+    await act(async () => { events.frame(); jest.advanceTimersByTime(1000); });
+    expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  },
+);
+
+test('same selected annotation resnapshots on native reattachment without a second image onLoad', async () => {
+  const owns = jest.fn(() => true);
+  const draw = (nativeReady: boolean) => <PillAnnotation id="same-selected" point={{ lng: 20.46, lat: 44.81 }}
+    label="Izabran zadatak" content={{ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' }} selected nativeReady={nativeReady} owns={owns} />;
+  await act(async () => { tree = create(draw(true)); });
+  const initialPill = tree.root.findByType(PricePill);
+  await act(async () => { initialPill.props.onReady(); annotationLayout(annotations()[0])(pillSize); jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
-  await act(async () => oldReady());
-  selectedId = 'money'; await update();
-  await act(async () => { oldReady(); jest.advanceTimersByTime(20); });
+  await act(async () => tree.update(draw(false)));
+  await act(async () => { jest.advanceTimersByTime(1000); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
-  // A selected pin has its own loaded snapshot and refresh; it never revives the retired one.
-  const selected = tree.root.findAllByType(PricePill).find(pill => pill.props.selected)!;
-  await act(async () => { selected.props.onReady(); jest.advanceTimersByTime(20); });
+  await act(async () => tree.update(draw(true)));
+  await act(async () => { jest.advanceTimersByTime(20); });
+  expect(tree.root.findByType(PricePill)).toBe(initialPill);
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(2);
+  // If ownership retires between readiness and the draw, its queued snapshot is discarded.
+  await act(async () => tree.update(draw(false)));
+  await act(async () => tree.update(draw(true)));
+  owns.mockReturnValue(false);
+  await act(async () => { jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(2);
+});
+
+test('fresh focus requires its own frame and layout; a retired pin cannot redraw into the new map', async () => {
+  selectedId = 'money'; await render(); await ready();
+  const chosen = () => annotations().find(node => node.props.id === 'selected-need')!;
+  const oldReady = chosen().findByType(PricePill).props.onReady;
+  const oldLayout = annotationLayout(chosen()), oldFrame = native().props.onDidFinishRenderingFrameFully;
+  await act(async () => { oldReady(); oldLayout(pillSize); oldFrame(); });
+  await act(async () => { jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  mockFocused = false; await update(); mockFocused = true; await update(); await ready();
+  await act(async () => { oldReady(); oldLayout(pillSize); oldFrame(); jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  const newReady = chosen().findByType(PricePill).props.onReady;
+  await act(async () => { newReady(); annotationLayout(chosen())(pillSize); });
+  await act(async () => { jest.advanceTimersByTime(20); });
+  expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
+  await act(async () => native().props.onDidFinishRenderingFrameFully());
+  await act(async () => { jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(2);
 });
 

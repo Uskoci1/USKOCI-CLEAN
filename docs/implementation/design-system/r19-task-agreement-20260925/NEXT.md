@@ -21,6 +21,10 @@ Read REPORT, CHECKS, RECEIPT and native evidence first. This document orders wor
 
 ## Required server design/proof packages — no automatic DEV application
 
+### Guardrails from the final bounded source review
+
+The current `moje-prijave.tsx` already reconciles the named pending row via `readApplicationCommandState(pending.row)` alongside the list; older list-only reconciliation warnings are historical. Preserve that independent row read when introducing paging. For eligibility, `serverReceipt.readOwnedResult` currently retains error.message but discards SQLSTATE/details: matching a human-readable error code alone is not a typed refusal receipt and must not release a pending journal. The inspected atomic-submit SQL replays saved success before eligibility, then raises `WORKER_NOT_ELIGIBLE` with P0001 and bounded blocker details before writes. Start with precise allowed copy/correction links and existing reconciliation; any immediate journal release needs a narrowly validated, account/request-owned definitive refusal contract and fresh authority verification. Timeout, malformed response, missing receipt and reused key remain uncertain. Application location/end-only/timezone gaps need an additive server projection, rather than guessed client facts. Safety confirmation can be client-only, but any displayed name must match authorized profile/Agreement/block-list context, never an untrusted route label.
+
 | Package | Required semantics | Evidence before any apply decision |
 | --- | --- | --- |
 | Discovery page/count/author projection | Same filters and visible-area meaning, whole-country bounds, separate remote/no-point membership, flexible/end-only/date-overlap semantics, deterministic cursor, no private location leakage | Disposable parity fixtures for 0/1/1,000 rows, stable ordering and cursor boundaries, account/RLS tests, bounded query plans and count agreement. Do not blindly forward client filters into the old 3-by-5-degree bbox contract. |

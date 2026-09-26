@@ -3,9 +3,12 @@
 R19 TASK / AGREEMENT / MEDIA (2026-09-25): read
 `docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md` and the versioned CHECKS/RECEIPT when present.
 Follow-up checks: clean types, 320 suites / 6,255 tests; CHECKS.followup.json preserves the earlier fixture-type failure.
+Native-return corrective source: clean types, 320 suites / 6,266 tests; CHECKS.native-return.json records this later run.
 NATIVE_REVIEW records the first APK separately: avatars and source-task/chat navigation observed on emulator;
-all map labels/logos returned on that SAME APK after a normal host-GPU emulator restart. Native return testing found
-a disappearing sheet; its focus/callback retirement fix still needs the follow-up APK receipt. Phone remains absent.
+all map labels/logos returned on that SAME APK after a normal host-GPU emulator restart. Exact follow-up `cb8ea1b9`
+restores the disappearing sheet, camera and selected task, but exposed lost scroll and a separate rich-pin bitmap issue.
+Read NATIVE_REVIEW.followup and NATIVE_RETURN_REPAIR: corrective source waits for actual native readiness/acknowledgement;
+its own checks and rebuilt APK acceptance are separate. Deep 1,000-row scroll restoration remains unproved. Phone is absent.
 This coherent client package adds short bottom-right capacity, a source-task-led Agreement, contextual chat,
 paged actual task photos, branded map annotations, independent remote filtering and a rising/dimming map list.
 It also bounds optional author enrichment to four concurrent reads/four seconds and repairs JPEG binary reads:

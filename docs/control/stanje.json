@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-25T22:32:12Z",
+  "osvezeno": "2026-09-26T05:43:16Z",
   "grana": "HEAD",
-  "head": "3cdb3005",
-  "head_poruka": "Refine task-led agreements, discovery and binary media reads",
+  "head": "cb8ea1b9",
+  "head_poruka": "Restore discovery sheet after native navigation and record R19 evidence",
   "server": {
    "snimljeno": "2026-09-24T20:24:30Z",
    "migracije": 202,
@@ -1550,8 +1550,8 @@
     "test": "19 test fajl(ova)"
    },
    "telefon_dokaz": "R17 25.09, 8500bf29 / APK 36172923719: mapa sa stvarnim podacima otvorena bez ponavljanja; izabran logo-pin, javni detalj i povratak na isto mesto provereni na VKP-NX9 (oko 361 dp, font 1,15). Uzrok ranijeg povremenog neuspešnog učitavanja nije potvrđen. Poslovne radnje nisu izvršene. docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Stvarni Zadaci, mapa/klaster/pin/pregled i ulaz u javni detalj. Prvo učitavanje nije uspelo, retry jeste; kadriranje pri povratku traži doradu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24 (runda 3): mapa preko celog ekrana sa nazivima na latinici, tačke sa cenom (dodir radi na Androidu), lista koja se izvlači, bez prekidača Lista/Mapa; emulator, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-24: Zadaci kao jedan ekran za mapu i listu; /mapa i /prilike vode na Zadatke; viđeno na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: 2026-09-23: nova kartica i alatke liste/mape viđene na telefonu (build af3a11df, docs/implementation/design-system/g2-g5-card-and-discovery/G2_G5_RECEIPT.json), samo čitanje. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; mapa i stvarne tačke učitane. Legenda nečitljiva na Honor telefonu sa većim fontom.",
-   "problem": "Preuzima do 25 strana po 200 zadataka i filtrira ih lokalno; dopuna autora je ograničena po pozivu, ne celo učitavanje. R19 je na emulatoru otkrio nestanak panela posle brzog povratka sa detalja; korekcija čeka novu verziju.",
-   "sledece": "R19: jače boje mape i lista do pretrage uz zatamnjenje. Geografski rezultati i zadaci bez tačke ostaju jasno odvojeni. Rad na daljinu zanemaruje staru oblast. Svako dopunjavanje autora, posle preuzetih strana zadataka, ima najviše četiri istovremena čitanja i budžet četiri sekunde; to nije ukupno vreme učitavanja liste niti ograničenje cele aplikacije. Na istom R19 APK-u uključivanje host grafike emulatora vratilo je oznake mesta, brojeve grupa i USKOČI pin. Telefon još nije povezan; popravka povratka panela čeka novi APK. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md",
+   "problem": "Preuzima do 25 strana po 200 zadataka i filtrira ih lokalno; dopuna autora je ograničena po pozivu, ne celo učitavanje. Povratak nestalog panela popravljen i proveren na emulatoru cb8ea1b9. Na tom APK-u ostaju gubitak položaja liste i povremeno prazan logo izabranog pina pri povratku; sledeća korekcija čeka novi APK.",
+   "sledece": "R19: jače boje mape, lista do pretrage uz zatamnjenje, zadaci iz oblasti i bez tačke odvojeni. Emulator cb8ea1b9 / 36197219982: brz povratak vraća panel, izbor/kamera opstaju, rad na daljinu uklanja prethodnu oblast. Stari APK potvrđuje dve preostale greške; korekcija pamćenja skrola i bitmape pina čeka zasebnu proveru. Telefon nije povezan. Ograničenje čitanja autora nije serversko straničenje ni dokaz opterećenja. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.followup.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2337,8 +2337,8 @@
     "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Poruke u oba smera uz ručno osvežavanje; clipping nacrta ostaje. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: prepiska u oba smera viđena na oba uređaja — „Cao“ sa telefona (naručilac) na emulatoru; odgovor izvođača sa emulatora (na vlasnikovo „Da“) na telefonu (telefon-poruke-obe-strane.jpg, vlasnikov snimak). Nalaz (vlasnik, 23.09.): čitanje prepiske nije gasilo obaveštenje „Nova poruka“ — samo dodir na obaveštenje. PKG-050 napisan i dokazan (CI 35826370830, 7/7; pkg050/PROOF_35826370830.json): rpc_mark_agreement_messages_read + poziv sa kartice Poruke gasi obaveštenja samo za taj Dogovor. PRIMENJENO na DEV 23.09. (ledger 201, certifikat nepromenjen, račun 20260923_pkg050a_application.receipt.json); u aplikaciji tek sa sledećim APK-om. Dopuna 24.09: poziv PKG-050 jeste u izgrađenom APK-u 644cab09; prethodno „tek sa sledećim APK-om“ više nije aktuelno. Novi ACK rubni slučaj nije prihvaćen na uređaju (RC-01).",
-   "problem": "Istorija poruka nema straničenje, dolazne poruke traže osvežavanje, precizna granica oznake pročitanog nije završena. R18-V01 ima ispravku geometrije u R19, još čeka novi APK. Glasovne poruke i dokumenti nisu implementirani.",
-   "sledece": "R19: više reda nacrta staje uz tastaturu; istorija, nesigurno slanje i oporavak fotografija ostaju. Novi APK treba da potvrdi geometriju. Straničenje, automatske dolazne poruke i precizna granica pročitanog ostaju zaseban posao. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md",
+   "problem": "Istorija poruka nema straničenje, dolazne poruke traže osvežavanje, precizna granica oznake pročitanog nije završena. Dva reda unosa uz tastaturu proverena su u probnom prikazu prvog R19 APK-a na emulatoru; stvarno aktivno slanje, uvećan tekst i fizički telefon ostaju zasebne provere. Glasovne poruke i dokumenti nisu implementirani.",
+   "sledece": "R19 emulator 3cdb3005 / 36193917101: probni unos sa dva reda ne odseca prvi red, a povratak iz poruka otvara pregled Dogovora. Nije slata nova poruka. Straničenje, automatske dolazne poruke i precizna granica pročitanog ostaju zaseban posao. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3717,8 +3717,8 @@
     "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "R19 ispravlja gubitak JPEG bajtova u putu čitanja; potreban je dokaz na novom APK-u. Posebno ostaje oporavak slanja avatara bez potvrđenog zapisa posle izlaska iz ekrana; ne brisati nepoznatu nameru.",
-   "sledece": "R19: na emulatoru R18 postojeća slika nije prikazana iako DEV potvrđuje READY i postojanje objekta; galerija/kamera su dostupne, zastoj namere nije ponovljen. Otkriven pogrešan put čitanja JPEG-a kroz SDK; ispravka klijenta i dokaz opisani su u MEDIA_BINARY_READ.md. Nepotvrđeno slanje avatara posle izlaska ostaje zaseban rizik. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md",
+   "problem": "R19 ispravlja gubitak JPEG bajtova; postojeći avatar sada je prikazan na emulatoru. Posebno ostaje oporavak slanja avatara bez potvrđenog zapisa posle izlaska iz ekrana i provera na fizičkom telefonu; ne brisati nepoznatu nameru.",
+   "sledece": "R19 emulator 3cdb3005 / 36193917101 prikazuje postojeću sliku koju isti profil na R18 nije prikazivao. Provereno je čitanje, bez novog slanja, primene ili brisanja slike. Nepotvrđeno slanje posle izlaska ostaje zaseban rizik. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5634,6 +5634,22 @@
  },
  "ci": [
   {
+   "id": 36197222607,
+   "ime": "Build Android development APK",
+   "sha": "cb8ea1b9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T22:32:45Z"
+  },
+  {
+   "id": 36197219982,
+   "ime": "Build Android development APK",
+   "sha": "cb8ea1b9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-25T22:32:43Z"
+  },
+  {
    "id": 36193917101,
    "ime": "Build Android development APK",
    "sha": "3cdb3005",
@@ -5712,22 +5728,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-25T14:53:10Z"
-  },
-  {
-   "id": 36144235695,
-   "ime": "Build Android development APK",
-   "sha": "668ca648",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T13:56:56Z"
-  },
-  {
-   "id": 36138797360,
-   "ime": "Build Android development APK",
-   "sha": "1b018b17",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-25T13:05:36Z"
   }
  ]
 }

@@ -5,6 +5,11 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex, type TaskRelationIndex } from '../taskRelation';
 let mockReduced = false, mockFocused = true;
+const mockNativeSheetState = { value: 0 };
+jest.mock('@gorhom/bottom-sheet', () => ({
+  ...jest.requireActual('../../../__mocks__/@gorhom/bottom-sheet'),
+  useBottomSheetInternal: () => ({ animatedSheetState: mockNativeSheetState }),
+}));
 const mockReactions = new Set<{ prepare: () => unknown; react: (next: unknown, previous: unknown) => void; previous: unknown }>();
 const mockRnDeliveries: (() => void)[] = [];
 const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
@@ -117,6 +122,14 @@ const cards = () => listSheet().findAll(node => String(node.type) === 'Press' &&
 // applies; the one green action is found by its label, which says the count (or that nothing is left).
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
 const list = () => tree.root.findByType('List' as React.ElementType);
+const readyList = async (content = 3000, window = 400) => {
+  await act(async () => {
+    list().props.onLayout?.({ nativeEvent: { layout: { height: window } } });
+    list().props.onContentSizeChange(400, content);
+    mockNativeSheetState.value = 2; // Gorhom SHEET_STATE.EXTENDED: native scroll locking is now released
+  });
+  await deliverUi();
+};
 /** The body under the chrome, laid out: the sheet's heights become numbers. */
 const layOutBody = async (height = 800) => act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height } } }));
 /** A quick chip over the map (a toggle, spoken as selected or not). */
@@ -132,6 +145,7 @@ const search = async (words: string) => {
   await act(async () => showAction().props.onPress());
 };
 beforeEach(() => {
+  mockNativeSheetState.value = 0;
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0;
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
@@ -272,6 +286,7 @@ test.each([false, true])('a button-requested full sheet cancelled back to native
 test.each(['scope', 'focus'] as const)('a queued covered-map delivery from a retired %s owner cannot hide the current map', async retirement => {
   initial = { ...initial, sheet: 'half' };
   await render(); await layOutBody(760);
+  await deliverUi(); // deliver the newly mounted native sheet's independent readiness observation
   const position = listSheet().props.animatedPosition;
   position.value = 760 - Number(listSheet().props.snapPoints[2]);
   sampleUi();
@@ -313,12 +328,15 @@ test('return after opening a task during a collapse rebuilds the native sheet at
   expect(listSheet().findByProps({ testID: 'list-sheet-content' }).props.accessibilityElementsHidden).toBe(false);
   expect(countLine()).toBeDefined();
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
-  expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+  expect(scrollToOffset).not.toHaveBeenCalled(); // collapsed native list stays locked; keep the target for full height
   await act(async () => lateFinish(2)); // a delivery already queued before blur must not reopen the restored sheet
   expect(listSheet().props.index).toBe(0);
   expect(snapshot).toMatchObject({ sheet: 'peek', viewport, listOffset: 160, price: 'MY_PRICE' });
   await act(async () => countLine().props.onPress());
   expect(listSheet().props.index).toBe(1);
+  await act(async () => countLine().props.onPress());
+  await readyList();
+  expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
 });
 
 test('return with a selected pin preserves its preview and closing it restores the list header', async () => {
@@ -342,8 +360,9 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
   jest.useFakeTimers();
   try {
     initial = { ...initial, sheet: 'full', listOffset: 160 };
-    await render(); await layOutBody(760);
-    const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange;
+    await render(); await layOutBody(760); await readyList();
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 } } }));
+    const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange, oldRefresh = list().props.onRefresh;
     await act(async () => oldScroll({ nativeEvent: { contentOffset: { y: 260 } } }));
     mockFocused = false; await update();
     await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
@@ -351,13 +370,89 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
     mockFocused = true; await update(); scrollToOffset.mockClear();
     await act(async () => {
       oldScroll({ nativeEvent: { contentOffset: { y: 0 } } });
-      oldDrag(); oldContent(0, 1000);
+      oldDrag(); oldContent(0, 1000); oldRefresh();
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(160);
+    expect(refresh).not.toHaveBeenCalled();
     expect(scrollToOffset).not.toHaveBeenCalled();
-    await act(async () => list().props.onContentSizeChange(0, 1000));
+    await readyList(1000);
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+  } finally { jest.useRealTimers(); }
+});
+
+test.each([false, true])('native mount zero cannot replace saved scroll; restore waits for unlocked layout and an acknowledged offset (loading: %s)', async startsLoading => {
+  jest.useFakeTimers();
+  try {
+    initial = { ...initial, sheet: 'full', listOffset: 160 };
+    loading = startsLoading;
+    await render(); await layOutBody(760); scrollToOffset.mockClear();
+    await act(async () => {
+      list().props.onLayout?.({ nativeEvent: { layout: { height: 400 } } });
+      list().props.onContentSizeChange(400, 1200);
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(160);
+    expect(scrollToOffset).not.toHaveBeenCalled(); // Gorhom would force an early imperative request back to zero
+    if (startsLoading) {
+      mockNativeSheetState.value = 2; await deliverUi(); // native unlock can precede the resource read
+      loading = false; await update();
+      expect(scrollToOffset).not.toHaveBeenCalled(); // the previous loading view's height cannot authorize a row restore
+      await act(async () => list().props.onContentSizeChange(400, 1200));
+    }
+    mockNativeSheetState.value = 2; await deliverUi();
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+    // A zero queued before the accepted request is not proof that restoration completed.
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(160);
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 } } }));
+    mockNativeSheetState.value = 1; await deliverUi(); // OPENED/locked while the person collapses the sheet
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(160);
+    mockNativeSheetState.value = 2; await deliverUi();
+    await act(async () => {
+      list().props.onScrollBeginDrag({ nativeEvent: {} });
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(0); // real scrolling back to the top remains possible
+  } finally { jest.useRealTimers(); }
+});
+
+test.each([500, 300])('return clamps a saved offset to the changed measured list height %s and never waits for an unreachable offset', async height => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 640 };
+    await render(); await readyList();
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 640 } } }));
+    mockFocused = false; await update(); rows = [row('one')]; mockFocused = true; await update();
+    scrollToOffset.mockClear(); await readyList(height, 400);
+    const target = Math.max(0, height - 400);
+    if (target > 0) {
+      expect(scrollToOffset).toHaveBeenCalledWith({ offset: target, animated: false });
+      expect(snapshot.listOffset).toBe(640); // issuing a command alone has not confirmed restoration
+      await act(async () => {
+        list().props.onScroll({ nativeEvent: { contentOffset: { y: target } } });
+        jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+      });
+    } else {
+      expect(scrollToOffset).not.toHaveBeenCalled(); // all current rows fit; no native scroll event will arrive
+      expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(true);
+    }
+    expect(snapshot.listOffset).toBe(target);
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(0); // the impossible old target cannot keep suppressing later scroll events
   } finally { jest.useRealTimers(); }
 });
 
@@ -844,6 +939,7 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
     rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
     expect(snapshot.sheet).toBe('peek');
     await act(async () => listSheet().props.onChange(2)); expect(snapshot.sheet).toBe('full');
+    await readyList();
     const list = () => tree.root.findByType('List' as React.ElementType);
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 640 } } }));
     expect(snapshot.listOffset).toBeUndefined();
@@ -852,9 +948,10 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
     // The screen is drawn again from the view it left (the camera was already kept there).
     const kept = snapshot; await act(async () => tree.unmount()); initial = kept; scrollToOffset.mockReset(); await render();
     expect(listSheet().props.index).toBe(2);
+    await readyList();
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false });
     // A list read anew (it was empty while it read) is scrolled back where it was once it has rows again.
-    scrollToOffset.mockReset(); loading = true; await update(); loading = false; await update();
+    scrollToOffset.mockReset(); loading = true; await update(); loading = false; await update(); await readyList();
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false });
     // A new search starts the list at its top.
     scrollToOffset.mockReset(); await act(async () => map().props.onArea([20.3, 44.6, 20.5, 45]));
@@ -876,6 +973,7 @@ test('at the full height the quick chips fold only for a list longer than its wi
     await scroll(300);
     expect(chips()).toHaveLength(1); // not at the full height
     await act(async () => listSheet().props.onChange(2));
+    await readyList();
     const [low, , full] = listSheet().props.snapPoints as number[];
     const window = full - low;
     // A list only a little longer than its window (less than the chips' room, 56, and 8 more): the chips stay.
@@ -1050,17 +1148,17 @@ test('a waiting restore is dropped when the list is taken hold of or refreshed; 
   try {
     rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
     initial = { ...initial, sheet: 'full', listOffset: 640 }; await render();
-    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false });
+    expect(scrollToOffset).not.toHaveBeenCalled();
     // The person takes hold of the list before the rows are long enough: the list is not moved under their finger.
     scrollToOffset.mockReset();
     await act(async () => list().props.onScrollBeginDrag({ nativeEvent: {} }));
-    await act(async () => list().props.onContentSizeChange(400, 2000));
+    await readyList(2000);
     expect(scrollToOffset).not.toHaveBeenCalled();
     // A refresh drops it too.
     await act(async () => tree.unmount()); scrollToOffset.mockReset(); await render();
-    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 640, animated: false }); scrollToOffset.mockReset();
+    expect(scrollToOffset).not.toHaveBeenCalled(); scrollToOffset.mockReset();
     await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
-    await act(async () => list().props.onContentSizeChange(400, 2000));
+    await readyList(2000);
     expect(scrollToOffset).not.toHaveBeenCalled();
     // Scrolled, and a task opened at once: the scroll is written before the task opens.
     open.mockImplementation(() => { navigated = true; });

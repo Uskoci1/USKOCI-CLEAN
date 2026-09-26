@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
@@ -49,20 +49,33 @@ const CREDITS = [
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
 /** The SDK snapshots Android annotation views before an asynchronously drawn child is necessarily ready. */
-function PillAnnotation({ id, point, label, content, urgent, selected, onPress }: {
+export function PillAnnotation({ id, point, label, content, urgent, selected, onPress, nativeReady, owns }: {
   id: string; point: { lng: number; lat: number }; label: string; content: PillContent;
-  urgent?: boolean; selected?: boolean; onPress?: () => void;
+  urgent?: boolean; selected?: boolean; onPress?: () => void; nativeReady: boolean; owns: () => boolean;
 }) {
   const annotation = useRef<ViewAnnotationRef>(null), draw = useRef<number | null>(null), alive = useRef(true);
+  const loaded = useRef(false), laidOut = useRef(false), latest = useRef({ nativeReady, owns }); latest.current = { nativeReady, owns };
   useEffect(() => { alive.current = true; return () => { alive.current = false; if (draw.current !== null) cancelAnimationFrame(draw.current); }; }, []);
+  const canDraw = useCallback(() => alive.current && latest.current.owns() && latest.current.nativeReady && loaded.current && laidOut.current && annotation.current !== null, []);
   const refreshLogo = useCallback(() => {
-    if (!alive.current) return;
     if (draw.current !== null) cancelAnimationFrame(draw.current);
-    draw.current = requestAnimationFrame(() => { draw.current = null; if (alive.current) annotation.current?.refresh(); });
-  }, []);
-  return <ViewAnnotation ref={annotation} id={id} lngLat={[point.lng, point.lat]} anchor="center" onPress={onPress}>
-    <View collapsable={false} accessible accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}>
-      <PricePill content={content} urgent={urgent} selected={selected} onReady={refreshLogo} />
+    draw.current = null;
+    if (!canDraw()) return;
+    draw.current = requestAnimationFrame(() => { draw.current = null; if (canDraw()) annotation.current?.refresh(); });
+  }, [canDraw]);
+  const setAnnotation = useCallback((value: ViewAnnotationRef | null) => { annotation.current = value; refreshLogo(); }, [refreshLogo]);
+  const onLogoReady = useCallback(() => { if (!alive.current || !latest.current.owns()) return; loaded.current = true; refreshLogo(); }, [refreshLogo]);
+  const onLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    laidOut.current = Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
+    refreshLogo();
+  }, [refreshLogo]);
+  // A loaded image need not emit onLoad again after a native route detaches/reattaches. Re-entering the rendered
+  // map, or changing the pill's content, refreshes its existing bitmap once all actual child prerequisites hold.
+  useEffect(refreshLogo, [nativeReady, content.text, content.tone, urgent, selected, refreshLogo]);
+  return <ViewAnnotation ref={setAnnotation} id={id} lngLat={[point.lng, point.lat]} anchor="center" onPress={onPress}>
+    <View collapsable={false} onLayout={onLayout} accessible accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}>
+      <PricePill content={content} urgent={urgent} selected={selected} onReady={onLogoReady} />
     </View>
   </ViewAnnotation>;
 }
@@ -85,6 +98,11 @@ function boundedFitPadding(frame: { width: number; height: number }, toolsBottom
 function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void; mapStyle: MapStyle }) {
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [nativeFrameReady, setNativeFrameReady] = useState(false), focused = useRef(true);
+  useFocusEffect(useCallback(() => {
+    focused.current = true; setNativeFrameReady(false);
+    return () => { focused.current = false; };
+  }, []));
   const [viewport, setViewport] = useState(props.viewport);
   // Discovery V47: there is no "Pretraži ovu oblast" any more. A move of the person's own settles, the map waits
   // `AREA_SETTLE_MS`, and the list follows the bounds; a new move of theirs before that starts the wait again.
@@ -325,6 +343,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       attribution={false} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
       onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
+      // One real native frame per focus entry, not a timer or per-frame state updates. Map readiness alone
+      // may survive a detached route while its annotation bitmap is stale. Stop listening as soon as it returns.
+      onDidFinishRenderingFrameFully={nativeFrameReady ? undefined : () => { if (focused.current && owns()) setNativeFrameReady(true); }}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
       // pill's own press is not taken as a tap on the ground under it.
       onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { pendingFocus.current = null; latest.current.props.onClear?.(); } }}
@@ -378,7 +399,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         // The native side keys its annotations by `id`: an id that changes with the content, as the React key does, keeps
         // an insert-before-remove in one commit from leaving a dead pill behind (review r3 item 8).
         return <PillAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} point={place.point}
-          content={content} urgent={urgent}
+          content={content} urgent={urgent} nativeReady={status === 'ready' && nativeFrameReady} owns={owns}
           label={place.ids.length > 1 ? placeWords(place) : `${urgent ? 'HITNO, ' : ''}${readableTitle(byId.get(place.ids[0])?.naslov)}, ${content.spoken}`}
           onPress={() => { if (!owns() || load.current !== 'ready') return;
             pillTap.current = Date.now();
@@ -386,10 +407,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
             else latest.current.props.onSelect(place.ids[0]); }} />;
       })}
       {selectedPlace ? <PillAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" point={selectedPlace.point}
-        label={`${placeWords(selectedPlace)}, izabrano`} content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected />
+        label={`${placeWords(selectedPlace)}, izabrano`} content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} />
         : point && selected ? <PillAnnotation key={`selected-need:${selected.id}`} id="selected-need" point={point}
           label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}
-          content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected /> : null}
+          content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
     </Map>
     {sheetTop && height ? <>
       <Animated.View testID="discovery-map-zoom-ride" pointerEvents="box-none" style={[s.ride, { height }, zoomRide]}>{zoom}</Animated.View>
