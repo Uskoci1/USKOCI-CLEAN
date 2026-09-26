@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
-  type NativeScrollEvent, type ViewToken } from 'react-native';
+  type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
 import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -401,8 +401,22 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // sized on remount; EXTENDED then arrives without another bounded list onLayout.
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const restore = useRef<number | null>(null), restoreTarget = useRef<number | null>(null), restoreAttempted = useRef(false);
+  const restoreAck = useRef<number | null>(null);
   const restoreFrame = useRef(0);
   const hasRows = listed.length > 0;
+  // RN limits the unmeasured tail spacer to measured cells. Content size alone cannot
+  // prove that an offset is unreachable: only the actual final cell and footer can.
+  const extentSequence = useRef(0);
+  const extent = useMemo(() => ({ sequence: ++extentSequence.current, bottom: null as number | null, footer: undated ? null as number | null : 0 }),
+    [listed, coverageOwner, undated]);
+  const currentExtent = useRef(extent); currentExtent.current = extent;
+  const endPadding = pillShown ? sys.space.huge + sys.space.xxl : sys.space.xxl;
+  const hasMeasuredEnd = useCallback(() => {
+    if (extent.bottom === null || extent.footer === null) return false;
+    const end = extent.bottom + extent.footer + endPadding;
+    return contentHeight.current >= end - 1
+      && (contentHeight.current <= listWindow || Math.abs(contentHeight.current - end) <= 1);
+  }, [extent, endPadding, listWindow]);
   const restoreVisit = useRef<typeof coverageOwner | null>(null), restoreHadRows = useRef(hasRows);
   traceState.current = { scrolled, index: sheetIndex };
   const tracedScroll = useRef<number | null>(null);
@@ -416,7 +430,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const at = latestView.current.listOffset ?? 0;
     trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolled, sheetIndex);
     offset.current = at; restore.current = at > 0 ? at : null;
-    restoreTarget.current = null; restoreAttempted.current = false; contentHeight.current = 0;
+    restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false; contentHeight.current = 0;
   }
   if (hasRows && !restoreHadRows.current) contentHeight.current = 0; // the loading/empty view's height is not row geometry
   restoreHadRows.current = hasRows;
@@ -424,28 +438,56 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const at = restore.current;
     if (at !== null) trace('restore-check', currentSheet(), hasRows, listReady.current, at, restoreAttempted.current, !!listRef.current,
       listHeight.current, contentHeight.current);
-    if (!currentSheet() || !hasRows || !listReady.current || at === null || !listRef.current
-      || (restoreAttempted.current && restoreFrame.current === listWindow) || listWindow <= 0 || contentHeight.current <= 0) return;
+    if (!currentSheet() || at === null) return;
+    if (!hasRows && !loading && !error) {
+      restore.current = null; restoreTarget.current = null; offset.current = 0;
+      scrolledRef.current = false; setScrolled(false); writeOffset();
+      return;
+    }
+    if (!hasRows || !listReady.current || !listRef.current
+      || listWindow <= 0 || contentHeight.current <= 0) return;
     const target = Math.min(at, Math.max(0, contentHeight.current - listWindow));
+    const terminal = hasMeasuredEnd();
+    if (restoreTarget.current !== target) restoreAck.current = null;
     restoreTarget.current = target;
     if (target === 0) {
+      if (!terminal) return;
       trace('clamp0', at, contentHeight.current, listWindow, latestView.current.listOffset ?? 0);
       // The measured current list fits in its window: there can be no offset event to acknowledge.
       restore.current = null; restoreTarget.current = null; offset.current = 0;
       scrolledRef.current = false; setScrolled(false); writeOffset();
       return;
     }
+    // A provisional scroll may have arrived before the last cell's layout. Once its
+    // matching extent is known, that acknowledgement is enough; scrolling to the same
+    // offset again need not produce another native event.
+    if (terminal && restoreAck.current !== null && Math.abs(restoreAck.current - target) <= 1) {
+      trace('ack', restoreAck.current, at, target);
+      offset.current = restoreAck.current; restore.current = null; restoreTarget.current = null;
+      restoreAttempted.current = false; writeOffset();
+      return;
+    }
+    if (restoreAttempted.current && restoreFrame.current === listWindow) return;
     restoreAttempted.current = true;
     restoreFrame.current = listWindow;
     trace('request', at, target, contentHeight.current, listWindow);
     listRef.current.scrollToOffset({ offset: target, animated: false });
-  }, [currentSheet, hasRows, listWindow, writeOffset, trace]);
+  }, [currentSheet, hasRows, loading, error, listWindow, hasMeasuredEnd, writeOffset, trace]);
+  const retryRestore = useRef(tryRestore); retryRestore.current = tryRestore;
+  const CellRenderer = useMemo(() => function DiscoveryCell({ cellKey: _key, index, item: _item, onLayout, ...nativeProps }: CellRendererProps<MarketplaceItem>) {
+    return <View {...nativeProps} onLayout={event => {
+      onLayout?.(event); // Preserve RN's own cell metrics, window expansion and viewability.
+      if (!currentSheet() || currentExtent.current !== extent || index !== listed.length - 1) return;
+      extent.bottom = event.nativeEvent.layout.y + event.nativeEvent.layout.height;
+      retryRestore.current();
+    }} />;
+  }, [currentSheet, extent, listed.length]);
   const receiveListReady = useCallback((ready: boolean, state: number) => {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
       focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow);
     if (!currentSheet()) return;
     listReady.current = ready;
-    if (!ready) restoreAttempted.current = false;
+    if (!ready) { restoreAttempted.current = false; restoreAck.current = null; }
     else tryRestore();
   }, [currentSheet, tryRestore, trace, position, focused, coverageOwner, listWindow]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
@@ -471,6 +513,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // acknowledged target completes restoration; these synthetic events must never overwrite the saved view.
     if (restore.current !== null) {
       if (!listReady.current || !restoreAttempted.current || restoreTarget.current === null || Math.abs(y - restoreTarget.current) > 1) return;
+      restoreAck.current = y;
+      // Reaching the current rendered window drives RN to render more cells. Keep the
+      // original logical target until it is reached or the actual data end is measured.
+      if (restoreTarget.current < restore.current && !hasMeasuredEnd()) return;
       trace('ack', y, restore.current, restoreTarget.current);
       restore.current = null; restoreTarget.current = null; restoreAttempted.current = false;
     }
@@ -484,7 +530,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     } else if (y <= 0) { trace('fold', false, y); scrolledRef.current = false; setScrolled(false); }
     if (offsetTimer.current) clearTimeout(offsetTimer.current);
     offsetTimer.current = setTimeout(() => { if (currentSheet()) writeOffset(); }, OFFSET_SETTLE_MS);
-  }, [writeOffset, currentSheet, trace, focused, coverageOwner]);
+  }, [writeOffset, currentSheet, hasMeasuredEnd, trace, focused, coverageOwner]);
   // Opening a row flushes deliberately before navigation; background scroll deliveries and a pending
   // debounce from the retired visit must not overwrite the position restored on the next visit.
   useEffect(() => () => {
@@ -563,7 +609,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
               primary={{ label: 'Dopuni radni profil', onPress: props.onProfile }} quiet={{ label: 'Osveži zadatke', onPress: refreshList }} />}
   </View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
-  const footer = undated ? <T variant="note" tone="muted" style={s.undated}>{undatedWords(undated)}</T> : null;
+  const footer = undated ? <View key={extent.sequence} onLayout={event => {
+    if (!currentSheet() || currentExtent.current !== extent) return;
+    extent.footer = event.nativeEvent.layout.height; tryRestore();
+  }}><T variant="note" tone="muted" style={s.undated}>{undatedWords(undated)}</T></View> : null;
 
   // What is on and has no quick chip of its own says itself once, under the count, and removes itself: the place, the
   // searched words and the time choices the chips do not carry. A quick chip removes its own filter. The map's area and
@@ -656,7 +705,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
             the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
-        <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem}
+        <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={CellRenderer}
           style={listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined}
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}

@@ -125,6 +125,15 @@ const cards = () => listSheet().findAll(node => String(node.type) === 'Press' &&
 // applies; the one green action is found by its label, which says the count (or that nothing is left).
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
 const list = () => tree.root.findByType('List' as React.ElementType);
+// CellRendererComponent receives the final cell wrapper's absolute content position,
+// unlike renderItem's child layout. Forwarding the supplied native handler is required.
+const cellLayout = (index = rows.length - 1, onLayout = jest.fn()) => list().props.CellRendererComponent({
+  cellKey: rows[index].id, item: rows[index], index, onLayout, style: { flexDirection: 'column' }, children: null,
+}).props.onLayout;
+const measureEnd = async (content: number, footer = 0, index = rows.length - 1) => act(async () => {
+  const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
+  cellLayout(index)({ nativeEvent: { layout: { y: content - padding - footer - 100, height: 100 } } });
+});
 const readyList = async (content = 3000, window = 400) => {
   // A real viewport is meaningful only inside a measured native body/full sheet.
   if (typeof listSheet().props.snapPoints[2] !== 'number') await layOutBody();
@@ -432,6 +441,154 @@ test.each([false, true])('native mount zero cannot replace saved scroll; restore
   } finally { jest.useRealTimers(); }
 });
 
+test('deep return keeps its saved offset while virtualized content grows past provisional scroll acknowledgements', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`deep${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1800);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 1800, animated: false });
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => list().props.onContentSizeChange(400, frame + 6000));
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 6000, animated: false });
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 6000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => list().props.onContentSizeChange(400, frame + 10000));
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000.2 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+      list().props.onContentSizeChange(400, frame + 15000);
+    });
+    expect(scrollToOffset).toHaveBeenCalledTimes(3);
+    expect(snapshot.listOffset).toBe(8000);
+  } finally { jest.useRealTimers(); }
+});
+
+test.each(['cell-first', 'content-first'])('a truly shorter virtualized list clamps only when final cell and content agree (%s)', async order => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 20 }, (_, i) => row(`short${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1800);
+    const nativeLayout = jest.fn(), lastLayout = cellLayout(rows.length - 1, nativeLayout);
+    const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
+    const finalEvent = { nativeEvent: { layout: { y: frame + 4000 - padding - 200, height: 200 } } };
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } });
+      if (order === 'cell-first') lastLayout(finalEvent);
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000); // a last row with older content size is not a valid clamp
+    await act(async () => list().props.onContentSizeChange(400, frame + 4000));
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 4000, animated: false });
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 4000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    if (order === 'content-first') {
+      expect(snapshot.listOffset).toBe(8000);
+      await act(async () => lastLayout(finalEvent)); // no second same-offset scroll event is necessary
+    }
+    expect(nativeLayout).toHaveBeenCalledWith(finalEvent);
+    expect(snapshot.listOffset).toBe(4000);
+    expect(scrollToOffset).toHaveBeenCalledTimes(2);
+  } finally { jest.useRealTimers(); }
+});
+
+test('a partial window that fits cannot erase a deep target, and dragging retires its later geometry callbacks', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 20 }, (_, i) => row(`partial${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame - 100);
+    expect(snapshot.listOffset).toBe(8000); expect(scrollToOffset).not.toHaveBeenCalled();
+    await act(async () => list().props.onContentSizeChange(400, frame + 1000));
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 1000, animated: false });
+    await act(async () => {
+      list().props.onScrollBeginDrag({ nativeEvent: {} });
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 900 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    await measureEnd(frame + 3000);
+    await act(async () => list().props.onContentSizeChange(400, frame + 3000));
+    expect(snapshot.listOffset).toBe(900); expect(scrollToOffset).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+
+test('a retired final-cell callback cannot certify the new sheet data end', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 20 }, (_, i) => row(`retired${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1800);
+    const oldLayout = cellLayout();
+    const padding = StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom;
+    mockFocused = false; await update(); mockFocused = true; await update();
+    await readyList(frame + 1800);
+    await act(async () => {
+      oldLayout({ nativeEvent: { layout: { y: frame + 1800 - padding - 100, height: 100 } } });
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    await measureEnd(frame + 1800);
+    expect(snapshot.listOffset).toBe(1800);
+  } finally { jest.useRealTimers(); }
+});
+
+test('a final cell waits for the actual optional footer height before accepting a shorter list', async () => {
+  jest.useFakeTimers();
+  try {
+    initial = { ...initial, sheet: 'full', listOffset: 8000, when: 'tomorrow' };
+    rows = [row('dated', tomorrowFlexible), row('undated')];
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1000);
+    await measureEnd(frame + 1000, 80, 0);
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 1000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    const oldFooter = list().props.ListFooterComponent;
+    rows = [...rows]; await update();
+    // A fresh dataset needs a new native layout even when the footer has the same height.
+    expect(list().props.ListFooterComponent.key).not.toBe(oldFooter.key);
+    await measureEnd(frame + 1000, 80, 0);
+    await act(async () => oldFooter.props.onLayout({ nativeEvent: { layout: { height: 80 } } }));
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => list().props.ListFooterComponent.props.onLayout({ nativeEvent: { layout: { height: 80 } } }));
+    expect(snapshot.listOffset).toBe(1000);
+    expect(scrollToOffset).toHaveBeenCalledTimes(1);
+  } finally { jest.useRealTimers(); }
+});
+
+test.each([false, true])('an authoritative empty read clears an impossible offset while loading and failure preserve it (failure: %s)', async failed => {
+  initial = { ...initial, sheet: 'full', listOffset: 8000 };
+  rows = []; loading = !failed; error = failed;
+  await render(); await readyList(300);
+  expect(snapshot.listOffset).toBe(8000);
+  loading = error = false; await update();
+  expect(snapshot.listOffset).toBe(0);
+  expect(scrollToOffset).not.toHaveBeenCalled();
+});
+
 test.each([100, -100])('return clamps against content %s dp longer than its owned viewport and never waits for an unreachable offset', async excess => {
   jest.useFakeTimers();
   try {
@@ -442,6 +599,7 @@ test.each([100, -100])('return clamps against content %s dp longer than its owne
     mockFocused = false; await update(); rows = [row('one')]; mockFocused = true; await update();
     const frame = StyleSheet.flatten(list().props.style).height;
     scrollToOffset.mockClear(); await readyList(frame + excess, frame);
+    await measureEnd(frame + excess);
     const target = Math.max(0, excess);
     if (target > 0) {
       expect(scrollToOffset).toHaveBeenCalledWith({ offset: target, animated: false });
@@ -525,6 +683,7 @@ test('diagnostic trace distinguishes rejection, request, acknowledgement, pre-op
 test('diagnostic trace names the measured zero clamp separately from a search change', async () => {
   tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
   await render(); await readyList(300, 400);
+  await measureEnd(300);
   expect(nativeTrace).toHaveBeenCalledWith('clamp0', 160, 300, StyleSheet.flatten(list().props.style).height, 160);
   expect(snapshot.listOffset).toBe(0);
   await search('bb');
@@ -1307,7 +1466,7 @@ test('a time choice says under the list how many tasks it leaves out because the
   expect(list().props.ListFooterComponent).toBeNull();
   await act(async () => quick('Danas').props.onPress());
   expect(cards()).toEqual(['danas']);
-  expect(list().props.ListFooterComponent.props.children).toBe('2 zadatka bez datuma nisu u ovom izboru.');
+  expect(list().props.ListFooterComponent.props.children.props.children).toBe('2 zadatka bez datuma nisu u ovom izboru.');
   await act(async () => quick('Danas').props.onPress()); expect(list().props.ListFooterComponent).toBeNull();
 });
 

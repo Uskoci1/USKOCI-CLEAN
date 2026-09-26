@@ -6,6 +6,9 @@ let mockPlatform = 'android';
 let mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
 let mockFocused = true;
 const mockAppListeners = new Set<(state: string) => void>();
+const mockBackListeners = new Set<() => boolean>();
+let mockKeyboardVisible = false;
+const mockDismissKeyboard = jest.fn(() => { mockKeyboardVisible = false; });
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn() };
 const mockGroupContext = jest.fn();
@@ -22,6 +25,10 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: mockPlatform };
     if (key === 'useWindowDimensions') return () => mockWindow;
+    if (key === 'Keyboard') return { isVisible: () => mockKeyboardVisible, dismiss: mockDismissKeyboard };
+    if (key === 'BackHandler') return { addEventListener: (_event: string, listener: () => boolean) => {
+      mockBackListeners.add(listener); return { remove: () => mockBackListeners.delete(listener) };
+    } };
     if (key === 'AppState') return { currentState: 'active', addEventListener: (_event: string, listener: (state: string) => void) => {
       mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
     } };
@@ -72,6 +79,13 @@ let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 async function render() { await act(async () => { tree = create(<Dogovor />); }); }
+async function hardwareBack() {
+  await act(async () => {
+    // The navigator receives Back only when the focused screen did not consume it.
+    const handled = [...mockBackListeners].reverse().some(listener => listener());
+    if (!handled) mockRouter.back();
+  });
+}
 async function completionConfirmation(worker = false) {
   await act(async () => button(worker ? 'Posao je gotov' : 'Potvrdi završetak').props.onPress());
   return button(worker ? 'Da, posao je gotov' : 'Da, potvrdi završetak').props.onPress as () => void;
@@ -85,6 +99,7 @@ beforeEach(() => {
   mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id;
   mockAccountRevision = 0;
   mockFocused = true;
+  mockBackListeners.clear(); mockKeyboardVisible = false;
   mockPlatform = 'android';
   mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
   mockRouter.canGoBack.mockReturnValue(true);
@@ -101,6 +116,51 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it.each([true, false])('hardware Back leaves chat for the same overview (writable=%s), then lets the navigator leave', async writable => {
+    mockRead.mockResolvedValue({ ...workspace, chatDostupan: writable, stanje: writable ? 'CONFIRMED' : 'COMPLETED' });
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const chat = tree.root.findByType('AgreementChat' as React.ElementType).props;
+    expect(chat.writable).toBe(writable);
+    await hardwareBack();
+    expect(tree.root.findAllByType('AgreementChat' as React.ElementType)).toHaveLength(0);
+    expect(button('Poruke')).toBeTruthy();
+    expect(mockRouter.back).not.toHaveBeenCalled();
+    expect(mockBackListeners.size).toBe(0);
+    await hardwareBack();
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+  it('hardware Back dismisses a visible keyboard before leaving chat and keeps its pending outbox', async () => {
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const pending = { phase: 'ready', entries: [{ status: 'unknown', command: { clientMessageId: 'pending-message' } }] };
+    mockOutboxState = pending;
+    await act(async () => tree.update(<Dogovor />));
+    mockKeyboardVisible = true;
+    await hardwareBack();
+    expect(mockDismissKeyboard).toHaveBeenCalledTimes(1);
+    expect(tree.root.findByType('AgreementChat' as React.ElementType).props.state).toBe(pending);
+    expect(mockRouter.back).not.toHaveBeenCalled();
+    await hardwareBack();
+    expect(tree.root.findAllByType('AgreementChat' as React.ElementType)).toHaveLength(0);
+    await act(async () => button('Poruke').props.onPress());
+    expect(tree.root.findByType('AgreementChat' as React.ElementType).props.state).toBe(pending);
+    expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
+    expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+  });
+  it('retires a hardware Back callback on blur, account ABA and unmount', async () => {
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const old = [...mockBackListeners][0]; expect(old).toBeDefined();
+    mockFocused = false; await act(async () => tree.update(<Dogovor />));
+    expect(mockBackListeners.size).toBe(0); expect(old()).toBe(false);
+    mockFocused = true; await act(async () => tree.update(<Dogovor />));
+    expect(old()).toBe(false);
+    const current = [...mockBackListeners][0]; expect(current).toBeDefined();
+    mockAccountRevision += 2; // A → B → A before React has rendered the changed incarnation.
+    expect(current()).toBe(false);
+    expect(tree.root.findByType('AgreementChat' as React.ElementType)).toBeTruthy();
+    await act(async () => tree.unmount());
+    expect(mockBackListeners.size).toBe(0); expect(current()).toBe(false);
+    expect(mockRouter.back).not.toHaveBeenCalled();
+  });
   it.each(['narucilac', 'uskocer'])('opens the authoritative task from the leading accepted card for %s', async role => {
     const taskId = '40000000-0000-4000-8000-000000000001';
     mockRead.mockResolvedValue({ ...workspace, izvor: { zadatakId: taskId, prijavaId: null },
@@ -329,6 +389,12 @@ describe('D03 actual route and scoped resource integration', () => {
     await act(async () => complete());
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
     expect(button('Potvrdi završetak').props.disabled).toBe(true);
+    const readsBeforeLocalBack = mockRead.mock.calls.length;
+    await act(async () => button('Poruke').props.onPress());
+    await hardwareBack();
+    expect(button('Potvrdi završetak').props.disabled).toBe(true);
+    expect(mockRead).toHaveBeenCalledTimes(readsBeforeLocalBack);
+    expect(mockRouter.back).not.toHaveBeenCalled();
     // The recovery command is in the fixed action region, not below all Agreement sections.
     const footer = tree.root.findByProps({ testID: 'agreement-action-footer' });
     expect(footer.findByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toBeTruthy();

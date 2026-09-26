@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -8,7 +8,7 @@ import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } fr
 import { taskRelationIndex } from '../data/taskRelation';
 import { needScheduleText } from '../data/needDetailPresentation';
 import { novac } from '../lib/novac';
-import { DiscoveryPresentation } from '../ui/v2/DiscoveryPresentation';
+import { DiscoveryPresentation, type DiscoveryTrace } from '../ui/v2/DiscoveryPresentation';
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
 import { sys } from '../ui/system/tokens';
@@ -67,7 +67,7 @@ function fixtures(count: Count): PrilikaProjekcija[] {
 const leave = () => router.canGoBack() ? router.back() : router.replace('/dizajn-tabla');
 
 export default function DizajnMapa() {
-  const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[] }>();
+  const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[]; discoveryTrace?: string | string[] }>();
   const internal = Constants.expoConfig?.android?.package === 'rs.uskoci.dev';
   const count = params.count === undefined || params.count === '1' ? 1 : params.count === '1000' ? 1000 : null;
   const detail = params.detail === undefined ? null : typeof params.detail === 'string' && /^(0|[1-9]\d{0,2})$/.test(params.detail)
@@ -76,10 +76,22 @@ export default function DizajnMapa() {
     return <SafeAreaView style={s.screen}><T style={s.unavailable}>{internal ? 'Nepoznat prikaz galerije.' : 'Nije dostupno.'}</T>
       <GalleryFooter count={null} onBack={leave} /></SafeAreaView>;
   }
-  return <LocalGallery key={count} count={count} detail={detail} />;
+  return <LocalGallery key={count} count={count} detail={detail} traceEnabled={params.discoveryTrace === '1'} />;
 }
 
-function LocalGallery({ count, detail }: { count: Count; detail: number | null }) {
+const TRACE_EVENTS = new Set(['seed', 'preopen', 'request', 'ack', 'clamp0', 'ready', 'content']);
+
+function LocalGallery({ count, detail, traceEnabled }: { count: Count; detail: number | null; traceEnabled: boolean }) {
+  // Optional diagnosis only in this exact DEV package. Never log task/account text, IDs or native event objects.
+  const traceGate = useRef(traceEnabled); traceGate.current = traceEnabled;
+  const traceCount = useRef(0), traceSamples = useRef(0);
+  const trace = useCallback<DiscoveryTrace>((event, ...values) => {
+    if (!traceGate.current || traceCount.current >= 120 || !TRACE_EVENTS.has(event) || values.length > 20
+      || values.some(value => typeof value !== 'boolean' && (typeof value !== 'number' || !Number.isFinite(value)))) return;
+    if (event === 'content' && traceSamples.current++ >= 32) return;
+    const safe = values.map(value => typeof value === 'boolean' ? value : Math.round(Math.max(-10_000_000, Math.min(10_000_000, value)) * 10) / 10);
+    console.info(`[USKOCI_DISCOVERY_TRACE] ${JSON.stringify([++traceCount.current, event, ...safe])}`);
+  }, []);
   const items = useMemo(() => fixtures(count), [count]);
   const relations = useMemo(() => taskRelationIndex([], items.map(item => item.id)), [items]);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
@@ -99,7 +111,8 @@ function LocalGallery({ count, detail }: { count: Count; detail: number | null }
       <T tone="muted">Nazad vraća isti ekran mape i liste. Ovde nema slanja, prijave ili čuvanja u bazu.</T>
     </ScrollView></SafeAreaView> : <View style={s.grow}>
       <DiscoveryPresentation items={items} loading={false} error={false} scopeKey={`local-map-gallery:${count}`}
-        view={view} onView={setView} onOpen={open} onRefresh={noop} onProfile={noop} relations={relations} />
+        view={view} onView={setView} onOpen={open} onRefresh={noop} onProfile={noop} relations={relations}
+        trace={traceEnabled ? trace : undefined} />
     </View>}
     <GalleryFooter count={count} onBack={item ? back : leave} detail={!!item} />
   </View>;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Platform, KeyboardAvoidingView, TextInput, AppState, StyleSheet } from 'react-native';
+import { View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, TextInput, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ChatCircle } from 'phosphor-react-native';
@@ -204,6 +204,23 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     if (tab !== 'poruke' || !messages.data || messages.error) return;
     izvor.oznaciPorukeProcitanim(id).catch(() => undefined);
   }, [tab, messages.data, messages.error, izvor, id]);
+  const chatVisible = tab === 'poruke' && !!dogovor && foreground && !resumeRequired;
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android' || !chatVisible) return;
+    let current = true;
+    const focus = formFocus.current;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!current || !focus || formFocus.current !== focus || !ownsAccount() || !activeRef.current || !freshRef.current) return false;
+      // Android normally lets the IME consume Back first. If it reaches JS while
+      // the keyboard is still visible, keep that same keyboard-only first step.
+      if (Keyboard.isVisible()) { Keyboard.dismiss(); return true; }
+      // Poruke is an inner view of this route, not another navigator entry.
+      // Returning to its overview must retain pending/unknown command owners.
+      setTab('pregled');
+      return true;
+    });
+    return () => { current = false; subscription.remove(); };
+  }, [chatVisible, ownsAccount]));
   if (!foreground || resumeRequired) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 

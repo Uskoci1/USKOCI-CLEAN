@@ -6,7 +6,7 @@ import { discoveryShown, initialMarketplaceView, pinPlaces, publicPoint, type Ma
 import type { DiscoveryPresentationProps } from '../../ui/v2/DiscoveryPresentation';
 
 let mockPackage: string | undefined = 'rs.uskoci.dev';
-let mockParams: { count?: unknown; detail?: unknown } = {};
+let mockParams: { count?: unknown; detail?: unknown; discoveryTrace?: unknown } = {};
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('expo-constants', () => ({ get expoConfig() { return { android: { package: mockPackage } }; } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams }));
@@ -101,4 +101,28 @@ test('has a local safe exit and no direct backend/provider/media dependency or r
   const code = readFileSync(resolve(__dirname, '../../app/dizajn-mapa.tsx'), 'utf8');
   expect(code).not.toMatch(/(?:import|require).*?(?:supabase|ClientService|AuthorizedPhoto|expo-location|fetch|https?:)/i);
   expect(code).not.toMatch(/\b(?:fetch|rpc|invoke)\s*\(/);
+});
+
+test('gallery diagnosis is explicit, numeric-only, bounded and retired when its flag disappears', async () => {
+  const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+  try {
+    await render(); expect(discovery().trace).toBeUndefined();
+    mockParams = { count: '1000', discoveryTrace: ['1'] }; await act(async () => tree.update(<Gallery />));
+    expect(discovery().trace).toBeUndefined();
+    mockParams = { count: '1000', discoveryTrace: '1' }; await act(async () => tree.update(<Gallery />));
+    const trace = discovery().trace!;
+    trace('request', NaN); trace('request', Infinity); trace('request', ...Array(21).fill(1));
+    trace('request', 'private text' as unknown as number); trace('route-open', 1);
+    expect(logged).not.toHaveBeenCalled();
+    for (let i = 0; i < 50; i++) trace('content', i);
+    expect(logged).toHaveBeenCalledTimes(32);
+    trace('request', 123.456, true);
+    expect(logged).toHaveBeenLastCalledWith('[USKOCI_DISCOVERY_TRACE] [33,"request",123.5,true]');
+    mockParams = { count: '1000' }; await act(async () => tree.update(<Gallery />));
+    expect(discovery().trace).toBeUndefined();
+    trace('request', 1); expect(logged).toHaveBeenCalledTimes(33);
+    mockParams = { count: '1000', discoveryTrace: '1' }; await act(async () => tree.update(<Gallery />));
+    for (let i = 0; i < 200; i++) trace('ack', i);
+    expect(logged).toHaveBeenCalledTimes(120);
+  } finally { logged.mockRestore(); }
 });

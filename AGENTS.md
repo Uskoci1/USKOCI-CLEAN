@@ -1,5 +1,16 @@
 # USKOČI — repository entry map
 
+R19 DEEP RETURN / ANDROID CHAT BACK (2026-09-26): source 03cc3e48 is installed and hash-verified on
+phone run 36227403801 and emulator 36227405570. Real ten-row map/detail/Back now restores 459/642 dp;
+phone immediate Back during detail loading also passes. Read NATIVE_REVIEW.explicit-viewport.
+Two further native failures remain on that APK: 1,000 local rows return from row 41 to row 10, and
+Android hardware Back from Agreement chat exits the route (header Back works). Corrective source
+preserves deep offsets through progressively measured RN windows, clamps only at a measured data end,
+and consumes Android chat Back within the same Agreement with account/focus/recovery fences intact.
+Read DEEP_RETURN_AND_CHAT, CHECKS.deep-return-chat and current NEXT. Later exact APK acceptance is required;
+do not infer native success from tests. No server/Edge/dependency/provider changes. Remote dashboard import
+remains unconfirmed. The older iteration notes below are historical, not the current next-work list.
+
 R19 EXPLICIT NATIVE VIEWPORT (2026-09-26): b5a82f69 / run 36225404482 still fails detail/Back scroll:
 315 dp remains saved but no restore request follows native readiness. Read NATIVE_REVIEW.viewport-guard.
 That exact emulator APK proves bounded 1/1,000-row rendering/filter/cluster cases, not deep scroll or server load.
