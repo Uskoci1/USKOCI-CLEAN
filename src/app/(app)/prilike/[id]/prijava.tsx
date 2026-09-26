@@ -135,6 +135,9 @@ export default function Prijava() {
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri ishod.' }; }
       finally { pending.inFlight = false; }
       pending.result = result;
+      // The route has its own pending-read fence in addition to useOwnedEditor.
+      // Settle both from the same exact result; arbitrary errors and lost ACKs stay uncertain.
+      pending.reconciled = result.ok || conclusiveApplicationRefusal(result);
       // Only this command's own authoritative receipt retires the durable identity.
       if (result.ok) await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
       if (session.focused && currentAccount()) render(v => v + 1);
@@ -165,13 +168,13 @@ export default function Prijava() {
   return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
-    // After the readback: a known refusal carries its own reason beside the one way on (a new offer); an unknown outcome
-    // says in plain words what "Ponovi istu Prijavu" does. The repeat sends the same client_request_id with the same
-    // payload, which the server answers with the stored result (idempotent replay), never a second application.
-    error={validation ?? session.notice ?? editor.error ?? (pending && !data.receipt && !editor.uncertain
-      ? reset && refusal ? `Ova ponuda nije primljena. ${refusal.poruka}`
-        : 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
-      : null)}
+    // A conclusive refusal carries its outcome beside the new-offer action immediately.
+    // Other failures keep their error and exact-command retry; a collection read never proves refusal.
+    error={validation ?? session.notice ?? (refusal && !editor.uncertain
+      ? `Ova ponuda nije primljena. ${refusal.poruka}`
+      : editor.error ?? (pending && !data.receipt && !editor.uncertain
+        ? 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
+        : null))}
     refreshHelps={validation !== NOT_SAVED_ON_DEVICE}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
