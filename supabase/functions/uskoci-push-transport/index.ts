@@ -2,6 +2,7 @@
  * Ticket = Expo queued; receipt OK = FCM/APNs accepted; neither = device delivered.
  * No logs: Expo error messages can contain transport addresses.
  */
+import { notificationPushCopy } from '../_shared/pushNotificationCopy.mjs';
 declare const Deno: { env: { get(name: string): string | undefined }; serve(handler: (req: Request) => Promise<Response>): void };
 export {};
 type Row = Record<string, unknown>;
@@ -113,11 +114,13 @@ Deno.serve(async req => {
    if (kind === 'SEND') {
     const begin = await rpc('rpc_begin_push_send', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId });
     if (row(begin) && only(begin, ['kind']) && begin.kind === 'SUPPRESSED') return 'SUPPRESSED';
-    if (!row(begin) || !only(begin, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority']) || begin.kind !== 'SEND'
+    if (!row(begin) || !only(begin, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority', 'eventType']) || begin.kind !== 'SEND'
      || begin.attemptId !== claim.attemptId || begin.leaseId !== claim.leaseId || begin.leaseExpiresAt !== claim.leaseExpiresAt || !live(begin.leaseExpiresAt)
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
-     || !['NORMAL', 'HIGH'].includes(String(begin.priority))) throw new Invalid();
-    body = [{ to: begin.expoPushToken, title: 'USKOČI', body: 'Imaš novo obaveštenje. Otvori aplikaciju.',
+     || !['NORMAL', 'HIGH'].includes(String(begin.priority))
+     || typeof begin.eventType !== 'string' || !/^[A-Z][A-Z0-9_]{2,63}$/.test(begin.eventType)) throw new Invalid();
+    const copy = notificationPushCopy(begin.eventType, begin.priority === 'HIGH' ? 'HITNO' : 'NORMAL');
+    body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,
      data: { kind: 'INBOX' }, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl: 0 }];
    } else body = { ids: [claim.ticketId] };
    let parsed: { result: Result; ticketId: string | null } = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };

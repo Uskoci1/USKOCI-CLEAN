@@ -9,12 +9,14 @@ import ts from 'typescript';
 import {assert,randomUUID,env,sha,q,sql,rows,ok,denied,requester,worker,anon,service,requesterId,workerId,
  login,apply,prove,pass,agreement,prefs} from './closure_runtime.mjs';
 import {loadPreV3Clients} from './client_runtime.mjs';
+import {notificationPushCopy} from '../../functions/_shared/pushNotificationCopy.mjs';
 const version='PRE_V3_PUSH_READINESS_V1';
 const observe=x=>service.rpc('rpc_record_push_readiness',{p_sender_version:version,p_observation:x});
 const read=()=>ok(requester.rpc('rpc_get_push_readiness',{}));
 await prove('PRE_V3_PUSH_READINESS','push-readiness-report.json',async report=>{
  await apply(report,'20260912131000_clean_pre_v3_push_readiness.sql',121);
- await apply(report,'20260912131100_clean_pre_v3_push_readiness_column_qualification.sql',122);await login();
+ await apply(report,'20260912131100_clean_pre_v3_push_readiness_column_qualification.sql',122);
+ await apply(report,'20260926175504_clean_notification_push_event_type.sql',123);await login();
  const initial=await read();assert.equal(initial.state,'UNKNOWN');assert.equal(initial.observedAt,null);assert.equal(initial.lastSuccessAt,null);
  await denied(anon.rpc('rpc_get_push_readiness',{}));
  await denied(requester.rpc('rpc_record_push_readiness',{p_sender_version:version,p_observation:'TICK_OK'}));
@@ -31,7 +33,7 @@ await prove('PRE_V3_PUSH_READINESS','push-readiness-report.json',async report=>{
   calls.push(url.split('/').pop());if(url.endsWith('rpc_begin_push_send')&&beforeBegin){const hook=beforeBegin;beforeBegin=null;await hook();}
   return fetch(env.RU5_DEVICE_SUPABASE_URL+'/rest/v1/rpc/'+url.split('/').pop(),init);
  };
- const globals={exports:{},Request,Response,URL,Headers,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,setTimeout,clearTimeout,fetch:fetchRpc,
+ const globals={exports:{},require:specifier=>{if(specifier==='../_shared/pushNotificationCopy.mjs')return{notificationPushCopy};throw Error('UNEXPECTED_REQUIRE');},Request,Response,URL,Headers,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,setTimeout,clearTimeout,fetch:fetchRpc,
   console:{log:()=>assert.fail('NO_LOGGING'),warn:()=>assert.fail('NO_LOGGING'),error:()=>assert.fail('NO_LOGGING')},
   Deno:{env:{get:k=>{keys.push(k);return k==='SUPABASE_SERVICE_ROLE_KEY'?env.RU5_DEVICE_SERVICE_ROLE_KEY:k==='SUPABASE_URL'?'https://pre-v3-proof.supabase.co':k==='EXPO_PUSH_TRANSPORT_ENABLED'?String(enabled):undefined;}},serve:h=>{handler=h;}}};
  const compiled=ts.transpileModule(bytes.toString(),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});

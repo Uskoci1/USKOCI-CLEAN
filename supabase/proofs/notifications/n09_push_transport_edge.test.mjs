@@ -5,6 +5,7 @@ import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import {notificationPushCopy} from '../../functions/_shared/pushNotificationCopy.mjs';
 const source=readFileSync(new URL('../../functions/uskoci-push-transport/index.ts',import.meta.url),'utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const id='11111111-1111-4111-8111-111111111111',lease='22222222-2222-4222-8222-222222222222';
@@ -13,7 +14,7 @@ const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{'Cont
 function harness(options={}) {
  const calls=[],logs=[],envReads=[];let handler;const expires=new Date(Date.now()+90000).toISOString();
  const claim={kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expires,ticketId:null};
- const begun={kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expires,expoPushToken:token,priority:'NORMAL'};
+ const begun={kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expires,expoPushToken:token,priority:'NORMAL',eventType:'MESSAGE_RECEIVED'};
  const fetch=async(url,init)=>{
   const body=JSON.parse(init.body);calls.push({url,init,body});
   if(String(url).includes('/rest/v1/rpc/')) {
@@ -33,7 +34,7 @@ function harness(options={}) {
   return json(options.receipt?{data:{ticket_1:{status:'ok'}}}:{data:[{status:'ok',id:'ticket_1'}]});
  };
  const env={SUPABASE_SERVICE_ROLE_KEY:secret,SUPABASE_URL:'https://synthetic.supabase.co',EXPO_PUSH_TRANSPORT_ENABLED:'true',EXPO_ACCESS_TOKEN:expoSecret,...options.env};
- const context=vm.createContext({exports:{},Request,Response,URL,Headers,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,
+ const context=vm.createContext({exports:{},require:specifier=>{if(specifier==='../_shared/pushNotificationCopy.mjs')return{notificationPushCopy};throw Error('UNEXPECTED_REQUIRE');},Request,Response,URL,Headers,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,
   setTimeout:options.setTimeout??setTimeout,clearTimeout,fetch,console:{log:(...x)=>logs.push(x),warn:(...x)=>logs.push(x),error:(...x)=>logs.push(x)},
   Deno:{env:{get:k=>{envReads.push(k);return env[k];}},serve:h=>handler=h}});
  new vm.Script(compiled).runInContext(context);
@@ -52,11 +53,22 @@ test('PKG-030: the server key on apikey is accepted, as the scheduled tick sends
 });
 test('disabled deployment consumes no work or provider secret',async()=>{const h=harness({env:{EXPO_PUSH_TRANSPORT_ENABLED:'false'}});assert.equal((await h.run()).body.kind,'DISABLED');assert.equal(h.calls.length,0);assert.ok(!h.envReads.includes('EXPO_ACCESS_TOKEN'));});
 test('reject recipients, URL, payload and unexpected input before claim',async()=>{for(const input of [{action:'send'},{action:'tick',to:token},{action:'tick',url:'https://evil.test'},[]]){const h=harness();assert.equal((await h.run(input)).response.status,400);assert.equal(h.calls.length,0);}});
-test('actual send revalidates exact lease then submits constant minimal privacy-safe payload',async()=>{
+test('actual send revalidates exact lease then submits allowlisted privacy-safe event copy',async()=>{
  const h=harness();const r=await h.run();assert.equal(r.response.status,200);assert.equal(r.body.send,'TICKET_PENDING');
- const send=h.calls.find(x=>x.url.includes('exp.host'));assert.deepEqual(send.body,[{to:token,title:'USKOČI',body:'Imaš novo obaveštenje. Otvori aplikaciju.',data:{kind:'INBOX'},channelId:'default',sound:'default',priority:'normal',ttl:0}]);
+ const send=h.calls.find(x=>x.url.includes('exp.host'));assert.deepEqual(send.body,[{to:token,title:'Nova poruka u Dogovoru',body:'Imaš novu poruku.',data:{kind:'INBOX'},channelId:'default',sound:'default',priority:'normal',ttl:0}]);
  assert.deepEqual(h.calls.filter(x=>x.url.includes('/rpc/')).map(x=>x.url.split('/').pop()),['rpc_claim_push_transport','rpc_claim_push_transport','rpc_begin_push_send','rpc_complete_push_transport','rpc_record_push_readiness']);
  assert.deepEqual(completion(h),{p_attempt_id:id,p_lease_id:lease,p_result:'TICKET',p_ticket_id:'ticket_1'});
+});
+test('future constrained event type falls back to generic copy without failing transport',async()=>{
+ const h=harness({begin:{kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),expoPushToken:token,priority:'NORMAL',eventType:'FUTURE_EVENT'}});
+ const r=await h.run();assert.equal(r.response.status,200);const send=h.calls.find(x=>x.url.includes('exp.host'));
+ assert.equal(send.body[0].title,'USKOČI');assert.equal(send.body[0].body,'Imaš novo obaveštenje. Otvori aplikaciju.');
+});
+test('begin receipt cannot smuggle raw title body or payload to the provider',async()=>{
+ for(const extra of [{title:'PRIVATE'},{body:'PRIVATE'},{payload:{address:'PRIVATE'}}]){
+  const h=harness({begin:{kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),expoPushToken:token,priority:'NORMAL',eventType:'MESSAGE_RECEIVED',...extra}});
+  assert.equal((await h.run()).response.status,503);assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+ }
 });
 test('receipt accepted is provider acceptance, never physical delivery',async()=>{const h=harness({receipt:true});const r=await h.run();assert.equal(r.body.receipt,'PROVIDER_ACCEPTED');assert.deepEqual(h.calls.find(x=>x.url.includes('exp.host')).body,{ids:['ticket_1']});assert.equal(completion(h).p_result,'PROVIDER_ACCEPTED');assert.ok(!JSON.stringify(r.body).includes('DELIVERED'));});
 test('missing receipt is polled without resending',async()=>{const h=harness({receipt:true,provider:()=>json({data:{}})});await h.run();assert.equal(completion(h).p_result,'RECEIPT_PENDING');assert.equal(h.calls.filter(x=>x.url.endsWith('/send')).length,0);});

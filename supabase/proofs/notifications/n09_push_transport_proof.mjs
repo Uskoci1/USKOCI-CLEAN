@@ -9,9 +9,10 @@ import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
 import {loadPushHandler} from './n09_push_transport_runtime.mjs';
 const env=process.env,url=env.RU5_DEVICE_SUPABASE_URL,db=env.RU5_DEVICE_DB_URL;assertLocalDeviceProofTargets(url,db);
 const file='supabase/migrations/20260910193029_clean_n09_expo_push_transport.sql',source=readFileSync(file);
+const a1File='supabase/migrations/20260926175504_clean_notification_push_event_type.sql',a1Source=readFileSync(a1File);
 const digest=x=>createHash('sha256').update(x).digest('hex');const q=x=>"'"+String(x).replaceAll("'","''")+"'";
 const out=env.N09_ARTIFACT_DIR??'artifacts/n09-push-transport';mkdirSync(out,{recursive:true});
-const report={unit:'N09_EXPO_PUSH_TRANSPORT',source_sha:env.GITHUB_SHA??null,run_id:env.GITHUB_RUN_ID??null,source_sql_sha256:digest(source),checks:[],live_access:false,provider_called:false,provider_response_stubbed:true,actual_auth:true,actual_database:true,actual_edge_handler:true,edge_gateway_proven:false,physical_push_proven:false,fixture_clock_simulated:true};
+const report={unit:'N09_EXPO_PUSH_TRANSPORT',source_sha:env.GITHUB_SHA??null,run_id:env.GITHUB_RUN_ID??null,source_sql_sha256:digest(source),a1_sql_sha256:digest(a1Source),checks:[],live_access:false,provider_called:false,provider_response_stubbed:true,actual_auth:true,actual_database:true,actual_edge_handler:true,edge_gateway_proven:false,physical_push_proven:false,fixture_clock_simulated:true};
 const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
 const owner=createClient(url,env.RU5_DEVICE_ANON_KEY,options),other=createClient(url,env.RU5_DEVICE_ANON_KEY,options),anon=createClient(url,env.RU5_DEVICE_ANON_KEY,options),service=createClient(url,env.RU5_DEVICE_SERVICE_ROLE_KEY,options);
 const uid=env.RU5_DEVICE_REQUESTER_USER_ID,otherId=env.RU5_DEVICE_WORKER_USER_ID;for(const id of [uid,otherId])assert.match(id,/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);
@@ -56,6 +57,9 @@ try {
  assert.equal(sql("select md5(jsonb_agg(to_jsonb(x) order by version)::text) from supabase_migrations.schema_migrations x"),history);
  assert.deepEqual(JSON.parse(sql(`select jsonb_agg(jsonb_build_array(oid::text,md5(prosrc),proacl,proconfig,prosecdef,proowner) order by oid) from pg_proc where oid in (${ids.join(',')})`)),expectedFunctions);
  assert.equal(sql(`select has_function_privilege('authenticated',${q(rawSetter)},'EXECUTE')`),'f');report.existing_acl_delta=[rawSetter];
+ sql(a1Source.toString('utf8'));
+ assert.equal(sql("select has_function_privilege('authenticated','public.rpc_begin_push_send(uuid,uuid)','EXECUTE')"),'f');
+ assert.equal(sql("select has_function_privilege('service_role','public.rpc_begin_push_send(uuid,uuid)','EXECUTE')"),'t');
  sql("notify pgrst,'reload schema'");
  const t=token();for(let i=0;i<40;i++){const r=await owner.rpc('rpc_get_push_device_owned',{p_expected_user_id:uid,p_expo_push_token:t});if(!r.error)break;if(i===39)throw Error('SCHEMA_RELOAD');await new Promise(r=>setTimeout(r,250));}
  report.original_table_count=tables.length;report.history_unchanged=true;pass();
@@ -71,7 +75,11 @@ try {
  assert.equal(sql(`select count(*) from public.notification_push_attempts a join public.notification_push_devices d on d.id=a.device_id where d.expo_push_token=${q(legacy)}`),'0');pass();
 
  check('CLAIM_DUPLICATES_BEGIN_FENCE_AND_UNKNOWN_NEVER_RESENT');
- assert.equal((await claim('SEND')).kind,'NONE');await begin(first);await deny(service.rpc('rpc_begin_push_send',{p_attempt_id:first.attemptId,p_lease_id:first.leaseId}));
+ assert.equal((await claim('SEND')).kind,'NONE');const firstBegin=await begin(first);
+ assert.equal(firstBegin.eventType,'MESSAGE_RECEIVED');
+ assert.deepEqual(Object.keys(firstBegin).sort(),['attemptId','eventType','expoPushToken','kind','leaseExpiresAt','leaseId','priority'].sort());
+ assert.equal('title' in firstBegin,false);assert.equal('body' in firstBegin,false);assert.equal('payload' in firstBegin,false);
+ await deny(service.rpc('rpc_begin_push_send',{p_attempt_id:first.attemptId,p_lease_id:first.leaseId}));
  await complete(first,'UNKNOWN');due(first.attemptId);assert.equal((await claim('SEND')).kind,'NONE');
  event();const c=await claim('SEND');await begin(c);sql(`update public.notification_push_attempts set lease_until=clock_timestamp()-interval '1 second' where id=${q(c.attemptId)}`);assert.equal((await claim('SEND')).kind,'NONE');
  assert.equal(sql(`select transport_state from public.notification_push_attempts where id=${q(c.attemptId)}`),'UNKNOWN');
@@ -107,7 +115,7 @@ try {
  check('ACTUAL_HANDLER_REAL_DATABASE_SYNTHETIC_EXPO_MINIMAL_PAYLOAD');isolate();const ownState=await get(owner,uid,t);await set(owner,uid,t,ownState.revision);event();let providerCalls=0;const readinessObservations=[];
  const serviceKey=env.RU5_DEVICE_SERVICE_ROLE_KEY;
  const runtime=loadPushHandler({env:name=>({SUPABASE_SERVICE_ROLE_KEY:serviceKey,SUPABASE_URL:'https://synthetic.supabase.co',EXPO_PUSH_TRANSPORT_ENABLED:'true'}[name]),fetch:async(target,init)=>{
-  if(target==='https://exp.host/--/api/v2/push/send'){providerCalls++;const data=JSON.parse(init.body);assert.equal(data.length,1);assert.equal(data[0].to,t);assert.equal(data[0].body,'Imaš novo obaveštenje. Otvori aplikaciju.');assert.deepEqual(data[0].data,{kind:'INBOX'});assert.equal(init.headers.apikey,undefined);return new Response(JSON.stringify({data:[{status:'ok',id:'actual_handler_synthetic_ticket'}]}),{status:200});}
+  if(target==='https://exp.host/--/api/v2/push/send'){providerCalls++;const data=JSON.parse(init.body);assert.equal(data.length,1);assert.equal(data[0].to,t);assert.equal(data[0].title,'Nova poruka u Dogovoru');assert.equal(data[0].body,'Imaš novu poruku.');assert.deepEqual(data[0].data,{kind:'INBOX'});assert.equal(init.headers.apikey,undefined);return new Response(JSON.stringify({data:[{status:'ok',id:'actual_handler_synthetic_ticket'}]}),{status:200});}
   const parsed=new URL(target);assert.equal(parsed.origin,'https://synthetic.supabase.co');
   if(parsed.pathname==='/rest/v1/rpc/rpc_record_push_readiness'){
    // Successor telemetry (SQL 20260912131000, proven against a real database by
