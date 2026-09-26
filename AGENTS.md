@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+V1 CLOSURE WORK ORDER (2026-09-26): read `docs/implementation/product-v1-closure-20260926/PLAN.md` first for new product work. Voice messages are mandatory V1 Chat 2.0. AI taxonomy uses stable canonical nodes + candidate promotion; one odd Need never auto-creates a category. Matching is hard eligibility then ranking. Growth projections are required before scale. Notification copy/metadata contract is in the sibling `NOTIFICATION_MATRIX.md`. Real Android push evidence is in `docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md`; live push worker was restored canonical after the bounded send.
+
 PUSH-PROOF APK READY / DEVICE PENDING (2026-09-26): source `3d31a300`, run `36246861282`.
 Dedicated `rs.uskoci.preview` proof APK passed config isolation, native prebuild, ARM64 build and actual APK Firebase Messaging manifest attestation.
 SHA256 `dd9bb8e887bb5c78a2ff92f51060c257d33aa9d980dd76d5b9c90b086d2e9728`; 70,681,821 bytes.
