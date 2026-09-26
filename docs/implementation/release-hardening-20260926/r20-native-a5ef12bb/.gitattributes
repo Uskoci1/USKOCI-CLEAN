@@ -1,0 +1,3 @@
+# Preserve the captured bytes certified by MANIFEST.json.
+*.log -text
+*.xml -text

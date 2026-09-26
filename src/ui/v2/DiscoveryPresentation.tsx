@@ -1,10 +1,12 @@
-import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from 'expo-router';
-import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
-import { BottomSheetFlatList, SHEET_STATE, useBottomSheetInternal, type BottomSheetFlatListMethods } from '@gorhom/bottom-sheet';
+import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import { State as GestureState } from 'react-native-gesture-handler';
+import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
+  type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
 import { MapTrifold, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
   pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, type DiscoveryShown,
@@ -118,14 +120,74 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
  */
 // Observe the newly mounted sheet's own state, not the previous visit's exported position or a requested index.
 // Gorhom 5.2.14 locks scroll to zero until EXTENDED/FILL_PARENT; issuing scrollToOffset earlier loses the restore.
-function DiscoveryScrollReadiness({ owner, onReady }: { owner: number; onReady: (ready: boolean, state: number) => void }) {
-  const { animatedSheetState } = useBottomSheetInternal();
-  useAnimatedReaction(() => ({ owner, state: animatedSheetState.value,
-    ready: animatedSheetState.value === SHEET_STATE.EXTENDED || animatedSheetState.value === SHEET_STATE.FILL_PARENT }),
-  (next, previous) => {
-    if (next.ready !== previous?.ready || next.owner !== previous?.owner) runOnJS(onReady)(next.ready, next.state);
-  }, [animatedSheetState, owner, onReady]);
-  return null;
+type NativeScrollWitness = { extent: number; offset: number; dragging: boolean; momentum: boolean };
+type NativeListSnapshot = { ready: boolean; canRestore: boolean; gestureStarted: boolean; state: number; settledIndex: number; offset: number; command: number };
+const NativeScrollContext = createContext<{ extent: number; witness: SharedValue<NativeScrollWitness> } | null>(null);
+const useDiscoveryScrollEvents: ScrollEventsHandlersHookType = (ref, contentOffset) => {
+  const defaults = useScrollEventsHandlersDefault(ref, contentOffset);
+  const probe = useContext(NativeScrollContext)!;
+  const { extent, witness } = probe;
+  const { animatedSheetState, animatedScrollableStatus } = useBottomSheetInternal();
+  const observe = useCallback((event: NativeScrollEvent, dragging?: boolean, momentum?: boolean) => {
+    'worklet';
+    const ready = animatedSheetState.value === SHEET_STATE.EXTENDED || animatedSheetState.value === SHEET_STATE.FILL_PARENT;
+    const y = event.contentOffset.y;
+    // A LOCKED handler may itself scroll to another position: its incoming y is not evidence of that result.
+    witness.value = { extent, offset: ready && animatedScrollableStatus.value === SCROLLABLE_STATUS.UNLOCKED && Number.isFinite(y)
+      ? Math.max(0, y) : -1, dragging: dragging ?? witness.value.dragging, momentum: momentum ?? witness.value.momentum };
+  }, [extent, witness, animatedSheetState, animatedScrollableStatus]);
+  // Preserve every Gorhom handler and its context. This witness reads actual native deliveries, including hidden
+  // ones; animatedScrollableState.contentOffsetY is only updated at drag/momentum boundaries in Gorhom 5.2.14.
+  return useMemo<ReturnType<ScrollEventsHandlersHookType>>(() => ({
+    handleOnScroll: (event, context) => { 'worklet'; defaults.handleOnScroll?.(event, context); observe(event); },
+    handleOnBeginDrag: (event, context) => { 'worklet'; defaults.handleOnBeginDrag?.(event, context); observe(event, true, false); },
+    handleOnEndDrag: (event, context) => { 'worklet'; defaults.handleOnEndDrag?.(event, context); observe(event, false); },
+    handleOnMomentumBegin: (event, context) => { 'worklet'; defaults.handleOnMomentumBegin?.(event, context); observe(event, false, true); },
+    handleOnMomentumEnd: (event, context) => { 'worklet'; defaults.handleOnMomentumEnd?.(event, context); observe(event, false, false); },
+  }), [defaults, observe]);
+};
+
+function DiscoveryScrollReadiness({ owner, extent, command, requestedIndex, pendingRequest, onReady, children }: {
+  owner: number; extent: number; command: number; requestedIndex: number; pendingRequest: boolean;
+  onReady: (snapshot: NativeListSnapshot) => void; children: ReactNode;
+}) {
+  // This provider is inside the keyed sheet: a native replacement can never inherit the previous list's witness.
+  const witness = useSharedValue<NativeScrollWitness>({ extent: -1, offset: -1, dragging: false, momentum: false });
+  const context = useMemo(() => ({ extent, witness }), [extent, witness]);
+  const { animatedSheetState, animatedIndex, animatedPosition, animatedDetentsState, animatedAnimationState,
+    animatedContentGestureState, animatedHandleGestureState, isInTemporaryPosition, animatedScrollableStatus } = useBottomSheetInternal();
+  useAnimatedReaction(() => {
+    const state = animatedSheetState.value;
+    const unlocked = animatedScrollableStatus.value === SCROLLABLE_STATUS.UNLOCKED;
+    const ready = unlocked && (state === SHEET_STATE.EXTENDED || state === SHEET_STATE.FILL_PARENT);
+    const index = animatedIndex.value, detent = animatedDetentsState.value.detents?.[index];
+    const status = animatedAnimationState.value.status;
+    const content = animatedContentGestureState.value, handle = animatedHandleGestureState.value;
+    const gesture = content === GestureState.BEGAN || content === GestureState.ACTIVE || handle === GestureState.BEGAN || handle === GestureState.ACTIVE;
+    const idle = (status === ANIMATION_STATUS.STOPPED || status === ANIMATION_STATUS.UNDETERMINED)
+      && !gesture && !isInTemporaryPosition.value;
+    const settled = idle && Number.isInteger(index) && index >= 0 && detent !== undefined && Number.isFinite(detent)
+      && Number.isFinite(animatedPosition.value) && Math.abs(animatedPosition.value - detent) <= 0.5;
+    const observed = witness.value;
+    const canRestore = ready && idle && !observed.dragging && !observed.momentum;
+    return { owner, extent, command, requestedIndex, pendingRequest, state, ready, canRestore, gesture, unlocked, settledIndex: settled ? index : -1,
+      offset: canRestore && settled && observed.extent === extent ? observed.offset : -1 };
+  }, (next, previous) => {
+    if ((!next.ready || !next.unlocked || witness.value.extent !== extent) && witness.value.offset >= 0) {
+      witness.value = { ...witness.value, offset: -1 };
+    }
+    // Sample on focus/geometry/native settlement, not every scroll frame or React index request. Otherwise an
+    // old physical stop could undo a new button command before its native animation begins.
+    // Only a new native gesture observed after this exact command can supersede its explicit target.
+    const gestureStarted = !!previous && next.gesture && !previous.gesture && next.command === previous.command
+      && next.owner === previous.owner && next.extent === previous.extent;
+    if (gestureStarted || next.ready !== previous?.ready || next.owner !== previous?.owner || next.extent !== previous?.extent
+      || next.canRestore !== previous?.canRestore || next.settledIndex !== previous?.settledIndex
+      || (next.command !== previous?.command && next.settledIndex >= 0 && (!next.pendingRequest || next.settledIndex === next.requestedIndex))
+      || (next.offset >= 0) !== ((previous?.offset ?? -1) >= 0)) runOnJS(onReady)({ ...next, gestureStarted });
+  }, [owner, extent, command, requestedIndex, pendingRequest, onReady, witness, animatedSheetState, animatedIndex, animatedPosition, animatedDetentsState,
+    animatedAnimationState, animatedContentGestureState, animatedHandleGestureState, isInTemporaryPosition, animatedScrollableStatus]);
+  return <NativeScrollContext.Provider value={context}>{children}</NativeScrollContext.Provider>;
 }
 
 // Keep the native cell type stable across focus owners. Context refreshes its layout handler without
@@ -205,7 +267,23 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const readiness: SearchReadiness = loading ? 'loading' : error ? 'error' : 'ready';
 
   // Where the sheet rests is remembered in the route's view; a view that has one is where the sheet starts again.
-  const [sheetIndex, setSheetIndex] = useState<number>(() => view.sheet ? INDEX[view.sheet] : SNAP.half);
+  const [sheet, applySheet] = useState(() => ({ index: view.sheet ? INDEX[view.sheet] as number : SNAP.half, sequence: 0, pending: false }));
+  const sheetIndex = sheet.index, sheetCommand = useRef(sheet);
+  const setSheetIndex = useCallback((index: number) => {
+    if (sheetCommand.current.index === index) return;
+    const next = { index, sequence: sheetCommand.current.sequence + 1, pending: true };
+    sheetCommand.current = next; applySheet(next);
+  }, []);
+  const acceptSheetIndex = useCallback((index: number) => {
+    const command = sheetCommand.current;
+    // Native observations may reconcile a drag, but cannot cancel an explicit target before its spring starts.
+    if (command.pending && command.index !== index) return false;
+    if (command.index !== index || command.pending) {
+      const next = { index, sequence: command.sequence + (command.index === index ? 0 : 1), pending: false };
+      sheetCommand.current = next; applySheet(next);
+    }
+    return true;
+  }, []);
   // Requested React index and physically settled native index are deliberately separate.
   // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
   const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
@@ -280,9 +358,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
     // not to the requested stop or selected pin restored when the person comes back.
-    if (!currentSheet()) return;
+    if (!currentSheet() || !acceptSheetIndex(index)) return;
     nativeSettledIndex.current = index; nativeSpringMoving.current = false;
-    setSheetIndex(index);
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
   };
@@ -338,7 +415,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   useEffect(() => { coverageOwner.active = true; return () => { coverageOwner.active = false; }; }, [coverageOwner]);
   const currentSheet = useCallback(() => focused && coverageOwner.active && currentCoverageOwner.current === coverageOwner,
     [focused, coverageOwner]);
-  const contentHeight = useRef(0), listHeight = useRef(0), listReady = useRef(false);
+  const contentHeight = useRef(0), listHeight = useRef(0), listReady = useRef(false), listRestoreReady = useRef(false);
   const restore = useRef<number | null>(null), restoreTarget = useRef<number | null>(null), restoreAttempted = useRef(false);
   // A fresh focus owner retires stale callbacks, but it no longer automatically replaces the native list.
   // Retain the exact BottomSheet/FlatList mount only when departure was physically settled and account scope,
@@ -456,7 +533,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // sized on remount; EXTENDED then arrives without another bounded list onLayout.
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const restoreAck = useRef<number | null>(null);
+  const retainedRestoreOwner = useRef<number | null>(null);
   const restoreFrame = useRef(0);
+  const restoreCommand = useRef(-1);
   const hasRows = listed.length > 0;
   // RN limits the unmeasured tail spacer to measured cells. Content size alone cannot
   // prove that an offset is unreachable: only the actual final cell and footer can.
@@ -469,6 +548,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // new content-size event. Fresh final-cell/footer geometry must agree before it can certify a shorter end.
     // A previous data/layout owner's scroll acknowledgement cannot settle the new restore.
     restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false;
+    retainedRestoreOwner.current = null;
     currentExtent.current = extent;
   }
   const currentList = useCallback(() => currentSheet() && currentExtent.current === extent, [currentSheet, extent]);
@@ -487,7 +567,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Seed before mounting children: initial native scroll/layout events may precede the parent's effect.
   // A newly empty loading surface must not replace a retained logical offset with its synthetic zero either.
   if (focused && (restoreVisit.current !== coverageOwner.sequence || (restoreHadRows.current && !hasRows))) {
-    if (restoreVisit.current !== coverageOwner.sequence) listReady.current = false;
+    if (restoreVisit.current !== coverageOwner.sequence) { listReady.current = false; listRestoreReady.current = false; }
+    retainedRestoreOwner.current = restoreMount.current === nativeMountKey && sheetMount.current.reusable && hasRows ? coverageOwner.sequence : null;
     if (restoreMount.current !== nativeMountKey || !hasRows) { listHeight.current = 0; contentHeight.current = 0; }
     restoreVisit.current = coverageOwner.sequence; restoreMount.current = nativeMountKey;
     const at = latestView.current.listOffset ?? 0;
@@ -507,7 +588,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       scrolledRef.current = false; setScrolled(false); writeOffset();
       return;
     }
-    if (!hasRows || !listReady.current || !listRef.current
+    if (!hasRows || !listReady.current || !listRestoreReady.current || nativeSettledIndex.current !== sheetIndex || !listRef.current
       || listWindow <= 0 || contentHeight.current <= 0) return;
     const target = Math.min(at, Math.max(0, contentHeight.current - listWindow));
     const terminal = hasMeasuredEnd();
@@ -524,18 +605,19 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // A provisional scroll may have arrived before the last cell's layout. Once its
     // matching extent is known, that acknowledgement is enough; scrolling to the same
     // offset again need not produce another native event.
-    if (terminal && restoreAck.current !== null && Math.abs(restoreAck.current - target) <= 1) {
+    if (terminal && restoreCommand.current === sheetCommand.current.sequence && restoreAck.current !== null && Math.abs(restoreAck.current - target) <= 1) {
       trace('ack', restoreAck.current, at, target);
       offset.current = restoreAck.current; restore.current = null; restoreTarget.current = null;
       restoreAttempted.current = false; writeOffset();
       return;
     }
-    if (restoreAttempted.current && restoreFrame.current === listWindow) return;
+    if (restoreAttempted.current && restoreFrame.current === listWindow && restoreCommand.current === sheetCommand.current.sequence) return;
     restoreAttempted.current = true;
     restoreFrame.current = listWindow;
+    restoreCommand.current = sheetCommand.current.sequence;
     trace('request', at, target, contentHeight.current, listWindow);
     listRef.current.scrollToOffset({ offset: target, animated: false });
-  }, [currentSheet, currentList, hasRows, loading, error, listWindow, hasMeasuredEnd, writeOffset, trace]);
+  }, [currentSheet, currentList, hasRows, loading, error, listWindow, hasMeasuredEnd, writeOffset, trace, sheetIndex]);
   const retryRestore = useRef(tryRestore); retryRestore.current = tryRestore;
   const receiveCellLayout = useCallback((index: number, bottom: number) => {
     if (!currentSheet() || currentExtent.current !== extent || index !== listed.length - 1) return;
@@ -543,14 +625,37 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     retryRestore.current();
   }, [currentSheet, extent, listed.length]);
   const cellLayoutContext = useMemo(() => ({ sequence: extent.sequence, receiveLayout: receiveCellLayout }), [extent, receiveCellLayout]);
-  const receiveListReady = useCallback((ready: boolean, state: number) => {
+  const receiveListReady = useCallback(({ ready, canRestore, gestureStarted, state, settledIndex, offset: observed, command }: NativeListSnapshot) => {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
-      focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow);
-    if (!currentSheet()) return;
-    listReady.current = ready;
-    if (!ready) { restoreAttempted.current = false; restoreAck.current = null; }
-    else tryRestore();
-  }, [currentSheet, tryRestore, trace, position, focused, coverageOwner, listWindow]);
+      focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow, settledIndex, observed, canRestore);
+    if (!currentList() || command !== sheetCommand.current.sequence) return;
+    if (gestureStarted && sheetCommand.current.pending) {
+      const next = { ...sheetCommand.current, sequence: command + 1, pending: false };
+      sheetCommand.current = next; applySheet(next); // Retire queued observations of the interrupted request too.
+    }
+    if (sheetCommand.current.pending && settledIndex !== sheetCommand.current.index) {
+      listReady.current = ready; listRestoreReady.current = false;
+      restoreAttempted.current = false; restoreAck.current = null;
+      return;
+    }
+    if (settledIndex >= 0 && settledIndex <= highest) {
+      acceptSheetIndex(settledIndex);
+      nativeSettledIndex.current = settledIndex; nativeSpringMoving.current = false;
+    }
+    listReady.current = ready; listRestoreReady.current = canRestore;
+    if (!canRestore) { restoreAttempted.current = false; restoreAck.current = null; }
+    else {
+      const at = restore.current;
+      // No scroll event is emitted when the retained native list already sits at the saved target. Only this
+      // mount/extent's actual unlocked, idle native event witness can confirm that exact original offset.
+      // A lower provisional target still needs command acknowledgement and measured final-cell/footer proof.
+      if (retainedRestoreOwner.current === coverageOwner.sequence && at !== null && observed >= 0 && Math.abs(observed - at) <= 1) {
+        trace('ack', observed, at, at, true);
+        offset.current = observed; restore.current = null; restoreTarget.current = null; restoreAck.current = null;
+        restoreAttempted.current = false; retainedRestoreOwner.current = null; writeOffset();
+      } else tryRestore();
+    }
+  }, [currentSheet, currentList, tryRestore, trace, position, focused, coverageOwner, listWindow, highest, writeOffset, acceptSheetIndex]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
@@ -573,7 +678,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // Native mount/layout and locked-scroll resets can emit zero after content was measured. Only the
     // acknowledged target completes restoration; these synthetic events must never overwrite the saved view.
     if (restore.current !== null) {
-      if (!listReady.current || !restoreAttempted.current || restoreTarget.current === null || Math.abs(y - restoreTarget.current) > 1) return;
+      if (!listRestoreReady.current || !restoreAttempted.current || restoreCommand.current !== sheetCommand.current.sequence
+        || restoreTarget.current === null || Math.abs(y - restoreTarget.current) > 1) return;
       restoreAck.current = y;
       // Reaching the current rendered window drives RN to render more cells. Keep the
       // original logical target until it is reached or the actual data end is measured.
@@ -764,13 +870,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
-        <DiscoveryScrollReadiness owner={coverageOwner.sequence} onReady={receiveListReady} />
+        <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
+          requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady}>
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
             the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
         <CellLayoutContext.Provider value={cellLayoutContext}>
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={DiscoveryCell}
+          scrollEventsHandlersHook={useDiscoveryScrollEvents}
           style={listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined}
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
@@ -791,6 +899,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
           ItemSeparatorComponent={Separator} ListEmptyComponent={empty} ListFooterComponent={footer} />
         </CellLayoutContext.Provider>
+        </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
       {/* At the full height the same map is one tap away: a floating dark-green "Mapa" that lowers the list to its top line.
           It fades in and out only when motion is allowed; under reduced motion it is simply there. */}

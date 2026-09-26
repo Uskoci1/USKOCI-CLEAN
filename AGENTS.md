@@ -1,5 +1,15 @@
 # USKOČI — repository entry map
 
+R20 NATIVE ACK FOLLOW-UP (2026-09-26): the a5ef12bb emulator APK fails its second
+deep detail/Back return despite green CI; do not mark it accepted. Read
+`docs/implementation/release-hardening-20260926/R20_NATIVE_A5EF12BB.md` for the
+preserved screenshots/trace and `R20_NATIVE_ACK_FOLLOWUP.md` for the corrective
+native witness, detent ownership and verification. Source/test success and exact
+APK acceptance are separate. The next Chat 2.0 source inventory is
+`docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md`;
+voice/paging are not shipped. No DEV/Edge/certificate/dependency approval is
+implied. The two A1 neutral-copy literals still await explicit deployment approval.
+
 A1 / R20 STABILIZATION (2026-09-26): read `docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md` before continuing push or Discovery. Client foreground admission is bound to exact A1 title/body tuples and keeps all privacy/session guards. Two neutral-copy changes in `_shared/pushNotificationCopy.mjs` are SOURCE ONLY until the owner explicitly approves deployment; do not infer deployment from Git. The new A1 SQL now lives in `supabase/candidates/` with identical bytes; the frozen source inventory is again147. Discovery separates retained native measurements from fresh focus ownership. Exact tests/CI/APK status is in the report; historical R19 phone evidence is not acceptance of this candidate. No DEV/database/Edge/provider mutation belongs to this package.
 
 NOTIFICATION A1 RUNTIME LIVE (2026-09-26): source `0ffb5281`; proof run `36260836635` SUCCESS; DEV ledger 203 (`clean_notification_push_event_type`), live `uskoci-push-transport` v20. `rpc_begin_push_send` is service-role-only and returns only eventType in addition to lease/token/priority; fixed copy comes from `_shared/pushNotificationCopy.mjs`. No raw delivery title/body/payload crosses to Edge. No new push send was performed during apply. Read `docs/implementation/product-v1-closure-20260926/NOTIFICATION_A1_RUNTIME_EVIDENCE.md`. Next product package: Chat 2.0 / mandatory voice messages.

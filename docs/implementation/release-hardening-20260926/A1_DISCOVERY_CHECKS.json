@@ -30,5 +30,20 @@
   "edge_deployed": false,
   "provider_called": false,
   "exact_apk_device_proven": false,
+  "ci": {
+    "source": "a5ef12bb011012534c17287ce03218bb3c81adbe",
+    "tree": "9710b804b08637a75e286f35f84add36fc30f287",
+    "r20": { "run": 36265280226, "conclusion": "success", "full_suites": 321, "full_tests": 6481 },
+    "a1": { "run": 36265280256, "conclusion": "success", "report_checks_passed": 11, "provider": "synthetic Expo, disposable database" },
+    "n10": { "run": 36265280227, "conclusion": "success" },
+    "pkg051": { "run": 36265280220, "conclusion": "success" },
+    "pkg006": { "run": 36265280228, "conclusion": "success" }
+  },
+  "android_builds": {
+    "source": "a5ef12bb011012534c17287ce03218bb3c81adbe",
+    "emulator": { "run": 36265297705, "status": "SUCCESS", "sha256": "adb123cc42d61fe68d64d98eb62613d25fc10af29b27ca6ae37e91edb8dd40df", "bytes": 72546960, "installed_hash_matched": true, "native_repeated_return": "FAIL" },
+    "push_proof_phone": { "run": 36265299721, "status": "SUCCESS", "sha256": "98d6e1494dc464736aa7f9c437d64ddd3c57c7a6586e568969b1e8bdac769dcd", "bytes": 70695629, "package": "rs.uskoci.preview", "installed": false }
+  },
+  "dashboard": { "local_generated": true, "remote_json_import": "UNCONFIRMED_FILECHOOSER_TIMEOUT", "remote_template_publish": "PENDING" },
   "first_full_attempt": "Interrupted for independent unchanged-height finding; not a full-suite result"
 }

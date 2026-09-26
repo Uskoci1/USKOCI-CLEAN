@@ -98,13 +98,45 @@ Results are recorded here after execution; source changes alone are not acceptan
 - Final integration TypeScript: passed.
 - Final complete Jest: 321 suites / 6,481 tests passed, exit 0, 307.359 seconds
   (`npx jest -w 3 --testTimeout=30000`). Jest reported its existing worker teardown
-  warning; it did not fail a test. CI and exact APK/device results remain pending.
+  warning; it did not fail a test. Later CI and exact APK results are recorded below.
 - The first full local run was intentionally interrupted for the independent
   same-height finding. It is not a full-suite result; its log also records an Expo
   Firebase config subprocess returning a null status at its 15-second bound under
   load. Final-source checks must supersede that attempt explicitly.
 
-## Remaining boundaries
+## GitHub verification and delivery
+
+Code commit `54f8aff2` and control commit `a5ef12bb` were pushed to the existing
+`work/uskoci-ui-unification-20260924` branch without a PR or force push.
+All results below bind to `a5ef12bb011012534c17287ce03218bb3c81adbe`, tree
+`9710b804b08637a75e286f35f84add36fc30f287`:
+
+- R20 run [36265280226](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36265280226):
+  SUCCESS; downloaded full-Jest artifact confirms 321 suites / 6,481 tests, no failures.
+- A1 run [36265280256](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36265280256):
+  SUCCESS; all 11 runtime report checks pass on a disposable historical database
+  with actual Auth/Edge and synthetic Expo. This is not live-203 database parity or delivery.
+- N10 run [36265280227](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36265280227): SUCCESS.
+- PKG-051 run [36265280220](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36265280220): SUCCESS.
+  No payment implementation was changed by this package.
+- PKG-006 run [36265280228](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36265280228): SUCCESS.
+
+Android emulator run `36265297705` and phone push-proof run `36265299721` both
+succeeded. Their APK hashes, source/run/tree attestations and package details were
+verified. The emulator APK was installed with its actual device hash checked.
+Its **second no-scroll detail return fails** despite the successful first return;
+read `R20_NATIVE_A5EF12BB.md`. Native acceptance remains open for a corrective source.
+The corrective source and its separate verification are tracked in
+`R20_NATIVE_ACK_FOLLOWUP.md`; they do not retroactively change that APK's verdict.
+The phone push-proof artifact is verified but not installed; no physical phone is connected.
+
+The control table was regenerated locally and committed. On the existing owner-authenticated
+Claude Artifact, both the accessibility upload control and the actual iframe file input
+failed to yield a file chooser (tool timeout). Remote JSON import is **unconfirmed**;
+the visible page still shows `b9aed185`. Its HTML template has not been republished,
+so the local unknown-certificate display correction is not yet live on that page.
+
+## Remaining product boundaries
 
 This is not a claim of complete product or store readiness. The live notification
 readiness policy, all real event chains, iOS delivery, legal/retention inputs,

@@ -6,9 +6,22 @@ import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } fr
 import { taskRelationIndex, type TaskRelationIndex } from '../taskRelation';
 let mockReduced = false, mockFocused = true;
 const mockNativeSheetState = { value: 0 };
+const mockNativeIndex = { value: -1 }, mockNativePosition = { value: 0 };
+const mockNativeDetents = { value: { detents: [] as number[] } };
+const mockNativeAnimation = { value: { status: 2 } };
+const mockNativeContentGesture = { value: 0 }, mockNativeHandleGesture = { value: 0 };
+const mockNativeTemporary = { value: false }, mockNativeScrollStatus = { value: 1 };
+const mockDefaultScroll = jest.fn(), mockDefaultBeginDrag = jest.fn(), mockDefaultEndDrag = jest.fn(), mockDefaultMomentumBegin = jest.fn(), mockDefaultMomentumEnd = jest.fn();
 jest.mock('@gorhom/bottom-sheet', () => ({
   ...jest.requireActual('../../../__mocks__/@gorhom/bottom-sheet'),
-  useBottomSheetInternal: () => ({ animatedSheetState: mockNativeSheetState }),
+  ANIMATION_STATUS: { UNDETERMINED: 0, RUNNING: 1, STOPPED: 2, INTERRUPTED: 3 },
+  SCROLLABLE_STATUS: { LOCKED: 0, UNLOCKED: 1, UNDETERMINED: 2 },
+  useScrollEventsHandlersDefault: () => ({ handleOnScroll: mockDefaultScroll, handleOnBeginDrag: mockDefaultBeginDrag,
+    handleOnEndDrag: mockDefaultEndDrag, handleOnMomentumBegin: mockDefaultMomentumBegin, handleOnMomentumEnd: mockDefaultMomentumEnd }),
+  useBottomSheetInternal: () => ({ animatedSheetState: mockNativeSheetState, animatedIndex: mockNativeIndex,
+    animatedPosition: mockNativePosition, animatedDetentsState: mockNativeDetents, animatedAnimationState: mockNativeAnimation,
+    animatedContentGestureState: mockNativeContentGesture, animatedHandleGestureState: mockNativeHandleGesture,
+    isInTemporaryPosition: mockNativeTemporary, animatedScrollableStatus: mockNativeScrollStatus }),
 }));
 const mockReactions = new Set<{ prepare: () => unknown; react: (next: unknown, previous: unknown) => void; previous: unknown }>();
 const mockRnDeliveries: (() => void)[] = [];
@@ -21,7 +34,9 @@ jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: a
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
-  const List = ({ data, renderItem, CellRendererComponent, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props,
+  const List = ({ data, renderItem, CellRendererComponent, ListEmptyComponent, ListHeaderComponent, scrollEventsHandlersHook, ...props }: any) => {
+    const nativeHandlers = scrollEventsHandlersHook?.({ current: null }, { value: 0 });
+    return React.createElement('List', { ...props, nativeHandlers },
     ListHeaderComponent,
     data.length ? data.map((item: any, index: number) => {
       if (!CellRendererComponent) return React.createElement(React.Fragment, { key: item.id }, renderItem({ item, index }));
@@ -29,6 +44,7 @@ jest.mock('react-native', () => {
       return React.createElement(CellRendererComponent, { key: item.id, cellKey: item.id, item, index,
         testID: `native-cell-${item.id}`, onLayout: mockCellLayouts.get(item.id) }, renderItem({ item, index }));
     }) : ListEmptyComponent);
+  };
   // One stable function: a new one on every read would be a new component type, and React would mount the sheet again.
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
   const Keyboard = { dismiss: () => undefined };
@@ -166,12 +182,16 @@ const search = async (words: string) => {
 beforeEach(() => {
   tracing = false; nativeTrace.mockClear();
   mockNativeSheetState.value = 0;
+  mockNativeIndex.value = -1; mockNativePosition.value = 0; mockNativeDetents.value = { detents: [] };
+  mockNativeAnimation.value = { status: 2 }; mockNativeContentGesture.value = mockNativeHandleGesture.value = 0;
+  mockNativeTemporary.value = false; mockNativeScrollStatus.value = 1;
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile, scrollToOffset]) fn.mockReset();
+  for (const fn of [mockDefaultScroll, mockDefaultBeginDrag, mockDefaultEndDrag, mockDefaultMomentumBegin, mockDefaultMomentumEnd]) fn.mockReset();
   (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
 });
 // The sheet's top line: the honest count, which is also the button that opens the list (Discovery V47).
@@ -371,6 +391,183 @@ test('a settled unchanged focus return retains the native sheet and measured lis
   } finally { jest.useRealTimers(); }
 });
 
+const nativeDetent = (index: number) => {
+  mockNativeDetents.value = { detents: [700, 400, 100] };
+  mockNativeIndex.value = index; mockNativePosition.value = mockNativeDetents.value.detents[index];
+};
+const nativeScroll = async (y: number) => act(async () => {
+  const event = { contentOffset: { y } };
+  list().props.nativeHandlers?.handleOnScroll(event, {});
+  list().props.onScroll({ nativeEvent: event });
+});
+const dragSheet = async (index: number) => {
+  // A real later drag has a native start before its settled onChange, including when it interrupts a request.
+  await deliverUi(); mockNativeHandleGesture.value = 4; await deliverUi();
+  nativeDetent(index); mockNativeHandleGesture.value = 5; mockNativeSheetState.value = index === 2 ? 2 : 0;
+  await act(async () => listSheet().props.onChange(index)); await deliverUi();
+};
+
+test('two unchanged deep returns remain retained without a duplicate native scroll event', async () => {
+  rows = Array.from({ length: 40 }, (_, i) => row(`native${i}`));
+  initial = { ...initial, sheet: 'full', listOffset: 8000 };
+  await render(); await readyList(15000); nativeDetent(2); await deliverUi();
+  await nativeScroll(8000);
+  const sheet = listSheet(), cell = nativeCell();
+  scrollToOffset.mockClear();
+  for (let visit = 0; visit < 2; visit++) {
+    mockFocused = false; await update(); mockFocused = true; await update(); await deliverUi();
+    // The native list never moved. No onScroll/content-size/layout event is invented after returning.
+    expect(listSheet() === sheet).toBe(true); expect(nativeCell() === cell).toBe(true);
+    expect(snapshot.listOffset).toBe(8000);
+  }
+  expect(scrollToOffset).not.toHaveBeenCalled();
+});
+
+test('a genuinely settled native full detent replaces a stale half request before a changed-data fallback', async () => {
+  initial = { ...initial, sheet: 'half', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); await deliverUi();
+  await nativeScroll(160);
+  expect(snapshot.sheet).toBe('full'); expect(listSheet().props.index).toBe(2);
+  const sheet = listSheet();
+  mockFocused = false; await update(); rows = [...rows, row('changed')]; mockFocused = true; await update();
+  expect(listSheet()).not.toBe(sheet); expect(listSheet().props.index).toBe(2);
+  expect(snapshot.listOffset).toBe(160);
+});
+
+test.each(['locked', 'mismatch', 'drag', 'momentum'] as const)('a retained return rejects a hidden %s witness', async kind => {
+  tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  mockFocused = false; await update();
+  await act(async () => {
+    const handlers = list().props.nativeHandlers, event = { contentOffset: { y: kind === 'mismatch' ? 80 : 160 } };
+    if (kind === 'locked') mockNativeScrollStatus.value = 0;
+    if (kind === 'drag') handlers.handleOnBeginDrag(event, {});
+    else if (kind === 'momentum') handlers.handleOnMomentumBegin(event, {});
+    else handlers.handleOnScroll(event, {});
+    mockNativeScrollStatus.value = 1;
+  });
+  scrollToOffset.mockClear(); nativeTrace.mockClear();
+  mockFocused = true; await update(); await deliverUi();
+  if (kind === 'drag' || kind === 'momentum') expect(scrollToOffset).not.toHaveBeenCalled();
+  else expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 160, animated: false });
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'ack' && call[4] === true)).toBe(false);
+  expect(snapshot.listOffset).toBe(160);
+});
+
+test.each(['momentum', 'temporary', 'animation'] as const)('%s ending after focus confirms the idle native target without another onScroll', async kind => {
+  initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  const sheet = listSheet(), event = { contentOffset: { y: 160 } };
+  mockFocused = false; await update();
+  await act(async () => {
+    if (kind === 'momentum') list().props.nativeHandlers.handleOnMomentumBegin(event, {});
+    if (kind === 'temporary') mockNativeTemporary.value = true;
+    if (kind === 'animation') mockNativeAnimation.value.status = 1;
+  });
+  scrollToOffset.mockClear();
+  mockFocused = true; await update(); await deliverUi();
+  expect(scrollToOffset).not.toHaveBeenCalled();
+  await act(async () => {
+    if (kind === 'momentum') list().props.nativeHandlers.handleOnMomentumEnd(event, {});
+    mockNativeTemporary.value = false; mockNativeAnimation.value.status = 2;
+  });
+  await deliverUi();
+  mockFocused = false; await update(); mockFocused = true; await update(); await deliverUi();
+  expect(listSheet()).toBe(sheet); expect(snapshot.listOffset).toBe(160);
+});
+
+test.each(['running', 'interrupted', 'content gesture', 'handle gesture', 'temporary', 'between detents', 'out of range'] as const)(
+  'a native %s sample cannot replace the requested detent', async kind => {
+    initial = { ...initial, sheet: 'half' }; await render(); await readyList(); nativeDetent(2);
+    if (kind === 'running') mockNativeAnimation.value.status = 1;
+    if (kind === 'interrupted') mockNativeAnimation.value.status = 3;
+    if (kind === 'content gesture') mockNativeContentGesture.value = 2;
+    if (kind === 'handle gesture') mockNativeHandleGesture.value = 4;
+    if (kind === 'temporary') mockNativeTemporary.value = true;
+    if (kind === 'between detents') mockNativePosition.value = 120;
+    if (kind === 'out of range') mockNativeIndex.value = 3;
+    await deliverUi();
+    expect(snapshot.sheet).toBe('half'); expect(listSheet().props.index).toBe(1);
+  });
+
+test('a queued full-detent sample cannot undo a newer requested peek', async () => {
+  initial = { ...initial, sheet: 'half' }; await render(); await readyList(); nativeDetent(2);
+  sampleUi(); // Full is observed on the UI thread, but its JS delivery is delayed.
+  await act(async () => countLine().props.onPress()); await tap('Mapa');
+  expect(listSheet().props.index).toBe(0);
+  await deliverUi();
+  expect(listSheet().props.index).toBe(0); expect(snapshot.sheet).toBe('peek');
+});
+
+test('a full request matching an already settled native detent refreshes a rejected queued sample', async () => {
+  initial = { ...initial, sheet: 'half', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); sampleUi();
+  scrollToOffset.mockClear();
+  await act(async () => countLine().props.onPress()); // The native sheet is already full, so there is no new animation/event.
+  await deliverUi();
+  expect(listSheet().props.index).toBe(2);
+  expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
+});
+
+test('a fresh sample carrying the new peek command cannot reconcile the previous full stop', async () => {
+  initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  const event = { contentOffset: { y: 160 } };
+  await act(async () => list().props.nativeHandlers.handleOnMomentumBegin(event, {})); await deliverUi();
+  await tap('Mapa');
+  // The newest request has reached React, but its native animation has not started yet.
+  await act(async () => list().props.nativeHandlers.handleOnMomentumEnd(event, {})); await deliverUi();
+  expect(listSheet().props.index).toBe(0); expect(snapshot.sheet).toBe('peek');
+});
+
+test.each(['handle', 'content'] as const)('a new native %s gesture can interrupt an outstanding requested detent', async kind => {
+  initial = { ...initial, sheet: 'full' };
+  await render(); await readyList(); nativeDetent(2); await deliverUi();
+  await tap('Mapa'); await deliverUi();
+  const gesture = kind === 'handle' ? mockNativeHandleGesture : mockNativeContentGesture;
+  gesture.value = 4; await deliverUi(); // A new gesture, observed after this command reached the native observer.
+  nativeDetent(1); gesture.value = 5; mockNativeSheetState.value = 0; await deliverUi();
+  expect(listSheet().props.index).toBe(1); expect(snapshot.sheet).toBe('half');
+});
+
+test('a gesture settled before its start reaches JS is resampled after request retirement', async () => {
+  initial = { ...initial, sheet: 'full' };
+  await render(); await readyList(); nativeDetent(2); await deliverUi();
+  await tap('Mapa'); await deliverUi();
+  mockNativeHandleGesture.value = 4; sampleUi();
+  nativeDetent(1); mockNativeHandleGesture.value = 5; mockNativeSheetState.value = 0; sampleUi();
+  await deliverUi(); await deliverUi(); // JS retires the request; the next UI frame resamples the already idle stop.
+  expect(listSheet().props.index).toBe(1); expect(snapshot.sheet).toBe('half');
+});
+
+test('a queued retained witness and old native handler cannot certify a changed extent', async () => {
+  tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  const oldHandler = list().props.nativeHandlers.handleOnScroll;
+  mockFocused = false; await update(); mockFocused = true; await update(); sampleUi();
+  rows = rows.map(item => ({ ...item, naslov: `${item.naslov} changed` })); await update();
+  nativeTrace.mockClear(); scrollToOffset.mockClear();
+  await act(async () => oldHandler({ contentOffset: { y: 160 } }, {}));
+  await deliverUi();
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'ack' && call[4] === true)).toBe(false);
+  expect(snapshot.listOffset).toBe(160);
+  const sheet = listSheet(); mockFocused = false; await update(); mockFocused = true; await update();
+  expect(listSheet()).not.toBe(sheet); // The pending restore was never falsely completed.
+});
+
+test('the native witness forwards all default scroll handlers and their context', async () => {
+  await render();
+  const event = { contentOffset: { y: 160 } }, context = { initialContentOffsetY: 20 };
+  const handlers = list().props.nativeHandlers;
+  await act(async () => {
+    handlers.handleOnScroll(event, context); handlers.handleOnBeginDrag(event, context); handlers.handleOnEndDrag(event, context);
+    handlers.handleOnMomentumBegin(event, context); handlers.handleOnMomentumEnd(event, context);
+  });
+  for (const handler of [mockDefaultScroll, mockDefaultBeginDrag, mockDefaultEndDrag, mockDefaultMomentumBegin, mockDefaultMomentumEnd]) {
+    expect(handler).toHaveBeenCalledTimes(1); expect(handler).toHaveBeenCalledWith(event, context);
+  }
+});
+
 test.each([1, 2])('an interrupted spring toward index %s remounts even when React never requested a new index', async target => {
   initial = { ...initial, sheet: 'half', listOffset: 160 };
   await render(); await layOutBody(760);
@@ -439,6 +636,7 @@ test('return after opening a task during a collapse rebuilds the native sheet at
   await act(async () => countLine().props.onPress());
   expect(listSheet().props.index).toBe(1);
   await act(async () => countLine().props.onPress());
+  nativeDetent(2); // The new sheet physically reaches full; a requested index alone cannot release restoration.
   await readyList();
   expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
 });
@@ -869,7 +1067,7 @@ test('portraits mount only for visible rows and unmount behind a pin, a collapse
   expect(portraits()).toEqual([]);
   // Closing a pin deliberately returns to the collapsed map sheet; photos resume only when the list opens.
   await tap('Zatvori pregled zadatka'); expect(portraits()).toEqual([]);
-  await act(async () => listSheet().props.onChange(2)); expect(portraits()).toEqual(['a']);
+  await dragSheet(2); expect(portraits()).toEqual(['a']);
   await act(async () => listSheet().props.onChange(0)); expect(portraits()).toEqual([]);
   await act(async () => listSheet().props.onChange(1)); expect(portraits()).toEqual([]);
   await act(async () => listSheet().props.onChange(2)); expect(portraits()).toEqual(['a']);
@@ -919,7 +1117,7 @@ test('while reading, the sheet is half open over breathing placeholders; the sta
   loading = false; rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await update();
   expect(listSheet().props.index).toBe(0);
   // Chosen once: a later read does not move the sheet the person has placed.
-  await act(async () => listSheet().props.onChange(1)); rows = [...rows]; await update();
+  await dragSheet(1); rows = [...rows]; await update();
   expect(listSheet().props.index).toBe(1);
 });
 
@@ -953,7 +1151,7 @@ test.each([[1, '1 zadatak'], [3, '3 zadatka'], [5, '5 zadataka'], [11, '11 zadat
 test('at the full height a floating dark-green "Mapa" lowers the list to its top line; it fades only when motion is allowed', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(pressable('Mapa')).toHaveLength(0);
-  await act(async () => listSheet().props.onChange(2));
+  await dragSheet(2);
   const pill = press('Mapa');
   expect(pill.props).toMatchObject({ accessibilityRole: 'button', accessibilityHint: 'Spušta listu i prikazuje mapu.' });
   expect(StyleSheet.flatten(pill.props.style)).toMatchObject({ backgroundColor: sys.color.green, minHeight: 48 });
@@ -966,7 +1164,7 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
   expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
   // Under reduced motion it is simply there, and simply gone.
   await act(async () => tree.unmount()); mockReduced = true; await render();
-  await act(async () => listSheet().props.onChange(2));
+  await dragSheet(2);
   expect(press('Mapa').parent!.props.entering).toBeUndefined(); expect(press('Mapa').parent!.props.exiting).toBeUndefined();
   // A list with nothing on the map offers no way to a map that shows nothing.
   await act(async () => tree.unmount()); mockReduced = false; rows = [row('remote', { priblizno: null })]; await render();
@@ -1013,7 +1211,7 @@ test('a chosen pin opens one floating card whose whole face opens the task; ×, 
   await act(async () => map().props.onClear()); expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
   // Pulling the list up is looking at the list: the card does not stay over it.
   await act(async () => map().props.onSelect('t0')); expect(peek()).toBeDefined();
-  await act(async () => listSheet().props.onChange(1)); expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
+  await dragSheet(1); expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
 });
 
 // Emulator, round 3c: a card inside a card. The floating card is the card; what it says sits in it bare. Owner decision
@@ -1321,7 +1519,7 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
   try {
     rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
     expect(snapshot.sheet).toBe('peek');
-    await act(async () => listSheet().props.onChange(2)); expect(snapshot.sheet).toBe('full');
+    await dragSheet(2); expect(snapshot.sheet).toBe('full');
     await readyList();
     const list = () => tree.root.findByType('List' as React.ElementType);
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 640 } } }));
@@ -1355,7 +1553,7 @@ test('at the full height the quick chips fold only for a list longer than its wi
     await act(async () => list().props.onContentSizeChange(400, 3000));
     await scroll(300);
     expect(chips()).toHaveLength(1); // not at the full height
-    await act(async () => listSheet().props.onChange(2));
+    await dragSheet(2);
     await readyList();
     const [low, , full] = listSheet().props.snapPoints as number[];
     const window = full - low;
@@ -1386,7 +1584,7 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
   // A sheet the person has placed elsewhere is left where it is.
-  await tap('Ukloni uslov: „prevod“'); await act(async () => listSheet().props.onChange(1));
+  await tap('Ukloni uslov: „prevod“'); await dragSheet(1);
   await search('prevod'); expect(listSheet().props.index).toBe(1);
 });
 
@@ -1489,7 +1687,7 @@ test('an empty list over the map rests at half at most, so its green action and 
   // A camera the person already looked at: the map stays even when the filter leaves no pin on it.
   initial = { ...initial, viewport: { center: [20.4, 44.8], zoom: 11, bounds: [20.2, 44.6, 20.6, 45] } };
   await render();
-  await act(async () => listSheet().props.onChange(2)); expect(press('Mapa')).toBeTruthy();
+  await dragSheet(2); expect(press('Mapa')).toBeTruthy();
   await act(async () => quick('Danas').props.onPress());
   expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
   expect(action('Obriši uslove')).toBeDefined();
@@ -1498,7 +1696,7 @@ test('an empty list over the map rests at half at most, so its green action and 
   // Pulled up anyway, it comes back to half.
   await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
   // With tasks again, the whole list is open to it.
-  await act(async () => quick('Danas').props.onPress()); await act(async () => listSheet().props.onChange(2));
+  await act(async () => quick('Danas').props.onPress()); await dragSheet(2);
   expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeTruthy();
 });
 
@@ -1511,7 +1709,7 @@ test('Android Back with the whole list up over the map lowers it to its top line
   try {
     rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
     expect(listeners).toHaveLength(0);
-    await act(async () => listSheet().props.onChange(2));
+    await dragSheet(2);
     expect(listeners).toHaveLength(1);
     let consumed = false; await act(async () => { consumed = listeners[0](); });
     expect(consumed).toBe(true); expect(listSheet().props.index).toBe(0); expect(remove).toHaveBeenCalledTimes(1);
