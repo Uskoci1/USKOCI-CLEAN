@@ -6,7 +6,8 @@ on:
       - work/pre-v3-engine-integration-20260911
       - work/uskoci-ui-unification-20260924
     paths:
-      - 'src/app/(app)/prilike/[id]/prijava.tsx'
+      # Brackets in [id] are glob syntax, not a literal route-directory match.
+      - 'src/app/(app)/prilike/**/prijava.tsx'
       - 'src/data/applicationCommandJournal.ts'
       - 'src/data/applicationSelectionClientService.ts'
       - 'src/hooks/useOwnedEditor.ts'
@@ -73,9 +74,21 @@ jobs:
       - name: Install exact app dependencies
         run: npm ci
 
+      - name: TypeScript exact candidate
+        run: npx tsc --noEmit
+
+      - name: PKG-006 focused regressions
+        run: >-
+          npm test -- --runInBand --json --outputFile=/tmp/pkg006-focused-jest.json
+          src/data/__tests__/application-composer-read.test.tsx
+          src/data/__tests__/application-selection-native.test.tsx
+          src/data/__tests__/application-selection-client.test.ts
+          src/data/__tests__/application-command-journal.test.ts
+
       # Same disposable history as PKG-003/PKG-008: the shared live79 environment,
       # two real disposable Auth accounts created there (as the W02 proofs do), then
       # the recorded live80-87 aliases and every pending source migration in order.
+      # This historical 147-migration proof is not a replay of canonical DEV's 202 migrations.
       - name: Reconstruct disposable historical live79
         run: bash supabase/proofs/ru5_device_ui_live79_env.sh
 
@@ -143,19 +156,8 @@ jobs:
         shell: bash
         run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
 
-      - name: TypeScript exact candidate
-        run: npx tsc --noEmit
-
-      - name: PKG-006 focused regressions
-        run: >-
-          npm test -- --runInBand
-          src/data/__tests__/application-composer-read.test.tsx
-          src/data/__tests__/application-selection-native.test.tsx
-          src/data/__tests__/application-selection-client.test.ts
-          src/data/__tests__/application-command-journal.test.ts
-
       - name: Full regression exact candidate
-        run: npm test -- --runInBand
+        run: npm test -- --runInBand --json --outputFile=/tmp/pkg006-full-jest.json
 
       - name: Write proof receipt
         if: always()
@@ -189,3 +191,5 @@ jobs:
             /tmp/pkg006-schema.txt
             /tmp/pkg006-proof.log
             /tmp/pkg006-proof-report.json
+            /tmp/pkg006-focused-jest.json
+            /tmp/pkg006-full-jest.json
