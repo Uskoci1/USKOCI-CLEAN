@@ -329,7 +329,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // row layout facts and viewport geometry are unchanged. That keeps RN's measured-cell cache for deep returns.
   // Interrupted springs, scope changes, changed rows or changed layout still remount fail-closed.
   const rowMountSignature = useMemo(() => JSON.stringify(listed.map(item => [
-    item.id, item.naslov, item.podrucjeTekst, item.vremeTekst, item.statusTekst, item.rezimCene,
+    item.id, item.naslov, item.podrucjeTekst, item.vremeTekst, item.rezimCene,
     item.ponudjenaCena?.prikaz ?? null, item.pokrivenost, item.uslovi,
     relations?.relation(item.id)?.kind ?? (pending ? 'PENDING' : 'UNKNOWN'),
   ])), [listed, relations, pending]);
