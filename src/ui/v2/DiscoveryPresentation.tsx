@@ -192,6 +192,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // Where the sheet rests is remembered in the route's view; a view that has one is where the sheet starts again.
   const [sheetIndex, setSheetIndex] = useState<number>(() => view.sheet ? INDEX[view.sheet] : SNAP.half);
+  // Requested React index and physically settled native index are deliberately separate.
+  // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
+  const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
   const started = useRef(!!view.sheet);
   useEffect(() => {
     if (!started.current) return;
@@ -264,6 +267,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
     // not to the requested stop or selected pin restored when the person comes back.
     if (!currentSheet()) return;
+    nativeSettledIndex.current = index; nativeSpringMoving.current = false;
     setSheetIndex(index);
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
@@ -320,11 +324,52 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   useEffect(() => { coverageOwner.active = true; return () => { coverageOwner.active = false; }; }, [coverageOwner]);
   const currentSheet = useCallback(() => focused && coverageOwner.active && currentCoverageOwner.current === coverageOwner,
     [focused, coverageOwner]);
-  // Native-screen detachment can interrupt a sheet spring without another index change on return.
-  // Keep the exiting sheet during blur, then mount exactly one fresh native sheet at the remembered
-  // requested stop on re-entry. Camera, filters, selection and scroll live above this keyed boundary.
-  const sheetMount = useRef(coverageOwner.sequence);
-  if (focused) sheetMount.current = coverageOwner.sequence;
+  // A fresh focus owner retires stale callbacks, but it no longer automatically replaces the native list.
+  // Retain the exact BottomSheet/FlatList mount only when departure was physically settled and account scope,
+  // row layout facts and viewport geometry are unchanged. That keeps RN's measured-cell cache for deep returns.
+  // Interrupted springs, scope changes, changed rows or changed layout still remount fail-closed.
+  const rowMountSignature = useMemo(() => JSON.stringify(listed.map(item => [
+    item.id, item.naslov, item.podrucjeTekst, item.vremeTekst, item.statusTekst, item.rezimCene,
+    item.ponudjenaCena?.prikaz ?? null, item.pokrivenost, item.uslovi,
+    relations?.relation(item.id)?.kind ?? (pending ? 'PENDING' : 'UNKNOWN'),
+  ])), [listed, relations, pending]);
+  const layoutMountSignature = [
+    Math.round(windowHeight), bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, cardShown,
+    ...snapPoints.map(value => typeof value === 'number' ? Math.round(value * 10) / 10 : value),
+  ].join(':');
+  const sheetMount = useRef({
+    key: 1, focused, scopeKey: props.scopeKey, rows: rowMountSignature, layout: layoutMountSignature, reusable: true,
+  });
+  const previousFocused = sheetMount.current.focused;
+  if (previousFocused && !focused) {
+    sheetMount.current.reusable = !nativeSpringMoving.current && nativeSettledIndex.current === sheetIndex;
+    sheetMount.current.scopeKey = props.scopeKey;
+    sheetMount.current.rows = rowMountSignature;
+    sheetMount.current.layout = layoutMountSignature;
+  } else if (!previousFocused && focused) {
+    const reusable = sheetMount.current.reusable
+      && sheetMount.current.scopeKey === props.scopeKey
+      && sheetMount.current.rows === rowMountSignature
+      && sheetMount.current.layout === layoutMountSignature;
+    if (!reusable) {
+      sheetMount.current.key++;
+      nativeSettledIndex.current = sheetIndex; nativeSpringMoving.current = false;
+    }
+  } else if (focused && sheetMount.current.scopeKey !== props.scopeKey) {
+    sheetMount.current.key++;
+    nativeSettledIndex.current = sheetIndex; nativeSpringMoving.current = false;
+  }
+  sheetMount.current.focused = focused;
+  if (focused) {
+    sheetMount.current.scopeKey = props.scopeKey;
+    sheetMount.current.rows = rowMountSignature;
+    sheetMount.current.layout = layoutMountSignature;
+  }
+  const nativeMountKey = sheetMount.current.key;
+  const onSheetAnimate = useCallback((fromIndex: number, toIndex: number) => {
+    if (!currentSheet()) return;
+    nativeSpringMoving.current = fromIndex !== toIndex;
+  }, [currentSheet]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
@@ -408,7 +453,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // prove that an offset is unreachable: only the actual final cell and footer can.
   const extentSequence = useRef(0);
   const extent = useMemo(() => ({ sequence: ++extentSequence.current, bottom: null as number | null, footer: undated ? null as number | null : 0 }),
-    [listed, coverageOwner, undated]);
+    [rowMountSignature, nativeMountKey, undated]);
   const currentExtent = useRef(extent); currentExtent.current = extent;
   const endPadding = pillShown ? sys.space.huge + sys.space.xxl : sys.space.xxl;
   const hasMeasuredEnd = useCallback(() => {
@@ -417,16 +462,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     return contentHeight.current >= end - 1
       && (contentHeight.current <= listWindow || Math.abs(contentHeight.current - end) <= 1);
   }, [extent, endPadding, listWindow]);
-  const restoreVisit = useRef<typeof coverageOwner | null>(null), restoreHadRows = useRef(hasRows);
+  const restoreVisit = useRef<number | null>(null), restoreHadRows = useRef(hasRows);
   traceState.current = { scrolled, index: sheetIndex };
   const tracedScroll = useRef<number | null>(null);
   const tracedRejectedScroll = useRef<string | null>(null);
   const tracedZero = useRef<string | null>(null);
   // Seed before mounting children: initial native scroll/layout events may precede the parent's effect.
   // A newly empty loading surface must not replace a retained logical offset with its synthetic zero either.
-  if (focused && (restoreVisit.current !== coverageOwner || (restoreHadRows.current && !hasRows))) {
-    if (restoreVisit.current !== coverageOwner) { listReady.current = false; listHeight.current = 0; }
-    restoreVisit.current = coverageOwner;
+  if (focused && (restoreVisit.current !== nativeMountKey || (restoreHadRows.current && !hasRows))) {
+    if (restoreVisit.current !== nativeMountKey) { listReady.current = false; listHeight.current = 0; }
+    restoreVisit.current = nativeMountKey;
     const at = latestView.current.listOffset ?? 0;
     trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolled, sheetIndex);
     offset.current = at; restore.current = at > 0 ? at : null;
@@ -698,7 +743,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
-      <DiscoveryListSheet key={sheetMount.current} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced} onIndex={onIndex} header={scrollHeader ? null : header}
+      <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
+        onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         <DiscoveryScrollReadiness onReady={receiveListReady} />
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its

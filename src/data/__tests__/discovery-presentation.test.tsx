@@ -321,6 +321,55 @@ test.each(['scope', 'focus'] as const)('a queued covered-map delivery from a ret
   expect(layer().props.accessibilityElementsHidden).toBe(true);
 });
 
+test('a settled unchanged focus return retains the native sheet and measured list geometry', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 40 }, (_, i) => row(`keep${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    const oldSheet = listSheet(), frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 12000, frame);
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 8000, animated: false });
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+    scrollToOffset.mockClear();
+    mockFocused = false; await update();
+    mockFocused = true; await update();
+    expect(listSheet()).toBe(oldSheet);
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    expect(snapshot.listOffset).toBe(8000);
+    expect(list().props.data.map((item: MarketplaceItem) => item.id)).toEqual(rows.map(item => item.id));
+  } finally { jest.useRealTimers(); }
+});
+
+test('a native spring interrupted before blur still remounts on return even when the requested index never changed', async () => {
+  initial = { ...initial, sheet: 'half', listOffset: 160 };
+  await render(); await layOutBody(760);
+  const oldSheet = listSheet();
+  await act(async () => oldSheet.props.onAnimate?.(1, 2));
+  mockFocused = false; await update();
+  mockFocused = true; await update();
+  expect(listSheet()).not.toBe(oldSheet);
+  expect(listSheet().props.index).toBe(1);
+  expect(snapshot.listOffset).toBe(160);
+});
+
+test.each(['rows', 'layout'] as const)('a settled return remounts when %s changed while away', async changed => {
+  initial = { ...initial, sheet: 'half', listOffset: 160 };
+  await render(); await layOutBody(760);
+  const oldSheet = listSheet();
+  mockFocused = false; await update();
+  if (changed === 'rows') rows = [...rows, row('new-layout-row')];
+  else mockWindow = { ...mockWindow, height: mockWindow.height + 120 };
+  await update();
+  mockFocused = true; await update();
+  expect(listSheet()).not.toBe(oldSheet);
+  expect(snapshot.listOffset).toBe(160);
+});
+
 test('return after opening a task during a collapse rebuilds the native sheet at its requested stop and retires the old finish', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
   initial = { ...initial, viewport, sheet: 'full', listOffset: 160, price: 'MY_PRICE' };
