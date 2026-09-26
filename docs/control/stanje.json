@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-26T19:09:08Z",
+  "osvezeno": "2026-09-26T20:18:12Z",
   "grana": "HEAD",
-  "head": "54f8aff2",
-  "head_poruka": "fix: reconcile A1 foreground push and retained Discovery state",
+  "head": "329d5f3a",
+  "head_poruka": "fix: confirm native Discovery position across repeated returns",
   "server": {
    "snimljeno": "2026-09-26T18:03:15Z",
    "migracije": 203,
@@ -1552,8 +1552,8 @@
     "test": "20 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
-   "problem": "R20: popravljeno ponovno uspostavljanje vlasništva nad prikazom pri povratku iz detalja; ista, stabilna lista zadržava izmerene redove. Promenjeni podaci, nalog, raspored ili prekinut prelaz poništavaju stare mere. Brzina na novom APK-u još nije potvrđena; raniji R19 povratak trajao je oko 7,3 s na emulatoru. Serversko straničenje i opterećenje korisnicima ostaju.",
-   "sledece": "Izvor 54f8aff2: tipovi i ceo Jest prolaze, 321 grupa / 6.481 test; 100 usmerenih provera liste prolazi. Sledi nova Android verzija i merenje povratka iz detalja na istu duboku poziciju u lokalnoj listi od 1.000 redova. To nije test 1.000 istovremenih korisnika. Popravka i granice: docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md. Raniji dokaz: docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
+   "problem": "R20 APK a5ef12bb: prvi duboki povratak na emulatoru čuva iste redove i 9851 dp, ali drugi povratak bez skrolovanja pogrešno vraća poluotvoren panel i početak liste. Korekcija potvrde stvarnog položaja, komandi i prekida povlačenjem prolazi provere koda; nova instalacija još mora potvrditi popravku. Serversko straničenje i opterećenje korisnicima ostaju.",
+   "sledece": "Korektivni paket: tipovi prolaze, 321 grupa / 6.505 testova prolazi, uključujući 124 provere liste. Sledi ista proba na tačnom novom APK-u. Dokaz starog neuspeha: docs/implementation/release-hardening-20260926/R20_NATIVE_A5EF12BB.md; novi paket: R20_NATIVE_ACK_FOLLOWUP.md. Lokalnih 1.000 redova nije test 1.000 istovremenih korisnika. Raniji fizički telefon ostaje istorijski dokaz svog izdanja.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2340,7 +2340,7 @@
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
    "problem": "Istorija poruka nema straničenje, dolazne poruke traže osvežavanje, precizna granica oznake pročitanog nije završena. Dva reda unosa uz tastaturu proverena su u probnom prikazu prvog R19 APK-a na emulatoru; stvarno aktivno slanje, uvećan tekst i fizički telefon ostaju zasebne provere. Glasovne poruke i dokumenti nisu implementirani.",
-   "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Ilustracija praznog razgovora je malo odsečena uz tastaturu; tekst/radnje su vidljivi. Multiline/slanje nije ponovljeno. Straničenje, dolazne poruke i precizna granica pročitanog ostaju.",
+   "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3350,7 +3350,7 @@
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
    "problem": "Stvarna Android dostava jeste ranije viđena. Naknadno je nađen nesklad: otvorena aplikacija je dopuštala samo stare opšte tekstove, a DEV v20 šalje posebne A1 tekstove. Klijentska popravka je pripremljena. Dve poruke dodatno zahtevaju neutralan tekst umesto internih naziva uloga; predlog je u kodu, nije objavljen na serveru. Ne tvrdi se da je jedna ista stvarna chat poruka prošla ceo put do push-a i nazad. iOS i prodavnice ostaju odvojeni.",
-   "sledece": "Izvor 54f8aff2: tipovi i ceo Jest prolaze, 321 grupa / 6.481 test; 192 usmerene klijentske provere i 75 Node provera obaveštenja prolaze. Sledi APK; serverska promena samo dva teksta čeka vlasnikovo „primeni“. Bez nje su stare varijante ta dva događaja i dalje odbijene dok je aplikacija otvorena; ostali A1 tekstovi su obuhvaćeni popravkom. Zatim tačan fizički Android dokaz, pa A2 bezbedni podaci o prilici i iOS. Detalji: docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md. Raniji A1 serverski dokaz: run 36260836635.",
+   "sledece": "Izvor a5ef12bb: tipovi i ceo Jest prolaze, 321 grupa / 6.481 test; pet CI provera prolazi. Push-proof APK 36265299721 je napravljen i proveren, ali nije instaliran na telefon. Serverska promena samo dva teksta čeka vlasnikovo „primeni“. Bez nje su stare varijante ta dva događaja i dalje odbijene dok je aplikacija otvorena. Zatim isti stvarni chat događaj → push → odgovarajući razgovor na fizičkom Androidu, pa A2 bezbedni podaci o prilici i iOS. Detalji: docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md. Raniji A1 serverski dokaz: run 36260836635.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5636,6 +5636,62 @@
  },
  "ci": [
   {
+   "id": 36265299721,
+   "ime": "Build Android push-proof APK",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:32Z"
+  },
+  {
+   "id": 36265297705,
+   "ime": "Build Android development APK",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:30Z"
+  },
+  {
+   "id": 36265280256,
+   "ime": "Notification A1 runtime binding proof",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:11Z"
+  },
+  {
+   "id": 36265280228,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:11Z"
+  },
+  {
+   "id": 36265280227,
+   "ime": "N10 notification push-copy proof",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:11Z"
+  },
+  {
+   "id": 36265280226,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:11Z"
+  },
+  {
+   "id": 36265280220,
+   "ime": "PKG-051 platform price list proof",
+   "sha": "a5ef12bb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-26T19:13:11Z"
+  },
+  {
    "id": 36261956439,
    "ime": "Chat Voice B0 contract proof",
    "sha": "d162cb7b",
@@ -5674,62 +5730,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-09-26T17:57:17Z"
-  },
-  {
-   "id": 36260836635,
-   "ime": "Notification A1 runtime binding proof",
-   "sha": "0ffb5281",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T17:57:17Z"
-  },
-  {
-   "id": 36260694498,
-   "ime": "Create notification A1 forward migration once",
-   "sha": "961757f0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T17:54:45Z"
-  },
-  {
-   "id": 36258688611,
-   "ime": "N10 notification push-copy proof",
-   "sha": "edfc1468",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T17:20:38Z"
-  },
-  {
-   "id": 36254577674,
-   "ime": "One-shot owner push proof",
-   "sha": "f5f8cee3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T16:11:39Z"
-  },
-  {
-   "id": 36252278794,
-   "ime": "Build Android push-proof APK",
-   "sha": "463215ef",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T15:32:13Z"
-  },
-  {
-   "id": 36247989086,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "36ae79cd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-26T14:17:11Z"
-  },
-  {
-   "id": 36247738832,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "770c4c0e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-26T14:12:53Z"
   }
  ]
 }
