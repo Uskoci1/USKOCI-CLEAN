@@ -39,6 +39,8 @@ See `CLIENT_GUARDS_AND_VIEWPORT.md` and `NATIVE_REVIEW.vector-diagnostic.md` for
 
 ## Next client work, after the APK result
 
+Storage checkpoint APK is now built and attested: source `cc8649a80d5c62ed6f50e6a3f9fe825742a4af0e`, run `36242064743`. See `docs/implementation/release-hardening-20260926/STORAGE_APK.md`. Physical-device installation/acceptance remains pending; do not rebuild the tested client fix or claim real push from this DEV APK.
+
 1. **Feedback truth: R18-E01/E02 — client CI pass, device pending.** Source 348c2ec6ac0d3afe2e51e5a15e7620b023646ca5 passes types, 139 focused tests and 6334 full-suite tests. The conclusive refusal now settles both route and editor flags and keeps its authored outcome visible. Message-only failures and reused keys retain uncertainty. Read `docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md` and `docs/implementation/release-hardening-20260926/E01_E02_CHECKS.json`. Do not rebuild this fix; next prove the exact APK/profile-return flow and separately test storage-clear failure/retained reset races. No DEV/Edge change or real push was made.
 
    Storage follow-up: the exact journal/reset race is now covered by failing-before/passing-after tests. Read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and `STORAGE_INTEGRITY_CHECKS.json`. Reset awaits confirmed removal, preserves scope and pending identity on errors, and the journal rejects changed payload under the same key. Exact APK/profile-return acceptance remains pending; do not reimplement this tested client fix.
