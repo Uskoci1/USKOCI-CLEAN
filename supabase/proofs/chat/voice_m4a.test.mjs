@@ -6,9 +6,9 @@ const be32=n=>Uint8Array.from([(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]);
 const ascii=s=>Uint8Array.from([...s].map(c=>c.charCodeAt(0)));
 const cat=(...parts)=>{const n=parts.reduce((a,b)=>a+b.length,0),out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length;}return out;};
 const box=(type,...payload)=>{const body=cat(...payload);return cat(be32(body.length+8),ascii(type),body);};
-function fixture(durationMs=90_000,{brand='M4A ',codec=true,mdat=32}={}){
+function fixture(durationMs=90_000,{brand='M4A ',compatible=['isom','M4A '],codec=true,mdat=32}={}){
   const timescale=1000,duration=durationMs;
-  const ftyp=box('ftyp',ascii(brand),be32(0),ascii('isom'),ascii('M4A '));
+  const ftyp=box('ftyp',ascii(brand),be32(0),...compatible.map(ascii));
   const mvhd=box('mvhd',Uint8Array.of(0,0,0,0),be32(0),be32(0),be32(timescale),be32(duration));
   const marker=box('trak',codec?ascii('xxxxmp4axxxx'):ascii('xxxxxxxxxxxx'));
   const moov=box('moov',mvhd,marker);
@@ -29,7 +29,8 @@ test('too short and too long are refused',()=>{
   code(()=>inspectVoiceM4a(fixture(300001)),'VOICE_DURATION_INVALID');
 });
 test('requires supported MP4/M4A brand and mp4a marker',()=>{
-  code(()=>inspectVoiceM4a(fixture(1000,{brand:'zzzz'})),'VOICE_FORMAT_UNSUPPORTED');
+  code(()=>inspectVoiceM4a(fixture(1000,{brand:'zzzz',compatible:['zz01','zz02']})),'VOICE_FORMAT_UNSUPPORTED');
+  assert.equal(inspectVoiceM4a(fixture(1000,{brand:'zzzz',compatible:['isom']})).durationMs,1000);
   code(()=>inspectVoiceM4a(fixture(1000,{codec:false})),'VOICE_FORMAT_UNSUPPORTED');
 });
 test('requires ftyp first plus moov and non-empty mdat',()=>{
