@@ -85,3 +85,60 @@ it('serializes concurrent writes for the same scope without losing the first key
   expect(results.map(r => r.status)).toEqual(['fulfilled', 'rejected']);
   expect(JSON.parse(mockStorage.get(KEY)!).command.clientRequestId).toBe(command.clientRequestId);
 });
+
+
+describe('R18 storage journal boundary', () => {
+  it.each([
+    ['price', { cenaRsd: 9900 }], ['people', { pokrivenaMesta: 1 }],
+    ['note', { napomena: 'Different terms' }], ['revision', { potrebaRevizija: 4 }],
+    ['profile', { radnikProfilId: OTHER }], ['interval', { predlozeniKraj: '2026-09-20T10:00:00Z' }],
+  ])('same key rejects changed %s without overwriting the stored intent', async (_label, delta) => {
+    await applicationCommandJournal.save(record); const bytes = mockStorage.get(KEY);
+    await expect(applicationCommandJournal.save({ ...record, command: { ...command, ...delta } }))
+      .rejects.toThrow('APPLICATION_COMMAND_PAYLOAD_CHANGED');
+    expect(mockStorage.get(KEY)).toBe(bytes); expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+  });
+  it('corrupt state needs the explicit corrupt-state exit, not silent replacement by save', async () => {
+    mockStorage.set(KEY, 'corrupt');
+    await expect(applicationCommandJournal.save(record)).rejects.toThrow('APPLICATION_COMMAND_JOURNAL_INVALID');
+    expect(mockStorage.get(KEY)).toBe('corrupt'); expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+  it('failed removal propagates and a later same-command retry can prove retirement', async () => {
+    await applicationCommandJournal.save(record);
+    AsyncStorage.removeItem.mockRejectedValueOnce(new Error('storage unavailable'));
+    await expect(applicationCommandJournal.clear(A, NEED, command.clientRequestId)).rejects.toThrow('storage unavailable');
+    expect(mockStorage.has(KEY)).toBe(true);
+    await expect(applicationCommandJournal.clear(A, NEED, command.clientRequestId)).resolves.toBe(true);
+    expect(mockStorage.has(KEY)).toBe(false);
+  });
+  it('mismatched or corrupt state is not a successful retirement', async () => {
+    await applicationCommandJournal.save(record);
+    await expect(applicationCommandJournal.clear(A, NEED, 'another_request_key')).resolves.toBe(false);
+    mockStorage.set(KEY, 'corrupt');
+    await expect(applicationCommandJournal.clear(A, NEED, command.clientRequestId)).resolves.toBe(false);
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+  });
+  it('two concurrent retirements remove once and both observe absence', async () => {
+    await applicationCommandJournal.save(record);
+    expect(await Promise.all([applicationCommandJournal.clear(A, NEED, command.clientRequestId),
+      applicationCommandJournal.clear(A, NEED, command.clientRequestId)])).toEqual([true, true]);
+    expect(AsyncStorage.removeItem).toHaveBeenCalledTimes(1);
+  });
+  it('removal resolution alone is not proof that native storage became empty', async () => {
+    await applicationCommandJournal.save(record);
+    AsyncStorage.removeItem.mockResolvedValueOnce(undefined);
+    await expect(applicationCommandJournal.clear(A, NEED, command.clientRequestId)).resolves.toBe(false);
+    expect(mockStorage.has(KEY)).toBe(true);
+  });
+  it('a delayed old acknowledgement cannot delete a new command queued behind it', async () => {
+    await applicationCommandJournal.save(record);
+    let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+    AsyncStorage.removeItem.mockImplementationOnce(async (storageKey: string) => { await gate; mockStorage.delete(storageKey); });
+    const clearing = applicationCommandJournal.clear(A, NEED, command.clientRequestId);
+    const second = { ...record, command: { ...command, clientRequestId: 'prijava_newer_00000000' } };
+    const saving = applicationCommandJournal.save(second);
+    release(); await clearing; await saving;
+    await expect(applicationCommandJournal.clear(A, NEED, command.clientRequestId)).resolves.toBe(false);
+    expect(JSON.parse(mockStorage.get(KEY)!)).toEqual(second);
+  });
+});

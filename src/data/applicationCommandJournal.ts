@@ -62,15 +62,24 @@ export const applicationCommandJournal = {
     return queue(scope(next.accountId, next.needId), async () => {
       const old = await read(next.accountId, next.needId);
       if (!current()) throw new Error('APPLICATION_COMMAND_SCOPE_CHANGED');
-      // An unresolved earlier command is never silently replaced by a new key.
-      if (old.state === 'PRESENT' && old.record.command.clientRequestId !== next.command.clientRequestId) throw new Error('APPLICATION_COMMAND_UNRESOLVED');
+      // Preserve the exact intent, not only its request key. Corrupt state needs its explicit exit.
+      if (old.state === 'CORRUPT') throw new Error('APPLICATION_COMMAND_JOURNAL_INVALID');
+      if (old.state === 'PRESENT') {
+        if (old.record.command.clientRequestId !== next.command.clientRequestId) throw new Error('APPLICATION_COMMAND_UNRESOLVED');
+        if (commandKeys.some(key => old.record.command[key] !== next.command[key])) throw new Error('APPLICATION_COMMAND_PAYLOAD_CHANGED');
+      }
       await AsyncStorage.setItem(storageKey(next.accountId, next.needId), JSON.stringify(next));
     });
   },
   /** Retires only the exact command; a stale acknowledgement cannot erase a newer intent. */
-  clear: async (accountId: string, needId: string, clientRequestId: string) => queue(scope(accountId, needId), async () => {
+  clear: async (accountId: string, needId: string, clientRequestId: string, current: () => boolean = () => true): Promise<boolean> => queue(scope(accountId, needId), async () => {
     const old = await read(accountId, needId);
-    if (old.state === 'PRESENT' && old.record.command.clientRequestId === clientRequestId) await AsyncStorage.removeItem(storageKey(accountId, needId));
+    if (!current()) throw new Error('APPLICATION_COMMAND_SCOPE_CHANGED');
+    if (old.state === 'ABSENT') return true;
+    if (old.state !== 'PRESENT' || old.record.command.clientRequestId !== clientRequestId) return false;
+    await AsyncStorage.removeItem(storageKey(accountId, needId));
+    // Keep the per-scope queue until absence is observed, so a queued newer save cannot be removed by this acknowledgement.
+    return (await read(accountId, needId)).state === 'ABSENT';
   }),
   /** Explicit exit for a value that can never be reconciled or replayed. */
   discard: async (accountId: string, needId: string) => queue(scope(accountId, needId), async () => {

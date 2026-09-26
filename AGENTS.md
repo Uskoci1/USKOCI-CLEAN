@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+R18 STORAGE INTEGRITY CLIENT CI PASS (2026-09-26): read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and matching CHECKS. Reset now awaits durable retirement; double/late callbacks cannot release or erase another intent; same-key changed payload is rejected. Failing-before/passing-after tests and full Jest are recorded. Device/APK remains pending. No DEV/Edge/provider/push change; fresh DEV read was tool-blocked.
+
 R18 REFUSAL RECOVERY CLIENT CI PASS (2026-09-26): tested source 348c2ec6ac0d3afe2e51e5a15e7620b023646ca5; read
 `docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md` and E01_E02_CHECKS.json. The route no longer overrides a proven refusal with its stale pending flag; authored outcome copy is visible. Types, 139 focused and 6334 full Jest tests pass. Historical SQL proof remains 147 migrations, not live202 parity. Device/APK acceptance stays pending. No DEV/Edge/provider/push changes.
 

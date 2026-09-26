@@ -13,6 +13,7 @@ import { ApplicationComposerPresentation, ComposerUnavailable, type ApplicationD
 
 /** The phone could not keep the request: a fresh read of the task cannot fix that, so no refresh is offered beside it. */
 const NOT_SAVED_ON_DEVICE = 'Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.';
+const NOT_RETIRED_ON_DEVICE = 'Stari zahtev nije uklonjen sa uređaja. Pokušaj ponovo; nova ponuda još nije otvorena.';
 type Receipt = { prijavaId: string; verzija: number; hash: string };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -33,7 +34,7 @@ export default function Prijava() {
   // PKG-006: the same intent also survives remount/cold restore through the durable
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
-    journaling: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
+    journaling: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
@@ -91,7 +92,7 @@ export default function Prijava() {
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
   const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
-  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight && !session.resetting && !session.journaling) void editor.refresh(); };
   const back = () => {
     if (!current()) return;
     if (session.navigated) return;
@@ -102,7 +103,8 @@ export default function Prijava() {
   };
   const submit = async () => {
     const accountId = user?.id;
-    if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || !accountId) return;
+    if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || session.resetting || session.reading || editor.busy || editor.uncertain || !accountId) return;
+    if (session.pending?.result && conclusiveApplicationRefusal(session.pending.result)) return;
     // The price and people sent are derived from the same Need read as the revision, never from a stale draft.
     const draft = withTaskPrice(session.draft, data.need);
     if (!session.pending) {
@@ -151,12 +153,24 @@ export default function Prijava() {
   // a fresh collection read or IDEMPOTENCY_KEY_REUSED never does.
   const refusal = pending?.result && conclusiveApplicationRefusal(pending.result) ? pending.result : null;
   const guidance = refusal ? applicationRefusalGuidance(refusal) : null;
-  const reset = pending && refusal && !editor.uncertain ? () => {
-    if (!current() || editor.busy || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
-    if (user?.id) void applicationCommandJournal.clear(user.id, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
-    session.pending = null;
-    session.draft = withTaskPrice(session.draft!, data.need);
-    setValidation(null); void editor.refresh();
+  const reset = pending && refusal && !editor.uncertain ? async () => {
+    if (!current() || !user?.id || editor.busy || pending.inFlight || session.pending !== pending || pending.result !== refusal || session.resetting || session.journaling || session.reading) return;
+    const ownsReset = () => current() && session.pending === pending && pending.result === refusal && !pending.inFlight;
+    // Synchronous latch also fences two retained callbacks in the same event turn.
+    session.resetting = true; render(v => v + 1);
+    try {
+      const retired = await applicationCommandJournal.clear(user.id, pending.command.potrebaId, pending.command.clientRequestId, ownsReset);
+      if (!ownsReset()) return;
+      if (!retired) { setValidation(NOT_RETIRED_ON_DEVICE); return; }
+      session.pending = null;
+      session.draft = withTaskPrice(session.draft!, data.need);
+      setValidation(null);
+      await editor.refresh();
+    } catch { if (ownsReset()) setValidation(NOT_RETIRED_ON_DEVICE); }
+    finally {
+      session.resetting = false;
+      if (session.focused && currentAccount()) render(v => v + 1);
+    }
   } : undefined;
   const pendingHelp = pending && !data.receipt && (!refusal || guidance) ? {
     lines: guidance?.messages.length ? guidance.messages : ['Sačuvana ponuda ostaje ista dok proveravaš radni profil.'],
@@ -166,8 +180,8 @@ export default function Prijava() {
     ],
   } : null;
   return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
-    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
-    busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
+    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
+    busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
     // Other failures keep their error and exact-command retry; a collection read never proves refusal.
     error={validation ?? session.notice ?? (refusal && !editor.uncertain
@@ -175,7 +189,7 @@ export default function Prijava() {
       : editor.error ?? (pending && !data.receipt && !editor.uncertain
         ? 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
         : null))}
-    refreshHelps={validation !== NOT_SAVED_ON_DEVICE}
+    refreshHelps={validation !== NOT_SAVED_ON_DEVICE && validation !== NOT_RETIRED_ON_DEVICE}
     canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
     blocked={data.profile.stanje !== 'ACTIVE'

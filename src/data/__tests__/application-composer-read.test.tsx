@@ -305,3 +305,157 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(press('Proveri ishod')).toBeDefined(); expect(press('Sastavi novu ponudu')).toBeUndefined();
   });
 });
+
+
+// R18 storage integrity: real route + durable journal, with only the native storage boundary mocked.
+import { applicationCommandJournal as durableJournal } from '../applicationCommandJournal';
+describe('R18 storage integrity', () => {
+  const storage = jest.requireMock('@react-native-async-storage/async-storage').default as {
+    getItem: jest.Mock; setItem: jest.Mock; removeItem: jest.Mock;
+  };
+  const key = () => 'uskoci.application.command.v1.owner-a.' + mockId;
+  const refusal = () => ({ ok: false, kod: 'WORKER_NOT_ELIGIBLE',
+    poruka: 'Radni profil ili dostupnost ne ispunjavaju uslove Zadatka.',
+    applicationRefusal: true, hardBlockers: ['MISSING_REQUIRED_TOOL'] });
+  const unknown = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' };
+  const rejectedOffer = async () => { mockSubmit.mockResolvedValueOnce(refusal()); await offer(); await sendOffer(); };
+  const form = () => tree!.root.findAll(node => String(node.type) === 'TextInput');
+  const presentation = () => tree!.root.findByType(ApplicationSelectionPresentation);
+
+  it('failed retirement keeps the refused command and never opens a new offer until storage succeeds', async () => {
+    await rejectedOffer(); const bytes = mockStorage.get(key());
+    storage.removeItem.mockRejectedValueOnce(new Error('private storage failure'));
+    await tap('Sastavi novu ponudu');
+    expect(mockStorage.get(key())).toBe(bytes);
+    expect(form()).toHaveLength(0);
+    expect(press('Pregledaj ponudu')).toBeUndefined();
+    expect(press('Sastavi novu ponudu')).toBeDefined();
+    expect(text()).not.toContain('private storage failure');
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    await tap('Sastavi novu ponudu');
+    expect(mockStorage.has(key())).toBe(false);
+    expect(press('Pregledaj ponudu')).toBeDefined();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('double reset waits for one durable removal and an old reset cannot erase the next pending offer', async () => {
+    await rejectedOffer(); const first = mockSubmit.mock.calls[0][0];
+    const gate = deferred();
+    storage.removeItem.mockImplementationOnce(async (storageKey: string) => {
+      await gate.promise; mockStorage.delete(storageKey);
+    });
+    const oldReset = press('Sastavi novu ponudu');
+    await act(async () => { oldReset(); oldReset(); });
+    expect(storage.removeItem).toHaveBeenCalledTimes(1);
+    expect(form()).toHaveLength(0);
+    expect(mockStorage.has(key())).toBe(true);
+    await act(async () => { await presentation().props.submit(); });
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    await act(async () => gate.resolve(undefined));
+    expect(press('Pregledaj ponudu')).toBeDefined();
+    mockSubmit.mockResolvedValueOnce(unknown);
+    await sendOffer();
+    const second = mockSubmit.mock.calls[1][0];
+    expect(second.clientRequestId).not.toBe(first.clientRequestId);
+    const bytes = mockStorage.get(key());
+    await act(async () => { oldReset(); oldReset(); });
+    expect(mockStorage.get(key())).toBe(bytes);
+    expect(storage.removeItem).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed retirement read cannot be mistaken for an absent journal', async () => {
+    await rejectedOffer(); const bytes = mockStorage.get(key());
+    storage.getItem.mockRejectedValueOnce(new Error('private disk read'));
+    await tap('Sastavi novu ponudu');
+    expect(form()).toHaveLength(0);
+    expect(mockStorage.get(key())).toBe(bytes);
+    expect(storage.removeItem).not.toHaveBeenCalled();
+    expect(text()).not.toContain('private disk read');
+    await tap('Sastavi novu ponudu');
+    expect(press('Pregledaj ponudu')).toBeDefined();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('a removal acknowledgement without actual deletion cannot unlock the composer', async () => {
+    await rejectedOffer(); const bytes = mockStorage.get(key());
+    storage.removeItem.mockResolvedValueOnce(undefined);
+    await tap('Sastavi novu ponudu');
+    expect(mockStorage.get(key())).toBe(bytes);
+    expect(press('Pregledaj ponudu')).toBeUndefined();
+    expect(form()).toHaveLength(0);
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaving while retirement reads storage prevents the old callback from deleting the command', async () => {
+    await rejectedOffer(); const bytes = mockStorage.get(key())!;
+    const gate = deferred(); storage.getItem.mockReturnValueOnce(gate.promise);
+    await tap('Sastavi novu ponudu');
+    mockFocused = false; await update();
+    await act(async () => gate.resolve(bytes));
+    expect(storage.removeItem).not.toHaveBeenCalled();
+    expect(mockStorage.get(key())).toBe(bytes);
+    mockFocused = true; await update();
+    expect(press('Sastavi novu ponudu')).toBeDefined();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('unknown offer survives profile return and remount with the exact original request and terms', async () => {
+    mockSubmit.mockResolvedValueOnce(unknown);
+    await offer(); await edit('Kratka napomena', 'Sačuvaj ovu tačnu ponudu.'); await sendOffer();
+    const first = mockSubmit.mock.calls[0][0];
+    await tap('Dopuni radni profil');
+    mockFocused = false; await update();
+    mockNeed.mockResolvedValue({ ...need(), revizija: 4 });
+    mockProfile.mockResolvedValue({ id: first.radnikProfilId, stanje: 'ACTIVE', alati: ['Telefon'] });
+    mockFocused = true; await update();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(press('Sastavi novu ponudu')).toBeUndefined();
+    expect(form()).toHaveLength(0);
+    await act(async () => tree!.unmount()); tree = undefined; await render();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('Sačuvaj ovu tačnu ponudu.');
+    await tap('Ponovi istu Prijavu');
+    expect(mockSubmit.mock.calls[1][0]).toEqual(first);
+  });
+
+  it('a corrected profile does not silently replace a refused offer; only explicit reset uses fresh terms', async () => {
+    await rejectedOffer(); const first = mockSubmit.mock.calls[0][0];
+    await tap('Dopuni radni profil'); mockFocused = false; await update();
+    mockNeed.mockResolvedValue({ ...need(), revizija: 4 });
+    mockProfile.mockResolvedValue({ id: first.radnikProfilId, stanje: 'ACTIVE', alati: ['Telefon'] });
+    mockFocused = true; await update();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(mockStorage.get(key())!).command).toEqual(first);
+    await tap('Sastavi novu ponudu');
+    await sendOffer();
+    expect(mockSubmit.mock.calls[1][0]).toMatchObject({ cenaRsd: first.cenaRsd, pokrivenaMesta: first.pokrivenaMesta, potrebaRevizija: 4 });
+    expect(mockSubmit.mock.calls[1][0].clientRequestId).not.toBe(first.clientRequestId);
+  });
+
+  it('accepted receipt remains accepted when cleanup fails; cold recovery replays only the same command', async () => {
+    storage.removeItem.mockRejectedValueOnce(new Error('private cleanup detail'));
+    await offer(); await sendOffer(); const first = mockSubmit.mock.calls[0][0];
+    expect(text()).toContain('Prijava je poslata.');
+    expect(text()).not.toContain('private cleanup detail');
+    expect(mockStorage.has(key())).toBe(true);
+    await act(async () => tree!.unmount()); tree = undefined; await render();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    await tap('Ponovi istu Prijavu');
+    expect(mockSubmit.mock.calls[1][0]).toEqual(first);
+    expect(mockStorage.has(key())).toBe(false);
+  });
+
+  it('a newer journal from another retained editor is not cleared by an older refused offer', async () => {
+    await rejectedOffer(); const first = mockSubmit.mock.calls[0][0];
+    await durableJournal.clear('owner-a', mockId!, first.clientRequestId);
+    const second = { ...first, clientRequestId: first.clientRequestId + '_newer' };
+    await durableJournal.save({ version: 1, accountId: 'owner-a', needId: mockId!, command: second });
+    const bytes = mockStorage.get(key()); storage.removeItem.mockClear();
+    await tap('Sastavi novu ponudu');
+    expect(mockStorage.get(key())).toBe(bytes);
+    expect(storage.removeItem).not.toHaveBeenCalled();
+    expect(press('Pregledaj ponudu')).toBeUndefined();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+});
