@@ -1,0 +1,51 @@
+name: One-shot owner push proof
+
+on:
+  push:
+    branches:
+      - work/uskoci-ui-unification-20260924
+    paths:
+      - '.github/workflows/push-one-shot-20260926.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  send-one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send exactly one bounded proof push
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/push-proof
+          URL='https://leqcwgzvjsxugfgzdmth.supabase.co/functions/v1/uskoci-push-transport?proof=owner-one-shot-20260926'
+          curl -fsS --retry 2 --retry-delay 1 "$URL&phase=send" | tee /tmp/push-proof/send.json
+          node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/push-proof/send.json','utf8'));
+          if(x.kind!=='SEND_DONE'||x.result!=='TICKET'||x.ticket!=='RECORDED') {
+            console.error(x); process.exit(1);
+          }
+          NODE
+          : > /tmp/push-proof/receipts.ndjson
+          ok=0
+          for i in 1 2 3 4 5 6 7 8; do
+            sleep 5
+            curl -fsS --retry 2 --retry-delay 1 "$URL&phase=receipt" | tee /tmp/push-proof/receipt.json
+            cat /tmp/push-proof/receipt.json >> /tmp/push-proof/receipts.ndjson
+            echo >> /tmp/push-proof/receipts.ndjson
+            if node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/push-proof/receipt.json','utf8'));
+          process.exit(x.kind==='RECEIPT_DONE' && (x.result==='PROVIDER_ACCEPTED'||x.state==='PROVIDER_ACCEPTED') ? 0 : 1);
+          NODE
+            then ok=1; break; fi
+          done
+          node -e "const fs=require('fs');fs.writeFileSync('/tmp/push-proof/summary.json',JSON.stringify({send:JSON.parse(fs.readFileSync('/tmp/push-proof/send.json')),providerAccepted:${ok}===1},null,2))"
+      - name: Preserve proof responses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: owner-push-proof-${{ github.run_id }}
+          if-no-files-found: warn
+          path: /tmp/push-proof
