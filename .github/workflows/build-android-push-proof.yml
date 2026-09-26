@@ -43,7 +43,7 @@ jobs:
           java-version: '17'
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --include=dev
 
       - name: Prove push-proof config isolation
         run: |
