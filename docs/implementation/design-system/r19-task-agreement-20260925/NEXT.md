@@ -1,5 +1,10 @@
 # Continue after R19 without repeating the audit
 
+Latest update: NATIVE_REVIEW.viewport-guard records b5a82f69's retained-but-unapplied scroll failure and bounded
+native 1/1,000-row gallery results. CHECKS.explicit-viewport records the subsequent actual-height correction.
+Verify its next APK with real and deep local-gallery detail/Back before calling scrolling closed. Phone is back;
+the prior phone run36226688621 was cancelled before installation. No new backend or provider authorization.
+
 Latest continuation, 26 September: read CLIENT_GUARDS_AND_VIEWPORT and NATIVE_REVIEW.vector-diagnostic first.
 The exact ba3f7dc3 APK now proves visible vector logo return and selection success footer (normal/1.3 font, inert
 gallery). Scroll's measured cause is a transient content-sized viewport. The subsequent source rejects impossible

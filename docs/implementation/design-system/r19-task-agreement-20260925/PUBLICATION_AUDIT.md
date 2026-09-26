@@ -38,6 +38,11 @@ A follow-up comparison finds all six paths present in the integrated source. `tr
 Thus there are two duplicate source files, four different historical versions and zero missing paths; semantic
 reconciliation of the four differences remains open.
 
+Subsequent bounded semantic review against 817b15f2 closes that four-file question: all old Settings controls,
+PickerTile selection/accessibility/responsive behavior, InlineNote tones/alerts and Privacy loading/error/policy
+and export/closure actions remain in current source. The remaining differences are superseded presentation.
+No concrete missing functionality was found; no old file was imported. This does not audit all historical branches.
+
 The explicitly forbidden `20260913090000_clean_v5_fix_application_spam_and_resolution.sql` remains physically
 present, untracked and ignored in the original audit worktree. It was not committed or applied by this audit.
 

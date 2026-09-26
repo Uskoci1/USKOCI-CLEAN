@@ -395,11 +395,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const scrolledRef = useRef(scrolled);
   const contentHeight = useRef(0);
   const listHeight = useRef(0), listReady = useRef(false);
-  // The list's largest real viewport is the measured full sheet, less its pinned header.
-  // Gorhom's content starts without a height until its native container is measured; on
-  // return, FlatList can briefly report its entire content height even after EXTENDED.
+  // Gorhom's BottomSheetContent sizes its mask from the highest detent at every stop.
+  // Give the native list that exact viewport, less our pinned header (a scrolling header
+  // is inside the list). Otherwise Android's refresh wrapper can leave FlatList content-
+  // sized on remount; EXTENDED then arrives without another bounded list onLayout.
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const restore = useRef<number | null>(null), restoreTarget = useRef<number | null>(null), restoreAttempted = useRef(false);
+  const restoreFrame = useRef(0);
   const hasRows = listed.length > 0;
   const restoreVisit = useRef<typeof coverageOwner | null>(null), restoreHadRows = useRef(hasRows);
   traceState.current = { scrolled, index: sheetIndex };
@@ -422,29 +424,30 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const at = restore.current;
     if (at !== null) trace('restore-check', currentSheet(), hasRows, listReady.current, at, restoreAttempted.current, !!listRef.current,
       listHeight.current, contentHeight.current);
-    if (!currentSheet() || !hasRows || !listReady.current || at === null || restoreAttempted.current || !listRef.current
-      || listWindow <= 0 || listHeight.current <= 0 || listHeight.current > listWindow + 1 || contentHeight.current <= 0) return;
-    const target = Math.min(at, Math.max(0, contentHeight.current - listHeight.current));
+    if (!currentSheet() || !hasRows || !listReady.current || at === null || !listRef.current
+      || (restoreAttempted.current && restoreFrame.current === listWindow) || listWindow <= 0 || contentHeight.current <= 0) return;
+    const target = Math.min(at, Math.max(0, contentHeight.current - listWindow));
     restoreTarget.current = target;
     if (target === 0) {
-      trace('clamp0', at, contentHeight.current, listHeight.current, latestView.current.listOffset ?? 0);
+      trace('clamp0', at, contentHeight.current, listWindow, latestView.current.listOffset ?? 0);
       // The measured current list fits in its window: there can be no offset event to acknowledge.
       restore.current = null; restoreTarget.current = null; offset.current = 0;
       scrolledRef.current = false; setScrolled(false); writeOffset();
       return;
     }
     restoreAttempted.current = true;
-    trace('request', at, target, contentHeight.current, listHeight.current);
+    restoreFrame.current = listWindow;
+    trace('request', at, target, contentHeight.current, listWindow);
     listRef.current.scrollToOffset({ offset: target, animated: false });
   }, [currentSheet, hasRows, listWindow, writeOffset, trace]);
   const receiveListReady = useCallback((ready: boolean, state: number) => {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
-      focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner);
+      focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow);
     if (!currentSheet()) return;
     listReady.current = ready;
     if (!ready) restoreAttempted.current = false;
     else tryRestore();
-  }, [currentSheet, tryRestore, trace, position, focused, coverageOwner]);
+  }, [currentSheet, tryRestore, trace, position, focused, coverageOwner, listWindow]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
@@ -654,6 +657,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
             the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem}
+          style={listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined}
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={section ? `${section.at}:${section.count}` : ''}
@@ -662,7 +666,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             trace('layout', currentSheet(), event.nativeEvent.layout.height, listHeight.current, contentHeight.current, restore.current ?? -1);
             if (!currentSheet()) return;
             const height = event.nativeEvent.layout.height;
-            if (listHeight.current !== height) restoreAttempted.current = false;
             listHeight.current = height; tryRestore();
           }}
           onScrollBeginDrag={() => { trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentSheet()) restore.current = null; }}

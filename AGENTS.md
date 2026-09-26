@@ -1,5 +1,13 @@
 # USKOČI — repository entry map
 
+R19 EXPLICIT NATIVE VIEWPORT (2026-09-26): b5a82f69 / run 36225404482 still fails detail/Back scroll:
+315 dp remains saved but no restore request follows native readiness. Read NATIVE_REVIEW.viewport-guard.
+That exact emulator APK proves bounded 1/1,000-row rendering/filter/cluster cases, not deep scroll or server load.
+The next source assigns the native FlatList its measured highest-detent viewport and restores against that frame.
+Types and 321 suites / 6,313 tests pass (CHECKS.explicit-viewport); later exact APK acceptance remains required.
+Phone USB is present again. Run 36226688621 was cancelled before installation after this remaining defect.
+No server/Edge/dependency/provider change. Keep historical failed APK evidence and exact source distinctions.
+
 R19 MEASURED VIEWPORT / CLIENT GUARDS (2026-09-26): native source ba3f7dc3 / run 36223769011
 now renders the selected vector brand after detail/Back and keeps selection success visible at font 1 and 1.3
 (inert native gallery). Read NATIVE_REVIEW.vector-diagnostic. Scroll still fails on that APK: numeric events

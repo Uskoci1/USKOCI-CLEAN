@@ -432,7 +432,7 @@ test.each([false, true])('native mount zero cannot replace saved scroll; restore
   } finally { jest.useRealTimers(); }
 });
 
-test.each([500, 300])('return clamps a saved offset to the changed measured list height %s and never waits for an unreachable offset', async height => {
+test.each([100, -100])('return clamps against content %s dp longer than its owned viewport and never waits for an unreachable offset', async excess => {
   jest.useFakeTimers();
   try {
     rows = Array.from({ length: 12 }, (_, i) => row(`t${i}`));
@@ -440,8 +440,9 @@ test.each([500, 300])('return clamps a saved offset to the changed measured list
     await render(); await readyList();
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 640 } } }));
     mockFocused = false; await update(); rows = [row('one')]; mockFocused = true; await update();
-    scrollToOffset.mockClear(); await readyList(height, 400);
-    const target = Math.max(0, height - 400);
+    const frame = StyleSheet.flatten(list().props.style).height;
+    scrollToOffset.mockClear(); await readyList(frame + excess, frame);
+    const target = Math.max(0, excess);
     if (target > 0) {
       expect(scrollToOffset).toHaveBeenCalledWith({ offset: target, animated: false });
       expect(snapshot.listOffset).toBe(640); // issuing a command alone has not confirmed restoration
@@ -462,7 +463,7 @@ test.each([500, 300])('return clamps a saved offset to the changed measured list
   } finally { jest.useRealTimers(); }
 });
 
-test('native return ignores an unconstrained content-sized viewport before restoring into the measured sheet', async () => {
+test('native return restores into an explicitly bounded viewport without waiting for a second native layout event', async () => {
   jest.useFakeTimers();
   try {
     tracing = true; initial = { ...initial, sheet: 'full', listOffset: 313 };
@@ -473,22 +474,22 @@ test('native return ignores an unconstrained content-sized viewport before resto
     mockFocused = false; await update(); mockFocused = true; await update();
     scrollToOffset.mockClear(); nativeTrace.mockClear();
 
-    // Exact R19d return: the newly mounted Gorhom content has not received its constrained
-    // height yet. Native EXTENDED alone does not make this content-sized layout a viewport.
+    // R19d/e return: the first native layout reports the entire content. There may be no
+    // second bounded onLayout after EXTENDED, so waiting for one leaves the list at zero.
     await readyList(2611.4, 2611.4);
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
+    const frame = listSheet().props.snapPoints[2] - 76;
+    expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: frame, flexGrow: 0, flexShrink: 0 });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(313);
-    expect(scrollToOffset).not.toHaveBeenCalled();
+    expect(scrollToOffset).toHaveBeenCalledTimes(1);
     expect(nativeTrace.mock.calls.some(call => call[0] === 'clamp0')).toBe(false);
     expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(false);
 
-    // The actual bounded viewport arrives after the native content-height animation.
-    await act(async () => list().props.onLayout({ nativeEvent: { layout: { height: 600 } } }));
-    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
-    expect(snapshot.listOffset).toBe(313);
+    // No second layout is delivered: only the real scroll acknowledgement completes it.
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 312.8 } } });
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
@@ -510,7 +511,7 @@ test('diagnostic trace distinguishes rejection, request, acknowledgement, pre-op
   await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 96 }, privateText: 'never-log-native' } }));
   expect(nativeTrace.mock.calls.some(call => call[0] === 'scroll-reject' && call[1] === 96)).toBe(true);
   await readyList(1200, 400);
-  expect(nativeTrace).toHaveBeenCalledWith('request', 160, 160, 1200, 400);
+  expect(nativeTrace).toHaveBeenCalledWith('request', 160, 160, 1200, StyleSheet.flatten(list().props.style).height);
   await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 }, privateText: 'never-log-native' } }));
   expect(nativeTrace).toHaveBeenCalledWith('ack', 160, 160, 160);
   await tap('Otvori priliku Pomoć a');
@@ -524,7 +525,7 @@ test('diagnostic trace distinguishes rejection, request, acknowledgement, pre-op
 test('diagnostic trace names the measured zero clamp separately from a search change', async () => {
   tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
   await render(); await readyList(300, 400);
-  expect(nativeTrace).toHaveBeenCalledWith('clamp0', 160, 300, 400, 160);
+  expect(nativeTrace).toHaveBeenCalledWith('clamp0', 160, 300, StyleSheet.flatten(list().props.style).height, 160);
   expect(snapshot.listOffset).toBe(0);
   await search('bb');
   expect(nativeTrace.mock.calls.some(call => call[0] === 'search-change')).toBe(true);
@@ -1380,6 +1381,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
   expect(listSheet().props.snapPoints).toEqual([96, 202, 262]);
+  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 262, flexGrow: 0, flexShrink: 0 });
   expect(430 - listSheet().props.snapPoints[2]).toBe(156 + sys.space.md);
   expect(430 - listSheet().props.snapPoints[1]).toBe(156 + 48 + 2 * sys.space.md);
   expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
@@ -1391,6 +1393,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   expect(listSheet().props.snapPoints[2]).toBe(262);
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
+  expect(StyleSheet.flatten(list().props.style).height).toBe(262); // same highest-detent viewport at half and full
   if (empty) expect(pressable('Mapa')).toHaveLength(0);
   await tap('Ukloni uslov: Beograd');
   expect(snapshot.place).toBeNull(); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
@@ -1398,6 +1401,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   await layOutBody(700);
   expect(tree.root.findAllByProps({ testID: 'discovery-scrolling-header' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
+  expect(StyleSheet.flatten(list().props.style).height).toBe(listSheet().props.snapPoints[2] - 240);
 });
 
 describe('U blizini: an explicit camera-only location capture', () => {
