@@ -1,5 +1,14 @@
 # USKOČI — repository entry map
 
+RELEASE-HARDENING MEDIA/PUSH PREFLIGHT (2026-09-26): based on branch source `e996cbc7`; read
+`docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md` and `CODEX_HANDOFF.md` before touching media or push.
+Fresh read-only DEV: ledger 202; GitHub `uskoci-media` and deployed v12 differ in exactly one entrypoint line — only
+`MEDIA_COMMAND_CANCELLED` is missing from deployed safeCodes; shared sanitizer is identical. Existing client regression/full Jest evidence covers the GitHub source. This is READY_FOR_APPLY, not deployed; explicit `primeni` is still required.
+Push root cause is now bounded: 10 CREATED/unstarted PUSH deliveries, 0 attempts/readiness, 0 active devices; current
+R19 `rs.uskoci.dev` APK is not push-capable and the deployed v14 kill-switch path explains the no-side-effect 200 ticks.
+Nine old deliveries have no expiry. Do not globally enable sending; use the documented zero-device backlog retirement
+then one-owner-device/one-event proof only after approval. No server/Edge/data/provider mutation or push send occurred in this preflight.
+
 R19 CURRENT ACCEPTANCE (2026-09-26): a69a26c6 is attested and installed on the phone (36229901348)
 and emulator (36229903151). Read RECEIPT.json and NATIVE_REVIEW.deep-return-chat in the R19 directory.
 Phone Android Back passes keyboard→same Agreement overview→list; real ten-row detail/Back preserves749dp.

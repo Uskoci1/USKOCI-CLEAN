@@ -2,6 +2,16 @@
 
 Updated 2026-09-26 against installed runtime source `a69a26c6`. This is the current work order; dated reports remain evidence, and `docs/control/redovi.json` remains the single tracker.
 
+## Release-hardening preflight — 26 September 2026
+
+Owner priority temporarily moved media/push verification ahead of the next UI experiment. Read `docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md` and `CODEX_HANDOFF.md`.
+
+- **Media:** current GitHub and deployed `uskoci-media` differ in exactly one entrypoint line: GitHub admits `MEDIA_COMMAND_CANCELLED` as a safe code, Edge v12 does not; shared sanitizer is identical. The GitHub/client regression already passes. This is **ready for apply, not deployed**; wait for explicit `primeni`.
+- **Push:** fresh DEV has 10 PUSH CREATED/unstarted, 0 attempts, 0 readiness, 0 active devices and one inactive requester Android device. The scheduler really invokes the v14 worker, but the deployed kill-switch path explains the repeated HTTP 200/no-side-effect ticks. The current R19 `rs.uskoci.dev` APK also lacks matching Firebase client configuration. Nine old PUSH rows have no expiry, so never enable transport after registering a device until the backlog is safely retired without provider IO.
+- **Bounded real test:** first settle historical backlog with zero active devices, then register exactly one owner proof device while transport is off, create one approved event, and open a short single-event transport window. No mass sending and no DEV/Edge/config mutation belongs to this preflight.
+
+After those gated operations, continue the existing order below; do not rebuild already accepted R19 surfaces.
+
 ## First: improve deep-return speed, preserving the now-correct position
 
 Both exact `a69a26c6` APKs are installed with attested and installed hashes:
