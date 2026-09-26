@@ -734,8 +734,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
       },
-      "problem": "Gubljenje pozicije popravljeno: emulator36229903151 vraća isti 42. red od1.000, 9.914/9.913,9 dp. Vraćanje ipak traje oko7,3s na emulatoru — brzina nije prihvaćena. Serversko straničenje i opterećenje korisnicima ostaju.",
-      "sledece": "Ubrzati dubok povratak bez izmišljanja visina i bez gubitka kamera/filter/nalog zaštita. Ponoviti veliko lokalno stanje na telefonu. Završni dokazi R19: docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
+      "problem": "R20: popravljeno ponovno uspostavljanje vlasništva nad prikazom pri povratku iz detalja; ista, stabilna lista zadržava izmerene redove. Promenjeni podaci, nalog, raspored ili prekinut prelaz poništavaju stare mere. Brzina na novom APK-u još nije potvrđena; raniji R19 povratak trajao je oko 7,3 s na emulatoru. Serversko straničenje i opterećenje korisnicima ostaju.",
+      "sledece": "Izvor 54f8aff2: tipovi i ceo Jest prolaze, 321 grupa / 6.481 test; 100 usmerenih provera liste prolazi. Sledi nova Android verzija i merenje povratka iz detalja na istu duboku poziciju u lokalnoj listi od 1.000 redova. To nije test 1.000 istovremenih korisnika. Popravka i granice: docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md. Raniji dokaz: docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1607,11 +1607,11 @@
         "uskoci-push-transport"
       ],
       "telefon": {
-        "stanje": "DOKAZANO",
-        "dokaz": "26.09.2026: one bounded owner push proof, run 36254577674. Exactly one event/delivery/attempt; Expo ticket recorded; the owner observed the USKOČI notification on the physical Android phone and tap opened Inbox. A separate pre-existing real MESSAGE_RECEIVED Inbox row opened the correct Agreement/Poruke with its real messages."
+        "stanje": "DELIMIČNO",
+        "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "ANDROID REAL DELIVERY DOKAZAN 26.09. Notification A1 runtime is now applied on DEV: ledger 203, rpc_begin_push_send exposes only eventType to service_role, and live uskoci-push-transport v20 uses the fixed privacy-safe formatter. The one synthetic MESSAGE_RECEIVED proof did not contain a real chat message, so one-same-real-message→push→exact-message is not claimed. iOS and production/store push remain separate.",
-      "sledece": "Sledeće za obaveštenja: A2 typed safe facts (distance/locality + fixed price or 'Traže se ponude' + remote) and one future real-event device check of the differentiated copy. Do not expose raw delivery title/body, chat text, private address or arbitrary event payload. iOS/TestFlight remains separate. A1 runtime proof: run 36260836635.",
+      "problem": "Stvarna Android dostava jeste ranije viđena. Naknadno je nađen nesklad: otvorena aplikacija je dopuštala samo stare opšte tekstove, a DEV v20 šalje posebne A1 tekstove. Klijentska popravka je pripremljena. Dve poruke dodatno zahtevaju neutralan tekst umesto internih naziva uloga; predlog je u kodu, nije objavljen na serveru. Ne tvrdi se da je jedna ista stvarna chat poruka prošla ceo put do push-a i nazad. iOS i prodavnice ostaju odvojeni.",
+      "sledece": "Izvor 54f8aff2: tipovi i ceo Jest prolaze, 321 grupa / 6.481 test; 192 usmerene klijentske provere i 75 Node provera obaveštenja prolaze. Sledi APK; serverska promena samo dva teksta čeka vlasnikovo „primeni“. Bez nje su stare varijante ta dva događaja i dalje odbijene dok je aplikacija otvorena; ostali A1 tekstovi su obuhvaćeni popravkom. Zatim tačan fizički Android dokaz, pa A2 bezbedni podaci o prilici i iOS. Detalji: docs/implementation/release-hardening-20260926/A1_DISCOVERY_STABILIZATION.md. Raniji A1 serverski dokaz: run 36260836635.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [

@@ -172,7 +172,7 @@ tr:last-child td{border-bottom:0}
   var edges = (s.edge || []).map(function (e) { return esc(e.slug.replace('uskoci-', '')) + ' v' + e.version; }).join(' · ');
   $('server').innerHTML = '<h2>Server (DEV)</h2><p class="sub">Snimljeno ' + esc(s.snimljeno) + ' — samo čitanje.</p><div class="server-strip">' +
     '<span>Migracije <b>' + esc(s.migracije) + '</b> (' + esc(s.dev_alpha) + ' dodatih)</span>' +
-    '<span>Sertifikat brisanja ' + (s.sertifikat_ok ? '<span class="tag ok">važi</span>' : '<span class="tag bad">ne važi</span>') + '</span>' +
+    '<span>Sertifikat brisanja ' + (s.sertifikat_ok === true ? '<span class="tag ok">važi</span>' : s.sertifikat_ok === false ? '<span class="tag bad">ne važi</span>' : '<span class="tag">nije sveže provereno</span>') + '</span>' +
     '<span>Zakazani poslovi: ' + (s.cron || []).map(function (j) { return esc(j.job.replace('uskoci_', '')) + (j.active ? ' ✓' : ' ✗'); }).join(', ') + '</span>' +
     '<span>24h: ' + esc(s.cron_24h) + ' pokretanja, ' + (s.cron_greske_24h ? '<span class="tag bad">' + esc(s.cron_greske_24h) + ' grešaka</span>' : '<span class="tag ok">0 grešaka</span>') + '</span>' +
     '</div><p class="sub" style="margin-top:10px">Edge funkcije: ' + edges + '</p>' + (function () {
