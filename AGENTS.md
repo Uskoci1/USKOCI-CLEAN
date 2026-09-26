@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+NOTIFICATION A1 RUNTIME LIVE (2026-09-26): source `0ffb5281`; proof run `36260836635` SUCCESS; DEV ledger 203 (`clean_notification_push_event_type`), live `uskoci-push-transport` v20. `rpc_begin_push_send` is service-role-only and returns only eventType in addition to lease/token/priority; fixed copy comes from `_shared/pushNotificationCopy.mjs`. No raw delivery title/body/payload crosses to Edge. No new push send was performed during apply. Read `docs/implementation/product-v1-closure-20260926/NOTIFICATION_A1_RUNTIME_EVIDENCE.md`. Next product package: Chat 2.0 / mandatory voice messages.
+
 V1 CLOSURE WORK ORDER (2026-09-26): read `docs/implementation/product-v1-closure-20260926/PLAN.md` first for new product work. Voice messages are mandatory V1 Chat 2.0. AI taxonomy uses stable canonical nodes + candidate promotion; one odd Need never auto-creates a category. Matching is hard eligibility then ranking. Growth projections are required before scale. Notification copy/metadata contract is in the sibling `NOTIFICATION_MATRIX.md`. Real Android push evidence is in `docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md`; live push worker was restored canonical after the bounded send.
 
 PUSH-PROOF APK READY / DEVICE PENDING (2026-09-26): source `3d31a300`, run `36246861282`.

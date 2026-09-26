@@ -2,6 +2,8 @@
 
 ## Product V1 closure order — owner approved 26 September
 
+**Notification A1 runtime is LIVE on DEV:** source `0ffb5281`, disposable proof `36260836635` SUCCESS, migration `clean_notification_push_event_type` applied as DEV ledger 203 / version `20260926180141`, live `uskoci-push-transport` v20 ACTIVE. The begin receipt exposes only `eventType` to service_role; anon/authenticated cannot execute it. Worker source and shared formatter read back byte-for-byte from GitHub. No new delivery/send was created by this apply. Next notification work is A2 typed safe facts; primary product work now moves to Chat 2.0 with mandatory voice messages.
+
 **Notification A1 source proof is green:** commit `edfc1468`, CI run `36258688611`. Privacy-safe fixed copy covers all 24 admitted event types; malformed/future events fall back to generic USKOČI copy; HITNO only changes the opportunity headline. 28/28 matrix tests and 44/44 existing N09 transport tests pass. This is source/proof only: live worker still uses the generic payload until the service RPC can return only the event type without exposing arbitrary delivery text.
 
 The product-level work order is now `docs/implementation/product-v1-closure-20260926/PLAN.md`. New work proceeds: Notifications 2.0 → Chat 2.0 (voice mandatory) → AI Taxonomy V1 → Matching/Dispatch V1 → Growth Projections → known closure → account/legal/release. Notification content is governed by `NOTIFICATION_MATRIX.md`; unknown types keep the generic privacy-safe fallback. Do not let AI create canonical categories per single Need; it creates candidates until promotion evidence exists.

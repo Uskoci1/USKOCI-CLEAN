@@ -1578,9 +1578,12 @@
         "rpc_revoke_push_session",
         "rpc_get_push_session_device"
       ],
-      "telefon": null,
-      "problem": "26.09: namenski Android push-proof APK je napravljen i attestovan iz source 3d31a300 / run 36246861282. Stvarni APK koristi rs.uskoci.preview, odgovarajući Firebase client i Firebase Messaging manifest, bez explicit auto-init=false. DEV posle build-a: backlog=0, attempts=0, active devices=0. Telefon/token/registracija još nisu dokazani.",
-      "sledece": "Instalirati tačan push-proof APK na vlasnikov fizički telefon, eksplicitno uključiti obaveštenja i read-back-om dokazati tačno jedan aktivan session-bound Android device za trenutni nalog/ulogu. Zatim jedan odobren događaj. Dokaz: docs/implementation/release-hardening-20260926/PUSH_PROOF_APK.json.",
+      "telefon": {
+        "stanje": "DOKAZANO",
+        "dokaz": "26.09.2026: corrected push-proof APK source 463215ef / build 36252278794 opened on the owner's physical Android phone. After explicit permission/enable, fresh DEV read-back showed exactly one active ANDROID device, revision-bound and session-bound, for one active user; old push backlog remained 0."
+      },
+      "problem": "ANDROID DOKAZAN 26.09: Firebase/Expo token acquisition and owned session-bound registration work on the corrected push-proof APK. This closes the Android proof scope only; iOS registration and final production/store package remain separate release acceptance.",
+      "sledece": "Ne ponavljati Android proof. Sačuvati rotation/logout/session fences. Kasnije dokazati isti lifecycle na finalnom production Android artefaktu i zasebno na iOS/TestFlight-u. Realni Android dokaz: docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1603,9 +1606,12 @@
       "server": [
         "uskoci-push-transport"
       ],
-      "telefon": null,
-      "problem": "26.09 posle odobrene primene: 10 starih REQUESTER PUSH redova koji nisu imali role-context opt-in zatvoreni su kao PUSH_OFF; CREATED/unstarted=0, attempts=0, active devices=0, readiness=0. Živi transport je vraćen na canonical GitHub v16. Zato više nema starog reda koji bi slučajno krenuo, ali nema ni dokaza stvarne provider/telefon isporuke.",
-      "sledece": "Push-capable APK sada postoji, ali slanje ostaje neizvršeno. Posle owner device registracije ponovo dokazati backlog=0, tačan recipient role i tačno jedan aktivan device; zatim napraviti jedan odobren delivery i dozvoliti najviše jedan send/receipt ciklus → lock-screen → warm/cold tap. Bez masovnog slanja. Build dokaz: docs/implementation/release-hardening-20260926/PUSH_PROOF_APK.md.",
+      "telefon": {
+        "stanje": "DOKAZANO",
+        "dokaz": "26.09.2026: one bounded owner push proof, run 36254577674. Exactly one event/delivery/attempt; Expo ticket recorded; the owner observed the USKOČI notification on the physical Android phone and tap opened Inbox. A separate pre-existing real MESSAGE_RECEIVED Inbox row opened the correct Agreement/Poruke with its real messages."
+      },
+      "problem": "ANDROID REAL DELIVERY DOKAZAN 26.09. Notification A1 runtime is now applied on DEV: ledger 203, rpc_begin_push_send exposes only eventType to service_role, and live uskoci-push-transport v20 uses the fixed privacy-safe formatter. The one synthetic MESSAGE_RECEIVED proof did not contain a real chat message, so one-same-real-message→push→exact-message is not claimed. iOS and production/store push remain separate.",
+      "sledece": "Sledeće za obaveštenja: A2 typed safe facts (distance/locality + fixed price or 'Traže se ponude' + remote) and one future real-event device check of the differentiated copy. Do not expose raw delivery title/body, chat text, private address or arbitrary event payload. iOS/TestFlight remains separate. A1 runtime proof: run 36260836635.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2235,8 +2241,8 @@
       "id": "B10",
       "oblast": "Obaveštenja",
       "nalaz_16_09": "0 poslatih",
-      "sada": "DELIMIČNO ZATVORENO 26.09: stari push backlog je bez provider slanja povučen sa 10 CREATED/unstarted na 0 kroz postojeći canonical `rpc_claim_push_transport` suppression put dok je bilo 0 aktivnih uređaja. SUPPRESSED/PUSH_OFF je porastao 30→40, push attempts ostaju 0. Privremena maintenance Edge v15 je odmah povučena; živi `uskoci-push-transport` je ponovo čisti GitHub kod, v16, ACTIVE, verify_jwt=false. Stvarna Expo/FCM/APNs i lock-screen dostava NIJE dokazana.",
-      "dokaz": "docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md"
+      "sada": "ANDROID PUSH DOKAZAN / RELEASE JOŠ OTVOREN 26.09: stari backlog je bez provider slanja zatvoren 10→0; corrected push-proof APK se otvorio na vlasnikovom telefonu; eksplicitna dozvola je dala tačno jedan active/revision-bound/session-bound Android device. One-shot run 36254577674 napravio je tačno jedan PUSH attempt, Expo ticket je dobijen, obaveštenje je stvarno stiglo i tap je otvorio Inbox. Privremeni proof worker/triger su uklonjeni. A1 safe-copy runtime je zatim disposable-proven (36260836635) i primenjen: DEV ledger 203, live push v20, samo eventType prelazi server→worker; title/body/payload ne prelaze. Same-real-message E2E, iOS i production/store acceptance ostaju odvojeni.",
+      "dokaz": "docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md + docs/implementation/product-v1-closure-20260926/NOTIFICATION_A1_RUNTIME_EVIDENCE.md"
     },
     {
       "id": "B11",

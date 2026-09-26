@@ -272,7 +272,8 @@ const meta = {
   osvezeno: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
   grana: sh('git', ['rev-parse', '--abbrev-ref', 'HEAD']), head: sh('git', ['rev-parse', '--short=8', 'HEAD']), head_poruka: sh('git', ['log', '-1', '--format=%s']),
   server: { snimljeno: snap.generated_at, migracije: snap.ledger_total, dev_alpha: snap.ledger_dev_alpha, poslednja: snap.ledger_last,
-    sertifikat_ok: snap.certificate_live === snap.certificate_certified && snap.retention_ai_ready === true,
+    sertifikat_ok: snap.private_current_status && snap.private_current_status !== 'FRESH' ? null : snap.certificate_live === snap.certificate_certified && snap.retention_ai_ready === true,
+    privatni_status: snap.private_current_status ?? 'LEGACY_SNAPSHOT', privatni_istorijski: snap.private_historical_observed_at ?? null,
     cron: snap.cron, cron_24h: snap.cron_runs_24h, cron_greske_24h: snap.cron_failures_24h, edge: snap.edge },
   pravilo_gotovo: rows.pravilo_gotovo,
 };
