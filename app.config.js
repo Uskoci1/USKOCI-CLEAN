@@ -17,6 +17,7 @@ module.exports = ({ config }) => {
     NSLocationWhenInUseUsageDescription: NEARBY_PERMISSION,
   } };
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
+  const pushProof = process.env.USKOCI_PUSH_PROOF_BUILD === '1';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
   const mapPlugin = '@maplibre/maplibre-react-native';
@@ -45,9 +46,14 @@ module.exports = ({ config }) => {
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
     plugins.push(mapPlugin);
   }
+  if (pushProof && android.package !== 'rs.uskoci.preview') {
+    throw new Error('USKOCI_PUSH_PROOF_BUILD_REQUIRES_PREVIEW_PACKAGE');
+  }
   if (android.package === 'rs.uskoci.preview') {
     android.googleServicesFile = './config/firebase/google-services.json';
-    plugins.push(inertPlugin);
+    // Ordinary preview builds stay consent-safe and provider-inert. The dedicated
+    // push proof is the only build that may initialise Firebase Messaging.
+    if (!pushProof) plugins.push(inertPlugin);
   } else {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;

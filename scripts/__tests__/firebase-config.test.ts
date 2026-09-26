@@ -11,7 +11,7 @@ const enrollmentPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
 const temporary = path.join(root, '.expo');
 const fixtures: string[] = [];
 
-function resolvePackage(packageName: string) {
+function resolvePackage(packageName: string, extraEnv: NodeJS.ProcessEnv = {}) {
   fs.mkdirSync(temporary, { recursive: true });
   const fixture = fs.mkdtempSync(path.join(temporary, 'firebase-config-'));
   fixtures.push(fixture);
@@ -31,7 +31,7 @@ function resolvePackage(packageName: string) {
   // otherwise select an unrelated ESM-only xcode dependency.
   const result = spawnSync(process.execPath, ['-e',
     "process.stdout.write(JSON.stringify(require('@expo/config').getConfig(process.argv[1], { skipSDKVersionRequirement: true }).exp))",
-    fixture], { cwd: root, encoding: 'utf8', timeout: 15000 });
+    fixture], { cwd: root, encoding: 'utf8', timeout: 15000, env: { ...process.env, ...extraEnv } });
   expect(result.status).toBe(0);
   return JSON.parse(result.stdout);
 }
@@ -56,6 +56,18 @@ describe('actual package-aware Firebase config', () => {
     expect(config.plugins).toContain(enrollmentPlugin);
     expect(config.name).toBe('Disposable label'); expect(config.scheme).toBe('disposable-scheme');
     expect(config.extra).toMatchObject({ fixture: 'local-only' }); expect(config.extra.eas).toBeUndefined();
+  });
+
+  it('dedicated push-proof preview keeps the matching Firebase client but deliberately omits only the enrollment-disable plugin', () => {
+    const config = resolvePackage('rs.uskoci.preview', { USKOCI_PUSH_PROOF_BUILD: '1' });
+    expect(config.android.package).toBe('rs.uskoci.preview');
+    expect(config.android.googleServicesFile).toBe(firebasePath);
+    expect(config.plugins).not.toContain(enrollmentPlugin);
+    expect(config.plugins).toContain('expo-notifications');
+  });
+
+  it.each(['rs.uskoci.dev', 'rs.uskoci', 'rs.uskoci.unknown'])('push-proof mode refuses non-preview package %s', packageName => {
+    expect(() => resolvePackage(packageName, { USKOCI_PUSH_PROOF_BUILD: '1' })).toThrow();
   });
 
   it.each(['rs.uskoci.n04proof', 'rs.uskoci.ru5proof', 'rs.uskoci.dev', 'rs.uskoci.unknown'])('Expo preserves %s and removes incompatible preview Firebase', packageName => {
