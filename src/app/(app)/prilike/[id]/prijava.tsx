@@ -135,9 +135,9 @@ export default function Prijava() {
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod slanja nije potvrđen. Proveri ishod.' }; }
       finally { pending.inFlight = false; }
       pending.result = result;
-      // The route has its own pending-read fence in addition to useOwnedEditor.
-      // Settle both from the same exact result; arbitrary errors and lost ACKs stay uncertain.
-      pending.reconciled = result.ok || conclusiveApplicationRefusal(result);
+      // Only an exact refusal in the original focus settles the route's second fence.
+      // Success belongs to the editor receipt; a late success/refusal still needs fresh readback.
+      pending.reconciled = current() && conclusiveApplicationRefusal(result);
       // Only this command's own authoritative receipt retires the durable identity.
       if (result.ok) await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
       if (session.focused && currentAccount()) render(v => v + 1);
