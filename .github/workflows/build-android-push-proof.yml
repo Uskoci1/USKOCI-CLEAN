@@ -15,6 +15,7 @@ permissions:
 
 env:
   EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
   EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
   EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
   CI: '1'
