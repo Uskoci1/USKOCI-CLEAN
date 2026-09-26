@@ -31,6 +31,22 @@
     "src/data/__tests__/discovery-presentation.test.tsx": "5d3a436eeeda52a6b70d954e666b9c835dbc6a14678035fecef981f521045654",
     "src/app/dizajn-ai.tsx": "473b04a506365810c5c61ccaaf89ef10c2bd067c6233fa2407765323c3cfb12a"
   },
-  "nativeAcceptance": "PENDING follow-up APK",
-  "serverChanged": false
+  "nativeAcceptance": {
+    "result": "PASS bounded cold peek and two deep returns; ready AI keyboard",
+    "receipt": "NATIVE_RECEIPT.json"
+  },
+  "serverChanged": false,
+  "ci": {
+    "run": "36279059657",
+    "url": "https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36279059657",
+    "source": "dcb19e9787e10918f81b19239fe1fa1bef5661b4",
+    "tree": "1f54cfea29a978bebfec6e759ae2d7f95b9895b6",
+    "typescript": "PASS",
+    "suites": 323,
+    "tests": 6527,
+    "passed": 6527,
+    "failed": 0,
+    "result": "PASS",
+    "resultSha256": "a6a6363918a1b248518d0e2224a047d6d6537ea39d7661aaafea750d46b0b2cc"
+  }
 }

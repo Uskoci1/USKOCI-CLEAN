@@ -1,5 +1,7 @@
 # R21 — task and Agreement flow clarity
 
+**Latest result:** dcb19e97 exact APK passes cold Discovery peek and two consecutive deep detail/Back returns on emulator. CI 36279059657 passes TypeScript and all 323 suites / 6,527 tests. See `NATIVE_RECEIPT.json`; this does not certify a physical phone or the full real-user journey.
+
 Source package based on 60b52f5b. This report distinguishes implemented source from a verified native APK. No server, Edge, database, dependencies, payment or AI-provider changes belong to this package.
 
 ## Decisions grounded in the current screens
@@ -51,3 +53,16 @@ The first sheet mount now uses its calculated initial detent and Gorhom mount an
 TypeScript passes. The follow-up full run completed with 322/323 suites and 6,526/6,527 tests passing; one unchanged Firebase config child process returned null status. Its isolated retry passed all 13 tests without any code/config change. Focused Discovery: 130/130. Do not describe that full invocation as green.
 
 A subsequent controlled run on the first f817336d APK did verify two consecutive returns from local task 10/1000, without intervening scroll: visible rows 9–12 and their bounds match exactly (e.g. task 10 [56,759][1026,1404]). Evidence: r21-deep-baseline-3, r21-deep-detail-1-settled, r21-deep-back-1, r21-deep-detail-2-settled, r21-deep-back-2. This replaces the discarded rapid-swipe attempt only for the first APK. It does not accept the cold header or certify performance/real server load.
+
+## Final bounded native acceptance — dcb19e97
+
+APK run 36279078038, source dcb19e9787e10918f81b19239fe1fa1bef5661b4, tree 1f54cfea29a978bebfec6e759ae2d7f95b9895b6. APK and installed base.apk SHA-256: 4110c7b6d5e3edce3760a30e8b62e1adb681301128797685f5efc21864c121e3. Installed on emulator-5556 with data preserved.
+
+- Cold launch: map and visible 1000-task peek header, verified in the screenshot and XML.
+- Full list: separate cards, compact capacity.
+- Scroll to local task 10/1000; open detail and Back twice without an intervening scroll: visible rows and bounds equal the baseline on both returns.
+- AI ready fixture: consistent example copy; review action and composer remain visible above the actual Android keyboard. No prompt/provider call was made.
+
+The installed follow-up resolves the observed cold-header failure in this tested configuration. Reduced motion, large font and physical-phone acceptance remain scoped follow-ups. All native inputs/figures are local fixtures; no test records were written to DEV. The immutable screenshots/XML and a hash manifest are committed in native/ and NATIVE_RECEIPT.json. The earlier failed APK is retained in the narrative so its result is not overwritten.
+
+Next coherent implementation batch: finish the real publication-to-map selection journey (point, shared point and point-free task), shorten date-heavy task-card copy without dropping timing facts, then align Agreement/chat navigation and attachments with the existing recovery rules. Voice messages and paged chat are separate unfinished V1 capabilities, not implied by the new layout.
