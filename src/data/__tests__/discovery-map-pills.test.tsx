@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, StyleSheet } from 'react-native';
+import { Image, Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '../marketplaceView';
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
@@ -30,6 +30,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
 import { DiscoveryMap, PillAnnotation, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
+import { BrandMark } from '../../ui/entry/BrandAssets';
 import { sys } from '../../ui/system/tokens';
 import { expression, latest, type StylePropertySpecification } from '@maplibre/maplibre-gl-style-spec';
 
@@ -435,15 +436,16 @@ test('compact visible attribution opens all three original provider links withou
 
 const annotationLayout = (annotation: ReactTestInstance) => annotation.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function').props.onLayout;
 const pillSize = { nativeEvent: { layout: { width: 90, height: 48 } } };
-test.each(['load,layout,frame', 'load,frame,layout', 'layout,load,frame', 'layout,frame,load', 'frame,load,layout', 'frame,layout,load'])(
-  'logo snapshot waits for actual native attachment, layout and image load in order %s', async sequence => {
+test.each(['layout,frame', 'frame,layout'])(
+  'vector logo snapshot waits for actual native attachment and layout in order %s, with no image-load event', async sequence => {
     selectedId = 'money'; await render(); await ready();
     const chosen = () => annotations().find(node => node.props.id === 'selected-need')!;
     const events: Record<string, () => void> = {
-      load: chosen().findByType(PricePill).props.onReady,
       layout: () => annotationLayout(chosen())(pillSize),
       frame: native().props.onDidFinishRenderingFrameFully,
     };
+    expect(chosen().findByType(BrandMark).props.size).toBe(30);
+    expect(chosen().findAllByType(Image)).toHaveLength(0);
     const order = sequence.split(',');
     for (let index = 0; index < order.length; index++) {
       await act(async () => events[order[index]]());
@@ -457,13 +459,13 @@ test.each(['load,layout,frame', 'load,frame,layout', 'layout,load,frame', 'layou
   },
 );
 
-test('same selected annotation resnapshots on native reattachment without a second image onLoad', async () => {
+test('same selected vector annotation resnapshots on native reattachment without any image-load event', async () => {
   const owns = jest.fn(() => true);
   const draw = (nativeReady: boolean) => <PillAnnotation id="same-selected" point={{ lng: 20.46, lat: 44.81 }}
     label="Izabran zadatak" content={{ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' }} selected nativeReady={nativeReady} owns={owns} />;
   await act(async () => { tree = create(draw(true)); });
   const initialPill = tree.root.findByType(PricePill);
-  await act(async () => { initialPill.props.onReady(); annotationLayout(annotations()[0])(pillSize); jest.advanceTimersByTime(20); });
+  await act(async () => { annotationLayout(annotations()[0])(pillSize); jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
   await act(async () => tree.update(draw(false)));
   await act(async () => { jest.advanceTimersByTime(1000); });
@@ -483,21 +485,33 @@ test('same selected annotation resnapshots on native reattachment without a seco
 test('fresh focus requires its own frame and layout; a retired pin cannot redraw into the new map', async () => {
   selectedId = 'money'; await render(); await ready();
   const chosen = () => annotations().find(node => node.props.id === 'selected-need')!;
-  const oldReady = chosen().findByType(PricePill).props.onReady;
   const oldLayout = annotationLayout(chosen()), oldFrame = native().props.onDidFinishRenderingFrameFully;
-  await act(async () => { oldReady(); oldLayout(pillSize); oldFrame(); });
+  await act(async () => { oldLayout(pillSize); oldFrame(); });
   await act(async () => { jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
   mockFocused = false; await update(); mockFocused = true; await update(); await ready();
-  await act(async () => { oldReady(); oldLayout(pillSize); oldFrame(); jest.advanceTimersByTime(20); });
+  await act(async () => { oldLayout(pillSize); oldFrame(); jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
-  const newReady = chosen().findByType(PricePill).props.onReady;
-  await act(async () => { newReady(); annotationLayout(chosen())(pillSize); });
+  await act(async () => { annotationLayout(chosen())(pillSize); });
   await act(async () => { jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(1);
   await act(async () => native().props.onDidFinishRenderingFrameFully());
   await act(async () => { jest.advanceTimersByTime(20); });
   expect(mockAnnotationRefresh).toHaveBeenCalledTimes(2);
+});
+
+test('zero or invalid vector annotation layout cannot snapshot, and unmount cancels the pending draw', async () => {
+  await act(async () => { tree = create(<PillAnnotation id="layout-owned" point={{ lng: 20.46, lat: 44.81 }}
+    label="Zadatak" content={{ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' }} nativeReady owns={() => true} />); });
+  const layout = annotationLayout(annotations()[0]);
+  for (const width of [0, Number.NaN]) {
+    await act(async () => { layout({ nativeEvent: { layout: { width, height: 48 } } }); jest.advanceTimersByTime(20); });
+    expect(mockAnnotationRefresh).not.toHaveBeenCalled();
+  }
+  await act(async () => layout(pillSize));
+  await act(async () => tree.unmount());
+  await act(async () => { jest.advanceTimersByTime(1000); });
+  expect(mockAnnotationRefresh).not.toHaveBeenCalled();
 });
 
 test('many pins stay a bounded number of pills; native logo markers cover the remaining public points', async () => {

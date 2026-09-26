@@ -81,6 +81,8 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
 const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
 let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined, scopeKey = 'a:1';
 let relationsPending = false, relationsError = false;
+let tracing = false;
+const nativeTrace = jest.fn();
 const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
   ...own.map(needId => ({ needId, relation: 'OWNER' })),
   ...applied.map(needId => ({ needId, relation: 'APPLIED', applicationId: `application-${needId}`, applicationState: 'SUBMITTED' })),
@@ -92,6 +94,7 @@ const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
+    trace={tracing ? nativeTrace : undefined}
     onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
 }
@@ -145,6 +148,7 @@ const search = async (words: string) => {
   await act(async () => showAction().props.onPress());
 };
 beforeEach(() => {
+  tracing = false; nativeTrace.mockClear();
   mockNativeSheetState.value = 0;
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0;
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -454,6 +458,32 @@ test.each([500, 300])('return clamps a saved offset to the changed measured list
     });
     expect(snapshot.listOffset).toBe(0); // the impossible old target cannot keep suppressing later scroll events
   } finally { jest.useRealTimers(); }
+});
+
+test('diagnostic trace distinguishes rejection, request, acknowledgement, pre-open and post-ack zero without reading event data', async () => {
+  tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await layOutBody(760);
+  await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 96 }, privateText: 'never-log-native' } }));
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'scroll-reject' && call[1] === 96)).toBe(true);
+  await readyList(1200, 400);
+  expect(nativeTrace).toHaveBeenCalledWith('request', 160, 160, 1200, 400);
+  await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 }, privateText: 'never-log-native' } }));
+  expect(nativeTrace).toHaveBeenCalledWith('ack', 160, 160, 160);
+  await tap('Otvori priliku Pomoć a');
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'preopen' && call[1] === 160 && call[2] === 160 && call[4] === 2)).toBe(true);
+  await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } }));
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'scroll0' && call[1] === true && call[2] === true && call[3] === -1 && call[6] === 160)).toBe(true);
+  expect(JSON.stringify(nativeTrace.mock.calls)).not.toMatch(/never-log-native|Pomoć|Beograd|a:1/);
+  expect(nativeTrace.mock.calls.every(call => call.slice(1).every((value: unknown) => typeof value === 'boolean' || typeof value === 'number'))).toBe(true);
+});
+
+test('diagnostic trace names the measured zero clamp separately from a search change', async () => {
+  tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
+  await render(); await readyList(300, 400);
+  expect(nativeTrace).toHaveBeenCalledWith('clamp0', 160, 300, 400, 160);
+  expect(snapshot.listOffset).toBe(0);
+  await search('bb');
+  expect(nativeTrace.mock.calls.some(call => call[0] === 'search-change')).toBe(true);
 });
 
 test('one screen: the map under the tools and the list as its sheet; no Lista/Mapa switch and no "Pogledaj listu"', async () => {

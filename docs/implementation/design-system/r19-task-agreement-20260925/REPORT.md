@@ -52,6 +52,10 @@ Native inspection also found a disappearing discovery sheet after rapid task nav
 
 ## Remaining work, not hidden by this redesign
 
+Third rebuilt source `46c87a38` passed types and 320 suites / 6,266 tests, but its actual emulator replay still
+fails scroll preservation and the selected annotation logo after Back. The panel-return fix remains observed.
+Read NATIVE_REVIEW.native-return.md; passing unit tests never override these two open native observations.
+
 - Known eligibility refusal versus uncertain command outcome; precise allowed blocker explanations and application location/date projection.
 - Server-filtered/cursor/count Discovery parity and bounded publisher projection; Agreement/Home/review aggregates; latest/older chat pages paired with an exact read boundary.
 - Actual incoming messages and OS push delivery/tap; private address, multi-person offers, concurrent selection, changed terms, cancellation/disputes and offline replay acceptance matrices.

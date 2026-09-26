@@ -5,6 +5,7 @@ let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent:
 const mockSource = { otvorenePrilike: (...args: unknown[]) => mockPublic(...args), mojePotrebe: async () => [], mojePrijave: async () => [] };
 const mockApp = { currentState: 'active', addEventListener: () => ({ remove: () => {} }) };
 jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args), replace: (...args: unknown[]) => mockReplace(...args) },
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); } }); });
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));

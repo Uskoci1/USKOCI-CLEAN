@@ -7,8 +7,13 @@ Native-return corrective source: clean types, 320 suites / 6,266 tests; CHECKS.n
 NATIVE_REVIEW records the first APK separately: avatars and source-task/chat navigation observed on emulator;
 all map labels/logos returned on that SAME APK after a normal host-GPU emulator restart. Exact follow-up `cb8ea1b9`
 restores the disappearing sheet, camera and selected task, but exposed lost scroll and a separate rich-pin bitmap issue.
-Read NATIVE_REVIEW.followup and NATIVE_RETURN_REPAIR: corrective source waits for actual native readiness/acknowledgement;
-its own checks and rebuilt APK acceptance are separate. Deep 1,000-row scroll restoration remains unproved. Phone is absent.
+Third exact APK `46c87a38` (36221798008) is installed and STILL FAILS list scroll and selected-logo return.
+Read NATIVE_REVIEW.native-return: full stop survives, chips/offset reset; base-map labels render while the logo is blank.
+Do not call these closed from the 6,266 passing mocks. Next source uses the existing BrandMark vector and a bounded,
+opt-in numeric DEV scroll trace before another restoration change. Deep 1,000-row restoration remains unproved. Phone is absent.
+Vector/diagnostic iteration: clean types, 320 suites / 6,274 tests (CHECKS.vector-diagnostic.json); original native
+BrandMark replaces PNG in rich pins, and confirmed selection feedback moves into the pinned footer. Native acceptance
+is pending for that later source; VECTOR_AND_DIAGNOSTIC records the explicitly opt-in, bounded numeric trace.
 This coherent client package adds short bottom-right capacity, a source-task-led Agreement, contextual chat,
 paged actual task photos, branded map annotations, independent remote filtering and a rising/dimming map list.
 It also bounds optional author enrichment to four concurrent reads/four seconds and repairs JPEG binary reads:

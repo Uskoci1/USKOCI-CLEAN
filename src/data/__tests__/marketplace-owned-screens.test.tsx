@@ -1,12 +1,14 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockMine = jest.fn(), mockPublic = jest.fn(), mockRelations = jest.fn(), mockNavigate = jest.fn();
+let mockTraceParam: unknown, mockPackage = 'rs.uskoci.dev';
+jest.mock('expo-constants', () => ({ __esModule: true, get default() { return { expoConfig: { android: { package: mockPackage } } }; } }));
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 const mockSource = { mojePotrebe: (...args: unknown[]) => mockMine(...args), otvorenePrilike: (...args: unknown[]) => mockPublic(...args),
   odnosiPremaZadacima: (...args: unknown[]) => mockRelations(...args) };
 const mockListeners = new Set<(state: string) => void>();
 const mockApp = { currentState: 'active', addEventListener: (_: string, fn: (state: string) => void) => { mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) }; } };
-jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args) }, useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args) }, useLocalSearchParams: () => ({ discoveryTrace: mockTraceParam }), useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); } }); });
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: jest.fn() }));
@@ -24,8 +26,59 @@ let tree: ReactTestRenderer, Component: typeof Owned;
 const props = () => tree.root.findByType('Marketplace' as React.ElementType).props;
 const render = async () => act(async () => { tree = create(<Component />); });
 const update = async () => act(async () => tree.update(<Component />));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); Component = Public; mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active'; mockMine.mockReset().mockResolvedValue([{ id: 'mine' }]); mockPublic.mockReset().mockResolvedValue([{ id: 'public' }]); mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids)); mockNavigate.mockReset(); });
+const traceEvent = (call: unknown[]) => JSON.parse(String(call[0]).replace(/^\[USKOCI_DISCOVERY_TRACE\] /, ''));
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); mockTraceParam = undefined; mockPackage = 'rs.uskoci.dev'; Component = Public; mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active'; mockMine.mockReset().mockResolvedValue([{ id: 'mine' }]); mockPublic.mockReset().mockResolvedValue([{ id: 'public' }]); mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids)); mockNavigate.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
+
+test.each([
+ ['rs.uskoci.dev', undefined], ['rs.uskoci.dev', '0'], ['rs.uskoci.dev', ['1']],
+ ['rs.uskoci.preview', '1'], ['rs.uskoci', '1'], ['different.dev', '1'],
+])('native trace stays absent for package %s and query %s even in the test DEV runtime', async (pkg, query) => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockPackage = pkg as string; mockTraceParam = query; await render();
+ expect(props().trace).toBeUndefined(); expect(logged).not.toHaveBeenCalled();
+});
+
+test('opted-in DEV trace records accepted and rejected view writes without any task, query or account data', async () => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockTraceParam = '1'; mockPublic.mockResolvedValue([{ id: 'never-log-id', naslov: 'never-log-title' }]); await render();
+ const old = props();
+ await act(async () => old.onView({ ...old.view, query: 'never-log-query', selectedId: 'never-log-selected', listOffset: 160, sheet: 'full' }));
+ mockFocused = false; await update();
+ await act(async () => old.onView({ ...old.view, query: 'never-log-retired', listOffset: 0 }));
+ mockFocused = true; await update();
+ const events = logged.mock.calls.map(traceEvent);
+ expect(events).toEqual(expect.arrayContaining([
+  expect.arrayContaining(['route-trace']), [expect.any(Number), 'route-view', true, 0, 160, 2],
+  [expect.any(Number), 'route-view', false, 160, 0, -1], [expect.any(Number), 'route-focus', 160, 2],
+ ]));
+ expect(props().view.listOffset).toBe(160);
+ expect(JSON.stringify(logged.mock.calls)).not.toMatch(/never-log|account-a|public/);
+ expect(events.every(event => event.slice(2).every((value: unknown) => typeof value === 'boolean' || typeof value === 'number'))).toBe(true);
+});
+
+test('DEV trace rejects unsafe payloads, caps noisy samples and retains room for pre-open and Back before the total cap', async () => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockTraceParam = '1'; await render(); const trace = props().trace;
+ const before = logged.mock.calls.length;
+ for (const values of [['secret'], [{ accountId: 'secret' }], [Infinity], [NaN], Array(21).fill(1)]) trace('preopen', ...values);
+ trace('secret-event', 1); expect(logged).toHaveBeenCalledTimes(before);
+ for (let i = 0; i < 200; i++) trace('scroll', i);
+ const samples = logged.mock.calls.map(traceEvent).filter(event => event[1] === 'scroll');
+ expect(samples).toHaveLength(32);
+ trace('preopen', 160, 160, true, 2); trace('route-blur', 160, 2); trace('route-focus', 160, 2);
+ expect(logged.mock.calls.slice(-3).map(call => traceEvent(call)[1])).toEqual(['preopen', 'route-blur', 'route-focus']);
+ for (let i = 0; i < 200; i++) trace('preopen', i);
+ expect(logged).toHaveBeenCalledTimes(120);
+ expect(logged.mock.calls.every(call => call.length === 1 && String(call[0]).startsWith('[USKOCI_DISCOVERY_TRACE] '))).toBe(true);
+});
+
+test('removing the explicit trace query disables retained diagnostic callbacks', async () => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockTraceParam = '1'; await render(); const oldTrace = props().trace;
+ mockTraceParam = undefined; await update(); logged.mockClear();
+ oldTrace('preopen', 160); expect(props().trace).toBeUndefined(); expect(logged).not.toHaveBeenCalled();
+});
 test.each(['owned', 'public'])('%s uses its existing source read and actual detail route; rapid second tap navigates once', async kind => {
  Component = kind === 'owned' ? Owned : Public; await render(); const item = props().items[0]; await act(async () => { props().onOpen(item); props().onOpen(item); });
  expect(mockNavigate).toHaveBeenCalledTimes(1); expect(mockNavigate).toHaveBeenCalledWith({ pathname: kind === 'owned' ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: item.id } });

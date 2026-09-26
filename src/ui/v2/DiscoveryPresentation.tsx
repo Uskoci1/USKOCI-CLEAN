@@ -30,13 +30,19 @@ import type { TaskCardRelation } from './TaskFace';
 import type { TaskRelationIndex } from '../../data/taskRelation';
 import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 
+/** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
+export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
+  | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
+  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh',
+  ...values: (number | boolean)[]) => void;
+
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
   /** Account-owned answers, only for the IDs the read covered. Missing coverage remains UNKNOWN. */
   relations?: TaskRelationIndex;
   /** These labels do not delay public rows, counts, map fit or the sheet's initial position. */
-  relationsPending?: boolean; relationsError?: boolean };
+  relationsPending?: boolean; relationsError?: boolean; trace?: DiscoveryTrace };
 
 const GAP = sys.space.md;
 /** The tools' lower edge before it has been measured: the search pill's row and one row of chips under it. */
@@ -112,15 +118,18 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
  */
 // Observe the newly mounted sheet's own state, not the previous visit's exported position or a requested index.
 // Gorhom 5.2.14 locks scroll to zero until EXTENDED/FILL_PARENT; issuing scrollToOffset earlier loses the restore.
-function DiscoveryScrollReadiness({ onReady }: { onReady: (ready: boolean) => void }) {
+function DiscoveryScrollReadiness({ onReady }: { onReady: (ready: boolean, state: number) => void }) {
   const { animatedSheetState } = useBottomSheetInternal();
   useAnimatedReaction(() => animatedSheetState.value === SHEET_STATE.EXTENDED || animatedSheetState.value === SHEET_STATE.FILL_PARENT,
-    (ready, previous) => { if (ready !== previous) runOnJS(onReady)(ready); }, [animatedSheetState, onReady]);
+    (ready, previous) => { if (ready !== previous) runOnJS(onReady)(ready, animatedSheetState.value); }, [animatedSheetState, onReady]);
   return null;
 }
 
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
+  const traceRef = useRef(props.trace); traceRef.current = props.trace;
+  const trace = useCallback<DiscoveryTrace>((...args) => traceRef.current?.(...args), []);
+  const traceState = useRef({ scrolled: false, index: -1 });
   const [more, setMore] = useState(false);
   useEffect(() => { setMore(false); }, [props.scopeKey]);
   useEffect(() => { if (!focused) setMore(false); }, [focused]);
@@ -142,16 +151,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const writeOffset = useCallback(() => {
     offsetTimer.current = null;
     const at = Math.round(offset.current);
+    trace('write-offset', latestView.current.listOffset ?? 0, at);
     if (Math.abs((latestView.current.listOffset ?? 0) - at) > 1) change({ listOffset: at });
-  }, [change]);
+  }, [change, trace]);
   // The route hands down a fresh `onOpen` closure on every render (its guards read the latest read); rows get one
   // stable function that calls whatever is current at press time. A scroll that is not written yet is written first:
   // once the task is open, this screen is not in front and the route takes no more changes of its view.
   const openRef = useRef(props.onOpen); openRef.current = props.onOpen;
   const openItem = useCallback((item: MarketplaceItem) => {
+    trace('preopen', latestView.current.listOffset ?? 0, offset.current, traceState.current.scrolled, traceState.current.index, !!offsetTimer.current);
     if (offsetTimer.current) { clearTimeout(offsetTimer.current); writeOffset(); }
     openRef.current(item);
-  }, [writeOffset]);
+  }, [writeOffset, trace]);
 
   // The search panel, opened at "Gde" from the pill and at "Kada" from "Uslovi pretrage".
   const [search, setSearch] = useState<SearchStep | null>(null);
@@ -249,6 +260,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
   const showAll = () => change({ area: null, pinPlace: null });
   const onIndex = (index: number) => {
+    trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
     // not to the requested stop or selected pin restored when the person comes back.
     if (!currentSheet()) return;
@@ -386,12 +398,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const restore = useRef<number | null>(null), restoreTarget = useRef<number | null>(null), restoreAttempted = useRef(false);
   const hasRows = listed.length > 0;
   const restoreVisit = useRef<typeof coverageOwner | null>(null), restoreHadRows = useRef(hasRows);
+  traceState.current = { scrolled, index: sheetIndex };
+  const tracedScroll = useRef<number | null>(null);
+  const tracedRejectedScroll = useRef<string | null>(null);
+  const tracedZero = useRef<string | null>(null);
   // Seed before mounting children: initial native scroll/layout events may precede the parent's effect.
   // A newly empty loading surface must not replace a retained logical offset with its synthetic zero either.
   if (focused && (restoreVisit.current !== coverageOwner || (restoreHadRows.current && !hasRows))) {
     if (restoreVisit.current !== coverageOwner) { listReady.current = false; listHeight.current = 0; }
     restoreVisit.current = coverageOwner;
     const at = latestView.current.listOffset ?? 0;
+    trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolled, sheetIndex);
     offset.current = at; restore.current = at > 0 ? at : null;
     restoreTarget.current = null; restoreAttempted.current = false; contentHeight.current = 0;
   }
@@ -399,46 +416,70 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   restoreHadRows.current = hasRows;
   const tryRestore = useCallback(() => {
     const at = restore.current;
+    if (at !== null) trace('restore-check', currentSheet(), hasRows, listReady.current, at, restoreAttempted.current, !!listRef.current,
+      listHeight.current, contentHeight.current);
     if (!currentSheet() || !hasRows || !listReady.current || at === null || restoreAttempted.current || !listRef.current
       || listHeight.current <= 0 || contentHeight.current <= 0) return;
     const target = Math.min(at, Math.max(0, contentHeight.current - listHeight.current));
     restoreTarget.current = target;
     if (target === 0) {
+      trace('clamp0', at, contentHeight.current, listHeight.current, latestView.current.listOffset ?? 0);
       // The measured current list fits in its window: there can be no offset event to acknowledge.
       restore.current = null; restoreTarget.current = null; offset.current = 0;
       scrolledRef.current = false; setScrolled(false); writeOffset();
       return;
     }
     restoreAttempted.current = true;
+    trace('request', at, target, contentHeight.current, listHeight.current);
     listRef.current.scrollToOffset({ offset: target, animated: false });
-  }, [currentSheet, hasRows, writeOffset]);
-  const receiveListReady = useCallback((ready: boolean) => {
+  }, [currentSheet, hasRows, writeOffset, trace]);
+  const receiveListReady = useCallback((ready: boolean, state: number) => {
+    trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
+      focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner);
     if (!currentSheet()) return;
     listReady.current = ready;
     if (!ready) restoreAttempted.current = false;
     else tryRestore();
-  }, [currentSheet, tryRestore]);
+  }, [currentSheet, tryRestore, trace, position, focused, coverageOwner]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
   // The list's own window at the full height: the sheet there, less its top line.
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
-    if (!currentSheet() || !listReady.current) return;
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
+    if (y === 0) {
+      const values = [currentSheet(), listReady.current, restore.current ?? -1, restoreTarget.current ?? -1,
+        restoreAttempted.current, offset.current, scrolledRef.current, focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner];
+      const signature = values.join(':');
+      if (signature !== tracedZero.current) { tracedZero.current = signature; trace('scroll0', ...values); }
+    } else tracedZero.current = null;
+    if (!currentSheet() || !listReady.current) {
+      const rejected = [Math.floor(y / 64), focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listReady.current].join(':');
+      if (rejected !== tracedRejectedScroll.current) {
+        tracedRejectedScroll.current = rejected;
+        trace('scroll-reject', y, focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listReady.current);
+      }
+      return;
+    }
+    tracedRejectedScroll.current = null;
     // Native mount/layout and locked-scroll resets can emit zero after content was measured. Only the
     // acknowledged target completes restoration; these synthetic events must never overwrite the saved view.
     if (restore.current !== null) {
       if (!listReady.current || !restoreAttempted.current || restoreTarget.current === null || Math.abs(y - restoreTarget.current) > 1) return;
+      trace('ack', y, restore.current, restoreTarget.current);
       restore.current = null; restoreTarget.current = null; restoreAttempted.current = false;
     }
     offset.current = y;
+    if (y > 0 && (tracedScroll.current === null || Math.abs(y - tracedScroll.current) >= 64)) {
+      trace('scroll', y, latestView.current.listOffset ?? 0, scrolledRef.current); tracedScroll.current = y;
+    }
     if (!scrolledRef.current) {
       const { listWindow: frame, chipsRoom: room } = fold.current;
-      if (y > SCROLLED && frame > 0 && contentHeight.current - frame >= room + FOLD_MARGIN) { scrolledRef.current = true; setScrolled(true); }
-    } else if (y <= 0) { scrolledRef.current = false; setScrolled(false); }
+      if (y > SCROLLED && frame > 0 && contentHeight.current - frame >= room + FOLD_MARGIN) { trace('fold', true, y, frame, contentHeight.current, room); scrolledRef.current = true; setScrolled(true); }
+    } else if (y <= 0) { trace('fold', false, y); scrolledRef.current = false; setScrolled(false); }
     if (offsetTimer.current) clearTimeout(offsetTimer.current);
     offsetTimer.current = setTimeout(() => { if (currentSheet()) writeOffset(); }, OFFSET_SETTLE_MS);
-  }, [writeOffset, currentSheet]);
+  }, [writeOffset, currentSheet, trace, focused, coverageOwner]);
   // Opening a row flushes deliberately before navigation; background scroll deliveries and a pending
   // debounce from the retired visit must not overwrite the position restored on the next visit.
   useEffect(() => () => {
@@ -448,27 +489,34 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // list types leave the prop out; it is handed over as the library reads it.
   const scrollProps = { onScroll } as object;
   useEffect(() => {
+    trace(focused ? 'focus' : 'blur', coverageOwner.sequence, latestView.current.listOffset ?? 0, offset.current,
+      traceState.current.scrolled, traceState.current.index, hasRows, loading, error);
     if (!focused) {
       restore.current = null; restoreTarget.current = null; restoreAttempted.current = false; listReady.current = false;
       listHeight.current = 0; contentHeight.current = 0;
     } else tryRestore();
-  }, [hasRows, focused, tryRestore]);
+  }, [hasRows, focused, tryRestore, trace]);
+  useEffect(() => {
+    trace('geometry', bodyHeight, toolsBottom, listTop, peek, chipsRoom, scrolled, sheetIndex, listHeight.current, contentHeight.current);
+  }, [bodyHeight, toolsBottom, listTop, peek, chipsRoom, scrolled, sheetIndex, trace]);
   const onContentSizeChange = (_width: number, height: number) => {
+    trace('content', currentSheet(), height, contentHeight.current, listHeight.current, restore.current ?? -1);
     if (!currentSheet()) return;
     if (contentHeight.current !== height) restoreAttempted.current = false;
     contentHeight.current = height;
     tryRestore();
   };
-  const refreshList = () => { if (currentSheet()) { restore.current = null; props.onRefresh(); } };
+  const refreshList = () => { trace('refresh', currentSheet(), restore.current ?? -1); if (currentSheet()) { restore.current = null; props.onRefresh(); } };
   const searchKey = JSON.stringify([query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace ?? null]);
   const lastSearch = useRef(searchKey);
   useEffect(() => {
     if (lastSearch.current === searchKey) return;
+    trace('search-change', latestView.current.listOffset ?? 0, offset.current, restore.current ?? -1);
     lastSearch.current = searchKey;
     restore.current = null; offset.current = 0; scrolledRef.current = false; setScrolled(false);
     listRef.current?.scrollToOffset?.({ offset: 0, animated: false });
     if ((latestView.current.listOffset ?? 0) !== 0) change({ listOffset: 0 });
-  }, [searchKey, change]);
+  }, [searchKey, change, trace]);
   const folded = expanded && scrolled;
 
   const appear = useAppear();
@@ -609,12 +657,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           extraData={section ? `${section.at}:${section.count}` : ''}
           refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
           onLayout={event => {
+            trace('layout', currentSheet(), event.nativeEvent.layout.height, listHeight.current, contentHeight.current, restore.current ?? -1);
             if (!currentSheet()) return;
             const height = event.nativeEvent.layout.height;
             if (listHeight.current !== height) restoreAttempted.current = false;
             listHeight.current = height; tryRestore();
           }}
-          onScrollBeginDrag={() => { if (currentSheet()) restore.current = null; }}
+          onScrollBeginDrag={() => { trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentSheet()) restore.current = null; }}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
           // The floating "Mapa" stands over the list's end at the full height; the end scrolls clear of it.
           contentContainerStyle={pillShown ? s.listUnderPill : s.list}

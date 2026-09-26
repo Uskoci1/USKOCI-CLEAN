@@ -1,11 +1,12 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import Constants from 'expo-constants';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import { DiscoveryPresentation } from '../../ui/v2/DiscoveryPresentation';
+import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
 
 /**
  * Zadaci, the middle tab: open tasks with this account's relationship labeled (Početna | Zadaci |
@@ -18,19 +19,37 @@ export default function Zadaci() {
   return <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function Discovery() {
+  const params = useLocalSearchParams<{ discoveryTrace?: string }>();
+  // Bounded native diagnosis only: the gallery's package gate, narrowed to this exact DEV package.
+  // No __DEV__ override, persisted flag, UI entry, identifiers, free text or native event objects.
+  const traceEnabled = Constants.expoConfig?.android?.package === 'rs.uskoci.dev' && params.discoveryTrace === '1';
+  const traceGate = useRef(traceEnabled); traceGate.current = traceEnabled;
+  const traceCount = useRef(0);
+  const traceSamples = useRef(0);
+  const trace = useCallback<DiscoveryTrace>((event, ...values) => {
+    if (!traceGate.current || traceCount.current >= 120 || !TRACE_EVENTS.has(event) || values.length > 20
+      || values.some(value => typeof value !== 'boolean' && (typeof value !== 'number' || !Number.isFinite(value)))) return;
+    // A swipe/initial map layout cannot consume the allowance reserved for opening and returning.
+    if (TRACE_SAMPLES.has(event)) { if (traceSamples.current >= 32) return; traceSamples.current++; }
+    const safe = values.map(value => typeof value === 'boolean' ? value : Math.round(Math.max(-10_000_000, Math.min(10_000_000, value)) * 10) / 10);
+    console.info(`[USKOCI_DISCOVERY_TRACE] ${JSON.stringify([++traceCount.current, event, ...safe])}`);
+  }, []);
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
+  const traceView = useRef(view); traceView.current = view;
+  useEffect(() => { if (traceEnabled) trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); }, [traceEnabled, trace]);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
+    trace('route-focus', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
     // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
     // re-renders nothing, so a screen that read it during render kept the token of its FIRST
     // visit: come back to the screen and the guard compared an old token against a new one and
     // refused every press, silently, for the rest of that screen's life.
     setScope(owner);
-    return () => { if (focus.current === owner) focus.current = null; };
-  }, []));
+    return () => { trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); if (focus.current === owner) focus.current = null; };
+  }, [trace]));
   const load = useCallback(async () => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try { return await Promise.race([source.otvorenePrilike(), new Promise<never>((_, reject) => {
@@ -64,6 +83,7 @@ function Discovery() {
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
   const open = (item: MarketplaceItem) => {
     const latest = latestResource.current;
+    trace('route-open', current(), navigating.current, latest.loading, !!latest.error, traceView.current.listOffset ?? 0, traceSheet(traceView.current));
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
     const owned = latestRelations.current.data?.relation(item.id).kind === 'OWNER';
     navigate(() => router.navigate({ pathname: owned ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: item.id } }));
@@ -73,10 +93,17 @@ function Discovery() {
   return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       relationsError={relations.error}
-      onView={next => { if (current()) setView(next); }} onRefresh={() => {
+      trace={traceEnabled ? trace : undefined}
+      onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
         if (current()) { void resource.refresh(true); void relations.refresh(true); }
       }} onOpen={open}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;
 }
+
+const traceSheet = (view: MarketplaceView) => view.sheet === 'full' ? 2 : view.sheet === 'half' ? 1 : view.sheet === 'peek' ? 0 : -1;
+const TRACE_EVENTS = new Set<Parameters<DiscoveryTrace>[0]>(['route-trace', 'route-focus', 'route-blur', 'route-open', 'route-view',
+  'focus', 'blur', 'preopen', 'write-offset', 'seed', 'ready', 'geometry', 'index', 'content', 'layout',
+  'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'fold', 'drag', 'refresh']);
+const TRACE_SAMPLES = new Set<Parameters<DiscoveryTrace>[0]>(['scroll', 'scroll0', 'scroll-reject', 'restore-check', 'content', 'layout', 'geometry']);

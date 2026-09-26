@@ -322,6 +322,15 @@ it('shows the offer without skill labels, then confirms once and opens the exact
   expect(text()).toContain('Jedan izbor sklapa Dogovor'); const choose = confirmChoice();
   await act(async () => { choose(); choose(); }); expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, prijavaVerzija: 2, prijavaHash: k().hash, mesta: 2 });
+  const confirmation = tree!.root.findAll(node => String(node.type) === 'T' && node.props.children === 'Dogovor je sklopljen.');
+  const marks = tree!.root.findAll(node => node.type === SuccessMark);
+  expect(confirmation).toHaveLength(1); expect(marks).toHaveLength(1); expect(marks[0].props.fresh).toBe(true);
+  const footer = tree!.root.findByProps({ testID: 'product-sheet-footer' });
+  expect(footer.findAll(node => node.type === SuccessMark)).toEqual(marks);
+  expect(footer.findAll(node => (String(node.type) === 'T' && node.props.children === 'Dogovor je sklopljen.')
+    || (String(node.type) === 'Press' && node.props.accessibilityLabel === 'Otvori Dogovor'))
+    .map(node => node.props.accessibilityLabel ?? node.props.children)).toEqual(['Dogovor je sklopljen.', 'Otvori Dogovor']);
+  expect(mockRouter.replace).not.toHaveBeenCalled();
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
 });
 // Step 7 (2026-09-24): the offer's one green action asks first, in the app's own confirmation, with the words that always
@@ -379,6 +388,8 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   expect(press('Pogledaj ponudu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj ponudu: Milan')).toBeDefined();
   await tap('Pogledaj ponudu: Ranija ponuda'); expect(text()).toContain('Potrebna nova provera');
   expect(press('Izaberi ovu ponudu')).toBeUndefined(); expect(confirmChoice()).toBeUndefined();
+  expect(text()).not.toContain('Dogovor je sklopljen.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
+  expect(press('Otvori Dogovor')).toBeUndefined();
   // An offer that cannot be chosen says so and carries the refresh it names, instead of ending there.
   expect(press('Osveži prijave')).toBeDefined();
   await closeOffer(); await tap('Pogledaj ponudu: Milan'); await tap('Izaberi ovu ponudu'); await tapConfirm();
@@ -402,7 +413,10 @@ it('after a blocked offer is refreshed away, one press on the list’s back arro
 it('retains exact selection on unknown even when fresh candidate state is SELECTED', async () => {
   mockSelect.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
   await selection(); await tapConfirm();
+  expect(text()).not.toContain('Dogovor je sklopljen.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
+  expect(press('Otvori Dogovor')).toBeUndefined();
   mockCandidates.mockResolvedValue([{ ...k(), stanje: 'SELECTED', mozeIzabrati: false }]); await tap('Proveri ishod');
+  expect(text()).not.toContain('Dogovor je sklopljen.'); expect(press('Otvori Dogovor')).toBeUndefined();
   await tap('Ponovi isti izbor'); expect(mockSelect.mock.calls[1][0]).toEqual(mockSelect.mock.calls[0][0]);
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
 });
@@ -411,6 +425,7 @@ it('selection late write on another account never reveals or opens its Agreement
   await tapConfirm(); mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
   await act(async () => { d.resolve({ ok: true, podatak: { dogovorId: agreement } }); stale(); });
   expect(mockSelect).toHaveBeenCalledTimes(1); expect(press('Otvori Dogovor')).toBeUndefined(); expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(text()).not.toContain('Dogovor je sklopljen.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
 });
 it('same-row callback retained before an explicit refresh cannot select its old revision', async () => {
   await selection(); const stale = confirmChoice();

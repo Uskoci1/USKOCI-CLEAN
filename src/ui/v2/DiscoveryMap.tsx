@@ -48,15 +48,15 @@ const CREDITS = [
 
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
-/** The SDK snapshots Android annotation views before an asynchronously drawn child is necessarily ready. */
+/** Snapshot native vector paths only after the annotation has a measured view in the active rendered map. */
 export function PillAnnotation({ id, point, label, content, urgent, selected, onPress, nativeReady, owns }: {
   id: string; point: { lng: number; lat: number }; label: string; content: PillContent;
   urgent?: boolean; selected?: boolean; onPress?: () => void; nativeReady: boolean; owns: () => boolean;
 }) {
   const annotation = useRef<ViewAnnotationRef>(null), draw = useRef<number | null>(null), alive = useRef(true);
-  const loaded = useRef(false), laidOut = useRef(false), latest = useRef({ nativeReady, owns }); latest.current = { nativeReady, owns };
+  const laidOut = useRef(false), latest = useRef({ nativeReady, owns }); latest.current = { nativeReady, owns };
   useEffect(() => { alive.current = true; return () => { alive.current = false; if (draw.current !== null) cancelAnimationFrame(draw.current); }; }, []);
-  const canDraw = useCallback(() => alive.current && latest.current.owns() && latest.current.nativeReady && loaded.current && laidOut.current && annotation.current !== null, []);
+  const canDraw = useCallback(() => alive.current && latest.current.owns() && latest.current.nativeReady && laidOut.current && annotation.current !== null, []);
   const refreshLogo = useCallback(() => {
     if (draw.current !== null) cancelAnimationFrame(draw.current);
     draw.current = null;
@@ -64,18 +64,17 @@ export function PillAnnotation({ id, point, label, content, urgent, selected, on
     draw.current = requestAnimationFrame(() => { draw.current = null; if (canDraw()) annotation.current?.refresh(); });
   }, [canDraw]);
   const setAnnotation = useCallback((value: ViewAnnotationRef | null) => { annotation.current = value; refreshLogo(); }, [refreshLogo]);
-  const onLogoReady = useCallback(() => { if (!alive.current || !latest.current.owns()) return; loaded.current = true; refreshLogo(); }, [refreshLogo]);
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
     laidOut.current = Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
     refreshLogo();
   }, [refreshLogo]);
-  // A loaded image need not emit onLoad again after a native route detaches/reattaches. Re-entering the rendered
-  // map, or changing the pill's content, refreshes its existing bitmap once all actual child prerequisites hold.
+  // BrandMark's paths draw synchronously into the native snapshot: no image-load event is required or fabricated.
+  // A retained annotation still needs a fresh snapshot after its map reattaches or its displayed terms change.
   useEffect(refreshLogo, [nativeReady, content.text, content.tone, urgent, selected, refreshLogo]);
   return <ViewAnnotation ref={setAnnotation} id={id} lngLat={[point.lng, point.lat]} anchor="center" onPress={onPress}>
     <View collapsable={false} onLayout={onLayout} accessible accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}>
-      <PricePill content={content} urgent={urgent} selected={selected} onReady={onLogoReady} />
+      <PricePill content={content} urgent={urgent} selected={selected} />
     </View>
   </ViewAnnotation>;
 }

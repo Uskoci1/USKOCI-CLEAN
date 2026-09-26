@@ -298,7 +298,14 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
   return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
-    footer={primary || quiet ? () => <View style={s.sheetFooter}>{primary}{quiet}</View> : undefined}>
+    footer={primary || quiet ? () => <View style={s.sheetFooter}>
+      {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
+          confirmed (back from the profile's safety screen), the mark stands still and no haptic plays (review r4 rk
+          item 2; SuccessMark's own contract). Keep this outcome beside its pinned next action even for long offers. */}
+      {confirmed ? <View style={s.done}><SuccessMark fresh={!confirmedAtMount} size={48} />
+        <T accessibilityRole="alert" variant="title" style={[s.ink, s.grow]}>Dogovor je sklopljen.</T></View> : null}
+      {primary}{quiet}
+    </View> : undefined}>
     {() => <View style={s.offerContent}>
       <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
       {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
@@ -325,11 +332,6 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
           owner as labels; what the applicant wants to say is in the message above. */}
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
         <T variant="body" style={s.ink}>{choiceTerms(candidate)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
-      {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
-          confirmed (back from the profile's safety screen), the mark stands still and no haptic plays (review r4 rk
-          item 2; SuccessMark's own contract). */}
-      {confirmed ? <View style={s.done}><SuccessMark fresh={!confirmedAtMount} size={48} />
-        <T accessibilityRole="alert" variant="title" style={[s.ink, s.grow]}>Dogovor je sklopljen.</T></View> : null}
       <ErrorMessage error={error} />
       {confirmation.sheet}
       <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />

@@ -1,8 +1,9 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Lightning } from 'phosphor-react-native';
 import type { PinLabel } from '../../../data/marketplaceView';
 import { T } from '../../Text';
 import { sys } from '../../system/tokens';
+import { BrandMark } from '../../entry/BrandAssets';
 
 /** What a pill on the map shows: one task's price label, or how many tasks share one point. */
 export type PillContent = PinLabel | { text: string; tone: 'count'; spoken: string };
@@ -13,17 +14,16 @@ export type PillContent = PinLabel | { text: string; tone: 'count'; spoken: stri
  * the original two brand colours legible on a selected green capsule. MapLibre draws this view as a bitmap; camera
  * and sheet motion happen outside it, not in dozens of independently animated native annotations.
  */
-export function PricePill({ content, urgent = false, selected = false, onReady }: {
+export function PricePill({ content, urgent = false, selected = false }: {
   content: PillContent; urgent?: boolean; selected?: boolean;
-  /** Android annotations are snapshots: refresh only after this bundled logo has actually loaded. */
-  onReady?: () => void;
 }) {
   const words = content.tone === 'none' ? null : content.text;
   return <View collapsable={false} style={s.frame}>
     <View testID="price-pill" style={[s.pill, !words && s.markOnly, urgent && s.urgent, selected && s.selected]}>
       <View style={s.mark} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Image source={require('../../../../assets/entry-splash-mark.png')} style={s.logo} resizeMode="contain" fadeDuration={0}
-          accessible={false} onLoad={onReady} />
+        {/* Native paths draw into MapLibre's canvas snapshot, including after route reattachment;
+            this exact existing brand mark has no asynchronous image controller to reattach. */}
+        <BrandMark size={30} />
       </View>
       {urgent ? <Lightning size={14} weight="fill" color={selected ? sys.color.onGreen : sys.color.danger} /> : null}
       {words ? <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.text, TONE[content.tone], selected && s.onGreen]}>{words}</T> : null}
@@ -39,7 +39,6 @@ const s = StyleSheet.create({
     shadowColor: sys.color.ink, shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   markOnly: { paddingRight: 4, minWidth: 40 },
   mark: { width: 34, height: 34, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 30, height: 30 },
   urgent: { borderColor: sys.color.danger },
   selected: { backgroundColor: sys.color.green, borderColor: sys.color.green },
   // The meta size (13), set a little tighter so the pill stays a small mark on the map.

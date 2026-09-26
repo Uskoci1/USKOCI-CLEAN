@@ -20,4 +20,11 @@ A rich annotation refresh now requires a live annotation reference, positive chi
 
 Tests exercise six event orderings, re-entry without a second onLoad, retired callbacks and new map ownership. Actual selected/unselected logo pixels after native navigation remain the acceptance criterion. This is distinct from the earlier globally blank emulator renderer, which was corrected on the same old APK using host GPU.
 
-Combined checks passed: clean TypeScript and 320 suites / 6,266 tests, recorded in CHECKS.native-return.json. The pre-existing Jest worker-teardown warning remains; the runner exited zero. No dependency, server, payment, provider, account or business-data change belongs to this repair. Source is frozen for one coherent native build; its acceptance is still separate.
+Combined checks passed: clean TypeScript and 320 suites / 6,266 tests, recorded in CHECKS.native-return.json. The pre-existing Jest worker-teardown warning remains; the runner exited zero. No dependency, server, payment, provider, account or business-data change belongs to this repair.
+
+## Actual rebuilt result
+
+Exact source `46c87a38` / emulator APK run `36221798008` was installed and replayed. BOTH residual cases still fail:
+the list resets to its first task and the selected logo can be blank after Back, while base labels render.
+Read NATIVE_REVIEW.native-return.md and the separately versioned APK/capture receipts. This document describes an
+attempted source repair, not a successful native fix. The next vector/diagnostic source is a separate version.
