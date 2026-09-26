@@ -45,6 +45,10 @@ results are recorded in `R20_NATIVE_ACK_CHECKS.json`:
 - Final integration Jest: **321 suites / 6,505 tests PASS**, exit0,259.714seconds.
   This includes all124 Discovery cases. Existing worker teardown warning remains.
 - Independent narrow review: no remaining actionable ownership/gesture finding.
+- GitHub R20 run [36269127157](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36269127157):
+  SUCCESS; downloaded artifact independently confirms124 focused and321suites /
+  6,505 full tests. Source `bd550c64c10e5f9204aec28ee6997917bd015e8b`, tree
+  `98ef49a996b4766be4612313389f315b9e4fe8b5`.
 - The initial sandboxed full run failed to spawn workers (EPERM); no test pass
   was claimed from that attempt. The authorized process-permission rerun passed.
 
@@ -58,3 +62,9 @@ The inert 1,000-row gallery tests native list behavior, not 1,000 live tasks or
 concurrent users. It does not prove chat, notification delivery, microphone,
 backend query growth, physical-phone or store acceptance. Those remain separate
 control-table rows.
+# Exact APK follow-up
+
+The bd550c64 emulator APK now preserves identical visible rows/bounds across both
+deep detail/Back returns. Initial peek rendering fails, while later full-to-peek
+works. See `R20_NATIVE_BD550C64.md` and the hashed native evidence. This is partial
+native acceptance, not a completed Discovery screen.

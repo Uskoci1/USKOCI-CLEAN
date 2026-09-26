@@ -68,9 +68,20 @@
   },
   "independent_review": "No remaining actionable finding in the bounded native ownership/gesture review; not device acceptance",
   "environment_attempt": "Initial full run could not spawn Jest processes: EPERM, zero test acceptance; rerun with authorized process permissions",
-  "exact_apk_acceptance": "PENDING",
-  "physical_phone": "ADB currently lists two emulators only; owner reported USB attachment, physical device still not visible",
+  "ci": {
+    "run": 36269127157,
+    "result": "SUCCESS",
+    "source": "bd550c64c10e5f9204aec28ee6997917bd015e8b",
+    "tree": "98ef49a996b4766be4612313389f315b9e4fe8b5",
+    "focused_tests": 124,
+    "full_suites": 321,
+    "full_tests": 6505,
+    "artifact_read_back": true
+  },
+  "exact_apk_acceptance": "PARTIAL: two deep returns pass visible rows/bounds; cold peek rendering fails",
+  "physical_phone": "Windows sees HONOR 600 Pro as WPD; ADB still lists two emulators only",
   "server_changed": false,
   "dependencies_changed": false,
-  "provider_called": false
+  "provider_called": false,
+  "native_manifest": "r20-native-bd550c64/MANIFEST.json"
 }

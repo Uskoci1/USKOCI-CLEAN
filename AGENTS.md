@@ -1,5 +1,14 @@
 # USKOČI — repository entry map
 
+CF02 SOURCE / R20 NATIVE UPDATE (2026-09-26): terminal Agreements now retain existing-photo
+recovery without allowing new media/message sends. Read `docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md`
+and CHECKS: types and322suites/6517tests pass; native photo acceptance remains pending.
+The exact bd550c64 APK predates CF02. Its two deep detail/Back returns preserve identical
+row bounds, but cold peek rendering fails; later full-to-peek works. Read
+`R20_NATIVE_BD550C64.md`; do not mark Discovery complete. Phone APK is verified but not
+installed; Windows sees HONOR600Pro as WPD, not yet ADB. No server/dependency/provider
+change or deployment approval is implied. Two A1 neutral-copy literals still await approval.
+
 R20 NATIVE ACK FOLLOW-UP (2026-09-26): the a5ef12bb emulator APK fails its second
 deep detail/Back return despite green CI; do not mark it accepted. Read
 `docs/implementation/release-hardening-20260926/R20_NATIVE_A5EF12BB.md` for the

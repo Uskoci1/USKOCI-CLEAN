@@ -89,6 +89,36 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
   </Press>;
 }
 
+const recoverablePhoto = (receipt: AgreementPhotosController['items'][number]['receipt']) => !receipt
+  || (!receipt.attachedMessageId && receipt.state !== 'CANCELLED' && receipt.state !== 'FAILED');
+/** Closing an Agreement forbids new photos; existing opaque intents still need exact read/cancel recovery. */
+function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosController; capturing: boolean }) {
+  const [showSaved, setShowSaved] = useState(false);
+  const items = photos.items?.filter(item => recoverablePhoto(item.receipt)) ?? [];
+  const saved = photos.saved?.filter(recoverablePhoto) ?? [];
+  if (!items.length && !saved.length && (photos.loaded || !photos.message)) return null;
+  const busy = photos.busy || capturing;
+  return <View style={s.details} testID="agreement-terminal-photo-recovery">
+    <T variant="bodyStrong">Pripremljene fotografije</T>
+    {photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
+    <ChatAction label="Osveži fotografije poruke" text="Proveri fotografije" refresh busy={busy} onPress={() => { void photos.refresh(); }} />
+    {items.map((item, index) => <View key={item.ref.clientRequestId} style={s.details}>
+      <T variant="meta">{`Fotografija ${index + 1}`}</T>
+      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poruku. Prvo proveri ishod njenog slanja.</T> : <>
+        <T variant="meta" tone="muted">{item.receipt?.state === 'READY' ? 'Fotografija nije pridružena poruci.' : 'Ishod fotografije još nije potvrđen.'}</T>
+        <ChatAction label={`Ukloni pripremljenu fotografiju ${index + 1}`} text="Ukloni fotografiju" busy={busy}
+          onPress={() => { void photos.remove(item.ref); }} />
+      </>}
+    </View>)}
+    {saved.length ? <>
+      <ChatAction label="Prikaži ranije pripremljene fotografije" busy={busy} onPress={() => setShowSaved(old => !old)} />
+      {showSaved ? saved.map((upload, index) => <ChatAction key={upload.clientRequestId}
+        label={`Prikaži ranije pripremljenu fotografiju ${index + 1}`} text={`Fotografija ${index + 1} · Prikaži za uklanjanje`}
+        busy={busy || photos.items.length >= 6} onPress={() => { void photos.restore(upload.clientRequestId); }} />) : null}
+    </> : null}
+  </View>;
+}
+
 /**
  * The Dogovor keeps its human speakers distinct: nuanced white incoming messages and forest-green outgoing messages,
  * with readable clocks and a day named once. Writing uses the full composer width; photo and send controls have their
@@ -141,7 +171,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     if (userScrolling.current) readUserPosition(event);
   };
   const previousOutgoing = useRef(new Set<string>());
-  const source = useRef({ messages, support, loading, error, photos }); source.current = { messages, support, loading, error, photos };
+  const source = useRef({ messages, support, loading, error, photos, terminal, writable }); source.current = { messages, support, loading, error, photos, terminal, writable };
   const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
     && !source.current.loading && !source.current.error && support.canAct();
   const outgoingIds = state.entries.map(entry => entry.command.clientMessageId).join('|');
@@ -157,6 +187,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const canSend = ready && writable && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
   const send = () => {
+    if (source.current.terminal || !source.current.writable) return;
     const currentPhotos = source.current.photos;
     if (currentPhotos && !currentPhotos.canSubmit()) return;
     const attachments = currentPhotos?.capture();
@@ -313,14 +344,13 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       {state.error || state.phase === 'error' || terminal || !writable || denied || length > 2000 || photoPanel ? <View testID="agreement-chat-details" style={s.details}>
         {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
         {state.phase === 'error' ? <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} /> : null}
-        {/* A closed Dogovor keeps its conversation to read; the composer, the photo tools and the refresh helper
-            used to stay under it, a third of the screen with nothing to do (emulator, 2026-09-23). One line remains.
-            It says "zatvoren", which is true of a finished and of a cancelled Dogovor alike. */}
+        {/* A closed Dogovor keeps its history and existing-photo recovery, without a new-message/photo composer. */}
         {terminal ? <T variant="meta" tone="muted" style={s.centerText}>Dogovor je zatvoren · poruke su samo za čitanje.</T> : null}
         {!terminal && !writable ? <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}
         {!terminal && (!writable || denied) ? <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
         {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
+        {photos && terminal ? <TerminalPhotoRecovery photos={photos} capturing={state.capturing} /> : null}
       </View> : null}
       </ScrollView>
       {showLatest ? <View style={s.latestRow}>
