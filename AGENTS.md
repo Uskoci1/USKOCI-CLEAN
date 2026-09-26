@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+SERVER APPLY (2026-09-26): media drift is applied and source-verified; `uskoci-media` is v13 and now contains `MEDIA_COMMAND_CANCELLED`. Historical push backlog was retired without provider IO: CREATED/unstarted 10→0, PUSH_OFF suppressed 30→40, attempts 0, active devices 0. Temporary maintenance v15 was removed immediately; live `uskoci-push-transport` is canonical GitHub v16. Read `docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md`. Real push/device delivery remains unproved.
+
 R18 STORAGE INTEGRITY CLIENT CI PASS (2026-09-26): read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and matching CHECKS. Reset now awaits durable retirement; double/late callbacks cannot release or erase another intent; same-key changed payload is rejected. Failing-before/passing-after tests and full Jest are recorded. Device/APK remains pending. No DEV/Edge/provider/push change; fresh DEV read was tool-blocked.
 
 R18 REFUSAL RECOVERY CLIENT CI PASS (2026-09-26): tested source 348c2ec6ac0d3afe2e51e5a15e7620b023646ca5; read

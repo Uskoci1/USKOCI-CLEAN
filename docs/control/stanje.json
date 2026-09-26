@@ -1,11 +1,11 @@
 {
  "meta": {
-  "osvezeno": "2026-09-26T12:39:04Z",
+  "osvezeno": "2026-09-26T12:56:30Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "757f7224",
-  "head_poruka": "Verify the requested APK and record its exact build evidence",
+  "head": "2d4685ba",
+  "head_poruka": "Record exact storage checkpoint APK and retain device-pending status",
   "server": {
-   "snimljeno": "2026-09-24T20:24:30Z",
+   "snimljeno": "2026-09-26T12:56:30Z",
    "migracije": 202,
    "dev_alpha": 55,
    "poslednja": "dev_alpha_pkg051a_platform_price_list",
@@ -67,12 +67,12 @@
     },
     {
      "slug": "uskoci-push-transport",
-     "version": 14,
+     "version": 16,
      "verify_jwt": false
     },
     {
      "slug": "uskoci-media",
-     "version": 12,
+     "version": 13,
      "verify_jwt": true
     },
     {
@@ -3284,8 +3284,8 @@
     "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Sveža provera 26.09: trenutni R19 phone APK je razvojni `rs.uskoci.dev`; build workflow ga namerno pravi tim applicationId-om, a app.config za svaki paket osim `rs.uskoci.preview` uklanja preview `googleServicesFile`. `nativePushDevice` tada ne može pouzdano da dobije Expo token i vraća UNCONFIGURED kada provider nije inicijalizovan. DEV trenutno ima jedan Android zapis uređaja i on je neaktivan; stvarna registracija na ovom APK-u nije dokazana.",
-   "sledece": "Release-hardening 26.09: ne koristiti sadašnji R19 DEV APK kao push dokaz. Pre stvarnog testa napraviti namenski push-capable proof build sa applicationId-om koji ima odgovarajući Firebase client, instalirati ga na vlasnikov telefon, eksplicitno odobriti dozvolu i zahtevati token, zatim read-back-om dokazati tačno jedan aktivan session-bound uređaj. Server transport ostaje ugašen dok se stari backlog bezbedno ne zatvori. Dokaz: docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md. F01 je ispravljen i testiran: Proveri stanje ostaje dostupno posle greške, dok izmene ostaju zaključane kada ishod nije poznat. Slede telefon i stvarna registracija/dozvole; proveriti sve prekide.",
+   "problem": "26.09 posle primene: stari server backlog više nije prepreka (0 CREATED/unstarted, 0 attempts), ali nema nijednog aktivnog push uređaja. Trenutni `rs.uskoci.dev` APK i dalje nije push-proof build sa odgovarajućim Firebase clientom; stvarna registracija/token/dozvola nisu dokazani.",
+   "sledece": "Za stvarni test napraviti namenski push-capable proof build, instalirati ga na vlasnikov telefon, eksplicitno odobriti obaveštenja i read-back-om dokazati tačno jedan aktivan session-bound Android uređaj. Ne ponavljati backlog čišćenje. Dokaz server preflight/apply: docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md. Release-hardening 26.09: ne koristiti sadašnji R19 DEV APK kao push dokaz. Pre stvarnog testa napraviti namenski push-capable proof build sa applicationId-om koji ima odgovarajući Firebase client, instalirati ga na vlasnikov telefon, eksplicitno odobriti dozvolu i zahtevati token, zatim read-back-om dokazati tačno jedan aktivan session-bound uređaj. Server transport ostaje ugašen dok se stari backlog bezbedno ne zatvori. Dokaz: docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md. F01 je ispravljen i testiran: Proveri stanje ostaje dostupno posle greške, dok izmene ostaju zaključane kada ishod nije poznat. Slede telefon i stvarna registracija/dozvole; proveriti sve prekide.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3347,8 +3347,8 @@
    },
    "note": {},
    "telefon_dokaz": "",
-   "problem": "26.09 11:55 UTC: svih 10 čekajućih PUSH poruka cilja REQUESTER, bez preference reda za tu ulogu i bez aktivnog uređaja. Prethodni account-wide push_enabled=true nije dokaz saglasnosti za REQUESTER. Efektivno isključen transport ostaje zaključak iz koda/efekata, ne direktno pročitana env vrednost. Stvarna dostava nije dokazana.",
-   "sledece": "Pratiti CODEX_HANDOFF.md i PUSH_ROLE_RECHECK.json. Najpre read-only dokazati tačan task/profile/event/recipient-role put. Za stvarnu probu pripremiti dokazivo ograničenje account/device/event i max jedan send, bez globalnog prozora i čišćenja tuđeg reda. Svaka primena, registracija i realan test čekaju posebno primeni. Dokumenti: docs/implementation/release-hardening-20260926/",
+   "problem": "26.09 posle odobrene primene: 10 starih REQUESTER PUSH redova koji nisu imali role-context opt-in zatvoreni su kao PUSH_OFF; CREATED/unstarted=0, attempts=0, active devices=0, readiness=0. Živi transport je vraćen na canonical GitHub v16. Zato više nema starog reda koji bi slučajno krenuo, ali nema ni dokaza stvarne provider/telefon isporuke.",
+   "sledece": "Sledeći push paket je samo jedan vlasnikov uređaj + jedan odobren događaj. Pre slanja ponovo dokazati backlog=0, tačno jedan aktivan device i tačan recipient role; zatim jedan delivery→attempt→Expo ticket/receipt→lock-screen/tap. Bez masovnog slanja. Dokaz: docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5237,8 +5237,8 @@
    "id": "B03",
    "oblast": "Slike",
    "nalaz_16_09": "rpc_cancel_media_upload ne postoji",
-   "sada": "DELIMIČNO, тачно разграничено 26.09: PKG-046a RPC је на DEV-у. GitHub `uskoci-media` (blob 544a5d26…) и живи Edge v12 разликују се у тачно једној линији: GitHub safeCodes има `MEDIA_COMMAND_CANCELLED`, v12 га нема; shared sanitizer је идентичан. Клијент има експлицитан regression test и исти media blob је био у full Jest pass-у. Исправка је СПРЕМНА ЗА ПРИМЕНУ, али Edge није deploy-ован без `примени`. RC-02 concurrency/lock-order и whole-flow acceptance остају отворени.",
-   "dokaz": "docs/implementation/release-hardening-20260926/MEDIA_PUSH_PREFLIGHT.md"
+   "sada": "PRIMENJENO 26.09: `uskoci-media` je sada Edge v13, ACTIVE, verify_jwt=true. Objavljeni entrypoint je byte-for-byte isti kao GitHub blob 544a5d26… i sadrži `MEDIA_COMMAND_CANCELLED`; shared sanitizer je takođe identičan. Ovim je zatvoren samo potvrđeni GitHub↔Edge drift. RC-02 concurrency/lock-order, interrupted recovery i whole-flow/device acceptance ostaju otvoreni.",
+   "dokaz": "docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md"
   },
   {
    "id": "B04",
@@ -5286,8 +5286,8 @@
    "id": "B10",
    "oblast": "Obaveštenja",
    "nalaz_16_09": "0 poslatih",
-   "sada": "OTVORENO, ispravljen nalaz 26.09: 10 REQUESTER delivery redova nema odgovarajuću saglasnost po ulozi; 0 aktivnih uređaja. Nema dokaza isporuke. Flag transporta nije direktno očitan. Stari globalni tick/prozor nije bezbedan scenario jednog push-a; povučen u novoj predaji.",
-   "dokaz": "docs/implementation/release-hardening-20260926/PUSH_ROLE_RECHECK.json"
+   "sada": "DELIMIČNO ZATVORENO 26.09: stari push backlog je bez provider slanja povučen sa 10 CREATED/unstarted na 0 kroz postojeći canonical `rpc_claim_push_transport` suppression put dok je bilo 0 aktivnih uređaja. SUPPRESSED/PUSH_OFF je porastao 30→40, push attempts ostaju 0. Privremena maintenance Edge v15 je odmah povučena; živi `uskoci-push-transport` je ponovo čisti GitHub kod, v16, ACTIVE, verify_jwt=false. Stvarna Expo/FCM/APNs i lock-screen dostava NIJE dokazana.",
+   "dokaz": "docs/implementation/release-hardening-20260926/MEDIA_PUSH_APPLY.md"
   },
   {
    "id": "B11",
@@ -5400,8 +5400,8 @@
   },
   {
    "uslov": "FCM / Expo ključevi",
-   "stanje_16_09": "UZROK POTVRĐEN; END-TO-END NIJE DOKAZAN",
-   "treba": "Namenski push-capable Android proof build + jedan aktivan session-bound uređaj; backlog-safe aktivacija transporta; jedan odobren događaj; provider ticket/receipt; stvarni lock-screen prijem i tap. Ne uključivati globalno dok 10 starih unstarted PUSH redova nije bezbedno rešeno."
+   "stanje_16_09": "BACKLOG BEZBEDNO ZATVOREN; END-TO-END NIJE DOKAZAN",
+   "treba": "Namenski push-capable Android proof build + tačno jedan aktivan session-bound uređaj i jedan odobren događaj. Stari backlog je 0 i ne treba ga ponovo čistiti. Dokazati provider ticket/receipt, lock-screen prijem i warm/cold tap; bez masovnog slanja."
   },
   {
    "uslov": "iOS oznaka aplikacije",
