@@ -30,3 +30,24 @@ Before this consolidated package, 8 focused suites / 401 tests passed. An earlie
 Final consolidated verification: TypeScript PASS; all 323 Jest suites / 6,526 tests PASS (307.448 seconds, exit 0). Existing worker teardown warning remains. `CHECKS.json` records source-file hashes and the raw result digest. The inert Agreement gallery now mirrors task link / next step / accepted terms. Exact APK/native review is the next gate.
 
 Control publication: local state regenerated; the authenticated artifact still displays 2026-09-24 after the browser file chooser timed out. Remote upload is not claimed.
+
+## First exact native build — f817336d
+
+GitHub run 36276992515 built the x86_64 APK from f817336d4536a126465e3562c4efc200cf9c3f1a (tree 3a87f981f1098e109e6cf6902e3efa9ed6115a4e). Recovery/icon attestations passed. SHA-256: 7e45bf07afc835ebadee7bf718cc65493455a5a122f70470fd1ace5eceaa3034. Installed with adb install -r on emulator-5556; installed base.apk matched. No physical phone was connected.
+
+Observed in inert native galleries using the real presentation components:
+- Distinct task cards and a short task count render in the full Discovery list.
+- Agreement task card precedes the next step and accepted terms.
+- Ready AI draft has one review action; with the Android keyboard open both the review action and composer remain reachable. This is layout evidence, not a provider conversation. The ready fixture's unrelated example text was corrected in the follow-up source.
+- **FAIL:** Cold Discovery entry has no visible peek header. Native reports index 0 at 724.2 dp; screenshot and UI hierarchy have no sheet header. Opening a filter renders the full list. The first native mount/draw path is under investigation; coordinates alone do not prove its cause.
+- Deep return twice is not accepted: rapid scripted swipes entered a sample detail, so that attempt was discarded. A slower controlled run is required.
+
+Local evidence root: outputs/r21-native-20260927 (APK.emulator.json, new-cold-map-settled, new-agreement, new-ai-keyboard-settled). Captures after new-return-first dump the idle UI hierarchy before taking the image; earlier captures may show a transition and are not treated as settled comparisons.
+
+## Native follow-up source
+
+The first sheet mount now uses its calculated initial detent and Gorhom mount animation; retained keyed remounts retain the earlier behavior. This is a bounded response to the observed cold-draw failure, not yet a verified native fix. Reduced motion still passes duration 0. The ready AI gallery fixture now has consistent translation-task text.
+
+TypeScript passes. The follow-up full run completed with 322/323 suites and 6,526/6,527 tests passing; one unchanged Firebase config child process returned null status. Its isolated retry passed all 13 tests without any code/config change. Focused Discovery: 130/130. Do not describe that full invocation as green.
+
+A subsequent controlled run on the first f817336d APK did verify two consecutive returns from local task 10/1000, without intervening scroll: visible rows 9–12 and their bounds match exactly (e.g. task 10 [56,759][1026,1404]). Evidence: r21-deep-baseline-3, r21-deep-detail-1-settled, r21-deep-back-1, r21-deep-detail-2-settled, r21-deep-back-2. This replaces the discarded rapid-swipe attempt only for the first APK. It does not accept the cold header or certify performance/real server load.

@@ -30,11 +30,11 @@ function MapBackdrop({ animatedIndex, style, topInset }: BottomSheetBackdropProp
  * screen ends where the tab bar begins, so the sheet never slides under the bar and the bar shows at every height. Under
  * reduced motion it changes height at once.
  */
-export function DiscoveryListSheet({ index, snapPoints, position, reduced, onIndex, onAnimate, header, sunk = false,
+export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false,
   mapVisible = false, topInset = 0, children }: {
   index: number; snapPoints: readonly (number | string)[];
   /** Where the sheet's top edge is, for the map's controls that ride on it. */ position?: SharedValue<number>;
-  reduced: boolean; onIndex: (index: number) => void;
+  reduced: boolean; animateOnMount?: boolean; onIndex: (index: number) => void;
   /** Native spring start; used only to decide whether a focus return can safely retain this exact mount. */
   onAnimate?: (fromIndex: number, toIndex: number) => void;
   /** Map-only backdrop; the search header is never dimmed. */ mapVisible?: boolean; topInset?: number;
@@ -44,7 +44,7 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, onInd
 }) {
   const backdrop = useCallback((props: BottomSheetBackdropProps) => <MapBackdrop {...props} topInset={topInset} />, [topInset]);
   return <BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
-    animateOnMount={false} animatedPosition={position} onAnimate={onAnimate} onChange={next => { if (next >= 0) onIndex(next); }}
+    animateOnMount={animateOnMount} animatedPosition={position} onAnimate={onAnimate} onChange={next => { if (next >= 0) onIndex(next); }}
     backdropComponent={mapVisible && !sunk ? backdrop : undefined}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING} handleComponent={null} backgroundComponent={sunk ? SunkBackground : ListBackground}
     accessible={false} accessibilityRole="none" accessibilityLabel={sunk ? null : 'Lista zadataka'}

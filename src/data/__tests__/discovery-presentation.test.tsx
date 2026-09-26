@@ -1166,6 +1166,18 @@ test.each([
   expect(listSheet().props.index).toBe(index);
 });
 
+test('a ready map mounts at its actual peek detent and animates the first native draw', async () => {
+  tracing = true;
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+  await render();
+  expect(nativeTrace.mock.calls.find(call => call[0] === 'seed')?.at(-1)).toBe(0);
+  expect(listSheet().props).toMatchObject({ index: 0, animateOnMount: true });
+  expect(snapshot.sheet).toBe('peek');
+  await layOutBody();
+  expect(listSheet().props.animateOnMount).toBe(true);
+  expect(countLine().props.accessibilityLabel).toBe('6 zadataka');
+});
+
 test('while reading, the sheet is half open over breathing placeholders; the start is chosen once the read lands', async () => {
   loading = true; rows = []; await render();
   expect(listSheet().props.index).toBe(1); expect(texts()).toContain('Učitavamo zadatke…');

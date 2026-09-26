@@ -279,7 +279,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const readiness: SearchReadiness = loading ? 'loading' : error ? 'error' : 'ready';
 
   // Where the sheet rests is remembered in the route's view; a view that has one is where the sheet starts again.
-  const [sheet, applySheet] = useState(() => ({ index: view.sheet ? INDEX[view.sheet] as number : SNAP.half, sequence: 0, pending: false }));
+  // A ready cold screen must give native its actual first detent at mount. Previously it mounted at half, then the
+  // effect requested peek before Android had drawn the sheet; native reported index 0 while its header stayed absent.
+  const [sheet, applySheet] = useState(() => ({ index: view.sheet ? INDEX[view.sheet] as number
+    : !loading && !error ? INDEX[discoveryStartSnap(mapped.length, mappedWithoutPin)] as number : SNAP.half,
+  sequence: 0, pending: false }));
   const sheetIndex = sheet.index, sheetCommand = useRef(sheet);
   const setSheetIndex = useCallback((index: number) => {
     if (sheetCommand.current.index === index) return;
@@ -900,6 +904,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
+        animateOnMount={nativeMountKey === 1}
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
