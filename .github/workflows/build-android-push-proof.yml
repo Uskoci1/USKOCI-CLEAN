@@ -17,9 +17,7 @@ env:
   EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
   EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
   EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
-  USKOCI_PUSH_PROOF_BUILD: '1'
   CI: '1'
-  NODE_ENV: production
 
 jobs:
   android-push-proof:
@@ -60,6 +58,9 @@ jobs:
           NODE
 
       - name: Resolve exact preview identity for the proof
+        env:
+          USKOCI_PUSH_PROOF_BUILD: '1'
+          NODE_ENV: production
         run: |
           node <<'NODE'
           const fs=require('fs');
@@ -80,6 +81,9 @@ jobs:
           NODE
 
       - name: Generate native Android project
+        env:
+          USKOCI_PUSH_PROOF_BUILD: '1'
+          NODE_ENV: production
         run: npx expo prebuild --platform android --clean
 
       - name: Verify generated Firebase enrollment inputs
