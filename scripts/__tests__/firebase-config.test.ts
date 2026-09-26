@@ -11,7 +11,7 @@ const enrollmentPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
 const temporary = path.join(root, '.expo');
 const fixtures: string[] = [];
 
-function resolvePackage(packageName: string, extraEnv: NodeJS.ProcessEnv = {}) {
+function resolvePackage(packageName: string, extraEnv: Record<string, string | undefined> = {}) {
   fs.mkdirSync(temporary, { recursive: true });
   const fixture = fs.mkdtempSync(path.join(temporary, 'firebase-config-'));
   fixtures.push(fixture);
