@@ -1,5 +1,15 @@
 # USKOČI — repository entry map
 
+R19 MEASURED VIEWPORT / CLIENT GUARDS (2026-09-26): native source ba3f7dc3 / run 36223769011
+now renders the selected vector brand after detail/Back and keeps selection success visible at font 1 and 1.3
+(inert native gallery). Read NATIVE_REVIEW.vector-diagnostic. Scroll still fails on that APK: numeric events
+49–64 prove saved 313 dp is erased by an impossible 2611.4 dp viewport inside a 767 dp body.
+Next source bounds restore geometry, adds consequence confirmation before blocking and expected-profile avatar
+discard receipt checks, plus an inert DEV-only 1/1,000-row gallery. Types and 321 suites / 6,313 tests pass;
+CHECKS.client-guards-viewport preserves the first currency-format guard failure and the corrected full run.
+CLIENT_GUARDS_AND_VIEWPORT records scope; a later APK must prove the viewport correction. No backend, payments,
+dependencies or paid AI. Phone remains absent. Do not infer native or store acceptance from passing mocks.
+
 R19 TASK / AGREEMENT / MEDIA (2026-09-25): read
 `docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md` and the versioned CHECKS/RECEIPT when present.
 Follow-up checks: clean types, 320 suites / 6,255 tests; CHECKS.followup.json preserves the earlier fixture-type failure.

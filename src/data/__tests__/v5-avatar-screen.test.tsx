@@ -74,8 +74,30 @@ it('retires a definitively rejected staged upload and never offers to apply it',
 it('retires the staged choice without applying it and prevents a retained apply callback', async () => {
   await render(); await act(async () => action('Izaberi iz galerije').onPress()); const apply = action('Sačuvaj fotografiju').onPress;
   await act(async () => action('Odustani od izabrane fotografije').onPress());
-  expect(mockDiscard).toHaveBeenCalledWith(ASSET); expect(mockJournal.size).toBe(0);
+  expect(mockDiscard).toHaveBeenCalledWith({ assetId: ASSET, profileId: PROFILE }); expect(mockJournal.size).toBe(0);
   await act(async () => apply()); expect(mockApply).not.toHaveBeenCalled();
+});
+it.each(['MEDIA_INVALID_RESPONSE', 'MEDIA_UNCONFIRMED'])('retains a %s discard journal and retries the same asset and expected profile only after a read', async code => {
+  mockDiscard.mockResolvedValueOnce({ ok: false, kod: code, poruka: 'Potvrda radnje nije stigla cela. Osveži prikaz pre ponovnog pokušaja.' });
+  await render(); await act(async () => action('Izaberi iz galerije').onPress());
+  await act(async () => action('Odustani od izabrane fotografije').onPress());
+  const stored = mockJournal.get(journalKey);
+  expect(JSON.parse(stored!)).toEqual({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  expect(mockDiscard.mock.calls).toEqual([[{ assetId: ASSET, profileId: PROFILE }]]);
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Ponovi istu promenu' })).toHaveLength(0);
+  await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(mockJournal.get(journalKey)).toBe(stored); expect(mockDiscard).toHaveBeenCalledTimes(1);
+  await act(async () => action('Ponovi istu promenu').onPress());
+  expect(mockDiscard.mock.calls[1][0]).toEqual(mockDiscard.mock.calls[0][0]);
+  expect(mockJournal.size).toBe(0); expect(mockUpload).toHaveBeenCalledTimes(1); expect(mockApply).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+});
+it('restores a pending discard in its profile journal without another upload or automatic discard', async () => {
+  const stored = JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  mockJournal.set(journalKey, stored); await render();
+  expect(mockJournal.get(journalKey)).toBe(stored); expect(mockDiscard).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
+  await act(async () => action('Ponovi istu promenu').onPress());
+  expect(mockDiscard.mock.calls).toEqual([[{ assetId: ASSET, profileId: PROFILE }]]); expect(mockJournal.size).toBe(0);
 });
 it('does not send pixels when opaque intent persistence fails', async () => {
   mockSet.mockRejectedValue(new Error('unavailable')); await render();

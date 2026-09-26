@@ -12,6 +12,7 @@ import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from
 import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { sys } from '../system/tokens';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 import { vreme } from '../../lib/vreme';
 
 const safetyCategoryCopy: Record<SafetyCategory, string> = {
@@ -19,28 +20,64 @@ const safetyCategoryCopy: Record<SafetyCategory, string> = {
 };
 type Context = { targetAccountId: string; needId: string | null; agreementId: string | null };
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
+const blockConsequence = 'Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.';
 
 export function SafetyScreen(p: Context) {
-  const read = useCallback(() => safetyClientService.readBlock(p.targetAccountId), [p.targetAccountId]);
-  const editor = useOwnedEditor(read), blockCommand = useRef<{ revision: number; blocked: boolean; id: string } | null>(null);
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
+  const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
+  const questionGeneration = useRef(0);
+  const [, redrawQuestion] = useState(0);
+  const retireConfirmation = useCallback(() => {
+    questionGeneration.current++; closeConfirmation(); redrawQuestion(value => value + 1);
+  }, [closeConfirmation]);
+  const read = useCallback(() => { retireConfirmation(); return safetyClientService.readBlock(p.targetAccountId); }, [p.targetAccountId, retireConfirmation]);
+  const editor = useOwnedEditor(read), blockCommand = useRef<{
+    accountId: string; accountRevision: number; targetAccountId: string; revision: number; blocked: boolean; id: string;
+  } | null>(null);
+  // A question belongs to the account, context and read that displayed it, including when the screen is retained on blur.
+  useFocusEffect(useCallback(() => () => retireConfirmation(),
+    [accountId, accountRevision, p.targetAccountId, p.needId, p.agreementId, retireConfirmation]));
+  const renderedGeneration = questionGeneration.current;
+  const currentChoice = () => questionGeneration.current === renderedGeneration && !!accountId &&
+    sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision &&
+    !!editor.data && editor.data.accountId === accountId && editor.data.targetAccountId === p.targetAccountId &&
+    !editor.loading && !editor.busy && !editor.uncertain;
+  const retainedCommand = () => {
+    const command = blockCommand.current;
+    return command && command.accountId === accountId && command.accountRevision === accountRevision &&
+      command.targetAccountId === p.targetAccountId && command.revision === editor.data?.revision ? command : null;
+  };
+  const changeBlock = () => {
+    if (!currentChoice()) return;
+    const value = editor.data!;
+    return editor.save(() => {
+      const c = retainedCommand() ?? { accountId: accountId!, accountRevision, targetAccountId: p.targetAccountId,
+        revision: value.revision, blocked: !value.blocked, id: noviUuidZahtevId() };
+      blockCommand.current = c;
+      return safetyClientService.setBlock({ targetAccountId: p.targetAccountId, blocked: c.blocked,
+        expectedRevision: c.revision, clientRequestId: c.id });
+    });
+  };
+  const askBlock = () => {
+    if (!currentChoice()) return;
+    // A reconciled retry keeps the already confirmed exact command; it is not a new block choice.
+    if (editor.data!.blocked || retainedCommand()) { void changeBlock(); return; }
+    confirmation.ask({ title: 'Blokirati korisnika?', message: blockConsequence, confirmLabel: 'Blokiraj korisnika',
+      tone: 'danger', onConfirm: changeBlock });
+  };
   return <SettingsScreen title="Bezbednost" onBack={back}>
     <T tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
     <SettingsPanel>
       <T variant="heading">Kontakt sa korisnikom</T>
-      <T>Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.</T>
+      <T>{blockConsequence}</T>
       <T variant="meta" tone="muted">Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.</T>
       {editor.loading ? <T>Proveravamo blokiranje…</T> : null}
       {editor.error ? <T tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
       {editor.data ? <>
         <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Korisnik je blokiran.' : 'Korisnik nije blokiran.'}</T>
         <SettingsAction label={editor.busy ? 'Čuvam izbor…' : editor.data.blocked ? 'Odblokiraj korisnika' : 'Blokiraj korisnika'}
-          kind={editor.data.blocked ? 'secondary' : 'destructive'} disabled={editor.busy || editor.uncertain}
-          onPress={() => { const value = editor.data!;
-            if (!blockCommand.current || blockCommand.current.revision !== value.revision)
-              blockCommand.current = { revision: value.revision, blocked: !value.blocked, id: noviUuidZahtevId() };
-            const c = blockCommand.current;
-            void editor.save(() => safetyClientService.setBlock({ targetAccountId: p.targetAccountId, blocked: c.blocked,
-              expectedRevision: c.revision, clientRequestId: c.id })); }} />
+          kind={editor.data.blocked ? 'secondary' : 'destructive'} disabled={editor.loading || editor.busy || editor.uncertain}
+          onPress={askBlock} />
       </> : null}
       {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
     </SettingsPanel>
@@ -54,6 +91,7 @@ export function SafetyScreen(p: Context) {
       <SettingsAction label="Otvori zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
     </SettingsPanel>
+    {confirmation.sheet}
   </SettingsScreen>;
 }
 

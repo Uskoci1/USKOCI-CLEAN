@@ -150,11 +150,11 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     }));
   };
   const discard = async () => {
-    if (!canAct() || !candidate || candidate.state !== 'READY' || intent.current?.phase !== 'UPLOAD') return;
+    if (!canAct() || !profileId || !candidate || candidate.state !== 'READY' || intent.current?.phase !== 'UPLOAD') return;
     const next: Intent = { phase: 'DISCARD', requestId: candidate.clientRequestId, assetId: candidate.assetId, expectedPath: null };
     await track('DISCARD', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
-      const result = await mediaClientService.discardAvatar(candidate.assetId);
+      const result = await mediaClientService.discardAvatar({ assetId: candidate.assetId, profileId });
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
     }));
   };
@@ -165,7 +165,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
       if (command.phase === 'UPLOAD') return bytes.current && readAttempted.current ? upload(command, bytes.current) : read();
       const result = command.phase === 'APPLY' && command.assetId
         ? await mediaClientService.applyAvatar({ profileId, assetId: command.assetId, expectedAvatarPath: command.expectedPath })
-        : command.phase === 'DISCARD' && command.assetId ? await mediaClientService.discardAvatar(command.assetId)
+        : command.phase === 'DISCARD' && command.assetId ? await mediaClientService.discardAvatar({ assetId: command.assetId, profileId })
         : await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: command.expectedPath });
       if (!current()) return changed();
       if (!result.ok && result.kod === 'MEDIA_VERSION_CONFLICT' && key) {

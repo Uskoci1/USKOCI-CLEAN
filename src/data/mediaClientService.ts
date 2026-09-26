@@ -107,9 +107,11 @@ export const mediaClientService={
       ?{profileId,photo,authoritative:true}:null;}),
   clearAvatar:(input:{profileId:string;expectedAvatarPath:string|null})=>call('rpc_clear_profile_avatar',
     {p_profile_id:input.profileId,p_expected_avatar_path:input.expectedAvatarPath},(v,a)=>decodeProfileAvatar(v,a,input.profileId),true),
-  discardAvatar:(assetId:string)=>call<AvatarDiscarded>('rpc_discard_profile_avatar',{p_asset_id:assetId},(v,aid)=>{const r=record(v);
-    return r&&Object.keys(r).length===5&&sameId(r.assetId,assetId)&&sameId(r.accountId,aid)&&uuid(r.profileId)&&r.discarded===true&&r.authoritative===true
-      ?{assetId,profileId:r.profileId,accountId:aid,discarded:true,authoritative:true}:null;},true),
+  discardAvatar:({assetId,profileId}:{assetId:string;profileId:string})=>!uuid(assetId)||!uuid(profileId)
+    ?Promise.resolve(failure('MEDIA_INPUT_INVALID',errors.MEDIA_INPUT_INVALID))
+    :call<AvatarDiscarded>('rpc_discard_profile_avatar',{p_asset_id:assetId},(v,aid)=>{const r=record(v);
+      return r&&Object.keys(r).length===5&&sameId(r.assetId,assetId)&&sameId(r.accountId,aid)&&sameId(r.profileId,profileId)&&r.discarded===true&&r.authoritative===true
+        ?{assetId,profileId,accountId:aid,discarded:true,authoritative:true}:null;},true),
   readTaskPhotos:(conversationId:string)=>call('rpc_read_task_photos',{p_conversation_id:conversationId},(v,a)=>decodeTaskPhotos(v,a,conversationId)),
   readUploadCommand:(clientRequestId:string)=>call('rpc_read_media_upload',{p_client_request_id:clientRequestId},(v,a)=>{
     const result=decodeMediaAsset(v,a);return result&&sameId(result.clientRequestId,clientRequestId)?result:null;}),

@@ -53,10 +53,25 @@ it('apply avatar uses one asset ID and exact original CAS path, without calling 
  await expect(service.applyAvatar({assetId:ASSET,profileId:PROFILE,expectedAvatarPath:null})).resolves.toEqual({ok:true,podatak:receipt});
  expect(mockRpc).toHaveBeenCalledWith('rpc_apply_profile_avatar',{p_asset_id:ASSET,p_expected_avatar_path:null});expect(mockInvoke).not.toHaveBeenCalled();
 });
-it('avatar discard receipt must bind the requested asset and current owner',async()=>{
+it('avatar discard binds the requested profile, asset and current owner without changing RPC arguments',async()=>{
  const receipt={profileId:PROFILE,assetId:ASSET,accountId:OWNER,discarded:true,authoritative:true};mockRpc.mockResolvedValue({data:receipt,error:null});
- await expect(service.discardAvatar(ASSET)).resolves.toEqual({ok:true,podatak:receipt});
- mockRpc.mockResolvedValue({data:{...receipt,assetId:OTHER},error:null});await expect(service.discardAvatar(ASSET)).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
+ await expect(service.discardAvatar({assetId:ASSET,profileId:PROFILE})).resolves.toEqual({ok:true,podatak:receipt});
+ expect(mockRpc.mock.calls).toEqual([['rpc_discard_profile_avatar',{p_asset_id:ASSET}]]);expect(mockInvoke).not.toHaveBeenCalled();
+});
+it.each([{profileId:OTHER},{assetId:OTHER},{accountId:OTHER},{profileId:'bad'},{discarded:false},{authoritative:false}])(
+ 'rejects a discard receipt outside the exact avatar context %#',async patch=>{
+  mockRpc.mockResolvedValue({data:{profileId:PROFILE,assetId:ASSET,accountId:OWNER,discarded:true,authoritative:true,...patch},error:null});
+  await expect(service.discardAvatar({assetId:ASSET,profileId:PROFILE})).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
+});
+it('freezes the expected discard profile before a request returns and retains the account incarnation fence',async()=>{
+ const input={assetId:ASSET,profileId:PROFILE};
+ mockRpc.mockImplementation(async()=>{input.profileId=OTHER;return {data:{profileId:OTHER,assetId:ASSET,accountId:OWNER,discarded:true,authoritative:true},error:null};});
+ await expect(service.discardAvatar(input)).resolves.toMatchObject({ok:false,kod:'MEDIA_INVALID_RESPONSE'});
+ mockRpc.mockImplementation(async()=>{mockSession={user:{id:OWNER},accountRevision:3};return {data:{profileId:PROFILE,assetId:ASSET,accountId:OWNER,discarded:true,authoritative:true},error:null};});
+ await expect(service.discardAvatar({assetId:ASSET,profileId:PROFILE})).resolves.toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
+});
+it.each([{assetId:ASSET,profileId:''},{assetId:'bad',profileId:PROFILE}])('does not discard without usable expected avatar identities %#',async input=>{
+ await expect(service.discardAvatar(input)).resolves.toMatchObject({ok:false,kod:'MEDIA_INPUT_INVALID'});expect(mockRpc).not.toHaveBeenCalled();
 });
 it('public gallery rejects extra account/storage metadata from the server',async()=>{
  const preview={assetId:ASSET,width:1600,height:800,contentType:'image/jpeg'};

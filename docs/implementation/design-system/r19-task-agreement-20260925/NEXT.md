@@ -1,5 +1,13 @@
 # Continue after R19 without repeating the audit
 
+Latest continuation, 26 September: read CLIENT_GUARDS_AND_VIEWPORT and NATIVE_REVIEW.vector-diagnostic first.
+The exact ba3f7dc3 APK now proves visible vector logo return and selection success footer (normal/1.3 font, inert
+gallery). Scroll's measured cause is a transient content-sized viewport. The subsequent source rejects impossible
+geometry; native replay is still required. Block consequence confirmation and expected-profile avatar discard
+receipt binding are implemented client-side; trusted safety names and unknown upload recovery remain open.
+The DEV-only dizajn-mapa route has 1/1,000 local rows, not a server load test. Check its later APK receipt before
+claiming any device result. Keep the current source/native distinction rather than restarting earlier attempts.
+
 First R19 runtime source: `3cdb3005c393c2a47572452d3704c69de9799d25`, tree `1fa68354519fefc4bcfa6e1428433ab786bc6951`. A corrective native follow-up retires old sheet callbacks and restores the sheet on focus re-entry; its exact later source/install belongs in RECEIPT.json.
 Read REPORT, CHECKS, RECEIPT and native evidence first. This document orders work; the living tracker remains `docs/control/redovi.json`.
 

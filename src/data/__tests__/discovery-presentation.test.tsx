@@ -126,6 +126,8 @@ const cards = () => listSheet().findAll(node => String(node.type) === 'Press' &&
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
 const list = () => tree.root.findByType('List' as React.ElementType);
 const readyList = async (content = 3000, window = 400) => {
+  // A real viewport is meaningful only inside a measured native body/full sheet.
+  if (typeof listSheet().props.snapPoints[2] !== 'number') await layOutBody();
   await act(async () => {
     list().props.onLayout?.({ nativeEvent: { layout: { height: window } } });
     list().props.onContentSizeChange(400, content);
@@ -457,6 +459,48 @@ test.each([500, 300])('return clamps a saved offset to the changed measured list
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(0); // the impossible old target cannot keep suppressing later scroll events
+  } finally { jest.useRealTimers(); }
+});
+
+test('native return ignores an unconstrained content-sized viewport before restoring into the measured sheet', async () => {
+  jest.useFakeTimers();
+  try {
+    tracing = true; initial = { ...initial, sheet: 'full', listOffset: 313 };
+    await render(); await layOutBody(767);
+    await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(71));
+    await readyList(2611.4, 600);
+    await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 312.8 } } }));
+    mockFocused = false; await update(); mockFocused = true; await update();
+    scrollToOffset.mockClear(); nativeTrace.mockClear();
+
+    // Exact R19d return: the newly mounted Gorhom content has not received its constrained
+    // height yet. Native EXTENDED alone does not make this content-sized layout a viewport.
+    await readyList(2611.4, 2611.4);
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(313);
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    expect(nativeTrace.mock.calls.some(call => call[0] === 'clamp0')).toBe(false);
+    expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(false);
+
+    // The actual bounded viewport arrives after the native content-height animation.
+    await act(async () => list().props.onLayout({ nativeEvent: { layout: { height: 600 } } }));
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
+    expect(snapshot.listOffset).toBe(313);
+    await act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 312.8 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(nativeTrace).toHaveBeenCalledWith('ack', 312.8, 313, 313);
+    expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(false);
+    await act(async () => {
+      list().props.onScrollBeginDrag({ nativeEvent: {} });
+      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(0);
   } finally { jest.useRealTimers(); }
 });
 

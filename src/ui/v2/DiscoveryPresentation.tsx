@@ -395,6 +395,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const scrolledRef = useRef(scrolled);
   const contentHeight = useRef(0);
   const listHeight = useRef(0), listReady = useRef(false);
+  // The list's largest real viewport is the measured full sheet, less its pinned header.
+  // Gorhom's content starts without a height until its native container is measured; on
+  // return, FlatList can briefly report its entire content height even after EXTENDED.
+  const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const restore = useRef<number | null>(null), restoreTarget = useRef<number | null>(null), restoreAttempted = useRef(false);
   const hasRows = listed.length > 0;
   const restoreVisit = useRef<typeof coverageOwner | null>(null), restoreHadRows = useRef(hasRows);
@@ -419,7 +423,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (at !== null) trace('restore-check', currentSheet(), hasRows, listReady.current, at, restoreAttempted.current, !!listRef.current,
       listHeight.current, contentHeight.current);
     if (!currentSheet() || !hasRows || !listReady.current || at === null || restoreAttempted.current || !listRef.current
-      || listHeight.current <= 0 || contentHeight.current <= 0) return;
+      || listWindow <= 0 || listHeight.current <= 0 || listHeight.current > listWindow + 1 || contentHeight.current <= 0) return;
     const target = Math.min(at, Math.max(0, contentHeight.current - listHeight.current));
     restoreTarget.current = target;
     if (target === 0) {
@@ -432,7 +436,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     restoreAttempted.current = true;
     trace('request', at, target, contentHeight.current, listHeight.current);
     listRef.current.scrollToOffset({ offset: target, animated: false });
-  }, [currentSheet, hasRows, writeOffset, trace]);
+  }, [currentSheet, hasRows, listWindow, writeOffset, trace]);
   const receiveListReady = useCallback((ready: boolean, state: number) => {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
       focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner);
@@ -442,8 +446,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     else tryRestore();
   }, [currentSheet, tryRestore, trace, position, focused, coverageOwner]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
-  // The list's own window at the full height: the sheet there, less its top line.
-  const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
