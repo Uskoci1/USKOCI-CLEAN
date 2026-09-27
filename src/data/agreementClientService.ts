@@ -566,7 +566,7 @@ export const agreementClientService: AgreementService = {
    * own created_at, which nothing rewrites, so the walk cannot repeat or hide a row; twenty pages is a
    * refusal, never a silent truncation.
    */
-  async mojiDogovori() {
+  async mojiDogovori(options) {
     const session = sesijaSada();
     const owner = { accountId: session.user?.id ?? '', accountRevision: session.accountRevision };
     const uid = await userId();
@@ -587,7 +587,11 @@ export const agreementClientService: AgreementService = {
       if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
       cursor = { at: last.sortAt, id: last.id };
     }
-    return withAgreementRatings(rows.map((row) => mapAgreement(row, uid)), owner);
+    const agreements = rows.map((row) => mapAgreement(row, uid));
+    // Calendar and support use Agreement facts, not rating actions. An omitted read is unknown, never NOT_DUE.
+    if (options?.includeRatings === false) return agreements.map(row => row.stanje === 'COMPLETED'
+      ? { ...row, ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' as const } : row);
+    return withAgreementRatings(agreements, owner);
   },
 
   async dogovor(id) {

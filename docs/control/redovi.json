@@ -24,7 +24,7 @@
         "dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-24: Početna kao pregled (dve pločice, Čeka te, Moji zadaci i Moje prijave) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Na Androidu „velika slova“ (1,3) ne prebacuju pločice jednu ispod druge: ispravka ide sa drugim krugom. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen."
       },
       "problem": "RC-03 je ublažen u R18: četiri paralelne provere ocena i rok četiri sekunde posle stranica Dogovora. Ukupan broj ostaje P+C; potreban je zbirni server odgovor.",
-      "sledece": "Audit 24.09: čitanje Dogovora čeka zasebnu proveru ocene za svaki završen Dogovor; spor odgovor može oboriti taj deo Početne. Ograničiti/dopuniti projekciju, dokazati da aktivni Dogovori ostaju dostupni. Četiri razloga za pažnju ostaju serverske činjenice. R10 / 25.09, 0f4d7644: početna ima izdvojenu karticu termina, posla i osobe, uz iste obaveze i brojeve. Tipovi i 312 grupa / 6067 testova prolaze. APK 36115051955 je potvrđen i instaliran na emulatoru; kontrola filtera pri velikom tekstu je ponovo pregledana. Slike i ograničenja su u R10 izveštaju; fizički telefon nije proveren. docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md R13 (25.09): otvorena Početna sa dve ilustrovane radnje, listom pažnje i sledećim Dogovorom. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Vizuelni pregled 25.09, posle R15: vlasnik nije prihvatio izgled. DD-09: olakšati karticu sledećeg Dogovora i jasnije razdvojiti pažnju, početne radnje i lične liste. Ovo je analiza i predlog, bez nove izmene aplikacije. docs/implementation/design-system/design-diagnosis-20260925/REPORT.md R17: sledeći Dogovor je sažetiji, posao vodi do termina i osobe. Dve početne radnje i četiri serverska razloga za pažnju ostaju. Tipovi i 316 grupa / 6151 testova prolaze. APK 8500bf29 je potvrđen i instaliran na telefon i emulator. Ograničen pregled je u docs/implementation/design-system/r17-conversation-appointments-20260925/RECEIPT.json; to nije potvrda celog toka. Istraživanje 25.09 — predlog, nije primenjeno: Početna: odvojiti pažnju, dve početne radnje i sledeći prihvaćeni termin; istorija ocena ne sme da uspori aktivne Dogovore. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. R18: provere ocena imaju najviše četiri paralelna poziva i ukupno četiri sekunde za dopunu posle stranica Dogovora. Nepoznat broj nije nula. Tipovi i 317 grupa/6185 testova prolaze. docs/implementation/design-system/r18-continuity-20260925/REPORT.md",
+      "sledece": "Audit 24.09: čitanje Dogovora čeka zasebnu proveru ocene za svaki završen Dogovor; spor odgovor može oboriti taj deo Početne. Ograničiti/dopuniti projekciju, dokazati da aktivni Dogovori ostaju dostupni. Četiri razloga za pažnju ostaju serverske činjenice. R10 / 25.09, 0f4d7644: početna ima izdvojenu karticu termina, posla i osobe, uz iste obaveze i brojeve. Tipovi i 312 grupa / 6067 testova prolaze. APK 36115051955 je potvrđen i instaliran na emulatoru; kontrola filtera pri velikom tekstu je ponovo pregledana. Slike i ograničenja su u R10 izveštaju; fizički telefon nije proveren. docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md R13 (25.09): otvorena Početna sa dve ilustrovane radnje, listom pažnje i sledećim Dogovorom. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Vizuelni pregled 25.09, posle R15: vlasnik nije prihvatio izgled. DD-09: olakšati karticu sledećeg Dogovora i jasnije razdvojiti pažnju, početne radnje i lične liste. Ovo je analiza i predlog, bez nove izmene aplikacije. docs/implementation/design-system/design-diagnosis-20260925/REPORT.md R17: sledeći Dogovor je sažetiji, posao vodi do termina i osobe. Dve početne radnje i četiri serverska razloga za pažnju ostaju. Tipovi i 316 grupa / 6151 testova prolaze. APK 8500bf29 je potvrđen i instaliran na telefon i emulator. Ograničen pregled je u docs/implementation/design-system/r17-conversation-appointments-20260925/RECEIPT.json; to nije potvrda celog toka. Istraživanje 25.09 — predlog, nije primenjeno: Početna: odvojiti pažnju, dve početne radnje i sledeći prihvaćeni termin; istorija ocena ne sme da uspori aktivne Dogovore. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. R18: provere ocena imaju najviše četiri paralelna poziva i ukupno četiri sekunde za dopunu posle stranica Dogovora. Nepoznat broj nije nula. Tipovi i 317 grupa/6185 testova prolaze. docs/implementation/design-system/r18-continuity-20260925/REPORT.md Završni krug04: uklonjena neupotrebljena dopuna hitnosti na Početnoj; zbirne ocene i skaliranje ostaju otvoreni.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -54,11 +54,11 @@
         "ui": "Postojeći prikaz; odobrenje po paketu",
         "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
         "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
-        "performance": "Potreban obim upita/stranice/ukupan broj",
+        "performance": "Izvor: Početna preskače dopunu hitnosti koju ne prikazuje; provere ocena i dalje ostaju P+C, zbirni odgovor nedostaje.",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md"
       }
     },
     {
@@ -356,7 +356,7 @@
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objava prošla; drugi nalog vidi zadatak. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu."
       },
       "problem": "",
-      "sledece": " 2026-09-27 R21: potvrđena objava otvara Zadaci sa svežom javnom proverom, izabranom karticom/pinom ili vidljivim redom bez tačke; jedan povratak vodi na Početnu. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md",
+      "sledece": " 2026-09-27 R21: potvrđena objava otvara Zadaci sa svežom javnom proverom, izabranom karticom/pinom ili vidljivim redom bez tačke; jedan povratak vodi na Početnu. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md Završni krug04: P0 tačno čitanje objave ima kandidat i dokaz u izvoru, bez izvršavanja.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -373,13 +373,13 @@
         "flow": "Objava zadatka",
         "ux": "P0 tok odobren; izvor pripremljen",
         "ui": "Postojeća kartica i raspored sačuvani",
-        "backend": "P0 ugovor pročitan sa DEV-a; bez izmene",
+        "backend": "Pripremljen kandidat tačnog javnog čitanja po ID-u, sa istim pravima i projekcijom; NIJE PRIMENJEN ni povezan u aplikaciji.",
         "state_sync": "Vezano za nalog/reviziju; kamera jednokratna — izvor, nije runtime dokaz",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "P0 IZVOR PRIPREMLJEN / PROVERA ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P0_EXACT_PUBLIC_CONTRACT.md"
       }
     },
     {
@@ -824,7 +824,7 @@
       ],
       "telefon": null,
       "problem": "25.09: bezbedan izlazak tokom AI obrade, ugnježdeno pomeranje rasporeda i brisanje nezavisnog kucanog nacrta posle govora ispravljeni u kodu i dokazani testovima koji padaju pre popravke. Komanda ostaje zapamćena, stari odgovori ne menjaju drugi ekran. Stvaran ceo put razgovor → pregled → aktivacija na aktuelnoj verziji još nije prihvaćen.",
-      "sledece": "R19 audit potvrđuje stvarne veze radnog AI razgovora, oporavka, pregleda i odvojenih komandi za čuvanje i aktivaciju. R18 ručna izmena opreme nije dokaz celog radnog AI toka. Stvarni intervju → pregled → aktivacija na aktuelnom izdanju ostaje za posebno odobrenu probu sa AI pozivima. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md",
+      "sledece": "R19 audit potvrđuje stvarne veze radnog AI razgovora, oporavka, pregleda i odvojenih komandi za čuvanje i aktivaciju. R18 ručna izmena opreme nije dokaz celog radnog AI toka. Stvarni intervju → pregled → aktivacija na aktuelnom izdanju ostaje za posebno odobrenu probu sa AI pozivima. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: popravljeno očuvanje već važećih termina pri dopuni AI radnog profila.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -840,13 +840,13 @@
         "flow": "Radni profil kroz razgovor sa AI",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "Postojeći RPC bez promene; kvalitet matching-a nije ovim dokazan.",
+        "state_sync": "Izvor: ručna dopuna AI radnog profila čuva postojeće Unicode termine kao kanonski editor.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_WORKER_FACT_SOURCE.md"
       }
     },
     {
@@ -876,7 +876,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Audit 24.09: DN-06: tastatura sakriva donji deo u kom je jedino objašnjenje zašto napuštanje izmena nije dozvoljeno; iz koda potvrđeno, nativni trenutak proveriti. → Ispravljeno u kodu (round 5c): DN-06, poruke ostaju vidljive dok je tastatura otvorena. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
-      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti DN-06 na emulatoru (radnik, tastatura, 320 dp). Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: radni profil je funkcionalno grupisan, ali dug i sa više ulaza do istih podešavanja. Sledeći paket skraćuje put do bitnih polja, bez gubitka činjenica i oporavka. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md",
+      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti DN-06 na emulatoru (radnik, tastatura, 320 dp). Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: radni profil je funkcionalno grupisan, ali dug i sa više ulaza do istih podešavanja. Sledeći paket skraćuje put do bitnih polja, bez gubitka činjenica i oporavka. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md Završni krug04: popravljeno očuvanje već važećih termina pri dopuni AI radnog profila.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -901,13 +901,13 @@
         "flow": "Radni profil ručno i kapacitet tima",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "Postojeći RPC bez promene; kvalitet matching-a nije ovim dokazan.",
+        "state_sync": "Izvor: ručna dopuna AI radnog profila čuva postojeće Unicode termine kao kanonski editor.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_WORKER_FACT_SOURCE.md"
       }
     },
     {
@@ -1047,7 +1047,7 @@
         "dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
       },
       "problem": "R21 dcb19e97: početni panel i dva uzastopna duboka povratka prošli su na emulatoru, u probnoj listi od 1.000 redova. Ostaju fizički telefon, širi uslovi prikaza, serversko straničenje i stvarno opterećenje korisnicima.",
-      "sledece": "Dokaz APK36269145778: docs/implementation/release-hardening-20260926/R20_NATIVE_BD550C64.md. Tipovi i CI321/6505 prolaze; nativni dokaz je delimičan. Lokalnih1.000 redova nije test1.000 korisnika. Ne označavati red zelenim. Izolovati početno crtanje panela, zatim ponoviti tačan APK i telefon. 2026-09-27 R21: lista ima odvojene kartice, kratak broj zadataka i poseban deo bez tačke i posle izbora konkretnog pina. R20 nativni povratak/početni panel još nije prihvaćen. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md 2026-09-27: R21 APK f817336d: nativna lista ima nove kartice; dva povratka iz probnog detalja 10/1000 vraćaju iste redove i koordinate. Prvi ulazak i dalje nema vidljiv donji zaglavni red. Ograničena popravka početnog crtanja je u kodu i čeka novi APK. Ovo nije provera fizičkog telefona ili opterećenja servera. Konačna dopuna R21: APK36279078038 (dcb19e97) prikazuje panel odmah i čuva iste redove/koordinate na oba povratka. Tipovi i CI323/6527 prolaze. Dokaz: docs/implementation/design-system/r21-flow-clarity-20260927/NATIVE_RECEIPT.json. Ne pretvarati 1.000 probnih redova u dokaz 1.000 korisnika. Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md Završni krug 03 / 27.09: Proveravaju se cele napredujuće stranice i isti nalog pre dopune. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md",
+      "sledece": "Dokaz APK36269145778: docs/implementation/release-hardening-20260926/R20_NATIVE_BD550C64.md. Tipovi i CI321/6505 prolaze; nativni dokaz je delimičan. Lokalnih1.000 redova nije test1.000 korisnika. Ne označavati red zelenim. Izolovati početno crtanje panela, zatim ponoviti tačan APK i telefon. 2026-09-27 R21: lista ima odvojene kartice, kratak broj zadataka i poseban deo bez tačke i posle izbora konkretnog pina. R20 nativni povratak/početni panel još nije prihvaćen. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md 2026-09-27: R21 APK f817336d: nativna lista ima nove kartice; dva povratka iz probnog detalja 10/1000 vraćaju iste redove i koordinate. Prvi ulazak i dalje nema vidljiv donji zaglavni red. Ograničena popravka početnog crtanja je u kodu i čeka novi APK. Ovo nije provera fizičkog telefona ili opterećenja servera. Konačna dopuna R21: APK36279078038 (dcb19e97) prikazuje panel odmah i čuva iste redove/koordinate na oba povratka. Tipovi i CI323/6527 prolaze. Dokaz: docs/implementation/design-system/r21-flow-clarity-20260927/NATIVE_RECEIPT.json. Ne pretvarati 1.000 probnih redova u dokaz 1.000 korisnika. Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md Završni krug 03 / 27.09: Proveravaju se cele napredujuće stranice i isti nalog pre dopune. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: uklonjen ponovljen proračun geometrije i početne kamere; brzina nije merena.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1080,11 +1080,11 @@
         "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
         "backend": "P0 ugovor pročitan sa DEV-a; bez izmene",
         "state_sync": "Proveravaju se cele napredujuće stranice i isti nalog pre dopune.",
-        "performance": "Pan ne ponavlja glavne filtere/podatke pinova; do 5.000 redova i dalje ostaje problem.",
-        "test": "NIJE POKRETANO — prethodno ograničenje vlasnika i dalje važi",
-        "device_proof": "Nema novog APK-a, instalacije ili uređajskog dokaza.",
+        "performance": "Izvor: otisak geometrije prati podatke, početna kamera se računa jednom; do 5.000 redova i dalje ostaje problem.",
+        "test": "NIJE POKRETANO — po nalogu vlasnika",
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md"
       }
     },
     {
@@ -1465,7 +1465,7 @@
         "dokaz": "2026-09-24: Kalendar sa sedam kolona i novim praznim danom viđen na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Otvoreno: Dogovor završen istog dana se ne vidi u kalendaru. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "RC-03 je ublažen u R18: četiri paralelne provere ocena i rok četiri sekunde posle stranica Dogovora. Ukupan broj ostaje P+C; potreban je zbirni server odgovor.",
-      "sledece": "Kalendar i dostupnost su u APK-u 644cab09. Audit 24.09 je video dugu galerijsku karticu bez preklapanja (calendar-long.png), bez stvarnog upisa. Zajedničko čitanje Dogovora ima RC-03; zatim proveriti čuvanje dostupnosti, greške i vremenske zone na uređaju.",
+      "sledece": "Kalendar i dostupnost su u APK-u 644cab09. Audit 24.09 je video dugu galerijsku karticu bez preklapanja (calendar-long.png), bez stvarnog upisa. Zajedničko čitanje Dogovora ima RC-03; zatim proveriti čuvanje dostupnosti, greške i vremenske zone na uređaju. Završni krug04: uklonjeni nepotrebni zahtevi za ocene u ovom prikazu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1489,13 +1489,13 @@
         "flow": "Raspored (kalendar posla)",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
+        "backend": "Isti RPC-ovi i potpuna lista; nedostupna ocena nije nula.",
         "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
-        "performance": "Nije ponovo mereno",
+        "performance": "Izvor: eksplicitno preskače provere ocena koje ovaj ekran ne prikazuje; sve stranice i zaštite ostaju.",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md"
       }
     },
     {
@@ -1629,7 +1629,7 @@
         "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md"
       },
       "problem": "Istorija poruka nema straničenje, dolazne poruke traže osvežavanje, precizna granica oznake pročitanog nije završena. Dva reda unosa uz tastaturu proverena su u probnom prikazu prvog R19 APK-a na emulatoru; stvarno aktivno slanje, uvećan tekst i fizički telefon ostaju zasebne provere. Glasovne poruke i dokumenti nisu implementirani.",
-      "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija. Završni krug 03 / 27.09: Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md",
+      "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija. Završni krug 03 / 27.09: Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: pripremljeni B3a/B3b; primena i klijent čekaju dokaz i odobrenje.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1656,13 +1656,13 @@
         "flow": "Poruke",
         "ux": "Skrivena ili prazna prepiska ne pokreće potvrdu čitanja.",
         "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket.",
-        "performance": "Cela privatna istorija se još čita; automatski prijem i glas nisu završeni.",
-        "test": "NIJE POKRETANO — prethodno ograničenje vlasnika i dalje važi",
-        "device_proof": "Nema novog APK-a, instalacije ili uređajskog dokaza.",
+        "backend": "B3a istorija/tačni prikazani ID-evi i B3b prozor oko poruke pripremljeni; NISU pokrenuti, primenjeni ili povezani.",
+        "state_sync": "Tap na obaveštenje više ne potvrđuje poruku pre prikaza razgovora. Živa potvrda razgovora ostaje zbirna.",
+        "performance": "Pripremljeni ograničeni čitači; aplikacija i dalje koristi staro čitanje. Glas i realtime nisu završeni.",
+        "test": "NIJE POKRETANO — po nalogu vlasnika",
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md"
       }
     },
     {
@@ -1686,7 +1686,7 @@
       ],
       "telefon": null,
       "problem": "CF02 je popravljen u kodu: zatvoren Dogovor zadržava proveru i uklanjanje ranije pripremljenih fotografija, uz zabranu novih slanja. Nova verzija sa tom izmenom još nije proverena na telefonu.",
-      "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano.",
+      "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano. Završni krug04: privatne fotografije imaju uslovni nalaz u izvoru. Potrebni su poseban kandidat, dokaz i odobren pomeraj sertifikata; bez tvrdnje o stvarnom incidentu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1711,13 +1711,13 @@
         "flow": "Slike u porukama",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "Uslovni izvorni nalaz: stara provera učesnika nije bezbedna kada je jedan učesnik NULL. Novi kandidati imaju pozitivnu proveru; stari helper nije promenjen.",
+        "state_sync": "Normalno brisanje je soft-delete i ne stvara ovaj NULL slučaj. Postojanje pogođenih podataka i izlaganje na DEV-u nisu utvrđeni.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/PRIVATE_PHOTO_MEMBERSHIP_FINDING.md"
       }
     },
     {
@@ -2164,7 +2164,7 @@
         "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka."
       },
       "problem": "PKG-050a je na DEV-u i u trenutnom APK-u. Audit 24.09: potvrda čitanja bez granice može označiti i tek pristiglu neviđenu poruku pročitanom. Dve ranije nedokazane vrste odredišta i dalje ostaju posebno otvorene. Audit 24.09: DN-07: promena filtera ponovo pravi i samu aktiviranu karticu filtera; rizik gubitka fokusa čitača ekrana, konkretno ponašanje na uređaju još čeka.",
-      "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md",
+      "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2191,12 +2191,12 @@
         "ux": "Ista lista obaveštenja i odredišta.",
         "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
         "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava.",
+        "state_sync": "Izvor: MESSAGE_RECEIVED otvara odredište bez prethodne promene read/count; ostali događaji i izričito Pročitaj sve ostaju.",
         "performance": "Postojeće straničenje sačuvano.",
-        "test": "NIJE POKRETANO — prethodno ograničenje vlasnika i dalje važi",
-        "device_proof": "Nema novog APK-a, instalacije ili uređajskog dokaza.",
+        "test": "NIJE POKRETANO — po nalogu vlasnika",
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md"
       }
     },
     {
@@ -2319,7 +2319,7 @@
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
       "problem": "Stvarna Android dostava jeste ranije viđena. Naknadno je nađen nesklad: otvorena aplikacija je dopuštala samo stare opšte tekstove, a DEV v20 šalje posebne A1 tekstove. Klijentska popravka je pripremljena. Dve poruke dodatno zahtevaju neutralan tekst umesto internih naziva uloga; predlog je u kodu, nije objavljen na serveru. Ne tvrdi se da je jedna ista stvarna chat poruka prošla ceo put do push-a i nazad. iOS i prodavnice ostaju odvojeni.",
-      "sledece": "Push-proof APK36269145651, izvorbd550c64, napravljen i provereni stvarni Firebase Messaging podaci; nije instaliran na fizički telefon. Windows sada vidi HONOR600Pro, ADB još ne. Dva serverska teksta čekaju „primeni“. Zatim isti stvarni chat događaj→push→odgovarajući razgovor na Androidu, pa A2 i iOS. R20_BD550C64_PHONE_APK.json i A1_DISCOVERY_STABILIZATION.md sadrže tačan obim.",
+      "sledece": "Push-proof APK36269145651, izvorbd550c64, napravljen i provereni stvarni Firebase Messaging podaci; nije instaliran na fizički telefon. Windows sada vidi HONOR600Pro, ADB još ne. Dva serverska teksta čekaju „primeni“. Zatim isti stvarni chat događaj→push→odgovarajući razgovor na Androidu, pa A2 i iOS. R20_BD550C64_PHONE_APK.json i A1_DISCOVERY_STABILIZATION.md sadrže tačan obim. Završni krug04: ograda za odloženi tap; ceo push do tačne poruke ostaje otvoren.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2337,13 +2337,13 @@
         "flow": "Slanje obaveštenja na telefon",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "Živi generički push i dalje vodi u Inbox. Tačna poruka zahteva ugovor/rezolver/transport; ništa nije objavljeno.",
+        "state_sync": "Izvor: odloženi push tap proverava i poslednje prikazanu spremnost/nalog/reviziju.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_LANDING_CONTRACT.md"
       }
     },
     {
@@ -2767,7 +2767,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Audit 24.09: RC-05/06: potvrda odbacivanja može ostati bez dejstva kada se čitanje u međuvremenu završi; neuspeh oznake pročitanog izgleda kao čekanje ako postoji nepotvrđen odgovor. Ponovljeno izolovanim izvršavanjem bez pravog naloga. → Ispravljeno u kodu (round 5c): RC-05, RC-06. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
-      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti podršku (odbacivanje, oznaka pročitanog, zaustavljanje slanja) na emulatoru. Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: novi zahtev troši prvi prikaz na sedam tema i objašnjenja, a polja za pisanje su niže. Sažeti izbor teme i dovesti poruku ranije. Posebno proveriti tastaturu prepiske podrške. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md",
+      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti podršku (odbacivanje, oznaka pročitanog, zaustavljanje slanja) na emulatoru. Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: novi zahtev troši prvi prikaz na sedam tema i objašnjenja, a polja za pisanje su niže. Sažeti izbor teme i dovesti poruku ranije. Posebno proveriti tastaturu prepiske podrške. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Završni krug04: uklonjeni nepotrebni zahtevi za ocene u ovom prikazu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2793,13 +2793,13 @@
         "flow": "Podrška",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
+        "backend": "Isti RPC-ovi i potpuna lista; nedostupna ocena nije nula.",
         "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
-        "performance": "Nije ponovo mereno",
+        "performance": "Izvor: eksplicitno preskače provere ocena koje ovaj ekran ne prikazuje; sve stranice i zaštite ostaju.",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md"
       }
     },
     {
@@ -2829,7 +2829,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-      "sledece": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md",
+      "sledece": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: sačuvano postojeće upozorenje o neuspelom lokalnom čišćenju pri isteku.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2852,12 +2852,12 @@
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
         "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "state_sync": "Izvor: neuspeh lokalnog čišćenja ostaje vidljiv trenutnom vlasniku i posle isteka izvoza; stari vlasnik i istekli uspeh se odbacuju.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P7_EXPORT_SOURCE.md"
       }
     },
     {
@@ -2884,7 +2884,7 @@
       ],
       "telefon": null,
       "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-      "sledece": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md",
+      "sledece": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: ispravljeno zadržavanje starog pregleda pri neuspelom osvežavanju; nijedno brisanje nije pokrenuto.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2906,13 +2906,13 @@
         "flow": "Brisanje naloga",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "Bez promene na DEV-u ili sertifikatu; uslovni nalaz foto-helpera zahteva poseban paket.",
+        "state_sync": "Izvor: ponovni ulazak sklanja stari pregled pre čitanja; neuspešno osvežavanje ne ostavlja staru spremnost. Trajni pokušaj i oporavak ostaju.",
         "performance": "Nije ponovo mereno",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md"
       }
     },
     {
@@ -3619,7 +3619,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "6bf4e0a06b870d5277cef9b0011c6ac76dacb05c",
+    "source_head": "a1fe01e4edf7d91da4dcb6a02d55500cc82982bb",
     "order": [
       "P0",
       "P1",
@@ -3631,12 +3631,12 @@
       "P7"
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md",
-    "approval": "P0_FLOW_APPROVED_EXISTING_CARD_RETAINED",
+    "approval": "P0_APPROVED_CARD_RETAINED; P1_ACCORDION_AND_EXPO_BLUR_57_0_3_APPROVED",
     "tests": "NOT_RUN_OWNER_REQUEST",
     "device": "NOT_RUN_OWNER_REQUEST",
     "live_dev_scope": "Read-only: earlier project/ledger evidence plus exact public Discovery function definition/body and indexes; no server mutation or full fresh attestation.",
     "rule": "Approval before changing appearance/user flow; tests/build/install only when owner asks. Source/prepared is not READY. This is the same62-row execution tracker.",
-    "implementation": "P0 source retained. Round03: Discovery pagination/account guards, stable map source, profile/settings/Inbox visit ownership, group receipt concurrency and private hidden-thread ACK fence. Source only, unverified.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md"
+    "implementation": "Round04: message-tap read deferral, rendered push guard, capability preservation, unused enrichment opt-outs, map memoization, closure restore and export cleanup warning. P0/B3a/B3b candidates are source only, not run/applied/client-wired. Search accordion is approved for the next package.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md"
   }
 }

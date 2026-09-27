@@ -140,7 +140,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
  * Publication still uses its separate context/decision/command authority.
  */
 export const needClientService: NeedReadService = {
-  async mojePotrebe() {
+  async mojePotrebe(options) {
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError) throw new Error(authError.message || 'AUTH_READ_FAILED');
     if (!authData.user) throw new Error('AUTH_REQUIRED');
@@ -149,8 +149,9 @@ export const needClientService: NeedReadService = {
 
     if (error) throw new Error(error.message || 'NEED_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('NEED_LIST_INVALID_PROJECTION');
-    const urgency = await readNeedUrgencies(data);
-    return data.map(row => ({ ...mapNeed(row), urgency: urgency.get(row.id) }));
+    // Home counts do not consume urgency badges. A skipped read stays unobserved, never inferred NORMAL.
+    const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(data);
+    return data.map(row => ({ ...mapNeed(row), urgency: urgency?.get(row.id) }));
   },
 
   async potreba(id) {

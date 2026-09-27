@@ -72,7 +72,12 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
     setReview(result.podatak);
   }
   async function restore(token: object) {
+    if (!live(token)) return;
     retireQuestion();
+    // Returning from the background must re-establish the current review/execution.
+    // If that read fails, an old ready review cannot authorize another start.
+    // The durable intent remains in its journal and is still reconciled below.
+    setReview(null); setState(null); setAbsent(false);
     const saved = await closureIntentJournal.load(owner.accountId); if (!live(token)) return;
     setIntent(saved); setAbsent(false);
     if (saved) await readIntent(saved, token); else await readReview(token);

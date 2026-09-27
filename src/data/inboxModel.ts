@@ -55,12 +55,17 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
     const token = ++epoch;
     set({acting:item.id,error:null,unavailable:false});
     try {
-      const readAt = await port.read(item.id);
-      if (!valid(token)) return null;
-      const previous = state.page!;
-      const wasUnread = previous.items.some(row => row.id===item.id && row.readAt===null);
-      set({page:{...previous,items:previous.items.map(row=>row.id===item.id?{...row,readAt}:row),
-        unreadCount:Math.max(0,previous.unreadCount-(wasUnread?1:0))}});
+      // Opening a message notification is only an attempt to reach its conversation.
+      // The shown thread owns its read acknowledgement; a failed/unavailable landing
+      // must not settle unseen content. Explicit read-all remains a separate intent.
+      if (item.eventType !== 'MESSAGE_RECEIVED') {
+        const readAt = await port.read(item.id);
+        if (!valid(token)) return null;
+        const previous = state.page!;
+        const wasUnread = previous.items.some(row => row.id===item.id && row.readAt===null);
+        set({page:{...previous,items:previous.items.map(row=>row.id===item.id?{...row,readAt}:row),
+          unreadCount:Math.max(0,previous.unreadCount-(wasUnread?1:0))}});
+      }
       const target = await port.resolve(item.id);
       if (!valid(token)) return null;
       set({acting:null,unavailable:target.kind==='UNAVAILABLE'});

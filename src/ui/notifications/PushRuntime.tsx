@@ -59,7 +59,10 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    if (seen.current.has(request.identifier)) return;
    // A late old-account event is consumed, so a new account cannot replay it.
    remember(seen.current, request.identifier, 128);
-   if (!owned()) return;
+   // Rendering Auth/recovery retires navigation before the old listener's effect cleanup.
+   const owner = rendered.current;
+   if (!owned() || !owner.ready || owner.accountId !== accountId || owner.accountRevision !== accountRevision
+    || owner.sessionEpoch !== sessionEpoch) return;
    // On a cold start this runs beside the root layout's return-target consumer, and neither waits
    // for the other: the consumer resolves a stored intent and replaces the route, which lands on
    // top of the Inbox this push just opened. Recording the same destination makes the order stop

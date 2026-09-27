@@ -124,7 +124,8 @@ export function WorkerAiManual({profile,disabled,apply}:{profile:WorkerAiProfile
   const [error,setError]=useState<string|null>(null);
   const submit=()=>{
     if(disabled)return;
-    const arrays=[skills,tools,vehicles,licenses].map(v=>capabilityTerms(v.split('\n').map(x=>x.trim()).filter(Boolean)));
+    // Match the canonical ASCII btrim; Unicode whitespace is part of an authored term.
+    const arrays=[skills,tools,vehicles,licenses].map(v=>capabilityTerms(v.split('\n').map(x=>x.replace(/^ +| +$/g,'')).filter(Boolean)));
     const countryValue=country.trim()?countryCode(country.trim().toUpperCase()):null;
     if(!arrays.every(Boolean)||!/^(?:[1-9]|[1-4][0-9]|50)$/.test(capacity)||!/^\d{1,3}$/.test(radius)||Number(radius)<1||Number(radius)>200
       ||(country.trim()&&!countryValue)||bio.length>4000){setError('Proveri liste, državu, kapacitet 1–50 i radijus 1–200 km.');return;}

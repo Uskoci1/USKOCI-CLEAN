@@ -129,7 +129,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const places = useMemo(() => pinPlaces(props.items), [props.items]);
   const byId = useMemo(() => new globalThis.Map(props.items.map(item => [item.id, item] as const)), [props.items]);
   const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
-  const dataKey = JSON.stringify(data), latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
+  // Selection, layout and camera state do not change the public geometry. Retain its
+  // exact fingerprint instead of serializing every task again on each map render.
+  const dataKey = useMemo(() => JSON.stringify(data), [data]);
+  const latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
   // Restore the actual visible bounds. Native camera `center` is the padded target after a pin/fit move; restoring
   // that target without its old padding moves the visible geography behind the sheet. Bounds already include that
@@ -137,7 +140,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // A new map gets only an unoccluded provisional bounds view: the screen's
   // first render still holds whole-window sheet estimates, so those must never be frozen into the native camera.
   const initialFitPending = useRef(!props.viewport && data.features.length > 0);
-  const initial = useRef(props.viewport ? { bounds: props.viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } }
+  const [initial] = useState(() => props.viewport ? { bounds: props.viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } }
     : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 24, right: 50, bottom: 24, left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
@@ -392,7 +395,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           }
         }
         void readVisiblePins(); }}>
-      <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={18} />
+      <Camera ref={camera} initialViewState={initial} minZoom={0} maxZoom={18} />
       <Images images={PIN_IMAGES} />
       <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={60} clusterMaxZoom={16}
         hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}

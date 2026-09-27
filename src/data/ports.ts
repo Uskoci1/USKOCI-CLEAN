@@ -42,8 +42,8 @@ export type Idempotentno = { clientRequestId: string };
 export interface PotrebeCitanje {
   /** Account-owned server attention; failure is unavailable, never an empty list. */
   paznjaZaPocetnu(): Promise<HomeAttentionPreview>;
-  /** R03 — moje Potrebe. */
-  mojePotrebe(): Promise<PotrebaProjekcija[]>;
+  /** R03 — moje Potrebe. Defaults to urgency enrichment; count-only surfaces may leave it unobserved. */
+  mojePotrebe(options?: { includeUrgency?: boolean }): Promise<PotrebaProjekcija[]>;
   /** R04 — radni prostor jedne Potrebe. */
   potreba(id: string): Promise<PotrebaProjekcija | null>;
   /** W03 — javno bezbedan skup za Lista | Mapa | Kombinovano. */
@@ -66,7 +66,8 @@ export interface PrijaveCitanje {
 }
 
 export interface DogovoriCitanje {
-  mojiDogovori(): Promise<DogovorProjekcija[]>;
+  /** Defaults to reading my rating state. Non-rating surfaces may skip enrichment; all rows still load. */
+  mojiDogovori(options?: { includeRatings?: boolean }): Promise<DogovorProjekcija[]>;
   dogovor(id: string): Promise<DogovorProjekcija | null>;
   poruke(dogovorId: string, expectedAccountId?: string): Promise<PorukaProjekcija[]>;
 }

@@ -16,7 +16,7 @@ export default function Raspored() {
   const days = useMemo(() => weekDates(selected), [selected]);
   const from = localDayRange(days[0]).from, to = localDayRange(days[6]).to;
   const calendar = useFocusedResource(useCallback(() => workerCalendarClientService.readRange(from, to), [from, to]));
-  const agreements = useFocusedResource(useCallback(() => agreementClientService.mojiDogovori(), []));
+  const agreements = useFocusedResource(useCallback(() => agreementClientService.mojiDogovori({ includeRatings: false }), []));
   const schedule: AgendaSchedule = calendar.error ? { state: 'error', message: null }
     : calendar.data ? calendar.data.ok ? { state: 'ready', events: calendar.data.podatak.events } : { state: 'error', message: calendar.data.poruka }
       : { state: 'loading' };

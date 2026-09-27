@@ -45,7 +45,7 @@ export function SupportNewScreen({ reference }: { reference: SupportReference | 
  * words, and the send pinned in the footer with the reason it is grey. The words live only in memory, so Back with typed
  * words asks first. Presentation over the controller: every command, fence and payload is unchanged.
  */
-export function SupportNewView({ model, reference, readAgreements = () => agreementClientService.mojiDogovori() }: {
+export function SupportNewView({ model, reference, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
   model: ReturnType<typeof useSupportController>; reference: SupportReference | null | 'INVALID';
   /** Where the person's own Dogovori come from (the gallery hands in fixtures). */ readAgreements?: ReadAgreements;
 }) {

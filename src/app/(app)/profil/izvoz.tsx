@@ -138,7 +138,8 @@ function OwnedExport() {
     if (!canAct() || !available || !request || !artifact || Date.now() >= expires) return;
     const controller = new AbortController(); download.current = controller; setSavingFile(true); setNotice(null);
     let bytes: DataExportFile | null = null;
-    const ownedDownload = () => current() && download.current === controller && !controller.signal.aborted && Date.now() < expires;
+    const ownsDownload = () => current() && download.current === controller && !controller.signal.aborted;
+    const ownedDownload = () => ownsDownload() && Date.now() < expires;
     try {
       const result = await exports.downloadExport({ receiptId: request.receiptId, artifactGeneration: artifact.artifactGeneration }, controller.signal);
       if (!ownedDownload()) { if (result.ok) result.podatak.bytes.fill(0); return; }
@@ -149,7 +150,9 @@ function OwnedExport() {
         requireFileReadback(true); setNotice('Preuzeta kopija nije potvrđena. Osveži stanje.', 'danger'); return;
       }
       const saved = await saveDataExportFile({ artifact: bytes, isCurrent: ownedDownload, signal: controller.signal });
-      if (!ownedDownload()) return;
+      // Expiry can require deletion after a local write. A failed deletion still matters to this owner;
+      // only that warning survives expiry, never a saved claim or a result from a retired operation.
+      if (!ownsDownload() || (Date.now() >= expires && !(saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED'))) return;
       const copy = saved.status === 'SAVED' ? 'Kopija je sačuvana u izabranoj fascikli.'
         : saved.status === 'DOWNLOAD_STARTED' ? 'Preuzimanje je pokrenuto u pregledaču. Proveri gde je fajl sačuvan.'
           : saved.status === 'CANCELLED' ? 'Čuvanje je otkazano. Kopija nije sačuvana.'

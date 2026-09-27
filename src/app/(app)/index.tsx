@@ -32,7 +32,7 @@ function Home() {
   }, []));
   const load = useCallback(async (): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
     const [needs, applications, agreements, attention] = await Promise.all([
-      readHomeSection(() => source.mojePotrebe()), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
+      readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
       readHomeSection(() => source.paznjaZaPocetnu())]);
     // Every failed read is unavailable, never an account with nothing in it.
     if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
