@@ -373,6 +373,50 @@ it('preserves a server CAS conflict after recovery read without silently retryin
   expect(mockAccept).not.toHaveBeenCalled();
 });
 
+it('never opens an old reviewed place with a newer canonical revision', async () => {
+  const a = location('A'), b = location('B'), nextRevision = 'd'.repeat(64);
+  mockPrepare.mockResolvedValue(ok(locatedReview(a)));
+  await render();
+  // Another session changed the location after this review was displayed.
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(b, nextRevision)));
+  mockPrepare.mockResolvedValue(ok(locatedReview(b, nextRevision)));
+  await act(async () => action('Uredi mesto').onPress());
+  expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+  expect(text()).toContain('Mesto se promenilo posle otvaranja pregleda.');
+  expect(text()).toContain('Adresa B'); expect(text()).not.toContain('Adresa A');
+  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
+  await act(async () => action('Uredi mesto').onPress());
+  expect(tree.root.findByType('LocationForm' as React.ElementType).props.review).toMatchObject({ value: b, revision: nextRevision });
+  expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
+});
+
+it('coalesces double opening and prevents accepting while the fresh location read is pending', async () => {
+  const held = deferred(), a = location('A');
+  mockPrepare.mockResolvedValue(ok(locatedReview(a))); await render();
+  mockLocationRead.mockReturnValueOnce(held.promise);
+  const open = action('Uredi mesto').onPress, accept = publish().onPress;
+  await act(async () => { void open(); void open(); void accept(); });
+  expect(mockLocationRead).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
+  expect(publish().disabled).toBe(true);
+  await act(async () => held.resolve(ok(canonicalLocation(a))));
+  expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(a);
+});
+
+it('a retired location read cannot release a later visit opening lock', async () => {
+  const old = deferred(), fresh = deferred(), a = location('A');
+  mockPrepare.mockResolvedValue(ok(locatedReview(a))); await render();
+  mockLocationRead.mockReturnValueOnce(old.promise);
+  await act(async () => { void action('Uredi mesto').onPress(); });
+  await blur(); await focus();
+  mockLocationRead.mockReturnValueOnce(fresh.promise);
+  await act(async () => { void action('Uredi mesto').onPress(); });
+  await act(async () => old.resolve(ok(canonicalLocation(a))));
+  expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+  expect(publish().disabled).toBe(true);
+  await act(async () => fresh.resolve(ok(canonicalLocation(a))));
+  expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(a);
+});
+
 it('recovers a retained local B proposal after an external C revision on the next explicit refresh', async () => {
   const a = location('A'), b = location('B'), c = location('C');
   const saved = locatedReview(a), newer = locatedReview(c, 'd'.repeat(64));

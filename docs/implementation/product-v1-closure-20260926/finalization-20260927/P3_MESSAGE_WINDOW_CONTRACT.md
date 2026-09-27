@@ -1,6 +1,6 @@
 # P3 / Chat B3b — exact-message window
 
-**SOURCE ONLY — NOT RUN / NOT APPLIED / NOT CLIENT-WIRED / NOT READY FOR APPLY.** Prepared 2026-09-27. No SQL/proof/test/type/build/device/provider execution belongs to this preparation.
+**DISPOSABLE PROOF PASS — NOT DEV APPLIED / NOT CLIENT-WIRED.** Prepared 2026-09-27; updated to the [Round 09 proof receipt](ROUND_09_B3_PROOF_RECEIPT.md). CI [36312570701](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36312570701), source `be72a1bd5311e7974bba5572529852156039eac7`, passed B3b **7/7** and predecessor B3a **11/11** checks on actual disposable Auth/PostgreSQL. Source147 → recorded replay through PKG-050 → local Notification A1 excludes PKG-051 and does not prove full current DEV parity. No device/provider or current-app acceptance follows from this result.
 
 This package adds one authenticated read candidate after amended B3a. It supplies the bounded target-window capability proposed in `P4_EXACT_MESSAGE_LANDING_CONTRACT.md`; it does not add an event resolver, push payload, route, scroll behavior, read receipt, incoming stream or voice support.
 
@@ -10,7 +10,7 @@ Owned new files:
 - `supabase/proofs/chat/message_window_proof.mjs`
 - this contract note.
 
-The B3a candidate, proof and contract were also amended with explicit null-safe membership checks after the source finding below. Applied helpers, migrations, clients, workflows and control files are unchanged by P3.
+The candidate retains explicit null-safe membership as defense in depth. The earlier nullable-schema characterization is corrected below. Applied helpers, migrations and clients remain unchanged. The separately added disposable workflow is recorded in the receipt; frozen candidate/proof artifacts are not rewritten by this living-contract update.
 
 ## One request and response contract
 
@@ -41,17 +41,17 @@ The target lookup uses the existing message primary key and checks Agreement ide
 
 Each non-null cursor is the exact first/last returned row tuple and means another row exists beyond that boundary in the window statement. A side with count zero can still return its target tuple as a non-null cursor. Clients must retain raw PostgreSQL timestamp strings, including microseconds; converting cursors through JavaScript `Date` loses precision.
 
-B3a can consume `beforeCursor` as an exclusive older cursor. B3a has no exclusive forward reader, and no client consumes `afterCursor` yet. A future approved integration may reanchor B3b at `afterCursor.messageId` with counts 0/49; that includes the boundary row again, so ID deduplication is mandatory. The proof source checks that inclusive behavior. This does not add a live client traversal or authorize a flow change.
+B3a can consume `beforeCursor` as an exclusive older cursor. B3a has no exclusive forward reader, and no client consumes `afterCursor` yet. A future integration may reanchor B3b at `afterCursor.messageId` with counts 0/49; that includes the boundary row again, so ID deduplication is mandatory. The disposable proof passed that inclusive behavior. This is not current client traversal or gap-free incoming delivery.
 
 `asOf` describes statement time, not a cross-request snapshot. Later arrivals, deletion or delayed commits can change subsequent windows/cursor availability. Reanchoring is a bounded historical read, not gap-free incoming delivery, a durable sequence or proof that all messages have been seen.
 
-## Authority, projection and the nullable-participant finding
+## Authority, projection and canonical participant constraints
 
 `private.support_auth_v5(expected)` requires a non-null matching authenticated account and a live session, and is repeated before return. The existing Agreement context helper admits terminal history. B3b then explicitly refuses when the actor `IS DISTINCT FROM` both participant IDs, before selecting any message. It never accepts a router parameter or event ID as authorization.
 
-During this preparation, the reused `private.agreement_photo_context_v5` was found to use `a NOT IN(requester_account_id, worker_account_id)` (`20260913065130_clean_v5_agreement_private_photos.sql:53`). With a NULL participant and unrelated caller, that condition is NULL and does not raise. The schema permits both participant columns to be NULL and defines hard-delete FKs with `ON DELETE SET NULL` (`20260830173000_clean_authoritative_mutation_boundary.sql:90-105`). B3a's two new RPCs and B3b now require a positive null-safe match.
+The reused `private.agreement_photo_context_v5` contains `a NOT IN(requester_account_id, worker_account_id)` (`20260913065130_clean_v5_agreement_private_photos.sql:53`). A hypothetical NULL participant would make that condition NULL for an unrelated caller. The earlier note incorrectly treated `20260830173000_clean_authoritative_mutation_boundary.sql` as final schema: `20260830174000_clean_repair_authority_boundary.sql:29-31` restores **NOT NULL on both columns**. The successful disposable proof and [fresh narrow DEV read](ROUND_09_DEV_B3_READ_ONLY.json) confirm both constraints. B3a/B3b retain explicit positive null-safe membership checks without weakening the canonical schema.
 
-**This does not establish live reachability or exploitation.** Current normal closure uses Auth soft deletion (`supabase/functions/uskoci-account-closure-worker/closure.ts:87`) and requires a retained Auth row with `deleted_at` (`20260913081147_clean_v5_event_bound_account_erasure.sql:661`); it does not itself fire the hard-delete FK. Hard-delete, legacy/import or administrative NULL states are the schema-level concern. The existing helper and existing photo metadata/binary readers remain unchanged and are a separate unresolved live-code concern; these new guards do not fix every existing caller.
+**No reachable NULL-participant exploit or affected live state is established.** The proof refuses ordinary requester/worker/both-NULL writes; it neither relaxes constraints nor manufactures an impossible Agreement. The hypothetical NULL-helper branch was not runtime-tested. Current soft-delete closure also does not create NULL participants. Existing photo helpers/readers remain unchanged, but the earlier unresolved-live-exposure characterization is superseded by the canonical NOT NULL evidence. Any future constraint change needs a separate authority review.
 
 The new window duplicates B3a's explicit `TEXT`/`PHOTO`, mine/sender/version/client-ID/body/time projection and reuses `rpc_read_agreement_photo_messages_v5` only for the selected IDs. It retains exact message/version/client-ID/body joins, validates asset attachment and readiness, and exposes only asset ID, dimensions, byte size and fixed content type. No storage path, signed URL, hash, upload command, message `read_at` or inferred voice kind is added.
 
@@ -74,29 +74,31 @@ The candidate requires an existing valid/ready single-column target PK and valid
 | Amended B3a exact read | `27e5395f9ba25e0bccd5136dfde5d931` |
 | New B3b window | `9ae403a4c1ba9130e18cdd5b3dd831f6` |
 
-The first three prerequisite source locations are recorded in `P3_PRIVATE_HISTORY_CONTRACT.md`. B3a pins come from its current candidate `$page$`/`$read$` bodies. B3b's own pin is calculated from `$window$` source with CRLF normalized to LF. These are file-text hashes, not live catalog observations or SQL execution.
+The first three prerequisite source locations are recorded in `P3_PRIVATE_HISTORY_CONTRACT.md`. B3a pins come from `$page$`/`$read$`; B3b's own pin comes from `$window$`, with CRLF normalized to LF for those body comparisons. Disposable SQL exercised these guards. The narrow DEV read at `2026-09-27T10:38:34.583233+00:00` independently matches the four existing helper pins and finds no B3 RPCs. B3b's exact tested candidate SHA-256 is `d57619fbf972120763861d2bf61fd02122e2b4d5b84fc3be3165404569243f0d`; receipt source integrity compares raw Git bytes without newline normalization. This is not a fresh full DEV ledger/certificate/Edge attestation.
 
 The candidate refuses an existing B3b signature, wrong predecessor body/security envelope, missing indexes or stale closure readiness. It dynamically captures and preserves the closure source digest, both entire certificate rows, erasure binding and readiness-function definition. Only the new function gains authenticated EXECUTE; PUBLIC, anon and service_role are revoked. There is no table, index, trigger, policy, writer, grant expansion on an existing object or certificate rebinding. The postcondition pins the exact new body and definer/search-path/volatility/ACL envelope.
 
-## Unexecuted disposable proof source
+The disposable receipt confirms complete equal `closureBefore`/`closureAfter` objects, readiness true and digest `9432adc2906abde3b991bb79d92f1f924c46d203af054970deeec76a388269b8`. That preserved disposable certificate is not a claim that the current DEV certificate was freshly attested.
 
-The proof imports the existing runtime that refuses non-local Auth/Postgres targets before IO. It requires a separately replayed predecessor through A1 plus the amended B3a; it does not replay B3a or reconstruct DEV. Before SQL, it requires exact raw bytes for candidate, B3a source, proof, runtime and surface reader to equal `git show <GITHUB_SHA>:<path>`, recording each raw SHA256. No workflow was added.
+## Executed disposable proof and preserved history
 
-Authored cases cover:
+The proof imports the runtime that refuses non-local Auth/Postgres targets before IO. It requires the separately replayed predecessor through A1 and B3a; the `chat-b3-history-proof.yml` workflow provides that preparation. Before SQL, candidate/B3a/proof/runtime/surface-reader bytes must equal `git show <GITHUB_SHA>:<path>`, with raw SHA256 recorded. The successful [B3b report](b3-ci-36312570701/chat-b3b-report.json) records seven passing checks, actual Auth/database, zero provider/Storage calls and no device proof.
+
+The passing proof covers:
 
 - B3a body-pin and new-body tamper refusal with rollback, exactly one added authenticated read function, unchanged unrelated authority and closure;
 - 121 ordering fixtures with equal timestamps and adjacent microseconds, an old target outside the newest 50, exact nearest rows, target uniqueness, edges, zero sides and total cardinality;
 - exact before/after cursor tuples, B3a exclusive older continuation and B3b inclusive forward reanchor;
 - invalid counts including maximal integers, missing/null/foreign target, foreign/missing Agreement, wrong expected account, anonymous and retired-session refusal;
-- each nullable participant side and both-null state: outsiders refused, actual remaining party retained, no notification/read/delivery/attempt mutation;
+- canonical NOT NULL constraints on both participants and ordinary requester/worker/both-NULL write refusal; both actual members admitted, outsiders refused and no notification/read/delivery/attempt mutation;
 - explicit TEXT/PHOTO target and metadata allowlist, corrupt attachment-link refusal using a disposable fixture;
 - later ordinarily committed arrival and terminal Agreement history, with exact target preserved and no read acknowledgement;
 - snapshots of all message read timestamps, events, notification deliveries and push attempts around reads/refusals, plus final unchanged closure evidence.
 
-Ordering, nullable-party and media-link fixtures are synthetic local SQL states. The photo fixture contains metadata only. There is no real upload, Storage object, native geometry, provider push, read receipt or closure-erasure execution in this proof. A later proof failure must be investigated; source review does not establish that the SQL parses or any assertion passes.
+Ordering and media-link fixtures are synthetic local SQL states; the participant checks preserve canonical constraints and the photo fixture contains metadata only. There is no real upload, Storage object, native geometry, provider push, client visibility or closure-erasure execution in this proof. Earlier failed runs remain linked in the [receipt history](ROUND_09_B3_PROOF_RECEIPT.md#earlier-failures-remain-part-of-the-evidence): invalid NULL-fixture trigger/constraint failures in `36310433116` and `36310983457`, followed by B3a success but a B3b typed-timestamp ordering-oracle failure in `36312008697`. [Fixture correction](ROUND_07_B3_FIXTURE.md) and [oracle correction](ROUND_07_B3_WINDOW_ORDERING.md) explain the progression; the passing run is `36312570701`, not a relabeling of those failures.
 
 ## Review and remaining boundary
 
-Independent bounded source review completed on 2026-09-27 with no actionable defect found in the candidate, proof or contract. The review covered non-null authenticated ownership and explicit positive membership before target reads, repeated session validation, nearest-side bounds and target inclusion, tuple cursor precision, photo identity joins, full closure certificate/readiness preservation, raw source-byte binding before candidate SQL, and the authored NULL-participant/no-read-effect proof cases. It did not execute SQL or the proof, recompute catalog hashes, or establish parser success, runtime outcomes, native positioning or query cost. The existing photo-helper finding remains separate and unresolved.
+Independent bounded source review preceded execution and covered authenticated ownership, explicit membership, session recheck, bounded target inclusion, tuple precision, photo joins and source/closure preservation. It did not itself establish runtime success and initially missed the later NOT NULL repair; the disposable runs corrected that fixture assumption. The final receipt supplies the bounded runtime evidence. Frozen proof-source header comments remain historical; this contract and receipt carry current status. Native positioning, client visibility and query cost remain unproved.
 
-Required next evidence remains separately authorized disposable execution against exact predecessors, query-cost measurement, an event resolver contract and approved native landing/viewability integration. B3b is not deployed and does not connect current push or chat clients to any new RPC. Voice dependencies, storage/closure changes and UI remain separate work.
+Disposable proof is complete for the recorded source. DEV application still requires explicit **“primeni”** and an immediate fresh check of current ledger/scope, predecessor/security/ACL/index pins, closure certificate/readiness/binding and RPC absence. Then client work needs strict window decoding, ID-deduplicated bounded continuation and current-visit landing/viewability. A canonical event-to-message resolver and query-cost evidence remain separate requirements. B3b is not deployed or wired to push/chat clients; ordinary UI work no longer needs per-image approval, while server, voice/dependency and storage/closure changes keep their separate gates. No SQL, proof, source, tests or builds ran during this contract update.

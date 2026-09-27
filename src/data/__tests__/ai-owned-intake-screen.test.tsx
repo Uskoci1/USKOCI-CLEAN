@@ -77,10 +77,10 @@ jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Authorize
 jest.mock('../../ui/location/ConversationPointAsk', () => {
   const React = require('react');
   const { useConfirmSheet } = require('../../ui/system/ConfirmSheet');
-  function PointAskStub(props: { conversationId: string; onClose: () => void }) {
+  function PointAskStub(props: { conversationId: string; onClose: () => void; disabled?: boolean; onEditingChange?: (editing: boolean) => void }) {
     const confirmation = useConfirmSheet();
     return React.createElement(React.Fragment, null,
-      React.createElement('PointAsk', { conversationId: props.conversationId }),
+      React.createElement('PointAsk', props),
       React.createElement('Press', { accessibilityLabel: 'Kasnije', onPress: () => confirmation.ask({ title: 'Potvrđena tačka nije sačuvana',
         message: 'Ako sad izađeš, ova tačka se gubi.', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger',
         onConfirm: props.onClose }) }),
@@ -790,15 +790,17 @@ it('offers the owned photo route and options without automatic abandonment', asy
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
 });
 
-// Review r4 ra items 3 and 13 (this replaces the test that pinned "Izmeni mesto na mapi" opening the point editor in a
-// sheet with a stub). With every point saved the real editor shows nothing and its "Kasnije" warned that saved points
-// would be lost, so the conversation offers no such row: a saved place is changed in the task's review. The row that
-// remains brings back the inline ask for a missing point, and only after that ask was put away.
-it('offers no dead place row once every point is saved, and brings a put-away point ask back from the menu', async () => {
+// Confirmed locations now remain in the same lazy surface as the incomplete ask.
+// Its own suite proves preview/edit/clean-close; this screen owns visibility and competing actions.
+it('keeps a saved place inline and brings a put-away point ask back from the menu', async () => {
   const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Liman' } });
-  const placed = { ...publicFact('need.resolved_location', { points: [{ slot: 'start' }] }), privacyClass: 'PRIVATE' as const };
+  const placed = { ...publicFact('need.resolved_location', { version: 1,
+    binding: { taskCountryCode: 'RS', geography: geography.value, exactAddress: null },
+    points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] }), privacyClass: 'PRIVATE' as const };
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
-  mockLoad.mockResolvedValue(conversation({ facts: [geography, placed], messages: said })); await resume();
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed], messages: said })); await resume();
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
+  expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
   await options();
   expect(menuItems('Izmeni mesto na mapi')).toHaveLength(0); expect(menuItems('Mesto na mapi')).toHaveLength(0);
   expect(tree.root.findAll(node => node.type === ProductSheet && node.props.label === 'Mesto zadatka')).toHaveLength(0);
@@ -820,6 +822,37 @@ it('offers no dead place row once every point is saved, and brings a put-away po
   expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
   expect(asks()).toHaveLength(1);
   expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
+});
+
+it('keeps a typed draft but prevents competing send, review and photo navigation during point editing', async () => {
+  const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } });
+  mockLoad.mockResolvedValue(conversation({ facts: [geography], review: { ...conversation().review, canSaveDraft: true } }));
+  await resume(); await type('Još jedna napomena');
+  const send = submit().onPress;
+  const photos = tree.root.findByProps({ accessibilityLabel: 'Fotografije zadatka' }).props.onPress;
+  const review = tree.root.findByProps({ testID: 'intake-draft-review' }).props.onPress;
+  const point = tree.root.findByType('PointAsk' as React.ElementType).props;
+  await act(async () => point.onEditingChange(true));
+  expect(input().value).toBe('Još jedna napomena');
+  expect(submit().accessibilityState.disabled).toBe(true);
+  // Retained callbacks from before the manual editor opened cannot bypass the interlock.
+  await act(async () => { send(); photos(); review(); });
+  expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+  await act(async () => point.onEditingChange(false));
+  expect(input().value).toBe('Još jedna napomena');
+  expect(submit().accessibilityState.disabled).toBe(false);
+});
+
+it('does not treat old city coordinates as confirmed for a new city with the same slot', async () => {
+  const oldGeography = { mode: 'STATIONARY', start: { city: 'Novi Sad' } };
+  const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Beograd' } });
+  const placed = publicFact('need.resolved_location', { version: 1,
+    binding: { taskCountryCode: 'RS', geography: oldGeography, exactAddress: null },
+    points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] });
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed] }));
+  await resume();
+  expect(text()).toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
+  expect(text()).toContain('tačka na mapi');
 });
 
 it('respects reduced motion for screen entry and the options panel', async () => {

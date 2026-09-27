@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
@@ -18,7 +18,7 @@ import { StateView } from '../system/StateView';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { CardFact, CardTitle, CardValue, valueSpoken } from './TaskFace';
-import { pointsMissing } from '../../lib/location';
+import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import { publicSummary, type Summary } from './draftSummary';
@@ -133,7 +133,15 @@ export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
   const [panel, setPanel] = useState<'options' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
-  const [pointAskHidden, setPointAskHidden] = useState(false);
+  const [hiddenPlace, setHiddenPlace] = useState<string | null>(null);
+  const [editingPlace, setEditingPlace] = useState(false);
+  const editingPlaceNow = useRef(false);
+  const closePlace = useRef<(() => void) | null>(null);
+  const registerPlaceClose = useCallback((close: (() => void) | null) => { closePlace.current = close; }, []);
+  const reportEditingPlace = useCallback((editing: boolean) => {
+    editingPlaceNow.current = editing; setEditingPlace(editing);
+  }, []);
+  const outsidePlace = (action: () => void) => () => { if (!editingPlaceNow.current) action(); };
   const reduced = useReducedMotion();
   const summary = publicSummary(conversation.facts);
   const safetyCopy = safetyMessage(conversation.safety);
@@ -146,8 +154,19 @@ export function IntakePresentation(props: Props) {
   const photoPaths = held('need.public_photo_paths');
   const photoAssets = [...new Set((Array.isArray(photoPaths) ? photoPaths : [])
     .map(path => typeof path === 'string' ? mediaAssetId(path) : null).filter((id): id is string => !!id))];
-  const gap = pointsMissing(held('need.task_geography'), held('need.resolved_location'));
+  // A saved point belongs to this geography, country and address, not merely a slot
+  // with the same name. A new city must not inherit the previous city's confirmation.
+  const placeFacts = { taskCountryCode: held('need.task_country_code') ?? null,
+    geography: held('need.task_geography') ?? null, exactAddress: held('need.exact_address') ?? null,
+    accessNotes: held('need.access_notes') ?? null, resolvedLocation: held('need.resolved_location') ?? null };
+  const place = normalizeNeedLocation(placeFacts);
+  const placeKey = `${conversation.conversationId}:${JSON.stringify(placeFacts)}`;
+  const pointAskHidden = hiddenPlace === placeKey;
+  const gap = pointsMissing(placeFacts.geography, place?.resolvedLocation);
   const needsPoint = open && gap.total > 0 && gap.done < gap.total;
+  const showPlace = open && hasConversation && conversation.safety !== 'BLOCK' && gap.total > 0;
+  const placeDisabled = busy || pending || !props.canEdit || !!props.error;
+  const reviewAllowed = props.canReview && !editingPlace;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
   // contain it, because the AI is not allowed to propose it). A required fact the AI has already proposed is not listed:
   // confirming what it proposed is the review screen's job, and the card's heading already shows it.
@@ -161,7 +180,7 @@ export function IntakePresentation(props: Props) {
   // At the start nothing is filled, so the full list is eight items long; the card names the first few and counts the rest.
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
-  const readyForReview = open && props.canReview && conversation.safety !== 'BLOCK'
+  const readyForReview = open && reviewAllowed && conversation.safety !== 'BLOCK'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   // Current facts belong in the live card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
@@ -170,39 +189,39 @@ export function IntakePresentation(props: Props) {
   // underneath it. Photos are the composer's "+", not a row here. Before the first word there is no conversation to act
   // on, so there is no menu either.
   const menu: SheetAction[] = [];
-  if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', onPress: props.onReview });
-  // A missing point is asked for in the thread, beside the words; the row brings that ask back only once it was put
-  // away (review r4 ra item 13). A point already saved is changed in the task's review, where the place is edited:
-  // the conversation's point editor has nothing to show once every point is saved, so a row for it led nowhere and
-  // warned about points that were already saved (review r4 ra item 3).
-  if (needsPoint && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setPointAskHidden(false) });
-  if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled, onPress: props.onRefresh });
+  if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', disabled: !reviewAllowed, onPress: outsidePlace(props.onReview) });
+  // Confirmed points remain in the thread as a compact map with an explicit edit action.
+  // Hiding this surface affects only its current location identity, never the next place.
+  if (showPlace && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
+  if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi Zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    value={value} canEdit={props.canEdit} canSend={props.canSubmit}
+    value={value} canEdit={props.canEdit} canSend={props.canSubmit && !editingPlace}
+    sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
     welcomeDetail="Opiši posao svojim rečima. Zajedno ćemo složiti detalje, a pre objave sve pregledaš."
     openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
-    onBack={props.onBack} onChange={props.onChange} onSend={props.onSend}
-    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={props.voice}
+    onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
+    onChange={props.onChange} onSend={outsidePlace(props.onSend)}
+    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace ? undefined : props.voice}
     attach={props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
-      onPress: props.onPhotos, disabled: props.photosDisabled } : undefined}
+      onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
     // Nothing is pinned until the conversation has said or taken something: an empty card at the
     // top of a fresh screen states a draft that does not exist yet and buries the invitation.
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
-      stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={props.canReview}
-      onReview={props.onReview} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
+      stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
+      onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
-    footerAction={readyForReview ? <V2Action label={props.reviewLabel} onPress={props.onReview} /> : undefined}
+    footerAction={readyForReview ? <V2Action label={props.reviewLabel} onPress={outsidePlace(props.onReview)} /> : undefined}
     actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
-          disabled={props.photosDisabled} accessibilityState={{ disabled: !!props.photosDisabled }} onPress={props.onPhotos}
+          disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}
           style={s.photoHeader}>
           <T variant="bodyStrong">Fotografije zadatka</T><CaretRight size={20} color={sys.color.muted} />
         </Press> : <T variant="bodyStrong">Fotografije zadatka</T>}
@@ -215,18 +234,20 @@ export function IntakePresentation(props: Props) {
     </> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
-    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !needsPoint ? undefined : <>
-      {needsPoint && !pointAskHidden ? <>
-        <T variant="note" style={s.muted}>{gap.total > 1
-          ? 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe. Dve tačke, dva dodira.'
-          : 'Fali još mesto na mapi, da onaj ko uskoči zna gde da dođe.'}</T>
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !showPlace ? undefined : <>
+      {showPlace && !pointAskHidden ? <>
+        {needsPoint ? <T variant="note" style={s.muted}>{gap.total > 1
+          ? 'Proveri svaku tačku, da onaj ko uskoči zna gde treba da dođe.'
+          : 'Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.'}</T> : null}
         <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
-          <ConversationPointAsk conversationId={conversation.conversationId}
-            onSaved={props.onRefresh} onClose={() => setPointAskHidden(true)} />
+          <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
+            onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}
+            onSaved={props.onRefresh} onClose={() => { reportEditingPlace(false); setHiddenPlace(placeKey); }} />
         </Suspense>
       </> : null}
-      {needsPoint && pointAskHidden
-        ? <V2Action label="Pokaži mesto na mapi" style={brandAction} onPress={() => { Keyboard.dismiss(); setPointAskHidden(false); }} /> : null}
+      {showPlace && pointAskHidden
+        ? <V2Action label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
+          onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>

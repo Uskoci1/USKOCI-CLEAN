@@ -75,6 +75,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const [publishing, setPublishing] = useState(false);
   // The place is being read before its editor opens: the "Uredi mesto" action says so.
   const [opening, setOpening] = useState(false);
+  const locationOpening = useRef<{ active: boolean } | null>(null);
   // A place that could not be read says so beside its button, instead of the button doing nothing.
   const [openError, setOpenError] = useState<string | null>(null);
   // True once a publish or resume started on this screen read back its publication: only that confirms itself with the
@@ -87,7 +88,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const locationProposal = useRef<{ expectedRevision: string; value: NeedLocationInput } | null>(null);
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
   useFocusEffect(useCallback(() => { const scope = {}; focus.current = scope; navigating.current = false;
-    return () => { if (focus.current === scope) focus.current = null; setEdit(null); setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
+    return () => { if (focus.current === scope) focus.current = null;
+      if (locationOpening.current) locationOpening.current.active = false;
+      locationOpening.current = null; setOpening(false);
+      setEdit(null); setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
   }, [accountId, accountRevision, resolver]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
@@ -142,7 +146,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const canAct = () => current() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain;
+  const canAct = () => current() && !navigating.current && !locationOpening.current && !editor.loading && !editor.busy && !editor.uncertain;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
   const back = () => navigate(() => {
     if (!conversationId) { router.replace('/nova'); return; }
@@ -211,15 +215,26 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   const openLocation = async () => {
     if (!canAct() || !conversationId || !review || command || edit || deadlineEditor || opening) return;
+    const request = { active: true }; locationOpening.current = request;
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
     try { result = await needLocationClientService.read(conversationId); }
-    catch { if (current()) setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); return; }
-    finally { setOpening(false); }
-    if (!current()) return;
+    catch { if (current() && request.active) setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); return; }
+    finally { if (locationOpening.current === request) { locationOpening.current = null; setOpening(false); } }
+    if (!current() || !request.active) return;
     if (!result.ok) { setOpenError(result.poruka); return; }
+    const proposed = locationProposal.current ?? (review.location
+      ? { expectedRevision: review.geographyRevision, value: review.location } : null);
+    // Never relabel an old place with the freshly read revision: doing so would let
+    // a stale A be explicitly accepted as though it were based on current B.
+    if (proposed && proposed.expectedRevision !== result.podatak.revision) {
+      locationProposal.current = null;
+      setOpenError('Mesto se promenilo posle otvaranja pregleda. Proveri novu lokaciju pre izmene.');
+      await editor.refresh();
+      return;
+    }
     setEdit(null);
-    setLocationEditor({ ...result.podatak, value: locationProposal.current?.value ?? review.location ?? result.podatak.value });
+    setLocationEditor({ ...result.podatak, value: proposed?.value ?? result.podatak.value });
   };
   const proposeLocation = async (value: NeedLocationInput) => {
     if (!canAct() || !locationEditor || !conversationId || command) return;
@@ -299,7 +314,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     // the person asked for a draft or a publish stopped here.
     : command?.state === 'ACCEPTED' ? 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
     : command ? 'Objava još nije potvrđena. Proveri ishod pre novog pokušaja.' : null;
-  const disabled = editor.busy || editor.loading || editor.uncertain;
+  const disabled = editor.busy || editor.loading || editor.uncertain || opening;
   const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || !!deadlineEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.

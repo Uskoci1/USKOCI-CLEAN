@@ -32,6 +32,8 @@ export type AiConversationShellProps = {
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void;
+  /** A caller-owned unfinished step can temporarily hold sending without erasing the typed draft. */
+  sendBlockedReason?: string;
   /** The "···" of rare actions. Left out when there is nothing to offer, so the chrome shows no dead control. */
   onOptions?: () => void;
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
@@ -142,8 +144,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const sendShown = hasText || p.pending;
   const voiceIdle = phase === 'IDLE';
   const sendReason = p.canSend || !sendShown ? null
-    : p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.'
-      : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.';
+    : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.'
+      : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.');
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
   // Voice mode shows the last exchange: what the person said last and the answer to it, or the answer being written.
