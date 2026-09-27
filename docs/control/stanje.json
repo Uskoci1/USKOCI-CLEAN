@@ -1,16 +1,16 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T19:50:50Z",
+  "osvezeno": "2026-09-27T20:25:15Z",
   "grana": "HEAD",
-  "head": "b4561a9c",
-  "head_poruka": "test: give synthetic push receipts unique provider tickets",
+  "head": "5749b656",
+  "head_poruka": "feat: prepare bounded Discovery pages with client parity proof",
   "server": {
-   "snimljeno": "2026-09-27T18:59:45Z",
-   "migracije": 208,
-   "dev_alpha": 60,
-   "poslednja": "dev_alpha_worker_profile_licenses_owned_projection",
+   "snimljeno": "2026-09-27T20:20:25Z",
+   "migracije": 210,
+   "dev_alpha": 62,
+   "poslednja": "dev_alpha_chat_p4_push_event_transport",
    "sertifikat_ok": null,
-   "privatni_status": "VERIFIED_IN_EXACT_P5_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+   "privatni_status": "VERIFIED_IN_EXACT_P4_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
    "privatni_istorijski": null,
    "cron": [
     {
@@ -69,7 +69,7 @@
     },
     {
      "slug": "uskoci-push-transport",
-     "version": 21,
+     "version": 22,
      "verify_jwt": false
     },
     {
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "b4561a9c",
+  "source_head": "5749b656",
   "order": [
    "P0",
    "P1",
@@ -105,14 +105,14 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Krug27:4ciljane grupe/226PASS; izdvojena ingress grupa13PASS sa detectOpenHandles bez upozorenja. Kombinovane grupe imaju forced-worker-exit upozorenje. Završni integrisani TypeScriptPASS; nije ceo Jest.",
-  "device": "APK36344044088/04b66de6 instaliran/hash-potvrđen na emulator5556; profil i ručni radni profil učitavaju DEV, prijava sačuvana. Sadrži P0/P4/P5, ne novu direktnu push vezu. Fizički Honor VKP-NX9 sada povezan; postojeći preview35 još nije nadograđen.",
-  "live_dev_scope": "27.09 18:54–18:56 UTC: P0/P4/P5 primenjeni, ledger205→208; tri tačna SHA256 u ledgeru, tela i ACL provereni. Sertifikati i readiness definicija nepromenjeni. Bez poslovnih podataka, Edge/promene sertifikata. supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json",
+  "tests": "Krug28: B3c tri ciljane grupe/73PASS i završni integrisani TypeScriptPASS; ceo Jest nije ponavljan.",
+  "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
+  "live_dev_scope": "B3c DEV208→209/ver20260927201030, tri odobrena vezivanja f66818aa…1755b; P4 transport209→210/ver20260927201531 + Edge22 tačan readback. Exact flag odsutan/OFF. Oba SQL SHA proverena u ledgeru; P4 čuva novi B3c sertifikat.",
   "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-  "implementation": "Krug27: klijent prihvata stari INBOX i novi neprozirni eventId, preko ovlašćenog čitača otvara tačnu poruku bez preuranjenog ACK-a. Uključene zaštite od zakašnjelog odgovora, novijeg dodira, povratka sa prijave i promene naloga. Transport još nije primenjen.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
+  "implementation": "B3c povezan: body-free PostgreSQL signal i push dele jednog vlasnika osvežavanja; jedan aktivan i najviše jedan naknadni upit. Zadržani fokus/nalog/sesija/pozadina, istorija i ACK.",
+  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md",
   "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
-  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_26_APPLIED_CONNECTIONS.md",
+  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
   "server_proof_source": "be72a1bd",
   "server_proof": "P0 SQL-role9PASS36330122549; P4 SQL/Auth13PASS36339724742; P5 SQL-role7PASS36341487304. Primena DEV potvrđena u zasebnom receipt-u; ovo nije ceo native/provajder tok.",
   "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
@@ -124,34 +124,35 @@
    "distinction": "Missing implementation, unapplied packages, unverified acceptance and owner decisions remain separate. Existing row statuses are unchanged."
   },
   "application_approvals": {
-   "checked_at": "2026-09-27T18:56:11Z",
+   "checked_at": "2026-09-27T20:20:25Z",
    "document": "docs/implementation/product-v1-closure-20260926/finalization-20260927/APPLICATION_APPROVALS_20260927.md",
    "new_approval_candidates": [],
    "already_approved_conditional": "PKG045b and its internal certificate update already approved after compatible-app/device verification. Fresh protected-column/table grants still present; postcondition not satisfied. Do not ask again for the same approval.",
    "not_ready_for_apply": [
-    "P6 bounded Discovery: PAGE/EXACT_PUBLIC source, proof preparation; MAP/PLACES/client integration pending",
-    "Voice recording/playback and native complete exact-message push",
-    "Written rating comment contract and proof",
-    "B3c disposable recertification PASS; final DEV application bytes/proof and concrete live certificate approval remain separate"
+    "P6 PAGE/EXACT_PUBLIC SQL-rolePASS; lokalni rollback kandidat, MAP/PLACES/klijent/performance slede",
+    "Voice snimanje/reprodukcija i stvarni exact-message push",
+    "Komentar uz ocenu: ugovor i dokaz"
    ],
-   "mutation": "P0/P4/P5 explicit approval executed; DEV205→208, cert preserved. B3c disposable recertification complete; no new DEV or Edge mutation in Round27.",
+   "mutation": "B3c i kompatibilan P4 transport primenjeni posle konkretne dozvole; ledger210/Edge22, exact flagOFF.",
    "applied": [
     "B3a20260927140148: stranice i tačni prikazaniID-evi; isti dokazaniSHA256",
     "B3b20260927140231: prozor oko poruke; isti dokazaniSHA256",
     "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback",
     "P0 20260927185408 exact public landing",
     "P4 20260927185451 exact-message event resolver",
-    "P5 20260927185545 owned licenses projection"
+    "P5 20260927185545 owned licenses projection",
+    "B3c 20260927201030 private invalidation + three approved certificate bindings",
+    "P4 transport 20260927201531 + compatible Edge22, exact payload OFF"
    ]
   },
-  "chat_b3c": "DISPOSABLE_RECERTIFICATION_PASS36344033190:5SQL/10Realtime/11closure, dve kanonske closure izvršene na test bazi. DEV NOT APPLIED / CLIENT UNWIRED; finalni atomski application kandidat/proof u pripremi.",
+  "chat_b3c": "APPLIED_DEV209 / CLIENT_WIRED / 73FOCUSED_PASS / NATIVE_STREAM_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_CLIENT_SOURCE.md",
   "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
-  "p4_exact_message": "DEV resolver APPLIED / Inbox CLIENT WIRED. Direktni push ingress IMPLEMENTED226PASS; kompatibilni Edge/SQL transport proverava se u CI36345502344, nije primenjen. Native provider→tap→exact poruka tek sledi.",
-  "p6_discovery_contract": "PAGE/EXACT_PUBLIC SOURCE PREPARED, NOT RUN/NOT APPLIED/NOT WIRED: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_SOURCE.md",
+  "p4_exact_message": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
+  "p6_discovery_contract": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
   "p5_licenses": {
-   "status": "APPLIED_DEV_CLIENT_WIRED_FOCUSED_PASS_NATIVE_PENDING",
+   "status": "APPLIED_DEV_CLIENT_WIRED_FOCUSED_PASS_NATIVE_READ_ONLY",
    "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/worker_profile_licenses_owned_projection_report.md",
-   "problem": "Polje licenci sada je primenjeno na server i povezano u ručnom radnom profilu; nativna provera nove aplikacije još sledi.",
+   "problem": "Kontrole licenci i oznaka samoprijavljenih licenci viđene na emulatoru04b66de6; novo čuvanje nije izvršeno.",
    "decision": "Postojeći privatni čitač dobio je jedno polje; editor i postojeći writer čuvaju samoprijavljene licence bez oznake verifikacije. Neispravno ili odsutno polje je greška čitanja.",
    "proof": "Exact revised7SQL-rolePASS, DEVledger208 SHA/body/ACL/cert verified. Client5suites121PASS.",
    "receipt": "supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json",
@@ -178,6 +179,14 @@
    "status": "APPLIED_DEV_CLIENT_WIRED_FOCUSED_PASS_NATIVE_PENDING",
    "receipt": "supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json",
    "limits": "P6 server filtering/pagination is separate; exact publication read does not make ordinary collection bounded."
+  },
+  "phone_apk_round27": {
+   "run": "36345891205",
+   "source": "b589994ee9191a35cb57feb33a31e462d8532e6f",
+   "status": "INSTALLED_SIGNATURE_AND_HASH_MATCHED_SCOPED_NATIVE_PASS",
+   "sha256": "a13bdc574255b18600b0d50a9a398929e86bee4012cc8ecebff6d3318acc06ab",
+   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json",
+   "b3c_client_included": false
   }
  },
  "redovi": [
@@ -1723,7 +1732,8 @@
     "test": "5suite/121PASS, integrisani TypeScript proveren zasebno.",
     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
     "status": "APPLIED / CLIENT WIRED / NATIVE PENDING",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_CLIENT_INTEGRATION.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_CLIENT_INTEGRATION.md",
+    "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1986,7 +1996,7 @@
     "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
     "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
     "state_sync": "Tačan javni read potvrđuje ID/reviziju objave; red spojen bez duplikata sa mapom/listom. Nova namera povlači kameru; neuspešno osvežavanje ne uklanja potvrđen red.",
-    "performance": "Ciljano potvrđeno zaustavljanje narednih stranica/batcheva i dopuna. Ne dokazuje prekid već poslatog SQL-a ni spremnost za mnogo korisnika.",
+    "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
     "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
     "device_proof": "Round17eff72a25: calendar5/6rows at font1/1.3 and readyAI green action accepted in inert scenes. Round18 APK36333830435/6b06540e sha572c850b installed/hash verified; actual public map fills frame, brand-only pin and Android Back/detail/list position observed. Round19 new settings source not yet built. No new real E2E/phone/provider proof.",
     "status": "P0 SERVER APPLIED / CLIENT CHECKS PASS / NATIVE PENDING / P6 OPEN",
@@ -2082,7 +2092,7 @@
     "ui": "Bele odvojene sekcije i blur zadržani; poslednji red kalendara sada ostaje u prirodnoj visini panela.",
     "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
     "state_sync": "Tačan javni read potvrđuje ID/reviziju objave; red spojen bez duplikata sa mapom/listom. Nova namera povlači kameru; neuspešno osvežavanje ne uklanja potvrđen red.",
-    "performance": "Serverska pretraga, brojevi i prostorni upiti ostaju otvoreni.",
+    "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
     "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
     "device_proof": "Round17eff72a25: 5/6redova pri1.0/1.3, svaki poslednji cilj126px; datum i sklapanje sačuvani. Lokalni inertni prikaz, ne serverska pretraga.",
     "status": "P0 SERVER APPLIED / CLIENT CHECKS PASS / NATIVE PENDING / P6 OPEN",
@@ -2953,15 +2963,16 @@
     "flow": "Poruke",
     "ux": "Učitavanje starijih/novijih poruka čuva mesto čitanja; jedan dodir vraća najnovije i kada stara poruka više ne postoji.",
     "ui": "Postojeći oblačići i unos zadržani. Diskretne radnje Starije/Novije i retry pripadaju istoriji.",
-    "backend": "B3a/B3b + novi P4 resolver primenjeni; P4authenticated-only, sertifikati nepromenjeni.",
-    "state_sync": "Inbox događaj→tačan B3 message window; ACK samo kroz postojeće merene prikazane poruke. Outbox/foto/workspace ostaju isti.",
+    "backend": "B3a/B3b + B3c primenjeni na DEV; samo AgreementID/revision u privatno zaštićenom realtime signalu.",
+    "state_sync": "B3c povezan: body-free PostgreSQL signal i push dele jednog vlasnika osvežavanja; jedan aktivan i najviše jedan naknadni upit. Zadržani fokus/nalog/sesija/pozadina, istorija i ACK.",
     "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
-    "test": "P4 integration10suites503PASS; TypeScriptPASS.",
+    "test": "Krug28: B3c tri ciljane grupe/73PASS i završni integrisani TypeScriptPASS; ceo Jest nije ponavljan.",
     "device_proof": "Round18APK36333830435/6b06540e: inertni čet, tekst iznad tastature i isti nacrt posle Android Back viđeni. Nije dokaz slanja, realtime-a, pročitanog, glasa ili trajnog oporavka.",
-    "status": "INBOX EXACT MESSAGE WIRED / NATIVE PENDING / VOICE AND DIRECT PUSH OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md",
+    "status": "DEV I KLIJENT POVEZANI / CILJANE PROVERE PASS / STVARNI REALTIME NA NOVOM APK-U ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_CLIENT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_DEV_APPLICATION_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json",
     "voice": "B0 struktura AAC36/36PASS, bez dekodiranja ili pravog snimka. Glasovne poruke nisu isporučene. docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md",
-    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md"
+    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
+    "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3933,14 +3944,15 @@
     "flow": "Obaveštenja u aplikaciji (zvonce)",
     "ux": "Ista lista obaveštenja i odredišta.",
     "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
-    "backend": "B3a/B3b + novi P4 resolver primenjeni; P4authenticated-only, sertifikati nepromenjeni.",
+    "backend": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
     "state_sync": "Inbox događaj→tačan B3 message window; ACK samo kroz postojeće merene prikazane poruke. Outbox/foto/workspace ostaju isti.",
     "performance": "Postojeće straničenje sačuvano.",
     "test": "P4 integration10suites503PASS; TypeScriptPASS.",
     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
-    "status": "INBOX EXACT MESSAGE WIRED / NATIVE PENDING / VOICE AND DIRECT PUSH OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md",
-    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md"
+    "status": "KOMPATIBILNI P4 PRIMENJEN / TAČAN PUSH ISKLJUČEN / NOVI PROVIDER TOK ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md",
+    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
+    "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -4188,14 +4200,15 @@
     "flow": "Slanje obaveštenja na telefon",
     "ux": "Mapirano; detaljan krug sledi",
     "ui": "Postojeći prikaz; odobrenje po paketu",
-    "backend": "P4 dodatna funkcija13/13 SQL/Auth dokaz; sveži preduslovi DEV205 odgovaraju. Primena i povezivanje čekaju izričito odobrenje. Nije provider/device dokaz.",
+    "backend": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
     "state_sync": "Push još nosi samo INBOX. Odabrano obaveštenje je sada povezano sa tačnom porukom. Jedan dodir push→tačna poruka zahteva transport eventId i uređajski dokaz.",
     "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
     "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
     "device_proof": "Nema novog test slanja, APK-a ili uređajske potvrde v21.",
-    "status": "DVA TEKSTA OBJAVLJENA / CILJANE PROVERE PROŠLE / CEO LANAC ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
-    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md"
+    "status": "KOMPATIBILNI P4 PRIMENJEN / TAČAN PUSH ISKLJUČEN / NOVI PROVIDER TOK ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md",
+    "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
+    "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -5267,7 +5280,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "121 test fajl(ova)"
+    "test": "123 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -5537,6 +5550,10 @@
  "server_ume_aplikacija_ne_koristi": [
   {
    "rpc": "rpc_activate_urgent",
+   "preko_edge": false
+  },
+  {
+   "rpc": "rpc_agreement_invalidation_visible_v1",
    "preko_edge": false
   },
   {
@@ -6721,6 +6738,30 @@
  },
  "ci": [
   {
+   "id": 36346675417,
+   "ime": "P6 bounded Discovery PAGE disposable proof",
+   "sha": "5749b656",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T20:04:33Z"
+  },
+  {
+   "id": 36345955454,
+   "ime": "Chat B3c exact application candidate and certified erasure proof",
+   "sha": "82fd28b3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T19:52:41Z"
+  },
+  {
+   "id": 36345891205,
+   "ime": "Build Android push-proof APK",
+   "sha": "b589994e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T19:51:38Z"
+  },
+  {
    "id": 36345502344,
    "ime": "Chat P4 opaque push transport disposable proof",
    "sha": "b4561a9c",
@@ -6791,30 +6832,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-27T18:40:03Z"
-  },
-  {
-   "id": 36340619418,
-   "ime": "P5 owned worker licenses disposable proof",
-   "sha": "cb63b847",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:25:57Z"
-  },
-  {
-   "id": 36339724742,
-   "ime": "Chat P4 exact message event disposable proof",
-   "sha": "e82702f0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:11:29Z"
-  },
-  {
-   "id": 36339245682,
-   "ime": "Build Android development APK",
-   "sha": "f526a736",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:03:49Z"
   }
  ]
 }

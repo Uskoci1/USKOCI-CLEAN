@@ -25,7 +25,13 @@ export function createAgreementIncomingRefresh({ refresh, isCurrent }: {
     pending = false; flight = true; nextReadAt = Date.now() + 2_000;
     // Re-check after the microtask boundary; an account or focus change can retire
     // an otherwise valid hint before the caller starts any network read.
-    void Promise.resolve().then(() => { if (current()) return refresh(); })
+    void Promise.resolve().then(() => {
+      if (!current()) return;
+      // Hints received before this read starts are covered by it. Hints arriving
+      // after dispatch still retain one trailing read, including another source.
+      pending = false;
+      return refresh();
+    })
       .catch(() => undefined) // The owned resource exposes failure; a hint is never an unhandled rejection.
       .finally(() => { flight = false; drain(); });
   }
@@ -49,17 +55,20 @@ export function createAgreementIncomingRefresh({ refresh, isCurrent }: {
 /** Returns disposal before the native module resolves. A late module resolution,
  * retained native callback or failed/partial subscription cannot revive its owner.
  */
-export function subscribeAgreementIncomingRefresh({ load, identifier, refresh, isCurrent }: {
+export function subscribeAgreementIncomingRefresh({ load, identifier, refresh, isCurrent, onHint }: {
   load: () => Promise<IncomingNotifications>;
   identifier: (value: unknown) => string | null;
   refresh: () => Promise<void>; isCurrent: () => boolean;
+  /** Optional shared owner; its caller owns coalescing and disposal. */
+  onHint?: (identifier?: string) => void;
 }): () => void {
   let alive = true;
   const subscriptions: Subscription[] = [];
   const current = () => alive && isCurrent();
-  const coordinator = createAgreementIncomingRefresh({ refresh, isCurrent: current });
+  const coordinator = onHint ? undefined : createAgreementIncomingRefresh({ refresh, isCurrent: current });
+  const hint = onHint ?? coordinator!.hint;
   const stop = () => {
-    alive = false; coordinator.stop();
+    alive = false; coordinator?.stop();
     for (const subscription of subscriptions.splice(0)) {
       try { subscription.remove(); } catch { /* Ownership is already retired even if native removal fails. */ }
     }
@@ -69,11 +78,11 @@ export function subscribeAgreementIncomingRefresh({ load, identifier, refresh, i
     subscriptions.push(native.addNotificationReceivedListener(value => {
       if (!current()) return;
       const id = identifier(value);
-      if (id !== null) coordinator.hint(id);
+      if (id !== null) hint(id);
     }));
     if (!current()) { stop(); return; }
     subscriptions.push(native.addNotificationsDroppedListener(() => {
-      if (current()) coordinator.hint();
+      if (current()) hint();
     }));
     if (!current()) stop();
   }).catch(stop);

@@ -1,10 +1,15 @@
 # P4 opaque push event transport — source preparation
 
-Status: **DISPOSABLE SQL/AUTH + ACTUAL EDGE PASS / DEV AND EDGE DEPLOYMENT PENDING**.
-No DEV SQL, Edge deployment, environment change, certificate update, provider send,
-or device operation was performed by this package. The installed worker
-remains outside this source-only change. Do not mark direct push-to-message proven.
-Exact evidence is in `P4_PUSH_TRANSPORT_RECEIPT.json` and its concise `.md` companion.
+Status: **APPLIED DEV210 / EDGE22 VERIFIED / EXACT PAYLOAD OFF**.
+
+Owner explicitly approved the compatible bridge after prerequisites. Edge22 was deployed
+first from proved Git-LF bytes, read back exactly, then the identical SQL candidate was
+applied after the request/lease drain and zero-outstanding check. The new flag name is absent,
+verified through authenticated Dashboard name search without reading values. Legacy INBOX
+payloads remain. Both B3c certificate rows and readiness definition remain unchanged.
+See supabase/operations/dev-alpha/ledger/20260927_chat_p4_push_transport_application.receipt.json.
+The following source/proof narrative describes package preparation; newer deployment evidence
+takes precedence. Real provider-to-exact-message device acceptance is still pending.
 
 ## Baseline path and the gap at package preparation
 

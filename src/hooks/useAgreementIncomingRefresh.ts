@@ -1,7 +1,9 @@
 import { useCallback, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { subscribeAgreementIncomingRefresh } from '../data/agreementIncomingRefresh';
+import { createAgreementIncomingRefresh, subscribeAgreementIncomingRefresh } from '../data/agreementIncomingRefresh';
+import { subscribeAgreementInvalidations } from '../data/agreementInvalidationService';
+import type { Izvor } from '../data/ports';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { publicInboxNotificationId } from '../ui/notifications/publicInboxCopy';
 
@@ -10,7 +12,7 @@ import { publicInboxNotificationId } from '../ui/notifications/publicInboxCopy';
  */
 export function useAgreementIncomingRefresh({ accountId, accountRevision, agreementId, enabled, source, refresh }: {
   accountId: string; accountRevision: number; agreementId: string; enabled: boolean;
-  source: object; refresh: () => Promise<void>;
+  source: Pick<Izvor, 'poreklo'>; refresh: () => Promise<void>;
 }): void {
   const { sessionEpoch } = useSesija();
   const rendered = useRef({ accountId, accountRevision, agreementId, enabled, source, refresh, sessionEpoch });
@@ -19,6 +21,13 @@ export function useAgreementIncomingRefresh({ accountId, accountRevision, agreem
     if (!enabled || (Platform.OS !== 'ios' && Platform.OS !== 'android')) return;
     let alive = true, foreground = AppState.currentState === 'active';
     let stopIncoming: (() => void) | undefined;
+    let stopInvalidations: (() => void) | undefined;
+    let coordinator: ReturnType<typeof createAgreementIncomingRefresh> | undefined;
+    const stop = () => {
+      coordinator?.stop(); coordinator = undefined;
+      stopIncoming?.(); stopIncoming = undefined;
+      stopInvalidations?.(); stopInvalidations = undefined;
+    };
     const current = () => {
       const owner = rendered.current, session = sesijaSada();
       return alive && foreground && AppState.currentState === 'active' && owner.enabled
@@ -27,18 +36,29 @@ export function useAgreementIncomingRefresh({ accountId, accountRevision, agreem
         && session.user?.id === accountId && session.accountRevision === accountRevision && session.sessionEpoch === sessionEpoch;
     };
     const listen = () => {
-      stopIncoming?.(); stopIncoming = undefined;
+      stop();
       if (!current()) return;
-      stopIncoming = subscribeAgreementIncomingRefresh({
-        load: () => import('expo-notifications'), identifier: publicInboxNotificationId, refresh, isCurrent: current,
-      });
+      coordinator = createAgreementIncomingRefresh({ refresh, isCurrent: current });
+      const onHint = coordinator.hint;
+      try {
+        stopIncoming = subscribeAgreementIncomingRefresh({
+          load: () => import('expo-notifications'), identifier: publicInboxNotificationId, refresh, isCurrent: current, onHint,
+        });
+        if (source.poreklo === 'supabase' && current()) {
+          stopInvalidations = subscribeAgreementInvalidations({
+            accountId, accountRevision, sessionEpoch, agreementId, refresh, isCurrent: current, onHint,
+          });
+        }
+      } catch { stop(); }
     };
     const app = AppState.addEventListener('change', state => {
-      foreground = state === 'active';
+      const nextForeground = state === 'active';
+      if (nextForeground === foreground) return;
+      foreground = nextForeground;
       if (foreground) listen();
-      else { stopIncoming?.(); stopIncoming = undefined; }
+      else stop();
     });
     listen();
-    return () => { alive = false; stopIncoming?.(); app.remove(); };
+    return () => { alive = false; stop(); app.remove(); };
   }, [accountId, accountRevision, agreementId, enabled, source, refresh, sessionEpoch]));
 }

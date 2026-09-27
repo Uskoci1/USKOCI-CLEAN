@@ -12,6 +12,16 @@ const notification = (identifier = 'incoming-1') => ({ request: { identifier, tr
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
+it('covers all pre-dispatch hints in one read without forgetting their notification identifiers', async () => {
+  const refresh = jest.fn().mockResolvedValue(undefined);
+  const incoming = createAgreementIncomingRefresh({ refresh, isCurrent: () => true });
+  incoming.hint('push-a'); incoming.hint(); incoming.hint('push-b'); incoming.hint();
+  await flush(); expect(refresh).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(60_000);
+  incoming.hint('push-a'); incoming.hint('push-b'); await flush();
+  expect(refresh).toHaveBeenCalledTimes(1); incoming.stop();
+});
+
 it('starts no read without a hint, deduplicates receipts, and coalesces an in-flight burst into one trailing read', async () => {
   const first = deferred<void>(), refresh = jest.fn().mockReturnValueOnce(first.promise).mockResolvedValue(undefined);
   const incoming = createAgreementIncomingRefresh({ refresh, isCurrent: () => true });

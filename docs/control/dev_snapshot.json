@@ -1,10 +1,9 @@
 {
-  "generated_at": "2026-09-27T18:59:45Z",
-  "ledger_total": 208,
-  "ledger_dev_alpha": 60,
-  "ledger_last": "dev_alpha_worker_profile_licenses_owned_projection",
-  "ledger_last_version": "20260927185545",
-  "certificate_certified": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
+  "generated_at": "2026-09-27T20:20:25Z",
+  "ledger_total": 210,
+  "ledger_dev_alpha": 62,
+  "ledger_last": "dev_alpha_chat_p4_push_event_transport",
+  "certificate_certified": "f66818aa870492e397cb991e5e82f1f3d03262352b7830ce62c0d1aa9691755b",
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -26,6 +25,7 @@
     "rpc_accept_reviewed_legal_bundle",
     "rpc_activate_urgent",
     "rpc_admit_account_lineage_service",
+    "rpc_agreement_invalidation_visible_v1",
     "rpc_agreement_photo_read_service_v5",
     "rpc_agreement_photo_upload_service_v5",
     "rpc_ai_abandon_need_conversation_v2",
@@ -261,6 +261,7 @@
     "rpc_accept_legal_bundle",
     "rpc_accept_reviewed_legal_bundle",
     "rpc_activate_urgent",
+    "rpc_agreement_invalidation_visible_v1",
     "rpc_ai_abandon_need_conversation_v2",
     "rpc_ai_cancel_need_turn_v2",
     "rpc_ai_confirm_fact",
@@ -422,12 +423,12 @@
     "rpc_write_agreement_current_location"
   ],
   "project": "leqcwgzvjsxugfgzdmth",
-  "certificate_live": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
+  "certificate_live": "f66818aa870492e397cb991e5e82f1f3d03262352b7830ce62c0d1aa9691755b",
   "retention_ai_ready": true,
-  "how": "Public catalog/cron/certified hash read at generated_at; Edge inventory freshly read. Private digest/binding/readiness verified atomically inside exact P0/P4/P5 application transactions, last at 20260927185545, not recomputed by read-only snapshot. Read-only helper execute authority remains unchanged.",
-  "private_current_status": "VERIFIED_IN_EXACT_P5_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
-  "private_observed_at": "2026-09-27T18:55:45Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json",
+  "how": "Catalog, cron and certified row read at generated_at. Private digest/binding/readiness last verified atomically by exact P4 application20260927201531; not executed by the read-only snapshot. Edge inventory freshly read.",
+  "private_current_status": "VERIFIED_IN_EXACT_P4_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+  "private_observed_at": "2026-09-27T20:15:31Z",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20260927_chat_p4_push_transport_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -471,7 +472,7 @@
     },
     {
       "slug": "uskoci-push-transport",
-      "version": 21,
+      "version": 22,
       "verify_jwt": false
     },
     {
