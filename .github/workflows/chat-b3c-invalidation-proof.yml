@@ -1,7 +1,11 @@
 name: Chat B3c private invalidation disposable SQL proof
-# SOURCE ONLY / NOT RUN. Manual-only, local disposable SQL/Auth proof.
+# Local disposable SQL/Auth proof. Narrow branch/path push registration permits
+# subsequent manual dispatch without changing the default branch.
 # No DEV apply, recertification, provider/Storage IO or websocket acceptance.
 on:
+  push:
+    branches: [work/uskoci-ui-unification-20260924]
+    paths: ['.github/workflows/chat-b3c-invalidation-proof.yml']
   workflow_dispatch:
 permissions:
   contents: read
