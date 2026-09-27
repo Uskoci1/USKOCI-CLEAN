@@ -1,0 +1,130 @@
+name: P0-02 processor inventory truth
+
+on:
+  push:
+    branches:
+      - work/legal-privacy-processor-inventory-truth-20260927
+    paths:
+      - 'supabase/candidates/p0_02_processor_inventory_truth_20260927.sql'
+      - 'supabase/proofs/privacy/p0_02_processor_inventory_truth_proof.sql'
+      - '.github/workflows/p0-02-processor-inventory-truth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-02-processor-truth-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: '1'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+  DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  exact-candidate-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+
+      - name: Bind source and current provider routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -F "provider !== 'gemini'" supabase/functions/uskoci-ai-interview/index.ts
+          grep -F "generativelanguage.googleapis.com" supabase/functions/uskoci-ai-interview/index.ts
+          ! grep -F "api.openai.com/v1/responses" supabase/functions/uskoci-ai-interview/index.ts
+          ! grep -F "callOpenAI" supabase/functions/uskoci-ai-interview/index.ts
+          grep -F "https://exp.host/--/api/v2/push/send" supabase/functions/uskoci-push-transport/index.ts
+          grep -F "https://eu1.locationiq.com/v1/search" supabase/functions/uskoci-location-search/index.ts
+          grep -F "https://eu1.locationiq.com/v1/reverse" supabase/functions/uskoci-location-search/index.ts
+
+      - name: Frozen source integrity
+        run: python3 supabase/migrations/check_migration_integrity.py
+
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Replay recorded live80-87 aliases and source migrations through frozen147
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          root=os.environ['GITHUB_WORKSPACE']; db=os.environ['DB_URL']
+          prov=json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json',encoding='utf-8'))
+          def scalar(sql):
+              return subprocess.run(['psql',db,'-X','-Atc',sql],text=True,capture_output=True,check=True).stdout.strip()
+          def record(body,version,name):
+              tag='$p0_02_stmt$'; assert tag not in body
+              sql=f"insert into supabase_migrations.schema_migrations(version,name,statements) values ('{version}','{name}',array[{tag}{body}{tag}]);"
+              subprocess.run(['psql',db,'-X','-q','-v','ON_ERROR_STOP=1'],input=sql,text=True,check=True)
+          def apply(file,version,name):
+              path=f'{root}/supabase/migrations/{file}'
+              r=subprocess.run(['psql',db,'-X','-q','-v','ON_ERROR_STOP=1','-f',path],text=True,capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:]); sys.exit(f'P0_02_REPLAY_FAILED {file}')
+              record(open(path,encoding='utf-8',newline='').read(),version,name)
+          assert scalar('select max(version) from supabase_migrations.schema_migrations')=='20260906141409'
+          entries=[e for e in prov['live_history_snapshot']['entries'] if e['version']>'20260906141409']
+          assert len(entries)==8
+          for e in entries:
+              apply(e.get('file') or f"{e['version']}_{e['name']}.sql",e['version'],e['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations')=='87'
+          for p in prov['pending_forward_migrations']:
+              apply(p['file'],p['version'],p['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations')=='147'
+          PY
+
+      - name: Preflight original inventory and unpublished legal map
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.processor_provider_inventory")" = "4"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.processor_map_sets")" = "0"
+          test "$(psql "$DB_URL" -Atc "select count(*) from private.processor_map_entries")" = "0"
+
+      - name: Apply P0-02 candidate only in disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1             -f supabase/candidates/p0_02_processor_inventory_truth_20260927.sql             | tee /tmp/p0-02-candidate.log
+
+      - name: Prove inventory truth and legal fail-closed status
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1             -f supabase/proofs/privacy/p0_02_processor_inventory_truth_proof.sql             | tee /tmp/p0-02-proof.log
+          grep -F "PASS P0_02_PROCESSOR_INVENTORY_TRUTH current4 total5 openai_retired expo_locationiq_admitted legal_map_unpublished private_acl_preserved" /tmp/p0-02-proof.log
+
+      - name: Stop disposable database
+        if: always()
+        shell: bash
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
+
+      - name: Upload proof logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p0-02-processor-truth-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/p0-02-candidate.log
+            /tmp/p0-02-proof.log
+          if-no-files-found: warn
+          retention-days: 14
