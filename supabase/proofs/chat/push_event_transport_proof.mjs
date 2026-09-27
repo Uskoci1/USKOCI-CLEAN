@@ -234,6 +234,7 @@ try{
 
  stage='ACTUAL_EDGE_SQL_TO_SYNTHETIC_PROVIDER_TO_AUTHENTICATED_EXACT_WINDOW';
  for(const enabled of ['false','true']){
+  const transportMode=enabled==='true'?'EVENT':'LEGACY';stage='ACTUAL_EDGE_'+transportMode+'_TRANSPORT';
   const item=await fixture(),beforeRead=readState();let captured=null;
   const runtime=loadPushHandler({env:key=>({SUPABASE_URL:'https://p4-proof.supabase.co',
    SUPABASE_SERVICE_ROLE_KEY:env.RU5_DEVICE_SERVICE_ROLE_KEY,EXPO_PUSH_TRANSPORT_ENABLED:'true',
@@ -243,7 +244,8 @@ try{
      assert.deepEqual(captured,{to:token,title:'Nova poruka u Dogovoru',body:'Imaš novu poruku.',
       data:enabled==='true'?{kind:'INBOX',eventType:'MESSAGE_RECEIVED',eventId:item.eventId}:{kind:'INBOX'},
       channelId:'default',sound:'default',priority:'normal',ttl:0});
-     report.syntheticProviderCalls++;return new Response(JSON.stringify({data:[{status:'ok',id:'synthetic_ticket'}]}));
+     // Provider receipts are globally unique, including across disposable cases.
+     report.syntheticProviderCalls++;return new Response(JSON.stringify({data:[{status:'ok',id:'synthetic_ticket_'+transportMode}]}));
     }
     // The actual handler validates a canonical HTTPS Supabase origin. The proof
     // remaps only its four literal RPCs to the admitted local API; never fetch Expo.
@@ -258,11 +260,13 @@ try{
    headers:{apikey:env.RU5_DEVICE_SERVICE_ROLE_KEY},body:'{"action":"tick"}'}));
   assert.equal(response.status,200);assert.equal((await response.json()).send,'TICKET_PENDING');assert.ok(captured);
   report.actualEdgeHandler=true;assert.deepEqual(readState(),beforeRead);
+  stage='ACTUAL_EDGE_'+transportMode+'_AUTHENTICATED_TARGET';
   const target=await rpc(requester.client,'rpc_resolve_activity_message_v1',{p_expected_user_id:requester.id,p_event_id:item.eventId});
   assert.deepEqual(target,{schema:'ACTIVITY_MESSAGE_TARGET_V1',accountId:requester.id,kind:'AGREEMENT_MESSAGE',
    eventId:item.eventId,agreementId,messageId:item.messageId,role:'REQUESTER',authoritative:true});
   const foreign=await rpc(stranger.client,'rpc_resolve_activity_message_v1',{p_expected_user_id:stranger.id,p_event_id:item.eventId});
   assert.deepEqual(foreign,{schema:'ACTIVITY_MESSAGE_TARGET_V1',accountId:stranger.id,kind:'UNAVAILABLE',authoritative:true});
+  stage='ACTUAL_EDGE_'+transportMode+'_EXACT_WINDOW_NO_ACK';
   const window=await rpc(requester.client,'rpc_read_agreement_message_window_v1',{p_expected_user_id:requester.id,
    p_agreement_id:target.agreementId,p_target_message_id:target.messageId,p_before_count:0,p_after_count:0});
   assert.equal(window.targetMessageId,item.messageId);assert.equal(window.messages.length,1);

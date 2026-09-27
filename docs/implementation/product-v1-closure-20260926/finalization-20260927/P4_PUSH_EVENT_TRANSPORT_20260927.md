@@ -1,6 +1,6 @@
 # P4 opaque push event transport — source preparation
 
-Status: **EDGE SYNTHETIC PASS / SQL SOURCE PREPARED / CLIENT PLAN ONLY**.
+Status: **EDGE SYNTHETIC PASS / FIRST SQL RUN FAILED IN FIXTURE / CORRECTED RUN PENDING**.
 No DEV SQL, Edge deployment, environment change, certificate update, provider send,
 device operation or commit was performed by this package. The installed worker
 remains outside this source-only change. Do not mark direct push-to-message proven.
@@ -61,7 +61,7 @@ Expected A1 predecessor body MD5: `f946246b96985efefa26e2bd560cc897`.
 Prepared begin body MD5: `ea801be7205a8b07c7c94e20af3bd90e`.
 Rebind source hashes to the eventual committed bytes before a disposable proof.
 
-## Certificate boundary and unperformed SQL proof
+## Certificate boundary and disposable SQL proof
 
 `prepare_notification_a1.mjs` previously proved that changing this begin body alone
 left the closure certificate/digest, erasure binding, history and push rows unchanged.
@@ -74,7 +74,7 @@ function metadata, closure digest, both certificate rows, erasure binding and re
 definition, with readiness true. Its postcondition pins the new body too. Any boundary
 drift aborts; it contains no recertification.
 
-**The candidate has not been executed on Postgres.** The prepared harness
+**The first PostgreSQL run executed the candidate but did not complete the full proof.** The harness
 `supabase/proofs/chat/push_event_transport_proof.mjs` and isolated workflow
 `.github/workflows/chat-p4-push-transport-proof.yml` reuse the unchanged local
 source147 → PKG-050 → A1 → B3a/B3b → 13-check P4 predecessor proof. They then admit:
@@ -92,8 +92,20 @@ source147 → PKG-050 → A1 → B3a/B3b → 13-check P4 predecessor proof. They
 Only bounded source hashes, stage verdicts and reports are uploaded, including
 failures; raw predecessor logs/credentials/fixture rows remain private and teardown
 always runs. This machine has no callable local Docker/Postgres/Supabase toolchain,
-so a committed CI run is still required. The Node result below does not substitute
+so the corrected committed CI run is still required. The Node result below does not substitute
 for that proof. It does not add new claims about account blocking or native delivery.
+
+Run `36344974563`, exact source `cdb37d692afaf800654c13a0ef70fe4c45f2b370`,
+retained eight PASS checks including source/authority mutation refusals, SQL-only
+delta, real Auth/begin, non-message compatibility, foreign/deleted event exclusion,
+lease/device/session/preference guards and complete catalog restoration. The prior
+13-check P4 resolver proof and disposable teardown passed. Both certificate rows
+stayed unchanged; real provider calls were zero. The new transport stage failed
+after two synthetic sends: the fixture reused `synthetic_ticket` for both, violating
+the existing unique provider-ticket index. Only that fixture is corrected to issue
+distinct legacy/event tickets, with narrower fixed diagnostic stage names. The SQL
+candidate and Edge source are unchanged. This failed run is retained; it is not a
+transport PASS, deployment approval or native delivery proof.
 
 ## Minimal client plan — handed to root
 
