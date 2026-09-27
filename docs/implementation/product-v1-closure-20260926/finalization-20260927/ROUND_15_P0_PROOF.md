@@ -1,6 +1,8 @@
 # Round 15 — exact public publication landing proof
 
-Status: first dedicated disposable CI run reached P0 but failed fixture setup; corrected-source rerun pending. **Not applied and not client-wired. Explicit `primeni` is still required for canonical application.** No frozen migration, client, dependency, DEV data, Edge function or certificate was changed by this work.
+Status: corrected-source disposable CI run **36330122549 PASS**, all nine P0 groups, at `df29d0781f42c95402b52e576ef43a3ff4865545`. **Not applied and not client-wired. Explicit `primeni` is still required for canonical application.** No frozen migration, dependency, DEV data, Edge function or certificate was changed by this proof work. A preparatory client adapter is separate work and does not activate exact mode.
+
+The downloaded [source-bound receipt](ROUND_15_P0_PROOF_RECEIPT.json) matches the local candidate SHA256 `a3bef95c68b38a57b51a1509edabe1385999577516123c504061e1fa54048182`. [Successful run](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36330122549). Owner application approval was requested after reading this receipt; waiting is not permission. The failed first run remains documented below.
 
 The unchanged candidate replaces only `rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)`. Fresh read-only DEV metadata at **2026-09-27 15:22:48.669517 UTC** matches its pinned predecessor: definition MD5 `8a47d061da5f9bd65b5e3cc6c947d5d7`, normalized body MD5 `18b5518140c519b96728d1e25fa3c29d`, SECURITY INVOKER, STABLE, `search_path=pg_catalog`, authenticated EXECUTE and no anon EXECUTE. This read is a function-catalog check, not whole-DEV attestation or application permission.
 

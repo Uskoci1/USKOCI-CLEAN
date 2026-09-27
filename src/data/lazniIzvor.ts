@@ -28,6 +28,7 @@ import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
+import { sesijaSada } from '../store/sesija';
 
 const rsd = (iznos: number): Novac => ({
   iznos,
@@ -405,6 +406,23 @@ export const lazniIzvor: Izvor = {
         priblizno: { lat: 45.2396, lng: 19.8227 },
       } satisfies PrilikaProjekcija,
     ];
+  },
+
+  async otvorenaPrilika(id, options) {
+    // The explicit fake source uses its existing fixture IDs (for example "ormar").
+    // Its revision belongs to the same simulated task state, never to a real DEV row.
+    const owner = sesijaSada();
+    const assertCurrent = () => {
+      if (options?.signal?.aborted) throw new Error('EXACT_OPPORTUNITY_READ_ABORTED');
+      const current = sesijaSada();
+      if (current.user?.id !== owner.user?.id || current.accountRevision !== owner.accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    };
+    assertCurrent();
+    if (typeof id !== 'string' || !id) throw new Error('EXACT_OPPORTUNITY_ID_INVALID');
+    const rows = await this.otvorenePrilike(options);
+    assertCurrent();
+    const item = rows.find(row => row.id === id) ?? null;
+    return { item: item ? { ...item, revision: stanje.potrebaRevizija } : null, asOf: new Date(stanje.sadaMs).toISOString() };
   },
 
   async prilika(id) {

@@ -16,6 +16,7 @@ import type {
   JavniProfilProjekcija,
   Novac,
   Pokrivenost,
+  PrilikaProjekcija,
 } from '../contracts/projections';
 import { novac } from '../lib/novac';
 import { podrucjeTekst } from '../lib/location';
@@ -139,6 +140,36 @@ async function safePublicProfiles(profileIds: Array<string | null | undefined>, 
   );
 }
 
+/** Shared allowlisted row mapping for the collection and exact public reader. */
+async function projectOpenTasks(items: Record<string, unknown>[], assertCurrent: () => void, signal?: AbortSignal): Promise<PrilikaProjekcija[]> {
+  const openData = items.map(openTaskRow);
+  assertCurrent();
+  const [profiles, urgency] = await Promise.all([
+    safePublicProfiles(openData.map(r => r.requester_profile_id), signal), readNeedUrgencies(openData, signal),
+  ]);
+  assertCurrent();
+  return openData.map(r => {
+    const narucilac = profiles.get(r.requester_profile_id) ?? null;
+    return {
+      id: r.id,
+      urgency: urgency.get(r.id),
+      naslov: r.title,
+      statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
+      ...publicTaskContext(r),
+      pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
+      uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
+      narucilacProfilId: r.requester_profile_id,
+      narucilacAvatarId: narucilac?.avatarPutanja ? mediaAssetId(narucilac.avatarPutanja) : null,
+      narucilacIme: narucilac?.ime || '',
+      narucilacOcena: formatPublicRating(narucilac),
+      narucilacBrojOcena: publicReviewCount(narucilac),
+      rezimCene: r.mode,
+      osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
+      ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
+    };
+  });
+}
+
 type SupabaseIzvor = Omit<
   Izvor,
   | 'mojiDogovori'
@@ -229,31 +260,59 @@ export const supabaseIzvor: SupabaseIzvor = {
     }
     // The server already refuses a task whose remaining search is closed, so no client-side filter can
     // decide it any more; every row here is an open one.
-    const openData = items.map(openTaskRow);
-    assertCurrent();
-    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id), signal), readNeedUrgencies(openData, signal)]);
-    assertCurrent();
+    return projectOpenTasks(items, assertCurrent, signal);
+  },
 
-    return openData.map((r: any) => {
-      const narucilac = profiles.get(r.requester_profile_id) ?? null;
-      return {
-        id: r.id,
-        urgency: urgency.get(r.id),
-        naslov: r.title,
-        statusTekst: r.status === 'ACTIVE' ? 'Aktivno' : 'Traži ponude',
-        ...publicTaskContext(r),
-        pokrivenost: pokrivenost(r.required_slots || 1, r.covered_slots || 0),
-        uslovi: [...(r.required_skills || []), ...(r.required_tools || []), ...(r.required_vehicles || [])],
-        narucilacProfilId: r.requester_profile_id,
-        narucilacAvatarId: narucilac?.avatarPutanja ? mediaAssetId(narucilac.avatarPutanja) : null,
-        narucilacIme: narucilac?.ime || '',
-        narucilacOcena: formatPublicRating(narucilac),
-        narucilacBrojOcena: publicReviewCount(narucilac),
-        rezimCene: r.mode,
-        osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
-        ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
-      };
+  async otvorenaPrilika(id, options) {
+    const signal = options?.signal;
+    const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    const assertCurrent = () => {
+      if (signal?.aborted) throw new Error('EXACT_OPPORTUNITY_READ_ABORTED');
+      const current = sesijaSada();
+      if (current.user?.id !== accountId || current.accountRevision !== accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    };
+    assertCurrent();
+    if (!uuid(id)) throw new Error('EXACT_OPPORTUNITY_ID_INVALID');
+    const request = supabase.rpc('rpc_list_open_tasks_v3', {
+      p_bbox: null, p_filters: { needId: id.toLowerCase() }, p_limit: 1, p_before_at: null, p_before_id: null,
     });
+    let response;
+    try { response = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request); }
+    catch (error) { assertCurrent(); throw error; }
+    assertCurrent();
+    // An older server refuses needId. Propagate that refusal; neither a list walk nor
+    // an owner/private task reader can substitute for this exact public read.
+    const envelope = record(response);
+    if (envelope?.error) throw envelope.error;
+    if (!envelope || envelope.error !== null) throw new Error('EXACT_OPPORTUNITY_RESPONSE_INVALID');
+    const result = record(envelope.data);
+    if (!result || !Array.isArray(result.items) || result.items.length > 1 || result.hasMore !== false
+      || typeof result.asOf !== 'string' || calendarInstant(result.asOf) === null) {
+      throw new Error('EXACT_OPPORTUNITY_RESPONSE_INVALID');
+    }
+    if (result.items.length === 0) return { item: null, asOf: result.asOf };
+    const row = record(result.items[0]);
+    if (!row || !sameId(row.id, id) || !positiveInteger(row.revision)
+      || calendarInstant(row.sortAt) === null || calendarInstant(row.publishedAt) === null
+      || (row.status !== 'PUBLISHED' && row.status !== 'SELECTION') || typeof row.title !== 'string' || !row.title.trim()
+      || typeof row.urgent !== 'boolean' || !positiveInteger(row.requiredSlots)
+      || typeof row.coveredSlots !== 'number' || !Number.isSafeInteger(row.coveredSlots) || row.coveredSlots < 0
+      || (row.priceMode !== 'MY_PRICE' && row.priceMode !== 'OFFERS') || !uuid(row.requesterProfileId)) {
+      throw new Error('EXACT_OPPORTUNITY_RESPONSE_INVALID');
+    }
+    const pin = record(row.pin);
+    if (row.pin !== null && (!pin || pin.precision !== 'COARSE_1KM'
+      || typeof pin.lat !== 'number' || !Number.isFinite(pin.lat) || Math.abs(pin.lat) > 90
+      || typeof pin.lng !== 'number' || !Number.isFinite(pin.lng) || Math.abs(pin.lng) > 180)) {
+      throw new Error('EXACT_OPPORTUNITY_RESPONSE_INVALID');
+    }
+    // Reuse the existing strict schedule/capability/location decoder before optional IO.
+    // No legacy defaults can turn a malformed exact row into publication evidence.
+    publicTaskContext(openTaskRow(row));
+    const [item] = await projectOpenTasks([{ ...row, id: row.id.toLowerCase() }], assertCurrent, signal);
+    assertCurrent();
+    return { item: { ...item, revision: row.revision }, asOf: result.asOf };
   },
 
   /**

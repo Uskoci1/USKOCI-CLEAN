@@ -10,6 +10,7 @@ const mockBackListeners = new Set<() => boolean>();
 let mockKeyboardVisible = false;
 const mockDismissKeyboard = jest.fn(() => { mockKeyboardVisible = false; });
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
+let mockTab: string | string[] | undefined;
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn() };
 const mockGroupContext = jest.fn();
 const mockRead = jest.fn();
@@ -35,7 +36,7 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId, tab: mockTab }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: (...args: unknown[]) => mockProblemSubmit(...args), read: (...args: unknown[]) => mockProblemRead(...args) } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: (...args: unknown[]) => mockGroupContext(...args) } }));
@@ -108,7 +109,7 @@ async function confirmCompletion(worker = false) {
 }
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset(); mockMessages.mockReset();
-  mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id;
+  mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id; mockTab = undefined;
   mockAccountRevision = 0;
   mockFocused = true;
   mockBackListeners.clear(); mockKeyboardVisible = false;
@@ -128,6 +129,36 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it('opens a changed message-tab route intent without replacing the retained conversation owners or overriding later Back', async () => {
+    await render(); await act(async () => button('Poruke').props.onPress());
+    const chat = () => tree.root.findByType('AgreementChat' as any).props;
+    const position = chat().readingPosition;
+    position.current = { following: false, offset: 85, anchor: { messageId: ownMessage.id, within: 5 } };
+    const pending = { phase: 'ready', entries: [{ status: 'unknown', command: { clientMessageId: 'pending-message' } }] };
+    mockOutboxState = pending;
+    await hardwareBack();
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    const workspaceReads = mockRead.mock.calls.length, historyReads = mockMessages.mock.calls.length;
+    mockTab = 'poruke'; await act(async () => tree.update(<Dogovor />));
+    expect(chat().readingPosition).toBe(position);
+    expect(chat().readingPosition.current.anchor.messageId).toBe(ownMessage.id);
+    expect(chat().state).toBe(pending);
+    expect(mockRead).toHaveBeenCalledTimes(workspaceReads);
+    expect(mockMessages).toHaveBeenCalledTimes(historyReads);
+    expect(mockDisplayed).not.toHaveBeenCalled();
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+
+    // The parameter is an arriving request, not a permanent tab lock. Renders,
+    // background recovery and returning to this route must respect the user's Back.
+    await hardwareBack(); await act(async () => tree.update(<Dogovor />));
+    mockFocused = false; await act(async () => tree.update(<Dogovor />));
+    mockFocused = true; await act(async () => tree.update(<Dogovor />));
+    await act(async () => mockAppListeners.forEach(listener => listener('background')));
+    await act(async () => mockAppListeners.forEach(listener => listener('active')));
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    expect(mockDisplayed).not.toHaveBeenCalled();
+  });
+
   it('acknowledges only measured incoming canonical IDs, never a loaded page or a legacy Agreement sweep', async () => {
     const incoming = { ...ownMessage, id: '30000000-0000-4000-8000-000000000002', moja: false,
       posiljalacAccountId: workspace.ucesnici[1].id };

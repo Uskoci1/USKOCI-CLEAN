@@ -39,6 +39,12 @@ export type Idempotentno = { clientRequestId: string };
 
 /* --------------------------------------------------------------- čitanje */
 
+/** One current public Discovery row, never an owner-detail fallback. Null is an admitted empty read. */
+export type ExactPublicOpportunityRead = {
+  item: (PrilikaProjekcija & { revision: number }) | null;
+  asOf: string;
+};
+
 export interface PotrebeCitanje {
   /** Account-owned server attention; failure is unavailable, never an empty list. */
   paznjaZaPocetnu(): Promise<HomeAttentionPreview>;
@@ -48,6 +54,8 @@ export interface PotrebeCitanje {
   potreba(id: string): Promise<PotrebaProjekcija | null>;
   /** W03 — javno bezbedan skup za Lista | Mapa | Kombinovano. */
   otvorenePrilike(options?: { signal?: AbortSignal }): Promise<PrilikaProjekcija[]>;
+  /** Exact public landing; requires the separately approved P0 server contract. Errors never become an empty read. */
+  otvorenaPrilika(id: string, options?: { signal?: AbortSignal }): Promise<ExactPublicOpportunityRead>;
   /** W04 — dosije jedne Prilike. */
   prilika(id: string): Promise<PrilikaProjekcija | null>;
   /**

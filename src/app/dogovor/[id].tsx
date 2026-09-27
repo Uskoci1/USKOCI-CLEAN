@@ -74,17 +74,20 @@ export default function Dogovor() {
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
-    initialTab={tab === 'poruke' ? 'poruke' : 'pregled'} />;
+    requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} />;
 }
-function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled' }: { id: string; accountId: string; accountRevision: number; initialTab?: AgreementTab }) {
+function DogovorContent({ id, accountId, accountRevision, requestedTab }: { id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab }) {
   const izvor = useIzvor();
-  const [tab, updateTab] = useState<AgreementTab>(initialTab);
+  const [tab, updateTab] = useState<AgreementTab>(requestedTab);
   // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
   const chatVisit = useRef<object>({}), tabRef = useRef(tab);
-  const setTab = (next: AgreementTab) => {
+  const setTab = useCallback((next: AgreementTab) => {
     if (next !== tabRef.current) { chatVisit.current = {}; tabRef.current = next; }
     updateTab(next);
-  };
+  }, []);
+  // The router may retain this account/Agreement while changing its tab intent.
+  // Consume that change once; later renders/focus must preserve the user's tab.
+  useEffect(() => { setTab(requestedTab); }, [requestedTab, setTab]);
   const renderedChatVisit = chatVisit.current;
   // Survives the foreground freshness gate and the Pregled/Poruke switch, but not
   // a different account incarnation or Agreement (the route content is keyed above).
