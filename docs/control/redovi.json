@@ -2205,7 +2205,7 @@
         "flow": "Obaveštenja u aplikaciji (zvonce)",
         "ux": "Ista lista obaveštenja i odredišta.",
         "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
-        "backend": "P4 run36338065764: prethodnici i9primarnih provera prošli; pad u istoriji/zatvaranju, katalog vraćen i test baza ugašena. Usklađen istorijski EXPIRED cilj sa stvarnim ACK/Inbox ugovorom; novi13-provera dokaz čeka CI. DEV UNAPPLIED / CLIENT UNWIRED.",
+        "backend": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
         "state_sync": "Izvor: MESSAGE_RECEIVED otvara odredište bez prethodne promene read/count; ostali događaji i izričito Pročitaj sve ostaju. Round16: promenjen tab=poruke otvara postojeći Dogovor bez resetovanja reda za slanje/istorije; kasniji Nazad ostaje. Ponovljen isti parametar bez novog identiteta nije novi signal.",
         "performance": "Postojeće straničenje sačuvano.",
         "test": "NIJE POKRETANO — po nalogu vlasnika Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
@@ -2352,7 +2352,7 @@
         "flow": "Slanje obaveštenja na telefon",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "P4 run36338065764: prethodnici i9primarnih provera prošli; pad u istoriji/zatvaranju, katalog vraćen i test baza ugašena. Usklađen istorijski EXPIRED cilj sa stvarnim ACK/Inbox ugovorom; novi13-provera dokaz čeka CI. DEV UNAPPLIED / CLIENT UNWIRED.",
+        "backend": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
         "state_sync": "Strogi postojeći javni payload deli isti validator sa osvežavanjem otvorenog razgovora. Hint nije potvrda dostave/čitanja niti novo slanje.",
         "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
         "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
@@ -3697,7 +3697,7 @@
     },
     "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
     "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
-    "p4_exact_message": "P4 run36338065764: prethodnici i9primarnih provera prošli; pad u istoriji/zatvaranju, katalog vraćen i test baza ugašena. Usklađen istorijski EXPIRED cilj sa stvarnim ACK/Inbox ugovorom; novi13-provera dokaz čeka CI. DEV UNAPPLIED / CLIENT UNWIRED.",
+    "p4_exact_message": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
     "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md"
   }
 }

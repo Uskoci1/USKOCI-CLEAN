@@ -22,4 +22,6 @@ Run36338065764 at4d82b0d5 failed in TERMINAL_HISTORY_AND_CLOSURE_FENCES after ni
 
 Next: inspect the exact CI artifact, fix only reproduced proof/candidate failures, then prepare the bounded client target adapter. DEV application requires a separate explicit `primeni`.
 
+Second run36339229083 atf526a736 passed the canonical ACK→cancellation→EXPIRED Inbox→exact text/photo window chain. It failed at HISTORICAL_TARGET_CALLER_CLOSURE_FENCE. Source inspection identifies an incorrect proof expectation: the already-installed `public.rpc_closure_api_guard` refuses a closing caller with42501/ACCOUNT_CLOSING before the resolver runs, whereas a closing counterpart produces the resolver's UNAVAILABLE envelope. The proof now checks both distinct outcomes and the actual pre-request configuration. Candidate bytes and authorization are unchanged. Catalog restoration and teardown passed; the next exact run remains required.
+
 P6 remains a separate proposed contract in `P6_BOUNDED_DISCOVERY_CONTRACT.md`: keyset pages, bounded map coverage and source predicate parity. It is not implemented or a scaling result.

@@ -1,4 +1,4 @@
-// P4 SOURCE ONLY / NOT RUN. Dedicated loopback fixture, never a DEV replay.
+// P4 dedicated loopback fixture, never a DEV replay. Exact run verdicts are receipts.
 // Prerequisite: unchanged B3 predecessor workflow through A1, B3a and B3b.
 // A future dedicated runner must always tear down its complete disposable stack.
 // This harness restores the full catalog by removing only its additive RPC even
@@ -416,11 +416,26 @@ try {
   assert.equal(rows(`select read_at from public.user_activity_events where id=${q(photoEvent.id)}`)[0].read_at, null);
   pass('CANONICAL_ACK_THEN_CANCEL_INBOX_EXPIRED_READ_TEXT_UNREAD_PHOTO_EXACT_B3B_WINDOWS');
   stage = 'HISTORICAL_TARGET_BOTH_ACCOUNT_CLOSURE_FENCES';
+  // The caller is refused by the existing PostgREST pre-request guard before
+  // this resolver can return UNAVAILABLE. A closing counterpart is instead
+  // handled inside the resolver. Do not weaken either layer to unify outcomes.
+  assert.equal(sql(`select substring(v from length('pgrst.db_pre_request=')+1)
+    from pg_roles r cross join lateral unnest(r.rolconfig) v
+    where r.rolname='authenticator' and v like 'pgrst.db_pre_request=%'`), 'public.rpc_closure_api_guard');
   for (const actor of [requester, worker]) {
     stage = actor === requester ? 'HISTORICAL_TARGET_CALLER_CLOSURE_FENCE' : 'HISTORICAL_TARGET_COUNTERPART_CLOSURE_FENCE';
     await changed(`insert into private.account_closure_requests(account_id,state,revision) values(${q(actor.id)},'READY',1)`,
       `delete from private.account_closure_requests where account_id=${q(actor.id)}`,
-      async () => { await unavailable(requester, event.id); await unavailable(requester, photoEvent.id); });
+      async () => {
+        for (const historicalEvent of [event.id, photoEvent.id]) {
+          if (actor === requester) {
+            const response = await readOnlyCall(requester, historicalEvent);
+            assert.equal(response.data, null);
+            assert.equal(response.error?.code, '42501');
+            assert.equal(response.error?.message, 'ACCOUNT_CLOSING');
+          } else await unavailable(requester, historicalEvent);
+        }
+      });
   }
   pass('HISTORICAL_TEXT_AND_PHOTO_TARGETS_STILL_REQUIRE_BOTH_ACCOUNTS_OPEN');
 
