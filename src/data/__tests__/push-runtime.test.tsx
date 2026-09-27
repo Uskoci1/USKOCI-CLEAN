@@ -4,6 +4,7 @@ import { AppState, Platform, type AppStateStatus } from 'react-native';
 import type { Notification, NotificationHandler } from 'expo-notifications';
 import { execFileSync } from 'node:child_process';
 import { pendingRoute } from '../../store/pendingRoute';
+import { messagePushIntent } from '../../store/messagePushIntent';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
 const mockNavigate = jest.fn();
@@ -33,7 +34,7 @@ let tree: Renderer.ReactTestRenderer;
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 async function mount(ready = true) { await act(async () => { tree = Renderer.create(<PushRuntime ready={ready} />); await flush(); }); }
 beforeEach(() => { jest.useRealTimers(); jest.resetAllMocks(); mockHandler = null; mockActivity = 'active'; jest.spyOn(AppState, 'addEventListener').mockImplementation((_name, callback) => { mockActive = callback; return { remove: jest.fn() }; }); mockState = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1, sessionEpoch: 1 }; mockCold.mockResolvedValue(null); mockClear.mockResolvedValue(undefined); mockSession.mockResolvedValue({ ok: true, podatak: { kind: 'NONE' } }); mockNative.mockResolvedValue({ kind: 'READY', token: 'ExpoPushToken[new]', platform: 'ANDROID' }); mockRotate.mockResolvedValue({ ok: true }); mockRevoke.mockResolvedValue(true); });
-afterEach(() => { expect(mockPush).not.toHaveBeenCalled(); act(() => tree?.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
+afterEach(() => { expect(mockPush).not.toHaveBeenCalled(); act(() => tree?.unmount()); messagePushIntent.clear(); pendingRoute.clear(); jest.useRealTimers(); jest.restoreAllMocks(); });
 it('no registered session never acquires a token, requests permission, or auto-registers', async () => { await mount(); expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled(); });
 it('cold response and same live tap navigate once to the fixed owned Inbox', async () => { mockCold.mockResolvedValue(response()); await mount(); act(() => mockTap(response())); expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]); expect(mockClear).toHaveBeenCalledTimes(1); });
 it('distinct live Inbox taps reuse its route rather than stacking new Inbox screens', async () => {
@@ -47,6 +48,27 @@ it('a cold Inbox tap also reuses navigation while preserving the startup destina
  pendingRoute.clear(); mockCold.mockResolvedValue(response()); await mount();
  expect(mockNavigate).toHaveBeenCalledWith('/obavestenja'); expect(mockPush).not.toHaveBeenCalled();
  expect(pendingRoute.take()).toBe('/obavestenja');
+});
+it('exact message metadata creates an owned memory intent and still navigates only to the fixed Inbox', async () => {
+ const eventId = '33333333-3333-4333-8333-333333333333';
+ mockCold.mockResolvedValue(response('exact', { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId })); await mount();
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]);
+ expect(messagePushIntent.snapshot()).toEqual(expect.objectContaining({ eventId, accountId: mockState.user!.id, accountRevision: 1, sessionEpoch: 1, coldRoute: expect.any(Number) }));
+ act(() => mockTap(response('newer-legacy'))); expect(messagePushIntent.snapshot()).toBeNull();
+});
+it('a newer warm tap consumes the older owned cold return before replacing its intent', async () => {
+ const a = '33333333-3333-4333-8333-333333333333', b = '44444444-4444-4444-8444-444444444444';
+ mockCold.mockResolvedValue(response('cold-a', { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: a })); await mount();
+ act(() => mockTap(response('warm-b', { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: b })));
+ expect(messagePushIntent.snapshot()?.eventId).toBe(b);
+ expect(pendingRoute.takeDecision({ accountId: mockState.user!.id, accountRevision: 1, sessionEpoch: 1 })).toEqual({ kind: 'DELIVERED' });
+});
+it('a delayed last-response read cannot replace a more recent accepted live tap', async () => {
+ let resolve!: (value: unknown) => void; mockCold.mockReturnValue(new Promise(done => { resolve = done; })); await mount();
+ const data = { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: '44444444-4444-4444-8444-444444444444' };
+ act(() => mockTap(response('fresh', data)));
+ await act(async () => resolve(response('older', { ...data, eventId: '33333333-3333-4333-8333-333333333333' })));
+ expect(messagePushIntent.snapshot()?.eventId).toBe(data.eventId); expect(mockNavigate).toHaveBeenCalledTimes(1);
 });
 it('a cold tap leaves the Inbox where the layout looks for a destination, and a live tap does not', async () => {
   // The root layout resolves a stored return intent on the same cold start and replaces the route
@@ -96,6 +118,12 @@ const notification = (content: Record<string, unknown> = {}) => ({ date: 1, requ
 const hidden = { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
 const visible = { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false };
 const present = (value: unknown = notification()) => mockHandler!.handleNotification(value as Notification);
+it('only neutral message copy may present the exact event metadata; extra routing/text remains refused', async () => {
+ await mount(); const data = { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: '33333333-3333-4333-8333-333333333333' };
+ expect(await present(notification({ data }))).toEqual(visible);
+ expect(await present(notification({ data: { ...data, body: 'private' } }))).toEqual(hidden);
+ expect(await present(notification({ data, title: 'Nova prijava', body: 'Stigla je nova prijava na tvoj zadatak.' }))).toEqual(hidden);
+});
 
 // Execute the actual dependency-free Edge formatter through Node's native ESM
 // loader: the Expo Jest transform does not include .mjs. This checks its entire

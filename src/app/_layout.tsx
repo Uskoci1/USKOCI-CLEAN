@@ -76,9 +76,9 @@ export default function RootLayout() {
       if (!isCurrent()) return;
       // Where they were going wins over where the app would otherwise drop them. A person who was
       // sent to sign in by a link or a push is finishing that journey, not starting a new one.
-      const resumed = pendingRoute.take();
+      const resumed = pendingRoute.takeDecision({ accountId: session.user.id, accountRevision, sessionEpoch });
       if (resumed) {
-        router.replace(resumed as Parameters<typeof router.replace>[0]);
+        if (resumed.kind === 'ROUTE') router.replace(resumed.path as Parameters<typeof router.replace>[0]);
         return;
       }
       if (!record) return;

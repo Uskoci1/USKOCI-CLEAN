@@ -1,4 +1,5 @@
 import type { Notification } from 'expo-notifications';
+import { publicPushTarget } from './pushTarget';
 
 // Exact A1 transport title/body pairs, including its urgent opportunity variant
 // and both previously shipped generic copies for queued pushes. The runtime
@@ -47,7 +48,9 @@ export function isPublicInboxNotification(notification: Notification): boolean {
   || !trigger || typeof trigger !== 'object' || !('type' in trigger) || trigger.type !== 'push' || !content || typeof content !== 'object' || Array.isArray(content)) return false;
  const data = content.data, value = content as unknown as Record<string, unknown>;
  if (!isPublicInboxCopy(content.title, content.body)
-  || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return false;
+  || !publicPushTarget(data)) return false;
+ if (publicPushTarget(data)?.kind === 'MESSAGE_EVENT'
+  && (content.title !== 'Nova poruka u Dogovoru' || content.body !== 'Imaš novu poruku.')) return false;
  if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
   .some(key => value[key] != null && value[key] !== '')) return false;
  if (value.attachments != null && (!Array.isArray(value.attachments) || value.attachments.length !== 0)) return false;

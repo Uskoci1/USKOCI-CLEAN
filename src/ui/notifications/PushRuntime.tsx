@@ -3,6 +3,8 @@ import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { pendingRoute } from '../../store/pendingRoute';
+import { messagePushIntent, ownsMessagePush } from '../../store/messagePushIntent';
+import { publicPushTarget } from './pushTarget';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
@@ -19,9 +21,10 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
  rendered.current = { ready, accountId, accountRevision, sessionEpoch };
  useEffect(() => {
   if (!ready || !accountId || (Platform.OS !== 'ios' && Platform.OS !== 'android')) return;
-  let alive = true, pending = false, generation = 0;
+  let alive = true, pending = false, generation = 0, tapGeneration = 0;
   let activeTimer: ReturnType<typeof setTimeout> | undefined;
   const scope = { accountId, accountRevision };
+  const identity = { ...scope, sessionEpoch };
   const owned = () => alive && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && sesijaSada().sessionEpoch === sessionEpoch;
   let foreground = AppState.currentState === 'active';
   Notifications.setNotificationHandler({ handleNotification: async notification => {
@@ -35,8 +38,8 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
   const remember = (set: Set<string>, value: string, max: number) => { set.add(value); if (set.size > max) set.delete(set.values().next().value!); };
   function tap(response: Notifications.NotificationResponse | null, cold = false) {
    const request = response?.notification?.request, data = request?.content?.data;
-   if (!request || typeof request.identifier !== 'string' || request.identifier.length < 1 || request.identifier.length > 256
-    || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return;
+   const target = publicPushTarget(data);
+   if (!request || typeof request.identifier !== 'string' || request.identifier.length < 1 || request.identifier.length > 256 || !target) return;
    if (seen.current.has(request.identifier)) return;
    // A late old-account event is consumed, so a new account cannot replay it.
    remember(seen.current, request.identifier, 128);
@@ -48,7 +51,12 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    // for the other: the consumer resolves a stored intent and replaces the route, which lands on
    // top of the Inbox this push just opened. Recording the same destination makes the order stop
    // mattering — whichever of the two finishes last, both of them mean the Inbox.
-   if (cold) pendingRoute.remember('/obavestenja');
+   tapGeneration++;
+   const prior = messagePushIntent.snapshot();
+   if (prior && ownsMessagePush(prior, identity)) pendingRoute.delivered(prior.coldRoute, prior);
+   const coldRoute = cold ? pendingRoute.remember('/obavestenja') : null;
+   if (target.kind === 'MESSAGE_EVENT') messagePushIntent.remember(target.eventId, identity, coldRoute);
+   else messagePushIntent.clear();
    // Reuse an already open Inbox instead of stacking another copy on each tap.
    router.navigate('/obavestenja');
    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
@@ -81,9 +89,21 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
   const responseListener = Notifications.addNotificationResponseReceivedListener(tap);
   const tokenListener = Notifications.addPushTokenListener(reconcile);
   const appListener = AppState.addEventListener('change', state => { foreground = state === 'active'; if (foreground) reconcile(); });
-  if (!coldStarted.current) { coldStarted.current = true; void Notifications.getLastNotificationResponseAsync().then(response => tap(response, true)).catch(() => undefined); }
+  if (!coldStarted.current) {
+   coldStarted.current = true; const startedAtTap = tapGeneration;
+   void Notifications.getLastNotificationResponseAsync().then(response => {
+    if (tapGeneration === startedAtTap) tap(response, true);
+   }).catch(() => undefined);
+  }
   reconcile();
-  return () => { alive = false; generation++; Notifications.setNotificationHandler(null); if (activeTimer !== undefined) clearTimeout(activeTimer); responseListener.remove(); tokenListener.remove(); appListener.remove(); };
+  return () => {
+   alive = false; generation++; Notifications.setNotificationHandler(null);
+   const intent = messagePushIntent.snapshot();
+   if (intent && ownsMessagePush(intent, identity)) {
+    pendingRoute.delivered(intent.coldRoute, intent); messagePushIntent.retire(intent.serial);
+   }
+   if (activeTimer !== undefined) clearTimeout(activeTimer); responseListener.remove(); tokenListener.remove(); appListener.remove();
+  };
  }, [ready, accountId, accountRevision, sessionEpoch]);
  return null;
 }

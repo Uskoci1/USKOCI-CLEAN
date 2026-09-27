@@ -1,14 +1,17 @@
 import { useCallback, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { GearSix } from 'phosphor-react-native';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import { useInbox } from '../hooks/useInbox';
+import { useMessagePushIngress } from '../hooks/useMessagePushIngress';
 import { InboxList } from '../ui/notifications/InboxPresentation';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { ChromeIconButton } from '../ui/system/ScreenChrome';
 import { sys } from '../ui/system/tokens';
+import { T } from '../ui/Text';
+import { V2Action } from '../ui/v2/V2Action';
 
 /**
  * The inbox. The list is drawn by `InboxList` (day groups, rows on a hairline, a dot for unread); this route owns what
@@ -22,17 +25,23 @@ export default function Obavestenja() {
   const navigating = useRef(false);
   const focus = useRef<object | null>(null);
   const [renderedFocus,setRenderedFocus] = useState<object | null>(null);
+  const ingress = useMessagePushIngress(target => {
+    if (focus.current === null || navigating.current || !model.canNavigate()) return;
+    navigating.current = true;
+    router.replace({pathname:'/dogovor/[id]',params:{id:target.agreementId,tab:'poruke',messageId:target.messageId}});
+  });
   useFocusEffect(useCallback(() => {
     const visit = {}; focus.current=visit; setRenderedFocus(visit); navigating.current=false;
     return () => { if (focus.current===visit) { focus.current=null; navigating.current=true; } };
   },[model]));
   const current = () => renderedFocus!==null && focus.current===renderedFocus && model.canNavigate() && !navigating.current;
-  const navigate = (action: () => void) => { if (!current()) return; navigating.current=true; action(); };
+  const navigate = (action: () => void) => { if (!current()) return; ingress.cancel(); navigating.current=true; action(); };
   // The settings open on the set the list is filtered to ("Moje prijave" opens that set); "Sve" leaves the screen's own.
   const settings = () => navigate(() => role
     ? router.push({pathname:'/profil/obavestenja',params:{skup:role}}) : router.push('/profil/obavestenja'));
   async function open(item: InboxItem) {
     if (!current()) return;
+    ingress.cancel();
     const target = await model.open(item);
     if (!target || target.kind==='UNAVAILABLE' || !current()) return;
     // A question resolves to the Zadatak it belongs to, because the Need id is the only one the
@@ -72,14 +81,24 @@ export default function Obavestenja() {
     <DetailTopBar title="Obaveštenja"
       onBack={()=>navigate(()=>router.canGoBack()?router.back():router.replace('/'))}
       right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
+    {ingress.phase ? <View style={styles.opening} accessibilityLiveRegion="polite">
+      {ingress.phase === 'loading' ? <View style={styles.openingLine}><ActivityIndicator color={sys.color.green} />
+        <T variant="copy">Otvaramo poruku…</T></View> : <>
+        <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Poruka nije učitana. Proveri vezu i pokušaj ponovo.' : 'Ova poruka više nije dostupna.'}</T>
+        {ingress.phase === 'error' ? <V2Action label="Pokušaj ponovo" onPress={ingress.retry} compact /> : null}
+      </>}
+      <V2Action label="Prikaži obaveštenja" kind="quiet" onPress={ingress.cancel} compact />
+    </View> : null}
     {/* One list for every filter: it stays mounted, so the tab just pressed keeps a screen reader's focus; the list itself
         treats a filter's first page as what was there, not as arrivals. */}
-    <InboxList state={state} role={role} onRole={next=>{if(current())setRole(next);}} onOpen={onOpen}
-      onReadAll={()=>{if(current())void model.readAll();}} onRefresh={()=>{if(current())void model.refresh();}}
-      onMore={()=>{if(current())void model.more();}} onSettings={settings} />
+    <InboxList state={state} role={role} onRole={next=>{if(current()){ingress.cancel();setRole(next);}}} onOpen={onOpen}
+      onReadAll={()=>{if(current()){ingress.cancel();void model.readAll();}}} onRefresh={()=>{if(current()){ingress.cancel();void model.refresh();}}}
+      onMore={()=>{if(current()){ingress.cancel();void model.more();}}} onSettings={settings} />
   </SafeAreaView>;
 }
 
 const styles=StyleSheet.create({
   screen:{flex:1,backgroundColor:sys.color.ground},
+  opening:{paddingHorizontal:24,paddingBottom:16,gap:8},
+  openingLine:{flexDirection:'row',alignItems:'center',gap:12},
 });

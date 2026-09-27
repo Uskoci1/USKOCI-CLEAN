@@ -98,6 +98,20 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
 
+it.each(['before-consumer', 'during-consumer'])('an owned cold Inbox delivery cannot be replaced by an older fallback: %s', async timing => {
+  const old = { intent: { intent: 'WORKER', returnTarget: { kind: 'NONE' } } };
+  let resolve!: (value: unknown) => void;
+  if (timing === 'before-consumer') {
+    pendingRoute.delivered(pendingRoute.remember('/obavestenja'), { accountId: 'account-a', accountRevision: 1, sessionEpoch: 1 });
+    mockConsume.mockResolvedValueOnce(old); await render();
+  } else {
+    mockConsume.mockReturnValueOnce(new Promise(done => { resolve = done; })); await render();
+    pendingRoute.delivered(pendingRoute.remember('/obavestenja'), { accountId: 'account-a', accountRevision: 1, sessionEpoch: 1 });
+    await act(async () => resolve(old));
+  }
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
 it.each([false, true])('root pushes follow live reduced motion without replacing the navigator: signedIn=%s', async signedIn => {
   if (!signedIn) mockRendered = { ...mockRendered, session: null, user: null };
   mockCurrent = mockRendered;

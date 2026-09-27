@@ -28,6 +28,7 @@ jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
 jest.mock('../../store/uloga',()=>({postaviUlogu:(role:string)=>mockRole(role),useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
 jest.mock('../../hooks/useInbox',()=>({useInbox:()=>({state:mockState,model:mockModel})}));
+jest.mock('../../hooks/useMessagePushIngress',()=>({useMessagePushIngress:()=>({phase:null,cancel:jest.fn(),retry:jest.fn()})}));
 jest.mock('../../ui/Press',()=>({Press:'Press'}));
 jest.mock('../../ui/Text',()=>({T:'T'}));
 import Inbox from '../../app/obavestenja';
