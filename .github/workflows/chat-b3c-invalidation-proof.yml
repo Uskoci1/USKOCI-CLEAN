@@ -158,6 +158,14 @@ jobs:
             assert.deepEqual(report.fixtureCounts,{actors:4,agreements:2,admittedSessions:4});
             assert.equal(report.observationContract,'KNOWN_MESSAGE_WATERMARKS_AND_LIVE_SOCKET_HEARTBEATS');
             assert.equal(report.knownMessageWatermarks,12); assert.equal(report.heartbeatBarriers,7);
+            assert.equal(report.actualRealtimeImageMatchesPinnedSource,true);
+            assert.equal(report.initializationAdmittedBeforeFirstMessage,true);
+            assert.equal(report.registrationAdmission.exactlyFourCurrentSessionRegistrations,true);
+            assert.equal(report.replicationAdmission.cdcSlotPrepared,true);
+            assert.equal(report.replicationAdmission.broadcastSlotPrepared,true);
+            assert.deepEqual(report.internalPublicationAdmission,{exactFlags:true,exactMembership:true});
+            assert.deepEqual(report.initializationPublicationDelta.changed,[]);
+            assert.deepEqual(report.initializationPublicationDelta.removed,[]);
             assert.ok(report.validatedBodyFreeEvents>=20);
             assert.equal(report.checks.length,10); assert.ok(report.checks.every(check=>check.result==='PASS'));
             assert.equal(Object.keys(report.sourceArtifactHashes).length,7);

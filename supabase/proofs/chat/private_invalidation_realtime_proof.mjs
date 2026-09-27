@@ -25,6 +25,14 @@ const report = {
   certifiedErasureProven: false, teardownRequired: true, checks: [], sourceArtifactHashes: {},
   knownMessageWatermarks: 0, heartbeatBarriers: 0, channelsClosed: false,
   messageAttempts: [],
+  sourceEvidence: {
+    cliVersion: '2.116.0', realtimeVersion: '2.129.3',
+    realtimeCommit: '91812f42c4653ed55270e0bf4df6e9530de7966e',
+    cliImagePin: 'https://github.com/supabase/cli/blob/v2.116.0/apps/cli-go/pkg/config/templates/Dockerfile#L14',
+    asynchronousPostgresAdmission: 'https://github.com/supabase/realtime/blob/91812f42c4653ed55270e0bf4df6e9530de7966e/lib/realtime_web/channels/realtime_channel.ex#L349',
+    internalPublicationCreation: 'https://github.com/supabase/realtime/blob/91812f42c4653ed55270e0bf4df6e9530de7966e/lib/realtime/tenants/replication_connection.ex#L235',
+    cdcSlotPreparation: 'https://github.com/supabase/realtime/blob/91812f42c4653ed55270e0bf4df6e9530de7966e/lib/extensions/postgres_cdc_rls/replications.ex#L10',
+  },
   // Finite ordered-message witnesses, not a claim that silence alone proves denial.
   observationContract: 'KNOWN_MESSAGE_WATERMARKS_AND_LIVE_SOCKET_HEARTBEATS',
 };
@@ -40,6 +48,9 @@ let wireFault = false;
 let shuttingDown = false;
 const observers = [];
 const authActors = [];
+let actorSessions;
+let lastMessageWal;
+let readySlotName;
 let cancelBounded;
 const cancelled = new Promise((_, reject) => { cancelBounded = reject; });
 // The workflow's outer timeout first requests ordinary finally cleanup. Its
@@ -89,12 +100,12 @@ async function bounded(promise, milliseconds = 15000, cleanup = false) {
     })]);
   } finally { clearTimeout(timer); }
 }
-async function waitFor(predicate) {
+async function waitFor(predicate, interval = 25) {
   const deadline = Date.now() + 15000;
   while (!predicate()) {
     assert.equal(wireFault, false);
     if (Date.now() >= deadline) throw new Error('WITNESS_TIMEOUT');
-    await new Promise(done => setTimeout(done, 25));
+    await new Promise(done => setTimeout(done, interval));
   }
   assert.equal(wireFault, false);
 }
@@ -170,6 +181,95 @@ function verifyUncertified(state) {
   for (const flag of ['pubdelete', 'pubtruncate', 'puballtables']) assert.equal(publication[flag], false);
 }
 
+function publicationDelta(before, after) {
+  const previous = new Map(before.publications.map(row => [row.pubname, row]));
+  const current = new Map(after.publications.map(row => [row.pubname, row]));
+  const safeName = value => /^[a-z][a-z0-9_]{0,62}$/.test(value) ? value : 'UNEXPECTED_CATALOG_NAME';
+  return {
+    added: [...current.keys()].filter(name => !previous.has(name)).map(safeName),
+    removed: [...previous.keys()].filter(name => !current.has(name)).map(safeName),
+    changed: [...previous.keys()].filter(name => current.has(name) && hashJson(previous.get(name)) !== hashJson(current.get(name))).map(safeName),
+    addedTableNames: after.publication_tables.filter(row => !before.publication_tables.some(old => hashJson(old) === hashJson(row)))
+      .map(row => ({publication: safeName(row.pubname), schema: safeName(row.schemaname), table: safeName(row.tablename)})),
+  };
+}
+function subscriptionRegistrations() {
+  if (rt.sql("select to_regclass('realtime.subscription') is not null") !== 't') return {tablePresent: false};
+  const expected = authActors.map((actor, index) => `(${index + 1},${rt.q(actor.id)}::uuid,${rt.q(actorSessions[index].id)}::uuid)`).join(',');
+  const rows = rt.rows(`with expected(observer,account_id,session_id) as (values ${expected})
+    select e.observer,count(s.id)::integer registered_rows,
+      coalesce(bool_and(s.claims->>'role'='authenticated' and s.claims_role='authenticated'::regrole),false) authenticated_role,
+      coalesce(bool_and(s.claims->>'session_id'=e.session_id::text),false) exact_session,
+      coalesce(bool_and(cardinality(s.filters)=0),false) no_client_filter,
+      private.push_session_valid(e.account_id,e.session_id) current_session_valid
+    from expected e left join realtime.subscription s
+      on s.entity='public.agreement_invalidations_v1'::regclass and s.claims->>'sub'=e.account_id::text
+    group by e.observer,e.account_id,e.session_id order by e.observer`);
+  const total = Number(rt.sql("select count(*) from realtime.subscription where entity='public.agreement_invalidations_v1'::regclass"));
+  return {tablePresent: true, totalTargetRegistrations: total, observers: rows,
+    exactlyFourCurrentSessionRegistrations: total === 4 && rows.length === 4 && rows.every(row => row.registered_rows === 1
+      && row.authenticated_role && row.exact_session && row.no_client_filter && row.current_session_valid)};
+}
+function replicationState(watermark = null) {
+  // Never consume/advance a slot or call realtime.list_changes: only the real
+  // Realtime poller may process WAL. LSNs and database/PID identities stay private.
+  const slots = rt.rows(`select slot_name,plugin,active,temporary,
+      confirmed_flush_lsn is not null cursor_present,
+      ${watermark ? `confirmed_flush_lsn>=${rt.q(watermark)}::pg_lsn` : 'null::boolean'} cursor_past_message
+    from pg_replication_slots where database=current_database() and slot_type='logical' order by slot_name`);
+  const cdc = slots.filter(slot => slot.plugin === 'wal2json');
+  const selected = cdc.length === 1 ? cdc[0] : null;
+  if (!readySlotName && selected?.cursor_present) readySlotName = selected.slot_name;
+  return {walLevelLogical: rt.sql("select current_setting('wal_level')='logical'") === 't',
+    logicalSlotCount: slots.length, cdcSlotCount: cdc.length,
+    cdcSlotPrepared: cdc.length === 1 && selected.cursor_present && selected.temporary,
+    sameCdcSlot: selected ? selected.slot_name === readySlotName : false,
+    cdcSlotActiveAtSample: selected?.active === true,
+    cdcCursorPastMessage: watermark ? selected?.cursor_past_message === true : null,
+    broadcastSlotPrepared: slots.some(slot => slot.plugin === 'pgoutput' && slot.active && slot.cursor_present),
+  };
+}
+async function admitRealtimeInitialization() {
+  operation = 'WAIT_REALTIME_REGISTRATIONS_AND_PREPARED_CDC_SLOT';
+  // SUBSCRIBED admits only the channel join in the pinned server. Wait for its
+  // separate PostgreSQL OK, exact database registrations and an already-created
+  // logical slot BEFORE inserting the first known message. No longer timeout.
+  await waitFor(() => {
+    report.registrationAdmission = subscriptionRegistrations();
+    report.replicationAdmission = replicationState();
+    return observers.every(observer => observer.postgresReady) && report.registrationAdmission.exactlyFourCurrentSessionRegistrations
+      && report.replicationAdmission.walLevelLogical && report.replicationAdmission.cdcSlotPrepared
+      && report.replicationAdmission.broadcastSlotPrepared;
+  }, 250);
+  operation = 'ATTEST_SERVICE_INITIALIZATION_PUBLICATION_DELTA';
+  const warmed = certificates();
+  report.initializationPublicationDelta = publicationDelta(installed, warmed);
+  const delta = report.initializationPublicationDelta;
+  assert.deepEqual(delta.removed, []);
+  assert.deepEqual(delta.changed, []); // Never permit an edit to any preexisting publication.
+  assert.ok(delta.added.length <= 1 && delta.added.every(name => name === 'supabase_realtime_messages_publication'));
+  assert.ok(installed.publication_tables.every(row => warmed.publication_tables.some(current => hashJson(row) === hashJson(current))));
+  assert.ok(delta.addedTableNames.every(row => row.publication === 'supabase_realtime_messages_publication'
+    && row.schema === 'realtime' && (row.table === 'messages' || /^messages_[0-9_]+$/.test(row.table))));
+  const internal = rt.rows(`select not p.puballtables and p.pubinsert and p.pubupdate and p.pubdelete and p.pubtruncate
+      and not p.pubviaroot as exact_flags,
+      (select count(*) from pg_publication_rel r where r.prpubid=p.oid)=1
+      and exists(select 1 from pg_publication_rel r where r.prpubid=p.oid
+        and r.prrelid='realtime.messages'::regclass and r.prattrs is null and r.prqual is null)
+      and not exists(select 1 from pg_publication_namespace n where n.pnpubid=p.oid) as exact_membership
+    from pg_publication p where p.pubname='supabase_realtime_messages_publication'`);
+  assert.equal(internal.length, 1);
+  report.internalPublicationAdmission = {exactFlags: internal[0].exact_flags, exactMembership: internal[0].exact_membership};
+  assert.equal(internal[0].exact_flags, true);
+  assert.equal(internal[0].exact_membership, true);
+  verifyUncertified(warmed);
+  // All certificates, application publication entries, schemas, program/source
+  // digests and function metadata must be byte-identical across initialization.
+  assert.equal(hashJson({...warmed, publications: installed.publications, publication_tables: installed.publication_tables}), hashJson(installed));
+  installed = warmed;
+  report.initializationAdmittedBeforeFirstMessage = true;
+}
+
 function psql(args, input) {
   // Both wrappers reject connection overrides before IO. Diagnostics stay in memory.
   return execFileSync('psql', [env.RU5_DEVICE_DB_URL, '-X', '-q', '-A', '-t',
@@ -206,6 +306,7 @@ function installEphemeralFixture() {
 begin;
 set local uskoci.chat_b3c_disposable_proof='LOCAL_ONLY_EPHEMERAL_REALTIME';
 \\ir '${candidate}'
+notify pgrst,'reload schema';
 commit;
 select 'CHAT_B3C_EPHEMERAL_UNCERTIFIED_COMMITTED';
 `;
@@ -228,7 +329,7 @@ async function session(actor) {
   assert.match(claims.session_id, uuidPattern);
   assert.ok(Number.isFinite(claims.exp) && claims.exp * 1000 > Date.now() + 300000);
   assert.equal(rt.sql(`select private.push_session_valid(${rt.q(actor.id)},${rt.q(claims.session_id)})`), 't');
-  return {token, id: claims.session_id};
+  return {token, id: claims.session_id, claims};
 }
 async function agreement(requester, worker, label) {
   const profile = (actor, kind) => {
@@ -307,7 +408,8 @@ function acceptEvent(observer, payload) {
 }
 async function observe(actor, actorSession, agreementId) {
   const observer = {agreementId, count: 0, seen: new Map(), denied: new Set(), denyAll: false,
-    status: 'CONNECTING', heartbeats: 0, receivedCallbacks: 0, index: observers.length + 1};
+    status: 'CONNECTING', heartbeats: 0, receivedCallbacks: 0, index: observers.length + 1,
+    postgresReady: false, accountId: actor.id, sessionId: actorSession.id, actualClaims: actorSession.claims};
   observers.push(observer);
   // This callback freezes a real issued JWT. A manual setAuth alone would be
   // overwritten by SupabaseClient's accessToken callback on later heartbeats.
@@ -318,9 +420,18 @@ async function observe(actor, actorSession, agreementId) {
       if (!shuttingDown && ['error', 'timeout'].includes(status)) rejectWire(observer, 'HEARTBEAT_FAILED');
     }},
   });
+  // Complete real-token admission before creating the channel join payload.
+  await bounded(observer.client.realtime.setAuth(actorSession.token));
   observer.channel = observer.client.channel('b3c-wire-' + randomUUID()).on('postgres_changes', {
     event: '*', schema: 'public', table: 'agreement_invalidations_v1',
-  }, payload => acceptEvent(observer, payload));
+  }, payload => acceptEvent(observer, payload)).on('system', {}, payload => {
+    // Pinned Realtime v2.129.3 sends this only AFTER its SQL subscription insert.
+    // Ignore free-text message/channel fields, which may contain private values.
+    if (payload?.extension === 'postgres_changes') {
+      if (payload.status === 'ok') observer.postgresReady = true;
+      else if (payload.status === 'error') rejectWire(observer, 'POSTGRES_REGISTRATION_SYSTEM_ERROR');
+    }
+  });
   // PostgreSQL row policies authorize this stream. Do not invent private
   // broadcast admission or use a client Agreement filter as an authorization test.
   observer.channel.subscribe(status => {
@@ -334,6 +445,37 @@ async function observe(actor, actorSession, agreementId) {
 function revision(id) {
   const values = rt.rows(`select revision from public.agreement_invalidations_v1 where agreement_id=${rt.q(id)}`);
   return values.length ? Number(values[0].revision) : 0;
+}
+async function authenticatedCacheDiagnostics(id, expectedRevision) {
+  report.firstMessageAuthenticatedReads = [];
+  for (const observer of observers) {
+    const expectedVisible = observer.agreementId === id;
+    const diagnostic = {observer: observer.index, expectedVisible};
+    report.firstMessageAuthenticatedReads.push(diagnostic);
+    // Actual issued JWT through the HTTP Data API; no service client and no body.
+    const result = await bounded(observer.client.from('agreement_invalidations_v1')
+      .select('agreement_id,revision').eq('agreement_id', id));
+    diagnostic.httpAccepted = !result.error;
+    diagnostic.httpStatus = Number.isInteger(result.status) && result.status >= 100 && result.status <= 599 ? result.status : null;
+    if (result.error) diagnostic.httpCode = safeRpcCode(result.error.code);
+    diagnostic.httpExpectedVisibility = !result.error && Array.isArray(result.data) && (expectedVisible
+      ? result.data.length === 1 && result.data[0].agreement_id === id && Number(result.data[0].revision) === expectedRevision
+      : result.data.length === 0);
+    // Independently reproduce Realtime's JSON-only claim context using the same
+    // actual issued claims. Unlike the old SQL proof, do NOT set legacy singular
+    // request.jwt.claim.sub/role GUCs. No claims or row identities leave memory.
+    const output = psql([], `begin;
+      do $claims$ begin perform set_config('request.jwt.claims',${rt.q(JSON.stringify(observer.actualClaims))},true);end $claims$;
+      set local role authenticated;
+      select json_build_object(
+        'uidMatches',coalesce(auth.uid()=${rt.q(observer.accountId)}::uuid,false),
+        'roleMatches',auth.role()='authenticated',
+        'sessionClaimMatches',auth.jwt()->>'session_id'=${rt.q(observer.sessionId)},
+        'expectedVisibility',(select count(*) from public.agreement_invalidations_v1
+          where agreement_id=${rt.q(id)} and revision=${expectedRevision})=${expectedVisible ? 1 : 0});
+      rollback;`);
+    diagnostic.jsonOnlyClaims = JSON.parse(output.trim());
+  }
 }
 async function send(actor, id, receivers) {
   operation = 'SEND_READ_CACHE_REVISION_BEFORE';
@@ -369,6 +511,12 @@ async function send(actor, id, receivers) {
       and client_message_id=${rt.q(clientId)} and body=${rt.q(body)})`);
   attempt.canonicalMessagePersisted = persisted === 't';
   assert.equal(persisted, 't');
+  lastMessageWal = rt.sql('select pg_current_wal_lsn()::text');
+  assert.match(lastMessageWal, /^[0-9A-F]+\/[0-9A-F]+$/);
+  if (attempt.ordinal === 1) {
+    operation = attempt.phase = 'SEND_DIAGNOSE_ACTUAL_AUTHENTICATED_CACHE_READS';
+    await authenticatedCacheDiagnostics(id, next);
+  }
   const key = eventKey(id, next);
   operation = attempt.phase = 'SEND_WAIT_POSITIVE_RECEIVER_WITNESSES';
   await waitFor(() => {
@@ -428,6 +576,12 @@ try {
   assert.equal(previous.checks.length, 5);
   assert.ok(previous.checks.every(check => check.result === 'PASS'));
   pass('EXACT_SOURCE_AND_SUCCESSFUL_SQL_ROLLBACK_PREDECESSOR');
+  operation = 'VERIFY_PINNED_LOCAL_REALTIME_IMAGE';
+  const realtimeImages = execFileSync('docker', ['ps', '--filter', 'name=supabase_realtime', '--format', '{{.Image}}'],
+    {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10000}).trim().split(/\r?\n/).filter(Boolean);
+  assert.equal(realtimeImages.length, 1);
+  assert.match(realtimeImages[0], /^(?:[a-z0-9.:-]+\/)?supabase\/realtime:v2\.129\.3$/);
+  report.actualRealtimeImageMatchesPinnedSource = true;
   rt = await import('../pre_v3/closure_runtime.mjs');
   ({createClient} = await import('@supabase/supabase-js'));
   stage = 'CERTIFIED_PREDECESSOR_AND_ORDINARY_REFUSAL';
@@ -445,7 +599,7 @@ try {
   for (const name of ['requester', 'worker', 'stranger', 'foreign-worker']) authActors.push(await bounded(rt.actor('b3c-wire-' + name)));
   const [requester, worker, stranger, foreignWorker] = authActors;
   assert.equal(new Set(authActors.map(actor => actor.id)).size, 4);
-  const sessions = await Promise.all(authActors.map(session));
+  const sessions = actorSessions = await Promise.all(authActors.map(session));
   fixture = {main: await agreement(requester, worker, 'B3c wire main'),
     foreign: await agreement(stranger, foreignWorker, 'B3c wire unrelated')};
   assert.notEqual(fixture.main, fixture.foreign);
@@ -458,6 +612,7 @@ try {
   stage = 'REAL_AUTHENTICATED_SUBSCRIPTIONS';
   const [requesterView, workerView, strangerView, foreignView] = await Promise.all(authActors.map((actor, index) =>
     observe(actor, sessions[index], index < 2 ? fixture.main : fixture.foreign)));
+  await admitRealtimeInitialization();
   pass('FOUR_REAL_AUTHENTICATED_UNFILTERED_POSTGRES_SUBSCRIPTIONS');
 
   stage = 'PARTICIPANTS_INSERT_UPDATE_AND_STRANGER_EXCLUSION';
@@ -533,8 +688,15 @@ try {
 } catch (error) { fail(error); }
 finally {
   const originalStage = stage;
+  if (report.fixtureCommitted && actorSessions) {
+    try {
+      report.finalRegistrationState = subscriptionRegistrations();
+      report.replicationAfterLastMessage = replicationState(lastMessageWal);
+    } catch (error) { report.replicationDiagnosticFailure = errorKind(error); }
+  }
   report.observersBeforeClose = observers.map(observer => ({
     observer: observer.index, status: observer.status,
+    postgresReady: observer.postgresReady,
     connected: observer.client?.realtime.isConnected() === true,
     callbacksReceived: Math.min(observer.receivedCallbacks, 1000),
     bodyFreeEventsValidated: Math.min(observer.count, 100),
@@ -564,6 +726,7 @@ finally {
       const after = certificates();
       report.certificateMoved = certificateIdentity(after) !== certificateIdentity(baseline);
       report.finalSurfaceComparisons = surfaceComparisons(after);
+      if (installed) report.finalPublicationDelta = publicationDelta(installed, after);
       report.finalReadiness = after.ready;
       report.certificateIdentitySha256 = certificateIdentity(after);
       // Whitelisted snapshot field names only; no values, relation identities,
