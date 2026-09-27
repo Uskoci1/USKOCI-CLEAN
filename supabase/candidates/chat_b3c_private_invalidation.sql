@@ -1,12 +1,16 @@
--- Chat B3c PREPARATION ONLY / NOT RUN / NOT DEPLOYABLE.
--- Transaction fragment, not a migration. The disposable proof owns BEGIN/ROLLBACK.
+-- Chat B3c disposable candidate / NOT DEPLOYABLE.
+-- SQL/Auth rollback proof passed; authenticated websocket phase remains NOT RUN.
+-- Transaction fragment, not a migration. The original proof owns BEGIN/ROLLBACK.
+-- A separately admitted ephemeral realtime harness may COMMIT solely because WAL
+-- delivery needs a committed fixture. It must always discard its entire local stack.
 -- No certificate update or replacement readiness function is present. The changed
 -- schema must remain uncertified until a separately reviewed recertification.
 -- The marker prevents accidental execution; it is NOT a security boundary or proof
 -- that a database is disposable. A local-only harness must attest its target first.
 do $admission$
 begin
-  if current_setting('uskoci.chat_b3c_disposable_proof',true) is distinct from 'LOCAL_ONLY_ROLLBACK' then
+  if coalesce(current_setting('uskoci.chat_b3c_disposable_proof',true),'') not in
+    ('LOCAL_ONLY_ROLLBACK','LOCAL_ONLY_EPHEMERAL_REALTIME') then
     raise exception 'CHAT_B3C_CERTIFICATE_REVIEW_REQUIRED' using errcode='55000';
   end if;
 end
@@ -250,5 +254,7 @@ begin
   if exists(select 1 from public.agreement_invalidations_v1) then raise exception 'CHAT_B3C_NO_BACKFILL_ALLOWED';end if;
 end
 $post$;
--- NO COMMIT. Disposable caller must now prove behavior and ROLLBACK.
+-- NO COMMIT here. LOCAL_ONLY_ROLLBACK callers must ROLLBACK. The distinct
+-- LOCAL_ONLY_EPHEMERAL_REALTIME harness may COMMIT this uncertified fixture and
+-- must discard its entire loopback-only stack even on failure; never recertify it.
 -- Deployment/recertification and authenticated websocket delivery remain unfinished.

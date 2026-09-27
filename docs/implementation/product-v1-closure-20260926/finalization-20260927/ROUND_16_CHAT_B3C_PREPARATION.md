@@ -1,6 +1,16 @@
 # Round 16 — B3c body-free invalidation preparation
 
-Status: **SOURCE PREPARATION / NOT RUN / NOT DEPLOYABLE / NOT CLIENT-WIRED**. No DEV mutation, certificate update, provider call or application source change was performed.
+Current status: **DISPOSABLE SQL/AUTH PASS / WEBSOCKET PHASE PREPARED, NOT RUN / NOT DEPLOYABLE / NOT CLIENT-WIRED**. Exact SQL/Auth run36333212694 at3dc23096 passed; see `ROUND_18_B3C_SQL_RECEIPT.json`. It tested the preceding candidate bytes, not the admission extension below. No DEV mutation, certificate update, provider call or application source change was performed.
+
+## Separate committed websocket fixture (follow-up)
+
+`private_invalidation_realtime_proof.mjs` now follows the original rollback proof in the same dedicated workflow. Its distinct `LOCAL_ONLY_EPHEMERAL_REALTIME` admission permits a committed fixture only on the independently guarded loopback stack, because Realtime cannot see rolled-back/uncommitted events. The original `LOCAL_ONLY_ROLLBACK` path, SQL proof and rollback harness remain unchanged. The candidate itself still has no COMMIT. The workflow always destroys the entire disposable stack, including failures; no deployment admission or recertification is added.
+
+The new phase requires four actual Auth sessions and two disjoint Agreements, unfiltered authenticated table subscriptions, exact body-free payload keys,12 canonical message watermarks and7 fresh heartbeat barriers. It checks positive delivery and membership/session/closure denial on existing sockets. One explicitly owner-only body-free cache update exercises closure RLS against actual WAL; suppressing an event at the writer would not prove delivery denial. Canonical cancellation must delete the cache without publishing DELETE. Negative observations are finite ordered-message/socket witnesses, not timeout-as-success or an exhaustive security proof. Both certificates and the readiness definition must remain identical; the changed source must remain uncertified with readiness false.
+
+Local syntax, Bash/YAML ordering, narrow workflow trigger, diff and five pre-I/O refusal checks passed. The exact-source CI execution result is still pending. Raw setup/runtime output is excluded from uploads; only bounded source hashes, stage results and sanitized reports are retained. This extension changes candidate bytes, so the earlier SQL receipt is preserved as historical and both phases must rerun. Certified erasure, race/load, deployment and client integration gates remain separate.
+
+## Original preparation record
 
 Prepared artifacts:
 
