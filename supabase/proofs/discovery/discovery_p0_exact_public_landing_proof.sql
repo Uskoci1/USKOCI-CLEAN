@@ -1,4 +1,4 @@
--- Discovery P0 exact-public-landing proof SOURCE ONLY. NOT EXECUTED.
+-- Discovery P0 exact-public-landing disposable proof. See the dedicated CI receipt for execution status.
 -- Intended only for the existing disposable Supabase replay at 127.0.0.1:54322.
 -- The candidate is replayed verbatim, fixture rows are rolled back, and successful
 -- completion restores the predecessor reader. An early error may leave the candidate
@@ -76,6 +76,7 @@ begin
 end
 $body$;
 select pg_temp.discovery_p0_assert_unchanged();
+\echo 'PASS DISCOVERY_P0_EXACT_CANDIDATE_AND_AUTHORITY'
 
 do $seed$
 declare
@@ -179,6 +180,7 @@ declare
 begin
   perform pg_temp.discovery_p0_parity('{}');
   perform pg_temp.discovery_p0_parity(null);
+  perform pg_temp.discovery_p0_parity(jsonb_build_object('category',category||'-missing'));
   foreach filters in array array[
     jsonb_build_object('category',category),
     jsonb_build_object('category',category,'priceMode','OFFERS'),
@@ -230,6 +232,10 @@ begin
   end loop;
 end
 $normal_and_exact$;
+\echo 'PASS DISCOVERY_P0_ORDINARY_PARITY_AND_CURSOR'
+\echo 'PASS DISCOVERY_P0_EXACT_BEYOND_FIRST_200_AND_REVISION'
+\echo 'PASS DISCOVERY_P0_PUBLIC_FIELDS_AND_POINTLESS_TASKS'
+\echo 'PASS DISCOVERY_P0_NONPUBLIC_AND_MISSING_TASKS'
 
 do $invalid$
 declare filters jsonb; target uuid := current_setting('discovery_p0.pinned')::uuid;
@@ -250,6 +256,7 @@ begin
   perform pg_temp.discovery_p0_invalid(filters,null,null,null,null,'INVALID_PAGE');
 end
 $invalid$;
+\echo 'PASS DISCOVERY_P0_STRICT_INPUT_AND_BOUNDS'
 
 -- Owner visibility of drafts/history must never be enough to create a Discovery row.
 select set_config('request.jwt.claim.sub',current_setting('discovery_p0.owner'),true);
@@ -272,6 +279,7 @@ begin
   if page->'items' <> '[]'::jsonb then raise exception 'DISCOVERY_P0_WORLD_ISOLATION_FAILED'; end if;
 end
 $other_world$;
+\echo 'PASS DISCOVERY_P0_OWNER_AND_WORLD_ISOLATION'
 
 select set_config('request.jwt.claim.sub','',true);
 do $unsigned$
@@ -299,6 +307,7 @@ end
 $anon$;
 reset role;
 select pg_temp.discovery_p0_assert_unchanged();
+\echo 'PASS DISCOVERY_P0_AUTH_AND_ANON_DENIALS'
 
 rollback; -- All synthetic account/task/private-marker fixtures and proof helper functions are gone.
 
@@ -313,6 +322,9 @@ begin
      or (select to_jsonb(c) from private.closure_source_v5 c where singleton) is distinct from (select certificate from discovery_p0_proof_before)
      or (select to_jsonb(c) from private.closure_erasure_source_v5 c where singleton) is distinct from (select erasure_certificate from discovery_p0_proof_before)
      or pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure) is distinct from (select readiness_definition from discovery_p0_proof_before)
+     or (select count(*) from pg_proc p, discovery_p0_proof_before b
+         where p.oid = 'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)'::regprocedure
+           and p.proowner=b.proowner and p.proacl is not distinct from b.proacl) <> 1
      or private.retention_ai_source_ready() is distinct from true then
     raise exception 'DISCOVERY_P0_PROOF_RESTORE_OR_CERTIFICATE_FAILED';
   end if;
@@ -321,4 +333,5 @@ $restore$;
 commit;
 drop function pg_temp.discovery_p0_before(jsonb,jsonb,integer,timestamptz,uuid);
 drop table discovery_p0_proof_before;
+\echo 'PASS DISCOVERY_P0_RESTORE_AND_CERTIFICATES'
 \echo 'DISCOVERY_P0_EXACT_PUBLIC_LANDING_PROOF_PASS'
