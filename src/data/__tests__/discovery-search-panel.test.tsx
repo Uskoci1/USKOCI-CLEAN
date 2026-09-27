@@ -51,8 +51,10 @@ const radio = (label: string | RegExp) => tree.root.findAll(node => String(node.
 const choose = async (label: string | RegExp) => act(async () => radio(label)[0].props.onPress());
 const texts = (root: ReactTestInstance = tree.root) => root.findAllByType('T' as React.ElementType)
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
-const openStep = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState?.expanded)
-  .map(node => node.props.testID === 'search-place-toggle' ? 'gde' : 'kada');
+const stepIds: Record<string, SearchStep> = { 'search-place-toggle': 'gde', 'search-kada-toggle': 'kada',
+  'search-kako-toggle': 'kako', 'search-koliko-toggle': 'koliko', 'search-cena-toggle': 'cena' };
+const openStep = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState?.expanded && stepIds[node.props.testID])
+  .map(node => stepIds[node.props.testID]);
 const placeValue = () => tree.root.findByProps({ testID: 'search-place-toggle' }).props.accessibilityValue.text;
 const dateValue = () => tree.root.findByProps({ testID: 'search-date-toggle' }).props.accessibilityValue.text;
 const offeredPlaces = () => tree.root.findByProps({ accessibilityLabel: 'Mesta' })
@@ -77,7 +79,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 test('choosing remote clears geographic scope in the draft, retains conditions, and applies only on confirmation', async () => {
   view = { ...view, place: 'Liman, Novi Sad', area: [19.8, 45.2, 19.9, 45.3], pinPlace: '45.25,19.84',
     price: 'MY_PRICE', query: 'Pomoć', places: 2 };
-  await render(); await choose('Na daljinu');
+  await render(); await tap('Kako se radi'); await choose('Na daljinu');
   expect(show().props.label).toBe('Prikaži 1 zadatak');
   expect(placeValue()).toBe('Na daljinu · „Pomoć“');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesta' })).toHaveLength(0);
@@ -87,20 +89,24 @@ test('choosing remote clears geographic scope in the draft, retains conditions, 
     query: 'Pomoć', price: 'MY_PRICE', places: 2 });
 });
 
-test('search opens places, while filters open grouped conditions with local place/date editors', async () => {
+test('search and filters open their own single accordion group, retaining the local date editor', async () => {
   await render();
   expect(openStep()).toEqual(['gde']); expect(texts()).toContain('Pretraga');
-  expect(radio('Bilo kada')[0].props.accessibilityState.checked).toBe(true);
-  expect(radio('Bilo gde')[0].props.accessibilityState.checked).toBe(true);
-  expect(radio('Sve')[0].props.accessibilityState.checked).toBe(true);
-  expect(byLabel('Povećaj broj osoba')).toHaveLength(1);
+  expect(radio('Bilo kada')).toHaveLength(0);
+  await tap('Kada'); expect(radio('Bilo kada')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Kako se radi'); expect(radio('Bilo gde')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Cena'); expect(radio('Sve')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Koliko vas dolazi'); expect(byLabel('Povećaj broj osoba')).toHaveLength(1);
   // "Uslovi pretrage" opens the panel at its conditions.
   await act(async () => tree.unmount()); start = 'kada'; await render();
-  expect(texts()).toContain('Uslovi pretrage'); expect(openStep()).toEqual([]);
+  expect(texts()).toContain('Uslovi pretrage'); expect(openStep()).toEqual(['kada']);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' })).toHaveLength(0);
   await tap('Datumi'); expect(openStep()).toEqual(['kada']);
-  await tap('Gde'); expect(openStep()).toEqual(['gde', 'kada']);
-  await tap('Datumi'); expect(openStep()).toEqual(['gde']);
+  await tap('Gde'); expect(openStep()).toEqual(['gde']);
+  expect(byLabel('Datumi')).toHaveLength(0);
+  await tap('Kada'); expect(tree.root.findAllByProps({ testID: 'search-date-editor' })).toHaveLength(1);
+  await tap('Datumi'); expect(openStep()).toEqual(['kada']);
+  expect(tree.root.findAllByProps({ testID: 'search-date-editor' })).toHaveLength(0);
   // The whole panel sits over the map as a veil with its own way out.
   expect(tree.root.findByType('Modal' as React.ElementType).props).toMatchObject({ transparent: true, animationType: 'fade' });
   expect(byLabel('Zatvori pretragu')).toHaveLength(1);
@@ -111,12 +117,16 @@ test('choices stay in context and remain selected, without applying or collapsin
   expect(placeValue()).toBe('Na daljinu');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesta' })).toHaveLength(0);
   expect(openStep()).toEqual(['gde']);
-  await choose('Ovaj vikend');
-  expect(openStep()).toEqual(['gde']);
-  expect(radio('Na daljinu')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Kada'); await choose('Ovaj vikend');
+  expect(openStep()).toEqual(['kada']);
   expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
+  await tap('Kako se radi');
+  expect(radio('Na daljinu')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Kada');
+  expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
+  await tap('Cena');
   await choose('Tražim ponude'); expect(radio('Tražim ponude')[0].props.accessibilityState.checked).toBe(true);
-  expect(openStep()).toEqual(['gde']); expect(apply).not.toHaveBeenCalled();
+  expect(openStep()).toEqual(['cena']); expect(apply).not.toHaveBeenCalled();
 });
 
 test('"Gde" offers only the places the loaded tasks name, with their counts; typing narrows them; a place, the map\'s area or every task', async () => {
@@ -185,7 +195,7 @@ test('"Koliko vas dolazi" counts people from one: minus cannot go below one, and
   expect(minus().props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
   expect(show().props.label).toBe('Prikaži 5 zadataka');
   await act(async () => plus().props.onPress()); await act(async () => plus().props.onPress());
-  expect(texts()).toContain('3 osobe'); expect(openStep()).toEqual([]);
+  expect(texts()).toContain('3 osobe'); expect(openStep()).toEqual(['koliko']);
   expect(minus().props.disabled).toBe(false);
   // No task here has three open places: the one green action says so and cannot be pressed.
   expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
@@ -200,13 +210,16 @@ test('"Obriši uslove" empties the draft and counts every task again; × leaves 
   expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
   expect(show().props.label).toBe('Prikaži 5 zadataka');
-  for (const choice of ['Bilo kada', 'Bilo gde', 'Sve']) expect(radio(choice)[0].props.accessibilityState.checked).toBe(true);
+  for (const [group, choice] of [['Kada', 'Bilo kada'], ['Kako se radi', 'Bilo gde'], ['Cena', 'Sve']]) {
+    await tap(group); expect(radio(choice)[0].props.accessibilityState.checked).toBe(true);
+  }
   expect(texts()).toContain('1 osoba');
   await act(async () => show().props.onPress());
   expect(lastDraft()).toEqual(NO_SEARCH);
   // A new panel starts from the list's own view again; × applies nothing.
   apply.mockReset(); close.mockReset(); await act(async () => tree.unmount()); await render();
-  expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Kada'); expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(true);
+  await tap('Gde');
   await choose(/^Svi zadaci/);
   await tap('Zatvori pretragu');
   expect(apply).not.toHaveBeenCalled(); expect(close).toHaveBeenCalledTimes(1);
@@ -257,18 +270,19 @@ test.each([
 test('with a screen reader on, a single-tap choice stays on its step', async () => {
   const reader = jest.spyOn(AccessibilityInfo, 'isScreenReaderEnabled').mockResolvedValue(true);
   const listeners: ((enabled: boolean) => void)[] = [], remove = jest.fn();
-  const listen = jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(((_event: string, handler: (enabled: boolean) => void) => {
+  const listen = jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(((event: string, handler: (enabled: boolean) => void) => {
+    if (event !== 'screenReaderChanged') return { remove: jest.fn() };
     listeners.push(handler); return { remove };
   }) as never);
   try {
     start = 'kada'; await render();
     await choose('Ovaj vikend');
-    expect(openStep()).toEqual([]);
+    expect(openStep()).toEqual(['kada']);
     expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
     // Turning the screen reader off also leaves the selection in place.
     await act(async () => listeners[0](false));
     await choose('Sutra');
-    expect(openStep()).toEqual([]);
+    expect(openStep()).toEqual(['kada']);
     await act(async () => tree.unmount());
     expect(remove).toHaveBeenCalledTimes(1);
   } finally { reader.mockRestore(); listen.mockRestore(); }
@@ -311,6 +325,7 @@ test('at large text place and condition labels can wrap, and the chosen circle n
   expect(StyleSheet.flatten(place().props.style).flexDirection).toBe('row');
   await act(async () => tree.unmount());
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
+  await tap('Kada'); // The closed Gde card exposes its real summary; only Kada's editor is mounted.
   expect(StyleSheet.flatten(place().props.style).flexDirection).toBe('row');
   const [label, value] = place().findAllByType('T' as React.ElementType);
   expect(label.parent).toBe(value.parent);
@@ -333,6 +348,7 @@ test('at large text place and condition labels can wrap, and the chosen circle n
 });
 
 test('the 361dp phone gives the people label its own row without changing the draft or footer behavior', async () => {
+  start = 'koliko';
   mockWindow = { ...mockWindow, width: 411, fontScale: 1 }; await render();
   const layout = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'search-people-layout' }).props.style);
   expect(layout().flexDirection).toBe('row');
@@ -365,17 +381,123 @@ test('search text uses the bundled medium face without asking the platform to sy
   expect(style.fontWeight).toBeUndefined();
 });
 
-test('expanding the calendar reveals it once, while later layout changes leave manual scrolling alone', async () => {
+test('expanding the calendar reveals it once after current natural measurements; later layouts keep manual scroll', async () => {
   const scrollTo = jest.fn();
+  const frames: FrameRequestCallback[] = [];
+  jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.push(callback); return frames.length; });
+  jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => {});
+  start = 'kada';
   await act(async () => { tree = create(panelOf(), { createNodeMock: node => node.type === 'ScrollView' ? { scrollTo } : null }); });
-  await act(async () => tree.root.findByProps({ testID: 'search-step-kada' }).props.onLayout({ nativeEvent: { layout: { y: 88 } } }));
   await tap('Datumi');
   const editor = () => tree.root.findByProps({ testID: 'search-date-editor' });
   await act(async () => editor().props.onLayout({ nativeEvent: { layout: { y: 252 } } }));
-  expect(scrollTo).toHaveBeenCalledWith({ y: 272, animated: true });
+  expect(scrollTo).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByProps({ testID: 'search-body-kada' }).props.onLayout({ nativeEvent: { layout: { y: 72 } } }));
+  await act(async () => tree.root.findByProps({ testID: 'search-step-kada' }).props.onLayout({ nativeEvent: { layout: { y: 88 } } }));
+  await act(async () => tree.root.findByType('ScrollView' as React.ElementType).props.onContentSizeChange(400, 1200));
+  await act(async () => { frames.splice(0).forEach(frame => frame(0)); });
+  expect(scrollTo).toHaveBeenCalledWith({ y: 88 + 72 + 252 - sys.touch.min - 2 * sys.space.md, animated: false });
   await act(async () => editor().props.onLayout({ nativeEvent: { layout: { y: 280 } } }));
+  await act(async () => { frames.splice(0).forEach(frame => frame(0)); });
   expect(scrollTo).toHaveBeenCalledTimes(1);
   expect(apply).not.toHaveBeenCalled();
+});
+
+describe('native-height disclosure and owned reveal', () => {
+  let frames: Map<number, FrameRequestCallback>, nextFrame: number, scrollTo: jest.Mock;
+  const layout = async (id: string, y: number) => act(async () => {
+    tree.root.findByProps({ testID: id }).props.onLayout({ nativeEvent: { layout: { y } } });
+  });
+  const settle = async () => act(async () => {
+    tree.root.findByType('ScrollView' as React.ElementType).props.onContentSizeChange(400, 1600);
+    const pending = [...frames.values()]; frames.clear(); pending.forEach(frame => frame(0));
+  });
+  const measureCalendar = async () => {
+    await layout('search-step-kada', 88); await layout('search-body-kada', 72); await layout('search-date-editor', 252);
+  };
+  beforeEach(async () => {
+    frames = new Map(); nextFrame = 0; scrollTo = jest.fn(); start = 'kada';
+    jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++nextFrame, callback); return nextFrame; });
+    jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (typeof id === 'number') frames.delete(id); });
+    await act(async () => { tree = create(panelOf(), { createNodeMock: node => node.type === 'ScrollView' ? { scrollTo } : null }); });
+  });
+
+  test('calendar weeks and helper stay in intrinsic native View containers without height/clipping animation', async () => {
+    await tap('Datumi');
+    for (const id of ['search-step-kada', 'search-body-kada', 'search-date-editor']) {
+      const node = tree.root.findByProps({ testID: id }), style = StyleSheet.flatten(node.props.style);
+      expect(node.type).toBe('View');
+      expect(node.props.layout).toBeUndefined(); expect(node.props.entering).toBeUndefined();
+      expect(style.height).toBeUndefined(); expect(style.maxHeight).toBeUndefined(); expect(style.overflow).toBeUndefined();
+    }
+    expect(texts(tree.root.findByProps({ testID: 'search-date-editor' }))).toContain('Izaberi prvi i poslednji dan.');
+    await tap('Sledeći mesec'); await tap('Sledeći mesec'); // November has six week rows, September has five.
+    expect(texts()).toContain('Novembar 2026');
+    expect(texts(tree.root.findByProps({ testID: 'search-date-editor' }))).toContain('Izaberi prvi i poslednji dan.');
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  test('old group/body positions cannot admit the newly opened calendar', async () => {
+    await layout('search-step-kada', 12); await layout('search-body-kada', 72);
+    await tap('Datumi'); await layout('search-date-editor', 252); await settle();
+    expect(scrollTo).not.toHaveBeenCalled();
+    await layout('search-step-kada', 88); await settle(); expect(scrollTo).not.toHaveBeenCalled();
+    await layout('search-body-kada', 72); await settle();
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({ y: 88 + 72 + 252 - sys.touch.min - 2 * sys.space.md, animated: false });
+  });
+
+  test('content-size settling uses the newest current measurements once', async () => {
+    await tap('Datumi'); await measureCalendar();
+    await layout('search-date-editor', 280); await settle();
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({ y: 88 + 72 + 280 - sys.touch.min - 2 * sys.space.md, animated: false });
+    await layout('search-date-editor', 300); await settle(); expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  test('an equal-height replacement editor can reveal without another content-size event', async () => {
+    await tap('Cena'); await layout('search-step-cena', 500); await layout('search-body-cena', 72);
+    await act(async () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(frame => frame(0)); });
+    expect(scrollTo).toHaveBeenCalledWith({ y: 500 - sys.space.md, animated: false });
+  });
+
+  test.each(['manual', 'switch', 'close', 'unmount'] as const)('%s retires even an already queued reveal callback', async boundary => {
+    await tap('Datumi'); await measureCalendar();
+    const oldFrame = [...frames.values()].at(-1)!;
+    const oldEditor = tree.root.findByProps({ testID: 'search-date-editor' }).props.onLayout;
+    const oldContent = tree.root.findByType('ScrollView' as React.ElementType).props.onContentSizeChange;
+    if (boundary === 'manual') await act(async () => tree.root.findByType('ScrollView' as React.ElementType).props.onScrollBeginDrag());
+    else if (boundary === 'switch') await tap('Cena');
+    else if (boundary === 'close') await tap('Zatvori pretragu');
+    else await act(async () => tree.unmount());
+    await act(async () => {
+      oldFrame(0); oldEditor({ nativeEvent: { layout: { y: 999 } } }); oldContent(400, 1600);
+      const pending = [...frames.values()]; frames.clear(); pending.forEach(frame => frame(0));
+    });
+    expect(scrollTo).not.toHaveBeenCalled();
+    if (boundary === 'switch') {
+      await layout('search-step-cena', 500); await layout('search-body-cena', 72); await settle();
+      expect(scrollTo).toHaveBeenCalledWith({ y: 500 - sys.space.md, animated: false });
+    }
+  });
+
+  test('screen reader admission suppresses pending automatic scrolling', async () => {
+    // The hook follows an accessibility event; a reader enabled after the gesture still owns focus.
+    let readerChanged!: (enabled: boolean) => void;
+    jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(((event: string, handler: (enabled: boolean) => void) => {
+      if (event !== 'screenReaderChanged') return { remove: jest.fn() };
+      readerChanged = handler; return { remove: jest.fn() };
+    }) as never);
+    await act(async () => tree.unmount());
+    await act(async () => { tree = create(panelOf(), { createNodeMock: node => node.type === 'ScrollView' ? { scrollTo } : null }); });
+    await tap('Datumi'); await measureCalendar();
+    await act(async () => readerChanged(true));
+    await act(async () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(frame => frame(0)); });
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => readerChanged(false));
+    await layout('search-date-editor', 280); await settle();
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
 });
 
 test.each([[320, 1], [320, 2], [412, 1.3], [412, 2]])(

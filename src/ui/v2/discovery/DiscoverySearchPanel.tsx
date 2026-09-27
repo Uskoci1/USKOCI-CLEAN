@@ -3,7 +3,6 @@ import { AccessibilityInfo, AppState, Keyboard, KeyboardAvoidingView, Modal, Pla
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
-import Animated, { FadeIn, LinearTransition, runOnJS } from 'react-native-reanimated';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
@@ -41,19 +40,17 @@ const ANYWHERE = { query: '', place: null, area: null, pinPlace: null } as const
 export type SearchStep = 'gde' | 'kada' | 'kako' | 'koliko' | 'cena';
 
 /** A floating group owns only disclosure. All choices remain in the parent draft when its editor is closed. */
-function SearchGroup({ step, label, summary, art, open, large, reduced, revealToken, onToggle, onPosition, onBodyPosition, onSettled, children }: {
-  step: SearchStep; label: string; summary: string; art: FactArtKind; open: boolean; large: boolean; reduced: boolean;
-  revealToken: number; onToggle: (step: SearchStep) => void;
-  onPosition: (step: SearchStep, y: number, token: number) => void;
+function SearchGroup({ step, label, summary, art, open, large, onToggle, onPosition, onBodyPosition, children }: {
+  step: SearchStep; label: string; summary: string; art: FactArtKind; open: boolean; large: boolean;
+  onToggle: (step: SearchStep) => void;
+  onPosition: (step: SearchStep, y: number) => void;
   onBodyPosition: (step: SearchStep, y: number) => void;
-  onSettled: (step: SearchStep, token: number) => void; children: ReactNode;
+  children: ReactNode;
 }) {
-  const layout = reduced ? undefined : LinearTransition.duration(sys.motion.toggle).withCallback(finished => {
-    'worklet';
-    if (finished) runOnJS(onSettled)(step, revealToken);
-  });
-  return <Animated.View testID={`search-step-${step}`} layout={layout} style={s.group}
-    onLayout={event => onPosition(step, event.nativeEvent.layout.y, revealToken)}>
+  // Native Yoga owns the full intrinsic height, including a newly expanded calendar.
+  // A layout-animation height can lag its children on Android and clip the last week.
+  return <View testID={`search-step-${step}`} style={s.group}
+    onLayout={event => onPosition(step, event.nativeEvent.layout.y)}>
     <Press testID={step === 'gde' ? 'search-place-toggle' : `search-${step}-toggle`} accessibilityRole="button"
       accessibilityLabel={label} accessibilityValue={{ text: summary }} accessibilityState={{ expanded: open }}
       onPress={() => onToggle(step)} haptic="select" hitSlop={0} scaleTo={0.99} style={s.groupHeader}>
@@ -64,11 +61,11 @@ function SearchGroup({ step, label, summary, art, open, large, reduced, revealTo
       </View>
       <TurningCaret open={open} />
     </Press>
-    {open ? <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.exit)} style={s.groupBody}
+    {open ? <View testID={`search-body-${step}`} style={s.groupBody}
       onLayout={event => onBodyPosition(step, event.nativeEvent.layout.y)}>
       {children}
-    </Animated.View> : null}
-  </Animated.View>;
+    </View> : null}
+  </View>;
 }
 
 /**
@@ -200,15 +197,16 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const scroll = useRef<ScrollView>(null);
   const reveal = useRef<{ step: SearchStep; token: number; calendar?: boolean } | null>(null);
   const revealSequence = useRef(0), revealFrame = useRef<number | null>(null), mounted = useRef(true);
-  const sectionY = useRef<Record<SearchStep, number>>({ gde: 0, kada: 0, kako: 0, koliko: 0, cena: 0 });
-  const bodyY = useRef<Record<SearchStep, number>>({ gde: 0, kada: 0, kako: 0, koliko: 0, cena: 0 }), calendarY = useRef(0);
+  type Position = { owner: object; y: number };
+  const sectionY = useRef<Partial<Record<SearchStep, Position>>>({});
+  const bodyY = useRef<Partial<Record<SearchStep, Position>>>({}), calendarY = useRef<Position | null>(null);
   /** The first tap of a range: where it starts, until its end is tapped (the draft already holds that one day). */
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const reader = useScreenReader();
   const opaque = useReducedTransparency();
   const canBlur = !opaque && (Platform.OS === 'ios'
     || (Platform.OS === 'android' && Number(Platform.Version) >= 31 && !!blurTarget));
-  const behavior = useRef({ reader, reduced }); behavior.current = { reader, reduced };
+  const behavior = useRef({ reader }); behavior.current = { reader };
   const retireReveal = useCallback(() => {
     reveal.current = null; revealSequence.current++;
     if (revealFrame.current !== null) { cancelAnimationFrame(revealFrame.current); revealFrame.current = null; }
@@ -235,26 +233,32 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const today = serbianToday(now);
   const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
   const clearAll = () => { retireReveal(); setDraft(NO_SEARCH); setRangeStart(null); };
-  // Reveal only after this exact expansion's layout settles. A later toggle/unmount retires the callback.
-  // Scroll itself is immediate so it cannot compete with the group layout animation; screen readers keep focus.
-  const revealEditor = useCallback((step: SearchStep, token: number) => {
+  // All required positions belong to the same natural-layout generation. Each new
+  // measurement/content-size event reschedules one frame; no animation owns height.
+  // A content-size event is an extra settling opportunity, not a prerequisite: two
+  // different editors can have the same total scroll height and emit none.
+  const revealEditor = useCallback((geometryOwner: object) => {
     const intent = reveal.current;
-    if (!mounted.current || !intent || intent.step !== step || intent.token !== token) return;
-    reveal.current = null;
-    if (behavior.current.reader) return;
-    const geometryOwner = currentLayoutOwner.current;
+    if (!mounted.current || !intent || currentLayoutOwner.current !== geometryOwner) return;
+    if (behavior.current.reader) { reveal.current = null; return; }
+    const group = sectionY.current[intent.step], body = bodyY.current[intent.step], calendar = calendarY.current;
+    if (group?.owner !== geometryOwner || body?.owner !== geometryOwner
+      || (intent.calendar && calendar?.owner !== geometryOwner)) return;
     if (revealFrame.current !== null) cancelAnimationFrame(revealFrame.current);
     revealFrame.current = requestAnimationFrame(() => {
       revealFrame.current = null;
-      if (!mounted.current || revealSequence.current !== token || currentLayoutOwner.current !== geometryOwner || behavior.current.reader) return;
-      const offset = intent.calendar ? Math.max(0, bodyY.current.kada + calendarY.current - sys.touch.min - sys.space.md) : 0;
-      scroll.current?.scrollTo?.({ y: Math.max(0, sectionY.current[step] + offset - sys.space.md), animated: false });
+      if (!mounted.current || reveal.current !== intent || revealSequence.current !== intent.token
+        || currentLayoutOwner.current !== geometryOwner) return;
+      reveal.current = null;
+      if (behavior.current.reader) return;
+      const offset = intent.calendar ? Math.max(0, body.y + calendar!.y - sys.touch.min - sys.space.md) : 0;
+      scroll.current?.scrollTo?.({ y: Math.max(0, group.y + offset - sys.space.md), animated: false });
     });
   }, []);
-  const positionGroup = (step: SearchStep, y: number, token: number) => {
-    if (!mounted.current || currentLayoutOwner.current !== layoutOwner) return;
-    sectionY.current[step] = y;
-    if (reduced || reader) revealEditor(step, token);
+  const positionGroup = (step: SearchStep, y: number) => {
+    if (!mounted.current || currentLayoutOwner.current !== layoutOwner || !Number.isFinite(y) || y < 0) return;
+    sectionY.current[step] = { owner: layoutOwner, y };
+    revealEditor(layoutOwner);
   };
   const toggleStep = (step: SearchStep) => {
     Keyboard.dismiss();
@@ -293,12 +297,12 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     : readiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : readiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
-  const groupProps = (step: SearchStep) => ({ step, open: activeStep === step, large, reduced: reduced || reader,
-    revealToken: reveal.current?.token ?? 0, onToggle: toggleStep, onPosition: positionGroup,
+  const groupProps = (step: SearchStep) => ({ step, open: activeStep === step, large,
+    onToggle: toggleStep, onPosition: positionGroup,
     onBodyPosition: (key: SearchStep, y: number) => {
-      if (mounted.current && currentLayoutOwner.current === layoutOwner) bodyY.current[key] = y;
-    }, onSettled: (key: SearchStep, token: number) => {
-      if (mounted.current && currentLayoutOwner.current === layoutOwner) revealEditor(key, token);
+      if (!mounted.current || currentLayoutOwner.current !== layoutOwner || !Number.isFinite(y) || y < 0) return;
+      bodyY.current[key] = { owner: layoutOwner, y };
+      revealEditor(layoutOwner);
     } });
   const close = () => { retireReveal(); onClose(); };
 
@@ -314,7 +318,9 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
             <T variant="heading" accessibilityRole="header" style={s.grow}>{start === 'gde' ? 'Pretraga' : 'Uslovi pretrage'}</T>
             <ChromeIconButton label="Zatvori pretragu" hint="Lista ostaje kakva je bila." icon={X} quiet onPress={close} />
           </View>
-          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" onScrollBeginDrag={retireReveal} contentContainerStyle={s.sections}>
+          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" onScrollBeginDrag={retireReveal}
+            onContentSizeChange={() => { if (mounted.current && currentLayoutOwner.current === layoutOwner) revealEditor(layoutOwner); }}
+            contentContainerStyle={s.sections}>
             <SearchGroup {...groupProps('gde')} label="Gde" summary={whereWords(draft)} art="pin">
               <View testID="search-place-editor" style={s.placeEditor}>
                 <View style={s.field}>
@@ -350,7 +356,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
               </Press>
               {datesOpen ? <View testID="search-date-editor" style={s.dateEditor}
                 onLayout={event => {
-                  if (mounted.current && currentLayoutOwner.current === layoutOwner) calendarY.current = event.nativeEvent.layout.y;
+                  const y = event.nativeEvent.layout.y;
+                  if (!mounted.current || currentLayoutOwner.current !== layoutOwner || !Number.isFinite(y) || y < 0) return;
+                  calendarY.current = { owner: layoutOwner, y };
+                  revealEditor(layoutOwner);
                 }}>
                 <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />
                 <T variant="note" tone="muted" accessibilityLiveRegion="polite">{rangeStart ? 'Izaberi poslednji dan.' : 'Izaberi prvi i poslednji dan.'}</T>

@@ -217,7 +217,7 @@ export function IntakePresentation(props: Props) {
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
-    footerAction={readyForReview ? <V2Action label={props.reviewLabel} onPress={outsidePlace(props.onReview)} /> : undefined}
+    footerAction={readyForReview ? <V2Action label={props.reviewLabel} style={brandAction} onPress={outsidePlace(props.onReview)} /> : undefined}
     actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"

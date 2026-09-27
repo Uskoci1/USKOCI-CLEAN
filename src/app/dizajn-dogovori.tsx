@@ -189,12 +189,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         {/* The route's GroupConversationEntry reads the group; still here, in the words it says when the task has fewer
             than two independent people chosen, which is true of the group fixture (one worker for two places). */}
         {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
-        <WorkspaceRows>
-          {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
-          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={recovery} onPress={noop} /> : null}
-          <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
-        </WorkspaceRows>
-        <AgreementSection art="phone" label="Kontakt" summary="Podeli svoj broj kada ti odgovara">
+        <AgreementSection art="phone" label="Kontakt" summary="Tvoj broj nije podeljen">
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
           <T variant="body" style={s.ink}>Broj druge strane: još nije podeljen</T>
           {active ? <V2Action label="Podeli svoj broj" disabled={recovery} onPress={noop} /> : null}
@@ -204,6 +199,11 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         {item.rezim !== 'DALJINSKI' && item.kontakt.lokacijaPostoji ? <AgreementSection art="lock" label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
           <T variant="note" tone="muted">{active ? 'Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.' : 'Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.'}</T>
         </AgreementSection> : null}
+        <WorkspaceRows>
+          {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
+          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={recovery} onPress={noop} /> : null}
+          <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
+        </WorkspaceRows>
         {item.problemOtvoren ? <WorkspaceCard tone="warn">
           <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
           <T variant="meta" tone="muted">Prijavila je druga strana.</T>
