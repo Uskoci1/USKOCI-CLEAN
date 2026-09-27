@@ -11,14 +11,22 @@ import { LegalReviewView } from '../../../ui/legal/LegalDocuments';
 import { LegalReviewController, legalHttpsUrl, reviewedDocuments, sessionLegalIntentJournal } from '../../../ui/legal/legalReview';
 import { SettingsAction } from '../../../ui/settings/SettingsPresentation';
 
+type LinkAttempt = { focus: object; timer?: ReturnType<typeof setTimeout> };
+const LINK_OPEN_TIMEOUT_MS = 10000;
+const LINK_UNCONFIRMED = 'Otvaranje dokumenta nije potvrđeno. Probaj ponovo.';
+
 export default function PravnaDokumenta() {
   const { user, accountRevision } = useSesija();
   return <OwnedLegal key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function OwnedLegal() {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
-  const focus = useRef<object | null>(null), opening = useRef(false), leaving = useRef(false);
+  const focus = useRef<object | null>(null), opening = useRef<LinkAttempt | null>(null), leaving = useRef(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const retireLink = useCallback(() => {
+    const attempt = opening.current; opening.current = null;
+    if (attempt?.timer !== undefined) clearTimeout(attempt.timer);
+  }, []);
   const owner = useCallback(() => !!accountId && sesijaSada().user?.id === accountId &&
     sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const controller = useMemo(() => new LegalReviewController({ isOwner: owner, newId: noviUuidZahtevId,
@@ -29,19 +37,25 @@ function OwnedLegal() {
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot, controller.snapshot);
   useFocusEffect(useCallback(() => {
     const token = {}; focus.current = token; leaving.current = false; setLinkError(null); controller.activate();
-    return () => { if (focus.current === token) focus.current = null; controller.deactivate(); };
-  }, [controller]));
+    return () => { if (focus.current === token) { focus.current = null; retireLink(); } controller.deactivate(); };
+  }, [controller, retireLink]));
   const renderedFocus = focus.current;
   const current = () => !!renderedFocus && focus.current === renderedFocus && owner() && !leaving.current;
-  const back = () => { if (!current()) return; leaving.current = true; controller.deactivate();
+  const back = () => { if (!current()) return; leaving.current = true; retireLink(); controller.deactivate();
     if (router.canGoBack()) router.back(); else router.replace('/profil'); };
-  const openUrl = async (value: string) => {
+  const openUrl = (value: string) => {
     const url = legalHttpsUrl(value), token = focus.current;
-    if (!current() || !url || opening.current) return;
-    opening.current = true; setLinkError(null);
-    try { await Linking.openURL(url); }
-    catch { if (focus.current === token && current()) setLinkError('Dokument nije otvoren. Probaj ponovo.'); }
-    finally { opening.current = false; }
+    if (!current() || !token || !url || opening.current) return;
+    const attempt: LinkAttempt = { focus: token }; opening.current = attempt; setLinkError(null);
+    const settle = (unconfirmed: boolean) => {
+      // A timed-out or blurred attempt cannot release a newer launch or change its feedback.
+      if (opening.current !== attempt) return;
+      retireLink();
+      if (unconfirmed && focus.current === attempt.focus && current()) setLinkError(LINK_UNCONFIRMED);
+    };
+    attempt.timer = setTimeout(() => settle(true), LINK_OPEN_TIMEOUT_MS);
+    try { void Promise.resolve(Linking.openURL(url)).then(() => settle(false), () => settle(true)); }
+    catch { settle(true); }
   };
   const documents = reviewedDocuments(state.bundle);
   const receiptCurrent = state.receipt && documents && documents[0].sha256 === state.receipt.termsSha256 && documents[1].sha256 === state.receipt.privacySha256;

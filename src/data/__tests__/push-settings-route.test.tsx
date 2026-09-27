@@ -5,7 +5,8 @@ import PushSettings from '../../app/(app)/profil/obavestenja';
 const mockBack = jest.fn(), mockReplace = jest.fn(), mockCanBack = jest.fn();
 let mockIntent = 'narucilac'; let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: (path: string) => mockReplace(path), canGoBack: () => mockCanBack() }, Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
+let mockFocused = true;
+jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: (path: string) => mockReplace(path), canGoBack: () => mockCanBack() }, Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]),
  useLocalSearchParams: () => mockParams }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: (props: unknown) => require('react').createElement('SafeArea', props) }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
@@ -18,7 +19,7 @@ let tree: Renderer.ReactTestRenderer;
 // The arrow says "Nazad" (round-5 review, 2026-09-24): the screen also opens from the gear in Obaveštenja, where
 // "Nazad na profil" was wrong. This helper pinned the old label.
 const back = () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress;
-beforeEach(() => { jest.resetAllMocks(); mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockParams = {}; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
+beforeEach(() => { jest.resetAllMocks(); mockFocused = true; mockCanBack.mockReturnValue(true); mockIntent = 'narucilac'; mockParams = {}; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 }; act(() => { tree = Renderer.create(<PushSettings />); }); });
 afterEach(() => act(() => tree.unmount()));
 it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), the accessible header/back and footer', () => {
  expect(tree.root.findByType('SafeArea' as never).props.edges).toEqual(['top', 'bottom']);
@@ -28,6 +29,25 @@ it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), 
  act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
 });
 it('direct route opens a known Profile fallback', () => { mockCanBack.mockReturnValue(false); act(() => back()()); expect(mockReplace).toHaveBeenCalledWith('/profil'); });
+it.each([true, false])('dispatches Back once before blur, with history=%s, and only a fresh focus can leave again', hasHistory => {
+ mockCanBack.mockReturnValue(hasHistory);
+ const retained = back();
+ act(() => { retained(); retained(); });
+ const navigation = hasHistory ? mockBack : mockReplace;
+ expect(navigation).toHaveBeenCalledTimes(1);
+ expect(hasHistory ? mockReplace : mockBack).not.toHaveBeenCalled();
+ mockFocused = false; act(() => tree.update(<PushSettings />));
+ act(() => retained()); expect(navigation).toHaveBeenCalledTimes(1);
+ mockFocused = true; act(() => tree.update(<PushSettings />));
+ act(() => retained()); expect(navigation).toHaveBeenCalledTimes(1);
+ act(() => { back()(); back()(); }); expect(navigation).toHaveBeenCalledTimes(2);
+});
+it('a new account revision gets its own one-shot Back and retires the old callback', () => {
+ const retained = back(); act(() => retained());
+ mockOwner = { ...mockOwner, accountRevision: 3 }; act(() => tree.update(<PushSettings />));
+ act(() => retained()); expect(mockBack).toHaveBeenCalledTimes(1);
+ act(() => { back()(); back()(); }); expect(mockBack).toHaveBeenCalledTimes(2);
+});
 it('retained back after unmount is inert', () => { const old = back(); act(() => tree.unmount()); old(); expect(mockBack).not.toHaveBeenCalled(); });
 it('account ABA cannot navigate through an old callback', () => { const old = back(); mockOwner = { ...mockOwner, accountRevision: 3 }; old(); expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled(); });
 // Owner decision 1 (2026-09-19). The server keeps two sets of notification settings for one account.

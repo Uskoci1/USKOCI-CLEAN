@@ -53,18 +53,22 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
   const copy = [s.copy, stacked && s.copyStacked];
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>
     <View style={s.identitySection}>
-      {identity.state === 'loading' ? <View testID="profile-identity" accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" style={row}>
+      {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
+      {identity.state === 'loading' ? <View key="loading" testID="profile-identity" accessible
+        accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" accessibilityState={{ busy: true }} style={row}>
         {/* The shape of what is coming, standing still: the photo's disc, and one quiet line where the name will be. */}
         <View style={s.skeletonDisc} />
         <T tone="muted">Učitavamo profil…</T>
-      </View> : identity.state === 'error' ? <View testID="profile-identity" style={row}>
+      </View> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
+        accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={row}>
         <Avatar initials={null} size={PROFILE_AVATAR} />
         <View style={copy}>
           <T variant="bodyStrong">Profil trenutno nije dostupan.</T>
           <T variant="note" tone="muted">Proveri vezu pa probaj ponovo.</T>
           <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
         </View>
-      </View> : <View testID="profile-identity" style={row}>
+      </View> : <View key="ready" testID="profile-identity" accessible={false}
+        accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={row}>
         {/* The photo itself opens the photo screen; the small camera badge says so without a second control. */}
         <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
           disabled={!identity.photoReady || busy} accessibilityState={{ disabled: !identity.photoReady || busy }} onPress={identity.openPhoto}

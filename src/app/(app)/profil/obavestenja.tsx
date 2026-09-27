@@ -11,7 +11,7 @@ import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
 const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }] as const;
 type SetKey = typeof SETS[number]['key'];
-type ActionScope = { accountId: string; revision: number };
+type ActionScope = { accountId: string; revision: number; leaving: boolean };
 const CAPTION: Record<SetKey, string> = {
  REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
  WORKER: 'Obaveštenja o poslovima na koje se prijavljuješ.',
@@ -40,18 +40,20 @@ export default function PushSettings() {
  const latestView = useRef(view); latestView.current = view;
  const closeConfirm = confirm.close;
  useFocusEffect(useCallback(() => {
-  const scope = accountId ? { accountId, revision: accountRevision } : null; owner.current = scope;
+  const scope = accountId ? { accountId, revision: accountRevision, leaving: false } : null; owner.current = scope;
   setRenderedOwner(scope);
   // A question left open when the screen loses focus is retired, never answered later.
   return () => { if (owner.current === scope) owner.current = null; closeConfirm(); };
  }, [accountId, accountRevision, closeConfirm]));
  function current() {
-  return renderedOwner !== null && owner.current === renderedOwner && latestView.current === view
+  return renderedOwner !== null && !renderedOwner.leaving && owner.current === renderedOwner && latestView.current === view
    && renderedOwner.accountId === accountId && renderedOwner.revision === accountRevision
    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
  }
  function back() {
-  if (!current()) return;
+  if (!current() || !renderedOwner) return;
+  // Native blur may follow another press: this visit dispatches its exit only once.
+  renderedOwner.leaving = true;
   if (router.canGoBack()) router.back(); else router.replace('/profil');
  }
  /** Asks before unsaved changes are thrown away; the step itself runs its own checks when it is confirmed. */

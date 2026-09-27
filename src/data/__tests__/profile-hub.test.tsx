@@ -36,6 +36,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/reviews/AccountReputation', () => ({ AccountReputation: 'AccountReputation' }));
 
 import Profil from '../../app/(app)/profil';
+import { ProfileHub, type ProfileHubIdentity } from '../../ui/profile/ProfileHubPresentation';
 
 let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<Profil />); }); }
@@ -119,6 +120,41 @@ describe('real profile hub', () => {
     mockResource = { ...mockResource, error: false, loading: true };
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).toContain('Učitavamo profil');
+  });
+
+  it.each(['ready', 'error'] as const)('replaces loading accessibility semantics with a fresh %s host while keeping its controls reachable', async state => {
+    const openPhoto = jest.fn(), retry = jest.fn();
+    const show = (value: ProfileHubIdentity) => <ProfileHub identity={value} busy={false} open={jest.fn()}
+      onBack={jest.fn()} onLogout={jest.fn()} logoutError={false} />;
+    await act(async () => { tree = create(show({ state: 'loading' })); });
+    const hub = tree.root;
+    const loadingHost = tree.root.findByProps({ testID: 'profile-identity' });
+    expect(loadingHost.props).toMatchObject({ accessible: true, accessibilityRole: 'progressbar',
+      accessibilityLabel: 'Učitavamo profil', accessibilityState: { busy: true } });
+    const value: ProfileHubIdentity = state === 'ready'
+      ? { state: 'ready', name: 'Ana Petrović', place: 'Novi Sad', photo: <></>, photoReady: true, openPhoto, reputation: null }
+      : { state: 'error', retry };
+    await act(async () => tree.update(show(value)));
+    expect(tree.root).toBe(hub);
+    const settledHost = tree.root.findByProps({ testID: 'profile-identity' });
+    expect(settledHost).not.toBe(loadingHost);
+    expect(settledHost.props).toMatchObject({ accessible: false, accessibilityRole: 'none',
+      accessibilityLabel: '', accessibilityState: { busy: false } });
+    expect(settledHost.props.importantForAccessibility).not.toBe('no-hide-descendants');
+    expect(settledHost.props.accessibilityElementsHidden).not.toBe(true);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavamo profil' })).toHaveLength(0);
+    if (state === 'ready') {
+      const photo = settledHost.findByProps({ accessibilityLabel: 'Fotografija profila' });
+      expect(photo.props).toMatchObject({ accessibilityRole: 'button', disabled: false, accessibilityState: { disabled: false } });
+      expect(settledHost.findByProps({ accessibilityRole: 'header' }).props.children).toBe('Ana Petrović');
+      await act(async () => photo.props.onPress());
+      expect(openPhoto).toHaveBeenCalledTimes(1);
+    } else {
+      const button = settledHost.findByProps({ accessibilityRole: 'button', accessibilityLabel: 'Pokušaj ponovo' });
+      expect(button.props.disabled).not.toBe(true);
+      await act(async () => button.props.onPress());
+      expect(retry).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('has no mode switch: nothing on the hub names, reads or sets one', async () => {

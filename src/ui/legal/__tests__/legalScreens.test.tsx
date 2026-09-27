@@ -3,13 +3,14 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { LegalBundleStatus } from '../../../contracts/legal';
 const mockRead = jest.fn(), mockProcessors = jest.fn(), mockAccept = jest.fn(), mockOutcome = jest.fn(), mockOpen = jest.fn(), mockBack = jest.fn();
 let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' } as { id: string } | null, accountRevision: 1 };
+let mockFocused = true;
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
   return new Proxy(actual, { get(target, key) { if (key === 'Linking') return { openURL: (...args: unknown[]) => mockOpen(...args) };
     return ['View', 'ActivityIndicator', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('expo-router', () => ({ router: { back: () => mockBack(), canGoBack: () => true, replace: jest.fn() },
-  useFocusEffect: (callback: () => unknown) => require('react').useEffect(callback, [callback]) }));
+  useFocusEffect: (callback: () => unknown) => require('react').useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]) }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
@@ -35,17 +36,93 @@ let tree: ReactTestRenderer;
 const hosts = (type: string) => tree.root.findAll(node => node.type === type);
 const renderedCopy = () => tree.root.findAll(node => typeof node.type === 'string').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const action = (label: string) => hosts('SettingsAction').find(node => node.props.label === label)!;
+const linkUnconfirmed = 'Otvaranje dokumenta nije potvrđeno. Probaj ponovo.';
+const deferredOpen = () => {
+  let resolve!: () => void, reject!: (reason: Error) => void;
+  const promise = new Promise<void>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+};
 beforeEach(() => {
-  jest.clearAllMocks(); mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
+  jest.clearAllMocks(); mockOpen.mockReset(); mockFocused = true; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
   mockRead.mockResolvedValue(ok(bundle())); mockProcessors.mockResolvedValue(ok({ ready: false, reason: 'PROCESSOR_MAP_NOT_PUBLISHED', missingProviders: [] }));
   mockAccept.mockResolvedValue(ok(receipt)); mockOutcome.mockResolvedValue(ok({ found: true, receipt })); mockOpen.mockResolvedValue(undefined);
 });
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); jest.useRealTimers(); });
 it('shows only the exact server documents and opens their HTTPS URLs', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
   const rows = hosts('SettingsRow'); expect(rows.map(row => row.props.label)).toEqual(['Uslovi korišćenja', 'Politika privatnosti']);
   await act(async () => rows[0].props.onPress()); expect(mockOpen).toHaveBeenCalledWith('https://example.test/terms');
   expect(renderedCopy()).not.toContain('OpenAI'); expect(renderedCopy()).not.toContain('Gemini');
+});
+it.each(['resolve', 'reject'] as const)('a stalled document launch becomes retryable after 10 seconds and its late %s cannot release a retry', async outcome => {
+  jest.useFakeTimers(); const first = deferredOpen(), retry = deferredOpen();
+  mockOpen.mockReturnValueOnce(first.promise).mockReturnValueOnce(retry.promise);
+  await act(async () => { tree = create(<LegalRoute />); });
+  await act(async () => { hosts('SettingsRow')[0].props.onPress(); hosts('SettingsRow')[1].props.onPress(); });
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  await act(async () => { jest.advanceTimersByTime(9999); }); expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  await act(async () => { jest.advanceTimersByTime(1); }); expect(renderedCopy()).toContain(linkUnconfirmed);
+  await act(async () => hosts('SettingsRow')[1].props.onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(2); expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  await act(async () => { if (outcome === 'resolve') first.resolve(); else first.reject(new Error('late')); });
+  await act(async () => hosts('SettingsRow')[0].props.onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(2); expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  await act(async () => retry.reject(new Error('current'))); expect(renderedCopy()).toContain(linkUnconfirmed);
+  await act(async () => hosts('SettingsRow')[0].props.onPress()); expect(mockOpen).toHaveBeenCalledTimes(3);
+  expect(renderedCopy()).not.toContain(linkUnconfirmed);
+});
+it.each(['resolve', 'reject'] as const)('blur retires a stalled launch; refocus owns a new attempt despite the old late %s', async outcome => {
+  jest.useFakeTimers(); const first = deferredOpen(), next = deferredOpen();
+  mockOpen.mockReturnValueOnce(first.promise).mockReturnValueOnce(next.promise);
+  await act(async () => { tree = create(<LegalRoute />); });
+  const retained = hosts('SettingsRow')[0].props.onPress;
+  await act(async () => retained());
+  await act(async () => { jest.advanceTimersByTime(5000); });
+  mockFocused = false; await act(async () => tree.update(<LegalRoute />));
+  await act(async () => retained()); expect(mockOpen).toHaveBeenCalledTimes(1);
+  mockFocused = true; await act(async () => tree.update(<LegalRoute />));
+  await act(async () => { retained(); hosts('SettingsRow')[1].props.onPress(); });
+  expect(mockOpen).toHaveBeenCalledTimes(2);
+  await act(async () => { jest.advanceTimersByTime(5000); }); expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  await act(async () => { if (outcome === 'resolve') first.resolve(); else first.reject(new Error('late')); });
+  await act(async () => hosts('SettingsRow')[0].props.onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(2); expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  await act(async () => next.resolve());
+  await act(async () => hosts('SettingsRow')[0].props.onPress()); expect(mockOpen).toHaveBeenCalledTimes(3);
+  expect(mockAccept).not.toHaveBeenCalled();
+});
+it.each(['back', 'unmount', 'account revision'] as const)('%s retires the document deadline and its late rejection', async retirement => {
+  jest.useFakeTimers(); const first = deferredOpen(); mockOpen.mockReturnValueOnce(first.promise);
+  await act(async () => { tree = create(<LegalRoute />); });
+  const schedule = jest.spyOn(global, 'setTimeout'), clear = jest.spyOn(global, 'clearTimeout');
+  const retained = hosts('SettingsRow')[0].props.onPress;
+  await act(async () => retained());
+  const scheduled = schedule.mock.calls.findIndex(([, delay]) => delay === 10000);
+  expect(scheduled).toBeGreaterThanOrEqual(0);
+  const deadline = schedule.mock.results[scheduled].value;
+  await act(async () => {
+    if (retirement === 'back') hosts('SettingsScreen')[0].props.onBack();
+    else if (retirement === 'unmount') tree.unmount();
+    else { mockOwner = { ...mockOwner, accountRevision: 3 }; tree.update(<LegalRoute />); }
+  });
+  expect(clear).toHaveBeenCalledWith(deadline);
+  await act(async () => { first.reject(new Error('retired')); retained(); });
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  if (retirement !== 'unmount') expect(renderedCopy()).not.toContain(linkUnconfirmed);
+  if (retirement === 'account revision') {
+    await act(async () => hosts('SettingsRow')[0].props.onPress()); expect(mockOpen).toHaveBeenCalledTimes(2);
+  }
+});
+it('a synchronous document launch failure reports an unconfirmed outcome and permits retry', async () => {
+  jest.useFakeTimers(); mockOpen.mockImplementationOnce(() => { throw new Error('native failure'); });
+  await act(async () => { tree = create(<LegalRoute />); });
+  const schedule = jest.spyOn(global, 'setTimeout'), clear = jest.spyOn(global, 'clearTimeout');
+  await act(async () => hosts('SettingsRow')[0].props.onPress());
+  expect(renderedCopy()).toContain(linkUnconfirmed);
+  const scheduled = schedule.mock.calls.findIndex(([, delay]) => delay === 10000);
+  expect(scheduled).toBeGreaterThanOrEqual(0); expect(clear).toHaveBeenCalledWith(schedule.mock.results[scheduled].value);
+  await act(async () => hosts('SettingsRow')[0].props.onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(2); expect(renderedCopy()).not.toContain(linkUnconfirmed);
 });
 it('the single action accepts exact displayed hashes once', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
