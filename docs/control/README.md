@@ -10,7 +10,9 @@ owner's archive, unchanged. Their useful parts are carried here:
 - the 24 store gates;
 - the 32-step two-phone test.
 
-**Published page (private to the owner):** https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t
+**Owner-managed published page:** https://claude.ai/artifact/VxTvL3VpwhYv8cxJCWzD5t
+
+Observed 2026-09-27: the sharing dialog says anyone with the link can view. Owner write access does not make the published artifact private. No sharing settings were changed.
 
 ## Files
 
