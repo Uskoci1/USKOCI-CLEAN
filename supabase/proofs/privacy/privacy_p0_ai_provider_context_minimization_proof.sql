@@ -10,8 +10,16 @@ declare
   provider_keys text[];
   private_rows integer;
 begin
-  select id into aid from auth.users order by created_at,id limit 1;
-  if aid is null then raise exception 'PRIVACY_P0_PROOF_NEEDS_EXISTING_SYNTHETIC_AUTH'; end if;
+  aid:=extensions.gen_random_uuid();
+  insert into auth.users(
+    id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at
+  ) values (
+    aid,'authenticated','authenticated',
+    'privacy-p0-proof-'||aid::text||'@proof.invalid',
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('full_name','Privacy P0 Proof','city','Novi Sad'),
+    statement_timestamp(),statement_timestamp()
+  );
 
   insert into public.ai_conversations(account_id,purpose,status,fact_schema_version)
   values(aid,'NEED_INTAKE','OPEN','NEED_FACT_V2')
