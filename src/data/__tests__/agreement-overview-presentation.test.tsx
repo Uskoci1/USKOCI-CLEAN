@@ -7,13 +7,13 @@ jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
 });
-jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight' }));
+jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown: 'CaretDown' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('../../ui/system/ScreenChrome', () => ({ ScreenChrome: 'ScreenChrome' }));
-jest.mock('../../ui/system/Disclosure', () => ({ Disclosure: 'Disclosure' }));
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Segmented', () => ({ Segmented: 'Segmented' }));
 
@@ -65,4 +65,43 @@ test('the chat context keeps its compact location, time, amount and covered-peop
   await render(<AgreementHero agreement={agreement} />);
   expect(facts()).toEqual(['Mesto: Liman, Novi Sad', 'Termin: 26. sep · 17:00–19:00, Po vremenu u Srbiji',
     'Dogovoreno ukupno: 5.500 RSD', 'Ljudi: 2 osobe']);
+});
+
+test('short accepted scope is fully visible and spoken within accepted terms', async () => {
+  const scope = 'Prenos troseda do drugog sprata, bez lifta.';
+  await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: scope }} />);
+  expect(facts()).toContain(`Obim posla: ${scope}`);
+  const body = tree!.root.findAllByType('T' as React.ElementType).find(node => node.props.children === scope)!;
+  expect(body.props.selectable).toBe(true);
+  expect(body.props.numberOfLines).toBeUndefined();
+  expect(tree!.root.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(0);
+});
+
+test.each([false, true])('long accepted scope opens and closes in full with spoken state (compact=%s)', async compact => {
+  const scope = `Prenos nameštaja: ${'bez sečenja ili rastavljanja; '.repeat(90)}\nDogovoreni kraj obima.`;
+  await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: scope }} compact={compact} />);
+  const toggle = () => tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim posla')!;
+  expect(toggle().props.accessibilityState).toEqual({ expanded: false });
+  expect(text()).not.toContain('Dogovoreni kraj obima.');
+  await act(async () => toggle().props.onPress());
+  expect(toggle().props.accessibilityState).toEqual({ expanded: true });
+  const body = tree!.root.findAllByType('T' as React.ElementType).find(node => node.props.children === scope)!;
+  expect(body.props.selectable).toBe(true);
+  expect(body.props.numberOfLines).toBeUndefined();
+  expect(body.props.children).toBe(scope);
+  await act(async () => toggle().props.onPress());
+  expect(text()).not.toContain('Dogovoreni kraj obima.');
+});
+
+test('multiline scope is deliberate even when short; a later accepted version replaces its full content', async () => {
+  await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: 'Prvi sprat\nBez lifta' }} />);
+  const toggle = tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim posla')!;
+  await act(async () => toggle.props.onPress());
+  expect(text()).toContain('Prvi sprat Bez lifta');
+  await act(async () => tree!.update(<AgreementTerms agreement={{ ...agreement, verzija: 3, prihvacenObim: 'Drugi sprat\nLift je dostupan' }} />));
+  expect(text()).toContain('Drugi sprat Lift je dostupan');
+  expect(text()).not.toContain('Prvi sprat');
+  await act(async () => tree!.update(<AgreementTerms agreement={{ ...agreement, prihvacenObim: null }} />));
+  expect(text()).not.toContain('Obim posla');
+  expect(tree!.root.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(0);
 });

@@ -143,15 +143,30 @@ test('an unavailable rating stays reachable from active work without claiming th
 
 test('old unknown ratings cannot preempt accepted appointments or confirmed rating actions in Active', async () => {
   rows = [
-    { ...agreement('old-unknown', 'COMPLETED'), stanjeProvereOcene: 'UNAVAILABLE', pocinje: '2026-01-01T10:00:00Z' },
-    { ...agreement('later', 'CONFIRMED'), pocinje: '2026-09-26T10:00:00Z' },
-    { ...agreement('due', 'COMPLETED'), ocenaMoguca: true, stanjeProvereOcene: 'DUE', pocinje: '2026-09-24T10:00:00Z' },
-    { ...agreement('soon', 'CONFIRMED'), pocinje: '2026-09-25T10:00:00Z' },
-    { ...agreement('no-term', 'CONFIRMED'), pocinje: null },
+    { ...agreement('old-unknown', 'COMPLETED'), stanjeProvereOcene: 'UNAVAILABLE', prihvacenPocetak: '2026-01-01T10:00:00Z' },
+    { ...agreement('later', 'CONFIRMED'), prihvacenPocetak: '2026-09-26T10:00:00Z' },
+    { ...agreement('due', 'COMPLETED'), ocenaMoguca: true, stanjeProvereOcene: 'DUE', prihvacenPocetak: '2026-09-24T10:00:00Z' },
+    { ...agreement('soon', 'CONFIRMED'), prihvacenPocetak: '2026-09-25T10:00:00Z' },
+    { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
   ];
   await render();
   expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao soon', 'Otvori Dogovor Posao later',
     'Otvori Dogovor Posao no-term', 'Otvori Dogovor Posao old-unknown']);
+});
+
+test('active order follows accepted instants after rescheduling, preserving offsets, microseconds and unknown order', async () => {
+  rows = [
+    { ...agreement('task-only', 'CONFIRMED'), pocinje: '2026-01-01T10:00:00Z' },
+    { ...agreement('rescheduled-later', 'CONFIRMED'), pocinje: '2026-01-02T10:00:00Z', prihvacenPocetak: '2026-09-29T10:00:00Z' },
+    { ...agreement('micro-later', 'CONFIRMED'), prihvacenPocetak: '2026-09-28T09:00:00.000002Z' },
+    { ...agreement('earlier-offset', 'CONFIRMED'), pocinje: '2026-12-01T10:00:00Z', prihvacenPocetak: '2026-09-28T11:00:00.000001+02:00' },
+    { ...agreement('same-instant', 'CONFIRMED'), prihvacenPocetak: '2026-09-28T09:00:00.000001Z' },
+    { ...agreement('invalid', 'CONFIRMED'), pocinje: '2026-01-03T10:00:00Z', prihvacenPocetak: '2026-02-30T10:00:00Z' },
+    { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
+  ];
+  await render();
+  expect(titles()).toEqual(['earlier-offset', 'same-instant', 'micro-later', 'rescheduled-later', 'task-only', 'invalid', 'no-term']
+    .map(id => `Otvori Dogovor Posao ${id}`));
 });
 
 // V41 (owner, 2026-09-23): the underlined tabs carry their counts, and a foot on a card appears only when that

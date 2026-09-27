@@ -16,19 +16,24 @@ afterEach(() => jest.useRealTimers());
 it('strictly words and routes the server-owned task count', async () => {
   mockRpc.mockResolvedValue({ data: payload(), error: null });
   expect(await homeAttentionClientService.paznjaZaPocetnu()).toEqual({ asOf: AS_OF, more: 0, rows: [{
-    id: `need:${ID}:applications`, title: '2 prijave', detail: 'Prenos ormara · čeka tvoj izbor', target: { kind: 'CANDIDATES', needId: ID } }] });
+    id: `need:${ID}:applications`, title: '2 prijave', taskTitle: 'Prenos ormara', detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES', needId: ID } }] });
   expect(mockRpc).toHaveBeenCalledWith('rpc_home_attention', {}); expect(mockRpc).toHaveBeenCalledTimes(1);
 });
 
-it.each(['AGREEMENT_CONFIRM_COMPLETION', 'AGREEMENT_OPEN_PROBLEM', 'APPLICATION_STALE', 'APPLICATION_ATTENTION'])(
-  'routes %s to the exact subject, never to its task instead', reason => {
+it.each([
+  ['AGREEMENT_CONFIRM_COMPLETION', 'Potvrdi završetak', 'Završetak je označen.'],
+  ['AGREEMENT_OPEN_PROBLEM', 'Prijavljen je problem', 'Automatski završetak je zaustavljen.'],
+  ['APPLICATION_STALE', 'Zadatak je izmenjen', 'Pregledaj izmene pre odluke o prijavi.'],
+  ['APPLICATION_ATTENTION', 'Prijava traži tvoju pažnju', 'Otvori svoju prijavu.'],
+])('routes %s to the exact subject and keeps its action, task title and explanation distinct', (reason, title, detail) => {
     const application = reason.startsWith('APPLICATION');
     const raw = { schemaVersion: 1, asOf: AS_OF, counts: { ...counts, activeAgreements: application ? 0 : 1,
       activeApplications: application ? 1 : 0, ownActiveTasks: 0, activities: application ? 1 : 0 },
-      items: [{ ...item, reason, taskId: OTHER, applicationCount: null,
+      items: [{ ...item, reason, taskTitle: 'Police · dnevna soba', taskId: OTHER, applicationCount: null,
         agreementId: application ? null : ID, applicationId: application ? ID : null, sortAt: application ? null : AS_OF }] };
     const parsed = decodeHomeAttention(raw)!;
     expect(parsed.rows).toHaveLength(1);
+    expect(parsed.rows[0]).toMatchObject({ title, taskTitle: 'Police · dnevna soba', detail });
     expect(parsed.rows[0].target).toEqual(application ? { kind: 'APPLICATION', applicationId: ID } : { kind: 'AGREEMENT', agreementId: ID });
   });
 

@@ -21,9 +21,10 @@ export default function Pocetna() {
 function Home() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const retrying = useRef<object | null>(null);
   const [scope, setScope] = useState<object | null>(null);
   useFocusEffect(useCallback(() => {
-    const owner = {}; focus.current = owner; navigating.current = false;
+    const owner = {}; focus.current = owner; navigating.current = false; retrying.current = null;
     // A silent refresh keeps the old snapshot without an immediate render. Publish
     // this focus token now so current actions do not wait for a network response;
     // callbacks retained from a previous focus still fail the identity check below.
@@ -62,5 +63,9 @@ function Home() {
       ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId, from: 'pocetna' } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
-    onRefresh={() => { if (current()) void resource.refresh(true); }} />;
+    onRefresh={() => {
+      if (!current() || resource.loading || retrying.current) return;
+      const retry = {}; retrying.current = retry;
+      void resource.refresh(true).finally(() => { if (retrying.current === retry) retrying.current = null; });
+    }} />;
 }

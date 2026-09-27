@@ -273,7 +273,7 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(chat.props.state).toBe(mockOutboxState);
     expect(chat.props.writable).toBe(true);
     expect(chat.props.messages).toEqual([ownMessage]);
-    await act(async () => button('Pregled').props.onPress());
+    await act(async () => button('Dogovor: Pomoć pri selidbi. Marko').props.onPress());
     expect(avoidance.props.enabled).toBe(false);
     expect(texts()).toContain(workspace.naslov);
     expect(mockRead).toHaveBeenCalledTimes(1);
@@ -446,7 +446,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await render();
     await act(async () => button('Poruke').props.onPress());
     const refresh = tree.root.findByType('AgreementChat' as any).props.refreshWorkspace;
-    await act(async () => button('Pregled').props.onPress());
+    await act(async () => button('Dogovor: Pomoć pri selidbi. Marko').props.onPress());
     const open = button('Potvrdi završetak').props.onPress;
     const confirm = await completionConfirmation();
     let resolve!: (data: unknown) => void;

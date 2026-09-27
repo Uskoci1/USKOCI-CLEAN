@@ -1,18 +1,17 @@
 import { useState, type ComponentProps } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import { ArrowLeft, ClipboardText } from 'phosphor-react-native';
+import { ArrowLeft, CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { AgreementChat } from '../AgreementChat';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Press } from '../Press';
-import { ProductHeader } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementHero, AgreementPersonBar, agreementRole } from './AgreementPresentation';
+import { AgreementHero, agreementRole } from './AgreementPresentation';
 
 type Props = {
   agreement: DogovorProjekcija;
@@ -53,19 +52,33 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, wai
   }}>
     {compact ? <View testID="agreement-thread-compact-bar" style={s.bar}>
       <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onOverview} />
-      <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1} style={s.barTitle}>
-        {person && scale < 1.6 ? person.ime : 'Poruke'}
-      </T>
+      <View style={s.barTitle}>
+        <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1}>
+          {person && scale < 1.6 ? person.ime : 'Poruke'}
+        </T>
+        {scale < 1.6 ? <T variant="meta" tone="muted" numberOfLines={1}>{title}</T> : null}
+      </View>
       <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora: ${title}${waiting ? `. ${waiting}` : ''}`}
         accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka." onPress={onOverview} haptic="select" hitSlop={0} style={s.overview}>
         {waiting ? <View style={s.dot} /> : null}
         <T variant="note" tone="green">Uslovi</T>
       </Press>
     </View> : <>
-      {person ? <AgreementPersonBar person={person} back={onOverview}
-        right={<ChromeIconButton label="Pregled" icon={ClipboardText} onPress={onOverview} />} />
-        : <ProductHeader title="Poruke" back={onOverview}
-          right={<ChromeIconButton label="Pregled" icon={ClipboardText} onPress={onOverview} />} />}
+      <View testID="agreement-thread-full-bar" style={s.bar}>
+        <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onOverview} />
+        {person ? person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials : null}
+        {/* The person alone cannot identify a conversation when we share several jobs. Keep this exact task
+            beside the person, with one explicit way back to its accepted terms, not a second generic icon. */}
+        <Press accessibilityRole="button" accessibilityLabel={`Dogovor: ${title}${person ? `. ${person.ime}` : ''}`}
+          accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka."
+          onPress={onOverview} haptic="select" hitSlop={0} style={s.threadIdentity}>
+          <View style={s.personCopy}>
+            <T accessibilityRole="header" variant="bodyStrong" numberOfLines={1}>{person?.ime || 'Poruke'}</T>
+            <T variant="note" tone="muted" numberOfLines={2}>{title}</T>
+          </View>
+          <CaretRight size={20} color={sys.color.green} />
+        </Press>
+      </View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     <AgreementChat {...chat} compact={compact} context={context} />
@@ -76,6 +89,7 @@ const s = StyleSheet.create({
   frame: { flex: 1, minHeight: 0 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: sys.conversation.ground },
   barTitle: { flex: 1, minWidth: 0 },
+  threadIdentity: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
   overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.warn },

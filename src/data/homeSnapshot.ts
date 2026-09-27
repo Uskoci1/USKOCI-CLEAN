@@ -2,6 +2,7 @@ import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from
 import { prijava } from '../ui/system/plural';
 import { hasNeedAttention, ownedTaskCounts, type OwnedTaskCounts } from './marketplaceView';
 import { applicationCounts, type ApplicationCounts } from './myApplicationsView';
+import { calendarInstant } from '../lib/calendarTime';
 
 /**
  * Početna (owner decision 1, 2026-09-19; the overview of the owner's information architecture, 2026-09-23): what
@@ -21,9 +22,13 @@ export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications:
   agreements: HomeSection<DogovorProjekcija[]> };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string };
-export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget };
+export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget;
+  /** Structured by the live attention decoder. Legacy proof/gallery rows retain their combined detail. */
+  taskTitle?: string };
 export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string };
 export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget;
+  /** A future accepted term on a CONFIRMED Agreement, never the source task's time. */
+  upcoming?: true;
   /** Display facts kept separate for the appointment card; time is already worded by the Agreement projection. */
   appointment?: { timeText: string; counterpartName: string; roleLabel: 'Tvoj zadatak' | 'Uskačeš' | null } };
 type Preview<Row> = { rows: Row[]; more: number };
@@ -76,7 +81,7 @@ function agreementRow(row: DogovorProjekcija): HomeRow {
     appointment: { timeText: row.vremeTekst, counterpartName, roleLabel } };
 }
 
-export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>): HomeSnapshot {
+export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>, now = Date.now()): HomeSnapshot {
   const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
   const applications = reads.applications.kind === 'known' ? reads.applications.value : null;
   const agreements = reads.agreements.kind === 'known' ? reads.agreements.value : null;
@@ -101,18 +106,22 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
 
-  // Since PKG-023a a Dogovor carries the start of the work, so the one the home shows is the one that
-  // comes soonest; the ones with no term yet keep the order the server gave, behind them.
+  // Only an accepted future term can be called "next". A past or source-task time must not hide
+  // tomorrow's actual appointment. Other active Agreements retain their server order and neutral label.
+  const nowInstant = Number.isSafeInteger(now) ? BigInt(now) * 1000n : null;
   const activeAgreements = (agreements ?? []).filter(activeAgreement)
-    .map((row, index) => ({ row, index }))
+    .map((row, index) => {
+      const start = calendarInstant(row.prihvacenPocetak);
+      return { row, index, upcoming: row.stanje === 'CONFIRMED' && nowInstant !== null && start !== null && start >= nowInstant ? start : null };
+    })
     .sort((a, b) => {
-      const left = a.row.pocinje, right = b.row.pocinje;
-      if (left && right && left !== right) return left < right ? -1 : 1;
-      if (left && !right) return -1;
-      if (!left && right) return 1;
+      const left = a.upcoming, right = b.upcoming;
+      if (left !== null && right !== null && left !== right) return left < right ? -1 : 1;
+      if (left !== null && right === null) return -1;
+      if (left === null && right !== null) return 1;
       return a.index - b.index;
     })
-    .map(entry => agreementRow(entry.row));
+    .map(entry => ({ ...agreementRow(entry.row), ...(entry.upcoming !== null ? { upcoming: true as const } : {}) }));
   const due = (agreements ?? []).filter(ratingDue);
   const ratingsKnown = agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
   const partial = !ratingsKnown || serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');

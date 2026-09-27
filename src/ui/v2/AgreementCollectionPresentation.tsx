@@ -19,6 +19,7 @@ import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
+import { calendarInstant } from '../../lib/calendarTime';
 import { agreementPeople, agreementRole, agreementStateText, agreementTerm } from './AgreementPresentation';
 import { CARD_PRESS_SCALE } from './TaskCard';
 import { WaitingDot, faceStyles } from './TaskFace';
@@ -200,14 +201,16 @@ export function AgreementCollectionPresentation(props: Props) {
     // What is next comes first, and a Dogovor with no term yet is not "next" - it goes after the ones
     // that have one, in the order the server gave. History keeps the newest-first order it always had.
     if (section === 'history') return rows;
-    return rows.map((item, index) => ({ item, index })).sort((a, b) => {
+    return rows.map((item, index) => ({ item, index, start: calendarInstant(item.prihvacenPocetak) })).sort((a, b) => {
       // Unavailable history stays reachable, but its old appointment must not outrank actual
       // accepted work or a confirmed rating action merely because its date is earlier.
       if (ratingUnknown(a.item) !== ratingUnknown(b.item)) return ratingUnknown(a.item) ? 1 : -1;
-      const left = a.item.pocinje, right = b.item.pocinje;
-      if (left && right && left !== right) return left < right ? -1 : 1;
-      if (left && !right) return -1;
-      if (!left && right) return 1;
+      // The accepted instant owns this order, including offset and microsecond precision.
+      // The source task's `pocinje` can diverge after an accepted change.
+      const left = a.start, right = b.start;
+      if (left !== null && right !== null && left !== right) return left < right ? -1 : 1;
+      if (left !== null && right === null) return -1;
+      if (left === null && right !== null) return 1;
       return a.index - b.index;
     }).map(row => row.item);
   }, [items, section, filtering]);

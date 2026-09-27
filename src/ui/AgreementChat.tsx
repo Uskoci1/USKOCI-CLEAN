@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowClockwise, ArrowDown, PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
+import { ArrowClockwise, ArrowDown, ImageSquare, PaperPlaneTilt, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
@@ -435,21 +435,22 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         </Press>
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
-        <View style={[s.pill, focused && s.pillFocused]}>
+        <View style={[s.pill, textScale < 1.3 && s.pillInline, focused && s.pillFocused]}>
           <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
             // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
             // line plus padding, which clipped the first line while the caret scrolled to the last one.
-            scrollEnabled style={[s.input, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
+            scrollEnabled style={[s.input, textScale < 1.3 && s.inputInline, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
               compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
-          <View style={s.toolbar}>
+          <View style={[s.toolbar, textScale < 1.3 && s.toolbarInline]}>
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}
               accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
-              onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0} style={s.tool}>
-              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <Plus size={24} color={sys.color.green} />}
-              <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T>
+              onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
+              style={[s.tool, textScale < 1.3 && s.toolInline]}>
+              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <ImageSquare size={24} color={sys.color.green} />}
+              {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
             </Press> : null}
             <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
               accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
@@ -502,12 +503,17 @@ const s = StyleSheet.create({
   photoSummary: { minHeight: 48, minWidth: 48, alignSelf: 'flex-end', justifyContent: 'center' },
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
-  // One lifted writing surface. Its full-width draft stays above controls instead of being squeezed between them.
+  // A short draft and its two actions share one row. Enlarged text gets the full width above the same controls;
+  // changing layout does not replace the input, its selection, or the photo tray.
   composerArea: { flexShrink: 0, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
   composerCompact: { paddingTop: 4, paddingBottom: 8 },
   details: { gap: sys.space.sm, paddingTop: sys.space.sm },
   pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
+  pillInline: { flexDirection: 'row', alignItems: 'flex-end' },
+  inputInline: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
+  toolbarInline: { flexShrink: 0 },
+  toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
   pillFocused: { borderColor: sys.color.green },
   toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,

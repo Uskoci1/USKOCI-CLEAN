@@ -4,7 +4,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretRight } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import type { HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
+import type { HomeAttention, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
 import type { ApplicationCounts } from '../../data/myApplicationsView';
 import { ScreenHeader } from '../system/ScreenHeader';
@@ -62,12 +62,13 @@ function StartTile({ label, title, hint, publish = false, stacked, onPress }: {
 }
 
 function AttentionRow({ row, onOpen, last = false }: {
-  row: HomeRow; onOpen: (target: HomeTarget) => void; last?: boolean;
+  row: HomeAttention; onOpen: (target: HomeTarget) => void; last?: boolean;
 }) {
   // The same coloured illustration the cards use for this kind of thing (owner, 2026-09-23: thin grey glyphs sat here while the rest of the app was illustrated).
   const art: FactArtKind = row.target.kind === 'CANDIDATES' ? 'users'
     : row.target.kind === 'APPLICATION' ? 'offers' : row.target.kind === 'AGREEMENT' ? 'agreements' : 'tasks';
-  return <Press accessibilityRole="button" accessibilityLabel={`${readableTitle(row.title)}. ${row.detail}`} haptic="select" scaleTo={0.99}
+  const taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
+  return <Press accessibilityRole="button" accessibilityLabel={[readableTitle(row.title), taskTitle, row.detail].filter(Boolean).join('. ')} haptic="select" scaleTo={0.99}
     onPress={() => onOpen(row.target)} style={[s.row, last && s.lastRow]}>
     <View style={[s.rowIcon, s.attentionIcon]}>
       <FactArt kind={art} size={32} />
@@ -75,7 +76,8 @@ function AttentionRow({ row, onOpen, last = false }: {
       <View style={s.attentionDot} />
     </View>
     <View style={s.rowCopy}>
-      <T variant="bodyStrong">{readableTitle(row.title)}</T>
+      <T variant={taskTitle ? 'note' : 'bodyStrong'} style={taskTitle ? s.attentionAction : undefined}>{readableTitle(row.title)}</T>
+      {taskTitle ? <T variant="bodyStrong">{taskTitle}</T> : null}
       <T variant="note" tone="muted">{row.detail}</T>
     </View>
     <View style={s.rowDirection}><CaretRight size={18} color={sys.color.ink} /></View>
@@ -132,11 +134,10 @@ function Section({ title, count, children }: { title: string; count?: number; ch
   </View>;
 }
 
-/** A section that could not be read says so and offers the read again. It is never drawn as empty. */
-function Unavailable({ what, onRefresh }: { what: string; onRefresh: () => void }) {
+/** Each missing section names itself; the shared recovery action retries the same four reads once. */
+function Unavailable({ what }: { what: string }) {
   return <View style={s.unavailable}>
     <T accessibilityLiveRegion="polite" variant="note" tone="muted">{`${what} trenutno nisu učitani.`}</T>
-    <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRefresh} />
   </View>;
 }
 
@@ -184,6 +185,7 @@ export function HomePresentation(p: HomePresentationProps) {
   // Before the first answer a front door has no line; after a failed read it says so, never "0".
   const tasksDetail = home ? tasksLine(home.mine.tasks) : p.error ? 'Trenutno nisu učitani' : null;
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nisu učitane' : null;
+  const recoveryNeeded = p.error || home?.partial;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
     {/* The one header of the three tabs (V41): profile left, the mark in the middle, the inbox right. */}
     {p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
@@ -198,7 +200,10 @@ export function HomePresentation(p: HomePresentationProps) {
       </View>
 
       {p.loading && !home ? <Skeleton /> : null}
-      {p.error && !home ? <View style={s.section}><Unavailable what="Tvoji zadaci, prijave i Dogovori" onRefresh={p.onRefresh} /></View> : null}
+      {recoveryNeeded ? <View style={s.recovery}>
+        <T accessibilityRole="alert" variant="note" tone="muted">{home ? 'Deo pregleda trenutno nije učitan.' : 'Pregled trenutno nije učitan.'}</T>
+        <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
+      </View> : null}
       {/* The greeting belongs to a first visit, and a first visit is known only once every read has answered. Above
           the tiles it pushed them down under the finger at the first impression; here it takes the loading's place. */}
       {home?.firstRun ? <View style={s.hero}>
@@ -208,7 +213,7 @@ export function HomePresentation(p: HomePresentationProps) {
 
       {home && waitingShown ? <Section title="Čeka te"
         count={home.attention.length > 0 && (home.attentionState === 'known' || !home.partial) ? home.attention.length + home.attentionMore : undefined}>
-        {attentionUnavailable ? <Unavailable what="Podaci o obavezama" onRefresh={p.onRefresh} /> : null}
+        {attentionUnavailable ? <Unavailable what="Podaci o obavezama" /> : null}
         {home.attention.length > 0 ? <View style={s.attention}>
           {home.attention.map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
             <AttentionRow row={item} onOpen={p.onOpen} last={index === home.attention.length - 1} /></Appear>)}
@@ -233,9 +238,9 @@ export function HomePresentation(p: HomePresentationProps) {
         </Press> : null}
       </Section> : null}
 
-      {/* One next Dogovor, and only when there is one; the rest are in the Dogovori tab. A failed read says so. */}
-      {home?.agreements.kind === 'unavailable' ? <Section title="Sledeći Dogovor"><Unavailable what="Dogovori" onRefresh={p.onRefresh} /></Section>
-        : next ? <Section title="Sledeći Dogovor">
+      {/* Only a future accepted term is "next"; other active Agreements retain a neutral heading. */}
+      {home?.agreements.kind === 'unavailable' ? <Section title="Dogovori"><Unavailable what="Dogovori" /></Section>
+        : next ? <Section title={next.upcoming ? 'Sledeći Dogovor' : 'Aktivni Dogovor'}>
           <Appear index={0} animate={agreements.isNew(next.id)}><AppointmentCard row={next} onOpen={p.onOpen} /></Appear>
         </Section> : null}
 
@@ -283,6 +288,7 @@ const s = StyleSheet.create({
   actionHint: { fontSize: 14, lineHeight: 20 },
   // Attention is an open inbox: the action comes first, the exact subject/reason is never truncated.
   attention: { backgroundColor: sys.color.surface },
+  attentionAction: { color: sys.color.attentionInk, fontWeight: '600' },
   section: { marginTop: sys.space.xxl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
   sectionTitle: { ...sys.type.heading, color: sys.color.ink },
@@ -315,6 +321,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   more: { paddingVertical: sys.space.sm },
   unavailable: { gap: sys.space.xs, paddingVertical: sys.space.md, alignItems: 'flex-start' },
+  recovery: { marginTop: sys.space.lg, gap: sys.space.sm, alignItems: 'flex-start' },
   skeletonBlock: { marginTop: sys.space.xxl, gap: sys.space.base },
   skeletonRow: { height: 64, borderRadius: sys.radius.cardCompact, backgroundColor: sys.color.skeleton },
 });

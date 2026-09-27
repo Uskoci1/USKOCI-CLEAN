@@ -19,7 +19,6 @@ jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Authorize
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
-import { AgreementPersonBar } from '../../ui/v2/AgreementPresentation';
 
 const agreement = {
   id: 'dogovor', naslov: 'Prenos troseda i dve fotelje sa trećeg sprata', verzija: 2, stanje: 'CONFIRMED',
@@ -54,7 +53,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('gives 320 dp / font scale 2 history the full identity and accepted terms while keeping overview outside the scroll', async () => {
   mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
   await render();
-  expect(tree.root.findAllByType(AgreementPersonBar)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(0);
   const context = history().findByProps({ testID: 'agreement-thread-context' });
   expect(text(context)).toContain(agreement.ucesnici[0].ime);
   expect(text(context)).toContain('Uskače na tvoj zadatak');
@@ -83,21 +82,22 @@ it('gives 320 dp / font scale 2 history the full identity and accepted terms whi
 
 it('responds to the measured keyboard space without remounting the draft or losing an open photo tray', async () => {
   await render();
-  expect(tree.root.findAllByType(AgreementPersonBar)).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
   const input = button('Napiši poruku');
   await act(async () => button('Fotografije uz poruku').props.onPress());
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   await measure(410);
-  expect(tree.root.findAllByType(AgreementPersonBar)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(0);
   // At ordinary text size the keyboard bar still names whom I am replying to; the full identity remains in history.
   expect(button(`Poruke: ${agreement.ucesnici[0].ime}`).props.children).toBe(agreement.ucesnici[0].ime);
+  expect(text(tree.root.findByProps({ testID: 'agreement-thread-compact-bar' }))).toContain(agreement.naslov);
   expect(text(history().findByProps({ testID: 'agreement-thread-context' }))).toContain(agreement.ucesnici[0].ime);
   expect(button('Napiši poruku')).toBe(input);
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
   expect(tray.props.photos).toBe(props.chat.photos);
   expect(history().findByType('AgreementPhotoComposer' as any)).toBe(tray);
   await measure(790);
-  expect(tree.root.findAllByType(AgreementPersonBar)).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
   expect(button('Napiši poruku')).toBe(input);
   expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);
   expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
@@ -114,6 +114,38 @@ it('keeps Back on the same Agreement overview before and after the keyboard comp
   await measure(790);
   await act(async () => button('Nazad').props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(3);
+});
+
+it('identifies this job beside the person and opens its accepted overview from that context', async () => {
+  props.person = { ...agreement.ucesnici[0], profilId: 'profil' };
+  await render();
+  const header = tree.root.findByProps({ testID: 'agreement-thread-full-bar' });
+  expect(text(header)).toContain(agreement.naslov);
+  expect(text(header)).toContain(agreement.ucesnici[0].ime);
+  expect(button(`Dogovor: ${agreement.naslov}. ${agreement.ucesnici[0].ime}`).findAllByType('ProfilePhoto' as any)).toHaveLength(0);
+  await act(async () => button(`Dogovor: ${agreement.naslov}. ${agreement.ucesnici[0].ime}`).props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(1);
+  // The title is a real projection, not a label derived from the person's name or an old conversation.
+  props = { ...props, agreement: { ...agreement, naslov: 'Montaža dve police' } };
+  await act(async () => tree.update(<AgreementThreadPresentation {...props} />));
+  expect(text(header)).toContain('Montaža dve police');
+  expect(text(header)).not.toContain(agreement.naslov);
+});
+
+it('lets enlarged text use a full-width draft without recreating it or closing prepared photos', async () => {
+  await render();
+  const input = button('Napiši poruku');
+  expect(flat(input.props.style).flex).toBe(1);
+  await act(async () => button('Fotografije uz poruku').props.onPress());
+  const tray = tree.root.findByType('AgreementPhotoComposer' as any);
+  mockWindow = { ...mockWindow, fontScale: 1.5 };
+  await act(async () => tree.update(<AgreementThreadPresentation {...props} />));
+  expect(button('Napiši poruku')).toBe(input);
+  expect(flat(input.props.style).flex).toBeUndefined();
+  expect(input.props.value).toBe('Moj sačuvani nacrt');
+  expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
+  expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);
+  expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
 });
 
 it('keeps storage recovery and a forced pending-photo tray in the scroll, with the writing actions outside it', async () => {

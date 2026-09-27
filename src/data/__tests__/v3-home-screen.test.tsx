@@ -49,7 +49,7 @@ beforeEach(() => {
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
 });
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 
 it('offers both things a person can start before any read has answered, and they go where they say', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
@@ -62,20 +62,33 @@ it('offers both things a person can start before any read has answered, and they
 
 // Owner's information architecture, 2026-09-23: Početna is the overview. My own tasks and my applications are two
 // counted front doors instead of a preview of their rows, and the one next Dogovor says what I am to it.
-it('shows one account on both sides at once, as two counted doors and the next Dogovor, with no mode anywhere', async () => {
+it('shows both sides of one account and labels an undated active Dogovor without inventing a next appointment', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
   mockSource.mojiDogovori.mockResolvedValue([agreement('g-a', 'narucilac'), agreement('g-c', 'uskocer')]);
   await render();
   const copy = text();
   expect(copy).toContain('Moji zadaci'); expect(copy).toContain('1 aktivan');
   expect(copy).toContain('Moje prijave'); expect(copy).toContain('1 aktivna');
-  expect(copy).toContain('Sledeći Dogovor'); expect(copy).toContain('Tvoj zadatak');
+  expect(copy).toContain('Aktivni Dogovor'); expect(copy).not.toContain('Sledeći Dogovor'); expect(copy).toContain('Tvoj zadatak');
   expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio si');
   // One next Dogovor; the other is one tab away, and no "Svi Dogovori" link repeats the tab.
   expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Dogovor g-c'))).toHaveLength(0);
   expect(copy).not.toContain('Svi Dogovori');
   await act(async () => row('Dogovor g-a').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'g-a' } });
+});
+
+it('names and opens the upcoming accepted appointment ahead of work awaiting completion', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-27T10:00:00Z'));
+  mockSource.mojiDogovori.mockResolvedValue([
+    { ...agreement('yesterday', 'narucilac'), stanje: 'AWAITING_REQUESTER', prihvacenPocetak: '2026-09-26T08:00:00Z' },
+    { ...agreement('tomorrow', 'uskocer'), prihvacenPocetak: '2026-09-28T08:00:00Z', vremeTekst: '28. sep · 10:00' },
+  ]);
+  await render();
+  expect(text()).toContain('Sledeći Dogovor'); expect(text()).not.toContain('Aktivni Dogovor');
+  expect(text()).toContain('28. sep · 10:00'); expect(text()).not.toContain('Dogovor yesterday');
+  await act(async () => row('Dogovor tomorrow').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'tomorrow' } });
 });
 
 it.each([[390, 1], [320, 2]])('keeps the appointment time, role, task and person readable and separately worded at %idp / font %i', async (width, fontScale) => {
@@ -139,6 +152,26 @@ it('a row only navigates, and to the exact place: a waiting choice opens its can
   await act(async () => tree.unmount()); await render();
   await act(async () => row('Moje prijave').onPress());
   expect(mockRouter.navigate).toHaveBeenLastCalledWith('/moje-prijave');
+});
+
+it.each([[390, 1], [320, 2]])('separates the real attention task from its action without splitting or repeating its title at %idp / font %i', async (width, fontScale) => {
+  mockWindow = { width, height: 844, scale: 3, fontScale };
+  const taskTitle = 'Police · dnevna soba i veliko ogledalo';
+  mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:changed:stale', title: 'Zadatak je izmenjen',
+    taskTitle, detail: 'Pregledaj izmene pre odluke o prijavi.', target: { kind: 'APPLICATION', applicationId: 'changed' } }],
+    more: 0, asOf: '2026-09-27T10:00:00Z' });
+  await render();
+  const attention = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Zadatak je izmenjen'))[0];
+  const facts = attention.findAll(node => String(node.type) === 'T');
+  expect(facts.map(node => node.props.children)).toEqual(['Zadatak je izmenjen', taskTitle, 'Pregledaj izmene pre odluke o prijavi.']);
+  expect(facts[1].props.variant).toBe('bodyStrong');
+  expect(attention.props.accessibilityLabel).toBe(`Zadatak je izmenjen. ${taskTitle}. Pregledaj izmene pre odluke o prijavi.`);
+  expect(text().split(taskTitle)).toHaveLength(2);
+  for (const fact of facts) {
+    expect(fact.props.numberOfLines).toBeUndefined(); expect(fact.props.allowFontScaling).not.toBe(false);
+  }
+  await act(async () => attention.props.onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'changed' } });
 });
 
 it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads there', async () => {
@@ -250,13 +283,50 @@ it('a section that failed says so and offers the read again; it is never drawn a
   await render();
   expect(text()).toContain('Dogovori trenutno nisu učitani.'); expect(text()).not.toContain('Nemaš aktivan Dogovor.');
   expect(text()).toContain('1 aktivan');
-  await act(async () => action('Pokušaj ponovo').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
+  await act(async () => action('Osveži pregled').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
+});
+
+it('offers one shared recovery for multiple unavailable sections and rejects duplicate retained retry taps', async () => {
+  mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENTS_FAILED'));
+  mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
+  mockSource.paznjaZaPocetnu.mockRejectedValue(new Error('ATTENTION_FAILED'));
+  mockSource.mojePotrebe.mockResolvedValue([need('known')]);
+  await render();
+  expect(text()).toContain('Deo pregleda trenutno nije učitan.');
+  expect(text()).toContain('Dogovori trenutno nisu učitani.');
+  expect(text()).toContain('Podaci o obavezama trenutno nisu učitani.');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
+  expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.label === 'Osveži pregled')).toHaveLength(1);
+  expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo' })).toHaveLength(0);
+  const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
+  const retry = action('Osveži pregled').onPress;
+  try {
+    await act(async () => { retry(); retry(); });
+    for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
+    expect(action('Osveži pregled')).toMatchObject({ loading: true, disabled: true });
+    await act(async () => retry());
+    for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
+    expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
+  } finally { await act(async () => wait.resolve([])); }
+  expect(action('Osveži pregled')).toMatchObject({ loading: false, disabled: false });
+});
+
+it('a retry retained by the previous focus cannot start the shared read after returning Home', async () => {
+  mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENTS_FAILED'));
+  await render();
+  const retired = action('Osveži pregled').onPress;
+  await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
+  await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
+  await act(async () => retired());
+  for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
+  await act(async () => action('Osveži pregled').onPress());
+  for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(3);
 });
 
 it('four failed reads are a failed screen, not an empty account, and the two doors never say zero', async () => {
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   await render();
-  expect(text()).toContain('trenutno nisu učitani'); expect(text()).not.toContain('Šta rešavamo');
+  expect(text()).toContain('Pregled trenutno nije učitan.'); expect(text()).not.toContain('Šta rešavamo');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Trenutno nisu učitani');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
   expect(text()).not.toMatch(/\b0\b/); expect(text()).not.toContain('Još nemaš');
@@ -312,7 +382,7 @@ it('PKG-042: attention failure is explicit and never replaced with conclusions f
   // "Čeka te" stays unavailable, and the door does not stand in for it: it counts the list, never what waits.
   expect(text()).not.toContain('čeka izbor');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
-  await act(async () => action('Pokušaj ponovo').onPress());
+  await act(async () => action('Osveži pregled').onPress());
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
 });
 
@@ -370,7 +440,7 @@ it('a failed refresh never claims an empty account and keeps both new start tile
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   const refresh = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh;
   await act(async () => refresh());
-  expect(text()).toContain('trenutno nisu učitani');
+  expect(text()).toContain('Pregled trenutno nije učitan.');
   expect(text()).not.toContain('Šta rešavamo');
   expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
   await act(async () => action('Uskoči i zaradi').onPress());

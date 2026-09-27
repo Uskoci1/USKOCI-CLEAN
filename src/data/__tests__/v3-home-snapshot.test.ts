@@ -171,22 +171,54 @@ describe('one completed Dogovor waiting for my rating (emulator critique A1, 202
   });
 });
 
-describe('what comes next (PKG-023a)', () => {
-  it('shows the Dogovor that starts soonest, and keeps the ones with no term behind it', () => {
+describe('the next accepted appointment', () => {
+  const now = Date.parse('2026-09-27T10:00:00Z');
+  it('shows the soonest accepted future term, ahead of undated or past active Agreements', () => {
     const rows = [
-      agreement('later', 'narucilac', { pocinje: '2026-09-25T09:00:00Z' }),
-      agreement('undated', 'uskocer', { pocinje: null }),
-      agreement('soonest', 'uskocer', { pocinje: '2026-09-20T07:00:00Z' }),
+      agreement('awaiting', 'narucilac', { stanje: 'AWAITING_REQUESTER', prihvacenPocetak: '2026-09-26T09:00:00Z' }),
+      agreement('later', 'narucilac', { prihvacenPocetak: '2026-09-29T09:00:00Z' }),
+      agreement('undated', 'uskocer', { pocinje: '2026-09-27T11:00:00Z' }),
+      agreement('soonest', 'uskocer', { prihvacenPocetak: '2026-09-28T07:00:00Z', pocinje: '2026-09-30T07:00:00Z' }),
     ];
-    const home = composeHome({ needs: { kind: "known", value: [] }, applications: { kind: "known", value: [] },
-      agreements: { kind: 'known', value: rows } });
+    const home = composeHome(reads({ agreements: known(rows) }), undefined, now);
     expect(home.agreements.kind).toBe('known');
     if (home.agreements.kind !== 'known') return;
-    expect(home.agreements.value.rows.map(row => row.id)).toEqual(['agreement:soonest']);
-    expect(home.agreements.value.more).toBe(2);
-    // With the soonest gone, the dated one still comes before the undated one.
-    const rest = composeHome({ needs: { kind: 'known', value: [] }, applications: { kind: 'known', value: [] },
-      agreements: { kind: 'known', value: rows.filter(row => row.id !== 'soonest') } });
+    expect(home.agreements.value.rows).toEqual([expect.objectContaining({ id: 'agreement:soonest', upcoming: true })]);
+    expect(home.agreements.value.more).toBe(3);
+    const rest = composeHome(reads({ agreements: known(rows.filter(row => row.id !== 'soonest')) }), undefined, now);
     expect(rest.agreements.kind === 'known' ? rest.agreements.value.rows.map(row => row.id) : null).toEqual(['agreement:later']);
+  });
+
+  it.each([undefined, null, 'not-a-date', '2026-02-30T09:00:00Z', '2026-09-26T09:00:00Z'])(
+    'keeps a neutral server-ordered fallback for accepted start %j, regardless of source-task dates', accepted => {
+      const home = composeHome(reads({ agreements: known([
+        agreement('first', 'uskocer', { prihvacenPocetak: accepted, pocinje: '2026-10-01T09:00:00Z' }),
+        agreement('second', 'narucilac', { pocinje: '2026-09-28T09:00:00Z' }),
+      ]) }), undefined, now);
+      expect(home.agreements).toEqual(known({ more: 1, rows: [expect.objectContaining({ id: 'agreement:first' })] }));
+      if (home.agreements.kind === 'known') expect(home.agreements.value.rows[0]).not.toHaveProperty('upcoming');
+    });
+
+  it('compares accepted instants across offsets, preserves tie order and leaves the display text unchanged', () => {
+    const source = [
+      agreement('later', 'uskocer', { prihvacenPocetak: '2026-09-28T08:30:00Z' }),
+      agreement('first-tie', 'uskocer', { prihvacenPocetak: '2026-09-28T10:00:00+02:00', vremeTekst: '28. sep · 10:00' }),
+      agreement('second-tie', 'uskocer', { prihvacenPocetak: '2026-09-28T08:00:00Z' }),
+    ];
+    const home = composeHome(reads({ agreements: known(source) }), undefined, now);
+    expect(home.agreements).toEqual(known({ more: 2, rows: [expect.objectContaining({ id: 'agreement:first-tie', upcoming: true,
+      appointment: expect.objectContaining({ timeText: '28. sep · 10:00' }) })] }));
+    expect(source.map(row => row.id)).toEqual(['later', 'first-tie', 'second-tie']);
+  });
+
+  it('never calls awaiting completion or completed work upcoming, even with a future accepted timestamp', () => {
+    const accepted = '2026-09-28T08:00:00Z';
+    const home = composeHome(reads({ agreements: known([
+      agreement('done', 'uskocer', { stanje: 'COMPLETED', ocenaMoguca: true, prihvacenPocetak: accepted }),
+      agreement('awaiting', 'narucilac', { stanje: 'AWAITING_REQUESTER', prihvacenPocetak: accepted }),
+    ]) }), undefined, now);
+    expect(home.agreements).toEqual(known({ more: 0, rows: [expect.objectContaining({ id: 'agreement:awaiting' })] }));
+    if (home.agreements.kind === 'known') expect(home.agreements.value.rows[0]).not.toHaveProperty('upcoming');
+    expect(home.ratingsDue).toBe(1); expect(home.ratingDueAgreementId).toBe('done');
   });
 });

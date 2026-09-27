@@ -39,20 +39,22 @@ export function decodeHomeAttention(raw: unknown): HomeAttentionPreview | null {
       const confirm = reason === 'AGREEMENT_CONFIRM_COMPLETION';
       rows.push({ id: `agreement:${id}:${confirm ? 'confirm' : 'problem'}`,
         title: confirm ? 'Potvrdi završetak' : 'Prijavljen je problem',
-        detail: `${row.taskTitle} · ${confirm ? 'završetak je označen i čeka tvoju potvrdu' : 'automatski završetak je zaustavljen'}`,
+        taskTitle: row.taskTitle,
+        detail: confirm ? 'Završetak je označen.' : 'Automatski završetak je zaustavljen.',
         target: { kind: 'AGREEMENT', agreementId: id } });
     } else if (application) {
       if (!sameId(row.applicationId, id) || row.agreementId !== null || row.applicationCount !== null || c.activeApplications < 1) return null;
       const stale = reason === 'APPLICATION_STALE';
       rows.push({ id: `application:${id}:${stale ? 'stale' : 'attention'}`,
         title: stale ? 'Zadatak je izmenjen' : 'Prijava traži tvoju pažnju',
-        detail: `${row.taskTitle} · ${stale ? 'pregledaj izmene pre nego što odlučiš o prijavi' : 'otvori svoju prijavu'}`,
+        taskTitle: row.taskTitle,
+        detail: stale ? 'Pregledaj izmene pre odluke o prijavi.' : 'Otvori svoju prijavu.',
         target: { kind: 'APPLICATION', applicationId: id } });
     } else {
       if (taskId !== id || row.agreementId !== null || row.applicationId !== null || c.ownActiveTasks < 1
           || !Number.isSafeInteger(row.applicationCount) || (row.applicationCount as number) < 1) return null;
       rows.push({ id: `need:${id}:applications`, title: prijava(row.applicationCount as number),
-        detail: `${row.taskTitle} · čeka tvoj izbor`, target: { kind: 'CANDIDATES', needId: id } });
+        taskTitle: row.taskTitle, detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES', needId: id } });
     }
   }
   return { rows, more: c.attentionMore, asOf: data.asOf };

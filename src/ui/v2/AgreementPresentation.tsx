@@ -137,6 +137,8 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
 /** Accepted facts remain a readable record, separate from the source task's current detail. */
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
   const people = agreementPeople(a);
+  const scope = a.prihvacenObim;
+  const discloseScope = scope ? Array.from(scope).length > 180 || /[\r\n]/.test(scope) : false;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
   const facts = <View style={compact ? s.facts : s.acceptedDetails}>
     {compact ? <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} /> : null}
@@ -155,6 +157,14 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
     </View>
     {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
     {compact ? <>{facts}{price}</> : <>{price}{facts}</>}
+    {scope ? discloseScope
+      ? <Disclosure label="Obim posla" hint="Prihvaćeni opis posla" art="document" divider>
+        <T selectable>{scope}</T>
+      </Disclosure>
+      : <View accessible accessibilityLabel={`Obim posla: ${scope}`} style={s.acceptedScope}>
+        <T variant="meta" tone="muted">Obim posla</T>
+        <T selectable>{scope}</T>
+      </View> : null}
   </View>;
 }
 
@@ -207,6 +217,7 @@ const s = StyleSheet.create({
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   acceptedDetails: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
+  acceptedScope: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
   // The box is the drawing's own 24, so it does not spill 1 px over and under (review r4 rd, small note).
   factArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },

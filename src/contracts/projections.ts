@@ -355,6 +355,10 @@ export type DogovorProjekcija = {
   stanje: StanjeDogovora;
   cena: Novac;
   vremeTekst: string;
+  /** Validated start from accepted terms only; never the source task's current start. Absent when terms were not read. */
+  prihvacenPocetak?: string | null;
+  /** Full accepted scope, within the server's 4,000-code-point bound. Absent when terms were not read. */
+  prihvacenObim?: string | null;
   putanjaTekst: string;
   pokrivenost: Pokrivenost;
   ucesnici: UcesnikProjekcija[];
@@ -378,8 +382,8 @@ export type DogovorProjekcija = {
   /** PKG-007: serverske dozvole za završetak; `null` = nepotvrđene, završetak se ne nudi. */
   radnje: DogovorRadnje | null;
   /**
-   * PKG-023a: početak posla sa Zadatka, ISO ili `null` kad termin nije zakazan. Do sada ga lista
-   * Dogovora nije imala, pa „sledeći" nije moglo da se poređa po vremenu.
+   * PKG-023a: početak posla sa Zadatka, ISO ili `null` kada čitač ne daje termin.
+   * Nije prihvaćeni termin Dogovora; za njegov redosled koristi se `prihvacenPocetak`.
    */
   pocinje: string | null;
   /** PKG-023a: predlog izmene koji čeka odgovor; `null` kad nijedan ne čeka. */

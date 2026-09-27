@@ -50,6 +50,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const myName = requester ? raw.requesterName : raw.workerName;
   const otherName = requester ? raw.workerName : raw.requesterName;
   const terms = raw.terms ?? {};
+  const acceptedTerms = record(raw.terms);
   const total = Number(raw.requiredSlots ?? 1);
   const covered = Math.max(0, Math.min(total, Number(terms.covered_slots ?? 1)));
 
@@ -97,6 +98,12 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     cena: agreedAmount ? novac(amount, currency) : { iznos: 0, valuta: currency, prikaz: '' },
     // Parent task edits cannot silently change an already accepted Agreement.
     vremeTekst: acceptedSchedule(terms),
+    ...(acceptedTerms ? {
+      prihvacenPocetak: calendarInstant(acceptedTerms.proposed_start_at) !== null
+        ? acceptedTerms.proposed_start_at as string : null,
+      prihvacenObim: typeof acceptedTerms.scope_note === 'string' && acceptedTerms.scope_note.trim()
+        && Array.from(acceptedTerms.scope_note).length <= 4000 ? acceptedTerms.scope_note : null,
+    } : {}),
     putanjaTekst: [raw.approximateArea, raw.approximateCity].filter(Boolean).join(', '),
     pokrivenost: {
       ukupno: total,

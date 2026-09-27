@@ -59,3 +59,52 @@ it('carries the same window on the one Dogovor read', async () => {
   const result = await agreementClientService.dogovor('agr-1');
   expect(result?.tacanTermin).toEqual({ pocetak: '2026-09-24T10:00:00Z', kraj: '2026-09-24T12:00:00Z' });
 });
+
+it('carries accepted start independently of the task start and never promotes an invalid or unread term', async () => {
+  const items = [
+    row('rescheduled', { startsAt: '2026-09-20T08:00:00Z', terms: {
+      proposed_start_at: '2026-09-28T12:00:00.123456+02:00', proposed_end_at: '2026-09-28T14:00:00+02:00' } }),
+    row('start-only', { terms: { proposed_start_at: '2026-09-29T10:00:00Z' } }),
+    row('invalid-day', { startsAt: '2026-09-20T08:00:00Z', terms: { proposed_start_at: '2026-02-30T10:00:00Z' } }),
+    row('local-clock', { startsAt: '2026-09-20T08:00:00Z', terms: { proposed_start_at: '2026-09-29T10:00:00' } }),
+    row('none', { startsAt: '2026-09-20T08:00:00Z' }),
+    row('unread', { startsAt: '2026-09-20T08:00:00Z', terms: undefined }),
+    row('array', { terms: [] }),
+  ];
+  mockRpc.mockResolvedValue({ data: { items, hasMore: false }, error: null });
+  const result = Object.fromEntries((await agreementClientService.mojiDogovori({ includeRatings: false })).map(item => [item.id, item]));
+  expect(result.rescheduled.prihvacenPocetak).toBe('2026-09-28T12:00:00.123456+02:00');
+  expect(result.rescheduled.pocinje).toBe('2026-09-20T08:00:00Z');
+  expect(result['start-only'].prihvacenPocetak).toBe('2026-09-29T10:00:00Z');
+  expect(result['start-only'].tacanTermin).toBeNull();
+  for (const id of ['invalid-day', 'local-clock', 'none']) expect(result[id].prihvacenPocetak).toBeNull();
+  for (const id of ['unread', 'array']) expect(result[id]).not.toHaveProperty('prihvacenPocetak');
+});
+
+it('keeps full accepted scope within its Unicode bound, with no task or pending-proposal substitution', async () => {
+  const fullScope = `  Prvi sprat\n${'🪑'.repeat(3985)}  `; // Exactly 4,000 code points; surrogate pairs are one each.
+  expect(Array.from(fullScope)).toHaveLength(4000);
+  const items = [
+    row('accepted', { terms: { scope_note: fullScope }, scopeNote: 'TASK_SCOPE',
+      pendingChange: { id: 'proposal', terms: { scope_note: 'UNACCEPTED_SCOPE' } } }),
+    row('too-long', { terms: { scope_note: `${fullScope}x` } }),
+    row('blank', { terms: { scope_note: ' \n ' } }),
+    row('wrong-kind', { terms: { scope_note: { text: 'not an accepted string' } } }),
+    row('none'), row('unread', { terms: null }),
+  ];
+  mockRpc.mockResolvedValue({ data: { items, hasMore: false }, error: null });
+  const result = Object.fromEntries((await agreementClientService.mojiDogovori({ includeRatings: false })).map(item => [item.id, item]));
+  expect(result.accepted.prihvacenObim).toBe(fullScope);
+  for (const id of ['too-long', 'blank', 'wrong-kind', 'none']) expect(result[id].prihvacenObim).toBeNull();
+  expect(result.unread).not.toHaveProperty('prihvacenObim');
+});
+
+it('uses the same accepted fields on the workspace read', async () => {
+  mockRpc.mockResolvedValue({ data: row('agr-1', { status: 'CONFIRMED', agreementStatus: 'CONFIRMED',
+    startsAt: '2026-09-20T08:00:00Z', terms: { proposed_start_at: '2026-09-29T10:00:00Z',
+      scope_note: 'Prenos troseda do drugog sprata, bez lifta.' } }), error: null });
+  expect(await agreementClientService.dogovor('agr-1')).toMatchObject({
+    prihvacenPocetak: '2026-09-29T10:00:00Z', prihvacenObim: 'Prenos troseda do drugog sprata, bez lifta.',
+    pocinje: '2026-09-20T08:00:00Z',
+  });
+});

@@ -225,7 +225,7 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     await render(base({ cena: missing }));
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(1);
     expect(texts()).not.toContain('0 RSD');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
     const summary = tree.root.findByProps({ accessibilityLabel: 'Cena: Iznos nije sačuvan' });
     const copy = summary.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join('');
@@ -254,9 +254,9 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
     ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka tvoju ocenu'],
   ])('%s', async (_name, workspace, words) => {
     await render(workspace());
-    expect(labels()).toContain('Pregled');
+    expect(labels()).toContain('Dogovor: Pomoć pri selidbi. Marko');
     expect(texts()).toContain(words); expect(texts()).not.toContain('3.000 RSD');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
     expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
@@ -272,12 +272,12 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
     ['a confirmed Dogovor with nothing to do', () => base()],
   ])('%s: no false waiting notice, and the accepted terms remain accessible', async (_name, workspace) => {
     await render(workspace());
-    expect(labels()).toContain('Pregled');
+    expect(labels()).toContain('Dogovor: Pomoć pri selidbi. Marko');
     expect(texts()).not.toContain('Završetak je označen i čeka tvoju potvrdu');
     expect(texts()).not.toContain('Predlog izmene čeka tvoj odgovor');
     expect(texts()).not.toContain('Čeka tvoju ocenu');
     expect(texts()).not.toContain('3.000 RSD');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' })).toBeTruthy();
