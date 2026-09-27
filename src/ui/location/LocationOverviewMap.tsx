@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type LngLatBounds } from '@maplibre/maplibre-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -80,8 +80,16 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
     try { await Linking.openURL(url); }
     catch { if (current()) setLinkError(true); }
   };
-  return <View testID={props.testID} style={s.container}>
-    <View testID="location-overview-frame" style={[s.frame, { height: props.height }]}
+  const credits = <View style={s.container}>
+    <View style={s.credits}>
+      {LOCATION_MAP_CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text}
+        style={s.creditLink} hitSlop={0} onPress={() => { void openCredit(credit.url); }}>
+        <T variant="label" tone="muted" style={s.creditText}>{credit.text}</T></Press>)}
+    </View>
+    {linkError ? <T variant="meta" accessibilityRole="alert">Veza ka izvoru mape nije otvorena. Pokušaj ponovo.</T> : null}
+  </View>;
+  return <View testID={props.testID} style={[s.container, props.height === 'fill' && s.fill]}>
+    <View testID="location-overview-frame" style={[s.frame, props.height === 'fill' ? s.fill : { height: props.height }]}
       onLayout={event => {
         if (!current()) return;
         const { width, height } = event.nativeEvent.layout;
@@ -103,7 +111,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
               accessibilityLabel={`${props.coarse ? 'Približno mesto' : 'Potvrđeno mesto'}: ${spoken}`}
               accessibilityState={{ selected }} onAccessibilityTap={() => select(group)}
               style={[s.pin, selected && s.selectedPin]}>
-              <BrandMark size={26} /><T variant="meta" style={[s.number, selected && s.selectedNumber]}>{group.map(point => point.number).join(', ')}</T>
+              <BrandMark size={26} />{points.length > 1 ? <T variant="meta" style={[s.number, selected && s.selectedNumber]}>{group.map(point => point.number).join(', ')}</T> : null}
             </View>
           </Marker>;
         })}
@@ -114,12 +122,8 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
             <V2Action label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (current()) retry(); }} /></>}
       </View> : null}
     </View>
-    <View style={s.credits}>
-      {LOCATION_MAP_CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text}
-        style={s.creditLink} hitSlop={0} onPress={() => { void openCredit(credit.url); }}>
-        <T variant="label" tone="muted" style={s.creditText}>{credit.text}</T></Press>)}
-    </View>
-    {linkError ? <T variant="meta" accessibilityRole="alert">Veza ka izvoru mape nije otvorena. Pokušaj ponovo.</T> : null}
+    {props.height === 'fill' ? <ScrollView testID="location-overview-credits" style={s.creditScroll}
+      contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled">{credits}</ScrollView> : credits}
   </View>;
 }
 
@@ -148,8 +152,8 @@ export function LocationOverviewMap(props: LocationOverviewMapProps) {
     && foreground() && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   if (!owns()) return <View testID={props.testID}><T variant="meta" tone="muted">Mapa je dostupna dok je ovaj prikaz otvoren.</T></View>;
   if (!points.length) return <View testID={props.testID} style={s.empty}><T variant="meta" tone="muted">Nema potvrđenih tačaka za prikaz na mapi.</T></View>;
-  const height = Number.isFinite(props.height) && props.height > 0 ? props.height : 240;
-  return <View style={s.container}>
+  const height = props.height === 'fill' ? 'fill' : Number.isFinite(props.height) && props.height > 0 ? props.height : 240;
+  return <View style={[s.container, height === 'fill' && s.fill]}>
     <OverviewSession key={`${owner!.epoch}:${attempt}:${props.coarse}:${geometryKey}`} {...props} height={height} points={points} owns={owns}
       retry={() => { if (owns()) setAttempt(value => value + 1); }} />
     {points.length !== props.points.length ? <T variant="meta" accessibilityRole="alert">Neka mesta nemaju potvrđenu tačku na mapi.</T> : null}
@@ -158,6 +162,8 @@ export function LocationOverviewMap(props: LocationOverviewMapProps) {
 
 const s = StyleSheet.create({
   container: { gap: sys.space.xs }, frame: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, overflow: 'hidden' },
+  fill: { flex: 1, minHeight: 0 },
+  creditScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: '50%' },
   map: { flex: 1 }, empty: { padding: sys.space.md },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm, padding: sys.space.md },
   pin: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 48, paddingHorizontal: 10, paddingVertical: 5,

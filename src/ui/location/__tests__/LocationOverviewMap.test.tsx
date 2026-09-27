@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { LocationOverviewMap } from '../LocationOverviewMap';
 import { LocationOverviewMap as WebOverview } from '../LocationOverviewMap.web';
@@ -26,7 +26,7 @@ jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'AppState') return mockApp;
-    return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+    return ['View', 'ActivityIndicator', 'ScrollView'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
 jest.mock('../../Text', () => ({ T: 'T' }));
@@ -76,6 +76,40 @@ it('groups coincident rounded stops without dropping numbers and uses one actual
   expect(mockJump).toHaveBeenCalledWith(expect.objectContaining({ center: [19.65, 45.12], zoom: 10 }));
   expect(mockFit).not.toHaveBeenCalled();
   await act(async () => markers()[0].props.onPress()); expect(mockSelect).toHaveBeenCalledWith('b');
+});
+
+it.each([false, true])('shows only the brand for one valid displayed point (coarse=%s)', async coarse => {
+  await render({ coarse, points: [{ ...first, latitude: NaN }, second] }); await ready();
+  const marker = markers()[0];
+  expect(marker.findAllByType('BrandMark' as React.ElementType)).toHaveLength(1);
+  expect(marker.findAllByType('T' as React.ElementType)).toHaveLength(0);
+  expect(marker.findByProps({ accessible: true }).props.accessibilityLabel).toContain('2. Isporuka');
+  await act(async () => marker.props.onPress());
+  expect(mockSelect).toHaveBeenCalledWith('b');
+});
+
+it('fills the bounded parent and refits the same map to actual resized geometry while credits stay scrollable', async () => {
+  await render({ height: 'fill', testID: 'expanded-map' }); await ready();
+  const map = maps()[0];
+  const session = tree.root.findAllByType('View' as React.ElementType).find(node => node.props.testID === 'expanded-map')!;
+  const frame = tree.root.findByProps({ testID: 'location-overview-frame' });
+  const credits = tree.root.findByProps({ testID: 'location-overview-credits' });
+  for (const node of [session.parent!.parent!, session, frame]) {
+    expect(StyleSheet.flatten(node.props.style)).toMatchObject({ flex: 1, minHeight: 0 });
+    expect(StyleSheet.flatten(node.props.style).height).toBeUndefined();
+  }
+  expect(StyleSheet.flatten(credits.props.style)).toMatchObject({ flexGrow: 0, flexShrink: 1, maxHeight: '50%' });
+  expect(credits.findAllByType('Press' as React.ElementType).map(link => link.props.accessibilityLabel))
+    .toEqual(LOCATION_MAP_CREDITS.map(credit => credit.text));
+  mockFit.mockClear();
+  await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 240, height: 120 } } }));
+  expect(maps()[0]).toBe(map);
+  expect(mockFit).toHaveBeenLastCalledWith([19.654321, 44.812345, 20.432109, 45.123456], {
+    padding: { top: 30, bottom: 30, left: 52, right: 52 }, duration: 0,
+  });
+  mockFit.mockClear();
+  await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 240, height: 120 } } }));
+  expect(mockFit).not.toHaveBeenCalled();
 });
 
 it('does not refit for equal refreshed rows and disables preview gestures and selection', async () => {
@@ -148,16 +182,21 @@ it.each(['blur', 'scope', 'geometry-ABA', 'account-ABA', 'background'] as const)
   await ready(); expect(maps()).toHaveLength(1);
 });
 
-it.each(['rejection', 'synchronous throw'] as const)('keeps all official credits visible and reports a current link %s', async failure => {
+it.each([
+  { height: 280, failure: 'rejection' }, { height: 280, failure: 'synchronous throw' },
+  { height: 'fill', failure: 'rejection' }, { height: 'fill', failure: 'synchronous throw' },
+] as const)('keeps all official credits reachable and reports a current link $failure at height $height', async ({ height, failure }) => {
   jest.spyOn(Linking, 'openURL').mockImplementation(() => {
     if (failure === 'synchronous throw') throw new Error('offline');
     return Promise.reject(new Error('offline'));
   });
-  await render(); const links = tree.root.findAllByType('Press' as React.ElementType);
+  await render({ height }); const links = tree.root.findAllByType('Press' as React.ElementType);
   expect(links.map(link => link.props.accessibilityLabel)).toEqual(LOCATION_MAP_CREDITS.map(credit => credit.text));
   await act(async () => links[0].props.onPress());
   expect(Linking.openURL).toHaveBeenCalledWith('https://www.openstreetmap.org/copyright');
   expect(words()).toContain('Veza ka izvoru mape nije otvorena');
+  if (height === 'fill') expect(tree.root.findByProps({ testID: 'location-overview-credits' })
+    .findAllByProps({ accessibilityRole: 'alert' })).toHaveLength(1);
 });
 
 it('web fallback discloses no coordinates and imports no rendered native map', async () => {

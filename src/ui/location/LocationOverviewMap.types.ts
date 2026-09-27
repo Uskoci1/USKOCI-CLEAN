@@ -6,7 +6,8 @@ export type LocationOverviewMapProps = Readonly<{
   scopeKey: string;
   coarse: boolean;
   interactive: boolean;
-  height: number;
+  /** Numeric canvas height for previews; fill consumes a bounded parent's remainder. */
+  height: number | 'fill';
   selectedId?: string;
   onSelectPoint?: (id: string) => void;
   testID?: string;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockSession = { user: { id: 'worker' }, accountRevision: 1 };
 let mockFocused = true;
@@ -13,7 +14,7 @@ jest.mock('react-native', () => {
   return new Proxy(rn, { get(target, key) {
     if (key === 'AppState') return { currentState: mockState, addEventListener: (_: string, fn: typeof mockListener) => { mockListener = fn; return { remove: jest.fn() }; } };
     if (key === 'Linking') return { openURL: (...args: unknown[]) => mockOpen(...args) };
-    if (key === 'Modal' || key === 'ScrollView') return key;
+    if (key === 'Modal' || key === 'ScrollView' || key === 'View') return key;
     if (key === 'useWindowDimensions') return () => ({ width: 390, height: 800 });
     return Reflect.get(target, key);
   } });
@@ -53,6 +54,38 @@ describe('task map expansion and explicit navigation', () => {
     expect(tree.root.findAllByProps({ label: 'Cela putanja u Google mapama' })).toHaveLength(0);
     await press({ label: 'Otvori područje u Google mapama' });
     expect(mockOpen.mock.calls[0][0]).toContain('query=45.27%2C19.83');
+  });
+  it('gives a single-point expanded map the space above its natural-height actions', async () => {
+    await act(async () => { tree = create(<LocationMapPreview points={[points[0]]} scopeKey={scopeKey} coarse />); });
+    expect(tree.root.findByType('Canvas' as React.ElementType).props.height).toBe(184);
+    await press({ accessibilityLabel: 'Otvori mapu' });
+    const canvas = tree.root.findByType('Canvas' as React.ElementType);
+    const footer = tree.root.findByProps({ testID: 'location-map-actions' });
+    const header = tree.root.findByType('ProductHeader' as React.ElementType);
+    expect(canvas.props).toMatchObject({ height: 'fill', interactive: true, coarse: true, points: [points[0]] });
+    expect(canvas.parent).toBe(footer.parent);
+    expect(header.parent).toBe(canvas.parent?.parent);
+    expect(StyleSheet.flatten(canvas.parent!.props.style)).toMatchObject({ flex: 1, minHeight: 0 });
+    expect(StyleSheet.flatten(footer.props.style)).toMatchObject({ flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: '50%' });
+    expect(StyleSheet.flatten(footer.props.contentContainerStyle).flexGrow).toBeUndefined();
+    expect(tree.root.findAllByProps({ label: 'Prikaži sve tačke' })).toHaveLength(0);
+    await press({ label: 'Otvori područje u Google mapama' });
+    expect(mockOpen).toHaveBeenCalledWith('https://www.google.com/maps/search/?api=1&query=45.27%2C19.83');
+  });
+  it('keeps every long stop and navigation action inside the bounded footer without wrapping the map in a scroller', async () => {
+    const stops = Array.from({ length: 12 }, (_, index) => ({ ...points[0], id: `stop-${index}`,
+      label: `Mesto ${index + 1}: duga potvrđena oznaka ulaza i mesta preuzimanja`, latitude: 45 + index / 100 }));
+    await act(async () => { tree = create(<LocationMapPreview points={stops} scopeKey={scopeKey} route />); });
+    await press({ accessibilityLabel: 'Otvori mapu' });
+    const footer = tree.root.findByProps({ testID: 'location-map-actions' });
+    expect(footer.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(stops.length);
+    expect(footer.findAllByType('Canvas' as React.ElementType)).toHaveLength(0);
+    expect(footer.findAllByProps({ label: 'Prikaži sve tačke' })).toHaveLength(1);
+    await press({ accessibilityLabel: `Prikaži na mapi: ${stops[11].label}` });
+    expect(tree.root.findByType('Canvas' as React.ElementType).props.selectedId).toBe('stop-11');
+    const navigate = footer.findByProps({ label: `Navigacija: ${stops[11].label}` });
+    await act(async () => navigate.props.onPress());
+    expect(mockOpen.mock.calls[0][0]).toContain('destination=45.11%2C19.831234');
   });
   it('retires navigation, stop selection and close callbacks between modal visits', async () => {
     await render(); await press({ accessibilityLabel: 'Otvori mapu' });

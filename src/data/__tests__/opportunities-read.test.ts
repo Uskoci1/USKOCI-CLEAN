@@ -8,6 +8,7 @@ jest.mock('../publicProfileClientService', () => ({
 
 import { supabaseIzvor } from '../supabaseIzvor';
 import { publicProfileClientService } from '../publicProfileClientService';
+import { NEED_URGENCY_BUDGET_MS } from '../needUrgencyClientService';
 
 let mockSession = { user: { id: 'reader-a' }, accountRevision: 1 };
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
@@ -132,6 +133,38 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     expect(rows.map(row => row.id)).toEqual([NEED1, NEED2]);
     for (const row of rows) expect(row).toMatchObject({ narucilacIme: '', narucilacOcena: null,
       narucilacBrojOcena: null, narucilacAvatarId: null });
+  });
+
+  it('keeps the complete public collection when an optional urgency read stalls, without inventing its badge', async () => {
+    jest.useFakeTimers();
+    let late!: (value: unknown) => void;
+    let urgencySignal!: AbortSignal;
+    const observed = { needId: NEED1, level: 'HITNO', activatedAt: '2026-09-19T10:00:00Z',
+      expiresAt: '2026-09-19T11:00:00Z', authoritative: true };
+    mockRpc.mockImplementation((name: string, args: { p_need_id?: string }) => {
+      if (name === 'rpc_list_open_tasks_v3') return Promise.resolve(page([
+        item({ urgent: true }), item({ id: NEED2, urgent: true }), item({ id: NEED3 }),
+      ]));
+      if (args.p_need_id === NEED1) return Promise.resolve({ data: observed, error: null });
+      return { abortSignal: (signal: AbortSignal) => {
+        urgencySignal = signal; return new Promise(resolve => { late = resolve; });
+      } };
+    });
+    publicProfile.mockResolvedValue(null);
+    try {
+      const reading = supabaseIzvor.otvorenePrilike();
+      await jest.advanceTimersByTimeAsync(NEED_URGENCY_BUDGET_MS);
+      const rows = await reading;
+      expect(rows.map(row => row.id)).toEqual([NEED1, NEED2, NEED3]);
+      expect(rows[0].urgency).toEqual({ level: 'HITNO', expiresAt: observed.expiresAt });
+      expect(rows[1].urgency).toBeUndefined(); expect(rows[2].urgency).toBeUndefined();
+      expect(rows.every(row => row.pokrivenost.preostalo === 2 && row.taskTimezone === 'Europe/Belgrade')).toBe(true);
+      expect(urgencySignal.aborted).toBe(true);
+      late({ data: { ...observed, needId: NEED2 }, error: null });
+      for (let index = 0; index < 12; index++) await Promise.resolve();
+      expect(rows[1].urgency).toBeUndefined(); expect(mockRpc).toHaveBeenCalledTimes(3);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
   });
 
   it('rejects the whole account-owned walk after an A-B-A change during optional enrichment', async () => {

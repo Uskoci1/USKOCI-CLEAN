@@ -903,7 +903,7 @@
         "ui": "Postojeći prikaz; odobrenje po paketu",
         "backend": "Postojeći RPC bez promene; kvalitet matching-a nije ovim dokazan.",
         "state_sync": "Izvor: ručna dopuna AI radnog profila čuva postojeće Unicode termine kao kanonski editor.",
-        "performance": "Nije ponovo mereno",
+        "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
@@ -1661,13 +1661,13 @@
         "flow": "Poruke",
         "ux": "Učitavanje starijih/novijih poruka čuva mesto čitanja; jedan dodir vraća najnovije i kada stara poruka više ne postoji.",
         "ui": "Postojeći oblačići i unos zadržani. Diskretne radnje Starije/Novije i retry pripadaju istoriji.",
-        "backend": "DEV B3a/B3b APPLIED; ledger205 i svi otisci/dozvole potvrđeni. Bez promene pisanja/sertifikata. Round16 15:36UTC: realtime publication ima0tabela, private broadcast0polisa; direktan realtime nije uključen. B3c pripremljen kao zaseban SQL fragment i lokalni dokaz; još nije izvršen, primenljiv ni povezan sa klijentom.",
+        "backend": "DEV B3a/B3b APPLIED; ledger205 i svi otisci/dozvole potvrđeni. Bez promene pisanja/sertifikata. Round16 15:36UTC: realtime publication ima0tabela, private broadcast0polisa; direktan realtime nije uključen. B3c pripremljen kao zaseban SQL fragment i lokalni dokaz; još nije izvršen, primenljiv ni povezan sa klijentom. B3c lokalni SQL/Auth dokaz36333212694 sada prolazi; Realtime veza i primena nisu dokazani.",
         "state_sync": "Aktuelni nalog/poseta/snimak i izmerene dolazne poruke određuju ACK. Stari potvrđeni outbox unosi se ne pojavljuju posle izbacivanja iz prozora; novo mesto čitanja nadjačava čekajuću stranicu. Round16: promenjen tab=poruke otvara postojeći Dogovor bez resetovanja reda za slanje/istorije; kasniji Nazad ostaje. Ponovljen isti parametar bez novog identiteta nije novi signal.",
         "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
         "test": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json Round16: postojeći osveživač/istorija3grupe/104testa PASS; nije dokaz direktne pretplate. Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
         "device_proof": "APK36330066989 / dfe2836e / sha197df5a5 installed emulator-5556 with -r. Map/pin/card/back, AI ready+keyboard and recovery, Agreement overview/chat inspected in inert local scenes. Calendar last-week overflow reproduced; new source fix awaits consolidated APK. No real E2E/provider/phone/scale acceptance.",
         "status": "SERVER PRIMENJEN / KLIJENT POVEZAN / CILJANE PROVERE PROŠLE / TELEFON ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_B3C_SQL_RECEIPT.json"
       }
     },
     {
@@ -3631,7 +3631,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "eff72a25",
+    "source_head": "3dc23096",
     "order": [
       "P0",
       "P1",
@@ -3644,14 +3644,14 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "Round17: final integrated TypeScript PASS; search34/34 and AI layout38/38 PASS. Initial TypeScript failed only on a new test mock nullable RAF handle, then corrected. No full suite.",
-    "device": "APK36330066989 / dfe2836e / sha197df5a5 installed emulator-5556 with -r. Map/pin/card/back, AI ready+keyboard and recovery, Agreement overview/chat inspected in inert local scenes. Calendar last-week overflow reproduced; new source fix awaits consolidated APK. No real E2E/provider/phone/scale acceptance.",
+    "tests": "Round18 integrated TypeScript PASS; map4suites/63 + urgency3/43 PASS. No full-suite rerun.",
+    "device": "Round17 APK36332545768/eff72a25 sha570103ca installed with session preserved. Native calendar recheck ongoing. Round18 new map/read-budget not yet built.",
     "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
     "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-    "implementation": "Round17: natural-layout search containers fix reproduced calendar overflow; generation-owned one-shot reveal; ready AI review uses brand green action; inert Agreement gallery order matches current route. Prepared B3c SQL is not run/deployable. No live server changes.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_17_NATIVE_CALENDAR.md",
+    "implementation": "Round18: expanded map fills remaining screen, single-point brand marker has no redundant number; optional urgency reads share4s budget. No TaskCard/Peek/DEV changes.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_MAP_AND_READ_BUDGET.md",
     "dashboard_publication": "PENDING_UPLOAD: 27.09 oko15:45UTC isti prijavljeni vlasnik/polje; podržani filechooser opet ne vraća izbor. Posle pokušaja udaljena tabla ostaje24.09/b9aed185. Lokalna generacija nije objava; deljenje nije menjano.",
-    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md",
+    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_17_NATIVE_CALENDAR.md",
     "server_proof_source": "be72a1bd",
     "server_proof": "B3a11+B3b7 privremenih SQL/Auth provera PASS36312570701; tačni paketi sada APPLIED i CLIENT_WIRED. DEVledger205/hash/ACL/certifikat potvrđeni. Bez novih poslovnih podataka ili uređajskog dokaza.",
     "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
@@ -3673,7 +3673,7 @@
         "Bounded Discovery contract and proof",
         "Voice and complete exact-message push",
         "Written rating comment contract and proof",
-        "Direct realtime invalidation: source + local-only rollback proof harness prepared and statically reviewed; SQL/Auth run, websocket delivery, concurrency and closure recertification still pending."
+        "B3c private invalidation: disposable SQL/Auth/rollback proof PASS; actual websocket filtering, concurrency and approved closure recertification remain before deployment."
       ],
       "mutation": "EXPLICIT_USER_APPROVAL_EXECUTED; DEVledger203→205; push20→21; bez pomeranja sertifikata. Uređaj/provider nisu provereni.",
       "applied": [
@@ -3682,6 +3682,6 @@
         "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback"
       ]
     },
-    "chat_b3c": "SOURCE_PREPARED / STATIC_REVIEW_PASS / SQL_NOT_RUN / NOT_DEPLOYABLE: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_B3C_PREPARATION.md"
+    "chat_b3c": "DISPOSABLE_SQL_AUTH_PASS36333212694 / NOT_DEPLOYABLE / NOT_CLIENT_WIRED / WEBSOCKET_UNPROVEN"
   }
 }

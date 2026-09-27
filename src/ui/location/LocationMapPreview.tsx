@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AppState, Linking, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowsOutSimple, ArrowSquareOut } from 'phosphor-react-native';
@@ -64,7 +64,6 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
   const life = useRef({ alive: true, sequence: 0, busy: false, timer: undefined as ReturnType<typeof setTimeout> | undefined });
   const currentOwns = useRef(owns); currentOwns.current = owns;
   const reduced = useReducedMotion();
-  const window = useWindowDimensions();
   const selected = points.find(p => p.id === selectedId) ?? points[0];
   const routeUrl = route && !coarse ? routeMapUrl(points) : null;
   const own = () => life.current.alive && currentOwns.current();
@@ -107,9 +106,11 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
       animationType={reduced ? 'none' : 'fade'} onRequestClose={close}>
       <SafeAreaView style={s.screen} edges={['top', 'bottom', 'left', 'right']}>
         <ProductHeader title={coarse ? 'Približno mesto' : points.length > 1 ? 'Tačke zadatka' : 'Mesto zadatka'} back={close} backLabel="Zatvori mapu" />
-        <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <View style={s.expandedContent}>
           <LocationOverviewMap points={points} scopeKey={`${scopeKey}:expanded`} coarse={coarse} interactive
-            selectedId={selectedId} onSelectPoint={choose} height={Math.max(220, Math.min(520, window.height * 0.5))} testID="location-expanded-map" />
+            selectedId={selectedId} onSelectPoint={choose} height="fill" testID="location-expanded-map" />
+          <ScrollView testID="location-map-actions" style={s.footer} contentContainerStyle={s.content}
+            keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="never">
           <View style={s.details}>
             {coarse ? <T tone="muted" variant="meta">Prikazano je približno područje, ne tačna adresa.</T> : null}
             {points.length > 1 ? <View style={s.stops}>
@@ -131,7 +132,8 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
               ? 'Proveri redosled stanica u Google mapama pre polaska.'
               : 'Za ovu putanju otvori navigaciju do svake tačke posebno.'}</T> : null}
           </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </SafeAreaView>
     </Modal> : null}
   </View>;
@@ -139,6 +141,10 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
+  expandedContent: { flex: 1, minHeight: 0 },
+  // Short actions take their natural height. A long stop list can use at most
+  // half of the space below the header and scrolls without displacing the map.
+  footer: { flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: '50%' },
   content: { paddingBottom: sys.space.lg },
   details: { paddingHorizontal: sys.space.lg, gap: sys.space.md },
   openLabel: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, minHeight: 48,
