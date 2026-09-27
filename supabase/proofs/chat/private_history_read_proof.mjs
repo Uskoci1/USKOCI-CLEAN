@@ -14,6 +14,23 @@ const closure=()=>rows("select private.closure_source_digest_v5() live,(select s
 const surface=()=>sql(readFileSync('supabase/proofs/pkg023/pkg023_surface.sql','utf8')).split('\n').filter(Boolean);
 const exists=signature=>sql(`select (to_regprocedure(${q(signature)}) is not null)::text`)==='true';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+// Synthetic legacy state only, behind closure_runtime's loopback gate. Ordinary
+// writes reject NULL requester context; the certified erasure adapter does not
+// redact Agreement participants. No trigger/catalog or closure certificate is changed.
+function legacyParticipants(id,requesterId,workerId){
+  const triggers=()=>rows(`select t.oid,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid) definition,
+    md5(p.prosrc) body_md5 from pg_trigger t join pg_proc p on p.oid=t.tgfoid
+    where t.tgrelid='public.agreements'::regclass order by t.oid`);
+  const before=triggers();assert.ok(before.some(t=>t.tgname==='pre_v3_closure_agreement'&&t.tgenabled==='O'));
+  const value=id=>id===null?'null':q(id)+'::uuid';
+  const result=sql(`begin;set local session_replication_role=replica;
+    update public.agreements set requester_account_id=${value(requesterId)},worker_account_id=${value(workerId)}
+      where id=${q(id)} returning id;
+    set local session_replication_role=origin;select current_setting('session_replication_role');
+    commit;select current_setting('session_replication_role');`);
+  // Both observations are from the fixture connection, before and after COMMIT.
+  assert.equal(result,id+'\norigin\norigin');assert.deepEqual(triggers(),before);
+}
 
 await rt.prove('CHAT_B3A_PRIVATE_HISTORY_AND_EXACT_READ','chat-b3a-report.json',async report=>{
   assert.equal(env.RU5_DEVICE_SUPABASE_URL,'http://127.0.0.1:54321');
@@ -164,11 +181,14 @@ await rt.prove('CHAT_B3A_PRIVATE_HISTORY_AND_EXACT_READ','chat-b3a-report.json',
   // schema. These are isolated SQL fixtures, not an account-erasure execution.
   const forWorker=await send(requester,'Nullable requester fixture',otherAgreementId);
   const forRequester=await send(worker,'Nullable worker fixture',otherAgreementId);
-  for(const [column,remaining,displayed,restoreId] of [
-    ['requester_account_id',worker,forWorker,requester.id],
-    ['worker_account_id',requester,forRequester,worker.id],
+  const normalNullWrite=()=>sql(`update public.agreements set requester_account_id=null where id=${q(otherAgreementId)}`);
+  assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
+  const nullFixtureEvents=eventSnapshot();
+  for(const [column,remaining,displayed] of [
+    ['requester_account_id',worker,forWorker],
+    ['worker_account_id',requester,forRequester],
   ]){
-    sql(`update public.agreements set ${column}=null where id=${q(otherAgreementId)}`);
+    legacyParticipants(otherAgreementId,column==='requester_account_id'?null:requester.id,column==='worker_account_id'?null:worker.id);
     try{
       const beforeRefusal=eventSnapshot();
       await denied(page(stranger,null,50,otherAgreementId),'MEDIA_NOT_FOUND');
@@ -180,8 +200,15 @@ await rt.prove('CHAT_B3A_PRIVATE_HISTORY_AND_EXACT_READ','chat-b3a-report.json',
       const changed=eventSnapshot().filter(row=>JSON.stringify(row)!==JSON.stringify(beforeRefusal.find(old=>old.id===row.id)));
       assert.equal(changed.length,1);assert.ok(eventRead(displayed));
       assert.deepEqual(closure(),certified);
-    }finally{sql(`update public.agreements set ${column}=${q(restoreId)} where id=${q(otherAgreementId)}`);}
+    }finally{legacyParticipants(otherAgreementId,requester.id,worker.id);}
   }
+  const afterNullEvents=eventSnapshot();assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
+  assert.deepEqual(eventSnapshot(),afterNullEvents);
+  assert.equal(afterNullEvents.filter(row=>JSON.stringify(row)!==JSON.stringify(nullFixtureEvents.find(old=>old.id===row.id))).length,2);
+  assert.deepEqual(rows(`select requester_account_id,worker_account_id from public.agreements where id=${q(otherAgreementId)}`),
+    [{requester_account_id:requester.id,worker_account_id:worker.id}]);
+  assert.deepEqual(closure(),certified);
+  rt.pass(report,'LOCAL_NULL_FIXTURE_RESTORES_ORIGIN_TRIGGER_DEFINITIONS_AND_ORDINARY_WRITE_REFUSAL');
   rt.pass(report,'EACH_NULL_PARTICIPANT_REFUSES_OUTSIDER_WITH_NO_READ_CHANGE_AND_RETAINS_REMAINING_PARTY');
 
   // A terminal Agreement retains history. New writes are not added by B3a.

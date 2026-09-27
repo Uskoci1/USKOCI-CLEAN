@@ -23,6 +23,21 @@ const noReadEffects=()=>Object.fromEntries([
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const idsOf=page=>page.messages.map(message=>message.messageId);
 const cursorOf=message=>({createdAt:message.createdAt,messageId:message.messageId});
+// Local legacy fixture, not an erasure operation. SET LOCAL is restricted to
+// this one transaction/connection; normal RPC sessions retain all their guards.
+function legacyParticipants(id,requesterId,workerId){
+  const triggers=()=>rows(`select t.oid,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid) definition,
+    md5(p.prosrc) body_md5 from pg_trigger t join pg_proc p on p.oid=t.tgfoid
+    where t.tgrelid='public.agreements'::regclass order by t.oid`);
+  const before=triggers();assert.ok(before.some(t=>t.tgname==='pre_v3_closure_agreement'&&t.tgenabled==='O'));
+  const value=id=>id===null?'null':q(id)+'::uuid';
+  const result=sql(`begin;set local session_replication_role=replica;
+    update public.agreements set requester_account_id=${value(requesterId)},worker_account_id=${value(workerId)}
+      where id=${q(id)} returning id;
+    set local session_replication_role=origin;select current_setting('session_replication_role');
+    commit;select current_setting('session_replication_role');`);
+  assert.equal(result,id+'\norigin\norigin');assert.deepEqual(triggers(),before);
+}
 
 await rt.prove('CHAT_B3B_EXACT_MESSAGE_WINDOW','chat-b3b-report.json',async report=>{
   assert.equal(env.RU5_DEVICE_SUPABASE_URL,'http://127.0.0.1:54321');
@@ -130,21 +145,30 @@ await rt.prove('CHAT_B3B_EXACT_MESSAGE_WINDOW','chat-b3b-report.json',async repo
   await ok(window(unread));assert.deepEqual(noReadEffects(),beforeRefusals);
   rt.pass(report,'INVALID_BOUNDS_TARGET_SCOPE_EXPECTED_ACCOUNT_AND_ANON_REFUSALS_NO_READ_OR_DELIVERY_EFFECTS');
 
-  for(const [column,remaining,restoreId] of [['requester_account_id',worker,requester.id],['worker_account_id',requester,worker.id]]){
-    sql(`update public.agreements set ${column}=null where id=${q(agreementId)}`);
+  const normalNullWrite=()=>sql(`update public.agreements set requester_account_id=null where id=${q(agreementId)}`);
+  assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
+  const nullFixtureReads=noReadEffects();
+  for(const [column,remaining] of [['requester_account_id',worker],['worker_account_id',requester]]){
+    legacyParticipants(agreementId,column==='requester_account_id'?null:requester.id,column==='worker_account_id'?null:worker.id);
     try{
       const beforeNullReads=noReadEffects();
       await denied(window(oldTarget,stranger),'MEDIA_NOT_FOUND');
       assert.equal((await ok(window(oldTarget,remaining,0,0))).targetMessageId,oldTarget);
       assert.deepEqual(noReadEffects(),beforeNullReads);assert.deepEqual(closure(),certified);
-    }finally{sql(`update public.agreements set ${column}=${q(restoreId)} where id=${q(agreementId)}`);}
+    }finally{legacyParticipants(agreementId,requester.id,worker.id);}
   }
-  sql(`update public.agreements set requester_account_id=null,worker_account_id=null where id=${q(agreementId)}`);
+  legacyParticipants(agreementId,null,null);
   try{
     const beforeBothNull=noReadEffects();
     for(const actor of [requester,worker,stranger])await denied(window(oldTarget,actor),'MEDIA_NOT_FOUND');
     assert.deepEqual(noReadEffects(),beforeBothNull);
-  }finally{sql(`update public.agreements set requester_account_id=${q(requester.id)},worker_account_id=${q(worker.id)} where id=${q(agreementId)}`);}
+  }finally{legacyParticipants(agreementId,requester.id,worker.id);}
+  assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
+  assert.deepEqual(noReadEffects(),nullFixtureReads);
+  assert.deepEqual(rows(`select requester_account_id,worker_account_id from public.agreements where id=${q(agreementId)}`),
+    [{requester_account_id:requester.id,worker_account_id:worker.id}]);
+  assert.deepEqual(closure(),certified);
+  rt.pass(report,'LOCAL_NULL_FIXTURE_RESTORES_ORIGIN_TRIGGER_DEFINITIONS_AND_ORDINARY_WRITE_REFUSAL');
   rt.pass(report,'EACH_AND_BOTH_NULL_PARTICIPANTS_REFUSE_OUTSIDERS_RETAIN_REMAINING_PARTY_NO_READ_EFFECT');
 
   // Metadata-only fixture. This does not upload, download or play private media.
