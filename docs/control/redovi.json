@@ -3699,6 +3699,13 @@
     "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
     "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
     "p4_exact_message": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
-    "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md"
+    "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md",
+    "p5_licenses": {
+      "status": "SOURCE_ONLY_RUNTIME_PENDING_DEV_UNAPPLIED_CLIENT_UNWIRED",
+      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/worker_profile_licenses_owned_projection_report.md",
+      "problem": "Ručno uređivanje radnog profila ne dobija postojeće licence koje AI i matching koriste.",
+      "decision": "Pripremljeno jedno dodatno polje postojećeg privatnog čitača. Bez izmene licenci, prava ili sertifikata. Nedostajuće polje nikada nije prazan spisak.",
+      "proof": "Statički pregled prošao; nova izolovana SQL provera pokreće se posle ovog commita. DEV nije menjan."
+    }
   }
 }
