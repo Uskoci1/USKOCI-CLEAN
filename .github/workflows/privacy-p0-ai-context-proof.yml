@@ -118,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(psql "$DB_URL" -Atc "select private.retention_ai_source_ready()")" = "t"
-          test "$(psql "$DB_URL" -Atc "select strpos(pg_get_functiondef('private.ai_need_turn_context(uuid)'::regprocedure), $$not in('need.resolved_location','need.public_photo_paths','need.verified_identity_required')$$)>0")" = "t"
+          test "$(psql "$DB_URL" -Atc "select strpos(pg_get_functiondef('private.ai_need_turn_context(uuid)'::regprocedure), 'not in(''need.resolved_location'',''need.public_photo_paths'',''need.verified_identity_required'')')>0")" = "t"
 
       - name: Apply privacy P0 candidate only to disposable database
         shell: bash
