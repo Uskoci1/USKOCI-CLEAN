@@ -1,6 +1,10 @@
 name: Chat B3 bounded history and exact read disposable proof
-# SOURCE PREPARED / NOT RUN. Manual proof only; no DEV apply or provider calls.
+# Disposable proof only; no DEV apply or provider calls. The narrowly scoped push
+# trigger registers this branch-only workflow before later manual dispatches.
 on:
+  push:
+    branches: [work/uskoci-ui-unification-20260924]
+    paths: ['.github/workflows/chat-b3-history-proof.yml']
   workflow_dispatch:
 permissions:
   contents: read
