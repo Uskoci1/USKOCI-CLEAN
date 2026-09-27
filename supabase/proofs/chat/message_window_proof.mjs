@@ -107,8 +107,16 @@ await rt.prove('CHAT_B3B_EXACT_MESSAGE_WINDOW','chat-b3b-report.json',async repo
     select x.id,${q(agreementId)},1,${q(worker.id)},'Window fixture '||x.ord,
       date_trunc('day',statement_timestamp())-interval '1 day'+((x.ord/3)::integer)*interval '1 microsecond'
     from unnest(array[${fixtureIds.map(q).join(',')}]::uuid[]) with ordinality x(id,ord);`);
-  const expectedRows=rows(`select id,to_jsonb(created_at) as created_at from public.agreement_messages where agreement_id=${q(agreementId)} order by created_at,id`);
+  // Qualify the timestamptz sort key: bare created_at selects the JSONB output
+  // alias and orders serialized timestamps by string collation instead of time.
+  const expectedRows=rows(`select m.id,to_jsonb(m.created_at) as created_at from public.agreement_messages m
+    where m.agreement_id=${q(agreementId)} order by m.created_at,m.id`);
   const expected=expectedRows.map(row=>row.id),expectedTime=new Map(expectedRows.map(row=>[row.id,row.created_at]));
+  assert.equal(expected.length,fixtureIds.length);
+  assert.deepEqual([...expected].sort(),[...fixtureIds].sort());
+  // Integer ord/3 gives exactly two zero-microsecond rows and two at 40 µs.
+  assert.deepEqual(expected.slice(0,2),fixtureIds.slice(0,2).sort());
+  assert.deepEqual(expected.slice(-2),fixtureIds.slice(-2).sort());
   assert.ok(expectedRows.some(row=>/\.000001[+-]/.test(row.created_at)));
   const oldTarget=expected[40],stable=noReadEffects();
   const newest=await ok(requester.client.rpc('rpc_read_agreement_messages_page_v1',{
