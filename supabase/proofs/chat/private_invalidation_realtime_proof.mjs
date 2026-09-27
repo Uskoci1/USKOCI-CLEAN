@@ -1,4 +1,5 @@
-// PREPARED / NOT RUN / NOT DEPLOYABLE. Local committed WAL fixture only.
+// Disposable wire proof / NOT DEPLOYABLE. Prior run failed before its first
+// known-message witness; bounded diagnostics below distinguish the next failure.
 // The distinct admission never rebinds certificates. The workflow MUST discard
 // the entire local stack after this phase, including every failure path.
 import assert from 'node:assert/strict';
@@ -23,10 +24,12 @@ const report = {
   admission: 'LOCAL_ONLY_EPHEMERAL_REALTIME', fixtureCommitted: false,
   certifiedErasureProven: false, teardownRequired: true, checks: [], sourceArtifactHashes: {},
   knownMessageWatermarks: 0, heartbeatBarriers: 0, channelsClosed: false,
+  messageAttempts: [],
   // Finite ordered-message witnesses, not a claim that silence alone proves denial.
   observationContract: 'KNOWN_MESSAGE_WATERMARKS_AND_LIVE_SOCKET_HEARTBEATS',
 };
 let stage = 'LOCAL_TARGET_ADMISSION';
+let operation = 'ADMISSION';
 let outputDirectory;
 let rt;
 let createClient;
@@ -51,9 +54,30 @@ function pass(name) {
   report.checks.push({name, result: 'PASS'});
   console.log('PASS CHAT_B3C_REALTIME_' + name);
 }
-function fail() {
-  if (report.failureStage) (report.cleanupFailureStages ??= []).push(stage);
-  else report.failureStage = stage;
+function errorKind(error) {
+  // Never copy arbitrary error messages, details, hints, stack, payload or codes.
+  if (error?.code === 'ERR_ASSERTION') return 'ASSERTION';
+  for (const name of ['BOUNDED_OPERATION_TIMEOUT', 'PROOF_TERMINATED', 'WITNESS_TIMEOUT']) {
+    if (error?.message === name) return name;
+  }
+  if (typeof error?.message === 'string' && error.message.startsWith('LOCAL_SQL:')) return 'SQL_PROCESS_FAILURE';
+  if (error instanceof TypeError) return 'TYPE_ERROR';
+  return 'OTHER_FAILURE';
+}
+function safeRpcCode(code) {
+  return ['28000', '42501', '55000', '22023', '22001', '22P02', 'P0001', 'P0002',
+    '40001', '40P01', '23503', '23505', '42703', '42883', '42P01', '57014',
+    'PGRST116', 'PGRST202', 'PGRST301', 'PGRST302'].includes(code) ? code : 'OTHER_OR_ABSENT';
+}
+function fail(error) {
+  const diagnostic = {operation, kind: errorKind(error)};
+  if (report.failureStage) {
+    (report.cleanupFailureStages ??= []).push(stage);
+    (report.cleanupFailureDiagnostics ??= []).push({stage, ...diagnostic});
+  } else {
+    report.failureStage = stage;
+    report.failureDiagnostic = diagnostic;
+  }
   process.exitCode = 1;
   console.error('FAIL CHAT_B3C_REALTIME_' + stage);
 }
@@ -75,21 +99,61 @@ async function waitFor(predicate) {
   assert.equal(wireFault, false);
 }
 function certificates() {
+  operation = 'READ_CERTIFICATE_AND_SURFACE_SNAPSHOT';
   return rt.rows(`select
     (select to_jsonb(c) from private.closure_source_v5 c where singleton) source,
     (select to_jsonb(c) from private.closure_erasure_source_v5 c where singleton) erasure,
     pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure) readiness_definition,
     private.closure_source_digest_v5() digest,
+    private.closure_schema_digest_v5_139() schema_digest,
+    private.closure_erasure_program_digest_v5() erasure_program_digest,
     private.retention_ai_source_ready() ready,
     private.closure_erasure_binding_v5() binding,
     (select jsonb_agg(to_jsonb(p) order by pubname) from pg_publication p) publications,
     (select jsonb_agg(to_jsonb(p) order by pubname,schemaname,tablename) from pg_publication_tables p) publication_tables,
+    (select jsonb_object_agg(p.oid::regprocedure::text,md5(to_jsonb(p)::text)) from pg_proc p
+      where p.oid in(select to_regprocedure(signature) from unnest(array[
+        'public.rpc_agreement_invalidation_visible_v1(uuid)',
+        'private.agreement_message_invalidate_v1()',
+        'private.agreement_invalidation_cleanup_v1()',
+        'private.agreement_invalidation_surface_v1()']::text[]) signature)) invalidation_function_metadata,
     to_regclass('public.agreement_invalidations_v1') is not null candidate_present`)[0];
 }
 function certificateIdentity(state) {
   return hashJson([state.source, state.erasure, state.readiness_definition]);
 }
+function surfaceComparisons(state) {
+  const publications = Array.isArray(state.publications) ? state.publications : [];
+  const tables = Array.isArray(state.publication_tables) ? state.publication_tables : [];
+  const targetTables = tables.filter(row => row.pubname === 'supabase_realtime');
+  const publication = publications.find(row => row.pubname === 'supabase_realtime');
+  return {
+    sourceCertificateUnchanged: hashJson(state.source) === hashJson(baseline.source),
+    erasureCertificateUnchanged: hashJson(state.erasure) === hashJson(baseline.erasure),
+    readinessDefinitionUnchanged: state.readiness_definition === baseline.readiness_definition,
+    candidatePresent: state.candidate_present === true,
+    readinessFalse: state.ready === false,
+    bindingNull: state.binding === null,
+    digestValid: typeof state.digest === 'string' && /^[a-f0-9]{64}$/.test(state.digest),
+    digestDiffersFromCertified: state.digest !== baseline.digest,
+    soleExpectedPublishedTable: targetTables.length === 1 && targetTables[0].schemaname === 'public'
+      && targetTables[0].tablename === 'agreement_invalidations_v1',
+    rawMessagesUnpublished: !tables.some(row => row.tablename === 'agreement_messages'),
+    publicationInsertUpdateOnly: publication?.pubinsert === true && publication?.pubupdate === true
+      && publication?.pubdelete === false && publication?.pubtruncate === false && publication?.puballtables === false,
+    ...(installed ? {
+      sourceDigestUnchangedSinceInstall: state.digest === installed.digest,
+      schemaDigestUnchangedSinceInstall: state.schema_digest === installed.schema_digest,
+      erasureProgramDigestUnchangedSinceInstall: state.erasure_program_digest === installed.erasure_program_digest,
+      invalidationFunctionMetadataUnchangedSinceInstall: hashJson(state.invalidation_function_metadata) === hashJson(installed.invalidation_function_metadata),
+      publicationsUnchangedSinceInstall: hashJson(state.publications) === hashJson(installed.publications),
+      publicationTablesUnchangedSinceInstall: hashJson(state.publication_tables) === hashJson(installed.publication_tables),
+      completeSnapshotUnchangedSinceInstall: hashJson(state) === hashJson(installed),
+    } : {}),
+  };
+}
 function verifyUncertified(state) {
+  operation = 'ASSERT_UNCERTIFIED_SURFACE';
   assert.equal(certificateIdentity(state), certificateIdentity(baseline));
   assert.equal(state.candidate_present, true);
   assert.equal(state.ready, false);
@@ -149,6 +213,7 @@ select 'CHAT_B3C_EPHEMERAL_UNCERTIFIED_COMMITTED';
   assert.equal(output.split(/\r?\n/).filter(line => line === 'CHAT_B3C_EPHEMERAL_UNCERTIFIED_COMMITTED').length, 1);
   report.fixtureCommitted = true;
   installed = certificates();
+  report.installedSurfaceComparisons = surfaceComparisons(installed);
   verifyUncertified(installed);
 }
 
@@ -197,33 +262,52 @@ async function agreement(requester, worker, label) {
 }
 
 function eventKey(agreementId, revision) { return agreementId + '/' + revision; }
+function rejectWire(observer, kind) {
+  wireFault = true;
+  report.wireFailure ??= {observer: observer.index, kind};
+}
 function acceptEvent(observer, payload) {
+  observer.receivedCallbacks++;
+  let admission = 'SCHEMA_AND_TABLE';
   try {
     assert.equal(payload.schema, 'public');
     assert.equal(payload.table, 'agreement_invalidations_v1');
+    admission = 'EVENT_TYPE_INSERT_OR_UPDATE';
     assert.ok(['INSERT', 'UPDATE'].includes(payload.eventType)); // Any DELETE is a leak.
+    admission = 'SERVER_ERRORS_EMPTY';
     assert.ok(!payload.errors || payload.errors.length === 0);
+    admission = 'COMMIT_TIMESTAMP_VALID';
     assert.ok(Number.isFinite(Date.parse(payload.commit_timestamp)));
+    admission = 'NEW_EXACT_BODY_FREE_KEYS';
     assert.deepEqual(Object.keys(payload.new).sort(), ['agreement_id', 'revision']);
+    admission = 'POSITIVE_AGREEMENT_MEMBERSHIP';
     assert.equal(payload.new.agreement_id, observer.agreementId); // No client filter used.
+    admission = 'NEW_REVISION_POSITIVE_SAFE_INTEGER';
     assert.ok(Number.isSafeInteger(payload.new.revision) && payload.new.revision > 0);
+    admission = 'OLD_RECORD_OBJECT';
     assert.ok(payload.old && typeof payload.old === 'object' && !Array.isArray(payload.old));
     const oldKeys = Object.keys(payload.old ?? {});
+    admission = 'OLD_BODY_FREE_KEYS';
     assert.ok(oldKeys.every(key => key === 'agreement_id' || key === 'revision'));
+    admission = 'OLD_AGREEMENT_MEMBERSHIP';
     if (oldKeys.includes('agreement_id')) assert.equal(payload.old.agreement_id, observer.agreementId);
+    admission = 'OLD_REVISION_SAFE_INTEGER';
     if (oldKeys.includes('revision')) assert.ok(Number.isSafeInteger(payload.old.revision));
     const key = eventKey(payload.new.agreement_id, payload.new.revision);
+    admission = 'REVOKED_SESSION_EVENT_DENIED';
     assert.equal(observer.denyAll, false);
+    admission = 'FORBIDDEN_EVENT_REVISION_DENIED';
     assert.equal(observer.denied.has(key), false);
+    admission = 'CALLBACK_COUNT_BOUND';
     observer.count++;
     assert.ok(observer.count <= 100);
     // Retain only the validated body-free witness, never the complete payload.
     observer.seen.set(key, payload.eventType);
-  } catch { wireFault = true; }
+  } catch { rejectWire(observer, admission); }
 }
 async function observe(actor, actorSession, agreementId) {
   const observer = {agreementId, count: 0, seen: new Map(), denied: new Set(), denyAll: false,
-    status: 'CONNECTING', heartbeats: 0};
+    status: 'CONNECTING', heartbeats: 0, receivedCallbacks: 0, index: observers.length + 1};
   observers.push(observer);
   // This callback freezes a real issued JWT. A manual setAuth alone would be
   // overwritten by SupabaseClient's accessToken callback on later heartbeats.
@@ -231,7 +315,7 @@ async function observe(actor, actorSession, agreementId) {
     accessToken: async () => actorSession.token,
     realtime: {logger: () => {}, heartbeatIntervalMs: 60000, heartbeatCallback: status => {
       if (status === 'ok') observer.heartbeats++;
-      if (!shuttingDown && ['error', 'timeout'].includes(status)) wireFault = true;
+      if (!shuttingDown && ['error', 'timeout'].includes(status)) rejectWire(observer, 'HEARTBEAT_FAILED');
     }},
   });
   observer.channel = observer.client.channel('b3c-wire-' + randomUUID()).on('postgres_changes', {
@@ -240,8 +324,8 @@ async function observe(actor, actorSession, agreementId) {
   // PostgreSQL row policies authorize this stream. Do not invent private
   // broadcast admission or use a client Agreement filter as an authorization test.
   observer.channel.subscribe(status => {
-    observer.status = status;
-    if (!shuttingDown && ['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) wireFault = true;
+    observer.status = ['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status) ? status : 'OTHER';
+    if (!shuttingDown && observer.status !== 'SUBSCRIBED') rejectWire(observer, 'CHANNEL_' + observer.status);
   }, 15000);
   await waitFor(() => observer.status === 'SUBSCRIBED');
   assert.equal(actor.id.length, 36);
@@ -252,23 +336,52 @@ function revision(id) {
   return values.length ? Number(values[0].revision) : 0;
 }
 async function send(actor, id, receivers) {
+  operation = 'SEND_READ_CACHE_REVISION_BEFORE';
+  const attempt = {ordinal: report.messageAttempts.length + 1,
+    agreementScope: id === fixture.main ? 'MAIN' : 'FOREIGN',
+    phase: operation, expectedReceivers: receivers.length,
+    callbacksAtStart: observers.reduce((total, observer) => total + observer.receivedCallbacks, 0)};
+  report.messageAttempts.push(attempt);
   const next = revision(id) + 1;
+  attempt.expectedRevision = Number.isSafeInteger(next) && next <= 100 ? next : null;
   const clientId = randomUUID();
   const body = 'Disposable B3c known message ' + randomUUID();
-  const messageId = await bounded(rt.ok(actor.client.rpc('rpc_send_agreement_message_v2', {
+  operation = attempt.phase = 'SEND_CANONICAL_RPC';
+  const result = await bounded(actor.client.rpc('rpc_send_agreement_message_v2', {
     p_expected_user_id: actor.id, p_agreement_id: id, p_client_message_id: clientId, p_body: body,
-  })));
+  }));
+  attempt.rpcAccepted = !result.error;
+  attempt.rpcStatus = Number.isInteger(result.status) && result.status >= 100 && result.status <= 599 ? result.status : null;
+  if (result.error) attempt.rpcCode = safeRpcCode(result.error.code);
+  assert.equal(attempt.rpcAccepted, true);
+  const messageId = result.data;
+  operation = attempt.phase = 'SEND_VALIDATE_RETURNED_MESSAGE_ID';
+  attempt.returnedMessageIdValid = typeof messageId === 'string' && uuidPattern.test(messageId);
   assert.match(messageId, uuidPattern);
-  assert.equal(revision(id), next);
-  assert.equal(rt.sql(`select exists(select 1 from public.agreement_messages
+  operation = attempt.phase = 'SEND_VERIFY_CACHE_ADVANCEMENT';
+  const actualRevision = revision(id);
+  attempt.cacheRevisionAfter = Number.isSafeInteger(actualRevision) && actualRevision <= 100 ? actualRevision : null;
+  attempt.cacheAdvancedAsExpected = actualRevision === next;
+  assert.equal(actualRevision, next);
+  operation = attempt.phase = 'SEND_VERIFY_CANONICAL_MESSAGE_PERSISTED';
+  const persisted = rt.sql(`select exists(select 1 from public.agreement_messages
     where id=${rt.q(messageId)} and agreement_id=${rt.q(id)}
-      and client_message_id=${rt.q(clientId)} and body=${rt.q(body)})`), 't');
+      and client_message_id=${rt.q(clientId)} and body=${rt.q(body)})`);
+  attempt.canonicalMessagePersisted = persisted === 't';
+  assert.equal(persisted, 't');
   const key = eventKey(id, next);
-  await waitFor(() => receivers.every(observer => observer.seen.get(key) === (next === 1 ? 'INSERT' : 'UPDATE')));
+  operation = attempt.phase = 'SEND_WAIT_POSITIVE_RECEIVER_WITNESSES';
+  await waitFor(() => {
+    attempt.positiveReceiverWitnesses = receivers.filter(observer => observer.seen.get(key) === (next === 1 ? 'INSERT' : 'UPDATE')).length;
+    attempt.callbacksObserved = observers.reduce((total, observer) => total + observer.receivedCallbacks, 0) - attempt.callbacksAtStart;
+    return attempt.positiveReceiverWitnesses === receivers.length;
+  });
+  attempt.phase = 'KNOWN_MESSAGE_WITNESSED';
   report.knownMessageWatermarks++;
   return next;
 }
 async function heartbeatBarrier() {
+  operation = 'HEARTBEAT_SOCKET_ADMISSION';
   // After an ordered known-message witness, require each negative observer's
   // existing socket to answer a fresh heartbeat. A disconnected or timed-out
   // observer never earns an absence assertion. This remains a finite proof.
@@ -278,6 +391,7 @@ async function heartbeatBarrier() {
     assert.equal(observer.client.realtime.isConnected(), true);
     await observer.client.realtime.sendHeartbeat();
   }
+  operation = 'HEARTBEAT_WAIT_FRESH_ACKNOWLEDGEMENTS';
   await waitFor(() => observers.every((observer, index) => observer.heartbeats > before[index]));
   report.heartbeatBarriers++;
 }
@@ -416,10 +530,18 @@ try {
   assert.equal(wireFault, false);
   pass('CANONICAL_CACHE_DELETE_NOT_PUBLISHED_WITH_LATER_MESSAGE_WITNESS');
   report.incomingStreamProven = true;
-} catch { fail(); }
+} catch (error) { fail(error); }
 finally {
   const originalStage = stage;
+  report.observersBeforeClose = observers.map(observer => ({
+    observer: observer.index, status: observer.status,
+    connected: observer.client?.realtime.isConnected() === true,
+    callbacksReceived: Math.min(observer.receivedCallbacks, 1000),
+    bodyFreeEventsValidated: Math.min(observer.count, 100),
+    heartbeatAcknowledgements: Math.min(observer.heartbeats, 1000),
+  }));
   stage = 'CLOSE_ALL_CHANNELS';
+  operation = 'UNSUBSCRIBE_AND_DISCONNECT';
   shuttingDown = true;
   try {
     const closed = await Promise.allSettled(observers.map(async observer => {
@@ -431,8 +553,8 @@ finally {
     }));
     assert.ok(closed.every(result => result.status === 'fulfilled'));
     report.channelsClosed = true;
-  } catch {
-    fail();
+  } catch (error) {
+    fail(error);
   }
   // No raw client errors, JWTs, IDs, message bodies, URLs or service responses
   // enter this report. The workflow separately records actual stack teardown.
@@ -441,15 +563,28 @@ finally {
     try {
       const after = certificates();
       report.certificateMoved = certificateIdentity(after) !== certificateIdentity(baseline);
+      report.finalSurfaceComparisons = surfaceComparisons(after);
+      report.finalReadiness = after.ready;
+      report.certificateIdentitySha256 = certificateIdentity(after);
+      // Whitelisted snapshot field names only; no values, relation identities,
+      // function definitions or publication contents enter failure diagnostics.
+      if (installed) report.changedSnapshotFields = [
+        'source', 'erasure', 'readiness_definition', 'digest', 'schema_digest',
+        'erasure_program_digest', 'ready', 'binding', 'publications',
+        'publication_tables', 'invalidation_function_metadata', 'candidate_present',
+      ].filter(key => hashJson(after[key]) !== hashJson(installed[key]));
+      operation = 'ASSERT_CERTIFICATE_IDENTITY_UNCHANGED';
       assert.equal(report.certificateMoved, false);
       if (after.candidate_present) {
         verifyUncertified(after);
+        operation = 'ASSERT_COMPLETE_INSTALLED_SNAPSHOT_UNCHANGED';
         if (installed) assert.equal(hashJson(after), hashJson(installed));
-      } else assert.equal(hashJson(after), hashJson(baseline));
-      report.certificateIdentitySha256 = certificateIdentity(after);
-      report.finalReadiness = after.ready;
+      } else {
+        operation = 'ASSERT_COMPLETE_BASELINE_SNAPSHOT_UNCHANGED';
+        assert.equal(hashJson(after), hashJson(baseline));
+      }
       pass('FINAL_CERTIFICATES_READINESS_DEFINITION_AND_SURFACE_UNCHANGED');
-    } catch { fail(); }
+    } catch (error) { fail(error); }
   }
   stage = originalStage;
   report.validatedBodyFreeEvents = observers.reduce((total, observer) => total + observer.count, 0);
