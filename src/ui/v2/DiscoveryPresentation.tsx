@@ -2,6 +2,7 @@ import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRe
 import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurTargetView } from 'expo-blur';
 import { useIsFocused } from 'expo-router';
 import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { State as GestureState } from 'react-native-gesture-handler';
@@ -245,6 +246,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // The search panel, opened at "Gde" from the pill and at "Kada" from "Uslovi pretrage".
   const [search, setSearch] = useState<SearchStep | null>(null);
+  const searchBlurTarget = useRef<View | null>(null);
   // The list is read from what filters it and nothing else: moving the map or choosing a pin changes the view, and must
   // not hand the map a new list (the native source would be set again on every pan). The map's own set leaves the area
   // out, so a move of the map never takes a pin away; only the list follows the area. "Now" is read again with every new
@@ -960,7 +962,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* Search is this screen's header. Identity belongs to Home; the existing account/publication entries stay in Još. */}
-    <View testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
+    <BlurTargetView ref={searchBlurTarget} testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
       <Animated.View testID="discovery-map-layer" style={[StyleSheet.absoluteFill, mapShown && mapVisibility]}
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
@@ -1036,8 +1038,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
-    </View>
-    {search ? <DiscoverySearchPanel items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
+    </BlurTargetView>
+    {search ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
       start={search} reduced={reduced} readiness={readiness} onApply={apply} onClose={() => setSearch(null)} /> : null}
     {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
       ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),

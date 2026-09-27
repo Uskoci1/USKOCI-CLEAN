@@ -5,6 +5,7 @@ import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '..
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
 import { captureCurrentLocation } from '../../data/nativeCurrentLocation';
+import { sesijaSada } from '../../store/sesija';
 import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { Press } from '../Press';
@@ -67,6 +68,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     focus.current = true; setFocused(true);
     return () => {
       focus.current = false; renderEpoch.current++; requestEpoch.current++; resolver.cancel();
+      hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
       const saved = current.current.point;
       // Clearing the search text on blur left the point ask seedless for the rest of the session:
       // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
@@ -79,6 +81,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   useEffect(() => {
     if (!disabled) return;
     requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null);
+    hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
     setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
     setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });
@@ -86,6 +89,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const owns = () => alive.current && focus.current && !current.current.disabled && rendered === renderEpoch.current;
   const retireSearch = (clearCandidatePin = false) => {
     renderEpoch.current++; requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null);
+    hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     if (clearCandidatePin && origin.kind === 'PROVIDER_CANDIDATE') { setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); }
   };
   const invalidate = () => { setPending(true); setError(false); onInvalidate(); };
@@ -118,20 +122,33 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     void search();
   }, [autoLocate, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
   const useHere = async () => {
-    if (!owns() || here === 'BUSY') return;
+    if (!owns() || hereRequest.current) return;
+    retireSearch();
     const request = new AbortController();
-    hereRequest.current?.abort();
+    const epoch = requestEpoch.current, owner = sesijaSada();
     hereRequest.current = request;
     setHere('BUSY');
-    const result = await captureCurrentLocation(request.signal, owns);
-    if (!owns() || hereRequest.current !== request) return;
-    if (result.kind === 'POINT') {
-      setHere(null); setPlaceByHand(true);
-      // The same path a tap on the map takes: a manual pin the person still confirms.
-      choose({ latitude: result.point.latitude, longitude: result.point.longitude });
-      return;
+    // The BUSY render must not retire its own observation. The request's intent,
+    // focus and account own it; another edit or lookup advances the epoch.
+    const ownsRequest = () => alive.current && focus.current && !current.current.disabled && !request.signal.aborted
+      && hereRequest.current === request && requestEpoch.current === epoch
+      && sesijaSada().user?.id === owner.user?.id && sesijaSada().accountRevision === owner.accountRevision;
+    try {
+      const result = await captureCurrentLocation(request.signal, ownsRequest);
+      if (!ownsRequest()) return;
+      hereRequest.current = null;
+      if (result.kind === 'POINT') {
+        retireSearch(); setPlaceByHand(true);
+        // Apply a manual proposal under the live request, not the pre-await render's choose callback.
+        // Nothing confirms or saves it until the person presses the existing confirmation.
+        setPosition({ latitude: result.point.latitude, longitude: result.point.longitude });
+        setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
+        return;
+      }
+      setHere(result.kind === 'CANCELLED' ? null : result.kind === 'DENIED' ? 'DENIED' : 'UNAVAILABLE');
+    } finally {
+      if (hereRequest.current === request) { hereRequest.current = null; if (alive.current) setHere(null); }
     }
-    setHere(result.kind === 'CANCELLED' ? null : result.kind === 'DENIED' ? 'DENIED' : 'UNAVAILABLE');
   };
   const reverse = async () => {
     if (!owns() || !position || lookup.status === 'LOADING') return;

@@ -1,20 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { AccessibilityInfo, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, CaretUp, Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
+import { BlurView } from 'expo-blur';
+import { Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
+import Animated, { FadeIn, LinearTransition, runOnJS } from 'react-native-reanimated';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { withInter } from '../../interFont';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
+import { TurningCaret } from '../../system/Disclosure';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { osoba, zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, sys } from '../../system/tokens';
+import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, floating, sys } from '../../system/tokens';
 import { V2Action } from '../V2Action';
 import { DateRangeGrid } from './DateRangeGrid';
-import { CLEAR_ALL, PRICE, WHEN, WHERE, undatedWords, whenWords, whereWords } from './discoveryWords';
+import { CLEAR_ALL, PRICE, WHEN, WHERE, said, undatedWords, whenWords, whereWords } from './discoveryWords';
 
 /** Everything the search panel chooses, as a draft: nothing reaches the list before "Prikaži N zadataka". */
 export type SearchDraft = { query: string; place: string | null; area: PublicBounds | null;
@@ -37,6 +40,37 @@ const ANYWHERE = { query: '', place: null, area: null, pinPlace: null } as const
 
 export type SearchStep = 'gde' | 'kada' | 'kako' | 'koliko' | 'cena';
 
+/** A floating group owns only disclosure. All choices remain in the parent draft when its editor is closed. */
+function SearchGroup({ step, label, summary, art, open, large, reduced, revealToken, onToggle, onPosition, onBodyPosition, onSettled, children }: {
+  step: SearchStep; label: string; summary: string; art: FactArtKind; open: boolean; large: boolean; reduced: boolean;
+  revealToken: number; onToggle: (step: SearchStep) => void;
+  onPosition: (step: SearchStep, y: number, token: number) => void;
+  onBodyPosition: (step: SearchStep, y: number) => void;
+  onSettled: (step: SearchStep, token: number) => void; children: ReactNode;
+}) {
+  const layout = reduced ? undefined : LinearTransition.duration(sys.motion.toggle).withCallback(finished => {
+    'worklet';
+    if (finished) runOnJS(onSettled)(step, revealToken);
+  });
+  return <Animated.View testID={`search-step-${step}`} layout={layout} style={s.group}
+    onLayout={event => onPosition(step, event.nativeEvent.layout.y, revealToken)}>
+    <Press testID={step === 'gde' ? 'search-place-toggle' : `search-${step}-toggle`} accessibilityRole="button"
+      accessibilityLabel={label} accessibilityValue={{ text: summary }} accessibilityState={{ expanded: open }}
+      onPress={() => onToggle(step)} haptic="select" hitSlop={0} scaleTo={0.99} style={s.groupHeader}>
+      <FactArt kind={art} size={open ? 32 : 28} />
+      <View style={s.groupCopy}>
+        <T variant={open ? 'bodyStrong' : 'note'} tone={open ? 'ink' : 'muted'}>{label}</T>
+        {!open ? <T variant="bodyStrong" numberOfLines={large ? 3 : 2}>{summary}</T> : null}
+      </View>
+      <TurningCaret open={open} />
+    </Press>
+    {open ? <Animated.View entering={reduced ? undefined : FadeIn.duration(sys.motion.exit)} style={s.groupBody}
+      onLayout={event => onBodyPosition(step, event.nativeEvent.layout.y)}>
+      {children}
+    </Animated.View> : null}
+  </Animated.View>;
+}
+
 /**
  * Whether a screen reader is on, followed while the panel is open. With one on, revealing an editor never takes over
  * scrolling: focus stays on the control the person just used. The platform may
@@ -45,18 +79,45 @@ export type SearchStep = 'gde' | 'kada' | 'kako' | 'koliko' | 'cena';
 export function useScreenReader(): boolean {
   const [reader, setReader] = useState(false);
   useEffect(() => {
-    let alive = true;
+    let alive = true, revision = 0;
     try {
+      const request = revision;
       const answer = AccessibilityInfo.isScreenReaderEnabled?.();
-      answer?.then?.(enabled => { if (alive && typeof enabled === 'boolean') setReader(enabled); }, () => undefined);
+      answer?.then?.(enabled => { if (alive && request === revision && typeof enabled === 'boolean') setReader(enabled); }, () => undefined);
     } catch { /* Nothing is known; manual editor expansion keeps its usual reveal. */ }
     let listener: { remove?: () => void } | undefined;
     try {
-      listener = AccessibilityInfo.addEventListener?.('screenReaderChanged', (enabled: boolean) => { if (alive) setReader(!!enabled); });
+      listener = AccessibilityInfo.addEventListener?.('screenReaderChanged', (enabled: boolean) => { if (alive) { revision++; setReader(!!enabled); } });
     } catch { listener = undefined; }
     return () => { alive = false; listener?.remove?.(); };
   }, []);
   return reader;
+}
+
+/** iOS starts opaque until the preference is known; a newer event always wins over an older async query. */
+function useReducedTransparency(): boolean {
+  const [opaque, setOpaque] = useState(Platform.OS === 'ios');
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    let alive = true, revision = 0;
+    const ask = () => {
+      const request = ++revision;
+      try {
+        AccessibilityInfo.isReduceTransparencyEnabled?.()?.then(value => {
+          if (alive && revision === request && typeof value === 'boolean') setOpaque(value);
+        }, () => undefined);
+      } catch { /* The readable opaque fallback remains when the preference cannot be read. */ }
+    };
+    let preference: { remove?: () => void } | undefined, foreground: { remove?: () => void } | undefined;
+    try { preference = AccessibilityInfo.addEventListener?.('reduceTransparencyChanged', value => {
+      if (alive) { revision++; setOpaque(!!value); }
+    }); } catch { /* Older adapters keep the last known preference. */ }
+    try { foreground = AppState.addEventListener?.('change', value => { if (value === 'active') ask(); }); }
+    catch { /* No foreground API in this environment. */ }
+    ask();
+    return () => { alive = false; revision++; preference?.remove?.(); foreground?.remove?.(); };
+  }, []);
+  return opaque;
 }
 
 /** One set of choices, one of which is chosen (a radio group to a screen reader), in the shared chosen-chip look. */
@@ -107,8 +168,8 @@ function Stepper({ value, expanded, onChange }: { value: number; expanded: boole
 }
 
 /**
- * Search opens the place/word editor; filters open a compact overview of conditions. Simple choices are always visible,
- * while place suggestions and the calendar expand locally. Choices stay in context, including with a screen reader.
+ * The entry opens its own group; one group is expanded at a time. Closed groups summarize the current draft,
+ * while the calendar expands inside Kada. Switching groups keeps every chosen value and screen-reader focus.
  * Every choice is a draft: the footer's one green action applies it all
  * and says how many tasks the list will then show (a polite live region, so the new number is heard), "Obriši uslove"
  * empties the draft, and × or Back leaves the list exactly as it was. While the list is not known yet the panel counts
@@ -119,11 +180,13 @@ function Stepper({ value, expanded, onChange }: { value: number; expanded: boole
  * area and every task; the words typed there also search the tasks' titles, places and conditions, as the search over
  * the map did.
  */
-export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 'gde', reduced, readiness = 'ready', onApply, onClose }: {
+export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, start = 'gde', reduced, readiness = 'ready', onApply, onClose }: {
   items: readonly MarketplaceItem[]; view: MarketplaceView; mine: ReadonlySet<string> | undefined; now: Date;
   /** The map's visible area when the camera has settled somewhere, for "Oblast sa mape"; null when unknown. */
   mapArea: PublicBounds | null;
-  /** Entry context: "Gde" opens place/words; condition entries open the grouped filter overview. */
+  /** The underlying Discovery scene, never the search cards themselves. Android needs the explicit native target. */
+  blurTarget?: RefObject<View | null>;
+  /** Entry context opens that group; unavailable work-mode controls fall back to Gde. */
   start?: SearchStep;
   reduced: boolean;
   /** Whether the list it counts is known; see `SearchReadiness`. */
@@ -131,14 +194,28 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   onApply: (draft: SearchDraft) => void; onClose: () => void;
 }) {
   const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
-  const [placeOpen, setPlaceOpen] = useState(start === 'gde');
+  const [activeStep, setActiveStep] = useState<SearchStep | null>(() => start === 'kako'
+    && (view.where ?? 'any') === 'any' && !saysWorkMode(items) ? 'gde' : start);
   const [datesOpen, setDatesOpen] = useState(false);
   const scroll = useRef<ScrollView>(null);
-  const reveal = useRef<'gde' | 'kada' | null>(null);
-  const sectionY = useRef({ gde: 0, kada: 0 });
+  const reveal = useRef<{ step: SearchStep; token: number; calendar?: boolean } | null>(null);
+  const revealSequence = useRef(0), revealFrame = useRef<number | null>(null), mounted = useRef(true);
+  const sectionY = useRef<Record<SearchStep, number>>({ gde: 0, kada: 0, kako: 0, koliko: 0, cena: 0 });
+  const bodyY = useRef<Record<SearchStep, number>>({ gde: 0, kada: 0, kako: 0, koliko: 0, cena: 0 }), calendarY = useRef(0);
   /** The first tap of a range: where it starts, until its end is tapped (the draft already holds that one day). */
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const reader = useScreenReader();
+  const opaque = useReducedTransparency();
+  const canBlur = !opaque && (Platform.OS === 'ios'
+    || (Platform.OS === 'android' && Number(Platform.Version) >= 31 && !!blurTarget));
+  const behavior = useRef({ reader, reduced }); behavior.current = { reader, reduced };
+  const retireReveal = useCallback(() => {
+    reveal.current = null; revealSequence.current++;
+    if (revealFrame.current !== null) { cancelAnimationFrame(revealFrame.current); revealFrame.current = null; }
+  }, []);
+  useEffect(() => { mounted.current = true; return () => {
+    mounted.current = false; retireReveal();
+  }; }, [retireReveal]);
   const large = useTextScale() >= 1.3;
   const { width } = useWindowDimensions();
   const stackedActions = large || width < 360;
@@ -151,23 +228,44 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   // "Kako se radi" is offered only when some task says how it is done, or when it is already on and must be removable.
   // Ownership labels do not remove public tasks from Discovery, so they must not hide their filter either.
   const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(items);
+  // Own measurements by disclosure/layout generation, without retiring them for count or text rerenders.
+  const layoutOwner = useMemo(() => ({}), [activeStep, datesOpen, workModes, width, large]);
+  const currentLayoutOwner = useRef(layoutOwner); currentLayoutOwner.current = layoutOwner;
+  useEffect(() => { if (!workModes && activeStep === 'kako') { retireReveal(); setActiveStep('gde'); } }, [workModes, activeStep, retireReveal]);
   const today = serbianToday(now);
   const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
-  const clearAll = () => { setDraft(NO_SEARCH); setRangeStart(null); };
-  // Only a deliberate expansion reveals its editor, once. Typing, count updates and keyboard reflow never take over.
-  const revealEditor = (editor: 'gde' | 'kada', offset = 0) => {
-    if (reveal.current !== editor) return;
+  const clearAll = () => { retireReveal(); setDraft(NO_SEARCH); setRangeStart(null); };
+  // Reveal only after this exact expansion's layout settles. A later toggle/unmount retires the callback.
+  // Scroll itself is immediate so it cannot compete with the group layout animation; screen readers keep focus.
+  const revealEditor = useCallback((step: SearchStep, token: number) => {
+    const intent = reveal.current;
+    if (!mounted.current || !intent || intent.step !== step || intent.token !== token) return;
     reveal.current = null;
-    if (!reader) scroll.current?.scrollTo?.({ y: Math.max(0, sectionY.current[editor] + offset - sys.space.md), animated: !reduced });
+    if (behavior.current.reader) return;
+    const geometryOwner = currentLayoutOwner.current;
+    if (revealFrame.current !== null) cancelAnimationFrame(revealFrame.current);
+    revealFrame.current = requestAnimationFrame(() => {
+      revealFrame.current = null;
+      if (!mounted.current || revealSequence.current !== token || currentLayoutOwner.current !== geometryOwner || behavior.current.reader) return;
+      const offset = intent.calendar ? Math.max(0, bodyY.current.kada + calendarY.current - sys.touch.min - sys.space.md) : 0;
+      scroll.current?.scrollTo?.({ y: Math.max(0, sectionY.current[step] + offset - sys.space.md), animated: false });
+    });
+  }, []);
+  const positionGroup = (step: SearchStep, y: number, token: number) => {
+    if (!mounted.current || currentLayoutOwner.current !== layoutOwner) return;
+    sectionY.current[step] = y;
+    if (reduced || reader) revealEditor(step, token);
   };
-  const togglePlace = () => {
+  const toggleStep = (step: SearchStep) => {
     Keyboard.dismiss();
-    reveal.current = placeOpen ? null : 'gde';
-    setPlaceOpen(current => !current);
+    const token = ++revealSequence.current;
+    reveal.current = activeStep === step ? null : { step, token };
+    setActiveStep(current => current === step ? null : step);
   };
   const toggleDates = () => {
     Keyboard.dismiss(); setRangeStart(null);
-    reveal.current = datesOpen ? null : 'kada';
+    const token = ++revealSequence.current;
+    reveal.current = datesOpen ? null : { step: 'kada', token, calendar: true };
     setDatesOpen(current => !current);
   };
   const tapDay = (day: string) => {
@@ -195,28 +293,30 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
     : readiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : readiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
+  const groupProps = (step: SearchStep) => ({ step, open: activeStep === step, large, reduced: reduced || reader,
+    revealToken: reveal.current?.token ?? 0, onToggle: toggleStep, onPosition: positionGroup,
+    onBodyPosition: (key: SearchStep, y: number) => {
+      if (mounted.current && currentLayoutOwner.current === layoutOwner) bodyY.current[key] = y;
+    }, onSettled: (key: SearchStep, token: number) => {
+      if (mounted.current && currentLayoutOwner.current === layoutOwner) revealEditor(key, token);
+    } });
+  const close = () => { retireReveal(); onClose(); };
 
-  return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={onClose}>
+  return <Modal visible transparent hardwareAccelerated animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={close}>
     <View style={s.veil}>
+      {canBlur ? <BlurView testID="search-blur-backdrop" pointerEvents="none" style={StyleSheet.absoluteFill}
+        intensity={35} tint="light" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurTarget} />
+        : <View testID="search-veil-backdrop" pointerEvents="none" style={[StyleSheet.absoluteFill, opaque ? s.opaqueBackdrop : s.veilBackdrop]} />}
       {/* The footer rides above the keyboard while the words are typed in "Gde" (the app's own keyboard rule). */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.frame}>
         <SafeAreaView edges={['top', 'bottom']} style={s.frame} accessibilityViewIsModal>
           <View style={s.top}>
             <T variant="heading" accessibilityRole="header" style={s.grow}>{start === 'gde' ? 'Pretraga' : 'Uslovi pretrage'}</T>
-            <ChromeIconButton label="Zatvori pretragu" hint="Lista ostaje kakva je bila." icon={X} quiet onPress={onClose} />
+            <ChromeIconButton label="Zatvori pretragu" hint="Lista ostaje kakva je bila." icon={X} quiet onPress={close} />
           </View>
-          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
-            <View testID="search-step-gde" style={s.placeSection} onLayout={event => { sectionY.current.gde = event.nativeEvent.layout.y; }}>
-              <Press testID="search-place-toggle" accessibilityRole="button" accessibilityLabel="Gde" accessibilityValue={{ text: whereWords(draft) }}
-                accessibilityState={{ expanded: placeOpen }} haptic="select" hitSlop={0} scaleTo={0.99} onPress={togglePlace} style={s.placeSummary}>
-                <FactArt kind="pin" size={24} />
-                <View style={s.grow}>
-                  <T variant="note" tone="muted">{draft.where === 'remote' ? 'Reč iz zadatka' : 'Mesto ili reč'}</T>
-                  <T variant="bodyStrong" style={s.ink} numberOfLines={large ? 3 : 2}>{whereWords(draft)}</T>
-                </View>
-                {placeOpen ? <CaretUp size={18} weight="bold" color={sys.color.muted} /> : <CaretDown size={18} weight="bold" color={sys.color.muted} />}
-              </Press>
-              {placeOpen ? <View testID="search-place-editor" style={s.placeEditor} onLayout={() => revealEditor('gde')}>
+          <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" onScrollBeginDrag={retireReveal} contentContainerStyle={s.sections}>
+            <SearchGroup {...groupProps('gde')} label="Gde" summary={whereWords(draft)} art="pin">
+              <View testID="search-place-editor" style={s.placeEditor}>
                 <View style={s.field}>
                   <MagnifyingGlass size={20} color={sys.color.green} />
                   <TextInput accessibilityLabel="Pretraži mesta i zadatke" placeholder={draft.where === 'remote' ? 'Reč iz zadatka' : 'Mesto ili reč iz zadatka'} placeholderTextColor={sys.color.muted}
@@ -237,57 +337,43 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
                     onPress={() => edit({ ...ANYWHERE, place: place.text })} />)}
                   {typed && !shownPlaces.length ? <T variant="note" tone="muted">Nijedno mesto ne sadrži ove reči. Traže se u naslovima i uslovima zadataka.</T> : null}
                 </View></>}
-              </View> : null}
-            </View>
-            <View testID="search-step-kada" style={s.section} onLayout={event => { sectionY.current.kada = event.nativeEvent.layout.y; }}>
-              <View style={s.sectionHeading}>
-                <FactArt kind="calendar" size={24} />
-                <T variant="bodyStrong" accessibilityRole="header" style={s.grow}>Kada</T>
               </View>
+            </SearchGroup>
+            <SearchGroup {...groupProps('kada')} label="Kada" summary={whenWords(draft, now)} art="calendar">
               <Choice label="Kada" options={WHEN} value={draft.dates ? null : draft.when}
                 onChange={when => { setRangeStart(null); edit({ when, dates: null }); }} />
               <Press testID="search-date-toggle" accessibilityRole="button" accessibilityLabel="Datumi"
                 accessibilityValue={{ text: draft.dates ? whenWords(draft, now) : 'Izaberi datume' }} accessibilityState={{ expanded: datesOpen }}
                 onPress={toggleDates} haptic="select" hitSlop={0} scaleTo={0.99} style={s.dateToggle}>
                 <T variant="copy" style={[s.grow, draft.dates ? s.chipTextOn : s.ink]}>{draft.dates ? whenWords(draft, now) : 'Izaberi datume'}</T>
-                {datesOpen ? <CaretUp size={18} weight="bold" color={sys.color.green} /> : <CaretDown size={18} weight="bold" color={sys.color.green} />}
+                <TurningCaret open={datesOpen} />
               </Press>
               {datesOpen ? <View testID="search-date-editor" style={s.dateEditor}
-                onLayout={event => revealEditor('kada', Math.max(0, event.nativeEvent.layout.y - sys.touch.min - sys.space.md))}>
+                onLayout={event => {
+                  if (mounted.current && currentLayoutOwner.current === layoutOwner) calendarY.current = event.nativeEvent.layout.y;
+                }}>
                 <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />
                 <T variant="note" tone="muted" accessibilityLiveRegion="polite">{rangeStart ? 'Izaberi poslednji dan.' : 'Izaberi prvi i poslednji dan.'}</T>
               </View> : null}
               {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}
-            </View>
-            {workModes ? <View testID="search-step-kako" style={s.section}>
-              <View style={s.sectionHeading}>
-                <FactArt kind="remote" size={24} />
-                <T variant="bodyStrong" accessibilityRole="header" style={s.grow}>Kako se radi</T>
-              </View>
+            </SearchGroup>
+            {workModes ? <SearchGroup {...groupProps('kako')} label="Kako se radi" summary={said(WHERE, draft.where)} art="remote">
               <Choice label="Kako se radi" options={WHERE} value={draft.where} onChange={where => edit({ where })} />
-            </View> : null}
-            <View testID="search-step-koliko" style={s.section}>
+            </SearchGroup> : null}
+            <SearchGroup {...groupProps('koliko')} label="Koliko vas dolazi" summary={osoba(draft.places)} art="users">
               <View testID="search-people-layout" style={[s.peopleRow, stackedPeople && s.peopleStacked]}>
-                <View style={[s.sectionHeading, !stackedPeople && s.grow]}>
-                  <FactArt kind="users" size={24} />
-                  <T variant="bodyStrong" accessibilityRole="header" style={s.grow}>Koliko vas dolazi</T>
-                </View>
                 <Stepper value={draft.places} expanded={stackedPeople} onChange={places => edit({ places })} />
               </View>
               <T variant="note" tone="muted">Dovoljno slobodnih mesta za sve vas.</T>
-            </View>
-            <View testID="search-step-cena" style={s.lastSection}>
-              <View style={s.sectionHeading}>
-                <FactArt kind="money" size={24} />
-                <T variant="bodyStrong" accessibilityRole="header" style={s.grow}>Cena</T>
-              </View>
+            </SearchGroup>
+            <SearchGroup {...groupProps('cena')} label="Cena" summary={said(PRICE, draft.price)} art="money">
               <Choice label="Cena" options={PRICE} value={draft.price} onChange={price => edit({ price })} />
-            </View>
+            </SearchGroup>
           </ScrollView>
           <View testID="search-actions" style={[s.footer, stackedActions && s.footerStacked]}>
             <V2Action label={CLEAR_ALL} accessibilityLabel="Obriši sve uslove pretrage" kind="quiet" onPress={clearAll} />
             <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
-              <V2Action label={show.label} disabled={show.disabled} onPress={() => { onApply(draft); onClose(); }} style={brandAction} />
+              <V2Action label={show.label} disabled={show.disabled} onPress={() => { onApply(draft); close(); }} style={brandAction} />
             </View>
           </View>
         </SafeAreaView>
@@ -297,23 +383,25 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
 }
 
 const s = StyleSheet.create({
-  veil: { flex: 1, backgroundColor: sys.color.surface },
+  veil: { flex: 1 },
+  veilBackdrop: { backgroundColor: sys.color.veil },
+  opaqueBackdrop: { backgroundColor: sys.color.surface },
   frame: { flex: 1 },
   grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink },
   top: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm,
-    paddingBottom: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  sections: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base },
-  placeSection: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  placeSummary: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingVertical: sys.space.md },
-  placeEditor: { gap: sys.space.md, paddingBottom: sys.space.base },
-  section: { paddingVertical: sys.space.base, gap: sys.space.md, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  lastSection: { paddingTop: sys.space.base, gap: sys.space.md },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+    paddingBottom: sys.space.md },
+  sections: { paddingHorizontal: sys.space.base, paddingTop: sys.space.xs, paddingBottom: sys.space.base, gap: sys.space.md },
+  group: { ...floating, backgroundColor: sys.color.surface, borderRadius: sys.radius.card },
+  groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
+    paddingHorizontal: sys.space.base, paddingVertical: sys.space.base },
+  groupCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  groupBody: { paddingHorizontal: sys.space.base, paddingBottom: sys.space.base, gap: sys.space.md },
+  placeEditor: { gap: sys.space.md },
   dateToggle: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: sys.touch.min,
     paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
   dateEditor: { gap: sys.space.sm },
-  peopleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.md },
   peopleStacked: { flexDirection: 'column', alignItems: 'stretch' },
   // The one text field of the system, with the search glass before it and the clear button in it.
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
@@ -340,7 +428,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0, textAlign: 'center' },
   footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.md,
-    paddingBottom: sys.space.md, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
+    paddingBottom: sys.space.md },
   // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into
   // a column of letters. Each action gets the full width; no vertical flex growth may squeeze out the filter cards.
   footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },
