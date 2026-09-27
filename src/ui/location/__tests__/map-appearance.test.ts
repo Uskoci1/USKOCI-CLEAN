@@ -30,3 +30,18 @@ test('an unknown provider layer or a changed layer type retains its original app
   layers.forEach((layer, i) => expect(result.layers[i]).toBe(layer));
   expect(uskociMapColors({ name: 'missing', layers: undefined })).toEqual({ name: 'missing', layers: undefined });
 });
+
+test('blue water and green geographic parks remain distinct from a neutral urban background', () => {
+  const rgb = (hex: string) => [1, 3, 5].map(start => parseInt(hex.slice(start, start + 2), 16));
+  for (const color of [sys.map.ground, sys.map.residential]) {
+    const channels = rgb(color);
+    expect(Math.max(...channels) - Math.min(...channels)).toBeLessThanOrEqual(5);
+    expect(Math.min(...channels)).toBeGreaterThanOrEqual(240);
+  }
+  const [red, green, blue] = rgb(sys.map.water);
+  expect(blue - red).toBeGreaterThan(65); expect(green - red).toBeGreaterThan(40);
+  for (const color of [sys.map.park, sys.map.woodland]) {
+    const [r, g, b] = rgb(color);
+    expect(g).toBeGreaterThan(r); expect(g - b).toBeGreaterThan(40);
+  }
+});

@@ -8,8 +8,19 @@ import { sheetLift, sys } from '../../system/tokens';
 /** The sheet's three heights, in this order: its top line only, half the map, the whole list under the tools. */
 export const SNAP = { peek: 0, half: 1, full: 2 } as const;
 
-const ListBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
-  importantForAccessibility="no" style={[style, s.background]} />;
+function ListBackground({ style, animatedIndex }: BottomSheetBackgroundProps) {
+  const joined = useAnimatedStyle(() => {
+    // The final native stop becomes the same white surface as search. Requested React state
+    // alone must not remove the floating edge from a sheet still halfway over the map.
+    const full = animatedIndex.value >= SNAP.full - 0.001;
+    return { borderTopLeftRadius: full ? 0 : sys.radius.sheet, borderTopRightRadius: full ? 0 : sys.radius.sheet,
+      borderWidth: full ? 0 : 1, ...(sheetLift.docked.boxShadow
+        ? { boxShadow: full ? [] : sheetLift.docked.boxShadow }
+        : { elevation: full ? 0 : sheetLift.docked.elevation }) };
+  });
+  return <Animated.View testID="discovery-sheet-background" pointerEvents="none" accessible={false}
+    importantForAccessibility="no" style={[style, s.background, joined]} />;
+}
 /** The sunk sheet draws nothing: its edge and upward shadow would show as a sliver under the pin card. */
 const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
   importantForAccessibility="no" style={[style, s.background, s.sunk]} />;

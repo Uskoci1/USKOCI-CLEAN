@@ -206,6 +206,56 @@ beforeEach(() => {
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
+test('one deliberate count tap opens the full list from peek, joined directly to the measured search tools', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`join${i}`));
+  await render(); await layOutBody(760);
+  await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(116));
+  expect(listSheet().props.index).toBe(0);
+  await act(async () => countLine().props.onPress());
+  expect(listSheet().props.index).toBe(2);
+  expect(listSheet().props.snapPoints[2]).toBe(760 - 116);
+  expect(tree.root.findByType(DiscoverySearchBar).props.chipsShown).toBe(true);
+});
+
+test('only the physically full sheet background joins search without a floating radius, edge or shadow', async () => {
+  await render();
+  const Background = listSheet().props.backgroundComponent;
+  let background: ReactTestRenderer;
+  await act(async () => { background = create(<Background style={{}} animatedIndex={{ value: 1 }} animatedPosition={{ value: 400 }} />); });
+  const style = () => StyleSheet.flatten(background!.root.findByProps({ testID: 'discovery-sheet-background' }).props.style);
+  expect(style()).toMatchObject({ borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, borderWidth: 1 });
+  await act(async () => background!.update(<Background style={{}} animatedIndex={{ value: 2 }} animatedPosition={{ value: 116 }} />));
+  expect(style()).toMatchObject({ backgroundColor: sys.color.surface, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderWidth: 0 });
+  expect(style().boxShadow ?? style().elevation).toEqual(style().boxShadow ? [] : 0);
+  await act(async () => background!.unmount());
+});
+
+test('a new search that leaves only unlocated work raises a remembered half list while preserving the camera', async () => {
+  const viewport = { center: [20.4, 44.8] as [number, number], zoom: 11, bounds: [20.2, 44.6, 20.6, 45] as [number, number, number, number] };
+  initial = { ...initial, sheet: 'half', viewport };
+  rows = [row('local'), row('without', { priblizno: null })];
+  await render(); await search('without');
+  expect(cards()).toEqual(['without']);
+  expect(listSheet().props.index).toBe(2);
+  expect(snapshot.viewport).toEqual(viewport);
+  await dragSheet(1);
+  await search('with'); // A different query can leave the same count; the new intent still opens the result.
+  expect(cards()).toEqual(['without']);
+  expect(listSheet().props.index).toBe(2);
+  expect(snapshot.viewport).toEqual(viewport);
+});
+
+test('a zero-result list can open fully and still offers its real recovery action', async () => {
+  rows = [row('a')];
+  initial = { ...initial, sheet: 'half', area: [0, 0, 1, 1], viewport: { center: [0, 0], zoom: 4, bounds: [0, 0, 1, 1] } };
+  await render(); await layOutBody();
+  await act(async () => countLine().props.onPress());
+  expect(listSheet().props.index).toBe(2);
+  expect(cards()).toEqual([]);
+  expect(action('Prikaži sve zadatke')).toBeDefined();
+  expect(pressable('Mapa')).toHaveLength(0);
+});
+
 test('only explicit search, map and list choices retire a pending publication landing', async () => {
   await render(); await layOutBody();
   await act(async () => map().props.onViewport({ center: [19.8, 45.2], zoom: 10, bounds: [19.7, 45.1, 19.9, 45.3] }));
@@ -264,7 +314,7 @@ test('the remote quick filter clears an old point and place, keeps the camera an
   expect(listSheet().props.backdropComponent).toBeUndefined();
   await layOutBody(800);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(112));
-  expect(listSheet().props.snapPoints[2]).toBe(800 - 112 - sys.space.md);
+  expect(listSheet().props.snapPoints[2]).toBe(800 - 112);
 });
 
 test('the full list fills below search, dims only the map while rising, and keeps its camera when returning', async () => {
@@ -274,7 +324,7 @@ test('the full list fills below search, dims only the map while rising, and keep
   await render(); await layOutBody(760);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(116));
   const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
-  const top = 116 + sys.space.md;
+  const top = 116;
   expect(listSheet().props.snapPoints[2]).toBe(760 - top);
   expect(layer().props.importantForAccessibility).toBe('auto');
   const pins = map().props.items;
@@ -707,8 +757,7 @@ test('return after opening a task during a collapse rebuilds the native sheet at
   expect(listSheet().props.index).toBe(0);
   expect(snapshot).toMatchObject({ sheet: 'peek', viewport, listOffset: 160, price: 'MY_PRICE' });
   await act(async () => countLine().props.onPress());
-  expect(listSheet().props.index).toBe(1);
-  await act(async () => countLine().props.onPress());
+  expect(listSheet().props.index).toBe(2);
   nativeDetent(2); // The new sheet physically reaches full; a requested index alone cannot release restoration.
   await readyList();
   expect(scrollToOffset).toHaveBeenCalledWith({ offset: 160, animated: false });
@@ -1209,16 +1258,14 @@ test('while reading, the sheet is half open over breathing placeholders; the sta
 
 // Discovery V47: the in-header "Prikaži listu" / "Prikaži mapu" words are gone. Nothing is still reached by a gesture
 // only: the top line itself is the button that opens the list, and at the full height a floating "Mapa" brings the map.
-test('the sheet\'s top line is the button that opens the list: from the top line to half, from half to the whole list', async () => {
+test('the sheet\'s top line opens the whole list in one tap; dragging still offers half height', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(pressable('Prikaži listu')).toHaveLength(0); expect(pressable('Prikaži mapu')).toHaveLength(0);
   expect(listSheet().props.index).toBe(0);
-  expect(countLine().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '6 zadataka', accessibilityHint: 'Otvara listu zadataka.',
+  expect(countLine().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '6 zadataka', accessibilityHint: 'Otvara celu listu.',
     accessibilityState: { expanded: false }, accessibilityLiveRegion: 'polite' });
   // Centred, as the one line the top of the sheet says.
   expect(StyleSheet.flatten(countLine().findByType('T' as React.ElementType).props.style).textAlign).toBe('center');
-  await act(async () => countLine().props.onPress()); expect(listSheet().props.index).toBe(1);
-  expect(countLine().props.accessibilityHint).toBe('Otvara celu listu.'); expect(countLine().props.accessibilityState).toEqual({ expanded: true });
   await act(async () => countLine().props.onPress()); expect(listSheet().props.index).toBe(2);
   // At the full height the count is words, not a button: the way back to the map is "Mapa". They are still heard when
   // they change (a polite live region).
@@ -1358,7 +1405,8 @@ test('a crowded place lists its own tasks then point-free work, without widening
   await click('Prikaži sve u listi');
   expect(snapshot).toMatchObject({ pinPlace: '44.79,20.45', area: null, selectedPlace: null }); expect(listSheet().props.index).toBe(2);
   expect(cards()).toEqual(['p1', 'p2', 'p3', 'p4', 'online']);
-  expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.testID === 'section-remote')).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.testID === 'section-unlocated')).toHaveLength(0);
   expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('5 zadataka');
   // The map still draws every task.
   expect(map().props.items).toHaveLength(6);
@@ -1561,26 +1609,28 @@ test('a map area adds nothing under the count; the search pill says it, and its 
 });
 
 // Discovery V47: the list follows the map, and the map keeps every pin whatever the area. A task with no public point
-// (online work, or a task placed nowhere) is never lost to an area: it follows the area's own tasks under its own quiet
-// heading, and the top line says both counts honestly. No coordinate is invented for it.
-test('under a map area the list holds the area\'s tasks, then those without a point under "Bez tačke na mapi"; the count says both', async () => {
+// (online work, or a task placed nowhere) is never lost to an area. Distinct headings explain each kind without
+// inventing a coordinate or interpreting a missing point as remote work.
+test('with or without a map area, remote and unlocated tasks remain distinct real groups with exact counts', async () => {
   rows = [row('in1', at(44.81, 20.41)), row('far', at(45.5, 19.5)), row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }),
     row('in2', at(44.82, 20.42)), row('nowhere', { priblizno: null })];
   await render();
-  expect(cards()).toEqual(['in1', 'far', 'online', 'in2', 'nowhere']);
+  expect(cards()).toEqual(['in1', 'far', 'in2', 'online', 'nowhere']);
   expect(countLine().props.accessibilityLabel).toBe('5 zadataka · 2 zadatka bez tačke na mapi');
-  expect(tree.root.findAll(node => node.props.testID === 'section-without-point')).toHaveLength(0);
+  expect(texts(tree.root.findByProps({ testID: 'section-remote' }))).toBe('Na daljinu 1');
+  expect(texts(tree.root.findByProps({ testID: 'section-unlocated' }))).toBe('Bez označenog mesta 1');
+  expect(texts(tree.root.findByProps({ testID: 'section-map' }))).toBe('Na mapi 3');
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   expect(cards()).toEqual(['in1', 'in2', 'online', 'nowhere']);
-  const heading = tree.root.findAll(node => node.props.testID === 'section-without-point');
+  const heading = tree.root.findAll(node => node.props.testID === 'section-remote');
   expect(heading).toHaveLength(1);
-  expect(heading[0].props).toMatchObject({ accessibilityRole: 'header', accessibilityLabel: 'Na daljinu ili bez tačke na mapi, 2 zadatka' });
-  expect(texts(heading[0])).toBe('Na daljinu ili bez tačke na mapi 2');
+  expect(heading[0].props).toMatchObject({ accessibilityRole: 'header', accessibilityLabel: 'Na daljinu, 1 zadatak' });
+  expect(texts(heading[0])).toBe('Na daljinu 1');
   expect(texts(countLine())).toBe('4 zadatka');
   // The heading stands right before the first task without a point.
-  const order = listSheet().findAll(node => node.props.testID === 'section-without-point'
+  const order = listSheet().findAll(node => ['section-map', 'section-remote', 'section-unlocated'].includes(node.props.testID)
     || (String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''))).map(node => node.props.testID ?? node.props.accessibilityLabel);
-  expect(order).toEqual(['Otvori priliku Pomoć in1', 'Otvori priliku Pomoć in2', 'section-without-point', 'Otvori priliku Pomoć online', 'Otvori priliku Pomoć nowhere']);
+  expect(order).toEqual(['section-map', 'Otvori priliku Pomoć in1', 'Otvori priliku Pomoć in2', 'section-remote', 'Otvori priliku Pomoć online', 'section-unlocated', 'Otvori priliku Pomoć nowhere']);
   expect(countLine().props.accessibilityLabel).toBe('2 zadatka u oblasti · 2 zadatka bez tačke na mapi');
   // The map keeps every pin: moving it never takes one away.
   expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['in1', 'far', 'online', 'in2', 'nowhere']);
@@ -1699,9 +1749,9 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   await search('prevod');
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
-  // A sheet the person has placed elsewhere is left where it is.
+  // A new filter with no map result also opens the usable list from half height.
   await tap('Ukloni uslov: „prevod“'); await dragSheet(1);
-  await search('prevod'); expect(listSheet().props.index).toBe(1);
+  await search('prevod'); expect(listSheet().props.index).toBe(2);
 });
 
 // DN-01: ownership labels are independent of public count and sheet geometry.
@@ -1798,19 +1848,18 @@ test('a sheet resting at its top line rises to half when a quick chip leaves not
 });
 
 // Review of V47, item 10: the empty list's own green action and the floating green "Mapa" must never be on one screen.
-test('an empty list over the map rests at half at most, so its green action and "Mapa" are never on screen together', async () => {
+test('an empty list can remain fully open over the map without duplicating its green recovery action', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, { ...at(44.7 + i / 50, 20.4), ...tomorrowFlexible }));
   // A camera the person already looked at: the map stays even when the filter leaves no pin on it.
   initial = { ...initial, viewport: { center: [20.4, 44.8], zoom: 11, bounds: [20.2, 44.6, 20.6, 45] } };
   await render();
   await dragSheet(2); expect(press('Mapa')).toBeTruthy();
   await act(async () => quick('Danas').props.onPress());
-  expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
+  expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(0);
   expect(action('Obriši uslove')).toBeDefined();
-  // Its top line says why and is not a button that would take the list up only to see it come back.
+  // Its top line remains a count; the full recovery surface is not forced back to half height.
   expect(countLine()).toBeUndefined(); expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('Nema zadataka');
-  // Pulled up anyway, it comes back to half.
-  await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(1); expect(pressable('Mapa')).toHaveLength(0);
+  await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(0);
   // With tasks again, the whole list is open to it.
   await act(async () => quick('Danas').props.onPress()); await dragSheet(2);
   expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeTruthy();
@@ -1973,7 +2022,7 @@ test('full list uses the map band below search while a selected preview still re
   const searchBar = tree.root.findByProps({ testID: 'discovery-search-row' }).parent!;
   await act(async () => searchBar.props.onLayout({ nativeEvent: { layout: { y: 12, height: 144 } } }));
   await act(async () => map().props.onCreditsHeight(56));
-  const clearTop = 156 + sys.space.md;
+  const clearTop = 156;
   expect(500 - listSheet().props.snapPoints[2]).toBe(clearTop);
   await act(async () => map().props.onSelect('bb'));
   const preview = () => tree.root.findByType(DiscoveryPeek);
@@ -2002,9 +2051,9 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   const header = () => tree.root.findByProps({ testID: 'discovery-list-header' });
   await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints).toEqual([96, 202, 262]);
-  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 262, flexGrow: 0, flexShrink: 0 });
-  expect(430 - listSheet().props.snapPoints[2]).toBe(156 + sys.space.md);
+  expect(listSheet().props.snapPoints).toEqual([96, 202, 274]);
+  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 274, flexGrow: 0, flexShrink: 0 });
+  expect(430 - listSheet().props.snapPoints[2]).toBe(156);
   expect(430 - listSheet().props.snapPoints[1]).toBe(156 + 48 + 2 * sys.space.md);
   expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
@@ -2012,10 +2061,10 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   expect(removable()).toHaveLength(3);
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints[2]).toBe(262);
+  expect(listSheet().props.snapPoints[2]).toBe(274);
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
-  expect(StyleSheet.flatten(list().props.style).height).toBe(262); // same highest-detent viewport at half and full
+  expect(StyleSheet.flatten(list().props.style).height).toBe(274); // same highest-detent viewport at half and full
   if (empty) expect(pressable('Mapa')).toHaveLength(0);
   await tap('Ukloni uslov: Beograd');
   expect(snapshot.place).toBeNull(); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();

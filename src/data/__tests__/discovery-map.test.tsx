@@ -4,6 +4,8 @@ import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
 import type { NearbyCameraTarget } from '../../ui/v2/DiscoveryMap.types';
 import { Linking, StyleSheet } from 'react-native';
 let mockFocused = true, mockReduced = false;
+let mockPackage: string | undefined = 'rs.uskoci.preview';
+jest.mock('expo-constants', () => ({ __esModule: true, default: { get expoConfig() { return { android: { package: mockPackage } }; } } }));
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockFit = jest.fn();
 const mockNearbyLoad = jest.fn();
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: () => mockNearbyLoad() }));
@@ -43,7 +45,7 @@ const ready = async () => act(async () => {
 const region = { center: [0, 0], zoom: 4, bounds: [-1, -1, 1, 1] };
 const cluster = { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { cluster: true, cluster_id: 7 } };
 const pressFeature = async (features: unknown[]) => act(async () => source().props.onPress({ nativeEvent: { features }, stopPropagation: jest.fn() }));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockFit, select, setViewport, search, list, clear]) fn.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; mockPackage = 'rs.uskoci.preview'; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockFit, select, setViewport, search, list, clear]) fn.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();
@@ -243,6 +245,29 @@ test('under reduced motion the zoom buttons jump without animation', async () =>
 test('a cluster flies at the camera pace when motion is allowed', async () => {
  mockExpand.mockResolvedValue(9); await render(); await ready(); await pressFeature([cluster]);
  expect(mockEase).toHaveBeenCalledWith({ center: [0, 0], zoom: 9, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled();
+});
+test('DEV map diagnostic emits only six deduplicated names and elapsed time without changing late-ready refusal', async () => {
+ mockPackage = 'rs.uskoci.dev'; const log = jest.spyOn(console, 'info').mockImplementation(() => {});
+ await render(); const callbacks = native().props;
+ await act(async () => { jest.advanceTimersByTime(15_001); });
+ await act(async () => {
+  callbacks.onDidFinishLoadingMap(); callbacks.onDidFinishLoadingMap();
+  callbacks.onDidFinishRenderingFrameFully(); callbacks.onDidFinishRenderingFrameFully();
+  callbacks.onDidFailLoadingMap(); callbacks.onDidFailLoadingMap();
+ });
+ expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
+ await act(async () => tree.unmount());
+ const events = log.mock.calls.map(args => {
+  expect(args).toHaveLength(1); expect(args[0]).toMatch(/^\[USKOCI_MAP_LOAD\] /);
+  const value = JSON.parse(args[0].slice('[USKOCI_MAP_LOAD] '.length));
+  expect(value).toHaveLength(2); expect(Number.isInteger(value[1]) && value[1] >= 0).toBe(true); return value[0];
+ });
+ expect(events).toEqual(['map-mounted', 'deadline', 'map-loaded', 'frame-fully', 'native-error', 'retired']);
+});
+test.each(['rs.uskoci', 'rs.uskoci.preview', 'another.dev', undefined])('DEV map diagnostic stays silent for package %s', async appPackage => {
+ mockPackage = appPackage; const log = jest.spyOn(console, 'info').mockImplementation(() => {});
+ await render(); await ready(); await act(async () => native().props.onDidFailLoadingMap());
+ await act(async () => tree.unmount()); expect(log).not.toHaveBeenCalled();
 });
 
 test.each([false, true])('Nearby centers once, preserves list semantics and public pins (reduced motion: %s)', async reduced => {

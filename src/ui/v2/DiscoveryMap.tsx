@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import Constants from 'expo-constants';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { Info, Minus, Plus } from 'phosphor-react-native';
@@ -21,6 +22,7 @@ import { pinRelationWords, PricePill, type PillContent, type PinRelation } from 
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
+type LoadTraceEvent = 'map-mounted' | 'deadline' | 'native-error' | 'map-loaded' | 'frame-fully' | 'retired';
 /** Rich labels are bounded; every other unclustered public point still has a native USKOČI logo marker. */
 export const PILL_LIMIT = 40;
 const PIN_IMAGES = { 'uskoci-task': require('../../../assets/entry-splash-mark.png') };
@@ -102,11 +104,18 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   };
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const traceStart = useRef(Date.now()), traced = useRef(new Set<LoadTraceEvent>());
+  const traceLoad = useCallback((event: LoadTraceEvent) => {
+    // Next DEV checkpoint only: six fixed events at most, elapsed time and no map/user/request data.
+    if (Constants.expoConfig?.android?.package !== 'rs.uskoci.dev' || traced.current.has(event)) return;
+    traced.current.add(event);
+    console.info(`[USKOCI_MAP_LOAD] ${JSON.stringify([event, Math.max(0, Math.round(Date.now() - traceStart.current))])}`);
+  }, []);
   const [nativeFrameReady, setNativeFrameReady] = useState(false), focused = useRef(true);
   useFocusEffect(useCallback(() => {
     focused.current = true; setNativeFrameReady(false);
-    return () => { focused.current = false; };
-  }, []));
+    return () => { focused.current = false; traceLoad('retired'); };
+  }, [traceLoad]));
   const [viewport, setViewport] = useState(props.viewport);
   // Discovery V47: there is no "Pretraži ovu oblast" any more. A move of the person's own settles, the map waits
   // `AREA_SETTLE_MS`, and the list follows the bounds; a new move of theirs before that starts the wait again.
@@ -155,8 +164,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
     mounted.current = true;
-    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { load.current = 'failed'; setStatus('failed'); } }, 15_000);
-    return () => { mounted.current = false; clearTimeout(timer); cancelArea(); };
+    traceLoad('map-mounted');
+    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { traceLoad('deadline'); load.current = 'failed'; setStatus('failed'); } }, 15_000);
+    return () => { traceLoad('retired'); mounted.current = false; clearTimeout(timer); cancelArea(); };
   }, []);
   const mark = (value: 'ready' | 'failed') => { if (!owns() || load.current === 'failed') return; load.current = value; setStatus(value); };
   // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
@@ -371,10 +381,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
       attribution={false} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
-      onDidFinishLoadingMap={() => { mark('ready'); void readVisiblePins(); }} onDidFailLoadingMap={() => mark('failed')}
+      onDidFinishLoadingMap={() => { if (owns()) traceLoad('map-loaded'); mark('ready'); void readVisiblePins(); }}
+      onDidFailLoadingMap={() => { if (owns()) traceLoad('native-error'); mark('failed'); }}
       // One real native frame per focus entry, not a timer or per-frame state updates. Map readiness alone
       // may survive a detached route while its annotation bitmap is stale. Stop listening as soon as it returns.
-      onDidFinishRenderingFrameFully={nativeFrameReady ? undefined : () => { if (focused.current && owns()) setNativeFrameReady(true); }}
+      onDidFinishRenderingFrameFully={nativeFrameReady ? undefined : () => { if (focused.current && owns()) { traceLoad('frame-fully'); setNativeFrameReady(true); } }}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
       // pill's own press is not taken as a tap on the ground under it.
       onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { manualMapIntent(); latest.current.props.onClear?.(); } }}

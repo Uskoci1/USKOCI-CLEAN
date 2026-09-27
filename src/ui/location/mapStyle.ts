@@ -14,7 +14,8 @@ import { uskociMapColors } from './mapAppearance';
  *
  * Nothing about the person enters this request: it is the same public style address the maps loaded by themselves
  * before. When the style cannot be read (offline, slow, a changed format) the maps get the address as before, and the
- * next map tries again a minute later.
+ * next map tries again a minute later. A valid style arriving after the short display deadline also reaches maps
+ * already on screen, by changing their style prop in place; neither the map nor its camera/selection is remounted.
  *
  * The maps get the rewritten style as its JSON text, made once (review r3 item 12). MapLibre's `Map` turns a style
  * object into that same text itself, but inside a memo keyed on all of its props, which change on every render of the
@@ -79,17 +80,21 @@ function usable(json: unknown): json is StyleObject {
     && addresses(style).every(address => typeof address === 'string' && /^https:\/\//.test(address));
 }
 
-type Fetcher = (url: string) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
+type Fetcher = (url: string, options?: { signal: AbortSignal }) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
 /** Jest never reaches the network: every suite sees the address, exactly as the maps had it before. */
 const inTests = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
-const network = (): Fetcher | null => inTests || typeof fetch !== 'function' ? null : url => fetch(url);
+const network = (): Fetcher | null => inTests || typeof fetch !== 'function' ? null : (url, options) => fetch(url, options);
 export const MAP_STYLE_DEADLINE_MS = 4_000;
+/** Stop a stuck public read without allowing it to overlap or overwrite a later attempt. */
+export const MAP_STYLE_READ_DEADLINE_MS = 15_000;
 export const MAP_STYLE_RETRY_MS = 60_000;
 
 /** The Latin style as JSON text, made once for the whole app. */
 let ready: string | null = null;
 let pending: Promise<MapStyle> | null = null;
 let failedAt: number | null = null;
+let retireRead: (() => void) | null = null;
+const listeners = new Set<(style: string) => void>();
 
 /** What a map can use right now: the Latin style once read, the address when it cannot be read, null while it is read. */
 export function currentMapStyle(now = Date.now(), fetcher: Fetcher | null = network()): MapStyle | null {
@@ -98,28 +103,41 @@ export function currentMapStyle(now = Date.now(), fetcher: Fetcher | null = netw
   return null;
 }
 
-/** Reads the style once for the whole app; never rejects. A read that arrives after its deadline still serves the next map. */
+/** Reads once for the whole app; never rejects. Late success also updates the mounted, still subscribed maps. */
 export function loadMapStyle(fetcher: Fetcher | null = network()): Promise<MapStyle> {
   if (ready) return Promise.resolve(ready);
   if (!fetcher) return Promise.resolve(MAP_STYLE_URL);
   if (failedAt !== null && Date.now() - failedAt < MAP_STYLE_RETRY_MS) return Promise.resolve(MAP_STYLE_URL);
   if (pending) return pending;
-  const read = new Promise<MapStyle>(resolve => {
-    let answered = false;
-    const answer = (value: MapStyle) => { if (!answered) { answered = true; clearTimeout(timer); resolve(value); } };
-    const fail = () => { if (!ready) failedAt = Date.now(); answer(MAP_STYLE_URL); };
-    const timer = setTimeout(fail, MAP_STYLE_DEADLINE_MS);
-    Promise.resolve().then(() => fetcher(MAP_STYLE_URL))
-      .then(response => response.ok ? response.json() : Promise.reject(new Error('MAP_STYLE_UNAVAILABLE')))
-      .then(json => {
-        if (!usable(json)) { fail(); return; }
-        ready = JSON.stringify(latinLabels(uskociMapColors(json))); failedAt = null;
-        answer(ready);
-      })
-      .catch(fail);
-  });
-  pending = read;
-  void read.then(() => { if (pending === read) pending = null; });
+  failedAt = null;
+  const controller = new AbortController();
+  let live = true, answered = false;
+  let resolve!: (style: MapStyle) => void;
+  const read = new Promise<MapStyle>(answer => { resolve = answer; });
+  const answer = (value: MapStyle) => { if (!answered) { answered = true; clearTimeout(displayTimer); resolve(value); } };
+  const fallback = () => { if (!ready && failedAt === null) failedAt = Date.now(); answer(ready ?? MAP_STYLE_URL); };
+  const finish = () => {
+    if (!live) return;
+    live = false; clearTimeout(displayTimer); clearTimeout(readTimer);
+    if (pending === read) pending = null;
+    if (retireRead === retire) retireRead = null;
+  };
+  const retire = () => { if (!live) return; fallback(); finish(); controller.abort(); };
+  const displayTimer = setTimeout(fallback, MAP_STYLE_DEADLINE_MS);
+  const readTimer = setTimeout(retire, MAP_STYLE_READ_DEADLINE_MS);
+  pending = read; retireRead = retire;
+  void Promise.resolve().then(() => live ? fetcher(MAP_STYLE_URL, { signal: controller.signal }) : null)
+    .then(response => response?.ok ? response.json() : Promise.reject(new Error('MAP_STYLE_UNAVAILABLE')))
+    .then(json => {
+      if (!live) return;
+      if (!usable(json)) { fallback(); finish(); return; }
+      const colored = JSON.stringify(latinLabels(uskociMapColors(json)));
+      ready = colored; failedAt = null;
+      answer(colored);
+      finish();
+      listeners.forEach(listener => listener(colored));
+    })
+    .catch(() => { if (live) { fallback(); finish(); } });
   return read;
 }
 
@@ -127,15 +145,17 @@ export function loadMapStyle(fetcher: Fetcher | null = network()): Promise<MapSt
 export function useMapStyle(): MapStyle | null {
   const [style, setStyle] = useState<MapStyle | null>(() => currentMapStyle());
   useEffect(() => {
-    if (style) return;
     let live = true;
-    void loadMapStyle().then(value => { if (live) setStyle(value); });
-    return () => { live = false; };
-  }, [style]);
+    const accept = (value: MapStyle) => { if (live) setStyle(ready ?? value); };
+    listeners.add(accept);
+    void loadMapStyle().then(accept);
+    return () => { live = false; listeners.delete(accept); };
+  }, []);
   return style;
 }
 
 /** Tests only: forget what was read. */
 export function forgetMapStyle(): void {
+  retireRead?.();
   ready = null; pending = null; failedAt = null;
 }

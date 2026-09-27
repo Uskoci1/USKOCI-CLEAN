@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import type { RetentionExecutionStatus, RetentionPolicyStatus, RetentionRule } from '../../contracts/retentionPolicy';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
+import { CatalogArt } from '../system/CatalogArt';
 import { FactArt } from '../system/FactArt';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
@@ -48,7 +49,7 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
       <SettingsInfo title="Javni podaci Zadatka" icon={<FactArt kind="eye" size={26} />}>
         Opis objavljenog Zadatka i njegova približna lokacija dostupni su drugim korisnicima.
       </SettingsInfo>
-      <SettingsInfo title="Lokacija i kontakt" last icon={<FactArt kind="pin" size={26} />}>
+      <SettingsInfo title="Lokacija i kontakt" last icon={<CatalogArt kind="lock" />}>
         Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
       </SettingsInfo>
     </SettingsGroup>

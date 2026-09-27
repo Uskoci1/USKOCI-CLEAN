@@ -15,10 +15,11 @@ jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../LocationControls', () => ({ locationStyles: { notice: {} } }));
 import { ResolvedPinMap } from '../ResolvedPinMap';
 import { DiscoveryMap } from '../../v2/DiscoveryMap';
+import { RESOLVED_PIN_MAP_STYLE } from '../ResolvedPinMap.types';
 
 /**
  * Both maps draw place names in Serbian Latin (2026-09-24): each hands MapLibre the rewritten style once it is known,
- * and until then shows its own loading state rather than a map that would have to reload its style under the person.
+ * and until the short fallback deadline shows its own loading state. Late style success updates the existing native map.
  * Since review r3 item 12 the style is its JSON text, made once (useMapStyle returns it so), and the maps pass that very
  * string through: this pinned an object before.
  */
@@ -40,4 +41,16 @@ it.each(maps)('%s waits for the style, then hands MapLibre the Latin style text'
   mockStyle = LATIN;
   await act(async () => { tree.update(element()); });
   expect(tree.root.findByType('NativeMap' as React.ElementType).props.mapStyle).toBe(LATIN);
+});
+
+it.each(maps)('%s upgrades the fallback in place without replacing its native map', async (_name, element) => {
+  mockStyle = RESOLVED_PIN_MAP_STYLE;
+  await act(async () => { tree = create(element()); });
+  const native = tree.root.findByType('NativeMap' as React.ElementType);
+  await act(async () => { native.props.onDidFinishLoadingMap(); });
+  mockStyle = LATIN;
+  await act(async () => { tree.update(element()); });
+  expect(tree.root.findByType('NativeMap' as React.ElementType)).toBe(native);
+  expect(native.props.mapStyle).toBe(LATIN);
+  expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Učitavamo mapu…'))).toHaveLength(0);
 });

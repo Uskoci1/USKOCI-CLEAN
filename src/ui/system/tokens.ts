@@ -93,12 +93,12 @@ export const sys = {
   },
   /** Public map geography: colors only, independent from the interactive brand markers and their states. */
   map: {
-    ground: '#F5F6F7',
-    residential: '#EEF0F2',
-    park: '#D6EABD',
-    woodland: '#BED99C',
-    water: '#A8D8EE',
-    waterLine: '#76BBD9',
+    ground: '#FAFAF8',
+    residential: '#F3F3F0',
+    park: '#CEE3AE',
+    woodland: '#B2D391',
+    water: '#91CFEA',
+    waterLine: '#63B1D3',
     waterLabel: '#315E74',
     building: '#E1E5E7',
     buildingEdge: '#D3DADF',

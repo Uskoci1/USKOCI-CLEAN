@@ -9,7 +9,8 @@ import { InlineNote, QuietLine } from '../privacy/InlineNote';
 import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
-import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactArt } from '../system/FactArt';
+import { CatalogArt, type CatalogArtKind } from '../system/CatalogArt';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { cardCompact, field, inset, sys } from '../system/tokens';
@@ -131,7 +132,7 @@ export function SupportStatusChip({ status }: { status: SupportStatus }) {
   </View>;
 }
 
-const channelArt: Record<SupportChannel, FactArtKind> = { SERVICE: 'chat', TASK: 'agreements', LEGAL_PRIVACY: 'shield', SAFETY: 'lock' };
+const channelArt: Record<SupportChannel, CatalogArtKind> = { SERVICE: 'support', TASK: 'support', LEGAL_PRIVACY: 'lock', SAFETY: 'shield' };
 /**
  * One request in the list: what it is about (the name), its state, when it last moved and its number. The number is
  * shown before the time (round 5 review): two requests on the same topic differ by it, and it is the number the
@@ -145,7 +146,7 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
   return <Press accessibilityRole="button" accessibilityLabel={`${topic}, ${supportLabel(status)}${unread ? ', novo' : ''}, ${time}, zahtev #${caseNumber}`}
     accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99} onPress={onPress}
     style={[supportStyles.caseRow, !last && supportStyles.rowLine, disabled && supportStyles.faded]}>
-    <View style={supportStyles.caseArt}><FactArt kind={channelArt[channel] ?? 'chat'} size={26} /></View>
+    <View style={supportStyles.caseArt}><CatalogArt kind={channelArt[channel] ?? 'support'} muted={disabled} /></View>
     <View style={supportStyles.caseCopy}>
       <T variant="bodyStrong" numberOfLines={2}>{topic}</T>
       <View style={supportStyles.caseMeta}>

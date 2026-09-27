@@ -1,4 +1,6 @@
-import { currentMapStyle, forgetMapStyle, LATIN_PLACE_NAME, latinLabels, loadMapStyle, MAP_STYLE_DEADLINE_MS, MAP_STYLE_RETRY_MS, MAP_STYLE_URL }
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { currentMapStyle, forgetMapStyle, LATIN_PLACE_NAME, latinLabels, loadMapStyle, MAP_STYLE_DEADLINE_MS, MAP_STYLE_READ_DEADLINE_MS, MAP_STYLE_RETRY_MS, MAP_STYLE_URL, useMapStyle }
   from '../mapStyle';
 import { uskociMapColors } from '../mapAppearance';
 
@@ -63,7 +65,7 @@ describe('loadMapStyle', () => {
     const fetcher = ok(fixture());
     expect(currentMapStyle(Date.now(), fetcher)).toBeNull();
     const [first, second] = await Promise.all([loadMapStyle(fetcher), loadMapStyle(fetcher)]);
-    expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher).toHaveBeenCalledWith(MAP_STYLE_URL);
+    expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher).toHaveBeenCalledWith(MAP_STYLE_URL, { signal: expect.any(AbortSignal) });
     expect(first).toBe(second); expect(typeof first).toBe('string');
     expect(JSON.parse(first as string)).toEqual(latinLabels(uskociMapColors(fixture())));
     expect(field(JSON.parse(first as string), 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
@@ -95,5 +97,67 @@ describe('loadMapStyle', () => {
     const next = currentMapStyle(Date.now(), fetcher);
     expect(next).not.toBe(MAP_STYLE_URL); expect(typeof next).toBe('string');
     expect(field(JSON.parse(next as string), 'label_city')).toEqual(expect.arrayContaining([['get', 'name:sr-Latn']]));
+  });
+  it('retires a stuck read at its hard deadline, observes the retry interval and ignores its late result', async () => {
+    let answer!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const fetcher = jest.fn((_url: string, _options?: { signal: AbortSignal }) => new Promise<{ ok: boolean; json: () => Promise<unknown> }>(resolve => { answer = resolve; }));
+    const waiting = loadMapStyle(fetcher);
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(MAP_STYLE_READ_DEADLINE_MS);
+    await expect(waiting).resolves.toBe(MAP_STYLE_URL);
+    expect(fetcher.mock.calls[0][1]?.signal.aborted).toBe(true);
+    await loadMapStyle(fetcher); expect(fetcher).toHaveBeenCalledTimes(1);
+    jest.setSystemTime(Date.now() + MAP_STYLE_RETRY_MS);
+    const newStyle = { ...fixture(), name: 'current attempt' };
+    const fresh = await loadMapStyle(ok(newStyle));
+    answer({ ok: true, json: async () => ({ ...fixture(), name: 'retired attempt' }) });
+    await jest.runAllTimersAsync();
+    expect(currentMapStyle()).toBe(fresh);
+    expect(JSON.parse(fresh as string).name).toBe('current attempt');
+  });
+  it('each failed retry starts its own cooldown instead of allowing a new request on every map mount', async () => {
+    const fetcher = jest.fn(async () => { throw new Error('offline'); });
+    await loadMapStyle(fetcher);
+    jest.setSystemTime(Date.now() + MAP_STYLE_RETRY_MS + 1);
+    await loadMapStyle(fetcher); await loadMapStyle(fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('mounted map style ownership', () => {
+  let trees: ReactTestRenderer[];
+  beforeEach(() => { trees = []; forgetMapStyle(); jest.useFakeTimers(); });
+  afterEach(async () => { await act(async () => trees.forEach(tree => tree.unmount())); forgetMapStyle(); jest.useRealTimers(); });
+  const Probe = ({ record }: { record: (style: unknown) => void }) => { const style = useMapStyle(); record(style); return null; };
+  const mount = async (record: (style: unknown) => void) => {
+    await act(async () => { trees.push(create(React.createElement(Probe, { record }))); });
+  };
+  it('upgrades every still-mounted fallback when the same public read succeeds after four seconds', async () => {
+    let answer!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const fetcher = jest.fn(() => new Promise<{ ok: boolean; json: () => Promise<unknown> }>(resolve => { answer = resolve; }));
+    const first = jest.fn(), second = jest.fn();
+    await mount(first); await mount(second);
+    const waiting = loadMapStyle(fetcher);
+    await act(async () => { await Promise.resolve(); jest.advanceTimersByTime(MAP_STYLE_DEADLINE_MS + 1); await waiting; });
+    expect(first).toHaveBeenLastCalledWith(MAP_STYLE_URL);
+    await act(async () => { answer({ ok: true, json: async () => fixture() }); await jest.advanceTimersByTimeAsync(0); });
+    const colored = JSON.stringify(latinLabels(uskociMapColors(fixture())));
+    expect(first).toHaveBeenLastCalledWith(colored); expect(second).toHaveBeenLastCalledWith(colored);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('does not notify a retired map, and an old cancelled attempt cannot replace a fresh map style', async () => {
+    let answer!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const retired = jest.fn(), current = jest.fn();
+    await mount(retired);
+    void loadMapStyle(() => new Promise(resolve => { answer = resolve; }));
+    await act(async () => { await Promise.resolve(); trees[0].unmount(); });
+    const rendered = retired.mock.calls.length;
+    forgetMapStyle();
+    await mount(current);
+    await act(async () => { await loadMapStyle(async () => ({ ok: true, json: async () => ({ ...fixture(), name: 'fresh' }) })); });
+    const fresh = currentMapStyle();
+    await act(async () => { answer({ ok: true, json: async () => fixture() }); await jest.advanceTimersByTimeAsync(0); });
+    expect(retired).toHaveBeenCalledTimes(rendered);
+    expect(current).toHaveBeenLastCalledWith(fresh); expect(currentMapStyle()).toBe(fresh);
   });
 });

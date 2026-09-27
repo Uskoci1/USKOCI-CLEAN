@@ -295,17 +295,15 @@ export function discoveryShown(items: readonly MarketplaceItem[], view: Marketpl
 export function discoveryMapScope(mapped: MarketplaceItem[], scope: Pick<MarketplaceView, 'area' | 'pinPlace' | 'where'>): DiscoveryShown {
   const view = remoteDiscoveryScope(scope);
   const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
-  if (pin !== null) {
-    const here = mapped.filter(item => { const point = publicPoint(item); return !!point && pointKey(point) === pin; });
-    const withoutPoint = mapped.filter(item => !publicPoint(item));
-    return { mapped, inArea: here, withoutPoint, listed: [...here, ...withoutPoint] };
-  }
-  if (!view.area) return { mapped, inArea: mapped, withoutPoint: [], listed: mapped };
-  const inArea: MarketplaceItem[] = [], withoutPoint: MarketplaceItem[] = [];
+  const inArea: MarketplaceItem[] = [], remote: MarketplaceItem[] = [], unlocated: MarketplaceItem[] = [];
   for (const item of mapped) {
     const point = publicPoint(item);
-    if (!point) withoutPoint.push(item); else if (inBounds(point, view.area)) inArea.push(item);
+    if (!point) (workMode(item) === 'remote' ? remote : unlocated).push(item);
+    else if (pin !== null ? pointKey(point) === pin : !view.area || inBounds(point, view.area)) inArea.push(item);
   }
+  // The same stable groups exist with and without map bounds. Absence of a public point never
+  // invents remote work, and the map keeps its original filtered source/order independently.
+  const withoutPoint = [...remote, ...unlocated];
   return { mapped, inArea, withoutPoint, listed: [...inArea, ...withoutPoint] };
 }
 /** The Zadaci list: one filtered public subset; ownership affects labels and destination, never membership. */

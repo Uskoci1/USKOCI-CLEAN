@@ -10,7 +10,7 @@ import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, 
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
 import { MapTrifold, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryMapScope, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
-  pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, type DiscoveryShown,
+  pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, workMode, type DiscoveryShown,
   type DiscoverySnap, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -87,18 +87,20 @@ const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
 const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
+type ListSection = { kind: 'map' | 'remote' | 'unlocated'; label: string; count: number };
+const listKind = (item: MarketplaceItem): ListSection['kind'] => publicPoint(item) ? 'map' : workMode(item) === 'remote' ? 'remote' : 'unlocated';
 
 const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation, onOpen, section, portraitVisible }: {
   item: MarketplaceItem; index: number; animate: boolean; relation?: TaskCardRelation; onOpen: (item: MarketplaceItem) => void;
   portraitVisible: boolean;
-  /** The first task without a point under a map area: the quiet heading of those tasks, with how many there are. */
-  section?: number;
+  /** A real work/location group; missing public geography is not a claim of remote work. */
+  section?: ListSection;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   return <>
-    {section !== undefined ? <View testID="section-without-point" accessible accessibilityRole="header"
-      accessibilityLabel={`Na daljinu ili bez tačke na mapi, ${zadataka(section)}`} style={s.section}>
-      <T variant="meta" style={s.sectionTitle}>Na daljinu ili bez tačke na mapi</T><T variant="meta" style={s.sectionCount}>{section}</T>
+    {section ? <View testID={`section-${section.kind}`} accessible accessibilityRole="header"
+      accessibilityLabel={`${section.label}, ${zadataka(section.count)}`} style={s.section}>
+      <T variant="bodyStrong" style={s.sectionTitle}>{section.label}</T><T variant="meta" style={s.sectionCount}>{section.count}</T>
     </View> : null}
     <Appear index={index} animate={animate}><TaskCard item={item} compact onOpen={open} relation={relation}
       portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
@@ -332,6 +334,23 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const chosen = ordinaryList.find(item => item.id === listFocusId);
     return chosen ? [chosen, ...ordinaryList.filter(item => item.id !== listFocusId)] : ordinaryList;
   }, [ordinaryList, listFocusId]);
+  const sections = useMemo(() => {
+    const result = new Map<number, ListSection>();
+    // Publication remains the first, highlighted row; its temporary promotion does not turn
+    // following map tasks into remote work or create a duplicate remote section above it.
+    let at = listFocusId && listed[0]?.id === listFocusId ? 1 : 0;
+    while (at < listed.length) {
+      const kind = listKind(listed[at]);
+      let end = at + 1;
+      while (end < listed.length && listKind(listed[end]) === kind) end++;
+      if (kind !== 'map' || withoutPoint.length) result.set(at, { kind, count: end - at,
+        label: kind === 'remote' ? 'Na daljinu' : kind === 'unlocated' ? 'Bez označenog mesta'
+          : pinPlace ? 'Na ovom mestu' : area ? 'U ovoj oblasti' : 'Na mapi' });
+      at = end;
+    }
+    return result;
+  }, [listed, listFocusId, withoutPoint.length, pinPlace, area]);
+  const sectionsSignature = JSON.stringify([...sections]);
   const mappedWithoutPin = useMemo(() => mapped.filter(item => !publicPoint(item)).length, [mapped]);
   const groups = useMemo(() => pinPlaces(mapped), [mapped]);
   const byId = useMemo(() => new Map(mapped.map(item => [item.id, item] as const)), [mapped]);
@@ -403,16 +422,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // area is not a reason: moving the map never moves the sheet the person is looking past.
   useEffect(() => {
     if (!loading && where === 'remote') { setSheetIndex(SNAP.full); return; }
-    if (!started.current || loading || sheetIndex !== SNAP.peek) return;
-    if (!mapped.length) setSheetIndex(SNAP.half);
-    else if (mappedWithoutPin === mapped.length) setSheetIndex(SNAP.full);
-  }, [loading, mapped.length, mappedWithoutPin, where]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!started.current || loading) return;
+    if (mapped.length > 0 && mappedWithoutPin === mapped.length) setSheetIndex(SNAP.full);
+    else if (!mapped.length && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half);
+  }, [loading, mapped.length, mappedWithoutPin, where, sharedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
   const mapShown = where !== 'remote' && !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
-  // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
-  // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
+  // An empty full list keeps its own recovery action; the extra floating map shortcut is omitted.
   const emptyOverMap = !loading && !error && !props.collectionStatus && !listed.length && mapShown;
 
   // A chosen pin: one task, or a place several tasks share, of what the map shows. The list's area never takes it away;
@@ -494,9 +512,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
   // At the full stop the map is covered, so the list uses all the room below search. Lower stops and pin previews
   // still leave the attribution visible. A very tall count/filter header joins the list scroll instead of pinning it.
-  const listTop = toolsBottom + GAP;
+  const listTop = toolsBottom;
   const availableSheet = bodyHeight ? Math.max(3, bodyHeight - listTop) : 0;
-  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - creditsRoom) : 0;
+  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - creditsRoom - GAP) : 0;
   const scrollHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
   // A chosen pin's card: the list's top line steps out of sight behind it, and the map's zoom and credits step up above it.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
@@ -508,10 +526,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const full = availableSheet;
     return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
   }, [bodyHeight, availableSheet, mapClearSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
-  // An oversized empty-state header still needs the registered scroll's full stop. It does not acquire a second
-  // brand action: the map shortcut remains absent for an empty list, as before.
-  const highest = emptyOverMap && !scrollHeader ? SNAP.half : SNAP.full;
-  useEffect(() => { if (sheetIndex > highest) setSheetIndex(highest); }, [sheetIndex, highest]);
+  // Empty results use the same full-height recovery surface. Their extra map shortcut stays absent.
+  const highest = SNAP.full;
   // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
   const position = useSharedValue(windowHeight);
   const expanded = sheetIndex === SNAP.full;
@@ -540,7 +556,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const rowMountSignature = useMemo(() => JSON.stringify(listed.map(item => [item, relation(item)])), [listed, relation]);
   const layoutMountSignature = [
     windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, cardShown,
-    undated, withoutPoint.length ? inArea.length : -1, withoutPoint.length,
+    undated, sectionsSignature,
     ...snapPoints.map(value => typeof value === 'number' ? Math.round(value * 10) / 10 : value),
   ].join(':');
   const sheetMount = useRef({
@@ -859,9 +875,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const appear = useAppear();
   appear.settle(listed.map(keyOf), searchKey);
   const appearRef = useRef(appear); appearRef.current = appear;
-  // Under a map area the tasks without a point follow the area's own, under their quiet heading.
-  const section = withoutPoint.length ? { at: inArea.length, count: withoutPoint.length } : null;
-  const sectionRef = useRef(section); sectionRef.current = section;
+  const sectionsRef = useRef(sections); sectionsRef.current = sections;
   // The render window is wider than the visible list. Start authorized photo reads only for settled visible rows,
   // and unmount them when the sheet is hidden or this route loses focus; AuthorizedPhoto aborts on unmount.
   // Gorhom sizes its content to the highest detent even at half height, so native viewability is trusted only at full.
@@ -877,7 +891,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <DiscoveryRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relation(item)} onOpen={openItem}
       portraitVisible={showPortraits && portraitIds.has(item.id)}
-      section={sectionRef.current?.at === index ? sectionRef.current.count : undefined} />, [relation, openItem, showPortraits, portraitIds]);
+      section={sectionsRef.current.get(index)} />, [relation, openItem, showPortraits, portraitIds]);
 
   // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
   const empty = <View style={s.empty}>
@@ -934,10 +948,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const timer = setTimeout(() => { AccessibilityInfo.announceForAccessibility?.(spokenRef.current); }, AREA_ANNOUNCE_MS);
     return () => clearTimeout(timer);
   }, [whereKey, focused]);
-  // The top line is the gesture-free way into the list: from the top line to half the map, from half to the whole list
-  // (while there is a higher height to go to; an empty list over the map stops at half).
+  // One deliberate tap opens the whole list. The half stop remains available by dragging.
   const canRise = sheetIndex < highest;
-  const openList = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(sheetIndex === SNAP.peek ? SNAP.half : SNAP.full); };
+  const openList = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(SNAP.full); };
   const header = <View testID="discovery-list-header" style={s.header}
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
     <View testID="discovery-list-header-lead" onLayout={event => {
@@ -947,7 +960,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
     {canRise ? <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ expanded: sheetIndex > SNAP.peek }}
-      accessibilityHint={sheetIndex === SNAP.peek ? 'Otvara listu zadataka.' : 'Otvara celu listu.'} accessibilityLiveRegion="polite"
+      accessibilityHint="Otvara celu listu." accessibilityLiveRegion="polite"
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
       : <View testID="list-count-words" accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
     </View>
@@ -1020,7 +1033,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           style={listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined}
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
-          extraData={section ? `${section.at}:${section.count}` : ''}
+          extraData={sectionsSignature}
           refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
           onLayout={event => {
             trace('layout', currentSheet(), event.nativeEvent.layout.height, listHeight.current, contentHeight.current, restore.current ?? -1);
@@ -1094,7 +1107,7 @@ const s = StyleSheet.create({
   undated: { paddingTop: sys.space.base, textAlign: 'center' },
   // The quiet heading of the tasks without a point: the list's own words, never a card.
   section: { flexDirection: 'row', alignItems: 'baseline', gap: sys.space.sm, paddingTop: sys.space.xs, paddingBottom: sys.space.md },
-  sectionTitle: { fontWeight: '600', color: sys.color.muted },
+  sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
   // Bottom-centre, just above the tab bar (the screen ends where the bar begins).
   mapPillRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },

@@ -8,6 +8,7 @@ import { InlineNote } from '../privacy/InlineNote';
 import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
+import { CatalogArt } from '../system/CatalogArt';
 import { FactArt } from '../system/FactArt';
 import { SkeletonList } from '../system/Skeleton';
 import { sys } from '../system/tokens';
@@ -22,11 +23,12 @@ export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
   const documents = reviewedDocuments(bundle);
   return documents ? <SettingsGroup title="Objavljeni dokumenti">{documents.map((document, index) =>
     <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail={`Verzija ${document.version} · Otvara se u pregledaču`}
-      icon={<FactArt kind={document.kind === 'TERMS' ? 'document' : 'shield'} size={26} />}
+      icon={<CatalogArt kind={document.kind === 'TERMS' ? 'document' : 'shield'} muted={disabled} />}
       onPress={() => onOpen(document)} disabled={disabled} last={index === 1} />)}</SettingsGroup>
     // Not green: "not published" and "not available" are not good news, so they sit on the quiet wash.
-    : <InlineNote tone="neutral" art="document" artMuted>
-      <T>{bundle ? 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' : 'Dokumenti trenutno nisu dostupni.'}</T>
+    : <InlineNote tone="neutral" art={null}>
+      <View style={s.status}><CatalogArt kind="document" muted />
+        <T style={s.grow}>{bundle ? 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' : 'Dokumenti trenutno nisu dostupni.'}</T></View>
     </InlineNote>;
 }
 

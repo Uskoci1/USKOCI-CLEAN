@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-27",
+  "parent_source": "2c4b6e843489a56509778177b74f8a3dc8245a33",
+  "scope": "Discovery geometry and grouping, public map style, selective Catalog27, bounded DEV-only map diagnostics",
+  "typescript": { "command": "npx tsc --noEmit -p tsconfig.json", "exit": 0, "session": 54858, "after_all_source_changes": true },
+  "focused_checks": [
+    { "name": "Discovery", "suites": 3, "passed": 194, "exit": 0, "prior": "Four new regressions RED then GREEN; first wider run193/194 had obsolete combined section ID, corrected to actual remote section." },
+    { "name": "Map style", "suites": 3, "passed": 22, "exit": 0 },
+    { "name": "Catalog27", "suites": 5, "distinct_passed": 118, "exit": 0, "detail": "Original115 plus3 exact-package refusal cases; changed legal suite18 and final gallery5 rerun separately." },
+    { "name": "DEV map diagnostics", "selected_passed": 6, "unrelated_skipped": 27, "exit": 0 }
+  ],
+  "diff_check": "PASS",
+  "full_jest": "NOT_REPEATED",
+  "new_native": "PENDING_EXACT_BUILD",
+  "pin_latency": "OPEN_NOT_MEASURED",
+  "dev_mutation": false,
+  "new_dependencies": false,
+  "paid_ai": false,
+  "hosted_dashboard": "PENDING_EXISTING_SUPPORTED_CHOOSER_FAILURE"
+}

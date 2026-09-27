@@ -159,6 +159,18 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
 });
 
 describe('the Zadaci list and its sheet', () => {
+  it('separates map, remote and unlocated work even without an area, preserving the filtered set and each group order', () => {
+    const remote = (id: string) => item(id, { detalji: { rezimLokacije: 'REMOTE' } as MarketplaceItem['detalji'] });
+    const rows = [item('unknown1', { priblizno: null }), remote('remote1'), item('map1'),
+      item('unknown2', { priblizno: null }), item('map2'), remote('remote2')];
+    const shown = discoveryShown(rows, view(), undefined, NOW);
+    expect(shown.mapped).toEqual(rows);
+    expect(ids(shown.inArea)).toEqual(['map1', 'map2']);
+    expect(ids(shown.withoutPoint)).toEqual(['remote1', 'remote2', 'unknown1', 'unknown2']);
+    expect(ids(shown.listed)).toEqual(['map1', 'map2', 'remote1', 'remote2', 'unknown1', 'unknown2']);
+    expect(new Set(ids(shown.listed))).toEqual(new Set(ids(rows)));
+    expect(publicFeatures(shown.mapped).features.map(feature => feature.id)).toEqual(['map1', 'map2']);
+  });
   // A chosen public point stays narrow geographically; point-free work follows separately.
   it('one public point lists its tasks first and keeps point-free work available, whatever the area', () => {
     const rows = [item('s1', { priblizno: { lat: 44.7904, lng: 20.4498 } }), item('s2', { priblizno: { lat: 44.79, lng: 20.45 } }),
