@@ -1089,12 +1089,12 @@
         "ux": "Mapa zadržava zajednički skup; oblast menja pripadajuću listu.",
         "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
         "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
-        "state_sync": "Round31 native FAIL dokazan: alpha0/translationY2424px uprkos FULL shared vrednostima. Round32 uska SDK mitigacija pripremljena; novi native dokaz nije završen.",
+        "state_sync": "Round32 SDK kandidat odbijen zbog ANR i potpuno povučen; runtime10739a44. Originalni FULL povratak ostaje nativeFAIL. Ponovno otvaranje običnog panela posle rollbacka viđeno, nije zamena za navigation proof.",
         "performance": "Ponovljena GeoJSON serijalizacija uklonjena u izvoru. Native brzina nije izmerena; server paging ostaje zasebno otvoren.",
         "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
-        "device_proof": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran.",
-        "status": "NATIVE_FULL_RETURN_FAIL / SOURCE_MITIGATION_REBUILD_PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+        "device_proof": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
+        "status": "NATIVE_FULL_RETURN_OPEN / SDK_CANDIDATE_REJECTED_ROLLED_BACK",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -1153,12 +1153,12 @@
         "ux": "Odobreno: jedna otvorena sekcija, ostale pokazuju stvarni izbor; jedna zajednička primena i zatvaranje bez primene.",
         "ui": "Bele odvojene sekcije i blur zadržani; poslednji red kalendara sada ostaje u prirodnoj visini panela.",
         "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
-        "state_sync": "Round31 native FAIL dokazan: alpha0/translationY2424px uprkos FULL shared vrednostima. Round32 uska SDK mitigacija pripremljena; novi native dokaz nije završen.",
+        "state_sync": "Round32 SDK kandidat odbijen zbog ANR i potpuno povučen; runtime10739a44. Originalni FULL povratak ostaje nativeFAIL. Ponovno otvaranje običnog panela posle rollbacka viđeno, nije zamena za navigation proof.",
         "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
         "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
-        "device_proof": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran.",
-        "status": "NATIVE_FULL_RETURN_FAIL / SOURCE_MITIGATION_REBUILD_PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+        "device_proof": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
+        "status": "NATIVE_FULL_RETURN_OPEN / SDK_CANDIDATE_REJECTED_ROLLED_BACK",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -3243,8 +3243,8 @@
       "id": "B08",
       "oblast": "APK",
       "nalaz_16_09": "APK je star (1. sept.)",
-      "sada": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran. iOS i celovito prihvatanje nisu završeni.",
-      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json"
+      "sada": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
+      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json"
     },
     {
       "id": "B09",
@@ -3327,8 +3327,8 @@
       "id": "B20",
       "oblast": "Izgled i pristupačnost",
       "nalaz_16_09": "Nije provereno na telefonu",
-      "sada": "DELIMIČNO: full CI36351959072/source745f07d6 ima TypeScript i342grupe/7199testova PASS. Naknadne native korekcije u10739a44 imaju156ciljanih testova i integrisani TypeScriptPASS; nisu obuhvaćene prethodnim fullCI. Celovita pristupačnost, svi izgledi i uređajski tokovi ostaju otvoreni. RC-04 serverski proof-loader dokazi imaju zaseban status; zeleni Jest ih ne zatvara.",
-      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_CHECKS.json"
+      "sada": "Round32 kandidat2b2: TypeScript,171ciljani i automatskiCI36355427752/342grupe/7216testovaPASS, ali nativeANR odbija prihvatanje. Četiri izmene potpuno povučene; izvršni izvor sada tačno10739a44 (156ciljanih+TypeScriptPASS izRound31). Rezultat rollbackCI vodi se odvojeno. RC-04 i celoviti uređajski tokovi ostaju odvojeni.",
+      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_CHECKS.json"
     },
     {
       "id": "B21",
@@ -3689,14 +3689,14 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "CI36351959072 na745f07d6: TypeScript i342grupe/7199testova PASS. Naknadne native korekcije:4map grupe/143testa+13Catalog PASS i integrisani TypeScriptPASS(session73004). Novi source nije u baa32832 APK-u.",
-    "device": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran.",
+    "tests": "Round32 kandidat2b2: TypeScript,171ciljani i automatskiCI36355427752/342grupe/7216testovaPASS, ali nativeANR odbija prihvatanje. Četiri izmene potpuno povučene; izvršni izvor sada tačno10739a44 (156ciljanih+TypeScriptPASS izRound31). Rezultat rollbackCI vodi se odvojeno.",
+    "device": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
     "live_dev_scope": "Sveže metadata čitanje 27.09 u21:52UTC: ledger210, push Edge22 ACTIVE, šest poslednjih migracija imaju očekivane SHA256; oba sertifikatska reda f66818aa…1755b. Raniji tačan Edge readback ostaje zaseban dokaz. Exact flag poslednji put potvrđen OFF u20:12:44UTC; ovde nije ponovo čitan. Privatni readiness helper nije izvršavan.",
     "rule": "Normal UI/flow refinements, focused checks and consolidated device checkpoints authorized. Latest owner requests synchronization of finished work to canonical Git/DEV/app locations. Already applied packages need no repeat approval. Unfinished candidates still require completed proof/preconditions; certificate/dependency/payment restrictions remain. Source is not READY.",
-    "implementation": "Krug31: ista mapa se oporavlja od roka15s kada stigne pravi uspešan završetak; stvarne greške i stare instance ostaju odbijene. Postojeći GeoJSON string sprečava ponovnu serijalizaciju svih tačaka pri izboru pina. Catalog27 slika ostaje dok se native animacija učitava; pokret i dalje samo DEV proba.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
-    "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
-    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
+    "implementation": "Krug32: predlog ispravke native nestanka liste odbijen zbog ponovljenogAndroidANR. Četiri izmene izvora/testa potpuno povučene. Sve ranije dovršene dorade ostaju na10739a44; otvoreni native kvar nije proglašen rešenim.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+    "dashboard_publication": "PENDING_REPUBLISH: prijavljen vlasnik je vidljiv; objavljena stranica odbija upis sa invalid_argument. Stari šablon netačno svakoj grešci dodaje tvrdnju o pravu izmene. Lokalno je poruka ispravljena; uzrok odbijanja i objava istog Artifact-a ostaju otvoreni. Generacija nije objava.",
+    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
     "server_proof": "P0 SQL-role9PASS36330122549; P4 SQL/Auth13PASS36339724742; P5 SQL-role7PASS36341487304. Primena DEV potvrđena u zasebnom receipt-u; ovo nije ceo native/provajder tok.",
     "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
     "readiness_review": {
@@ -3749,7 +3749,7 @@
       "limits": "Nema dekodiranja/prihvatanja pravog snimka. Nema runtime importa, snimača, slanja ili plejera. B1/B2 i kompatibilnost starog B3 čitanja tek slede."
     },
     "consolidated_apk": {
-      "status": "INSTALLED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
+      "status": "RESTORED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
       "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
       "tree": "e16f38fd172813e7e85f7cf165ba34638f29188c",
       "run": 36353185115,
@@ -3786,7 +3786,7 @@
       "implementation": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
       "native_report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json"
     },
-    "next_owner_priority": "Izgraditi tačan Round32 APK, potvrditi compiledflagfalse i ponoviti FULL povratak, mapu/listu i običan panel. TelefonUSB odsutan; Git/DEV provereni. P6/voice/exact-push/iOS ostaju odvojeni.",
+    "next_owner_priority": "Popraviti originalni native povratak liste ciljano, bez globalnogflagfalse; sačuvati gorhom/SDK dokaze. Završeni Git/DEV paketi usaglašeni. Telefon ažurirati tek proverenomverzijom kadUSB dostupan; hostedtabla upis i P6/voice/provider/iOS ostaju otvoreni.",
     "phone_apk_round30": {
       "status": "ARTIFACT_VERIFIED_NOT_YET_INSTALLED",
       "source": "baa328327b2d7861966780337f16c327c757e1c3",
@@ -3816,15 +3816,20 @@
       "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
       "device_status": "USB_ABSENT_NOT_INSTALLED"
     },
-    "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json",
+    "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
     "native_sheet_round32": {
-      "status": "SOURCE_MITIGATION_NATIVE_REBUILD_REQUIRED_NOT_ACCEPTED",
+      "status": "REJECTED_NATIVE_ANR_SOURCE_REVERSED_APK_RESTORED",
       "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
       "before": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_BEFORE.json",
       "finding": "Stvarno Android telo FULL liste ostaje alpha0/translationY2424px dok animacija prijavljuje FULL71.2dp. Brojevi i vidljivi nestanak sačuvani.",
       "change": "Postojeća Reanimated4.5.1: samo FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS=false; bez nadogradnje, promene kartice/pina ili poslovne logike.",
-      "limit": "Moguće više unosa animacija i native commit rada; ovo nije dokaz ubrzanja. Novi APK i ista reprodukcija obavezni."
-    },
-    "hosted_dashboard": "PENDING: prijavljeni vlasnik je vidljiv, ali objavljena stranica pokazuje Nije sačuvano (invalid_argument). Treba ti pravo izmene. Lokalno stanje nije objavljeno; bez novog pokušaja ili promene deljenja."
+      "limit": "Moguće više unosa animacija i native commit rada; ovo nije dokaz ubrzanja. Novi APK i ista reprodukcija obavezni.",
+      "checks": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_CHECKS.json",
+      "emulator_run": 36355439009,
+      "phone_run": 36355441615,
+      "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
+      "candidate_source": "2b2cf4d7cf031f3e54b2d46cc066bf0d9db48eee",
+      "restored_runtime": "10739a440611fc32e3bd6d9ee6dd66a5479e091b"
+    }
   }
 }

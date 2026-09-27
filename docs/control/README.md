@@ -86,9 +86,16 @@ does not change the date or scope of `dev_snapshot.json`, device receipts or CI 
 2. Open the published page in a browser signed in as the owner.
 3. Under "Učitaj novo stanje", choose `docs/control/stanje.json`.
 
-The page stores the file in its shared storage, and every open view updates. The storage accepts writes only
-from people with edit rights. The page shows the newer of the embedded state and the loaded state, compared by
-`meta.osvezeno`. Republishing is needed only when `tabla.template.html` changes.
+The page attempts to save the file in shared storage; the upload control is shown only when the user SDK reports
+owner or edit access. Open views subscribe to the saved state and show the newer of the embedded and loaded
+state, compared by `meta.osvezeno`. Changes to `tabla.template.html` require republishing.
+
+**Current upload caveat (2026-09-28):** the signed-in owner, shown as "Artifact by you", observed
+"Nije sačuvano (invalid_argument). Treba ti pravo izmene." The published page appends that permission advice to
+every write rejection, so it does not establish a permission failure. The cause of `invalid_argument` remains
+unknown; a payload, key, call-signature or size issue has not been confirmed. The local template now shows only
+the failure code through `textContent`, without raw error details. This copy change still needs generation and
+republishing; it neither confirms a successful shared-storage write nor fixes the underlying rejection.
 
 Code, test and route lights recompute from the checked-out tree on every run. The script needs no secrets and no
 network. The one exception is an optional `gh run list` for the latest CI results.

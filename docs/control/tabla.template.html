@@ -340,7 +340,7 @@ tr:last-child td{border-bottom:0}
           msg.textContent = 'Čuvam…';
           return doc.set({ stanje: txt }).then(function () {
             render(D); msg.textContent = 'Učitano: osveženo ' + (D.meta.osvezeno || '') + ', verzija ' + (D.meta.head || '') + '.';
-          }, function (e) { msg.textContent = 'Nije sačuvano (' + ((e && e.code) || 'greška') + '). Treba ti pravo izmene.'; });
+          }, function (e) { msg.textContent = 'Nije sačuvano (' + ((e && e.code) || 'greška') + ').'; });
         });
       });
     });

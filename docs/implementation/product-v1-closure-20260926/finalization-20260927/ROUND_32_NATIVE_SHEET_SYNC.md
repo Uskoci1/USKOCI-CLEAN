@@ -1,3 +1,7 @@
+# Final outcome: candidate rejected and rolled back
+
+Exact2b2 APK compiled the flag=false but produced a repeated Android ANR. All four source/test changes were reversed; current runtime matches10739a44 exactly. The10739a44 APK was restored with-r and its installed SHA verified. See [native receipt](ROUND_32_NATIVE_RECEIPT.json) and [ANR diagnosis](ROUND_32_ANR_DIAGNOSIS.md). Original FULL navigation-return disappearance remains open. Candidate phone APK must not be installed. The material below preserves the investigated hypothesis; it is not an accepted fix.
+
 # Round32: native sheet properties diverge from animation state
 
 ## Exact failure

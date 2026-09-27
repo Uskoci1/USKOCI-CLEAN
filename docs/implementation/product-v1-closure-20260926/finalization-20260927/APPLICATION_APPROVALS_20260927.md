@@ -1,3 +1,9 @@
+# Current sync checkpoint — Round32, 2026-09-28 local
+
+Finished server packages below are still applied/connected; no new DEV operation was required. Round32 native SDK candidate2b2cf4d7 was rejected for repeatedANR and its four source/test changes reversed. Current runtime equals10739a44, restored/hash-matched on emulator. Phone2b2 artifact is WITHHELD; USB absent, last installed phone remainsb589994e. Original native return defect and provider/scale/release gates stay open. See [Round32 receipt](ROUND_32_NATIVE_RECEIPT.json). Hosted dashboard remains owner-visible invalid_argument; source correction alone is not publication.
+
+## Prior detailed application inventory (still authoritative for named server packages)
+
 # Current application status — Round31, 2026-09-27
 
 The latest completed client corrections are committed and pushed as `10739a440611fc32e3bd6d9ee6dd66a5479e091b`. The canonical DEV metadata read at **21:52 UTC** reports ledger **210** and push Edge **22 ACTIVE**. The six latest ledger SHA256 values match the recorded application receipts. Both certificate rows retain SHA256 `f66818aa870492e397cb991e5e82f1f3d03262352b7830ce62c0d1aa9691755b`; the readiness-function definition MD5 is `8bfe3af6ea5e67cfe40c9fb518f36ef1`. These are metadata/readback facts: this check did not execute private readiness helpers or freshly inspect the exact-push flag.
