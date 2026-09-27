@@ -2,10 +2,18 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { LocationPointEditor } from '../../ui/location/LocationPointEditor';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution } from '../configuredLocationResolver';
+import AiLocationGallery from '../../app/dizajn-ai-mesto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 let mockFocused = true;
-jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) =>
-  require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+let mockGalleryPackage = 'rs.uskoci.dev', mockGalleryParams: { scene?: unknown } = {};
+const mockGalleryRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn() };
+jest.mock('expo-constants', () => ({ get expoConfig() { return { android: { package: mockGalleryPackage } }; } }));
+jest.mock('expo-router', () => ({ get router() { return mockGalleryRouter; }, useLocalSearchParams: () => mockGalleryParams,
+  useFocusEffect: (effect: () => unknown) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+jest.mock('../../ui/aiFirst/AiConversationShell', () => ({ AiConversationShell: (props: { status: unknown }) =>
+  require('react').createElement('AiShell', props, props.status) }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails' }));
@@ -45,7 +53,7 @@ async function render(overrides: Partial<Props> = {}) {
 async function update(overrides: Partial<Props> = {}) {
   props = { ...props, ...overrides }; await act(async () => tree.update(<LocationPointEditor {...props} />));
 }
-beforeEach(() => { mockFocused = true; jest.clearAllMocks(); });
+beforeEach(() => { mockFocused = true; mockGalleryPackage = 'rs.uskoci.dev'; mockGalleryParams = {}; jest.clearAllMocks(); });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 it('prefills a visible query without automatic lookup and honestly shows unavailable activation', async () => {
@@ -252,6 +260,72 @@ describe('autoLocate', () => {
   });
 });
 
+describe('compact conversation proposal', () => {
+  it('places only the validated first proposal, hides the form, and confirms only on the explicit action', async () => {
+    const resolver = configured();
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(map().props).toMatchObject({ position: candidate.position, height: 220 });
+    expect(text()).toContain('Je l’ ovde?'); expect(text()).toContain(candidate.label);
+    expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
+    expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
+    expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin });
+    expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
+  });
+
+  it('keeps ambiguous alternatives behind correction and never adopts a candidate label as a private address', async () => {
+    const other = { ...candidate, label: 'Another actual result', position: { latitude: 45, longitude: 19 },
+      origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
+    const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
+    const correct = jest.fn();
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
+    expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
+    await press('Nije ovde'); await press('Izaberi predlog: ' + other.label);
+    expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
+    await press('Nije ovde'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
+    await press('Ispravi u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
+    expect(props.onConfirm).not.toHaveBeenCalled(); expect(resolver.search).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [{ status: 'PROPOSALS', candidates: [], requiresConfirmation: true }, 'Mesto nije pronađeno.'],
+    [{ status: 'UNAVAILABLE' }, 'Pretraga mesta nije uspela.'],
+    [{ status: 'RATE_LIMITED' }, 'Previše pretraga za kratko vreme.'],
+  ] as const)('asks for an actual manual pin without equating failure with no results: %j', async (result, copy) => {
+    const resolver = configured(result);
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place' });
+    expect(text()).toContain(copy); expect(map().props.position).toBeNull();
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
+    await act(async () => map().props.onChoose({ latitude: 45.2, longitude: 19.8 }));
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45200000, longitudeE6: 19800000, origin: { kind: 'MANUAL_PIN' } });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the saved pin and private details, and retires its old confirm after a manual move', async () => {
+    const resolver = configured(), point = { slot: 'start' as const, latitudeE6: 45200000, longitudeE6: 19800000,
+      origin: { kind: 'MANUAL_PIN' as const }, address: 'Saved private address', accessNotes: 'Saved note' };
+    await render({ resolver, point, presentation: 'conversation', autoLocate: true, initialQuery: 'Place' });
+    expect(resolver.search).not.toHaveBeenCalled(); const old = button('Potvrdi tačku: Početak').props.onPress;
+    await act(async () => map().props.onChoose({ latitude: 45.3, longitude: 19.9 }));
+    await act(async () => old()); expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith({ ...point, latitudeE6: 45300000, longitudeE6: 19900000 });
+  });
+
+  it('does not turn a late disabled lookup into a proposal or admit an old correction callback', async () => {
+    const pending = deferred<ConfiguredLocationResolution>(), resolver = configured(), correct = jest.fn();
+    resolver.search.mockReturnValue(pending.promise);
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
+    const old = button('Ispravi u razgovoru').props.onPress;
+    await update({ disabled: true }); await act(async () => { pending.resolve(proposals); old(); });
+    expect(map().props.position).toBeNull(); expect(correct).not.toHaveBeenCalled(); expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+});
+
 describe('use where I am', () => {
   const capture = jest.requireMock('../nativeCurrentLocation').captureCurrentLocation as jest.Mock;
   beforeEach(() => capture.mockReset());
@@ -292,5 +366,50 @@ describe('use where I am', () => {
     await press('Koristi gde sam');
     expect(text()).toContain('Ne mogu da očitam gde si');
     expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+describe('inert compact location gallery', () => {
+  const mount = async () => act(async () => { tree = create(<AiLocationGallery />); });
+  it.each(['rs.uskoci', 'rs.uskoci.preview', 'other.dev'])('refuses package %s before mounting an editor', async packageName => {
+    mockGalleryPackage = packageName; await mount();
+    expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(0); expect(text()).toContain('Nije dostupno.');
+  });
+  it.each([{ scene: 'unknown' }, { scene: ['proposal'] }])('rejects malformed scene %j', async params => {
+    mockGalleryParams = params; await mount();
+    expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(0); expect(text()).toContain('Nepoznat prikaz galerije.');
+  });
+  it.each(['proposal', 'ambiguous', 'unavailable', 'saved'])('renders the exact compact editor for %s with only local transitions', async scene => {
+    mockGalleryParams = { scene }; await mount();
+    expect(tree.root.findByType(LocationPointEditor).props.presentation).toBe('conversation');
+    expect(text()).toContain('lokalni primer, bez čuvanja');
+    if (scene === 'unavailable') {
+      expect(map().props.position).toBeNull(); expect(text()).toContain('Pretraga mesta nije uspela.');
+      await act(async () => map().props.onChoose({ latitude: 45.25, longitude: 19.85 }));
+    } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });
+    if (scene === 'ambiguous') {
+      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
+      await press('Nije ovde');
+      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(2);
+    }
+    await press('Potvrdi tačku: Mesto rada');
+    expect(text()).toContain('Tačka je potvrđena samo u ovoj probi.');
+    expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(0);
+    expect(jest.requireMock('../nativeCurrentLocation').captureCurrentLocation).not.toHaveBeenCalled();
+    expect(mockGalleryRouter.replace).not.toHaveBeenCalled();
+  });
+  it('offers local composer correction/reset and a safe exit, with no command or production resolver dependency', async () => {
+    await mount(); await press('Nije ovde'); await press('Ispravi u razgovoru');
+    const shell = tree.root.findByType('AiShell' as React.ElementType);
+    await act(async () => { shell.props.onChange('Probna ispravka'); shell.props.onSend(); });
+    expect(tree.root.findByType('AiShell' as React.ElementType).props).toMatchObject({ value: 'Probna ispravka', canSend: false });
+    expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(0);
+    await press('Ponovi prikaz'); expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(1);
+    mockGalleryRouter.canGoBack.mockReturnValueOnce(false);
+    await act(async () => tree.root.findByType('AiShell' as React.ElementType).props.onBack());
+    expect(mockGalleryRouter.replace).toHaveBeenCalledWith('/dizajn-ai');
+    const code = readFileSync(join(__dirname, '../../app/dizajn-ai-mesto.tsx'), 'utf8');
+    expect(code).not.toMatch(/(?:import|require).*?(?:supabase|ClientService|productionLocationResolver|expo-location|https?:)/i);
+    expect(code).not.toMatch(/\b(?:fetch|rpc|invoke|captureCurrentLocation)\s*\(/);
   });
 });

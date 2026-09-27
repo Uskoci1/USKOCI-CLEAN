@@ -349,7 +349,7 @@ describe('the conversation point ask', () => {
   it('shows each actual route point separately with one active map and allows choosing the destination first', async () => {
     await mount();
     expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
-      'Polazište, Lenke Dunđerski 11, Novi Sad, Nije potvrđeno',
+      'Polazište, Lenke Dunđerski 11, Novi Sad, Lenke Dunđerski, Nije potvrđeno',
       'Odredište, Petrovaradinska tvrđava, Petrovaradin, Nije potvrđeno',
     ]);
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(1);
@@ -359,12 +359,13 @@ describe('the conversation point ask', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('shows one work-place row for a stationary task without inventing another point', async () => {
+  it('opens the compact work-place editor without a redundant single-slot selector', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
       geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } } } } });
     await mount();
-    expect(slots()).toHaveLength(1);
-    expect(slots()[0].props.accessibilityLabel).toBe('Mesto rada, Lenke Dunđerski 11, Novi Sad, Nije potvrđeno');
+    expect(slots()).toHaveLength(0);
+    expect(editor().props.presentation).toBe('conversation');
+    expect(editor().props.title).toBe('Mesto rada');
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
   });
 
@@ -463,7 +464,7 @@ describe('the conversation point ask', () => {
   it('asks for the first missing point and seeds it with the address already known', async () => {
     await mount();
     expect(editor().props.slot).toBe('start');
-    expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad');
+    expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad, Lenke Dunđerski');
     expect(editor().props.autoLocate).toBe(true);
   });
 
@@ -475,6 +476,33 @@ describe('the conversation point ask', () => {
     await mount();
     expect(mockProductionResolver).toHaveBeenCalled();
     expect(editor().props.resolver).toBe(resolverDouble);
+  });
+
+  it.each([
+    ['Ulica 11', 'Ulica 11, Centar, Novi Sad'],
+    ['Ulica 11, Novi Sad', 'Ulica 11, Novi Sad, Centar'],
+  ])('keeps known city/area and deduplicates explicit locality for %s', async (exactAddress, expected) => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
+      exactAddress, geography: { ...route,
+        start: { label: 'Centar', area: 'Centar', city: 'Novi Sad' } } } } });
+    await mount();
+    expect(editor().props.initialQuery).toBe(expected);
+    await choose('Odredište');
+    expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('returns correction to the composer through the existing unsaved decision and preserves confirmed points until leave', async () => {
+    const { onClose } = await mount();
+    await act(async () => editor().props.onConfirm(point('start')));
+    expect(editor().props.slot).toBe('end');
+    await act(async () => editor().props.onCorrectInConversation());
+    expect(onClose).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+    await answer('confirm-sheet-cancel');
+    await choose('Polazište'); expect(editor().props.point).toEqual(point('start'));
+    await act(async () => editor().props.onCorrectInConversation());
+    await answer('confirm-sheet-confirm');
+    expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
   });
 
   it('writes nothing until every required point is confirmed', async () => {

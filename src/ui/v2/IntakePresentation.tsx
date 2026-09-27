@@ -236,9 +236,6 @@ export function IntakePresentation(props: Props) {
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !showPlace ? undefined : <>
       {showPlace && !pointAskHidden ? <>
-        {needsPoint ? <T variant="note" style={s.muted}>{gap.total > 1
-          ? 'Proveri svaku tačku, da onaj ko uskoči zna gde treba da dođe.'
-          : 'Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.'}</T> : null}
         <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
           <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
             onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}

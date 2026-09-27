@@ -21,6 +21,9 @@ type Props = {
    *  standing on it instead of asking the person to search for what they just said. Opt-in: a
    *  lookup marks the point pending, which the long form treats as an unsaved change. */
   autoLocate?: boolean;
+  /** The chat proposes one pin first; the full manual form retains all controls. */
+  presentation?: 'form' | 'conversation';
+  onCorrectInConversation?: () => void;
   /** Confirming the point is the green action where nothing else saves (the conversation's point sheet); in the long
    *  form the footer's save is, so there the confirmation is white. */
   confirmAsPrimary?: boolean;
@@ -32,7 +35,8 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, presentation = 'form', onCorrectInConversation, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
   const [position, setPosition] = useState<ResolvedPinPosition | null>(point
@@ -57,6 +61,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [correctionOpen, setCorrectionOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const focus = useRef(false), requestEpoch = useRef(0), renderEpoch = useRef(0);
   const rendered = ++renderEpoch.current;
@@ -73,14 +78,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // Clearing the search text on blur left the point ask seedless for the rest of the session:
       // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
       // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
-      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setSearchText(initialQuery); located.current = false; setError(false);
+      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchText(initialQuery); located.current = false; setError(false);
       setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
       setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });setAddress(saved?.address ?? '');setNotes(saved?.accessNotes ?? '');
     };
   }, [resolver]));
   useEffect(() => {
     if (!disabled) return;
-    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null);
+    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
     setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
@@ -95,7 +100,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const invalidate = () => { setPending(true); setError(false); onInvalidate(); };
   const choose = (next: ResolvedPinPosition) => {
     if (!owns()) return;
-    retireSearch();
+    retireSearch(); setCorrectionOpen(false);
     setPosition(next); setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
   };
   const changeSearch = (value: string) => {
@@ -110,6 +115,13 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       const result = await resolver.search({ text: searchText, countryCode, scopeKey });
       if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
+      // A validated provider result is a proposal, never a confirmed location or
+      // private-address assignment. Other matches remain available for correction.
+      if (conversation && result.status === 'PROPOSALS' && result.candidates[0]) {
+        const candidate = result.candidates[0];
+        setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label);
+        setCorrectionOpen(false);
+      }
     } catch {
       if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
     }
@@ -170,7 +182,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // Selecting the proposed address does not move or confirm the manual pin.
       retireSearch(); setAddress(candidate.label); setSelectedLabel(candidate.label); invalidate(); return;
     }
-    retireSearch(); setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label); invalidate();
+    const alternatives = conversation && lookup.status === 'PROPOSALS' ? lookup : null;
+    retireSearch(); setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label); setCorrectionOpen(false);
+    if (alternatives) setLookup(alternatives);
+    invalidate();
   };
   const useCandidateAddress = () => {
     if (!owns() || !selectedLabel || !position) return;
@@ -191,6 +206,49 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       ...(privateAddress !== null ? { address: privateAddress } : {}), ...(accessNotes !== null ? { accessNotes } : {}) });
     setPending(false); setError(false);
   };
+  if (conversation) {
+    const loading = lookup.status === 'LOADING';
+    const label = selectedLabel || point?.address || initialQuery;
+    const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
+    const lookupMessage = lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
+      : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili probaj kasnije.'
+        : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
+          : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
+            : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
+    return <View style={{ gap: sys.space.sm }}>
+      <T variant="bodyStrong">{title}</T>
+      <T variant="body" accessibilityLiveRegion="polite">{position ? 'Je l’ ovde?'
+        : loading ? 'Tražimo mesto iz razgovora…' : 'Obeleži mesto na mapi.'}</T>
+      {label ? <T variant="note" tone="muted">{label}</T> : null}
+      {!position && !loading && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
+        {lookupMessage}
+      </T> : null}
+      {!loading || position ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey}
+        disabled={disabled || !focused} height={220} /> : null}
+      <T variant="meta" tone="muted">Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
+      {position ? <>
+        <Button label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
+          style={confirmAsPrimary ? brandAction : undefined} disabled={disabled || !focused || loading} onPress={confirm} />
+        <Button label={correctionOpen ? 'Sakrij druge predloge' : 'Nije ovde'} kind="quiet"
+          disabled={disabled || !focused} onPress={() => { if (owns()) setCorrectionOpen(value => !value); }} />
+      </> : null}
+      {correctionOpen ? <>
+        <T variant="meta" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi.</T>
+        {alternatives.length > 1 ? alternatives.map((candidate, index) => <Button
+          key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={candidate.label}
+          accessibilityLabel={`Izaberi predlog: ${candidate.label}`} kind="secondary"
+          disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
+      </> : null}
+      {(correctionOpen || !position) && onCorrectInConversation ? <Button label="Ispravi u razgovoru" kind="quiet"
+        disabled={disabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
+      {lookup.status === 'PROPOSALS' ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
+        onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}
+        style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
+        <T variant="meta" tone="muted">Pretraga: LocationIQ · izvori podataka</T>
+      </Press> : null}
+      {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
+    </View>;
+  }
   // No box of its own: the point sits in the form's "Samo u Dogovoru" group, and the conversation's sheet is already a
   // surface (a card here was a card in a card).
   return <View style={{ gap: sys.space.md }}>

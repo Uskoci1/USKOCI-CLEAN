@@ -38,14 +38,15 @@ const title = (slot: LocationSlot, geography: NeedTaskGeography | null): string 
 /** The most precise thing already known for this slot, used only as a search seed. */
 const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string => {
   const geography = value.geography;
-  // The private exact address belongs to where the work starts, so it seeds only that point.
-  if (slot === 'start' && value.exactAddress) return value.exactAddress;
   const place = slot === 'start' ? geography?.start
     : slot === 'end' ? geography?.end
       : slot === 'serviceArea' ? geography?.serviceArea
         : geography?.waypoints?.[Number(slot.slice('waypoints/'.length))];
-  return [...new Set([place?.label, place?.area, place?.city]
-    .filter((part): part is string => typeof part === 'string' && !!part.trim()).map(part => part.trim()))].join(', ');
+  // A street alone can resolve in another city. Keep the already-known locality
+  // with the start's private address; never copy that address into another slot.
+  const parts = [slot === 'start' ? value.exactAddress : null, place?.label, place?.area, place?.city]
+    .flatMap(part => typeof part === 'string' ? part.split(',') : []).map(part => part.trim()).filter(Boolean);
+  return parts.filter((part, index) => parts.findIndex(other => other.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(', ');
 };
 
 type State =
@@ -304,9 +305,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   </View>;
 
   return <View style={{ gap: 14 }}>
-    <T accessibilityRole="header" variant="title">Gde tačno?</T>
-    <T tone="muted">Ovo vidi samo onaj s kim se dogovoriš. Kad se pin pojavi, potvrdi ga ili ga prevuci na tačno mesto.</T>
-    <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+    {slots.length > 1 ? <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
       {slots.map(slot => {
         const pending = pendingSlot === slot;
         const status = pending ? 'Čeka potvrdu' : placed.has(slot) ? 'Potvrđeno' : 'Nije potvrđeno';
@@ -324,11 +323,12 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
           {place ? <T variant="note" tone="muted">{place}</T> : null}
         </Press>;
       })}
-    </View>
+    </View> : null}
     {state.kind === 'SAVING' ? <T accessibilityLiveRegion="polite" tone="muted">Čuvam mesto…</T> : null}
     {activeSlot ? <LocationPointEditor key={`${editorEpoch}:${activeSlot}`} slot={activeSlot} title={title(activeSlot, geography)}
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}
+      presentation="conversation" onCorrectInConversation={leave}
       disabled={state.kind === 'SAVING' || inactive} onInvalidate={() => {
         if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);
       }} onConfirm={confirm} /> : null}

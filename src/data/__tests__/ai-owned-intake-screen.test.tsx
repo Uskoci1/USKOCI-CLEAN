@@ -851,7 +851,8 @@ it('does not treat old city coordinates as confirmed for a new city with the sam
     points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] });
   mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed] }));
   await resume();
-  expect(text()).toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
+  expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
+  expect(tree.root.findByType('PointAsk' as React.ElementType).props.conversationId).toBeDefined();
   expect(text()).toContain('tačka na mapi');
 });
 
