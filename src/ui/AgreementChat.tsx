@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowClockwise, ArrowDown, ImageSquare, PaperPlaneTilt, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
@@ -41,6 +41,16 @@ type Props = {
   context?: ReactNode;
   compact?: boolean;
   readingPosition?: { current: AgreementReadingPosition };
+  hasOlder?: boolean;
+  hasNewer?: boolean;
+  loadingOlder?: boolean;
+  loadingNewer?: boolean;
+  historyError?: boolean;
+  historyErrorDirection?: 'older' | 'newer';
+  onLoadOlder?: () => Promise<void>;
+  onLoadNewer?: () => Promise<void>;
+  onShowLatest?: () => Promise<void>;
+  onDisplayedMessageIds?: (ids: readonly string[]) => void;
 };
 
 const errors: Record<OutboxError, string> = {
@@ -133,7 +143,9 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos,
-  context, compact = false, refreshing = false, refreshError = false, readingPosition }: Props) {
+  context, compact = false, refreshing = false, refreshError = false, readingPosition,
+  hasOlder = false, hasNewer = false, loadingOlder = false, loadingNewer = false, historyError = false,
+  historyErrorDirection, onLoadOlder, onLoadNewer, onShowLatest, onDisplayedMessageIds }: Props) {
   const textScale = useTextScale();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -147,6 +159,22 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const readingOffset = useRef(readingPosition?.current.offset ?? 0);
   const restoring = useRef(!following.current);
   const rowPositions = useRef(new Map<string, number>());
+  const bubblePositions = useRef(new Map<string, { y: number; height: number }>());
+  const visibilityFrame = useRef<number | null>(null);
+  const scrollObserved = useRef(false);
+  const pendingHistory = useRef<PorukaProjekcija[] | null>(null);
+  const layoutIdentity = useMemo(() => JSON.stringify([textScale, chosen, messages.map(message =>
+    [message.id, message.telo, message.vremeTekst, message.moja, message.fotografije])]), [messages, textScale, chosen]);
+  const previousLayout = useRef(layoutIdentity);
+  // Insertion, eviction, a changed bubble/day/photo or font size retires old native
+  // measurements. In particular an unchanged first ID does not prove the rest stayed put.
+  if (previousLayout.current !== layoutIdentity) {
+    previousLayout.current = layoutIdentity;
+    if (!following.current) restoring.current = true;
+    rowPositions.current.clear();
+    bubblePositions.current.clear();
+    scrollObserved.current = false;
+  }
   const restoreFrame = useRef<number | null>(null);
   const mounted = useRef(true);
   const geometry = useRef({ offset: 0, viewport: 0, content: 0 });
@@ -172,7 +200,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   };
   const cancelRestore = () => { restoring.current = false; cancelRestoreFrame(); };
   const restoreReading = () => {
-    if (!restoring.current || loading || error || userScrolling.current) return;
+    if (!restoring.current || pendingHistory.current === messages || loading || error || userScrolling.current) return;
     if (restoreFrame.current !== null) cancelAnimationFrame(restoreFrame.current);
     restoreFrame.current = requestAnimationFrame(() => {
       restoreFrame.current = null;
@@ -188,6 +216,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       const y = Math.max(0, Math.min(wanted, geometry.current.content - geometry.current.viewport));
       readingOffset.current = geometry.current.offset = y;
       restoring.current = false;
+      scrollObserved.current = false;
       list.current?.scrollTo({ y, animated: false });
       remember();
     });
@@ -196,37 +225,83 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
     followFrame.current = null;
   };
+  const reportDisplayed = () => {
+    if (!onDisplayedMessageIds || visibilityFrame.current !== null) return;
+    const owner = messages;
+    const notify = onDisplayedMessageIds;
+    visibilityFrame.current = requestAnimationFrame(() => {
+      visibilityFrame.current = null;
+      if (!mounted.current || restoring.current || source.current.messages !== owner
+        || source.current.onDisplayedMessageIds !== notify || source.current.loading || source.current.error) return;
+      const { offset, viewport, content } = geometry.current;
+      if (!(viewport > 0)) return;
+      if (!scrollObserved.current && !(content > 0 && content <= viewport)) return;
+      const visible = owner.filter(message => {
+        if (message.moja) return false;
+        const rowY = rowPositions.current.get(message.id);
+        const bubble = bubblePositions.current.get(message.id);
+        if (rowY === undefined || !bubble || !(bubble.height > 0)) return false;
+        const top = rowY + bubble.y;
+        const overlap = Math.min(top + bubble.height, offset + viewport) - Math.max(top, offset);
+        // Day labels and mounted offscreen rows cannot acknowledge a message.
+        return overlap >= Math.min(bubble.height, viewport) * 0.5;
+      }).slice(0, 50).map(message => message.id);
+      if (visible.length) notify(visible);
+    });
+  };
   // Effect replay may suspend work without changing the person's reading intent.
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; cancelFollow(); cancelRestoreFrame(); }; }, []);
-  useEffect(() => { restoreReading(); }, [messages, loading, error]);
+  useEffect(() => { mounted.current = true; return () => {
+    mounted.current = false; cancelFollow(); cancelRestoreFrame();
+    if (visibilityFrame.current !== null) cancelAnimationFrame(visibilityFrame.current);
+    visibilityFrame.current = null;
+  }; }, []);
+  useEffect(() => {
+    if (pendingHistory.current && pendingHistory.current !== messages) pendingHistory.current = null;
+    restoreReading(); reportDisplayed();
+  }, [messages, loading, error, onDisplayedMessageIds]);
   const followLatest = () => {
-    if (!following.current || userScrolling.current) return;
+    if (!following.current || hasNewer || userScrolling.current) return;
+    scrollObserved.current = false;
     list.current?.scrollToEnd({ animated: false });
     cancelFollow();
     // The compact header can change content and viewport in adjacent native layout passes.
     followFrame.current = requestAnimationFrame(() => {
       followFrame.current = null;
-      if (following.current && !userScrolling.current) list.current?.scrollToEnd({ animated: false });
+      if (following.current && !hasNewer && !userScrolling.current) list.current?.scrollToEnd({ animated: false });
     });
   };
   const chooseLatest = () => {
     cancelRestore(); following.current = true; userScrolling.current = false; remember(); setShowLatest(false); followLatest();
+    if (hasNewer || error || !messages.length) void onShowLatest?.();
   };
   const readUserPosition = ({ nativeEvent: event }: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!mounted.current) return;
+    if (!mounted.current || source.current.messages !== messages) return;
     readingOffset.current = Math.max(0, event.contentOffset.y);
-    following.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
+    following.current = !hasNewer && event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
     remember();
     setShowLatest(previous => previous === !following.current ? previous : !following.current);
   };
   const observePosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!mounted.current) return;
+    if (!mounted.current || source.current.messages !== messages) return;
     const native = event.nativeEvent;
+    scrollObserved.current = true;
     geometry.current = { offset: native.contentOffset.y, viewport: native.layoutMeasurement.height, content: native.contentSize.height };
     if (userScrolling.current) readUserPosition(event);
+    reportDisplayed();
   };
-  const source = useRef({ messages, support, loading, error, photos, terminal, writable, outbox, refresh });
-  source.current = { messages, support, loading, error, photos, terminal, writable, outbox, refresh };
+  const source = useRef({ messages, support, loading, error, photos, terminal, writable, outbox, refresh, onDisplayedMessageIds });
+  source.current = { messages, support, loading, error, photos, terminal, writable, outbox, refresh, onDisplayedMessageIds };
+  const loadHistory = (direction: 'older' | 'newer') => {
+    if (!mounted.current || source.current.messages !== messages || loadingOlder || loadingNewer || loading || error) return;
+    cancelFollow(); following.current = false; remember(); restoring.current = true;
+    pendingHistory.current = messages;
+    setShowLatest(true);
+    void (direction === 'older' ? onLoadOlder?.() : onLoadNewer?.())?.finally(() => {
+      if (!mounted.current || pendingHistory.current !== messages) return;
+      pendingHistory.current = null;
+      if (source.current.messages === messages) { restoring.current = false; reportDisplayed(); }
+    });
+  };
   const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
     && !source.current.loading && !source.current.error && support.canAct();
   const ready = state.phase === 'ready';
@@ -255,12 +330,32 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   };
   // Reconciliation includes the real sender/key/body in the model. Never use
   // matching text alone to pretend that an uncertain send was accepted.
-  const local = state.entries.filter(entry => error || !messages.some(message =>
+  const matchesCanonical = (entry: typeof state.entries[number]) => !error && messages.some(message =>
     message.posiljalacAccountId === entry.command.accountId && message.telo === entry.command.body
       && message.clientMessageId === entry.command.clientMessageId
       && sameMessagePhotos(entry.command.photos, message.fotografije?.length
         ? { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } : undefined)
-      && (!entry.messageId || message.id === entry.messageId)));
+      && (!entry.messageId || message.id === entry.messageId));
+  const receiptKey = (entry: typeof state.entries[number]) => JSON.stringify(entry.command);
+  const observedOutbox = useRef({ owner: outbox, hydrated: false, historical: new Set<string>(), canonical: new Set<string>() });
+  if (observedOutbox.current.owner !== outbox) observedOutbox.current = {
+    owner: outbox, hydrated: false, historical: new Set(), canonical: new Set(),
+  };
+  const observed = observedOutbox.current;
+  if (ready && !observed.hydrated) {
+    observed.hydrated = true;
+    for (const entry of state.entries) if (entry.state === 'confirmed') observed.historical.add(receiptKey(entry));
+  }
+  // Confirmed receipts have no chronological timestamp. Hydrated receipts and already
+  // observed canonical rows must never reappear at the end of an older server window.
+  // Newly confirmed sends still show until their first exact canonical read, even if
+  // React batches away the intermediate sending render. Keep bookkeeping outbox-bounded.
+  const currentKeys = new Set(state.entries.map(receiptKey));
+  for (const key of observed.historical) if (!currentKeys.has(key)) observed.historical.delete(key);
+  for (const key of observed.canonical) if (!currentKeys.has(key)) observed.canonical.delete(key);
+  for (const entry of state.entries) if (matchesCanonical(entry)) observed.canonical.add(receiptKey(entry));
+  const local = state.entries.filter(entry => !matchesCanonical(entry)
+    && !(entry.state === 'confirmed' && (observed.historical.has(receiptKey(entry)) || observed.canonical.has(receiptKey(entry)))));
   const denied = state.entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
   // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists, and
   // then the "+" (drawn as the close X) cannot fold it away, so it says so instead of swapping its icon for nothing
@@ -281,8 +376,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   return (
     <View style={s.screen}>
       <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
-        onContentSizeChange={(_width, height) => { geometry.current.content = height; restoreReading(); followLatest(); }}
-        onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; restoreReading(); followLatest(); }}
+        onContentSizeChange={(_width, height) => { geometry.current.content = height; restoreReading(); followLatest(); reportDisplayed(); }}
+        onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; restoreReading(); followLatest(); reportDisplayed(); }}
         accessibilityActions={[{ name: 'scrollBackward', label: 'Starije poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
         onAccessibilityAction={({ nativeEvent }) => {
           const direction = nativeEvent.actionName === 'scrollBackward' ? -1 : nativeEvent.actionName === 'scrollForward' ? 1 : 0;
@@ -292,10 +387,12 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           const end = Math.max(0, content - viewport);
           const y = Math.max(0, Math.min(end, offset + direction * viewport * 0.8));
           geometry.current.offset = readingOffset.current = y;
-          following.current = direction > 0 && y >= end - 1;
+          scrollObserved.current = false;
+          following.current = !hasNewer && direction > 0 && y >= end - 1;
           remember();
           setShowLatest(!following.current);
           list.current?.scrollTo({ y, animated: false });
+          reportDisplayed();
         }}
         scrollEventThrottle={100}
         onScrollBeginDrag={event => { cancelFollow(); cancelRestore(); userScrolling.current = true; readUserPosition(event); }}
@@ -333,6 +430,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
             ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}
         </View>
+        {!error && hasOlder && onLoadOlder ? <View>
+          {historyError && historyErrorDirection === 'older' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Starije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
+          <ChatAction label="Učitaj starije poruke" text={historyError && historyErrorDirection === 'older' ? 'Pokušaj ponovo · starije poruke' : 'Starije poruke'}
+            onPress={() => loadHistory('older')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
+        </View> : null}
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
         {/* Incoming push hints also refresh the visible conversation. Manual refresh remains available without push
             permission/delivery, including as a quiet action accessible without a pull gesture at the head of the
@@ -370,9 +472,14 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           const clock = <T style={[s.time, message.moja && s.onMine]}>{moment.clock}</T>;
           const hasPhotos = !!photos && !!message.fotografije?.length;
           return <View key={message.id} testID={`agreement-message-row-${message.id}`} onLayout={({ nativeEvent }) => {
-            rowPositions.current.set(message.id, nativeEvent.layout.y); restoreReading();
+            if (!mounted.current || source.current.messages !== messages) return;
+            rowPositions.current.set(message.id, nativeEvent.layout.y); restoreReading(); reportDisplayed();
           }}>
             {newDay ? <T accessibilityRole="header" style={s.day}>{moment.day}</T> : null}
+            <View testID={`agreement-message-bubble-${message.id}`} onLayout={({ nativeEvent }) => {
+              if (!mounted.current || source.current.messages !== messages) return;
+              bubblePositions.current.set(message.id, { y: nativeEvent.layout.y, height: nativeEvent.layout.height }); reportDisplayed();
+            }}>
             {/* The spoken summary keeps who/what/when, but photo recovery is a separate reachable action,
                 never a button hidden inside an accessible message button. Plain text retains its layout. */}
             {hasPhotos ? <View style={bubbleStyle}>
@@ -383,6 +490,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
               {body ? <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{clock}</View>
                 : <Press {...summary} style={s.photoSummary}>{clock}</Press>}
             </View> : <Press {...summary} style={bubbleStyle}>{body}{clock}</Press>}
+            </View>
             {/* This stood under every message, full width, doubling the height of the transcript. It belongs to the
                 message a person actually wants to report, which is the one they hold. It stands under that bubble, on
                 its side, as a sibling: inside the bubble's press its own buttons were a target inside a target, and a
@@ -395,6 +503,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
                 canAct={supportCurrent} navigate={support.navigate} /></View> : null}
           </View>;
         })}
+        {!error && hasNewer && onLoadNewer ? <View>
+          {historyError && historyErrorDirection === 'newer' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Novije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
+          <ChatAction label="Učitaj novije poruke" text={historyError && historyErrorDirection === 'newer' ? 'Pokušaj ponovo · novije poruke' : 'Novije poruke'}
+            onPress={() => loadHistory('newer')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
+        </View> : null}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
             unconfirmed send may be older than today). */}
         {local.map((entry, index) => <View key={entry.command.clientMessageId}
@@ -427,7 +540,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {photos && terminal ? <TerminalPhotoRecovery photos={photos} capturing={state.capturing} /> : null}
       </View> : null}
       </ScrollView>
-      {showLatest ? <View style={s.latestRow}>
+      {showLatest || hasNewer ? <View style={s.latestRow}>
         <Press accessibilityRole="button" accessibilityLabel="Najnovije poruke" onPress={chooseLatest}
           haptic="select" hitSlop={0} style={s.latest}>
           <ArrowDown size={18} color={sys.color.green} />

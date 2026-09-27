@@ -56,6 +56,118 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 describe('D03 actual message component', () => {
+  it('never injects hydrated or evicted confirmed receipts into an older window but keeps newly confirmed sends', async () => {
+    const messageId = '30000000-0000-4000-8000-000000000001';
+    const confirmed = { command, state: 'confirmed' as const, messageId, persisted: true, attempt: 1 };
+    await render({ state: { ...state, entries: [confirmed] }, hasNewer: true });
+    expect(texts()).not.toContain('Stižem uskoro.');
+    await act(async () => tree.unmount());
+    await render(); // A new command can transition directly to confirmed in one batched render.
+    await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, entries: [confirmed] }} />));
+    expect(texts()).toContain('Stižem uskoro.'); expect(texts()).toContain('Poslato');
+    const canonical = { id: messageId, telo: command.body, moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
+      posiljalacAccountId: account, clientMessageId: command.clientMessageId };
+    await act(async () => tree.update(<AgreementChat {...props} messages={[canonical]} state={{ ...state, entries: [confirmed] }} />));
+    expect(texts()).not.toContain('Poslato');
+    await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed] }} />));
+    expect(texts()).not.toContain('Stižem uskoro.'); expect(texts()).not.toContain('Poslato');
+    const unknown = { command: { ...command, clientMessageId: 'another_send_attempt' }, state: 'unknown' as const, persisted: true, attempt: 1 };
+    await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed, unknown] }} />));
+    expect(texts()).toContain('Slanje nije potvrđeno');
+  });
+
+  it('recovers a missing saved anchor with one explicit latest action even without a newer cursor', async () => {
+    const readingPosition = { current: { following: false, offset: 540, anchor: { messageId: 'gone', within: 40 } } };
+    const onShowLatest = jest.fn().mockResolvedValue(undefined);
+    await render({ readingPosition, error: true, onShowLatest });
+    await act(async () => button('Najnovije poruke').props.onPress());
+    expect(onShowLatest).toHaveBeenCalledTimes(1);
+    expect(readingPosition.current.following).toBe(true);
+    expect(readingPosition.current.anchor).toBeUndefined();
+  });
+
+  it('retires middle-row geometry even when the first message is unchanged', async () => {
+    const messages = ['first', 'held'].map(id => ({ id, telo: id, moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }));
+    const onDisplayedMessageIds = jest.fn();
+    await render({ messages, onDisplayedMessageIds });
+    await act(async () => {
+      const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 200 } } }); scroll.props.onContentSizeChange(390, 2000);
+      tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 500 } } });
+      tree.root.findByProps({ testID: 'agreement-message-bubble-held' }).props.onLayout({ nativeEvent: { layout: { y: 0, height: 80 } } });
+      scroll.props.onScroll(scrollEvent(450, 200, 2000));
+    });
+    await flushFrames(); expect(onDisplayedMessageIds).toHaveBeenCalledWith(['held']); onDisplayedMessageIds.mockClear();
+    const expanded = [messages[0], { ...messages[0], id: 'inserted' }, messages[1]];
+    await act(async () => tree.update(<AgreementChat {...props} messages={expanded} onDisplayedMessageIds={onDisplayedMessageIds} />));
+    await act(async () => tree.root.findByProps({ testID: 'agreement-chat-history' }).props.onScroll(scrollEvent(450, 200, 2100)));
+    await flushFrames(); expect(onDisplayedMessageIds).not.toHaveBeenCalled();
+  });
+
+  it('acknowledges only measured incoming bubbles in the observed viewport, not the loaded page or day label', async () => {
+    const messages = ['offscreen', 'visible', 'mine', 'day-only'].map((id, index) => ({ id, telo: id,
+      moja: index === 2, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }));
+    const onDisplayedMessageIds = jest.fn();
+    await render({ messages, onDisplayedMessageIds });
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 200 } } });
+      scroll.props.onContentSizeChange(390, 2000);
+      for (const [id, y, bubbleY] of [['offscreen', 0, 20], ['visible', 500, 20], ['mine', 550, 20], ['day-only', 635, 40]] as const) {
+        tree.root.findByProps({ testID: `agreement-message-row-${id}` }).props.onLayout({ nativeEvent: { layout: { y } } });
+        tree.root.findByProps({ testID: `agreement-message-bubble-${id}` }).props.onLayout({ nativeEvent: { layout: { y: bubbleY, height: 80 } } });
+      }
+    });
+    await flushFrames();
+    expect(onDisplayedMessageIds).not.toHaveBeenCalled(); // Programmatic following is not proof of a displayed row.
+    await act(async () => scroll.props.onScroll(scrollEvent(450, 200, 2000)));
+    await flushFrames();
+    expect(onDisplayedMessageIds).toHaveBeenLastCalledWith(['visible']);
+    onDisplayedMessageIds.mockClear();
+    const staleRow = tree.root.findByProps({ testID: 'agreement-message-row-visible' }).props.onLayout;
+    const staleScroll = scroll.props.onScroll;
+    await act(async () => tree.update(<AgreementChat {...props} messages={[]} onDisplayedMessageIds={onDisplayedMessageIds} error />));
+    await act(async () => { staleRow({ nativeEvent: { layout: { y: 500 } } }); staleScroll(scrollEvent(450, 200, 2000)); });
+    await flushFrames();
+    expect(onDisplayedMessageIds).not.toHaveBeenCalled();
+  });
+
+  it('keeps the exact held message when an older page is prepended and does not treat a window end as latest', async () => {
+    const messages = ['first', 'held', 'last'].map(id => ({ id, telo: id, moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }));
+    const readingPosition: React.ComponentProps<typeof AgreementChat>['readingPosition'] = { current: { following: false, offset: 540, anchor: { messageId: 'held', within: 40 } } };
+    let finish!: () => void;
+    const onLoadOlder = jest.fn(() => new Promise<void>(resolve => { finish = resolve; }));
+    const onShowLatest = jest.fn().mockResolvedValue(undefined);
+    await render({ messages, readingPosition, hasOlder: true, hasNewer: true, onLoadOlder, onShowLatest });
+    await act(async () => {
+      const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } }); scroll.props.onContentSizeChange(390, 3000);
+      tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 500 } } });
+    });
+    await flushFrames();
+    await act(async () => button('Učitaj starije poruke').props.onPress());
+    expect(onLoadOlder).toHaveBeenCalledTimes(1);
+    const expanded = [{ ...messages[0], id: 'older' }, ...messages];
+    await act(async () => tree.update(<AgreementChat {...props} messages={expanded} readingPosition={readingPosition}
+      hasOlder hasNewer onLoadOlder={onLoadOlder} onShowLatest={onShowLatest} />));
+    await act(async () => {
+      tree.root.findByProps({ testID: 'agreement-chat-history' }).props.onContentSizeChange(390, 3300);
+      tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 800 } } });
+      finish();
+    });
+    await flushFrames();
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 840, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => {
+      const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+      scroll.props.onScrollBeginDrag(scrollEvent(2700, 600, 3300)); scroll.props.onScrollEndDrag(scrollEvent(2700, 600, 3300));
+    });
+    expect(readingPosition.current.following).toBe(false);
+    await act(async () => button('Najnovije poruke').props.onPress());
+    expect(onShowLatest).toHaveBeenCalledTimes(1);
+    expect(readingPosition.current.following).toBe(true);
+  });
+
   it('keeps history, writing and photo recovery while refresh progress and its failure have separate feedback', async () => {
     const history = [{ id: '30000000-0000-4000-8000-000000000001', telo: 'Prethodna poruka', moja: false,
       posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }];

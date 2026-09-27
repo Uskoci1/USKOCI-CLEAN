@@ -15,13 +15,13 @@ import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRo
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
-import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { useAgreementHistory } from '../../hooks/useAgreementHistory';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 import { useAgreementPhotos } from '../../hooks/useAgreementPhotos';
 import { useAgreementIncomingRefresh } from '../../hooks/useAgreementIncomingRefresh';
 import type { AgreementReadingPosition } from '../../ui/AgreementChat';
-import { agreementPhotoClientService } from '../../data/agreementPhotoClientService';
+import { agreementMessageHistoryService } from '../../data/agreementMessageHistoryService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
@@ -78,7 +78,14 @@ export default function Dogovor() {
 }
 function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled' }: { id: string; accountId: string; accountRevision: number; initialTab?: AgreementTab }) {
   const izvor = useIzvor();
-  const [tab, setTab] = useState<AgreementTab>(initialTab);
+  const [tab, updateTab] = useState<AgreementTab>(initialTab);
+  // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
+  const chatVisit = useRef<object>({}), tabRef = useRef(tab);
+  const setTab = (next: AgreementTab) => {
+    if (next !== tabRef.current) { chatVisit.current = {}; tabRef.current = next; }
+    updateTab(next);
+  };
+  const renderedChatVisit = chatVisit.current;
   // Survives the foreground freshness gate and the Pregled/Poruke switch, but not
   // a different account incarnation or Agreement (the route content is keyed above).
   const chatReadingPosition = useRef<AgreementReadingPosition>({ following: true, offset: 0 });
@@ -151,6 +158,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
       closeCompletionReview();
+      chatVisit.current = {};
       activeRef.current = state === 'active';
       freshRef.current = false;
       resumeGeneration.current++;
@@ -171,18 +179,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     });
     return () => { current = false; };
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
-  const messages = useFocusedResource(useCallback(async () => {
-    // Coalesced refresh callers must not wait forever behind a stalled history or photo read.
-    // One deadline covers the entire read; a late answer cannot reopen its retired snapshot.
-    let retired = false;
-    try {
-      return await bounded(async () => {
-        const rows = await izvor.poruke(id, accountId);
-        if (retired || !ownsAccount()) throw new Error('MESSAGE_AUTH_CONTEXT_CHANGED');
-        return agreementPhotoClientService.messages(id, rows, { accountId, accountRevision });
-      });
-    } finally { retired = true; }
-  }, [izvor, id, accountId, accountRevision, ownsAccount]), { retainOnRefresh: true, coalesce: true });
+  const messages = useAgreementHistory(accountId, accountRevision, id, chatReadingPosition);
   const dogovor = workspace.data;
   // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble
   // carries that name the way the header above it already does.
@@ -210,22 +207,50 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
   useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
-  // PKG-050 still settles Agreement-level notifications, not exact message IDs.
-  // Independent message reads may finish while the workspace is hidden or resuming.
+  // A page/window read never implies display. Only the current measured incoming rows
+  // may reach B3a, with exact history/workspace/visit identity checked again at dispatch.
   const messageReadReady = tab === 'poruke' && !!dogovor && !workspace.loading && !workspace.error && !workspace.uncertain
     && dogovor.ucesnici.some(party => party.viSte && party.id === accountId)
     && foreground && !resumeRequired && !messages.loading && !messages.error && !!messages.data?.length;
-  const readAcknowledgement = useRef<{ focus: object; rows: NonNullable<typeof messages.data> } | null>(null);
-  useEffect(() => {
-    if (tab !== 'poruke') { readAcknowledgement.current = null; return; }
-    if (!messageReadReady || !renderedFormFocus || formFocus.current !== renderedFormFocus || !ownsAccount()
-      || !activeRef.current || !freshRef.current || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
+  const chatAdmitted = !!dogovor && !workspace.loading && !workspace.error && !workspace.uncertain && foreground && !resumeRequired;
+  const currentChat = useRef({ rows: messages.data, dogovor, ready: messageReadReady, admitted: chatAdmitted });
+  currentChat.current = { rows: messages.data, dogovor, ready: messageReadReady, admitted: chatAdmitted };
+  const displayedAcks = useRef<{ focus: object | null; visit: object; rows: typeof messages.data; ids: Set<string> }>(
+    { focus: null, visit: renderedChatVisit, rows: null, ids: new Set() });
+  const chatCurrent = () => tabRef.current === 'poruke' && chatVisit.current === renderedChatVisit
+    && renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount()
+    && activeRef.current && freshRef.current && currentChat.current.dogovor === dogovor
+    && currentChat.current.admitted
+    && !workspace.loading && !workspace.error && !workspace.uncertain && !!dogovor
+    && dogovor.ucesnici.some(party => party.viSte && party.id === accountId)
+    && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+  const onDisplayedMessageIds = (ids: readonly string[]) => {
     const rows = messages.data;
-    if (!rows?.length || (readAcknowledgement.current?.focus === renderedFormFocus && readAcknowledgement.current.rows === rows)) return;
-    // Readiness changes may retry admission, but do not repeat an already attempted snapshot.
-    readAcknowledgement.current = { focus: renderedFormFocus, rows };
-    izvor.oznaciPorukeProcitanim(id).catch(() => undefined);
-  }, [tab, messageReadReady, renderedFormFocus, messages.data, ownsAccount, izvor, id]);
+    if (!chatCurrent() || !messageReadReady || !currentChat.current.ready || currentChat.current.rows !== rows || !rows) return;
+    let acknowledged = displayedAcks.current;
+    if (acknowledged.focus !== renderedFormFocus || acknowledged.visit !== renderedChatVisit || acknowledged.rows !== rows) {
+      acknowledged = { focus: renderedFormFocus, visit: renderedChatVisit, rows, ids: new Set() };
+      displayedAcks.current = acknowledged;
+    }
+    const displayed = [...new Set(ids)].filter(messageId => !acknowledged.ids.has(messageId) && rows.some(message => message.id === messageId
+      && !message.moja && !!message.posiljalacAccountId && message.posiljalacAccountId !== accountId
+      && dogovor!.ucesnici.some(party => party.id === message.posiljalacAccountId)));
+    // Bound each write exactly as the server contract requires. No loaded-page sweep.
+    void (async () => {
+      for (let index = 0; index < displayed.length; index += 50) {
+        if (!chatCurrent() || !currentChat.current.ready || currentChat.current.rows !== rows || displayedAcks.current !== acknowledged) return;
+        const batch = displayed.slice(index, index + 50).filter(messageId => !acknowledged.ids.has(messageId));
+        if (!batch.length) continue;
+        batch.forEach(messageId => acknowledged.ids.add(messageId));
+        const result = await agreementMessageHistoryService.markDisplayed(id, batch, { accountId, accountRevision }).catch(() => null);
+        if (!result?.ok) batch.forEach(messageId => acknowledged.ids.delete(messageId));
+      }
+    })();
+  };
+  const refreshMessages = async () => { if (chatCurrent()) await messages.refresh(); };
+  const loadOlderMessages = async () => { if (chatCurrent() && currentChat.current.rows === messages.data) await messages.loadOlder(); };
+  const loadNewerMessages = async () => { if (chatCurrent() && currentChat.current.rows === messages.data) await messages.loadNewer(); };
+  const showLatestMessages = async () => { if (chatCurrent() && currentChat.current.rows === messages.data) await messages.showLatest(); };
   const chatVisible = tab === 'poruke' && !!dogovor && foreground && !resumeRequired;
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android' || !chatVisible) return;
@@ -399,7 +424,11 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
-          writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,
+          writable, terminal: !dogovor.chatDostupan, refresh: refreshMessages, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,
+          hasOlder: !!messages.olderCursor, hasNewer: !!messages.newerCursor,
+          loadingOlder: messages.loadingOlder, loadingNewer: messages.loadingNewer,
+          historyError: !!messages.historyErrorDirection, historyErrorDirection: messages.historyErrorDirection,
+          onLoadOlder: loadOlderMessages, onLoadNewer: loadNewerMessages, onShowLatest: showLatestMessages, onDisplayedMessageIds,
           outbox, state: outboxState, photos,
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
         {other ? <AgreementPersonBar person={other} back={backToAgreements}

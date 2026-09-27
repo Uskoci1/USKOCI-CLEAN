@@ -8,6 +8,7 @@ const mockAccount = '10000000-0000-4000-8000-000000000001', mockOther = '1000000
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn() };
 const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '40000000-0000-4000-8000-000000000001';
 const mockRead = jest.fn(), mockMessages = jest.fn(), mockMessagesRead = jest.fn();
+const mockDisplayed = jest.fn();
 let mockParams: Record<string, string> = { id: mockAgreementId };
 let mockReducedMotion = false;
 // These established assertions describe the roomy composition. The native Jest preset defaults to fontScale 2;
@@ -43,7 +44,18 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAcc
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: { reconcile: jest.fn().mockResolvedValue(undefined) }, state: { phase: 'ready', entries: [] } }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockAgreementId, loaded: true, busy: false, items: [] }) }));
-jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (_id: string, rows: unknown[]) => Promise.resolve(rows) } }));
+jest.mock('../agreementMessageHistoryService', () => ({
+  compareAgreementMessageCursors: (left: any, right: any) => left.createdAt.localeCompare(right.createdAt) || left.messageId.localeCompare(right.messageId),
+  agreementMessageHistoryService: {
+    page: async (id: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
+      accountId: scope.accountId, agreementId: id, messages: await mockMessages(id, scope.accountId), olderCursor: null,
+      asOf: '2026-09-27T13:00:00.123456Z' } }),
+    window: async (id: string, target: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
+      accountId: scope.accountId, agreementId: id, targetMessageId: target,
+      messages: await mockMessages(id, scope.accountId), beforeCursor: null, afterCursor: null, asOf: '2026-09-27T13:00:00.123456Z' } }),
+    markDisplayed: (...args: unknown[]) => mockDisplayed(...args),
+  },
+}));
 // The own-review read behind "Oceni saradnju" (2026-09-23). Default: the rating is still due, as before.
 const mockReviewContext = jest.fn();
 jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: (...args: unknown[]) => mockReviewContext(...args) } }));
@@ -67,6 +79,7 @@ async function render(workspace: Record<string, unknown>, messageRows: unknown[]
   await act(async () => { tree = create(<Dogovor />); });
 }
 beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0);
+  mockDisplayed.mockReset().mockResolvedValue({ ok: true, podatak: {} });
   mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
@@ -352,17 +365,19 @@ test.each([
   expect(labels()).toContain('Izmene i otkazivanje Dogovora');
 });
 
-// PKG-050: the conversation settles its own "Nova poruka" notifications; the overview does not.
-// Round03 additionally requires an actually loaded, nonempty visible thread before acknowledgment.
+// B3a: loaded history is not a display receipt. Only the UI's measured IDs are admitted.
 const messageRows = [{ id: '50000000-0000-4000-8000-000000000001', posiljalacAccountId: mockOther,
-  posiljalacIme: 'Sagovornik', moja: false, telo: 'Stižem uskoro.', vremeTekst: '07:36', procitano: null }];
-test('showing the Poruke tab with a loaded conversation settles the message notifications about this Dogovor once per list', async () => {
+  posiljalacIme: 'Sagovornik', moja: false, telo: 'Stižem uskoro.', vremeTekst: '07:36', procitano: null,
+  createdAt: '2026-09-27T07:36:00.123456Z', kind: 'TEXT' }];
+test('showing a loaded Poruke tab sends no receipt until the actual incoming row is displayed', async () => {
   mockParams = { id: mockAgreementId, tab: 'poruke' };
   await render(base(), messageRows);
-  expect(mockMessagesRead).toHaveBeenCalledTimes(1);
-  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
+  expect(mockMessagesRead).not.toHaveBeenCalled(); expect(mockDisplayed).not.toHaveBeenCalled();
+  const display = tree.root.findByType('AgreementChat' as any).props.onDisplayedMessageIds;
+  await act(async () => display([messageRows[0].id]));
+  expect(mockDisplayed).toHaveBeenCalledWith(mockAgreementId, [messageRows[0].id], { accountId: mockAccount, accountRevision: 0 });
   await act(async () => tree.update(<Dogovor />));
-  expect(mockMessagesRead).toHaveBeenCalledTimes(1);
+  expect(mockDisplayed).toHaveBeenCalledTimes(1); expect(mockMessagesRead).not.toHaveBeenCalled();
 });
 test('the Pregled tab settles nothing: the person has not read the messages there', async () => {
   await render(base(), messageRows);
@@ -370,10 +385,12 @@ test('the Pregled tab settles nothing: the person has not read the messages ther
 });
 test('a refused settlement leaves the conversation exactly as it was', async () => {
   mockParams = { id: mockAgreementId, tab: 'poruke' };
-  mockMessagesRead.mockRejectedValue(new Error('MESSAGES_READ_UNCONFIRMED'));
+  mockDisplayed.mockRejectedValue(new Error('MESSAGES_READ_UNCONFIRMED'));
   await render(base(), messageRows);
-  expect(mockMessagesRead).toHaveBeenCalledWith(mockAgreementId);
   const chat = tree.root.findByType('AgreementChat' as any);
+  await act(async () => chat.props.onDisplayedMessageIds([messageRows[0].id]));
+  expect(mockDisplayed).toHaveBeenCalledWith(mockAgreementId, [messageRows[0].id], { accountId: mockAccount, accountRevision: 0 });
+  expect(mockMessagesRead).not.toHaveBeenCalled();
   expect(chat.props.messages).toEqual([{ ...messageRows[0], posiljalacIme: 'Marko' }]);
 });
 

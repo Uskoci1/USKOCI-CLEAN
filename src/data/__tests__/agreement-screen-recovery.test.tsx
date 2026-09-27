@@ -15,7 +15,7 @@ const mockGroupContext = jest.fn();
 const mockRead = jest.fn();
 const mockMessages = jest.fn();
 const mockProblemSubmit = jest.fn(), mockProblemRead = jest.fn();
-const mockPhotoRead = jest.fn((_id: string, rows: unknown[]) => Promise.resolve(rows));
+const mockDisplayed = jest.fn();
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(),
   prijaviProblem: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn(), oznaciPorukeProcitanim: jest.fn().mockResolvedValue(0) };
 const mockOutbox = { reconcile: jest.fn().mockResolvedValue(undefined) };
@@ -58,7 +58,18 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAcc
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockId, loaded: true, busy: false, items: [] }) }));
-jest.mock('../agreementPhotoClientService', () => ({ agreementPhotoClientService: { messages: (...args: Parameters<typeof mockPhotoRead>) => mockPhotoRead(...args) } }));
+jest.mock('../agreementMessageHistoryService', () => ({
+  compareAgreementMessageCursors: (left: any, right: any) => left.createdAt.localeCompare(right.createdAt) || left.messageId.localeCompare(right.messageId),
+  agreementMessageHistoryService: {
+    page: async (id: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
+      accountId: scope.accountId, agreementId: id, messages: await mockMessages(id, scope.accountId), olderCursor: null,
+      asOf: '2026-09-27T13:00:00.123456Z' } }),
+    window: async (id: string, target: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
+      accountId: scope.accountId, agreementId: id, targetMessageId: target,
+      messages: await mockMessages(id, scope.accountId), beforeCursor: null, afterCursor: null, asOf: '2026-09-27T13:00:00.123457Z' } }),
+    markDisplayed: (...args: unknown[]) => mockDisplayed(...args),
+  },
+}));
 // Since 2026-09-23 a finished Dogovor asks the own-review read whether "Oceni saradnju" is still due. The real module
 // reaches supabaseClient, which registers an AppState listener before this suite's listener set exists; the default
 // answer below ("still due") keeps every existing expectation about a finished Dogovor unchanged.
@@ -74,7 +85,8 @@ const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć 
   chatDostupan: true, vremeTekst: 'Fleksibilno', putanjaTekst: 'Beograd', problemOtvoren: false, rokPotvrdeIso: null,
   radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false } };
 const ownMessage = { id: '30000000-0000-4000-8000-000000000001', clientMessageId: 'poruka_retry_123',
-  dogovorVerzija: 2, posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true };
+  dogovorVerzija: 2, posiljalacAccountId: '10000000-0000-4000-8000-000000000001', telo: 'Stižem.', moja: true,
+  createdAt: '2026-09-27T10:00:00.123456Z', kind: 'TEXT' };
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
@@ -106,7 +118,7 @@ beforeEach(() => {
   mockRead.mockResolvedValue(workspace); mockMessages.mockResolvedValue([ownMessage]);
   mockProblemSubmit.mockReset().mockResolvedValue({ ok: false, kod: 'NOT_CONFIGURED', poruka: 'unconfirmed' });
   mockProblemRead.mockReset();
-  mockPhotoRead.mockReset().mockImplementation((_id, rows) => Promise.resolve(rows));
+  mockDisplayed.mockReset().mockResolvedValue({ ok: true, podatak: {} });
   mockGroupContext.mockReset().mockResolvedValue({ ok: true, podatak: { group: null } });
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } });
   mockOutboxState = { phase: 'loading', entries: [] };
@@ -116,6 +128,41 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it('acknowledges only measured incoming canonical IDs, never a loaded page or a legacy Agreement sweep', async () => {
+    const incoming = { ...ownMessage, id: '30000000-0000-4000-8000-000000000002', moja: false,
+      posiljalacAccountId: workspace.ucesnici[1].id };
+    const omitted = { ...incoming, id: '30000000-0000-4000-8000-000000000003' };
+    mockMessages.mockResolvedValue([ownMessage, incoming, omitted]);
+    await render(); await act(async () => button('Poruke').props.onPress());
+    expect(mockDisplayed).not.toHaveBeenCalled();
+    const display = tree.root.findByType('AgreementChat' as any).props.onDisplayedMessageIds;
+    await act(async () => display([ownMessage.id, incoming.id, incoming.id, 'foreign-id']));
+    expect(mockDisplayed).toHaveBeenCalledTimes(1);
+    expect(mockDisplayed).toHaveBeenCalledWith(workspace.id, [incoming.id], { accountId: mockAccount, accountRevision: 0 });
+    await act(async () => display([incoming.id]));
+    expect(mockDisplayed).toHaveBeenCalledTimes(1);
+    expect(mockSource.oznaciPorukeProcitanim).not.toHaveBeenCalled();
+  });
+  it.each(['tab visit', 'blur/focus', 'background', 'account ABA', 'row snapshot'] as const)(
+    'rejects retained display callbacks after %s', async change => {
+      const incoming = { ...ownMessage, moja: false, posiljalacAccountId: workspace.ucesnici[1].id };
+      mockMessages.mockResolvedValue([incoming]); await render(); await act(async () => button('Poruke').props.onPress());
+      const chat = () => tree.root.findByType('AgreementChat' as any).props;
+      const display = chat().onDisplayedMessageIds;
+      if (change === 'tab visit') {
+        await hardwareBack(); await act(async () => button('Poruke').props.onPress());
+      } else if (change === 'blur/focus') {
+        mockFocused = false; await act(async () => tree.update(<Dogovor />));
+        mockFocused = true; await act(async () => tree.update(<Dogovor />));
+      } else if (change === 'background') {
+        await act(async () => mockAppListeners.forEach(listener => listener('background')));
+        await act(async () => mockAppListeners.forEach(listener => listener('active')));
+      } else if (change === 'account ABA') mockAccountRevision += 2;
+      else { mockMessages.mockResolvedValue([{ ...incoming }]); await act(async () => chat().refresh()); }
+      await act(async () => display([incoming.id]));
+      expect(mockDisplayed).not.toHaveBeenCalled();
+      expect(mockSource.oznaciPorukeProcitanim).not.toHaveBeenCalled();
+    });
   it.each([true, false])('hardware Back leaves chat for the same overview (writable=%s), then lets the navigator leave', async writable => {
     mockRead.mockResolvedValue({ ...workspace, chatDostupan: writable, stanje: writable ? 'CONFIRMED' : 'COMPLETED' });
     await render(); await act(async () => button('Poruke').props.onPress());
@@ -191,12 +238,11 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(texts()).toContain('3.000 RSD');
     expect(tree.root.findAllByProps({ accessibilityLabel: `Otvori zadatak: ${workspace.naslov}` })).toHaveLength(0);
   });
-  it.each(['messages', 'photos'] as const)('bounds a stalled %s read, admits explicit retry, and ignores the late retired answer', async stage => {
+  it('bounds a stalled B3 history read, admits explicit retry, and ignores the late retired answer', async () => {
     jest.useFakeTimers();
     let late!: (rows: unknown[]) => void;
     const stalled = new Promise<unknown[]>(resolve => { late = resolve; });
-    if (stage === 'messages') mockMessages.mockReturnValueOnce(stalled);
-    else mockPhotoRead.mockReturnValueOnce(stalled);
+    mockMessages.mockReturnValueOnce(stalled);
     await render(); await act(async () => button('Poruke').props.onPress());
     const chat = () => tree.root.findByType('AgreementChat' as any).props;
     expect(chat()).toMatchObject({ loading: true, error: false, messages: [] });
@@ -206,11 +252,8 @@ describe('D03 actual route and scoped resource integration', () => {
     mockMessages.mockResolvedValueOnce([fresh]);
     await act(async () => { await chat().refresh(); });
     expect(chat()).toMatchObject({ loading: false, error: false, messages: [fresh], refreshing: false });
-    const photoReadsAfterRetry = mockPhotoRead.mock.calls.length;
     await act(async () => { late([{ ...ownMessage, telo: 'Zakasnela poruka.' }]); });
     expect(chat().messages).toEqual([fresh]); expect(mockMessages).toHaveBeenCalledTimes(2);
-    // History timing out must also prevent its eventual answer from starting old photo work.
-    expect(mockPhotoRead).toHaveBeenCalledTimes(photoReadsAfterRetry);
   });
 
   it('retains messages, outbox and photo controller during refresh, failure and a coalesced send refresh', async () => {
@@ -228,12 +271,13 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(chat()).toMatchObject({ messages: [ownMessage], refreshing: false, loading: false, error: false, refreshError: true });
     let resolveRefresh!: (rows: unknown[]) => void;
     mockMessages.mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }))
+      .mockResolvedValueOnce([ownMessage]) // bounded newest probe alongside the anchor window
       .mockImplementationOnce(() => new Promise(resolve => { resolveTrailing = resolve; }));
     let shared!: Promise<void>;
     await act(async () => { shared = chat().refresh(); void chat().refresh(); void chat().refresh(); });
-    expect(mockMessages).toHaveBeenCalledTimes(3);
+    expect(mockMessages).toHaveBeenCalledTimes(5);
     await act(async () => { resolveRefresh([ownMessage]); });
-    expect(mockMessages).toHaveBeenCalledTimes(4); expect(chat().refreshing).toBe(true);
+    expect(mockMessages).toHaveBeenCalledTimes(7); expect(chat().refreshing).toBe(true);
     const second = { ...ownMessage, id: '30000000-0000-4000-8000-000000000002', clientMessageId: 'another_message', telo: 'Kod ulaza sam.' };
     await act(async () => { resolveTrailing([ownMessage, second]); await shared; });
     expect(chat()).toMatchObject({ messages: [ownMessage, second], refreshing: false, loading: false, error: false });
