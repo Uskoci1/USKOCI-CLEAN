@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T17:27:09Z",
+  "osvezeno": "2026-09-27T17:33:27Z",
   "grana": "HEAD",
-  "head": "601d78f6",
-  "head_poruka": "fix(proof): await actual Realtime registration before WAL witnesses",
+  "head": "d1091eab",
+  "head_poruka": "fix(account): retire dismissed closure actions and record native acceptance",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -134,7 +134,7 @@
     "Bounded Discovery contract and proof",
     "Voice and complete exact-message push",
     "Written rating comment contract and proof",
-    "B3c private invalidation: disposable SQL/Auth/rollback proof PASS; actual websocket filtering, concurrency and approved closure recertification remain before deployment."
+    "B3c private invalidation: SQL/Auth and actual Realtime passed36336794390. Full certified erasure, concurrency/load, export classification and DEV approval still separate; only disposable certificate approval requested."
    ],
    "mutation": "EXPLICIT_USER_APPROVAL_EXECUTED; DEVledger203→205; push20→21; bez pomeranja sertifikata. Uređaj/provider nisu provereni.",
    "applied": [
@@ -143,7 +143,8 @@
     "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback"
    ]
   },
-  "chat_b3c": "SQL_AUTH_PASS / WIRE36335592934_FAILED_ZERO_EVENTS / READINESS_FIX601d78f6 / RERUN36336794390_PENDING / NOT_DEPLOYABLE_NOT_CLIENT_WIRED"
+  "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
+  "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json"
  },
  "redovi": [
   {
@@ -6664,11 +6665,19 @@
  },
  "ci": [
   {
+   "id": 36337043414,
+   "ime": "Build Android development APK",
+   "sha": "d1091eab",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-27T17:28:05Z"
+  },
+  {
    "id": 36336794390,
    "ime": "Chat B3c private invalidation disposable SQL proof",
    "sha": "601d78f6",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-27T17:24:06Z"
   },
   {
@@ -6750,14 +6759,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-27T10:27:02Z"
-  },
-  {
-   "id": 36312008697,
-   "ime": "Chat B3 bounded history and exact read disposable proof",
-   "sha": "7b9f787e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-27T10:16:32Z"
   }
  ]
 }

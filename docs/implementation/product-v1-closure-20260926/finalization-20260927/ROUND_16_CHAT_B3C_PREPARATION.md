@@ -1,6 +1,10 @@
 # Round 16 — B3c body-free invalidation preparation
 
-Current status: **DISPOSABLE SQL/AUTH PASS / WEBSOCKET PHASE PREPARED, NOT RUN / NOT DEPLOYABLE / NOT CLIENT-WIRED**. Exact SQL/Auth run36333212694 at3dc23096 passed; see `ROUND_18_B3C_SQL_RECEIPT.json`. It tested the preceding candidate bytes, not the admission extension below. No DEV mutation, certificate update, provider call or application source change was performed.
+Current status: **DISPOSABLE SQL/AUTH AND ACTUAL REALTIME PASS / NOT DEPLOYABLE / NOT CLIENT-WIRED**. Exact run36336794390 at601d78f6 passed both phases with candidate SHA25606a0cd600c8d2726f4e58a48a5705497ef7799978043d53ae997803c094a33f2. See `ROUND_20_B3C_WIRE_RECEIPT.json`: four actual authenticated sessions,12 known-message watermarks,7 socket heartbeat barriers and21 validated body-free events. Participant delivery, unrelated Agreement exclusion, expired/revoked sessions, closing parties and unpublished cache DELETE passed. Full final source/certificate snapshot remained unchanged after strictly admitted Realtime service initialization; readiness remained false; the stack was discarded.
+
+Earlier wire failures36334770586 and36335592934 remain historical failures. Pinned Realtime joins before asynchronously registering its PostgreSQL subscription and initializes an internal publication lazily. The corrected harness waits for actual system-OK, exact SQL registrations and prepared slots before sending. Only the exact service-owned internal publication addition is admitted before the baseline; no preexisting publication edit is allowed. This is a proof-harness correction, not a relaxation of candidate authorization.
+
+No DEV mutation, application subscription, provider call or certificate rebind occurred. Full certified erasure, concurrency/load, export classification and deployment review remain. The owner has been asked separately about certificate rebinding **only on a disposable test database**; no answer or DEV approval is implied. Older preparation paragraphs below describe their historical stage, not the current execution result.
 
 ## Separate committed websocket fixture (follow-up)
 

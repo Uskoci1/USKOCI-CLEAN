@@ -3673,7 +3673,7 @@
         "Bounded Discovery contract and proof",
         "Voice and complete exact-message push",
         "Written rating comment contract and proof",
-        "B3c private invalidation: disposable SQL/Auth/rollback proof PASS; actual websocket filtering, concurrency and approved closure recertification remain before deployment."
+        "B3c private invalidation: SQL/Auth and actual Realtime passed36336794390. Full certified erasure, concurrency/load, export classification and DEV approval still separate; only disposable certificate approval requested."
       ],
       "mutation": "EXPLICIT_USER_APPROVAL_EXECUTED; DEVledger203→205; push20→21; bez pomeranja sertifikata. Uređaj/provider nisu provereni.",
       "applied": [
@@ -3682,6 +3682,7 @@
         "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback"
       ]
     },
-    "chat_b3c": "SQL_AUTH_PASS / WIRE36335592934_FAILED_ZERO_EVENTS / READINESS_FIX601d78f6 / RERUN36336794390_PENDING / NOT_DEPLOYABLE_NOT_CLIENT_WIRED"
+    "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
+    "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json"
   }
 }
