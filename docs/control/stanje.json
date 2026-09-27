@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T16:14:54Z",
+  "osvezeno": "2026-09-27T16:23:55Z",
   "grana": "HEAD",
-  "head": "410a99d5",
-  "head_poruka": "Preserve retained chat intent and prepare exact public lookup [skip ci]",
+  "head": "eff72a25",
+  "head_poruka": "fix: keep expanded search calendar inside its native panel",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "410a99d5",
+  "source_head": "eff72a25",
   "order": [
    "P0",
    "P1",
@@ -134,7 +134,7 @@
     "Bounded Discovery contract and proof",
     "Voice and complete exact-message push",
     "Written rating comment contract and proof",
-    "Direct realtime invalidation relation: catalog/contract only; SQL/Auth/subscription and closure integration not prepared/proved"
+    "Direct realtime invalidation: source + local-only rollback proof harness prepared and statically reviewed; SQL/Auth run, websocket delivery, concurrency and closure recertification still pending."
    ],
    "mutation": "EXPLICIT_USER_APPROVAL_EXECUTED; DEVledger203→205; push20→21; bez pomeranja sertifikata. Uređaj/provider nisu provereni.",
    "applied": [
@@ -142,7 +142,8 @@
     "B3b20260927140231: prozor oko poruke; isti dokazaniSHA256",
     "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback"
    ]
-  }
+  },
+  "chat_b3c": "SOURCE_PREPARED / STATIC_REVIEW_PASS / SQL_NOT_RUN / NOT_DEPLOYABLE: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_B3C_PREPARATION.md"
  },
  "redovi": [
   {
@@ -2906,7 +2907,7 @@
     "flow": "Poruke",
     "ux": "Učitavanje starijih/novijih poruka čuva mesto čitanja; jedan dodir vraća najnovije i kada stara poruka više ne postoji.",
     "ui": "Postojeći oblačići i unos zadržani. Diskretne radnje Starije/Novije i retry pripadaju istoriji.",
-    "backend": "DEV B3a/B3b APPLIED; ledger205 i svi otisci/dozvole potvrđeni. Bez promene pisanja/sertifikata. Round16 15:36UTC: realtime publication ima0tabela, private broadcast0polisa; direktan realtime nije uključen.",
+    "backend": "DEV B3a/B3b APPLIED; ledger205 i svi otisci/dozvole potvrđeni. Bez promene pisanja/sertifikata. Round16 15:36UTC: realtime publication ima0tabela, private broadcast0polisa; direktan realtime nije uključen. B3c pripremljen kao zaseban SQL fragment i lokalni dokaz; još nije izvršen, primenljiv ni povezan sa klijentom.",
     "state_sync": "Aktuelni nalog/poseta/snimak i izmerene dolazne poruke određuju ACK. Stari potvrđeni outbox unosi se ne pojavljuju posle izbacivanja iz prozora; novo mesto čitanja nadjačava čekajuću stranicu. Round16: promenjen tab=poruke otvara postojeći Dogovor bez resetovanja reda za slanje/istorije; kasniji Nazad ostaje. Ponovljen isti parametar bez novog identiteta nije novi signal.",
     "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
     "test": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json Round16: postojeći osveživač/istorija3grupe/104testa PASS; nije dokaz direktne pretplate. Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
@@ -6663,6 +6664,14 @@
  },
  "ci": [
   {
+   "id": 36332545768,
+   "ime": "Build Android development APK",
+   "sha": "eff72a25",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-27T16:15:14Z"
+  },
+  {
    "id": 36330122549,
    "ime": "Discovery P0 exact public landing disposable proof",
    "sha": "df29d078",
@@ -6749,14 +6758,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-27T07:46:48Z"
-  },
-  {
-   "id": 36304151417,
-   "ime": "CodeQL",
-   "sha": "d18e830a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T07:46:46Z"
   }
  ]
 }
