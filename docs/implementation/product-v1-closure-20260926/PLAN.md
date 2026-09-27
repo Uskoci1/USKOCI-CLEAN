@@ -1,3 +1,5 @@
+CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores runtime 10739a44; the exact emulator APK is restored and its installed hash matches. Candidate 2b2cf4d7 and its phone APK are rejected after repeated Android ANR. Read docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json and ROUND_32_ANR_DIAGNOSIS.md. The original FULL navigation-return bug remains open. DEV ledger 210 / push Edge v22 are unchanged; phone USB is absent and the hosted dashboard invalid_argument error is unresolved. Older checkpoints below are historical.
+
 # USKOČI V1 closure plan — 26.09.2026
 
 Status: **ACTIVE FINALIZATION — ROUND31**. Canonical branch: `work/uskoci-ui-unification-20260924`; latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.

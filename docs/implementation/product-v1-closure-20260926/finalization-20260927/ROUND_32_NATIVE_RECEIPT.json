@@ -65,6 +65,7 @@
   ],
   "runtime_source_equivalence": {
     "matches": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+    "changed_tracked_paths_scope": "Documentation-only diff snapshot before the final synchronization receipt; not an exhaustive manifest of the subsequent documentation commit.",
     "changed_tracked_paths": [
       "AGENTS.md",
       "USKOCI_MASTER_PLAN_DIZAJNA.md",
@@ -92,7 +93,8 @@
       "docs/implementation/product-v1-closure-20260926/finalization-20260927/native-round31/r31-full-return-settled.xml",
       "docs/implementation/product-v1-closure-20260926/finalization-20260927/native-round31/r31-map-late-recovered.png"
     ],
-    "rule": "Only docs, AGENTS and master-plan paths differ; no runtime/config/dependency/assets/test change remains."
+    "rule": "Only docs, AGENTS and master-plan paths differ; no runtime/config/dependency/assets/test change remains.",
+    "verified_committed_at": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b"
   },
   "original_full_navigation_return_bug": "OPEN; rollback recovery is not a fix for Round31 gallery-return disappearance",
   "phone": "USB_ABSENT; existingb589994e unchanged. Prior verified10739a44 ARM64 artifact is the finished-source candidate;2b2 withheld.",
@@ -137,5 +139,15 @@
       "sha256": "0fd9de708d997b5b8146d6f92e1c105cd455ac54f14e557fa3149d164241d7d9",
       "bytes": 93174
     }
+  },
+  "rollback_commit": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b",
+  "rollback_ci": {
+    "run": 36357286414,
+    "source": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b",
+    "conclusion": "success",
+    "suites": 342,
+    "tests": 7213,
+    "runtime_equivalent_to": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+    "native_boundary": "Scoped rollback recovery only; original full-return defect remains open."
   }
 }

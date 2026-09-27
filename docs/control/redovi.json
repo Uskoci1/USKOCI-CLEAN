@@ -3327,7 +3327,7 @@
       "id": "B20",
       "oblast": "Izgled i pristupačnost",
       "nalaz_16_09": "Nije provereno na telefonu",
-      "sada": "Round32 kandidat2b2: TypeScript,171ciljani i automatskiCI36355427752/342grupe/7216testovaPASS, ali nativeANR odbija prihvatanje. Četiri izmene potpuno povučene; izvršni izvor sada tačno10739a44 (156ciljanih+TypeScriptPASS izRound31). Rezultat rollbackCI vodi se odvojeno. RC-04 i celoviti uređajski tokovi ostaju odvojeni.",
+      "sada": "Vraćena verzija 36c57b84: automatski CI 36357286414, TypeScript i 342 grupe / 7213 testova PASS. Izvršni izvor jednak je 10739a44; emulator je vraćen i provereni su mapa, cela lista, meni i povratak iz menija. Izvorni kvar pri povratku cele liste ostaje otvoren. Kandidat 2b2cf4d7 je odbijen uprkos uspešnim automatskim testovima. RC-04 i celovita pristupačnost/uređajski tokovi ostaju odvojeni.",
       "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_CHECKS.json"
     },
     {
@@ -3689,7 +3689,7 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "Round32 kandidat2b2: TypeScript,171ciljani i automatskiCI36355427752/342grupe/7216testovaPASS, ali nativeANR odbija prihvatanje. Četiri izmene potpuno povučene; izvršni izvor sada tačno10739a44 (156ciljanih+TypeScriptPASS izRound31). Rezultat rollbackCI vodi se odvojeno.",
+    "tests": "Vraćena verzija 36c57b84: automatski CI 36357286414, TypeScript i 342 grupe / 7213 testova PASS. Izvršni izvor jednak je 10739a44; emulator je vraćen i provereni su mapa, cela lista, meni i povratak iz menija. Izvorni kvar pri povratku cele liste ostaje otvoren. Kandidat 2b2cf4d7 je odbijen uprkos uspešnim automatskim testovima.",
     "device": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
     "live_dev_scope": "Sveže metadata čitanje 27.09 u21:52UTC: ledger210, push Edge22 ACTIVE, šest poslednjih migracija imaju očekivane SHA256; oba sertifikatska reda f66818aa…1755b. Raniji tačan Edge readback ostaje zaseban dokaz. Exact flag poslednji put potvrđen OFF u20:12:44UTC; ovde nije ponovo čitan. Privatni readiness helper nije izvršavan.",
     "rule": "Normal UI/flow refinements, focused checks and consolidated device checkpoints authorized. Latest owner requests synchronization of finished work to canonical Git/DEV/app locations. Already applied packages need no repeat approval. Unfinished candidates still require completed proof/preconditions; certificate/dependency/payment restrictions remain. Source is not READY.",
@@ -3829,7 +3829,17 @@
       "phone_run": 36355441615,
       "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
       "candidate_source": "2b2cf4d7cf031f3e54b2d46cc066bf0d9db48eee",
-      "restored_runtime": "10739a440611fc32e3bd6d9ee6dd66a5479e091b"
-    }
+      "restored_runtime": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+      "rollback_ci": {
+        "run": 36357286414,
+        "source": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b",
+        "conclusion": "success",
+        "suites": 342,
+        "tests": 7213,
+        "runtime_equivalent_to": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+        "native_boundary": "Scoped rollback recovery only; original full-return defect remains open."
+      }
+    },
+    "canonical_sync_commit": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b"
   }
 }
