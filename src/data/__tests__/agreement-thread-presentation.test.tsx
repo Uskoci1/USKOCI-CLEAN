@@ -47,7 +47,7 @@ beforeEach(() => {
       outbox: { setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined), retry: jest.fn().mockResolvedValue(undefined), start: jest.fn() } as any,
       state: { phase: 'ready', draft: 'Moj sačuvani nacrt', capturing: false, entries: [], error: null },
       photos: { agreementId: agreement.id, loaded: true, busy: false, ready: false, hasSelection: false, items: [],
-        message: null, versionConflict: false, canSubmit: () => false, capture: () => null } as any } };
+        message: null, versionConflict: false, canSubmit: () => false, capture: () => null, refresh: jest.fn().mockResolvedValue(undefined) } as any } };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
@@ -145,6 +145,7 @@ it('leaves a closed thread read-only while retaining exact unknown-outcome retry
   expect(text(history())).toContain('Dogovor je zatvoren · poruke su samo za čitanje.');
   await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
   expect(props.chat.outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+  expect(props.chat.photos!.refresh).toHaveBeenCalledTimes(1);
   await act(async () => button(`Uslovi Dogovora: ${agreement.naslov}`).props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(1);
 });

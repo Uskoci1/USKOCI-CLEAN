@@ -6,26 +6,7 @@ import { pendingRoute } from '../../store/pendingRoute';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
-import { isPublicInboxCopy } from './publicInboxCopy';
-
-function publicInbox(notification: Notifications.Notification): boolean {
- const request = notification?.request, content = request?.content, trigger = request?.trigger;
- if (!request || typeof request.identifier !== 'string' || request.identifier.length < 1 || request.identifier.length > 256
-  || !trigger || typeof trigger !== 'object' || !('type' in trigger) || trigger.type !== 'push' || !content || typeof content !== 'object' || Array.isArray(content)) return false;
- const data = content.data, value = content as unknown as Record<string, unknown>;
- // Only the existing worker's public copy may reach native presentation. Native
- // metadata is allowed, but no subtitle, attachment, category action or summary.
- if (!isPublicInboxCopy(content.title, content.body)
-  || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return false;
- if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
-  .some(key => value[key] != null && value[key] !== '')) return false;
- if (value.attachments != null && (!Array.isArray(value.attachments) || value.attachments.length !== 0)) return false;
- if (content.sound != null && content.sound !== 'default') return false;
- if (value.interruptionLevel != null && value.interruptionLevel !== 'active' && value.interruptionLevel !== 'passive') return false;
- // Android can render a remote image that is not part of content.attachments.
- if (trigger.remoteMessage?.notification?.imageUrl != null) return false;
- return true;
-}
+import { isPublicInboxNotification as publicInbox } from './publicInboxCopy';
 
 /** Fixed owned Inbox navigation + rotation of an already explicit registration.
  * Mount once under the existing router/Auth runtime. Never asks OS permission,

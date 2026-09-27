@@ -1,3 +1,5 @@
+import type { Notification } from 'expo-notifications';
+
 // Exact A1 transport title/body pairs, including its urgent opportunity variant
 // and both previously shipped generic copies for queued pushes. The runtime
 // tests execute the shared Edge formatter to detect any contract drift.
@@ -34,4 +36,30 @@ const publicInboxCopies = Object.freeze([
 export function isPublicInboxCopy(title: unknown, body: unknown): boolean {
  return typeof title === 'string' && typeof body === 'string'
   && publicInboxCopies.some(copy => copy.title === title && copy.body === body);
+}
+
+/** Shared unchanged foreground admission: neither presentation nor a read hint
+ * accepts task/chat content, payload routing or arbitrary native decoration.
+ */
+export function isPublicInboxNotification(notification: Notification): boolean {
+ const request = notification?.request, content = request?.content, trigger = request?.trigger;
+ if (!request || typeof request.identifier !== 'string' || request.identifier.length < 1 || request.identifier.length > 256
+  || !trigger || typeof trigger !== 'object' || !('type' in trigger) || trigger.type !== 'push' || !content || typeof content !== 'object' || Array.isArray(content)) return false;
+ const data = content.data, value = content as unknown as Record<string, unknown>;
+ if (!isPublicInboxCopy(content.title, content.body)
+  || !data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length !== 1 || data.kind !== 'INBOX') return false;
+ if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
+  .some(key => value[key] != null && value[key] !== '')) return false;
+ if (value.attachments != null && (!Array.isArray(value.attachments) || value.attachments.length !== 0)) return false;
+ if (content.sound != null && content.sound !== 'default') return false;
+ if (value.interruptionLevel != null && value.interruptionLevel !== 'active' && value.interruptionLevel !== 'passive') return false;
+ // Android can render a remote image that is not part of content.attachments.
+ if (trigger.remoteMessage?.notification?.imageUrl != null) return false;
+ return true;
+}
+
+/** Identifier is bounded deduplication only; it is never a route, account or message identity. */
+export function publicInboxNotificationId(value: unknown): string | null {
+ const notification = value as Notification;
+ return isPublicInboxNotification(notification) ? notification.request.identifier : null;
 }

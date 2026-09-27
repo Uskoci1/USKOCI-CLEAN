@@ -104,8 +104,8 @@ export function NextStepCard({ title, body, tone = 'green', children }: { title:
   const waits = tone === 'warn' || tone === 'danger';
   return <View accessibilityRole="summary" style={waits ? [inset, s.tinted, { backgroundColor: toneSoft[tone] }] : s.next}>
     <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
-      <T variant="bodyStrong" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
-    {body ? <T variant="note" tone="muted" style={s.nextBody}>{body}</T> : null}
+      <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
+    {body ? <T variant="copy" tone="muted" style={s.nextBody}>{body}</T> : null}
     {children}
   </View>;
 }
@@ -177,10 +177,10 @@ export function WorkspaceFooter({ brand, loading = false, statusText, notice }: 
 const s = StyleSheet.create({
   flat: { gap: 10, paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line },
   tinted: { gap: 8, padding: 16 },
-  next: { gap: 6 },
+  next: { gap: sys.space.sm, paddingVertical: sys.space.xs },
   nextHead: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill },
-  nextTitle: { color: sys.color.ink, flexShrink: 1, fontSize: 17, lineHeight: 23 },
+  nextTitle: { color: sys.color.ink, flexShrink: 1 },
   nextBody: { paddingLeft: 17 },
   row: { minHeight: 60, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14, borderTopWidth: 1, borderColor: sys.color.line },
   rowArt: { width: 32, alignItems: 'center' },

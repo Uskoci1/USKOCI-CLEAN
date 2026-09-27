@@ -1,0 +1,68 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import type { DogovorProjekcija } from '../../contracts/projections';
+import { BEZ_IZNOSA } from '../../lib/novac';
+
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
+});
+jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight' }));
+jest.mock('../../ui/Text', () => ({ T: 'T' }));
+jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
+jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
+jest.mock('../../ui/system/ScreenChrome', () => ({ ScreenChrome: 'ScreenChrome' }));
+jest.mock('../../ui/system/Disclosure', () => ({ Disclosure: 'Disclosure' }));
+jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
+jest.mock('../../ui/system/Segmented', () => ({ Segmented: 'Segmented' }));
+
+import { AgreementHero, AgreementTaskLink, AgreementTerms } from '../../ui/v2/AgreementPresentation';
+
+const agreement = {
+  id: 'agreement', naslov: 'Prenos troseda', verzija: 2, stanje: 'CONFIRMED',
+  cena: { iznos: 5500, valuta: 'RSD', prikaz: '5.500 RSD' },
+  vremeTekst: '26. sep · 17:00–19:00 (po vremenu u Srbiji)', putanjaTekst: 'Liman, Novi Sad',
+  pokrivenost: { ukupno: 4, popunjeno: 2, preostalo: 2, udeo: 0.5 }, rezim: 'FIZICKI',
+} as DogovorProjekcija;
+let tree: ReactTestRenderer | undefined;
+const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
+const text = () => tree!.root.findAll(node => String(node.type) === 'T')
+  .flatMap(node => node.children.filter(child => typeof child === 'string' || typeof child === 'number')).join(' ').replace(/\s+/g, ' ');
+const facts = () => tree!.root.findAll(node => String(node.type) === 'View' && node.props.accessible === true)
+  .map(node => node.props.accessibilityLabel);
+afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
+
+test('accepted terms retain their values and covered people, separate from source-task context', async () => {
+  await render(<AgreementTerms agreement={agreement} />);
+  expect(facts()).toEqual(['Dogovoreno ukupno: 5.500 RSD', 'Termin: 26. sep · 17:00–19:00, Po vremenu u Srbiji',
+    'Dogovoreni broj osoba: 2 osobe']);
+  expect(text()).toContain('Verzija uslova: 2');
+  expect(text()).not.toContain('Liman');
+  expect(text()).not.toContain('4 osobe');
+  const open = jest.fn();
+  await act(async () => tree!.update(<AgreementTaskLink agreement={agreement} onOpenTask={open} disabled />));
+  const source = tree!.root.findByProps({ accessibilityRole: 'button' });
+  expect(source.props).toMatchObject({ onPress: open, disabled: true, accessibilityState: { disabled: true } });
+  expect(source.props.accessibilityLabel).toBe('Otvori zadatak: Prenos troseda. Liman, Novi Sad');
+  expect(text()).not.toContain('5.500 RSD');
+});
+
+test('missing amount and terminal unscheduled terms stay explicit; remote context has no physical address', async () => {
+  const missing = { ...agreement, stanje: 'COMPLETED' as const, rezim: 'DALJINSKI' as const,
+    cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, vremeTekst: 'Termin nije potvrđen',
+    pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } };
+  await render(<><AgreementTaskLink agreement={missing} /><AgreementTerms agreement={missing} /></>);
+  expect(facts()).toEqual([`Cena: ${BEZ_IZNOSA}`, 'Termin: Bez tačnog termina']);
+  expect(text()).toContain('Na daljinu');
+  expect(text()).not.toContain('Liman');
+  expect(text()).not.toContain('0 RSD');
+  expect(text()).not.toContain('ukupno');
+  expect(tree!.root.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(0);
+});
+
+test('the chat context keeps its compact location, time, amount and covered-people order', async () => {
+  await render(<AgreementHero agreement={agreement} />);
+  expect(facts()).toEqual(['Mesto: Liman, Novi Sad', 'Termin: 26. sep · 17:00–19:00, Po vremenu u Srbiji',
+    'Dogovoreno ukupno: 5.500 RSD', 'Ljudi: 2 osobe']);
+});

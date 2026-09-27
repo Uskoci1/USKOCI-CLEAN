@@ -29,6 +29,9 @@ export type AgreementOutboxOptions = {
   maxPending?: number;
 };
 type Stored = { version: 1; accountId: string; agreementId: string; revision: number; entries: OutboxEntry[] };
+type StoredDraft = { version: 1; accountId: string; agreementId: string; revision: number; text: string; capturedClientMessageId?: string };
+// Drafts may exceed the send limit while the person edits. Never truncate them.
+const MAX_DRAFT_LENGTH = 32_000;
 class Fault extends Error { constructor(readonly code: OutboxError) { super(code); } }
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) && v.length === 36;
 const clientKey = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(v) && !/\s/.test(v);
@@ -64,8 +67,12 @@ export async function forgetAgreementOutboxes(accountId: string, storage: {
   getAllKeys(): Promise<readonly string[]>; multiRemove(keys: readonly string[]): Promise<void>;
 }): Promise<number> {
   if (!uuid(accountId)) return 0;
-  const prefix = `uskoci:agreement-outbox:v1:${accountId}:`;
-  const keys = (await storage.getAllKeys()).filter(key => key.startsWith(prefix));
+  const prefixes = [`uskoci:agreement-outbox:v1:${accountId}:`, `uskoci:agreement-draft:v1:${accountId}:`];
+  const scoped = (key: string) => prefixes.some(prefix => key.startsWith(prefix));
+  // Logout has retired the account. Let already-issued local writes finish before
+  // removing keys, including a draft key that was absent when logout began.
+  await Promise.all([...queues].filter(([key]) => scoped(key)).map(([, tail]) => tail));
+  const keys = (await storage.getAllKeys()).filter(scoped);
   if (keys.length) await storage.multiRemove(keys);
   return keys.length;
 }
@@ -76,9 +83,14 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   const limit = options.maxPending ?? 50;
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new Fault('CAPACITY');
   const storageKey = `uskoci:agreement-outbox:v1:${options.accountId}:${options.agreementId}`;
+  const draftKey = `uskoci:agreement-draft:v1:${options.accountId}:${options.agreementId}`;
   let snapshot: OutboxSnapshot = Object.freeze({ phase: 'idle', draft: '', capturing: false, entries: [], error: null });
   let active = false, generation = 0, draftRevision = 0, appliedRevision = -1;
   let starting: Promise<void> | null = null;
+  let draftLoaded = false;
+  let draftDirty = false;
+  let durableDraft: { localRevision: number; storedRevision: number } | null = null;
+  let draftError: OutboxError | null = null;
   const listeners = new Set<() => void>();
   const inFlight = new Map<string, symbol>();
   const unsaved = new Map<string, OutboxEntry>();
@@ -87,7 +99,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   const maySendNew = () => { try { return options.canSendNew(); } catch { return false; } };
   const publish = (patch: Partial<OutboxSnapshot>) => {
     if (!current()) return;
-    snapshot = Object.freeze({ ...snapshot, ...patch });
+    snapshot = Object.freeze({ ...snapshot, ...patch, ...(patch.error === null && draftError ? { error: draftError } : {}) });
     for (const listener of listeners) { try { listener(); } catch { /* UI listeners do not invalidate a durable command. */ } }
   };
   const apply = (record: Stored) => {
@@ -99,6 +111,59 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
     publish({ phase: 'ready', entries: Object.freeze(entries) });
   };
   const empty = (): Stored => ({ version: 1, accountId: options.accountId, agreementId: options.agreementId, revision: 0, entries: [] });
+  async function readDraft(): Promise<StoredDraft | null> {
+    let raw: string | null;
+    try { raw = await options.storage.getItem(draftKey); } catch { throw new Fault('STORAGE_UNAVAILABLE'); }
+    if (raw === null) return null;
+    try {
+      if (raw.length > MAX_DRAFT_LENGTH * 6 + 512) throw new Error();
+      const value = JSON.parse(raw) as StoredDraft;
+      if (!value || value.version !== 1 || value.accountId !== options.accountId || value.agreementId !== options.agreementId
+        || !Number.isSafeInteger(value.revision) || value.revision < 1
+        || typeof value.text !== 'string' || value.text.length > MAX_DRAFT_LENGTH
+        || (value.capturedClientMessageId !== undefined && !clientKey(value.capturedClientMessageId))
+        || Object.keys(value).some(key => !['version', 'accountId', 'agreementId', 'revision', 'text', 'capturedClientMessageId'].includes(key))) throw new Error();
+      return value;
+    } catch { throw new Fault('STORAGE_INVALID'); }
+  }
+  function writeDraft(text: string, revision: number, capture?: { clientMessageId: string; clear?: boolean }, admitted?: number, protectNewerDraft = false): Promise<void> {
+    return serial(draftKey, async () => {
+      // An accepted edit survives route blur, but never a changed account incarnation.
+      // Queue order also places an old instance's write before a new instance's load.
+      if (!owns() || revision !== draftRevision) return;
+      if (admitted !== undefined && (!active || admitted !== generation)) return;
+      // The original edit may have finished while this retry waited in the
+      // queue. Its command can still be captured even if another instance has
+      // since replaced the shared draft; do not retry an already-saved edit.
+      if (protectNewerDraft && !draftDirty) return;
+      if (text.length > MAX_DRAFT_LENGTH) throw new Fault('STORAGE_UNAVAILABLE');
+      const previous = await readDraft();
+      if (!owns() || revision !== draftRevision || (admitted !== undefined && (!active || admitted !== generation))) return;
+      if (protectNewerDraft && (durableDraft?.storedRevision ?? -1) !== (previous?.revision ?? 0)) throw new Fault('STORAGE_UNAVAILABLE');
+      // Another mounted instance may have saved a newer edit. Neither marking an
+      // old capture nor clearing it is allowed to overwrite that edit.
+      if (capture?.clear) {
+        if (previous?.capturedClientMessageId !== capture.clientMessageId || previous.revision !== durableDraft?.storedRevision) return;
+      } else if (capture && (durableDraft?.localRevision !== revision || durableDraft.storedRevision !== (previous?.revision ?? 0)
+        || (previous?.text ?? '') !== text)) return;
+      const storedRevision = (previous?.revision ?? 0) + 1;
+      if (!Number.isSafeInteger(storedRevision)) throw new Fault('STORAGE_INVALID');
+      const value: StoredDraft = { version: 1, accountId: options.accountId, agreementId: options.agreementId, revision: storedRevision, text,
+        ...(capture && !capture.clear ? { capturedClientMessageId: capture.clientMessageId } : {}) };
+      try { await options.storage.setItem(draftKey, JSON.stringify(value)); } catch { throw new Fault('STORAGE_UNAVAILABLE'); }
+      if (owns() && revision === draftRevision) {
+        draftLoaded = true; draftDirty = false; durableDraft = { localRevision: revision, storedRevision };
+        const previousError = draftError; draftError = null;
+        if (previousError && snapshot.error === previousError) publish({ error: null });
+      }
+    });
+  }
+  async function saveDraft(text: string, revision: number, capturedClientMessageId?: string, protectNewerDraft = false) {
+    try { await writeDraft(text, revision, capturedClientMessageId ? { clientMessageId: capturedClientMessageId, clear: true } : undefined, undefined, protectNewerDraft); }
+    catch (error) {
+      if (owns() && revision === draftRevision) { draftError = failureCode(error); publish({ error: draftError }); }
+    }
+  }
   async function read(): Promise<Stored> {
     let raw: string | null;
     try { raw = await options.storage.getItem(storageKey); } catch { throw new Fault('STORAGE_UNAVAILABLE'); }
@@ -135,7 +200,22 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       // Pending/unknown intents are never pruned. A bounded acknowledged cache
       // complements the authoritative server history; it is not chat history.
       let confirmed = record.entries.filter(entry => entry.state === 'confirmed').length;
-      record.entries = record.entries.filter(entry => entry.state !== 'confirmed' || confirmed-- <= limit);
+      if (confirmed > limit) {
+        let marker: string | undefined, canPrune = true;
+        try { marker = (await serial(draftKey, readDraft))?.capturedClientMessageId; }
+        catch { canPrune = false; }
+        // An uncleared capture marker still needs this exact command as proof.
+        // If optional draft storage is unavailable, defer cache pruning rather
+        // than breaking acknowledgment/recovery of an existing command.
+        if (canPrune) {
+          const retainedMarker = record.entries.some(entry => entry.state === 'confirmed' && entry.command.clientMessageId === marker);
+          if (retainedMarker) confirmed -= 1;
+          const allowance = limit - Number(retainedMarker);
+          record.entries = record.entries.filter(entry => entry.state !== 'confirmed' || entry.command.clientMessageId === marker || confirmed-- <= allowance);
+        }
+      }
+      if (record.entries.length > 100) throw new Fault('CAPACITY');
+      if (!owns() || (requireActive && !active) || (admitted !== undefined && admitted !== generation)) throw new Fault('AUTH_CONTEXT_CHANGED');
       try { await options.storage.setItem(storageKey, JSON.stringify(record)); } catch { throw new Fault('STORAGE_UNAVAILABLE'); }
       for (const receive of channels.get(storageKey) ?? []) receive(record);
       return record;
@@ -195,8 +275,39 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       appliedRevision = -1;
       const receivers = channels.get(storageKey) ?? new Set(); receivers.add(apply); channels.set(storageKey, receivers);
       publish({ phase: 'loading', error: null, capturing: false });
-      const task = serial(storageKey, read).then(record => {
-        if (admitted === generation) apply(record);
+      const restoringRevision = draftRevision;
+      // A failed write still belongs to this mounted model. A focus/reload must
+      // retry that text, not replace it with the older value remaining on disk.
+      const pendingDraft = draftDirty ? saveDraft(snapshot.draft, restoringRevision, undefined, true) : Promise.resolve();
+      const draftRead = pendingDraft.then(() => serial(draftKey, readDraft)).then(value => ({ value, error: null as OutboxError | null }),
+        error => ({ value: null, error: failureCode(error) }));
+      const task = Promise.all([serial(storageKey, read), draftRead]).then(async ([record, restored]) => {
+        if (!current() || admitted !== generation) return;
+        apply(record);
+        // Typing during a late load owns the input. Draft failure does not hide
+        // durable unknown commands or disable their exact-key retry.
+        if (restoringRevision !== draftRevision) return;
+        if (restored.error) { draftLoaded = false; draftError = restored.error; publish({ error: restored.error }); return; }
+        if (draftDirty) return;
+        const draft = restored.value;
+        const captured = draft?.capturedClientMessageId
+          ? record.entries.find(entry => entry.command.clientMessageId === draft.capturedClientMessageId) : undefined;
+        if (captured && captured.command.body !== draft!.text.trim()) {
+          draftLoaded = false; draftError = 'STORAGE_INVALID'; publish({ error: draftError }); return;
+        }
+        draftLoaded = true; draftError = null;
+        durableDraft = { localRevision: restoringRevision, storedRevision: draft?.revision ?? 0 };
+        // A crash after command capture but before draft clearing must not offer
+        // that exact command as a fresh unsent draft. Text matching alone is insufficient.
+        publish({ draft: captured ? '' : draft?.text ?? '', error: null });
+        if (captured) {
+          try { await writeDraft('', restoringRevision, { clientMessageId: captured.command.clientMessageId, clear: true }, admitted); }
+          catch (error) {
+            if (current() && admitted === generation && restoringRevision === draftRevision) {
+              draftLoaded = false; draftError = failureCode(error); publish({ error: draftError });
+            }
+          }
+        }
       }).catch(error => { if (admitted === generation) publish({ phase: 'error', error: failureCode(error) }); });
       starting = task;
       void task.then(() => { if (starting === task) starting = null; });
@@ -209,13 +320,15 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       if (receivers?.size === 0) channels.delete(storageKey);
     },
     setDraft(draft: string) {
-      if (!current()) return;
-      draftRevision += 1; publish({ draft, error: null });
+      if (!current()) return Promise.resolve();
+      draftRevision += 1; draftDirty = true; publish({ draft, error: null });
+      return saveDraft(draft, draftRevision);
     },
     sendDraft(photos?: AgreementMessageCommand['photos']): Promise<void> {
       if (!current()) return Promise.resolve();
       if (snapshot.capturing) return Promise.resolve();
       if (snapshot.phase !== 'ready') { publish({ error: 'NOT_READY' }); return Promise.resolve(); }
+      if (!draftLoaded) { publish({ error: 'STORAGE_UNAVAILABLE' }); return Promise.resolve(); }
       if (!maySendNew()) { publish({ error: 'READ_ONLY' }); return Promise.resolve(); }
       // Reserve capacity before storage can fail. Otherwise repeated failures
       // while the user types the next draft grow the volatile fallback forever.
@@ -228,18 +341,29 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       let id: string;
       try { id = options.newId(); } catch { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
       if (!bodyValid(body, photos) || !clientKey(id) || (photos !== undefined && !validMessagePhotos(photos))) { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
+      if (snapshot.entries.some(entry => entry.command.clientMessageId === id)) { publish({ error: 'CONFLICT' }); return Promise.resolve(); }
       const command = Object.freeze({ accountId: options.accountId, agreementId: options.agreementId, clientMessageId: id, body,
         ...(photos ? { photos: Object.freeze({ agreementVersion: photos.agreementVersion, assetIds: Object.freeze([...photos.assetIds]) }) } : {}) });
       const request = Symbol(); inFlight.set(id, request); publish({ capturing: true, error: null });
       return (async () => {
         try {
+          if (draftDirty) await writeDraft(originalDraft, revision, undefined, admitted, true);
+          await writeDraft(originalDraft, revision, { clientMessageId: id }, admitted);
           const record = await update(record => add(record, command), true, admitted);
           if (admitted === generation) {
-            if (revision === draftRevision) publish({ draft: '' });
+            if (revision === draftRevision) {
+              const clearedRevision = ++draftRevision;
+              draftDirty = false;
+              publish({ draft: '' });
+              await saveDraft('', clearedRevision, id);
+            }
             publish({ capturing: false });
           }
           await dispatch(command, record.entries.find(entry => entry.command.clientMessageId === id)!.attempt, true, admitted);
         } catch (error) {
+          // A definite key collision did not capture this text. Remove only our
+          // exact marker so a later load can still offer the unsent draft.
+          if (failureCode(error) === 'CONFLICT' && revision === draftRevision) await saveDraft(originalDraft, revision, id);
           // If the user already composed different text, retain the unsaved
           // captured intent as a retryable local row instead of losing either.
           if (current() && admitted === generation && revision !== draftRevision && failureCode(error) === 'STORAGE_UNAVAILABLE') {

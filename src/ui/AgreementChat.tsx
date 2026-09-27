@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowClockwise, ArrowDown, PaperPlaneTilt, Plus, X } from 'phosphor-react-native';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
@@ -17,6 +17,12 @@ import { positiveInteger, uuid } from '../data/serverReceipt';
 import { SupportContextEntry } from './support/SupportContextEntry';
 
 type Outbox = ReturnType<typeof createAgreementOutbox>;
+/** Route-owned, account/Agreement-scoped reading intent; no message bodies are retained. */
+export type AgreementReadingPosition = {
+  following: boolean;
+  offset: number;
+  anchor?: { messageId: string; within: number };
+};
 type Props = {
   messages: PorukaProjekcija[];
   loading: boolean;
@@ -34,6 +40,7 @@ type Props = {
   /** The surrounding frame moves identity/accepted terms into history when the keyboard or text needs the space. */
   context?: ReactNode;
   compact?: boolean;
+  readingPosition?: { current: AgreementReadingPosition };
 };
 
 const errors: Record<OutboxError, string> = {
@@ -126,7 +133,7 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos,
-  context, compact = false, refreshing = false, refreshError = false }: Props) {
+  context, compact = false, refreshing = false, refreshError = false, readingPosition }: Props) {
   const textScale = useTextScale();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -135,18 +142,63 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const [focused, setFocused] = useState(false);
   const list = useRef<ScrollView>(null);
   // Native layout/keyboard scroll events describe geometry, not a decision to stop following.
-  const following = useRef(true);
+  const following = useRef(readingPosition?.current.following ?? true);
   const userScrolling = useRef(false);
-  const readingOffset = useRef(0);
+  const readingOffset = useRef(readingPosition?.current.offset ?? 0);
+  const restoring = useRef(!following.current);
+  const rowPositions = useRef(new Map<string, number>());
+  const restoreFrame = useRef<number | null>(null);
+  const mounted = useRef(true);
   const geometry = useRef({ offset: 0, viewport: 0, content: 0 });
   const contextHeight = useRef(0);
   const followFrame = useRef<number | null>(null);
-  const [showLatest, setShowLatest] = useState(false);
+  const [showLatest, setShowLatest] = useState(!following.current);
+  const remember = () => {
+    if (!mounted.current || !readingPosition) return;
+    const offset = readingOffset.current;
+    let anchor: AgreementReadingPosition['anchor'];
+    let closest = -Infinity;
+    if (!following.current) for (const message of source.current.messages) {
+      const y = rowPositions.current.get(message.id);
+      if (y !== undefined && y <= offset && y > closest) {
+        closest = y; anchor = { messageId: message.id, within: offset - y };
+      }
+    }
+    readingPosition.current = { following: following.current, offset, ...(anchor ? { anchor } : {}) };
+  };
+  const cancelRestoreFrame = () => {
+    if (restoreFrame.current !== null) cancelAnimationFrame(restoreFrame.current);
+    restoreFrame.current = null;
+  };
+  const cancelRestore = () => { restoring.current = false; cancelRestoreFrame(); };
+  const restoreReading = () => {
+    if (!restoring.current || loading || error || userScrolling.current) return;
+    if (restoreFrame.current !== null) cancelAnimationFrame(restoreFrame.current);
+    restoreFrame.current = requestAnimationFrame(() => {
+      restoreFrame.current = null;
+      if (!mounted.current || !restoring.current || source.current.loading || source.current.error
+        || source.current.messages !== messages || !geometry.current.viewport || !geometry.current.content) return;
+      const saved = readingPosition?.current;
+      const anchor = saved?.anchor;
+      const anchorY = anchor && rowPositions.current.get(anchor.messageId);
+      // Wait for the actual row's layout. If access/data changed and it no longer exists,
+      // the clamped old offset is a fallback, never a reason to show a cached transcript.
+      if (anchor && messages.some(message => message.id === anchor.messageId) && anchorY === undefined) return;
+      const wanted = anchor && anchorY !== undefined ? anchorY + anchor.within : readingOffset.current;
+      const y = Math.max(0, Math.min(wanted, geometry.current.content - geometry.current.viewport));
+      readingOffset.current = geometry.current.offset = y;
+      restoring.current = false;
+      list.current?.scrollTo({ y, animated: false });
+      remember();
+    });
+  };
   const cancelFollow = () => {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
     followFrame.current = null;
   };
-  useEffect(() => () => cancelFollow(), []);
+  // Effect replay may suspend work without changing the person's reading intent.
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; cancelFollow(); cancelRestoreFrame(); }; }, []);
+  useEffect(() => { restoreReading(); }, [messages, loading, error]);
   const followLatest = () => {
     if (!following.current || userScrolling.current) return;
     list.current?.scrollToEnd({ animated: false });
@@ -158,42 +210,48 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     });
   };
   const chooseLatest = () => {
-    following.current = true; userScrolling.current = false; setShowLatest(false); followLatest();
+    cancelRestore(); following.current = true; userScrolling.current = false; remember(); setShowLatest(false); followLatest();
   };
   const readUserPosition = ({ nativeEvent: event }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!mounted.current) return;
     readingOffset.current = Math.max(0, event.contentOffset.y);
     following.current = event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
+    remember();
     setShowLatest(previous => previous === !following.current ? previous : !following.current);
   };
   const observePosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!mounted.current) return;
     const native = event.nativeEvent;
     geometry.current = { offset: native.contentOffset.y, viewport: native.layoutMeasurement.height, content: native.contentSize.height };
     if (userScrolling.current) readUserPosition(event);
   };
-  const previousOutgoing = useRef(new Set<string>());
-  const source = useRef({ messages, support, loading, error, photos, terminal, writable }); source.current = { messages, support, loading, error, photos, terminal, writable };
+  const source = useRef({ messages, support, loading, error, photos, terminal, writable, outbox, refresh });
+  source.current = { messages, support, loading, error, photos, terminal, writable, outbox, refresh };
   const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
     && !source.current.loading && !source.current.error && support.canAct();
-  const outgoingIds = state.entries.map(entry => entry.command.clientMessageId).join('|');
-  useEffect(() => {
-    const currentIds = new Set(outgoingIds ? outgoingIds.split('|') : []);
-    if ([...currentIds].some(id => !previousOutgoing.current.has(id))) {
-      chooseLatest();
-    }
-    previousOutgoing.current = currentIds;
-  }, [outgoingIds]);
   const ready = state.phase === 'ready';
   const length = Array.from(state.draft.trim()).length;
   const canSend = ready && writable && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
+  const settleSend = async (owner: Outbox, photoAgreementId?: string) => {
+    if (!mounted.current || source.current.outbox !== owner) return;
+    setAttachOpen(false);
+    await source.current.refresh();
+    if (!mounted.current || source.current.outbox !== owner) return;
+    const currentPhotos = source.current.photos;
+    if (currentPhotos?.agreementId === photoAgreementId) await currentPhotos?.refresh();
+  };
   const send = () => {
-    if (source.current.terminal || !source.current.writable) return;
+    if (!mounted.current || source.current.outbox !== outbox || source.current.terminal || !source.current.writable) return;
     const currentPhotos = source.current.photos;
     if (currentPhotos && !currentPhotos.canSubmit()) return;
     const attachments = currentPhotos?.capture();
     if (currentPhotos?.hasSelection && !attachments) return;
+    // Follow the explicit gesture, not an intermediate outbox state React may batch away.
+    // Hydrating older confirmed/unknown commands must never move a reader to the bottom.
+    chooseLatest();
     // The photo tools fold back behind the "+" once the message has gone (review r4 rd item 6).
-    void outbox.sendDraft(attachments ?? undefined).then(async () => { setAttachOpen(false); await refresh(); await currentPhotos?.refresh(); });
+    void outbox.sendDraft(attachments ?? undefined).then(() => settleSend(outbox, currentPhotos?.agreementId));
   };
   // Reconciliation includes the real sender/key/body in the model. Never use
   // matching text alone to pretend that an uncertain send was accepted.
@@ -223,37 +281,44 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   return (
     <View style={s.screen}>
       <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
-        onContentSizeChange={(_width, height) => { geometry.current.content = height; followLatest(); }}
-        onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; followLatest(); }}
+        onContentSizeChange={(_width, height) => { geometry.current.content = height; restoreReading(); followLatest(); }}
+        onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; restoreReading(); followLatest(); }}
         accessibilityActions={[{ name: 'scrollBackward', label: 'Starije poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
         onAccessibilityAction={({ nativeEvent }) => {
           const direction = nativeEvent.actionName === 'scrollBackward' ? -1 : nativeEvent.actionName === 'scrollForward' ? 1 : 0;
           if (!direction) return;
-          cancelFollow(); userScrolling.current = false;
+          cancelFollow(); cancelRestore(); userScrolling.current = false;
           const { offset, viewport, content } = geometry.current;
           const end = Math.max(0, content - viewport);
           const y = Math.max(0, Math.min(end, offset + direction * viewport * 0.8));
           geometry.current.offset = readingOffset.current = y;
           following.current = direction > 0 && y >= end - 1;
+          remember();
           setShowLatest(!following.current);
           list.current?.scrollTo({ y, animated: false });
         }}
         scrollEventThrottle={100}
-        onScrollBeginDrag={event => { cancelFollow(); userScrolling.current = true; readUserPosition(event); }}
+        onScrollBeginDrag={event => { cancelFollow(); cancelRestore(); userScrolling.current = true; readUserPosition(event); }}
         onScroll={observePosition}
         onScrollEndDrag={event => { readUserPosition(event); userScrolling.current = false; }}
-        onMomentumScrollBegin={() => { cancelFollow(); userScrolling.current = true; }}
+        onMomentumScrollBegin={() => { cancelFollow(); cancelRestore(); userScrolling.current = true; }}
         onMomentumScrollEnd={event => { readUserPosition(event); userScrolling.current = false; }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
         contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
         <View testID="agreement-chat-context" onLayout={({ nativeEvent }) => {
+          if (!mounted.current) return;
           const height = nativeEvent.layout.height;
           const delta = height - contextHeight.current;
           contextHeight.current = height;
           if (following.current) followLatest();
+          else if (restoring.current) restoreReading();
           else if (delta && !userScrolling.current) {
             // Preserve the message's screen position when terms or refresh feedback change above it.
             readingOffset.current = Math.max(0, readingOffset.current + delta);
+            geometry.current.offset = readingOffset.current;
+            // Native row layouts follow this context measurement; retain the same anchor
+            // while updating only its fallback offset.
+            if (readingPosition) readingPosition.current = { ...readingPosition.current, offset: readingOffset.current };
             list.current?.scrollTo({ y: readingOffset.current, animated: false });
           }
         }}>{context}
@@ -269,8 +334,8 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}
         </View>
         {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
-        {/* New messages come on focus, on return to the app, after my own send, or by pulling down (there is no live
-            update), and a screen reader cannot easily pull. So the refresh is also a quiet action at the head of the
+        {/* Incoming push hints also refresh the visible conversation. Manual refresh remains available without push
+            permission/delivery, including as a quiet action accessible without a pull gesture at the head of the
             thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
             empty thread too, where someone waits for the other side's first message, and not on a closed Dogovor, where
             nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. In the empty thread it
@@ -297,7 +362,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           // Messages of one person in a row sit close; a turn of the conversation leaves air.
           const before = shown[index - 1];
           const sameRun = !!before && !newDay && before.moja === message.moja;
-          return <Fragment key={message.id}>
+          return <View key={message.id} testID={`agreement-message-row-${message.id}`} onLayout={({ nativeEvent }) => {
+            rowPositions.current.set(message.id, nativeEvent.layout.y); restoreReading();
+          }}>
             {newDay ? <T accessibilityRole="header" style={s.day}>{moment.day}</T> : null}
             {/* The bubble is one stop for a screen reader, so its label says the message itself: who, what, when
                 (review r4 rd item 2; it said only "Poruka: <ime>", and the text and the time were never heard). */}
@@ -320,7 +387,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
                 label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
                   ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
                 canAct={supportCurrent} navigate={support.navigate} /></View> : null}
-          </Fragment>;
+          </View>;
         })}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
             unconfirmed send may be older than today). */}
@@ -337,13 +404,14 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           {entry.state === 'failed' && entry.error ? <T variant="meta" tone="muted">{errors[entry.error]}</T> : null}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
             <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone={entry.state==='failed'?'ink':'onMine'}
-              onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => refresh()); }} />}
+              onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => settleSend(outbox, entry.command.agreementId)); }} />}
         </View>)}
       {/* Photo preparation and recovery can be taller than the remaining keyboard viewport. They belong to its
           scroll, directly above writing, so their complete explanation and every exact retry remain reachable. */}
       {state.error || state.phase === 'error' || terminal || !writable || denied || length > 2000 || photoPanel ? <View testID="agreement-chat-details" style={s.details}>
         {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
-        {state.phase === 'error' ? <ChatAction label="Ponovo učitaj sačuvane poruke" onPress={() => void outbox.start()} /> : null}
+        {state.phase === 'error' || state.error === 'STORAGE_UNAVAILABLE' || state.error === 'STORAGE_INVALID'
+          ? <ChatAction label="Ponovo učitaj sačuvane poruke" text="Pokušaj ponovo" onPress={() => void outbox.start()} /> : null}
         {/* A closed Dogovor keeps its history and existing-photo recovery, without a new-message/photo composer. */}
         {terminal ? <T variant="meta" tone="muted" style={s.centerText}>Dogovor je zatvoren · poruke su samo za čitanje.</T> : null}
         {!terminal && !writable ? <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}

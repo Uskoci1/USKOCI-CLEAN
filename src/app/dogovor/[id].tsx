@@ -19,6 +19,8 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useAgreementOutbox } from '../../hooks/useAgreementOutbox';
 import { useAgreementPhotos } from '../../hooks/useAgreementPhotos';
+import { useAgreementIncomingRefresh } from '../../hooks/useAgreementIncomingRefresh';
+import type { AgreementReadingPosition } from '../../ui/AgreementChat';
 import { agreementPhotoClientService } from '../../data/agreementPhotoClientService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
@@ -77,6 +79,9 @@ export default function Dogovor() {
 function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled' }: { id: string; accountId: string; accountRevision: number; initialTab?: AgreementTab }) {
   const izvor = useIzvor();
   const [tab, setTab] = useState<AgreementTab>(initialTab);
+  // Survives the foreground freshness gate and the Pregled/Poruke switch, but not
+  // a different account incarnation or Agreement (the route content is keyed above).
+  const chatReadingPosition = useRef<AgreementReadingPosition>({ following: true, offset: 0 });
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
@@ -188,6 +193,11 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   }), [messages.data, dogovor?.ucesnici]);
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
+  const refreshIncoming = useCallback(() => messages.refresh('silent'), [messages.refresh]);
+  useAgreementIncomingRefresh({ accountId, accountRevision, agreementId: id, source: izvor,
+    enabled: enabled && tab === 'poruke' && dogovor?.chatDostupan === true
+      && dogovor.ucesnici.some(party => party.viSte && party.id === accountId),
+    refresh: refreshIncoming });
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
   const photos = useAgreementPhotos(accountId, id, dogovor?.verzija ?? null, writable, outbox);
   const osvezi = workspace.refresh;
@@ -389,7 +399,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
       {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
-          writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh,
+          writable, terminal: !dogovor.chatDostupan, refresh: messages.refresh, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,
           outbox, state: outboxState, photos,
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
         {other ? <AgreementPersonBar person={other} back={backToAgreements}

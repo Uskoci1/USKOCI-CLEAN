@@ -60,7 +60,7 @@ describe('D03 actual message component', () => {
     const history = [{ id: '30000000-0000-4000-8000-000000000001', telo: 'Prethodna poruka', moja: false,
       posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }];
     const photos = { loaded: true, busy: false, hasSelection: true, ready: false, agreementId: agreement,
-      items: [], message: 'Fotografija čeka ponovni pokušaj.', canSubmit: () => false } as any;
+      items: [], message: 'Fotografija čeka ponovni pokušaj.', canSubmit: () => false, refresh: jest.fn().mockResolvedValue(undefined) } as any;
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ messages: history, photos, state: pending, refreshing: true });
     expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(true);
@@ -77,6 +77,121 @@ describe('D03 actual message component', () => {
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+    expect(photos.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores the same historical message after the foreground gate remounts a fresh transcript', async () => {
+    const messages = ['first', 'held', 'last'].map(id => ({ id, telo: id, moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }));
+    const readingPosition: React.ComponentProps<typeof AgreementChat>['readingPosition'] = { current: { following: true, offset: 0 } };
+    await render({ messages, readingPosition });
+    await act(async () => {
+      tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 500 } } });
+      const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+      scroll.props.onScrollBeginDrag(scrollEvent(540)); scroll.props.onScrollEndDrag(scrollEvent(540));
+    });
+    expect(readingPosition.current).toEqual({ following: false, offset: 540, anchor: { messageId: 'held', within: 40 } });
+    await act(async () => tree.unmount());
+    scrollToEnd.mockClear(); scrollTo.mockClear();
+    const recovered = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
+    await render({ messages: [], loading: true, readingPosition });
+    await act(async () => tree.update(<AgreementChat {...props} messages={messages} state={recovered} readingPosition={readingPosition} />));
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
+      scroll.props.onContentSizeChange(390, 3400);
+    });
+    await flushFrames();
+    expect(scrollTo).not.toHaveBeenCalled(); // The saved row is not laid out yet.
+    await act(async () => tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 680 } } }));
+    await flushFrames();
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 720, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(button('Najnovije poruke')).toBeTruthy();
+  });
+
+  it('retains historical reading intent through StrictMode effect replay', async () => {
+    const setup = jest.fn(); const cleanup = jest.fn();
+    function ReplayWitness() { React.useEffect(() => { setup(); return cleanup; }, []); return null; }
+    const readingPosition = { current: { following: false, offset: 540 } };
+    await act(async () => { tree = create(<React.StrictMode><ReplayWitness />
+      <AgreementChat {...props} readingPosition={readingPosition} /></React.StrictMode>, {
+      createNodeMock: element => element.type === ('ScrollView' as any) ? { scrollToEnd, scrollTo } : null,
+    }); });
+    expect(setup).toHaveBeenCalledTimes(2); expect(cleanup).toHaveBeenCalledTimes(1);
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } }); scroll.props.onContentSizeChange(390, 3000);
+    });
+    await flushFrames();
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 540, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+  });
+
+  it('lets a new reading gesture cancel restoration instead of pulling the reader back', async () => {
+    const readingPosition = { current: { following: false, offset: 800 } };
+    await render({ readingPosition });
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
+      scroll.props.onContentSizeChange(390, 3000);
+      scroll.props.onScrollBeginDrag(scrollEvent(400)); scroll.props.onScrollEndDrag(scrollEvent(400));
+    });
+    await flushFrames();
+    expect(scrollTo).not.toHaveBeenCalled(); expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(readingPosition.current.offset).toBe(400);
+  });
+
+  it('does not let retired native callbacks overwrite the remounted chat reading intent', async () => {
+    const readingPosition = { current: { following: false, offset: 800 } };
+    await render({ readingPosition });
+    const retiredScroll = tree.root.findByProps({ testID: 'agreement-chat-history' }).props.onScrollEndDrag;
+    const retiredContext = tree.root.findByProps({ testID: 'agreement-chat-context' }).props.onLayout;
+    await act(async () => tree.unmount());
+    readingPosition.current = { following: false, offset: 420 };
+    await render({ readingPosition });
+    await act(async () => {
+      retiredScroll(scrollEvent(1800)); retiredContext({ nativeEvent: { layout: { height: 700 } } });
+    });
+    expect(readingPosition.current).toEqual({ following: false, offset: 420 });
+  });
+
+  it('clamps the old offset when a saved anchor no longer exists in the fresh read', async () => {
+    const readingPosition = { current: { following: false, offset: 2500, anchor: { messageId: 'missing', within: 10 } } };
+    await render({ readingPosition });
+    const scroll = tree.root.findByProps({ testID: 'agreement-chat-history' });
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } }); scroll.props.onContentSizeChange(390, 1000);
+    });
+    await flushFrames();
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 400, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+  });
+
+  it('offers draft storage recovery without hiding ready unknown-command retry', async () => {
+    await render({ state: { ...state, error: 'STORAGE_UNAVAILABLE',
+      entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
+    expect(button('Napiši poruku').props.value).toBe(state.draft);
+    expect(button(`Ponovi slanje poruke ${command.body}`)).toBeTruthy();
+    await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
+    expect(outbox.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('retires photo preparations after exact retry using the current controller and ignores a departed owner', async () => {
+    let settle!: () => void;
+    outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
+    const oldPhotos = { loaded: true, busy: false, hasSelection: false, items: [], agreementId: agreement, refresh: jest.fn() } as any;
+    const newPhotos = { ...oldPhotos, refresh: jest.fn().mockResolvedValue(undefined) };
+    const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
+    await render({ state: pending, photos: oldPhotos });
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => tree.update(<AgreementChat {...props} state={pending} photos={newPhotos} />));
+    await act(async () => settle());
+    expect(oldPhotos.refresh).not.toHaveBeenCalled(); expect(newPhotos.refresh).toHaveBeenCalledTimes(1);
+    outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => tree.unmount());
+    await act(async () => settle());
+    expect(newPhotos.refresh).toHaveBeenCalledTimes(1); expect(props.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('preserves older-history reading position when retained-refresh feedback changes height', async () => {
@@ -165,7 +280,9 @@ describe('D03 actual message component', () => {
     await act(async () => scroll.props.onScrollEndDrag(scrollEvent(400)));
     await act(async () => scroll.props.onContentSizeChange(300, 3200));
     expect(scrollToEnd).not.toHaveBeenCalled();
-    const sending: OutboxSnapshot = { ...state, entries: [{ command, state: 'sending', persisted: true, attempt: 1 }] };
+    await act(async () => button('Pošalji poruku').props.onPress());
+    // A fast response may be first rendered as confirmed, without a sending frame.
+    const sending: OutboxSnapshot = { ...state, entries: [{ command, state: 'confirmed', persisted: true, attempt: 1 }] };
     await act(async () => tree.update(<AgreementChat {...props} state={sending} />));
     expect(scrollToEnd).toHaveBeenCalledTimes(1);
     scrollToEnd.mockClear();
@@ -174,7 +291,7 @@ describe('D03 actual message component', () => {
     expect(scrollToEnd).not.toHaveBeenCalled();
     await act(async () => scroll.props.onLayout());
     expect(scrollToEnd).toHaveBeenCalledTimes(1);
-    expect(outbox.sendDraft).not.toHaveBeenCalled();
+    expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
     expect(outbox.retry).not.toHaveBeenCalled();
   });
   it('keeps following through keyboard geometry events and cancels queued follow when the person reads history', async () => {

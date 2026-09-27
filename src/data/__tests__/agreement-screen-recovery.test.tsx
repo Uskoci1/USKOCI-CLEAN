@@ -166,7 +166,7 @@ describe('D03 actual route and scoped resource integration', () => {
     mockRead.mockResolvedValue({ ...workspace, izvor: { zadatakId: taskId, prijavaId: null },
       ucesnici: workspace.ucesnici.map(party => ({ ...party, uloga: party.viSte ? role : role === 'narucilac' ? 'uskocer' : 'narucilac' })) });
     await render();
-    const open = button(`Otvori zadatak: ${workspace.naslov}`);
+    const open = button(`Otvori zadatak: ${workspace.naslov}. ${workspace.putanjaTekst}`);
     const taskCopy = open.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
     expect(taskCopy).toContain(workspace.naslov);
     expect(taskCopy).toContain('Otvori zadatak');

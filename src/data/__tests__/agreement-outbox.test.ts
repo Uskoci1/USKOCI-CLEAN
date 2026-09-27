@@ -16,9 +16,22 @@ function memory() {
 }
 let next = 0;
 const models: ReturnType<typeof createAgreementOutbox>[] = [];
+// Keep these command-journal fault/ordering witnesses scoped to that journal.
+// Draft storage has independent failure and combined-storage coverage in the draft suite.
+const drafts = new WeakMap<AgreementOutboxOptions['storage']['getItem'], Map<string, string>>();
+function withDraftStorage(storage: AgreementOutboxOptions['storage']): AgreementOutboxOptions['storage'] {
+  let values = drafts.get(storage.getItem);
+  if (!values) { values = new Map(); drafts.set(storage.getItem, values); }
+  const draftValues = values;
+  return {
+    getItem: key => key.startsWith('uskoci:agreement-draft:') ? Promise.resolve(draftValues.get(key) ?? null) : storage.getItem(key),
+    setItem: async (key, value) => { if (key.startsWith('uskoci:agreement-draft:')) draftValues.set(key, value); else await storage.setItem(key, value); },
+  };
+}
 function setup(patch: Partial<AgreementOutboxOptions> = {}) {
   const storage = memory(); const send = jest.fn<ReturnType<AgreementMessagePort['send']>, Parameters<AgreementMessagePort['send']>>().mockResolvedValue({ messageId });
-  const options = { accountId, agreementId, storage, messagePort: { send }, newId: () => `message-key-${++next}`, isCurrent: () => true, canSendNew: () => true, ...patch };
+  const options = { accountId, agreementId, messagePort: { send }, newId: () => `message-key-${++next}`, isCurrent: () => true, canSendNew: () => true, ...patch,
+    storage: withDraftStorage(patch.storage ?? storage) };
   const model = createAgreementOutbox(options); models.push(model);
   return { model, storage, send, options };
 }
