@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T18:25:36Z",
+  "osvezeno": "2026-09-27T18:34:40Z",
   "grana": "HEAD",
-  "head": "ad93b69e",
-  "head_poruka": "fix: reset changed task results and prepare exact notification targets",
+  "head": "cb63b847",
+  "head_poruka": "feat: prepare isolated owned worker license projection",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "e82702f08731b66ef5e9c20be70c75bb0fa5ea8f",
+  "source_head": "cb63b847cd39980f0b67fd437d07c3e4d8e78328",
   "order": [
    "P0",
    "P1",
@@ -105,12 +105,12 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Krug22: integrisani TypeScript PASS; 4 ciljane grupe / 99 testova PASS. Krug21: 8 grupa /199 PASS. Ovo nisu ceo Jest ni prihvatanje aplikacije.",
-  "device": "Round20APK36337043414/d1091eab instaliran uz očuvanu sesiju i isti SHA256. Tri tačke mape, izbor i Android Back viđeni. Ponovljeni izbor i ulazi Privatnosti reprodukovani kao greške starog paketa; nove ispravke čekaju objedinjeni APK. Nema fizičkog telefona/novog stvarnog E2E.",
+  "tests": "Novi Home:43/43 ciljana testa i integrisani TypeScript PASS. P4:13/13 SQL/Auth; P5:7/7 SQL-role na izolovanoj bazi. Nije ceo Jest ili prihvatanje celog proizvoda.",
+  "device": "APK36339245682/f526a736, sha f4186c7a…bf69 instaliran i proverena ista hash vrednost base.apk; map camera/Privacy entry/Back PASS. Nije fizički telefon; noviji Home i MyTasks još nisu u APK-u.",
   "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
   "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-  "implementation": "Krug22: promena pretrage/sekcije/filtera u Mojim zadacima vraća novu listu na vrh; osvežavanje čuva mesto. Adapter tačne poruke spreman, ali još nepovezan. Kontrolna tabla razlikuje pripremljen modul od povezanog poziva.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_22_LIST_AND_TARGET.md",
+  "implementation": "Krug23: na emulatoru potvrđeni ponovni izbor pina/svih tačaka i Privatnost→pregled zatvaranja→povratak. Početna dobija ispravan ponovni pokušaj posle prekida/povratka.",
+  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_AND_HOME.md",
   "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
   "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md",
   "server_proof_source": "be72a1bd",
@@ -145,14 +145,15 @@
   },
   "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
   "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
-  "p4_exact_message": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
+  "p4_exact_message": "PASS13/13 na36339724742/e82702f0; tačni Git hash/manifest, katalog/teardown PASS. Svež read-onlyDEV205: preduslovi odgovaraju, resolver ne postoji. P4 primeni+poveži pitanje poslato; DEV UNAPPLIED / CLIENT UNWIRED. docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_PASS_20260927_RECEIPT.json",
   "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md",
   "p5_licenses": {
-   "status": "SOURCE_ONLY_RUNTIME_PENDING_DEV_UNAPPLIED_CLIENT_UNWIRED",
+   "status": "DISPOSABLE_SQL_ROLE_PASS_DEV_UNAPPLIED_CLIENT_UNWIRED",
    "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/worker_profile_licenses_owned_projection_report.md",
    "problem": "Ručno uređivanje radnog profila ne dobija postojeće licence koje AI i matching koriste.",
    "decision": "Pripremljeno jedno dodatno polje postojećeg privatnog čitača. Bez izmene licenci, prava ili sertifikata. Nedostajuće polje nikada nije prazan spisak.",
-   "proof": "Statički pregled prošao; nova izolovana SQL provera pokreće se posle ovog commita. DEV nije menjan."
+   "proof": "7/7 SQL-role na36340619418/cb63b847; sedam tačnih izvora, rollback/katalog/sertifikat i teardown PASS. Još lokalni kandidat, bez runtime veze u aplikaciji.",
+   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_PASS_20260927_RECEIPT.json"
   }
  },
  "redovi": [
@@ -208,12 +209,13 @@
     "ux": "Obaveza i stvarni naslov posla odvojeni su. Sledeći Dogovor bira budući prihvaćeni termin; ostali aktivni poslovi imaju neutralan naslov.",
     "ui": "Dva početna ulaza ostaju. Jasnija hijerarhija Čeka te i jedna komanda Osveži pregled umesto ponavljanja iste radnje.",
     "backend": "Postojeći rpc_home_attention i čitanja ličnih lista; novo čitanje ili serverska promena nisu dodati.",
-    "state_sync": "Potvrđeni prihvaćeni termin određuje prikaz. Osvežavanje proverava nalog/fokus i sprečava dupli zahtev; nepotpuni odgovori nisu prazne liste.",
+    "state_sync": "Napusteni pokušaj osvežavanja se povlači sa čitanjem pri pozadini; zakasneli odgovor ne otključava noviji pokušaj.",
     "performance": "Izvor: Početna preskače dopunu hitnosti koju ne prikazuje; provere ocena i dalje ostaju P+C, zbirni odgovor nedostaje.",
-    "test": "Round12: tipovi čisti; 11 različitih ciljanih grupa / 317 testova prolazi. Tačan opseg i početni nalazi: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
+    "test": "Home43/43PASS, red-before reprodukcija i integrisani TypeScript PASS. docs/implementation/product-v1-closure-20260926/finalization-20260927/HOME_RETRY_RETIREMENT_20260927.md",
     "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
-    "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json"
+    "status": "KOD I CILJANE PROVERE PROŠLI / NOVI HOME NATIVE ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
+    "device": "Novi Home retry nije u instaliranom f526a736; native još čeka."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -300,9 +302,9 @@
     "performance": "Nije ponovo mereno",
     "test": "34 ciljana testa; stariji APK potvrđuje 3 tačke/izbor/Back i reprodukuje problem ponovnog izbora. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
     "device_proof": "APK36330066989 / dfe2836e / sha197df5a5 installed emulator-5556 with -r. Map/pin/card/back, AI ready+keyboard and recovery, Agreement overview/chat inspected in inert local scenes. Calendar last-week overflow reproduced; new source fix awaits consolidated APK. No real E2E/provider/phone/scale acceptance.",
-    "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
+    "status": "KOD I CILJANE PROVERE / OGRANIČEN EMULATOR PASS / CELOKUPAN TOK ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_TASK_LOCATION_SOURCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -476,9 +478,9 @@
     "performance": "Nije ponovo mereno",
     "test": "34 ciljana testa; stariji APK potvrđuje 3 tačke/izbor/Back i reprodukuje problem ponovnog izbora. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
     "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
-    "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
+    "status": "KOD I CILJANE PROVERE / OGRANIČEN EMULATOR PASS / CELOKUPAN TOK ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -3384,9 +3386,9 @@
     "performance": "Svi potvrđeni pinovi staju u padded bounds; poklopljena mesta dele pin sa svim brojevima. Duža ruta nikad tiho ne gubi stanice.",
     "test": "34 ciljana testa; stariji APK potvrđuje 3 tačke/izbor/Back i reprodukuje problem ponovnog izbora. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
     "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
-    "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
+    "status": "KOD I CILJANE PROVERE / OGRANIČEN EMULATOR PASS / CELOKUPAN TOK ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -3903,7 +3905,7 @@
     "flow": "Obaveštenja u aplikaciji (zvonce)",
     "ux": "Ista lista obaveštenja i odredišta.",
     "ui": "Postojeći izgled sačuvan; nova kompozicija nije primenjena.",
-    "backend": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
+    "backend": "P4 dodatna funkcija13/13 SQL/Auth dokaz; sveži preduslovi DEV205 odgovaraju. Primena i povezivanje čekaju izričito odobrenje. Nije provider/device dokaz.",
     "state_sync": "P4 adapter sa tačnim nalogom/događajem/porukom i prekidom pripremljen; 41test prolazi, nema runtime importa ili ACK-a. Još UNWIRED.",
     "performance": "Postojeće straničenje sačuvano.",
     "test": "NIJE POKRETANO — po nalogu vlasnika Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
@@ -4157,7 +4159,7 @@
     "flow": "Slanje obaveštenja na telefon",
     "ux": "Mapirano; detaljan krug sledi",
     "ui": "Postojeći prikaz; odobrenje po paketu",
-    "backend": "P4 run36339229083: stara tekstualna i foto poruka otvaraju tačan prozor i posle ACK/otkazivanja/EXPIRED. Test je pogrešno očekivao UNAVAILABLE za nalog u zatvaranju, koji postojeća ulazna zaštita odbija sa42501. Ispravljen samo dokaz; kandidat istiSHA136601fc…; katalog/teardown PASS. Novi CI čeka. DEV UNAPPLIED / CLIENT UNWIRED.",
+    "backend": "P4 dodatna funkcija13/13 SQL/Auth dokaz; sveži preduslovi DEV205 odgovaraju. Primena i povezivanje čekaju izričito odobrenje. Nije provider/device dokaz.",
     "state_sync": "P4 adapter sa tačnim nalogom/događajem/porukom i prekidom pripremljen; 41test prolazi, nema runtime importa ili ACK-a. Još UNWIRED.",
     "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
     "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
@@ -5093,7 +5095,7 @@
     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
     "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -5180,7 +5182,7 @@
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -6696,6 +6698,14 @@
  },
  "ci": [
   {
+   "id": 36340619418,
+   "ime": "P5 owned worker licenses disposable proof",
+   "sha": "cb63b847",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T18:25:57Z"
+  },
+  {
    "id": 36339724742,
    "ime": "Chat P4 exact message event disposable proof",
    "sha": "e82702f0",
@@ -6782,14 +6792,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-27T16:25:52Z"
-  },
-  {
-   "id": 36332545768,
-   "ime": "Build Android development APK",
-   "sha": "eff72a25",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T16:15:14Z"
   }
  ]
 }

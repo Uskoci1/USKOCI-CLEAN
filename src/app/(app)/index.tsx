@@ -31,13 +31,20 @@ function Home() {
     setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, []));
-  const load = useCallback(async (): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
-    const [needs, applications, agreements, attention] = await Promise.all([
-      readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
-      readHomeSection(() => source.paznjaZaPocetnu())]);
-    // Every failed read is unavailable, never an account with nothing in it.
-    if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-    return { needs, applications, agreements, attention };
+  const load = useCallback(async (signal: AbortSignal): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
+    const retry = retrying.current;
+    // Background/blur retires the resource read before these section promises may
+    // settle. Its retry must retire too, without unlocking a newer retry.
+    const retireRetry = () => { if (retrying.current === retry) retrying.current = null; };
+    signal.addEventListener('abort', retireRetry, { once: true });
+    try {
+      const [needs, applications, agreements, attention] = await Promise.all([
+        readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
+        readHomeSection(() => source.paznjaZaPocetnu())]);
+      // Every failed read is unavailable, never an account with nothing in it.
+      if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
+      return { needs, applications, agreements, attention };
+    } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load);
   const home = useMemo(() => resource.data ? composeHome(resource.data, resource.data.attention) : null, [resource.data]);

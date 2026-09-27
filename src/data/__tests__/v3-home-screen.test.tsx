@@ -4,6 +4,8 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let mockSession = { user: { id: A }, accountRevision: 1 };
 let mockFocused = true;
+let mockAppState = 'active';
+const mockAppStateListeners = new Set<(state: string) => void>();
 let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
@@ -12,7 +14,10 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: (
 jest.mock('expo-router', () => ({ get router() { return mockRouter; },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
-  if (key === 'AppState') return { currentState: 'active', addEventListener: () => ({ remove: () => undefined }) };
+  if (key === 'AppState') return { get currentState() { return mockAppState; },
+    addEventListener: (_event: string, listener: (state: string) => void) => {
+      mockAppStateListeners.add(listener); return { remove: () => mockAppStateListeners.delete(listener) };
+    } };
   if (key === 'useWindowDimensions') return () => mockWindow;
   return ['View', 'ScrollView', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
@@ -45,6 +50,7 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 
 beforeEach(() => {
   jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 }; mockFocused = true;
+  mockAppState = 'active'; mockAppStateListeners.clear();
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
@@ -321,6 +327,39 @@ it('a retry retained by the previous focus cannot start the shared read after re
   for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
   await act(async () => action('Osveži pregled').onPress());
   for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(3);
+});
+
+it('a failed foreground read can be retried while an abandoned older retry still waits, without its completion unlocking the new retry', async () => {
+  mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENTS_FAILED'));
+  await render();
+  const abandoned = deferred<never[]>(), currentRetry = deferred<never[]>();
+  mockSource.mojePotrebe.mockReturnValueOnce(abandoned.promise);
+  try {
+    await act(async () => action('Osveži pregled').onPress());
+    expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener('background'));
+    });
+    for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('FOREGROUND_READ_FAILED'));
+    await act(async () => {
+      mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener('active'));
+    });
+    expect(text()).toContain('Pregled trenutno nije učitan.');
+    expect(action('Osveži pregled')).toMatchObject({ loading: false, disabled: false });
+    mockSource.mojePotrebe.mockReturnValueOnce(currentRetry.promise);
+    const retry = action('Osveži pregled').onPress;
+    await act(async () => retry());
+    for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(4);
+    // The all-failed foreground read has no snapshot to retain; recovery shows
+    // the existing initial-load state rather than the partial-read retry row.
+    expect(tree.root.findByType(HomePresentation).props).toMatchObject({ loading: true, refreshing: false, error: false });
+    await act(async () => abandoned.resolve([]));
+    await act(async () => retry());
+    for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(4);
+    expect(tree.root.findByType(HomePresentation).props).toMatchObject({ loading: true, error: false });
+  } finally {
+    await act(async () => { abandoned.resolve([]); currentRetry.resolve([]); });
+  }
 });
 
 it('four failed reads are a failed screen, not an empty account, and the two doors never say zero', async () => {
