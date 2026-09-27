@@ -7,6 +7,7 @@ import type { MarketConfig } from '../contracts/market';
 import type { NeedLocationReview } from '../contracts/location';
 import type { createConfiguredLocationResolver } from '../data/configuredLocationResolver';
 import { NeedLocationForm } from '../ui/location/NeedLocationForm';
+import { LocationMapPreview } from '../ui/location/LocationMapPreview';
 import { LocationScreen } from '../ui/location/LocationControls';
 import { PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewFactRow, ReviewPhotos, ReviewPreview,
   ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles, type TodoRow } from '../ui/objava/ReviewPresentation';
@@ -27,7 +28,8 @@ import { T } from '../ui/Text';
  * state the lead photographs. Reached only by its address (uskociapp://dizajn-objava) in the internal build; the store
  * package shows nothing. The real presentation parts draw fixture data: nothing here reads or writes anything. Every
  * command is a no-op; the address search answers that it is not activated, and a photo is a quiet stand-in, so no
- * media is read. Only the map's public tiles load, as they do on every map.
+ * media is read. Only the map's public tiles load, as they do on every map. The saved-point map scenes use the
+ * production preview with public fixture coordinates; external map links launch only if explicitly pressed.
  */
 type Scene = { key: string; group: string; label: string };
 const SCENES: Scene[] = [
@@ -42,6 +44,8 @@ const SCENES: Scene[] = [
   { key: 'pregled-veliki', group: 'Pregled pre objave', label: 'Veliki tekst (raspored)' },
   { key: 'mesto-forma', group: 'Mesto zadatka', label: 'Izmena mesta' },
   { key: 'mesto-ruta', group: 'Mesto zadatka', label: 'Od mesta do mesta' },
+  { key: 'mesto-pregled-rute', group: 'Mesto zadatka', label: 'Pregled potvrđene putanje' },
+  { key: 'mesto-pregled-vise', group: 'Mesto zadatka', label: 'Više potvrđenih mesta' },
   { key: 'mesto-daljina', group: 'Mesto zadatka', label: 'Rad na daljinu' },
   { key: 'mesto-zakljucano', group: 'Mesto zadatka', label: 'Nije dostupno za izmene' },
   { key: 'mesto-sacuvano', group: 'Mesto zadatka', label: 'Sačuvano (stari put)' },
@@ -60,6 +64,12 @@ const noop = () => {};
 const SUMMARY: Summary = { title: 'Prenos ormara na treći sprat bez lifta', zone: 'Novi Sad · Liman 2',
   schedule: '27. sep · 10:00–12:00', value: { kind: 'amount', amount: '4.500 RSD', basis: 'ukupno' }, people: '2 osobe' };
 const ANCHOR = { latitude: 45.24, longitude: 19.84 };
+// Public-area fixtures only. These are never written as a task, grant or account location.
+const MAP_POINTS = [
+  { id: 'start', label: 'Početak: Liman, Novi Sad', latitude: 45.239, longitude: 19.841 },
+  { id: 'stop', label: 'Usput: Stari grad, Novi Sad', latitude: 45.255, longitude: 19.847 },
+  { id: 'end', label: 'Završetak: Petrovaradin, Novi Sad', latitude: 45.252, longitude: 19.877 },
+];
 const COUNTRIES = { countries: [
   { countryCode: 'RS', productStatus: 'BUILDING', defaultCurrencyCode: 'RSD', defaultLanguageTag: 'sr-Latn', defaultTimezone: 'Europe/Belgrade' },
   { countryCode: 'HR', productStatus: 'COMING', defaultCurrencyCode: 'EUR', defaultLanguageTag: 'hr', defaultTimezone: 'Europe/Zagreb' },
@@ -224,6 +234,10 @@ export default function DizajnObjava() {
     : scene === 'pregled-ucitavanje' ? review({ loading: true })
     : scene === 'pregled-greska' ? review({ failure: true })
     : scene === 'pregled-veliki' ? review({ large: true })
+    : scene === 'mesto-pregled-rute' || scene === 'mesto-pregled-vise' ? <SettingsScreen title="Potvrđena mesta · primer" onBack={toList}>
+      <SettingsText>Probne tačke za pregled mape. Ništa se ne čuva niti objavljuje.</SettingsText>
+      <LocationMapPreview points={MAP_POINTS} scopeKey={`galerija:${scene}`} route={scene === 'mesto-pregled-rute'} />
+    </SettingsScreen>
     : scene === 'mesto-forma' ? placeStep(place({ resolvedLocation: FIXED_POINT }))
     : scene === 'mesto-ruta' ? placeStep(place({ geography: { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad', area: 'Liman 2' }, end: { city: 'Beograd', area: 'Vračar' } } }))
     : scene === 'mesto-daljina' ? placeStep(place({ geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null }))

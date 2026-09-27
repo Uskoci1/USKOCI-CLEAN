@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { AppState, Modal } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -20,24 +20,26 @@ import { ClosureView, closureUnconfirmedCopy, type ClosureBlockerPlace, type Clo
  */
 export function ClosureEntry({ canOpen = () => true, disabled = false }: { canOpen?: () => boolean; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
+  const requestClose = useRef<(() => void) | null>(null);
   const reduced = useReducedMotion();
   useFocusEffect(useCallback(() => () => setOpen(false), []));
   return <>
     <SettingsRow compact last label="Zatvaranje naloga" detail="Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva."
       disabled={disabled} onPress={() => { if (!open && canOpen()) setOpen(true); }} />
-    {open ? <Modal visible presentationStyle="fullScreen" animationType={reduced ? 'none' : 'slide'} onRequestClose={() => setOpen(false)}>
-      <ClosureDialog onClose={() => setOpen(false)} />
+    {open ? <Modal visible presentationStyle="fullScreen" animationType={reduced ? 'none' : 'slide'} onRequestClose={() => requestClose.current?.()}>
+      <ClosureDialog onClose={() => setOpen(false)} closeRequestRef={requestClose} />
     </Modal> : null}
   </>;
 }
 
 type Working = ClosureModel['working'];
 
-export function ClosureDialog({ onClose }: { onClose: () => void }) {
+export function ClosureDialog({ onClose, closeRequestRef }: { onClose: () => void; closeRequestRef?: Ref<() => void> }) {
   const router = useRouter();
   const session = useSesija(), accountId = session.user?.id, accountRevision = session.accountRevision;
   const owner = { accountId: accountId ?? '', accountRevision };
-  const focus = useRef<object | null>(null), locked = useRef(false);
+  const focus = useRef<object | null>(null), locked = useRef(false), leaving = useRef(false);
+  const [visit, setVisit] = useState<object | null>(null);
   const active = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [busy, setBusy] = useState(true), [message, setMessage] = useState('');
   const [review, setReview] = useState<ClosureExecutionReview | null>(null), [intent, setIntent] = useState<ClosureIntent | null>(null);
@@ -49,7 +51,7 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
   const dialog = useRef<object | null>(null);
   const reviewRef = useRef(review); reviewRef.current = review;
   const retireQuestion = () => { dialog.current = null; closeQuestion(); };
-  const live = (token: object | null) => token !== null && focus.current === token && active.current && !!accountId
+  const live = (token: object | null) => token !== null && focus.current === token && !leaving.current && active.current && !!accountId
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
 
   async function readIntent(i: ClosureIntent, token: object) {
@@ -82,22 +84,23 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
     setIntent(saved); setAbsent(false);
     if (saved) await readIntent(saved, token); else await readReview(token);
   }
-  async function run(work: (token: object) => Promise<void>, doing: Working = null) {
-    const token = focus.current; if (!live(token) || locked.current) return;
+  async function run(work: (token: object) => Promise<void>, doing: Working = null, token = visit) {
+    if (!live(token) || locked.current) return;
     locked.current = true; setBusy(true); setWorking(doing); setMessage('');
     try { await work(token!); } catch { if (live(token)) setMessage(closureUnconfirmedCopy.CAUGHT); }
     finally { if (live(token)) { locked.current = false; setBusy(false); setWorking(null); } }
   }
   useFocusEffect(useCallback(() => {
-    const token = {}; focus.current = token; locked.current = true; setBusy(true); setWorking(null);
+    const token = {}; focus.current = token; setVisit(token); leaving.current = false; locked.current = true; setBusy(true); setWorking(null);
     void restore(token).catch(() => { if (live(token)) setMessage('Sačuvani zahtev trenutno nije dostupan. Pokušaj ponovo.'); })
       .finally(() => { if (live(token)) { locked.current = false; setBusy(false); setWorking(null); } });
     const subscription = AppState.addEventListener('change', next => {
       active.current = next === 'active';
+      if (leaving.current) return;
       if (!active.current) { focus.current = null; locked.current = false; retireQuestion(); }
       // Back in the foreground the flow reads again, and says so on its own check button (round 5 review: every button
       // went grey with no spinner and no words).
-      else if (focus.current === null) { focus.current = {}; void run(restore, 'refresh'); }
+      else if (focus.current === null) { const foreground = {}; focus.current = foreground; setVisit(foreground); void run(restore, 'refresh', foreground); }
     });
     return () => { focus.current = null; locked.current = false; retireQuestion(); subscription.remove(); };
   // Scope follows account incarnation; token refresh leaves the pending intent intact.
@@ -127,19 +130,19 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
   }, 'start');
   // Deep read 8.18: the irreversible start used to be one tap. It asks once more, in a danger sheet.
   const askStart = () => {
-    if (!live(focus.current) || busy || locked.current || intent || !review?.ready || dialog.current) return;
+    if (!live(visit) || busy || locked.current || intent || !review?.ready || dialog.current) return;
     const token = {}, asked = review; dialog.current = token;
     confirm.ask({ title: 'Da li sigurno zatvaraš nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
       confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger',
       onCancel: () => { if (dialog.current === token) dialog.current = null; },
       onConfirm: () => {
-        if (dialog.current !== token || reviewRef.current !== asked || !live(focus.current)) return;
+        if (dialog.current !== token || reviewRef.current !== asked || !live(visit)) return;
         dialog.current = null;
         // Returned, so the sheet stays busy until the start and its read have settled.
         return start();
       } });
   };
-  const refresh = () => { retireQuestion(); return run(async token => { setReview(null); await restore(token); }, 'refresh'); };
+  const refresh = () => { if (!live(visit)) return; retireQuestion(); return run(async token => { setReview(null); await restore(token); }, 'refresh'); };
   const retry = () => run(async token => {
     if (!intent || !absent) return;
     await readIntent(intent, token); if (!live(token)) return;
@@ -151,16 +154,24 @@ export function ClosureDialog({ onClose }: { onClose: () => void }) {
     await send(intent, token);
   }, 'retry');
   const logout = () => run(async token => { if (!live(token)) return; await authClientService.signOutLocal(owner); }, 'logout');
+  // Retire this visit before requesting unmount: repeated presses and a pending
+  // persistence/read completion must not act during the native dismissal.
+  const close = () => {
+    if (!live(visit)) return false;
+    leaving.current = true; focus.current = null; locked.current = false; retireQuestion(); onClose(); return true;
+  };
+  // Android Modal Back must retire the same scope before the host unmounts it.
+  useImperativeHandle(closeRequestRef, () => () => { close(); });
   // The flow lies over the screen that opened it, so leaving it for another place closes it first.
-  const support = () => { if (!live(focus.current) || busy) return; onClose(); router.push('/podrska'); };
+  const support = () => { if (busy || locked.current || !close()) return; router.push('/podrska'); };
   const blocker = (place: ClosureBlockerPlace) => {
-    if (!live(focus.current) || busy) return; onClose();
+    if (busy || locked.current || !close()) return;
     if (place === 'dogovori') router.navigate('/dogovori'); else if (place === 'zadaci') router.navigate('/potrebe'); else router.navigate('/moje-prijave');
   };
-  const exportData = () => { if (!live(focus.current) || busy) return; onClose(); router.navigate('/profil/izvoz'); };
+  const exportData = () => { if (busy || locked.current || !close()) return; router.navigate('/profil/izvoz'); };
   return <>
     <ClosureView model={{ busy, working, message, review, intent, state, absent }} commands={{
-      onClose: () => { if (live(focus.current)) onClose(); }, onPrepare: () => { void prepare(); }, onAskStart: askStart,
+      onClose: close, onPrepare: () => { void prepare(); }, onAskStart: askStart,
       onRetry: () => { void retry(); }, onRefresh: () => { void refresh(); }, onLogout: () => { void logout(); },
       onSupport: support, onBlocker: blocker, onExport: exportData,
     }} />
