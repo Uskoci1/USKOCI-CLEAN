@@ -86,4 +86,33 @@ describe('task map expansion and explicit navigation', () => {
     expect(tree.root.findByProps({ label: 'Navigacija: Početno mesto' }).props.error).toContain('Pokušaj ponovo');
     await press({ label: 'Navigacija: Početno mesto' }); expect(mockOpen).toHaveBeenCalledTimes(2);
   });
+  it('checks private authority at the actual expansion and navigation tap without relying on a timer render', async () => {
+    let admitted = true;
+    const canUse = () => admitted;
+    await act(async () => { tree = create(<LocationMapPreview points={points} scopeKey={scopeKey} route canUse={canUse} />); });
+    const open = tree.root.findByProps({ accessibilityLabel: 'Otvori mapu' }).props.onPress;
+    admitted = false;
+    await act(async () => open());
+    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+    admitted = true;
+    await act(async () => open());
+    const point = tree.root.findByProps({ label: 'Navigacija: Početno mesto' }).props.onPress;
+    const route = tree.root.findByProps({ label: 'Cela putanja u Google mapama' }).props.onPress;
+    const choose = tree.root.findByProps({ accessibilityLabel: 'Prikaži na mapi: Završno mesto' }).props.onPress;
+    admitted = false;
+    await act(async () => { point(); route(); choose(); });
+    expect(mockOpen).not.toHaveBeenCalled();
+    expect(tree.root.findByType('Canvas' as React.ElementType).props.selectedId).toBeUndefined();
+    await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose());
+    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+  });
+  it('retires retained actions when the caller replaces its authority without changing geometry', async () => {
+    await act(async () => { tree = create(<LocationMapPreview points={points} scopeKey={scopeKey} route canUse={() => true} />); });
+    await press({ accessibilityLabel: 'Otvori mapu' });
+    const old = tree.root.findByProps({ label: 'Navigacija: Početno mesto' }).props.onPress;
+    await act(async () => { tree.update(<LocationMapPreview points={points} scopeKey={scopeKey} route canUse={() => false} />); });
+    await act(async () => old());
+    expect(mockOpen).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+  });
 });

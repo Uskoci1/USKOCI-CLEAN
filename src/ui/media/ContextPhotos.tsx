@@ -12,7 +12,6 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { FactArt } from '../system/FactArt';
 import { inicijali } from '../../lib/inicijali';
-import { Press } from '../Press';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { useReducedMotion } from '../system/motion';
 
@@ -59,13 +58,11 @@ function PhotoPages({ needId, photos, index, onIndex, onOpen, full = false }: {
       onMomentumScrollEnd={settled} contentOffset={{ x: index * size.width, y: 0 }} style={galleryStyles.pager}>
       {photos.map((photo, i) => {
         const picture = <AuthorizedPhoto assetId={photo.assetId} needId={needId} label={`Fotografija zadatka ${i + 1} od ${photos.length}`}
-          contentFit={full ? 'contain' : 'cover'} style={{ width: size.width, height: size.height, aspectRatio: undefined, borderRadius: 0 }} />;
-        return full ? <View key={photo.assetId} accessibilityElementsHidden={i !== index} importantForAccessibility={i === index ? 'auto' : 'no-hide-descendants'}
-          style={{ width: size.width, height: size.height }}>{picture}</View>
-          : <Press key={photo.assetId} accessibilityRole="button" accessibilityLabel={`Otvori fotografiju ${i + 1} od ${photos.length}`}
-            accessibilityHint="Otvara fotografiju preko celog ekrana." accessibilityElementsHidden={i !== index}
-            importantForAccessibility={i === index ? 'auto' : 'no-hide-descendants'} onPress={() => onOpen?.(i)} scaleTo={1} hitSlop={0}
-            style={{ width: size.width, height: size.height }}>{picture}</Press>;
+          contentFit={full ? 'contain' : 'cover'} style={{ width: size.width, height: size.height, aspectRatio: undefined, borderRadius: 0 }}
+          open={full ? undefined : { label: `Otvori fotografiju ${i + 1} od ${photos.length}`,
+            hint: 'Otvara fotografiju preko celog ekrana.', onPress: () => onOpen?.(i) }} />;
+        return <View key={photo.assetId} accessibilityElementsHidden={i !== index} importantForAccessibility={i === index ? 'auto' : 'no-hide-descendants'}
+          style={{ width: size.width, height: size.height }}>{picture}</View>;
       })}
     </ScrollView> : null}
   </View>;

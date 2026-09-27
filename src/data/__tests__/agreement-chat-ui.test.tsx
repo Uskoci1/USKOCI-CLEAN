@@ -247,9 +247,13 @@ describe('D03 actual message component', () => {
     const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: 'photo_message_key',
       posiljalacAccountId: account, telo: '', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
       fotografije: [{ assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const }] };
-    await render({ messages: [read], support: { canAct: () => true, navigate: jest.fn() } });
+    const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, canSubmit: () => false } as any;
+    await render({ messages: [read], photos, support: { canAct: () => true, navigate: jest.fn() } });
     // A photo-only message is heard as its photos, with its day and clock.
     expect(held('Ti').props.accessibilityLabel).toBe('Ti: 1 fotografija, Danas, 12:00');
+    // Retry belongs to AuthorizedPhoto; no accessible message button may swallow that separate action.
+    expect(held('Ti').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findByType('AuthorizedPhoto' as React.ElementType).parent?.type).toBe('View');
     // The support entry no longer stands under every message; it belongs to the one being held.
     await act(async () => held('Ti').props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
@@ -257,14 +261,17 @@ describe('D03 actual message component', () => {
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
     expect(outbox.sendDraft).not.toHaveBeenCalled();
   });
-  // Verify r4b rd item 2: the bubble's press hides its children, so a message with text AND photos names its photos too.
+  // A message summary still names its text and photos, while each image has a separate accessible recovery action.
   it('hears a message with text and photos as both, and a message with neither as a message without text', async () => {
     const photo = { assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const };
     const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: 'photo_message_key',
       posiljalacAccountId: account, telo: 'Evo kako izgleda', moja: false, posiljalacIme: 'Milan', vremeTekst: '24. sep · 12:00', procitano: null,
       fotografije: [photo, { ...photo, assetId: '40000000-0000-4000-8000-000000000002' }] };
-    await render({ messages: [read] });
+    const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, canSubmit: () => false } as any;
+    await render({ messages: [read], photos });
     expect(held('Milan').props.accessibilityLabel).toBe('Milan: Evo kako izgleda, 2 fotografije, 24. sep, 12:00');
+    expect(held('Milan').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(2);
     expect(messageSpoken({ moja: true, posiljalacIme: 'Ja', telo: '', fotografije: [] }, { day: null, clock: '12:00' })).toBe('Ti: poruka bez teksta, 12:00');
   });
   it('shows latest history initially, preserves an older reading position, and follows an explicit outgoing message', async () => {

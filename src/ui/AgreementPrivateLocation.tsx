@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { AppState, StyleSheet, View } from 'react-native';
 import type { DogovorProjekcija } from '../contracts/projections';
 import type { ExactLocationReveal, LocationGrant, LocationGrantState } from '../contracts/contact';
 import type { Ishod } from '../data/ports';
 import { useOwnedEditor } from '../hooks/useOwnedEditor';
-import { useSesija } from '../store/sesija';
+import { sesijaSada, useSesija } from '../store/sesija';
 import { useIzvor } from '../store/uloga';
 import { sys } from './system/tokens';
 import { FactArt } from './system/FactArt';
@@ -40,16 +41,24 @@ export function AgreementPrivateLocation({ agreement, enabled }: Props) {
     && (agreement.stanje === 'CONFIRMED' || agreement.stanje === 'AWAITING_REQUESTER');
   if (!visible) return null;
   return <LocationSession key={`${session.user!.id}:${session.accountRevision}:${agreement.id}:${agreement.verzija}:${agreement.stanje}:${requester.id}:${worker.id}`}
-    agreementId={agreement.id} accountId={session.user!.id} requesterId={requester.id} workerId={worker.id} appActive={appActive} />;
+    agreementId={agreement.id} accountId={session.user!.id} accountRevision={session.accountRevision}
+    requesterId={requester.id} workerId={worker.id} appActive={appActive} />;
 }
 
-function LocationSession({ agreementId, accountId, requesterId, workerId, appActive }: {
-  agreementId: string; accountId: string; requesterId: string; workerId: string; appActive: () => boolean;
+function LocationSession({ agreementId, accountId, accountRevision, requesterId, workerId, appActive }: {
+  agreementId: string; accountId: string; accountRevision: number; requesterId: string; workerId: string; appActive: () => boolean;
 }) {
   const source = useIzvor();
   const mounted = useRef(true);
+  const focus = useRef<object | null>(null), intent = useRef<object>({});
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useFocusEffect(useCallback(() => {
+    focus.current = {}; intent.current = {};
+    return () => { focus.current = null; intent.current = {}; };
+  }, []));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
+    // Retire map actions as soon as a refresh/readback starts, before its loading render.
+    intent.current = {};
     if (!appActive()) return invalid();
     const result = await source.lokacijskaDozvola(agreementId);
     if (!result.ok) return result;
@@ -62,6 +71,15 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
   const grant = editor.data?.state.grants[0];
   const granted = activeGrant(grant);
   const privateData = !editor.loading && !editor.busy && !editor.uncertain && !editor.error && granted ? editor.data?.revealed : null;
+  const latestPrivate = useRef({ grant, privateData }); latestPrivate.current = { grant, privateData };
+  const renderedFocus = focus.current, renderedIntent = intent.current;
+  // Timers remove the visible data, but a queued tap must check the lease clock itself.
+  // The exact reveal and read intent also prevent an old callback reviving after regrant.
+  const canUsePrivateMap = () => mounted.current && appActive() && renderedFocus !== null && focus.current === renderedFocus
+    && intent.current === renderedIntent && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
+    && !!privateData && latestPrivate.current.privateData === privateData && latestPrivate.current.grant === grant
+    && !!grant && activeGrant(grant) && grant.recipientAccountId === accountId && grant.ownerAccountId === requesterId
+    && privateData.grantId === grant.id && Date.parse(privateData.grantedAt) === Date.parse(grant.grantedAt);
   const expiry = grant?.expiresAt;
   useEffect(() => {
     if (!expiry || !granted) return;
@@ -73,6 +91,7 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
   }, [expiry, granted, editor.refresh]);
 
   const setGrant = (allow: boolean) => editor.save(async () => {
+    intent.current = {};
     if (!appActive()) return invalid();
     const result = await (allow ? source.podeliTacnuLokaciju(agreementId) : source.opoziviTacnuLokaciju(agreementId));
     if (!result.ok) return result;
@@ -81,6 +100,7 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
     return read();
   });
   const show = () => editor.save(async () => {
+    intent.current = {};
     if (!appActive()) return invalid();
     const result = await source.otkrijTacnuLokaciju(agreementId);
     if (!result.ok) return result;
@@ -119,7 +139,7 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
       kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
       : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
-      scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} /> : null}
+      scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
     <View style={s.refresh}>
       <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
       <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
@@ -131,7 +151,7 @@ function LocationSession({ agreementId, accountId, requesterId, workerId, appAct
 const quietStart = { alignSelf: 'flex-start' } as const;
 const slotLabel = (slot: string) => slot === 'start' ? 'Početno mesto' : slot === 'end' ? 'Završno mesto'
   : slot === 'serviceArea' ? 'Područje rada' : `Usputno mesto ${Number(slot.split('/')[1]) + 1}`;
-function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: string }) {
+function PrivatePoints({ value, scope, canUse }: { value: ExactLocationReveal; scope: string; canUse: () => boolean }) {
   const resolved = value.resolvedLocation?.value;
   const slots = resolved ? locationSlots(resolved.binding.geography) : [];
   const points = slots.flatMap(slot => resolved?.points.find(point => point.slot === slot) ?? []);
@@ -140,7 +160,7 @@ function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: st
   if (!mapPoints.length && value.exactPosition) mapPoints.push({ id: 'start', label: 'Mesto zadatka', ...value.exactPosition });
   const route = !!resolved && ['POINT_TO_POINT', 'MULTI_STOP'].includes(resolved.binding.geography.mode) && points.length === slots.length;
   return <View style={s.stack}>
-    {mapPoints.length ? <LocationMapPreview points={mapPoints} scopeKey={scope} route={route} height={220} /> : null}
+    {mapPoints.length ? <LocationMapPreview points={mapPoints} scopeKey={scope} route={route} height={220} canUse={canUse} /> : null}
     {value.adresa ? <T>{value.adresa}</T> : null}
     {value.accessNotes ? <T variant="meta">{value.accessNotes}</T> : null}
     {/* Each point is a bare row parted by a hairline; the section around it is the only box. */}

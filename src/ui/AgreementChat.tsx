@@ -362,21 +362,27 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           // Messages of one person in a row sit close; a turn of the conversation leaves air.
           const before = shown[index - 1];
           const sameRun = !!before && !newDay && before.moja === message.moja;
+          const bubbleStyle = [s.bubble, message.moja ? s.mine : s.theirs, sameRun ? s.run : s.turn];
+          const summary = { accessibilityRole: 'button' as const, accessibilityLabel: messageSpoken(message, moment),
+            accessibilityHint: 'Dugi pritisak nudi prijavu podršci.',
+            onLongPress: () => setChosen(current => current === message.id ? null : message.id), haptic: 'select' as const, scaleTo: 1 };
+          const body = message.telo ? <T selectable style={[s.body, message.moja && s.onMine]}>{message.telo}</T> : null;
+          const clock = <T style={[s.time, message.moja && s.onMine]}>{moment.clock}</T>;
+          const hasPhotos = !!photos && !!message.fotografije?.length;
           return <View key={message.id} testID={`agreement-message-row-${message.id}`} onLayout={({ nativeEvent }) => {
             rowPositions.current.set(message.id, nativeEvent.layout.y); restoreReading();
           }}>
             {newDay ? <T accessibilityRole="header" style={s.day}>{moment.day}</T> : null}
-            {/* The bubble is one stop for a screen reader, so its label says the message itself: who, what, when
-                (review r4 rd item 2; it said only "Poruka: <ime>", and the text and the time were never heard). */}
-            <Press accessibilityRole="button" accessibilityLabel={messageSpoken(message, moment)} accessibilityHint="Dugi pritisak nudi prijavu podršci."
-              onLongPress={() => setChosen(current => current === message.id ? null : message.id)} haptic="select" scaleTo={1}
-              style={[s.bubble, message.moja ? s.mine : s.theirs, sameRun ? s.run : s.turn]}>
-              {message.telo ? <T selectable style={[s.body,message.moja&&s.onMine]}>{message.telo}</T> : null}
-              {message.fotografije?.map((photo, photoIndex) => photos ? <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
-                agreementId={photos.agreementId} messageId={message.id} label={`Fotografija poruke ${photoIndex + 1}`}
-                style={s.photo} /> : null)}
-              <T style={[s.time,message.moja&&s.onMine]}>{moment.clock}</T>
-            </Press>
+            {/* The spoken summary keeps who/what/when, but photo recovery is a separate reachable action,
+                never a button hidden inside an accessible message button. Plain text retains its layout. */}
+            {hasPhotos ? <View style={bubbleStyle}>
+              {body ? <Press {...summary} style={s.photoCaptionSummary}>{body}</Press> : null}
+              {message.fotografije?.map((photo, photoIndex) => <AuthorizedPhoto key={photo.assetId} assetId={photo.assetId}
+                agreementId={photos!.agreementId} messageId={message.id} label={`Fotografija poruke ${photoIndex + 1}`}
+                style={s.photo} />)}
+              {body ? <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{clock}</View>
+                : <Press {...summary} style={s.photoSummary}>{clock}</Press>}
+            </View> : <Press {...summary} style={bubbleStyle}>{body}{clock}</Press>}
             {/* This stood under every message, full width, doubling the height of the transcript. It belongs to the
                 message a person actually wants to report, which is the one they hold. It stands under that bubble, on
                 its side, as a sibling: inside the bubble's press its own buttons were a target inside a target, and a
@@ -492,6 +498,8 @@ const s = StyleSheet.create({
   body: { ...sys.type.body, color: sys.color.ink },
   onMine: { color: sys.conversation.onUser },
   photo: { width: 220, maxWidth: '100%' },
+  photoCaptionSummary: { minHeight: 48, justifyContent: 'center' },
+  photoSummary: { minHeight: 48, minWidth: 48, alignSelf: 'flex-end', justifyContent: 'center' },
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
   // One lifted writing surface. Its full-width draft stays above controls instead of being squeezed between them.

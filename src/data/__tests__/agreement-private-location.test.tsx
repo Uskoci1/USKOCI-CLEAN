@@ -46,6 +46,7 @@ const update = async () => { await act(async () => { tree.update(<AgreementPriva
 const button = (label: string) => tree.root.findByProps({ label });
 const press = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
 const content = () => JSON.stringify(tree.toJSON());
+const mapAuthority = () => tree.root.findByType('PrivateMap' as React.ElementType).props.canUse as () => boolean;
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; }
 beforeEach(() => {
   jest.clearAllMocks(); for (const mock of [mockRead, mockReveal, mockGrant, mockRevoke]) mock.mockReset();
@@ -93,12 +94,14 @@ describe('Agreement private location uses server grant and ephemeral focused sta
   it.each(['blur', 'account', 'revision', 'participant', 'background'] as const)('removes private state and fences late callbacks on %s', async change => {
     await render(); const old = button('Prikaži privatnu lokaciju').props.onPress;
     await press('Prikaži privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
+    const canUse = mapAuthority(); expect(canUse()).toBe(true);
     if (change === 'blur') mockFocused = false;
     if (change === 'account') mockSession = { user: { id: workerId }, accountRevision: 2 };
     if (change === 'revision') agreement = { ...agreement, verzija: 2 };
     if (change === 'participant') agreement = { ...agreement, ucesnici: agreement.ucesnici.map(party => party.id === ownerId ? { ...party, id: 'new-owner' } : party) };
     if (change === 'background') await act(async () => { mockAppStateListener('background'); });
     await update(); expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('PrivateMap');
+    expect(canUse()).toBe(false);
     await act(async () => { old(); }); expect(mockReveal).toHaveBeenCalledTimes(1);
     if (change === 'blur') { mockFocused = true; await update(); expect(content()).not.toContain('PRIVATE START'); }
     if (change === 'background') { await act(async () => { mockAppStateListener('active'); }); expect(content()).not.toContain('PRIVATE START'); }
@@ -130,6 +133,46 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     await render(); await press('Prikaži privatnu lokaciju'); expect(content()).toContain('PRIVATE START');
     await act(async () => { jest.advanceTimersByTime(2001); });
     expect(content()).not.toContain('PRIVATE START'); expect(content()).not.toContain('Prikaži privatnu lokaciju');
+  });
+  it('rejects captured map authority at expiry before cleanup timers or a render run', async () => {
+    jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-10T12:00:00Z'));
+    const expiresAt = '2026-09-10T12:00:02Z';
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(true, expiresAt) }));
+    mockReveal.mockResolvedValue({ ok: true, podatak: receipt(expiresAt) });
+    await render(); await press('Prikaži privatnu lokaciju');
+    const canUse = mapAuthority(); expect(canUse()).toBe(true);
+    const reads = mockRead.mock.calls.length;
+    // Moving the clock does not run the expiry timer. The rendered map still holds this callback.
+    jest.setSystemTime(new Date(expiresAt));
+    expect(content()).toContain('PrivateMap'); expect(canUse()).toBe(false);
+    expect(mockRead).toHaveBeenCalledTimes(reads); expect(mockReveal).toHaveBeenCalledTimes(1);
+  });
+  it.each(['id', 'grantedAt'] as const)('retires old map authority immediately on refresh and keeps it retired after grant %s replacement', async change => {
+    await render(); await press('Prikaži privatnu lokaciju');
+    const old = mapAuthority(); expect(old()).toBe(true);
+    const grant = { ...state().grants[0], ...(change === 'id' ? { id: 'replacement-grant' } : { grantedAt: '2026-09-10T13:00:00Z' }) };
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: { ...state(), grants: [grant] } }));
+    mockReveal.mockResolvedValue({ ok: true, podatak: { ...receipt(), grantId: grant.id, grantedAt: grant.grantedAt } });
+    const refresh = button('Osveži dozvolu za lokaciju').props.onPress;
+    await act(async () => { refresh(); expect(old()).toBe(false); });
+    expect(content()).not.toContain('PrivateMap');
+    await press('Prikaži privatnu lokaciju');
+    expect(mapAuthority()()).toBe(true); expect(old()).toBe(false);
+  });
+  it('does not revive a captured map authority after blur, fresh read and explicit reveal of the same grant', async () => {
+    await render(); await press('Prikaži privatnu lokaciju');
+    const old = mapAuthority(); expect(old()).toBe(true);
+    mockFocused = false; await update(); expect(old()).toBe(false);
+    mockFocused = true; await update(); await press('Prikaži privatnu lokaciju');
+    expect(mapAuthority()()).toBe(true); expect(old()).toBe(false);
+  });
+  it.each(['account ABA', 'background'] as const)('checks %s synchronously before React retires the map', async change => {
+    await render(); await press('Prikaži privatnu lokaciju');
+    const old = mapAuthority(); expect(old()).toBe(true);
+    if (change === 'account ABA') {
+      mockSession = { user: { id: workerId }, accountRevision: 3 };
+      expect(old()).toBe(false);
+    } else await act(async () => { mockAppStateListener('background'); expect(old()).toBe(false); });
   });
   it('lets the actual requester grant coordinate-only data, blocks duplicates and unknown-write replay until readback', async () => {
     mockSession = { user: { id: ownerId }, accountRevision: 1 };     agreement.ucesnici = agreement.ucesnici.map(party => ({ ...party, viSte: party.id === ownerId }));

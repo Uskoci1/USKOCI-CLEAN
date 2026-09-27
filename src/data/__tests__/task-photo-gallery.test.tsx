@@ -43,7 +43,7 @@ const settle = async (testID: string, x: number) => {
   await act(async () => byId(testID).props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { x, y: 0 } } }));
 };
 const open = async (page = 1) => {
-  await act(async () => tree.root.findByProps({ accessibilityLabel: `Otvori fotografiju ${page} od 2` }).props.onPress());
+  await act(async () => host('AuthorizedPhoto')[page - 1].props.open.onPress());
 };
 const modalPhotos = (): ReactTestInstance[] => host('Modal')[0].findAll(node => node.type === ('AuthorizedPhoto' as React.ElementType));
 
@@ -98,7 +98,7 @@ it('closes the viewer and retires old photos when the task or account revision c
   await act(async () => tree.update(<NeedPhotos needId="need-b" />));
   expect(host('Modal')).toHaveLength(0); await measure('task-photo-viewport');
   expect(host('AuthorizedPhoto').map(node => [node.props.assetId, node.props.needId])).toEqual([['photo-new', 'need-b']]);
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori fotografiju 1 od 1' }).props.onPress());
+  await act(async () => host('AuthorizedPhoto')[0].props.open.onPress());
   mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   mockRead.mockImplementation(() => new Promise(() => {}));
   await act(async () => tree.update(<NeedPhotos needId="need-b" />));

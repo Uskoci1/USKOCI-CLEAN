@@ -16,6 +16,8 @@ import { pointMapUrl, routeMapUrl } from './locationMapLinks';
 
 type Props = {
   points: readonly LocationOverviewPoint[]; scopeKey: string; coarse?: boolean;
+  /** The caller owns private grant expiry/revocation, checked again at action time. */
+  canUse?: () => boolean;
   /** True only for an actual ordered route supplied by the owning projection. */
   route?: boolean; height?: number;
 };
@@ -29,6 +31,7 @@ export function LocationMapPreview(props: Props) {
   const geometry = JSON.stringify(props.points);
   const identity = useMemo(() => ({}), [accountId, accountRevision, props.scopeKey, geometry, props.coarse, props.route]);
   const live = useRef<Owner | null>(null);
+  const authority = useRef(props.canUse); authority.current = props.canUse;
   const [visit, setVisit] = useState<Owner | null>(null);
   const foreground = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const [active, setActive] = useState(foreground.current);
@@ -46,7 +49,8 @@ export function LocationMapPreview(props: Props) {
     return () => { owner.active = false; if (live.current === owner) live.current = null; setVisit(null); };
   }, [identity, active]));
   const owns = () => !!visit && visit.active && visit.identity === identity && live.current === visit && foreground.current
-    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
+    && (!authority.current || authority.current());
   if (!accountId || !active || !owns()) return null;
   return <PreviewSession key={`${accountId}:${accountRevision}:${props.scopeKey}:${geometry}:${props.coarse}:${props.route}`}
     {...props} owns={owns} />;
@@ -70,7 +74,9 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
     return () => { lifetime.alive = false; lifetime.sequence++; modalVisit.current = null; clearTimeout(lifetime.timer); };
   }, []);
   const close = () => {
-    if (!ownsModal()) return;
+    // Dismissal remains available after a lease expires; only the current modal
+    // can close itself. Expansion/selection/export still require fresh authority.
+    if (!life.current.alive || expanded === null || modalVisit.current !== expanded) return;
     modalVisit.current = null;
     life.current.sequence++; life.current.busy = false; clearTimeout(life.current.timer);
     setLaunch('idle'); setExpanded(null);
@@ -93,8 +99,8 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
     {!expanded ? <View>
       <LocationOverviewMap points={points} scopeKey={scopeKey} coarse={coarse} interactive={false} height={height} testID="location-preview-map" />
       <Press accessibilityRole="button" accessibilityLabel="Otvori mapu" scaleTo={1}
-        onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={[s.openArea, { height }]}>
-        <View style={s.openLabel}><ArrowsOutSimple size={20} color={sys.color.green} /><T variant="bodyStrong">Otvori mapu</T></View>
+        onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={s.openLabel}>
+        <ArrowsOutSimple size={20} color={sys.color.green} /><T variant="bodyStrong">Otvori mapu</T>
       </Press>
     </View> : null}
     {expanded ? <Modal visible transparent={false} presentationStyle="fullScreen" hardwareAccelerated
@@ -135,8 +141,8 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   content: { paddingBottom: sys.space.lg },
   details: { paddingHorizontal: sys.space.lg, gap: sys.space.md },
-  openArea: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'flex-end', padding: sys.space.sm },
-  openLabel: { minHeight: 48, paddingHorizontal: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
+  openLabel: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, minHeight: 48,
+    paddingHorizontal: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
     backgroundColor: sys.color.surface, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine },
   stops: { gap: sys.space.xs },
   stop: { flexDirection: 'row', alignItems: 'center', minHeight: 52, gap: sys.space.sm, padding: sys.space.sm,
