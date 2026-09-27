@@ -3656,6 +3656,23 @@
       "basis": "Documentation HEAD 7fd776b6 / client 672804db. Read-only source and recorded evidence review; no fresh live database, device, provider or application-test execution.",
       "verdict": "WORKING_CORE / WHOLE_PRODUCT_RELEASE_NOT_PROVEN",
       "distinction": "Missing implementation, unapplied packages, unverified acceptance and owner decisions remain separate. Existing row statuses are unchanged."
+    },
+    "application_approvals": {
+      "checked_at": "2026-09-27T12:59:38Z",
+      "document": "docs/implementation/product-v1-closure-20260926/finalization-20260927/APPLICATION_APPROVALS_20260927.md",
+      "new_approval_candidates": [
+        "B3a: 11 disposable SQL/Auth checks PASS; fresh DEV absence/body pins confirmed; apply and client wiring pending",
+        "B3b: 7 disposable SQL/Auth checks PASS; fresh DEV absence confirmed; apply and client wiring pending",
+        "Push: exactly two formatter copy changes pending deployment; live v20 entrypoint matches, formatter matches after those two replacements and LF normalization"
+      ],
+      "already_approved_conditional": "PKG045b and its internal certificate update already approved after compatible-app/device verification. Fresh protected-column/table grants still present; postcondition not satisfied. Do not ask again for the same approval.",
+      "not_ready_for_apply": [
+        "P0 exact public-row lookup proof unexecuted",
+        "Bounded Discovery contract and proof",
+        "Voice and complete exact-message push",
+        "Written rating comment contract and proof"
+      ],
+      "mutation": "NONE; read-only function catalog/privilege flags/live Edge source and GitHub run metadata; no full current DEV parity or device claim"
     }
   }
 }
