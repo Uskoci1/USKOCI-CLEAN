@@ -78,10 +78,9 @@ $body$;
 select pg_temp.discovery_p0_assert_unchanged();
 \echo 'PASS DISCOVERY_P0_EXACT_CANDIDATE_AND_AUTHORITY'
 
-do $seed$
+do $actors$
 declare
   owner_id uuid := gen_random_uuid(); reader_id uuid := gen_random_uuid(); other_id uuid := gen_random_uuid();
-  owner_profile uuid; task_id uuid; label text;
   category text := 'P0-' || gen_random_uuid()::text;
 begin
   insert into auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
@@ -89,7 +88,6 @@ begin
     '{"provider":"email","providers":["email"]}'::jsonb,'{"full_name":"Disposable Discovery proof"}'::jsonb,
     statement_timestamp(),statement_timestamp()
   from unnest(array[owner_id,reader_id,other_id]) id;
-  select id into strict owner_profile from public.app_profiles where account_id=owner_id and kind='REQUESTER';
   insert into private.account_lineage_v5(account_id,lineage,reason,source_ref)
   values(other_id,'SYNTHETIC_ACCEPTANCE_FIXTURE','Disposable isolation proof','discovery-p0');
   perform set_config('discovery_p0.owner',owner_id::text,true);
@@ -97,9 +95,22 @@ begin
   perform set_config('discovery_p0.other',other_id::text,true);
   perform set_config('discovery_p0.category',category,true);
   perform set_config('discovery_p0.missing',gen_random_uuid()::text,true);
-  -- Projection fixtures only. No publish/dispatch/notification workflow is invoked.
-  -- Real PK/check/generated-column constraints remain; triggers are restored before reads.
-  perform set_config('session_replication_role','replica',true);
+end
+$actors$;
+
+-- Projection fixtures only. No publish/dispatch/notification workflow is invoked.
+-- Use the existing proof harness's top-level SET LOCAL form: Supabase's postgres
+-- role permits this utility statement, but not set_config inside a DO block.
+-- No role or parameter ACL is expanded. Origin is restored before any RPC read;
+-- transaction rollback also restores it on error. PK/check/generated columns remain.
+set local session_replication_role = replica;
+do $seed$
+declare
+  owner_id uuid := current_setting('discovery_p0.owner')::uuid;
+  category text := current_setting('discovery_p0.category');
+  owner_profile uuid; task_id uuid; label text;
+begin
+  select id into strict owner_profile from public.app_profiles where account_id=owner_id and kind='REQUESTER';
   foreach label in array array['pinned','remote','pointfree','selection','draft','closed','completed'] loop
     task_id := gen_random_uuid();
     perform set_config('discovery_p0.'||label,task_id::text,true);
@@ -129,9 +140,9 @@ begin
   select gen_random_uuid(),owner_id,owner_profile,'PUBLISHED','Filler '||i,'Disposable fixture',category,'MY_PRICE',
     3000,1,3,'FLEXIBLE',statement_timestamp()-i*interval '1 second','REMOTE','RS','Europe/Belgrade'
   from generate_series(1,205) i;
-  perform set_config('session_replication_role','origin',true);
 end
 $seed$;
+set local session_replication_role = origin;
 
 create function pg_temp.discovery_p0_parity(
   filters jsonb, bbox jsonb default null, before_at timestamptz default null, before_id uuid default null

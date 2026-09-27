@@ -1,6 +1,6 @@
 # Round 15 — exact public publication landing proof
 
-Status: dedicated disposable CI package prepared; SQL runtime result pending its exact-source run. **Not applied and not client-wired. Explicit `primeni` is still required for canonical application.** No frozen migration, client, dependency, DEV data, Edge function or certificate was changed by this work.
+Status: first dedicated disposable CI run reached P0 but failed fixture setup; corrected-source rerun pending. **Not applied and not client-wired. Explicit `primeni` is still required for canonical application.** No frozen migration, client, dependency, DEV data, Edge function or certificate was changed by this work.
 
 The unchanged candidate replaces only `rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)`. Fresh read-only DEV metadata at **2026-09-27 15:22:48.669517 UTC** matches its pinned predecessor: definition MD5 `8a47d061da5f9bd65b5e3cc6c947d5d7`, normalized body MD5 `18b5518140c519b96728d1e25fa3c29d`, SECURITY INVOKER, STABLE, `search_path=pg_catalog`, authenticated EXECUTE and no anon EXECUTE. This read is a function-catalog check, not whole-DEV attestation or application permission.
 
@@ -16,6 +16,8 @@ psql "$DB_URL" -X -v ON_ERROR_STOP=1 -v discovery_disposable=true \
 ```
 
 The JavaScript guard requires loopback API/database targets; SQL independently checks host `127.0.0.1`, port `54322`, database/user `postgres`, and explicit disposable admission. The candidate runs verbatim. Its proof rolls back all synthetic fixtures and restores the predecessor after success; a failed disposable environment is discarded. Raw setup output that may contain local keys is excluded from artifacts. Source binding, stage/failure logs and `discovery-p0-report.json` are retained.
+
+First run [36329640103](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36329640103) at `98ce628a` passed the complete predecessor replay and P0's exact-candidate/authority check, then failed at SQL fixture line 134: `permission denied to set parameter "session_replication_role"`, from `set_config` inside the seed DO block. No P0 behavioral pass is claimed. The correction splits actor creation from task fixture insertion and uses the same **top-level `SET LOCAL session_replication_role = replica/origin`** form already exercised successfully by the inherited PKG042/B3 disposable proofs. There is no new role/parameter grant, permanent trigger change or candidate change. Origin is restored before reads and transaction rollback restores it on any setup error. The failed run and its artifacts remain evidence; only a successful corrected-source rerun can supersede its result.
 
 Nine proof groups cover exact source/authority; ordinary empty/filter/map/cursor parity; a target beyond the first 200 rows; positive revision and at-most-one result; public fields and remote/point-free rows; draft/closed/completed/missing exclusion; malformed/mixed filters and page bounds; owner/cross-world isolation; authenticated-without-user and anon refusal; and predecessor/ACL/certificate restoration (some groups combine related assertions). P0 uses SQL roles and synthetic JWT subject settings: **it does not claim actual Auth/PostgREST, device, provider or query-cost proof**. The inherited B3 setup's own Auth tests remain separately scoped evidence.
 
