@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T21:05:32Z",
+  "osvezeno": "2026-09-27T21:15:07Z",
   "grana": "HEAD",
-  "head": "2c4b6e84",
-  "head_poruka": "feat: simplify AI location proposals and review catalog artwork",
+  "head": "b33aa16c",
+  "head_poruka": "feat: connect Discovery list and integrate catalog artwork",
   "server": {
    "snimljeno": "2026-09-27T20:20:25Z",
    "migracije": 210,
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "2c4b6e84",
+  "source_head": "b33aa16c",
   "order": [
    "P0",
    "P1",
@@ -105,7 +105,7 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Krug30: Discovery3/194PASS, map-style3/22PASS, Catalog27 pet grupa/118 različitih PASS, uska DEV dijagnostika6PASS. Integrisani TypeScriptPASS; završna kontrola posle dijagnostike u receipt-u. Ceo Jest nije ponavljan.",
+  "tests": "Krug30: Discovery3/194PASS, map-style3/22PASS, Catalog27 pet grupa/118 različitih PASS, uska DEV dijagnostika6PASS. Integrisani TypeScriptPASS; završna kontrola posle dijagnostike u receipt-u. Ceo Jest nije ponavljan. Nezavisni pregled našao i zatvorio povratak sa praznog FULL prikaza:139/139PASS, završni TypeScriptPASS.",
   "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
   "live_dev_scope": "B3c DEV208→209/ver20260927201030, tri odobrena vezivanja f66818aa…1755b; P4 transport209→210/ver20260927201531 + Edge22 tačan readback. Exact flag odsutan/OFF. Oba SQL SHA proverena u ledgeru; P4 čuva novi B3c sertifikat.",
   "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
@@ -6766,6 +6766,30 @@
  },
  "ci": [
   {
+   "id": 36350521107,
+   "ime": "Build Android development APK",
+   "sha": "b33aa16c",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-27T21:07:10Z"
+  },
+  {
+   "id": 36350517837,
+   "ime": "Build Android push-proof APK",
+   "sha": "b33aa16c",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-27T21:07:07Z"
+  },
+  {
+   "id": 36350499943,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "b33aa16c",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-27T21:06:51Z"
+  },
+  {
    "id": 36346675417,
    "ime": "P6 bounded Discovery PAGE disposable proof",
    "sha": "5749b656",
@@ -6836,30 +6860,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-09-27T19:21:11Z"
-  },
-  {
-   "id": 36342277055,
-   "ime": "Chat Voice B0 contract proof",
-   "sha": "bdfca502",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:52:49Z"
-  },
-  {
-   "id": 36341487306,
-   "ime": "Build Android development APK",
-   "sha": "89bd392d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:40:03Z"
-  },
-  {
-   "id": 36341487304,
-   "ime": "P5 owned worker licenses disposable proof",
-   "sha": "89bd392d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T18:40:03Z"
   }
  ]
 }

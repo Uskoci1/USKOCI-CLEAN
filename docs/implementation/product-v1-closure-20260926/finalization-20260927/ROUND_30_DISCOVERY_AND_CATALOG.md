@@ -44,3 +44,9 @@ Control is regenerated locally; the prior supported dashboard upload failure rem
 ## Final focused source results
 
 Discovery3 suites194PASS (first wider run193/194 had an obsolete combined-section test identifier, corrected to actual remote group). Catalog5 suites118 distinctPASS. Map-style3 suites22PASS. Additional exact-DEV diagnostic6 selectedPASS/27 unrelated skipped, no behavior change: at most six fixed event names plus elapsed milliseconds; no coordinates, IDs, URL or task data. New build can distinguish native error from a late ready rejected after the deadline. Final TypeScript result belongs to ROUND_30_CHECKS.json.
+
+## Independent review correction
+
+A reviewer found that allowing empty FULL while hiding its map shortcut removed gesture-free return to the covered map. Corrected with a quiet white Map action, preserving search/area/viewport and issuing no refresh. The regression was reproduced then fixed; affected DiscoveryPresentation suite139/139PASS. Initial builds36350517837/36350521107 were cancelled before installation and superseded, not accepted. Independent Catalog review found no concrete regression; native fidelity remains separate.
+
+Bounded connectivity observations: emulator has validated internet, resolves the public style host and opens TCP443 in530ms; no emulator HTTPS response was measured. Host standard HTTPS GET of the configured style returned403 twice. This is not proof of the emulator cause or a provider outage. [OpenFreeMap official guidance](https://openfreemap.org/quick_start/) supports the same styles in MapLibre Native and customization; it does not establish current endpoint availability.

@@ -245,7 +245,7 @@ test('a new search that leaves only unlocated work raises a remembered half list
   expect(snapshot.viewport).toEqual(viewport);
 });
 
-test('a zero-result list can open fully and still offers its real recovery action', async () => {
+test('a zero-result full list keeps a gesture-free map return without changing its actual search', async () => {
   rows = [row('a')];
   initial = { ...initial, sheet: 'half', area: [0, 0, 1, 1], viewport: { center: [0, 0], zoom: 4, bounds: [0, 0, 1, 1] } };
   await render(); await layOutBody();
@@ -253,7 +253,21 @@ test('a zero-result list can open fully and still offers its real recovery actio
   expect(listSheet().props.index).toBe(2);
   expect(cards()).toEqual([]);
   expect(action('Prikaži sve zadatke')).toBeDefined();
-  expect(pressable('Mapa')).toHaveLength(0);
+  listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[2]);
+  await deliverUi();
+  expect(tree.root.findByProps({ testID: 'discovery-map-layer' }).props.pointerEvents).toBe('none');
+  expect(press('Mapa').props.accessibilityRole).toBe('button');
+  expect(StyleSheet.flatten(press('Mapa').props.style)).toMatchObject({ backgroundColor: sys.color.surface });
+  const area = snapshot.area, viewport = snapshot.viewport;
+  await tap('Mapa');
+  expect(listSheet().props.index).toBe(0);
+  expect(snapshot.area).toEqual(area);
+  expect(snapshot.viewport).toEqual(viewport);
+  expect(cards()).toEqual([]);
+  listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[0]);
+  await deliverUi();
+  expect(tree.root.findByProps({ testID: 'discovery-map-layer' }).props.pointerEvents).toBe('auto');
+  expect(refresh).not.toHaveBeenCalled();
 });
 
 test('only explicit search, map and list choices retire a pending publication landing', async () => {
@@ -1847,7 +1861,7 @@ test('a sheet resting at its top line rises to half when a quick chip leaves not
   expect(listSheet().props.index).toBe(1);
 });
 
-// Review of V47, item 10: the empty list's own green action and the floating green "Mapa" must never be on one screen.
+// A full empty list retains a quiet map return beside its primary search recovery action.
 test('an empty list can remain fully open over the map without duplicating its green recovery action', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, { ...at(44.7 + i / 50, 20.4), ...tomorrowFlexible }));
   // A camera the person already looked at: the map stays even when the filter leaves no pin on it.
@@ -1855,11 +1869,12 @@ test('an empty list can remain fully open over the map without duplicating its g
   await render();
   await dragSheet(2); expect(press('Mapa')).toBeTruthy();
   await act(async () => quick('Danas').props.onPress());
-  expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(0);
+  expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(2);
+  expect(StyleSheet.flatten(press('Mapa').props.style).backgroundColor).toBe(sys.color.surface);
   expect(action('Obriši uslove')).toBeDefined();
   // Its top line remains a count; the full recovery surface is not forced back to half height.
   expect(countLine()).toBeUndefined(); expect(texts(tree.root.findByProps({ testID: 'list-count-words' }))).toBe('Nema zadataka');
-  await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(0);
+  await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeDefined();
   // With tasks again, the whole list is open to it.
   await act(async () => quick('Danas').props.onPress()); await dragSheet(2);
   expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeTruthy();
@@ -2065,7 +2080,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
   expect(StyleSheet.flatten(list().props.style).height).toBe(274); // same highest-detent viewport at half and full
-  if (empty) expect(pressable('Mapa')).toHaveLength(0);
+  if (empty) expect(StyleSheet.flatten(press('Mapa').props.style).backgroundColor).toBe(sys.color.surface);
   await tap('Ukloni uslov: Beograd');
   expect(snapshot.place).toBeNull(); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
   // Once the map has room again the exact same header can return to the fixed slot.

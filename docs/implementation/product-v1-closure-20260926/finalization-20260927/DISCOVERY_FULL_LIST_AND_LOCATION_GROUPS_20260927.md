@@ -7,7 +7,7 @@
 | Observed source problem | Decision and implementation |
 | --- | --- |
 | The first count tap opened half height, requiring another tap to see the full list. | One count tap now requests the full list. Dragging still supports all three detents; initial map-oriented half/peek placement remains. |
-| Empty results over a retained map were forcibly limited to half height. | Empty results may use the same full-height surface and existing recovery action. The redundant floating map action remains absent there. |
+| Empty results over a retained map were forcibly limited to half height. | Empty results may use the same full-height surface and existing recovery action. A secondary white map button returns to the map without changing search criteria. |
 | A filter leaving only unlocated work could remain at half height. A different filter with the same result count did not retrigger the decision. | A changed shared filter opens the full list when all remaining results lack a public point. Geographic pan/zoom is excluded from that trigger; the remembered camera remains intact. |
 | Full height stopped below an extra gap and retained the floating rounded border/shadow. | The full detent meets the measured search/quick-filter edge directly. Only the actual native full index removes the sheet's top radius, border and lift. Lower detents retain their prior attribution clearance. Quick filters remain available. |
 | Global lists mixed remote and unlocated tasks among mapped results. Geographic lists combined both under one ambiguous heading. | One stable partition presents mapped tasks, `REMOTE` tasks and other tasks without a valid public point. Labels and counts are distinct: `Na mapi` / geographic context, `Na daljinu`, `Bez označenog mesta`. Existing remote quick filtering remains the direct entry. No missing point is interpreted as remote work. |
@@ -24,6 +24,12 @@ The implementation preserves TaskCard and DiscoveryPeek, public-coordinate priva
 - Added direct background-state assertions, a same-count changed-query case, and updated existing crowded-place, geographic-section, small-screen/large-text and full-list geometry assertions. Existing focus, camera, gesture ownership, deep-scroll return and publication regressions remain in the targeted suite.
 
 No native gesture timing, physical full-height appearance or device performance is established by Jest. Root owns the later exact APK/device check and integration commit.
+
+## Pre-install review correction
+
+Independent review found a regression in the initial full-empty implementation: hiding the floating map action while allowing the empty list to cover the map removed its gesture-free return. The targeted test reproduced the absent `Mapa` button on the initial source (1 failed).
+
+The corrected full-empty surface keeps `Mapa` as a secondary white outlined button with green icon/text, preserving the existing primary search-recovery action and accessible label/hint. Its tap only requests peek height; bounds, camera, filters and data remain unchanged. The existing list padding keeps content clear of the button. A direct regression now samples actual covered/uncovered map boundaries around the tap and verifies no refresh. Final single-suite result: **DiscoveryPresentation 139/139 passed**, exit 0, 75.274 seconds (`npx jest src/data/__tests__/discovery-presentation.test.tsx --runInBand --testTimeout=30000 --silent`).
 
 ## Remaining independent observation
 

@@ -430,7 +430,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
   const mapShown = where !== 'remote' && !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
-  // An empty full list keeps its own recovery action; the extra floating map shortcut is omitted.
+  // An empty full list keeps its own recovery action and a quiet, gesture-free return to the map.
   const emptyOverMap = !loading && !error && !props.collectionStatus && !listed.length && mapShown;
 
   // A chosen pin: one task, or a place several tasks share, of what the map shows. The list's area never takes it away;
@@ -526,7 +526,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const full = availableSheet;
     return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
   }, [bodyHeight, availableSheet, mapClearSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
-  // Empty results use the same full-height recovery surface. Their extra map shortcut stays absent.
+  // Empty results use the same full-height recovery surface, with a secondary map return.
   const highest = SNAP.full;
   // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
   const position = useSharedValue(windowHeight);
@@ -603,7 +603,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }, [position, mapShown, bodyHeight, listTop, coverageSequenceValue, receiveCoverage]);
   const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
   // The floating "Mapa" stands over the end of the list at the full height.
-  const pillShown = expanded && mapShown && !emptyOverMap;
+  const pillShown = expanded && mapShown;
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
   const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + creditsRoom;
@@ -1057,9 +1057,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       {pillShown ? <Animated.View pointerEvents="box-none" style={s.mapPillRow}
         entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} exiting={reduced ? undefined : FadeOut.duration(sys.motion.exit)}>
         <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={0.97}
-          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
-          <MapTrifold size={20} weight="fill" color={sys.color.onGreen} />
-          <T variant="action" style={s.mapPillText}>Mapa</T>
+          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={[s.mapPill, emptyOverMap && s.mapPillQuiet]}>
+          <MapTrifold size={20} weight="fill" color={emptyOverMap ? sys.color.green : sys.color.onGreen} />
+          <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
         </Press>
       </Animated.View> : null}
       {cardShown ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
@@ -1114,4 +1114,6 @@ const s = StyleSheet.create({
   mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48, paddingHorizontal: sys.space.lg, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.green, ...floating },
   mapPillText: { color: sys.color.onGreen },
+  mapPillQuiet: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.lineStrong },
+  mapPillQuietText: { color: sys.color.green },
 });
