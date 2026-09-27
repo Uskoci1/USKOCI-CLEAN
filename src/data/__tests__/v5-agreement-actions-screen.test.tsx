@@ -154,12 +154,65 @@ it('the system Back closes a step of the flow like its X, and leaves the screen 
  const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
  const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};}) as never);
  try{
-  await render();expect(handlers).toHaveLength(0);await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');
+  await render();expect(handlers).toHaveLength(1);await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');
   expect(handlers).toHaveLength(1);let handled=false;await act(async()=>{handled=handlers[0]();});expect(handled).toBe(true);
-  expect(action('Otkaži Dogovor')).toBeDefined();expect(handlers).toHaveLength(0);expect(mockService.cancel).not.toHaveBeenCalled();expect(mockReplace).not.toHaveBeenCalled();
+  expect(action('Otkaži Dogovor')).toBeDefined();expect(handlers).toHaveLength(1);expect(mockService.cancel).not.toHaveBeenCalled();expect(mockReplace).not.toHaveBeenCalled();
+  await act(async()=>{handled=handlers[0]();});expect(handled).toBe(true);expect(mockReplace).toHaveBeenCalledTimes(1);
  }finally{spy.mockRestore();}
 });
 it('after a failed refresh with terms on screen, the refresh stays offered in the bar',async()=>{
  await render();mockService.read.mockResolvedValue({ok:false,kod:'UNAVAILABLE',poruka:'Proveri vezu.'});
  await tap('Osveži uslove Dogovora');expect(text()).toContain('Proveri vezu.');expect(action('Osveži uslove Dogovora').disabled).toBe(false);
+});
+it.each(['PROPOSE','CANCEL'] as const)('Back retires an unstarted %s retry before blur while keeping its journal for read-only return',async kind=>{
+ await render();
+ if(kind==='PROPOSE'){
+  await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
+ }else{
+  await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');await tap('Otkaži Dogovor');
+ }
+ const writer=kind==='PROPOSE'?mockService.propose:mockService.cancel;
+ expect(writer).toHaveBeenCalledTimes(1);
+ const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);
+ const retry=action(kind==='PROPOSE'?'Ponovo pošalji predlog':'Ponovo otkaži Dogovor').onPress;
+ await act(async()=>retry());
+ const back=tree.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress;
+ try{
+  await act(async()=>{back();back();});
+  await act(async()=>gate.resolve());
+  expect(writer).toHaveBeenCalledTimes(1);
+  expect(mockReplace).toHaveBeenCalledTimes(1);
+  expect(mockService.read).toHaveBeenCalledTimes(2);
+  expect(mockStorage.removeItem).not.toHaveBeenCalled();
+  mockStorage.getItem.mockResolvedValue(mockStorage.setItem.mock.calls[1][1]);
+  await act(async()=>{mockFocused=false;tree.update(page());});
+  await act(async()=>{mockFocused=true;tree.update(page());});
+  await act(async()=>retry());
+  expect(writer).toHaveBeenCalledTimes(1);
+  expect(action(kind==='PROPOSE'?'Ponovo unesi predlog':'Ponovo unesi otkazivanje')).toBeDefined();
+  expect(mockStorage.removeItem).not.toHaveBeenCalled();
+ }finally{await act(async()=>gate.resolve());}
+});
+it('foreground notifications in the Back-to-blur gap do not reopen the retired changes screen',async()=>{
+ await render();const back=tree.root.findByProps({accessibilityLabel:'Nazad'}).props.onPress;
+ await act(async()=>back());
+ await act(async()=>{mockForeground='background';mockListeners.forEach(fn=>fn('background'));});
+ await act(async()=>{mockForeground='active';mockListeners.forEach(fn=>fn('active'));});
+ expect(mockService.read).toHaveBeenCalledTimes(1);
+ await act(async()=>back());expect(mockReplace).toHaveBeenCalledTimes(1);
+});
+it('Android hub Back consumes repeated exit presses and retires a pending retry before its writer starts',async()=>{
+ const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
+ const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};}) as never);
+ const gate=deferred<void>();
+ try{
+  await render();await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');await tap('Otkaži Dogovor');
+  mockStorage.setItem.mockReturnValue(gate.promise);await tap('Ponovo otkaži Dogovor');
+  expect(handlers).toHaveLength(1);
+  let first=false,second=false;await act(async()=>{first=handlers[0]();second=handlers[0]();});
+  expect(first).toBe(true);expect(second).toBe(true);expect(mockReplace).toHaveBeenCalledTimes(1);
+  await act(async()=>gate.resolve());
+  expect(mockService.cancel).toHaveBeenCalledTimes(1);expect(mockService.read).toHaveBeenCalledTimes(2);
+  expect(mockStorage.removeItem).not.toHaveBeenCalled();
+ }finally{await act(async()=>gate.resolve());spy.mockRestore();}
 });

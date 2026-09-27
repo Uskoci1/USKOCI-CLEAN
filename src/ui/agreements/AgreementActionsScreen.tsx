@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { AppState, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
@@ -20,17 +20,19 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
   const [state, setState] = useState(initial), [form, setForm] = useState<Form | null>(null);
   const [review, setReview] = useState<AgreementActionCommand | null>(null), [error, setError] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
   const owner = useRef<object | null>(null), engine = useRef<AgreementActionsController | null>(null);
+  const leaving = useRef(false);
   const formRef = useRef(form); formRef.current = form;
   const reviewRef = useRef(review); reviewRef.current = review;
   const reviewBase = useRef(state.snapshot), submitting = useRef(false);
   useFocusEffect(useCallback(() => {
-    const scope = {}; owner.current = scope; submitting.current = false; setState(initial); setForm(null); setReview(null); setError(null);
+    const scope = {}; owner.current = scope; leaving.current = false; submitting.current = false; setState(initial); setForm(null); setReview(null); setError(null);
     const current = () => owner.current === scope && !['background','inactive'].includes(AppState.currentState)
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const controller = new AgreementActionsController({ agreementId, account: { accountId, accountRevision }, current, storage: AsyncStorage });
     engine.current = controller;
     controller.subscribe(() => { if (current()) setState(controller.snapshot()); }); void controller.load();
     const listener = AppState.addEventListener('change', next => {
+      if (leaving.current) return;
       if (next !== 'active') { controller.dispose(); owner.current = null; }
       else setEpoch(value => value + 1);
     });
@@ -103,19 +105,30 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     startsAt: patch.pocetakIso ?? snapshot.terms.startsAt, endsAt: patch.krajIso ?? snapshot.terms.endsAt }; }
   else if (review?.kind === 'RESPOND' || review?.kind === 'WITHDRAW') proposed = review.proposal.terms;
   // The screen came from its Dogovor; with no stack under it (a cold start), it goes to that Dogovor.
-  const back = () => { if (current()) { if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } }); } };
+  const back = () => {
+    if (!current()) return;
+    // Retire before navigation: a journal write may settle before the route blurs.
+    // Keep the journal for read-only recovery, but never start its writer after exit.
+    leaving.current = true; owner.current = null; controller?.dispose();
+    if (engine.current === controller) engine.current = null;
+    if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
+  };
   const closeForm = () => { if (current() && formRef.current === form) { formRef.current = null; setForm(null); setError(null); } };
   const closeReview = () => { if (current() && reviewRef.current === review && !submitting.current) { reviewRef.current = null; setReview(null); setError(null); } };
   // A step of the flow is closed by the system Back as by its X, so a typed proposal or reason is never lost to a whole-
   // screen exit; while a command runs, Back waits with the step (review r6).
   const stepBack = useRef<() => boolean>(() => false);
-  stepBack.current = () => { if (!form && !review) return false; if (!busy && !submitting.current) { if (form) closeForm(); else closeReview(); } return true; };
-  const inStep = !!form || !!review;
-  useEffect(() => {
-    if (!inStep) return;
+  stepBack.current = () => {
+    if (leaving.current) return true;
+    if (!current()) return false;
+    if (!form && !review) { back(); return true; }
+    if (!busy && !submitting.current) { if (form) closeForm(); else closeReview(); }
+    return true;
+  };
+  useFocusEffect(useCallback(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => stepBack.current());
     return () => subscription.remove();
-  }, [inStep]);
+  }, []));
   return <AgreementActionsPresentation phase={state.phase} snapshot={snapshot} accountId={accountId} error={error || state.error} message={state.message}
     canRetry={state.canRetry} needsReentry={state.needsReentry} journalKind={state.journal?.kind ?? null}
     form={form} review={review} proposed={proposed}

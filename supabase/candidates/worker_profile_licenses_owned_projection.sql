@@ -1,8 +1,8 @@
--- P5 SOURCE-ONLY candidate. NOT APPLIED / NOT RUNTIME-PROVEN / NOT CLIENT-WIRED.
+-- P5 application candidate. NOT APPLIED / EXACT-REVISION REPROOF PENDING / NOT CLIENT-WIRED.
 -- Canonical DEV catalog read through the Supabase connector on 2026-09-27.
 -- One atomic statement; the isolated proof includes it verbatim inside BEGIN/ROLLBACK.
--- Deliberately admitted only by the disposable proof. Future application requires
--- an explicitly approved application wrapper/revision and fresh predecessor checks.
+-- Application requires explicit owner approval after exact-byte disposable proof
+-- and fresh predecessor checks. The statement has no wrapper side effects.
 -- Existing self-declared licenses are returned unchanged; no verification claim,
 -- capability normalization, defaulting missing fields, profile write or new authority.
 do $worker_profile_licenses$
@@ -15,9 +15,6 @@ declare
   replacement text := '''vehicles'',p.vehicles,''licenses'',p.licenses,''profile_status'',p.profile_status';
   pin record;
 begin
-  if current_setting('uskoci.worker_profile_licenses_proof',true) is distinct from 'LOCAL_ONLY_ROLLBACK' then
-    raise exception 'WORKER_PROFILE_LICENSES_APPLICATION_NOT_ADMITTED' using errcode='55000';
-  end if;
   select to_jsonb(p),obj_description(p.oid,'pg_proc') into before_proc,before_comment
     from pg_proc p where p.oid=target;
   if before_proc is null

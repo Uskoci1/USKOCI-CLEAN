@@ -1,7 +1,34 @@
-# P5 owned worker licenses projection — source preparation
+# P5 owned worker licenses projection — application candidate preparation
 
-2026-09-27. **SOURCE ONLY / SQL RUNTIME NOT RUN / DEV UNAPPLIED / CLIENT UNWIRED.**
+2026-09-27. **APPLICATION REVISION PREPARED / EXACT-BYTE REPROOF PENDING / DEV UNAPPLIED / CLIENT UNWIRED.**
+The original local-only revision passed 7/7 disposable checks. That result does not
+yet prove the revised application bytes below or authorize DEV application.
 This is a small next contract step, not matching completion or deployment readiness.
+
+## Proven predecessor package and revised bytes
+
+The original exact package at `cb63b847cd39980f0b67fd437d07c3e4d8e78328` passed
+[disposable run 36340619418](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36340619418).
+The independently verified receipt is preserved unchanged in
+`P5_LICENSES_PASS_20260927_RECEIPT.json`, committed in `4a533848`. All seven checks,
+catalog/data restoration and teardown passed; `certificateMoved=false`. Original
+candidate bytes remain in Git history at that exact source commit.
+
+| Source | Original proven SHA256 | Revised SHA256, reproof pending |
+| --- | --- | --- |
+| Candidate | `0712d4e5936814c75b83bb764b49ba9dc2ca8415b19df85061eb5a8e18f89518` | `38d4ec8a408d9e283414ae89059dddfa7b887f57ce8802fb083e55df742717ad` |
+| SQL proof | `50d1223dedf8a2c832d20863cc44c834179a8fc71583ad6d2d24a72d20a74d13` | `7e9f2836d86c7bed135404ca28853a11960c5dad619be91ef1e80cbd0a9ef076` |
+| Runner | `e66369e8e238c353d8d8bb77688561183e0c6b659efe69c3b80fad220ba63079` | `0ba76abf8b755428ec3941fd8c4bb18ee662583c330f4b698db49bb85f5856c2` |
+
+The only executable change removes the candidate's artificial
+`LOCAL_ONLY_ROLLBACK` GUC admission and its matching proof SET. All actual
+predecessor/body/metadata/ACL, certificate and postcondition guards are unchanged;
+the intended RPC body remains MD5 `61e77f00205f93704af5951c112f38d3`.
+Runner changes are status comments only. Workflow bytes remain unchanged at SHA256
+`b561a39e9fb2e844a0f9c79f80051cf12ec74dd5ae5dab98233ae6a0a355114c`.
+No wrapper, commit, grant or other application side effect was introduced.
+The same local-only runner includes the revised candidate verbatim inside rollback
+and binds all seven exact source inputs to the next CI commit before execution.
 
 The manual worker editor cannot read the existing self-declared licenses from its
 owned reader. Matching already checks `app_profiles.licenses` against
@@ -56,9 +83,10 @@ recertification would require a separately specified and approved package.
 
 - `supabase/candidates/worker_profile_licenses_owned_projection.sql`: one atomic DO
   statement; exact old body and metadata admission; one JSON anchor replacement;
-  exact remaining-body/metadata and certificate preservation checks. Its deliberate
-  `LOCAL_ONLY_ROLLBACK` admission prevents treating this source revision as an approved
-  application package. There is no COMMIT or permanent grant/policy/schema/data write.
+  exact remaining-body/metadata and certificate preservation checks. The artificial
+  proof-only admission has been removed in this separately reprovable revision.
+  There is no COMMIT or permanent grant/policy/table/data write. The only persistent
+  effect after future approved application is the one existing function body replacement.
 - `supabase/proofs/worker_profile_licenses_owned_projection_proof.sql`: includes the
   candidate verbatim inside BEGIN/ROLLBACK. Fresh synthetic local users exercise SQL
   roles, not real Auth sessions. The old reader is a temporary, narrowly granted oracle.
@@ -101,8 +129,9 @@ PKG050, A1 and applied B3a/B3b. It runs this runner instead of the P4 phase afte
 committing the exact source. It requires the same
 explicit loopback `RU5_DEVICE_SUPABASE_URL`, `RU5_DEVICE_DB_URL`, matching `DB_URL`,
 `GITHUB_SHA`, and optionally `WORKER_PROFILE_LICENSES_ARTIFACT_DIR`. No Auth keys are
-required by this runner. Always discard the disposable stack afterwards. No CI was
-dispatched. Push registration follows the prior P4 pattern, restricted to the named
+required by this runner. Always discard the disposable stack afterwards. The original
+revision's successful CI is recorded above; revised-byte CI remains pending and is
+owned by root. Push registration follows the prior P4 pattern, restricted to the named
 canonical work branch and exactly these five new P5 files (candidate, SQL proof,
 runner, workflow and this report). Manual dispatch remains available without inputs.
 No other branch/path trigger or source ref override is accepted by the workflow.
@@ -111,13 +140,17 @@ Completed checks: Node syntax PASS; frozen predecessor body hash and unique patc
 anchor PASS; six SQL check names and exact candidate include/rollback shape PASS;
 independent static review found no concrete defect. Workflow YAML/admission and
 unchanged predecessor commands checked; scoped whitespace check PASS.
+For this revision, static comparison against the original proven commit confirms
+that only the artificial admission and matching SET changed executable SQL, while
+runner logic is identical. Node syntax and scoped whitespace checks pass.
 The workstation has no `psql` or Docker on PATH;
-**SQL and the seven runtime checks remain NOT RUN**.
+**the revised bytes still require a new seven-check disposable CI result**.
 
-Before DEV application: execute and review the disposable proof, obtain explicit
-approval for this exact body-only reader change, prepare the reviewed application
-wrapper/revision, and repeat fresh predecessor/certificate admission. Do not remove
-the local-only gate as part of unrelated work.
+Before DEV application: execute and review the same proof on these exact revised
+bytes, obtain explicit owner approval for this body-only reader change, and repeat
+fresh predecessor/certificate admission. The complete atomic application statement
+is already prepared; no additional wrapper or certificate movement is needed or
+authorized. Removing the artificial gate is source preparation, not permission to apply.
 
 Only after application/readback may the client add a required validated `licenses`
 field to the owned projection and expose “Licence koje navodiš”. A missing field is

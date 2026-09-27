@@ -1,4 +1,5 @@
--- P5 isolated SQL-role scaffold, NOT RUN. No Auth HTTP / PostgREST / device claim.
+-- P5 isolated SQL-role proof. Application-candidate revision awaits exact-byte reproof.
+-- No Auth HTTP / PostgREST / device claim. Prior local-only revision passed 7/7.
 -- Runner: worker_profile_licenses_owned_projection_proof.mjs. Existing live79 +
 -- source147 through PKG050 + A1/B3a/B3b disposable setup; no PKG051/P0/B3c needed.
 -- Everything below BEGIN, including the exact candidate and synthetic fixtures,
@@ -24,7 +25,6 @@ begin;
 set local lock_timeout='5s';
 set local statement_timeout='30s';
 set local search_path=pg_catalog;
-set local uskoci.worker_profile_licenses_proof='LOCAL_ONLY_ROLLBACK';
 create temporary table worker_profile_licenses_fixture(label text primary key,account_id uuid not null,profile_id uuid);
 create function pg_temp.worker_profile_licenses_expect(value boolean,label text) returns void language plpgsql as $f$
 begin if value is distinct from true then raise exception 'WORKER_PROFILE_LICENSES_PROOF: %',label; end if; end

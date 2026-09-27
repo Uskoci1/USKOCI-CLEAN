@@ -1,4 +1,5 @@
-// P5 source-only isolated SQL-role runner. NOT RUN / NOT DEPLOYMENT READY.
+// P5 isolated SQL-role runner. Application-candidate revision awaits exact-byte reproof.
+// Prior local-only revision passed 7/7; no DEV application/approval is implied.
 // Reuse existing disposable replay, never canonical DEV. No Auth/provider/Storage IO.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';

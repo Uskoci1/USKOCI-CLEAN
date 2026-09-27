@@ -1824,15 +1824,16 @@
           "P2"
         ],
         "flow": "Izmene Dogovora (predlog, prihvati, odbij, povuci)",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Nazad zatvara korak ili napušta tok smisleno; zakasnelo lokalno čuvanje ne pokreće slanje nakon izlaska.",
+        "ui": "Postojeća kompozicija/potvrde sačuvane; header i Android Back imaju isto ponašanje.",
+        "backend": "Postojeći PROPOSE/CANCEL/RESPOND/WITHDRAW ugovori, bez primene na serveru.",
+        "state_sync": "Izlazak odmah povlači posetu/kontroler. Povratak čita isti journal bez automatskog ponavljanja; pokrenuta serverska komanda i dalje traži proveru ishoda.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
+        "test": "3 reprodukcije RED pre izmene;2grupe/55PASS i integrisani tipovi PASS. docs/implementation/product-v1-closure-20260926/finalization-20260927/AGREEMENT_ACTION_EXIT_RETIREMENT_20260927.md",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK."
       }
     },
     {
@@ -1868,15 +1869,16 @@
           "P2"
         ],
         "flow": "Otkaži Dogovor uz razlog",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Nazad zatvara korak ili napušta tok smisleno; zakasnelo lokalno čuvanje ne pokreće slanje nakon izlaska.",
+        "ui": "Postojeća kompozicija/potvrde sačuvane; header i Android Back imaju isto ponašanje.",
+        "backend": "Postojeći PROPOSE/CANCEL/RESPOND/WITHDRAW ugovori, bez primene na serveru.",
+        "state_sync": "Izlazak odmah povlači posetu/kontroler. Povratak čita isti journal bez automatskog ponavljanja; pokrenuta serverska komanda i dalje traži proveru ishoda.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
+        "test": "3 reprodukcije RED pre izmene;2grupe/55PASS i integrisani tipovi PASS. docs/implementation/product-v1-closure-20260926/finalization-20260927/AGREEMENT_ACTION_EXIT_RETIREMENT_20260927.md",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK."
       }
     },
     {
@@ -3646,7 +3648,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "cb63b847cd39980f0b67fd437d07c3e4d8e78328",
+    "source_head": "4a5338486561a1fc75d8d627788351467c5832f1",
     "order": [
       "P0",
       "P1",
@@ -3659,12 +3661,12 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "Novi Home:43/43 ciljana testa i integrisani TypeScript PASS. P4:13/13 SQL/Auth; P5:7/7 SQL-role na izolovanoj bazi. Nije ceo Jest ili prihvatanje celog proizvoda.",
+    "tests": "Krug24: integrisani TypeScript i2 ciljane grupe/55testova PASS. Tri regresije prvo RED. Nije ceo Jest niti nova uređajska potvrda.",
     "device": "APK36339245682/f526a736, sha f4186c7a…bf69 instaliran i proverena ista hash vrednost base.apk; map camera/Privacy entry/Back PASS. Nije fizički telefon; noviji Home i MyTasks još nisu u APK-u.",
     "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
     "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-    "implementation": "Krug23: na emulatoru potvrđeni ponovni izbor pina/svih tačaka i Privatnost→pregled zatvaranja→povratak. Početna dobija ispravan ponovni pokušaj posle prekida/povratka.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_AND_HOME.md",
+    "implementation": "Krug24: Nazad odmah povlači još neposlati pokušaj promene/otkazivanja Dogovora; sačuvani pokušaj ostaje za proveru. Sledeći objedinjeni APK uključuje i Moj zadatak/skrol i Home retry.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_24_AGREEMENT_AND_LICENSES.md",
     "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
     "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md",
     "server_proof_source": "be72a1bd",
@@ -3702,12 +3704,13 @@
     "p4_exact_message": "PASS13/13 na36339724742/e82702f0; tačni Git hash/manifest, katalog/teardown PASS. Svež read-onlyDEV205: preduslovi odgovaraju, resolver ne postoji. P4 primeni+poveži pitanje poslato; DEV UNAPPLIED / CLIENT UNWIRED. docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_PASS_20260927_RECEIPT.json",
     "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md",
     "p5_licenses": {
-      "status": "DISPOSABLE_SQL_ROLE_PASS_DEV_UNAPPLIED_CLIENT_UNWIRED",
+      "status": "APPLICATION_REVISION_DISPOSABLE_PROOF_PENDING_DEV_UNAPPLIED",
       "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/worker_profile_licenses_owned_projection_report.md",
       "problem": "Ručno uređivanje radnog profila ne dobija postojeće licence koje AI i matching koriste.",
       "decision": "Pripremljeno jedno dodatno polje postojećeg privatnog čitača. Bez izmene licenci, prava ili sertifikata. Nedostajuće polje nikada nije prazan spisak.",
-      "proof": "7/7 SQL-role na36340619418/cb63b847; sedam tačnih izvora, rollback/katalog/sertifikat i teardown PASS. Još lokalni kandidat, bez runtime veze u aplikaciji.",
-      "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_PASS_20260927_RECEIPT.json"
+      "proof": "Prethodni izolovani paket7PASS ostaje istorijski. Nova verzija uklanja samo veštačku lokalnu zabranu; sve stvarne provere sačuvane. Dokaz novih tačnih bajtova pokreće se posle commita; bez DEV primene.",
+      "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_PASS_20260927_RECEIPT.json",
+      "candidate_sha256": "38d4ec8a408d9e283414ae89059dddfa7b887f57ce8802fb083e55df742717ad"
     }
   }
 }
