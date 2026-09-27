@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T18:39:47Z",
+  "osvezeno": "2026-09-27T18:48:02Z",
   "grana": "HEAD",
-  "head": "4a533848",
-  "head_poruka": "fix: retire abandoned home retries and record native acceptance",
+  "head": "89bd392d",
+  "head_poruka": "fix: retire agreement changes on exit and prepare guarded license read",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "4a5338486561a1fc75d8d627788351467c5832f1",
+  "source_head": "89bd392d6ced7221e60dd4e415713b01474f3e18",
   "order": [
    "P0",
    "P1",
@@ -105,12 +105,12 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Krug24: integrisani TypeScript i2 ciljane grupe/55testova PASS. Tri regresije prvo RED. Nije ceo Jest niti nova uređajska potvrda.",
+  "tests": "B0 Node36/36PASS; ista nova grupa na starom kodu24FAIL. P5 nova verzija7/7SQL-rolePASS. Nisu stvarni snimci, Auth/HTTP ili uređaj.",
   "device": "APK36339245682/f526a736, sha f4186c7a…bf69 instaliran i proverena ista hash vrednost base.apk; map camera/Privacy entry/Back PASS. Nije fizički telefon; noviji Home i MyTasks još nisu u APK-u.",
   "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
   "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-  "implementation": "Krug24: Nazad odmah povlači još neposlati pokušaj promene/otkazivanja Dogovora; sačuvani pokušaj ostaje za proveru. Sledeći objedinjeni APK uključuje i Moj zadatak/skrol i Home retry.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_24_AGREEMENT_AND_LICENSES.md",
+  "implementation": "Krug25: struktura audio fajla sada se proverava kroz stvarni AAC trag/tabele. Glasovne poruke još nisu povezane. Nova dopuna čitanja licenci7/7PASS i čeka izričito primeni.",
+  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_25_VOICE_AND_LICENSE_PROOF.md",
   "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
   "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md",
   "server_proof_source": "be72a1bd",
@@ -148,13 +148,24 @@
   "p4_exact_message": "PASS13/13 na36339724742/e82702f0; tačni Git hash/manifest, katalog/teardown PASS. Svež read-onlyDEV205: preduslovi odgovaraju, resolver ne postoji. P4 primeni+poveži pitanje poslato; DEV UNAPPLIED / CLIENT UNWIRED. docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_PASS_20260927_RECEIPT.json",
   "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md",
   "p5_licenses": {
-   "status": "APPLICATION_REVISION_DISPOSABLE_PROOF_PENDING_DEV_UNAPPLIED",
+   "status": "APPLICATION_REVISION_SQL_ROLE_PASS_EXPLICIT_APPROVAL_PENDING",
    "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/worker_profile_licenses_owned_projection_report.md",
    "problem": "Ručno uređivanje radnog profila ne dobija postojeće licence koje AI i matching koriste.",
    "decision": "Pripremljeno jedno dodatno polje postojećeg privatnog čitača. Bez izmene licenci, prava ili sertifikata. Nedostajuće polje nikada nije prazan spisak.",
-   "proof": "Prethodni izolovani paket7PASS ostaje istorijski. Nova verzija uklanja samo veštačku lokalnu zabranu; sve stvarne provere sačuvane. Dokaz novih tačnih bajtova pokreće se posle commita; bez DEV primene.",
-   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_PASS_20260927_RECEIPT.json",
-   "candidate_sha256": "38d4ec8a408d9e283414ae89059dddfa7b887f57ce8802fb083e55df742717ad"
+   "proof": "Revidirani kandidatski bajtovi7/7PASS na36341487304/89bd392d; sedam izvora, katalog/sertifikat/fixtures/teardown potvrđeni. DEV nije menjan.",
+   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_APPLICATION_PASS_20260927.json",
+   "candidate_sha256": "38d4ec8a408d9e283414ae89059dddfa7b887f57ce8802fb083e55df742717ad",
+   "approval": "Primeni P5 i poveži licence — pitanje poslato; odgovor još nije stigao."
+  },
+  "voice_b0": {
+   "state": "SOURCE_ONLY_STRUCTURAL_VALIDATION_PASS_NOT_SHIPPED",
+   "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md",
+   "limits": "Nema dekodiranja/prihvatanja pravog snimka. Nema runtime importa, snimača, slanja ili plejera. B1/B2 i kompatibilnost starog B3 čitanja tek slede."
+  },
+  "consolidated_apk": {
+   "run": "36341487306",
+   "source": "89bd392d6ced7221e60dd4e415713b01474f3e18",
+   "status": "BUILDING_NATIVE_PENDING"
   }
  },
  "redovi": [
@@ -1694,7 +1705,7 @@
     "flow": "Radni profil ručno i kapacitet tima",
     "ux": "Mapirano; detaljan krug sledi",
     "ui": "Postojeći prikaz; odobrenje po paketu",
-    "backend": "Postojeći RPC bez promene; kvalitet matching-a nije ovim dokazan.",
+    "backend": "P5 dopuna privatnog čitača postojećim licencama7/7 izolovanih SQL-role provera PASS; ne primenjuje se bez izričitog odobrenja. Trenutni DEV/projekcija nepromenjeni.",
     "state_sync": "Izvor: ručna dopuna AI radnog profila čuva postojeće Unicode termine kao kanonski editor.",
     "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
     "test": "NIJE POKRETANO — po nalogu vlasnika",
@@ -2936,7 +2947,8 @@
     "test": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json Round16: postojeći osveživač/istorija3grupe/104testa PASS; nije dokaz direktne pretplate. Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
     "device_proof": "Round18APK36333830435/6b06540e: inertni čet, tekst iznad tastature i isti nacrt posle Android Back viđeni. Nije dokaz slanja, realtime-a, pročitanog, glasa ili trajnog oporavka.",
     "status": "SERVER PRIMENJEN / KLIJENT POVEZAN / CILJANE PROVERE PROŠLE / TELEFON ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_B3C_SQL_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_B3C_SQL_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
+    "voice": "B0 struktura AAC36/36PASS, bez dekodiranja ili pravog snimka. Glasovne poruke nisu isporučene. docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -6701,6 +6713,22 @@
  },
  "ci": [
   {
+   "id": 36341487306,
+   "ime": "Build Android development APK",
+   "sha": "89bd392d",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-27T18:40:03Z"
+  },
+  {
+   "id": 36341487304,
+   "ime": "P5 owned worker licenses disposable proof",
+   "sha": "89bd392d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T18:40:03Z"
+  },
+  {
    "id": 36340619418,
    "ime": "P5 owned worker licenses disposable proof",
    "sha": "cb63b847",
@@ -6779,22 +6807,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-09-27T16:51:20Z"
-  },
-  {
-   "id": 36333830435,
-   "ime": "Build Android development APK",
-   "sha": "6b06540e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T16:35:55Z"
-  },
-  {
-   "id": 36333212694,
-   "ime": "Chat B3c private invalidation disposable SQL proof",
-   "sha": "3dc23096",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-27T16:25:52Z"
   }
  ]
 }

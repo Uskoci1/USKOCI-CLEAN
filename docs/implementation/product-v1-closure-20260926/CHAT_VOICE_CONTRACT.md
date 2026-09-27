@@ -1,6 +1,8 @@
 # Chat 2.0 — Voice Message Contract V1
 
-Status: **B0 CONTRACT / SOURCE VALIDATOR NEXT**.
+Status (2026-09-27): **B0 STRUCTURAL VALIDATOR SOURCE/CHECKS PASS; B1/B2 NOT IMPLEMENTED; VOICE UNSHIPPED**.
+
+See `finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md`: 36 local structural checks pass, including malformed-track/sample rejection. The narrow AAC-LC subset has no real Android/iOS recording or decoder acceptance yet. This contract describes the intended voice feature, not deployed functionality.
 
 Voice messages are mandatory V1 Agreement chat functionality. They extend the existing durable Agreement message/outbox identity; they do not create a second chat.
 
@@ -43,7 +45,7 @@ V1 target encoder settings are voice-oriented:
 - minimum accepted duration **300 ms**;
 - maximum admitted bytes **4 MiB**.
 
-The exact recorder implementation uses `expo-audio` for Android/iOS. Background recording is explicitly disabled.
+The proposed recorder/player uses `expo-audio` for Android/iOS. That dependency is not installed or approved; implementation and native compatibility remain pending. Background recording must remain disabled.
 
 ## Storage
 
@@ -141,7 +143,9 @@ Voice ships as part of Chat 2.0, which also requires:
 - no mark-read for messages not actually displayed;
 - offline/replay protection.
 
-The existing `rpc_mark_agreement_messages_read(agreement_id)` is too coarse for final Chat 2.0 because it can settle all MESSAGE_RECEIVED events for the Agreement without a displayed-message boundary. It remains legacy until a bounded successor is proven.
+B3a/B3b have now been proved, explicitly applied to canonical DEV and connected to the client: bounded history/window reads and exact displayed-message acknowledgements. See `finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md`. The broad legacy `rpc_mark_agreement_messages_read(agreement_id)` is not the authority for this new boundary. Actual realtime subscriptions (B3c) and exact notification targets (P4) have their separate proof/application gates.
+
+Voice also needs an explicit compatibility rollout: current B3 readers emit only `TEXT`/`PHOTO`, and current clients reject unknown kinds or empty-body `TEXT`. A voice writer must not be enabled merely because its upload works. Prepare a versioned read projection plus an explicit old-client compatibility decision, prove history/page/window/ACK behavior, and only then enable sending. Current B3 application is not voice-read readiness.
 
 ## Account closure / retention / export — hard gate
 
