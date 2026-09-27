@@ -23,20 +23,31 @@ const noReadEffects=()=>Object.fromEntries([
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const idsOf=page=>page.messages.map(message=>message.messageId);
 const cursorOf=message=>({createdAt:message.createdAt,messageId:message.messageId});
-// Local legacy fixture, not an erasure operation. SET LOCAL is restricted to
-// this one transaction/connection; normal RPC sessions retain all their guards.
-function legacyParticipants(id,requesterId,workerId){
+// The authority-boundary repair restores NOT NULL on both participant columns.
+// Prove that canonical boundary without manufacturing an unreachable legacy row.
+function assertCanonicalParticipantGuards(id){
+  const columns=rows(`select attname::text name,attnotnull not_null from pg_catalog.pg_attribute
+    where attrelid='public.agreements'::regclass and attname in ('requester_account_id','worker_account_id')
+      and not attisdropped order by attname`);
+  assert.deepEqual(columns,[{name:'requester_account_id',not_null:true},{name:'worker_account_id',not_null:true}]);
   const triggers=()=>rows(`select t.oid,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid) definition,
     md5(p.prosrc) body_md5 from pg_trigger t join pg_proc p on p.oid=t.tgfoid
     where t.tgrelid='public.agreements'::regclass order by t.oid`);
-  const before=triggers();assert.ok(before.some(t=>t.tgname==='pre_v3_closure_agreement'&&t.tgenabled==='O'));
-  const value=id=>id===null?'null':q(id)+'::uuid';
-  const result=sql(`begin;set local session_replication_role=replica;
-    update public.agreements set requester_account_id=${value(requesterId)},worker_account_id=${value(workerId)}
-      where id=${q(id)} returning id;
-    set local session_replication_role=origin;select current_setting('session_replication_role');
-    commit;select current_setting('session_replication_role');`);
-  assert.equal(result,id+'\norigin\norigin');assert.deepEqual(triggers(),before);
+  const participants=()=>rows(`select * from public.agreements where id=${q(id)}`);
+  const before=participants(),beforeTriggers=triggers();assert.equal(before.length,1);
+  assert.ok(beforeTriggers.some(t=>t.tgname==='pre_v3_closure_agreement'&&t.tgenabled==='O'));
+  assert.equal(sql("select current_setting('session_replication_role')"),'origin');
+  for(const [assignment,error] of [
+    ['requester_account_id=null',/CLOSURE_CONTEXT_INVALID/],
+    ['worker_account_id=null',/null value in column "worker_account_id" of relation "agreements" violates not-null constraint/],
+    ['requester_account_id=null,worker_account_id=null',/CLOSURE_CONTEXT_INVALID/],
+  ]){
+    assert.throws(()=>sql(`update public.agreements set ${assignment} where id=${q(id)}`),error);
+    assert.deepEqual(participants(),before);
+  }
+  assert.deepEqual(triggers(),beforeTriggers);
+  return {status:'NOT_APPLICABLE_CANONICAL_NOT_NULL',columns,runtimeNullParticipantPathTested:false,
+    ordinaryNullWritesRefused:['requester','worker','both']};
 }
 
 await rt.prove('CHAT_B3B_EXACT_MESSAGE_WINDOW','chat-b3b-report.json',async report=>{
@@ -145,31 +156,21 @@ await rt.prove('CHAT_B3B_EXACT_MESSAGE_WINDOW','chat-b3b-report.json',async repo
   await ok(window(unread));assert.deepEqual(noReadEffects(),beforeRefusals);
   rt.pass(report,'INVALID_BOUNDS_TARGET_SCOPE_EXPECTED_ACCOUNT_AND_ANON_REFUSALS_NO_READ_OR_DELIVERY_EFFECTS');
 
-  const normalNullWrite=()=>sql(`update public.agreements set requester_account_id=null where id=${q(agreementId)}`);
-  assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
-  const nullFixtureReads=noReadEffects();
-  for(const [column,remaining] of [['requester_account_id',worker],['worker_account_id',requester]]){
-    legacyParticipants(agreementId,column==='requester_account_id'?null:requester.id,column==='worker_account_id'?null:worker.id);
-    try{
-      const beforeNullReads=noReadEffects();
-      await denied(window(oldTarget,stranger),'MEDIA_NOT_FOUND');
-      assert.equal((await ok(window(oldTarget,remaining,0,0))).targetMessageId,oldTarget);
-      assert.deepEqual(noReadEffects(),beforeNullReads);assert.deepEqual(closure(),certified);
-    }finally{legacyParticipants(agreementId,requester.id,worker.id);}
-  }
-  legacyParticipants(agreementId,null,null);
-  try{
-    const beforeBothNull=noReadEffects();
-    for(const actor of [requester,worker,stranger])await denied(window(oldTarget,actor),'MEDIA_NOT_FOUND');
-    assert.deepEqual(noReadEffects(),beforeBothNull);
-  }finally{legacyParticipants(agreementId,requester.id,worker.id);}
-  assert.throws(normalNullWrite,/CLOSURE_CONTEXT_INVALID/);
-  assert.deepEqual(noReadEffects(),nullFixtureReads);
+  const beforeParticipantGuards=noReadEffects();
+  report.nullParticipantCoverage=assertCanonicalParticipantGuards(agreementId);
+  assert.deepEqual(noReadEffects(),beforeParticipantGuards);assert.deepEqual(closure(),certified);
+  rt.pass(report,'CANONICAL_PARTICIPANTS_NOT_NULL_AND_ORDINARY_NULL_WRITES_REFUSED_WITHOUT_MUTATION');
+
+  // Retain positive membership and outsider refusal on the actual canonical row.
+  // NULL membership is conditional source defense, not reachable runtime coverage.
+  await denied(window(oldTarget,stranger),'MEDIA_NOT_FOUND');
+  for(const member of [requester,worker])
+    assert.equal((await ok(window(oldTarget,member,0,0))).targetMessageId,oldTarget);
+  assert.deepEqual(noReadEffects(),beforeParticipantGuards);
   assert.deepEqual(rows(`select requester_account_id,worker_account_id from public.agreements where id=${q(agreementId)}`),
     [{requester_account_id:requester.id,worker_account_id:worker.id}]);
   assert.deepEqual(closure(),certified);
-  rt.pass(report,'LOCAL_NULL_FIXTURE_RESTORES_ORIGIN_TRIGGER_DEFINITIONS_AND_ORDINARY_WRITE_REFUSAL');
-  rt.pass(report,'EACH_AND_BOTH_NULL_PARTICIPANTS_REFUSE_OUTSIDERS_RETAIN_REMAINING_PARTY_NO_READ_EFFECT');
+  rt.pass(report,'BOTH_CANONICAL_MEMBERS_READ_WINDOW_OUTSIDER_REFUSED_WITHOUT_READ_OR_DELIVERY_EFFECT');
 
   // Metadata-only fixture. This does not upload, download or play private media.
   const assetId=randomUUID(),outputHash='b'.repeat(64);
