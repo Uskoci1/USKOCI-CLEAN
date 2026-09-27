@@ -28,7 +28,8 @@ const row = (id = 'one', lat = 0, lng = 0) => ({ id, naslov: 'Privatan naslov va
 let rows = [row()], key = 'owner:1', viewport: PublicViewport | null = null, selectedId: string | null = null;
 let nearby: NearbyCameraTarget | null = null;
 const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn(), clear = jest.fn();
-function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} centerNearby={nearby} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} />; }
+const userIntent = jest.fn();
+function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} centerNearby={nearby} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} onUserIntent={userIntent} />; }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
@@ -90,6 +91,19 @@ test.each(['dataset', 'account', 'blur'])('late cluster result is discarded afte
 // malformed native region offers nothing.
 const moved = (value: object) => ({ nativeEvent: { ...value, userInteraction: true } });
 const wait = async (ms: number) => act(async () => { jest.advanceTimersByTime(ms); });
+
+test('manual pan supersedes publication before area settlement; automatic and departed callbacks do not', async () => {
+ userIntent.mockClear(); await render(); await ready();
+ await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: false } }));
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
+ expect(userIntent).not.toHaveBeenCalled();
+ const oldWillChange = native().props.onRegionWillChange;
+ await act(async () => oldWillChange(moved(region)));
+ expect(userIntent).toHaveBeenCalledTimes(1); expect(search).not.toHaveBeenCalled();
+ mockFocused = false; await update(); mockFocused = true; await update();
+ await act(async () => oldWillChange(moved(region)));
+ expect(userIntent).toHaveBeenCalledTimes(1);
+});
 test('a move of the person\'s own settles, and after a short wait the list follows exactly the bounds the map shows', async () => {
  await render(); await ready();
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);

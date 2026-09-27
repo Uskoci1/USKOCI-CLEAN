@@ -41,6 +41,8 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
+  /** Explicit interaction supersedes an automatic publication landing still waiting for its read. */
+  onUserIntent?: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
   /** A confirmed publication, resolved against a fresh public list by the route. */
   publicationFocus?: { token: string; id: string; kind: 'map' | 'list' };
@@ -207,6 +209,7 @@ function DiscoveryCell({ cellKey: _key, index, item: _item, onLayout, ...nativeP
 
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
+  const userIntent = props.onUserIntent;
   const traceRef = useRef(props.trace); traceRef.current = props.trace;
   const trace = useCallback<DiscoveryTrace>((...args) => traceRef.current?.(...args), []);
   const traceState = useRef({ scrolled: false, index: -1 });
@@ -438,7 +441,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const select = (id: string) => {
     const item = byId.get(id), point = item && publicPoint(item);
     if (!point) return;
-    retireCameraIntent();
+    userIntent?.(); retireCameraIntent();
     const shared = groups.get(pointKey(point));
     change(shared && shared.ids.length > 1 ? { selectedId: null, selectedPlace: shared.key } : { selectedId: id, selectedPlace: null });
     setSheetIndex(SNAP.peek);
@@ -446,7 +449,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const selectPlace = (key: string) => {
     const shared = groups.get(key);
     if (!shared) return;
-    retireCameraIntent();
+    userIntent?.(); retireCameraIntent();
     change(shared.ids.length > 1 ? { selectedId: null, selectedPlace: key } : { selectedId: shared.ids[0], selectedPlace: null });
     setSheetIndex(SNAP.peek);
   };
@@ -457,12 +460,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // point remain below in their own section. The search pill names the chosen point and clears it.
   const showPlace = () => {
     if (!place) return;
-    retireCameraIntent(); retireListFocus();
+    userIntent?.(); retireCameraIntent(); retireListFocus();
     change({ pinPlace: place.key, selectedId: null, selectedPlace: null });
     setSheetIndex(SNAP.full);
   };
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
-  const showAll = () => { retireCameraIntent(); retireListFocus(); change({ area: null, pinPlace: null }); };
+  const showAll = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ area: null, pinPlace: null }); };
   const onIndex = (index: number) => {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
@@ -475,7 +478,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The list follows the map: a settled move of the person's own hands up the bounds it shows, and it is a new "where",
   // so the one point a place's list was narrowed to is let go.
   const followArea = (bounds: PublicBounds) => {
-    retireListFocus();
+    userIntent?.(); retireListFocus();
     const current = latestView.current;
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
   };
@@ -589,34 +592,34 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
   useEffect(() => {
     if (!focused || !expanded || !mapShown || cardShown || search !== null) return;
-    const back = BackHandler.addEventListener('hardwareBackPress', () => { setSheetIndex(SNAP.peek); return true; });
+    const back = BackHandler.addEventListener('hardwareBackPress', () => { userIntent?.(); setSheetIndex(SNAP.peek); return true; });
     return () => back.remove();
-  }, [focused, expanded, mapShown, cardShown, search]);
+  }, [focused, expanded, mapShown, cardShown, search, userIntent]);
 
   // The search panel's draft applies all at once; a newly chosen place brings its pins into view (the camera's own
   // move, never an area).
-  const openSearch = (step: SearchStep) => { Keyboard.dismiss(); setSearch(step); };
+  const openSearch = (step: SearchStep) => { userIntent?.(); Keyboard.dismiss(); setSearch(step); };
   const [fit, setFit] = useState<{ key: number; bounds: PublicBounds; bottom: number } | null>(null);
   const findNearby = () => {
     if (!nearby.start()) return;
-    Keyboard.dismiss(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
+    userIntent?.(); Keyboard.dismiss(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
   };
   const fits = useRef(0);
   const apply = (draft: SearchDraft) => {
     const before = latestView.current.place;
-    retireCameraIntent(); retireListFocus();
+    userIntent?.(); retireCameraIntent(); retireListFocus();
     change({ ...draft, selectedId: null, selectedPlace: null });
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
     const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? peek : halfSheet) + GAP });
   };
-  const reset = () => { retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
+  const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the loaded tasks carry the fact it
   // reads (or it is already on and must be removable). "N+ mesta" is offered only on a count of open places the read gave.
   const timed = useMemo(() => saysWhen(items, now), [items, now]);
   const workModes = useMemo(() => saysWorkMode(items), [items]);
-  const toggle = (patch: Partial<MarketplaceView>) => { retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
+  const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
   const chips: QuickChip[] = [
     // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
@@ -740,6 +743,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
       focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow, settledIndex, observed, canRestore);
     if (!currentList() || command !== sheetCommand.current.sequence) return;
+    if (gestureStarted) userIntent?.();
     if (gestureStarted && sheetCommand.current.pending) {
       const next = { ...sheetCommand.current, sequence: command + 1, pending: false };
       sheetCommand.current = next; applySheet(next); // Retire queued observations of the interrupted request too.
@@ -766,7 +770,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         restoreAttempted.current = false; retainedRestoreOwner.current = null; writeOffset();
       } else tryRestore();
     }
-  }, [currentSheet, currentList, tryRestore, trace, position, focused, coverageOwner, listWindow, highest, writeOffset, acceptSheetIndex]);
+  }, [currentSheet, currentList, tryRestore, trace, position, focused, coverageOwner, listWindow, highest, writeOffset, acceptSheetIndex, userIntent]);
   const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
@@ -928,7 +932,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top line is the gesture-free way into the list: from the top line to half the map, from half to the whole list
   // (while there is a higher height to go to; an empty list over the map stops at half).
   const canRise = sheetIndex < highest;
-  const openList = () => { Keyboard.dismiss(); clearSelection(); setSheetIndex(sheetIndex === SNAP.peek ? SNAP.half : SNAP.full); };
+  const openList = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(sheetIndex === SNAP.peek ? SNAP.half : SNAP.full); };
   const header = <View testID="discovery-list-header" style={s.header}
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
     <View testID="discovery-list-header-lead" onLayout={event => {
@@ -967,12 +971,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
+          onUserIntent={userIntent}
           publicationCameraToken={cameraRequestToken && props.publicationFocus?.id === chosen?.id ? cameraRequestToken : null}
           onPublicationCameraConsumed={consumeCameraIntent} onPublicationCameraRetired={retireCameraIntent}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
-          onList={() => setSheetIndex(SNAP.full)} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
           cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
           onCreditsHeight={next => setCreditsHeight(current => current === next ? current : next)}
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
@@ -1012,7 +1017,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             const height = event.nativeEvent.layout.height;
             listHeight.current = height; tryRestore();
           }}
-          onScrollBeginDrag={() => { trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentList()) restore.current = null; }}
+          onScrollBeginDrag={() => { trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentList()) { userIntent?.(); restore.current = null; } }}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
           // The floating "Mapa" stands over the list's end at the full height; the end scrolls clear of it.
           contentContainerStyle={pillShown ? s.listUnderPill : s.list}
@@ -1028,7 +1033,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       {pillShown ? <Animated.View pointerEvents="box-none" style={s.mapPillRow}
         entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} exiting={reduced ? undefined : FadeOut.duration(sys.motion.exit)}>
         <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={0.97}
-          onPress={() => setSheetIndex(SNAP.peek)} style={s.mapPill}>
+          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
           <MapTrifold size={20} weight="fill" color={sys.color.onGreen} />
           <T variant="action" style={s.mapPillText}>Mapa</T>
         </Press>

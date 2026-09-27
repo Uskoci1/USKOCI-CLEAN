@@ -5,7 +5,7 @@ import { createFocusedResource, type FocusedResourceOptions } from '../data/focu
 import { sesijaSada, useSesija } from '../store/sesija';
 
 
-export function useFocusedResource<T>(load: () => Promise<T>, options: FocusedResourceOptions = {}) {
+export function useFocusedResource<T>(load: (signal: AbortSignal) => Promise<T>, options: FocusedResourceOptions = {}) {
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const model = useMemo(() => createFocusedResource(load,

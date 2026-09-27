@@ -47,7 +47,7 @@ export interface PotrebeCitanje {
   /** R04 — radni prostor jedne Potrebe. */
   potreba(id: string): Promise<PotrebaProjekcija | null>;
   /** W03 — javno bezbedan skup za Lista | Mapa | Kombinovano. */
-  otvorenePrilike(): Promise<PrilikaProjekcija[]>;
+  otvorenePrilike(options?: { signal?: AbortSignal }): Promise<PrilikaProjekcija[]>;
   /** W04 — dosije jedne Prilike. */
   prilika(id: string): Promise<PrilikaProjekcija | null>;
   /**
@@ -55,7 +55,7 @@ export interface PotrebeCitanje {
    * Overlay pored javnog čitanja: odgovara samo pozivaocu i nikada nije deo javnog reda.
    * Neuspeh je UNKNOWN, nikad NONE.
    */
-  odnosiPremaZadacima(idovi: readonly string[]): Promise<TaskRelationIndex>;
+  odnosiPremaZadacima(idovi: readonly string[], options?: { signal?: AbortSignal }): Promise<TaskRelationIndex>;
 }
 
 export interface PrijaveCitanje {

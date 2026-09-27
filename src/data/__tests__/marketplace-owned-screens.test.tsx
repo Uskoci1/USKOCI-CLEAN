@@ -125,7 +125,7 @@ test('discovery labels my own task and the one I applied to, asks only about the
  ], ids));
  await render();
  // The overlay covers the page and nothing else: the whole task list is never read for a label.
- expect(mockRelations).toHaveBeenCalledWith(['mine', 'applied', 'other']);
+ expect(mockRelations).toHaveBeenCalledWith(['mine', 'applied', 'other'], { signal: expect.any(AbortSignal) });
  expect(mockMine).not.toHaveBeenCalled();
  expect([...props().relations.owned]).toEqual(['mine']); expect([...props().relations.applied]).toEqual(['applied']);
  await act(async () => tree.unmount());

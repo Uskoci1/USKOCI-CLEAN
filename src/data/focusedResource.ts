@@ -16,7 +16,7 @@ type RefreshMode = boolean | 'load' | 'keep' | 'silent';
 const STALE_MS = 5 * 60_000;
 
 /** A read belongs to one focused account/intent and one request generation. */
-export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () => boolean, options: FocusedResourceOptions = {}) {
+export function createFocusedResource<T>(load: (signal: AbortSignal) => Promise<T>, isCurrent: () => boolean, options: FocusedResourceOptions = {}) {
   let state: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
   let active = false;
   let generation = 0;
@@ -25,6 +25,8 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
   const empty: ResourceState<T> = { data: null, loading: true, error: false, refreshing: false };
   type Flight = { again: boolean; mode: RefreshMode; promise: Promise<void> };
   let flight: Flight | null = null;
+  let readAbort: AbortController | null = null;
+  const abortRead = () => { const previous = readAbort; readAbort = null; previous?.abort(); };
   const publish = (next: ResourceState<T>) => {
     state = next;
     listeners.forEach(listener => listener());
@@ -45,11 +47,16 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
     if (!active || !isCurrent()) return;
     const how = mode === true ? 'keep' : mode === false ? 'load' : mode;
     const request = ++generation;
+    const controller = new AbortController(), previous = readAbort;
+    readAbort = controller;
+    previous?.abort();
+    // A load may ignore abort; generation/account guards remain the publication authority.
+    if (!active || request !== generation || !isCurrent()) { controller.abort(); return; }
     const holding = how !== 'load' && state.data !== null && !state.error;
     if (!holding) publish(empty);
     else if (how === 'keep') publish({ ...state, refreshing: true, ...(options.retainOnRefresh ? { refreshError: false } : {}) });
     try {
-      const data = await load();
+      const data = await load(controller.signal);
       if (active && request === generation && isCurrent()) publish({ data, loading: false, error: false, refreshing: false });
     } catch {
       if (!active || request !== generation || !isCurrent()) return;
@@ -58,6 +65,10 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
       publish(holding && options.retainOnRefresh ? { ...state, refreshing: false, refreshError: true }
         : holding && how === 'silent' ? { ...state, refreshing: false }
         : { data: null, loading: false, error: true, refreshing: false });
+    } finally {
+      // Also retires a reader abandoned by its caller's timeout race. Never abort a newer read.
+      controller.abort();
+      if (readAbort === controller) readAbort = null;
     }
   }
   function refresh(mode: RefreshMode = options.retainOnRefresh ? 'keep' : 'load'): Promise<void> {
@@ -92,7 +103,7 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
      */
     start() {
       active = true;
-      if (!isCurrent()) { publish(empty); return; }
+      if (!isCurrent()) { abortRead(); publish(empty); return; }
       const recent = state.data !== null && !state.error && Date.now() - leftAt < STALE_MS;
       void refresh(recent ? 'silent' : 'load');
     },
@@ -104,6 +115,7 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
       active = false;
       generation++;
       flight = null;
+      abortRead();
       leftAt = Date.now();
       if (state.refreshing) publish({ ...state, refreshing: false });
     },
@@ -116,6 +128,7 @@ export function createFocusedResource<T>(load: () => Promise<T>, isCurrent: () =
       active = false;
       generation++;
       flight = null;
+      abortRead();
       leftAt = 0;
       publish(empty);
     },

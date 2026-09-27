@@ -47,27 +47,39 @@ function Discovery() {
   const publicationToken = handoff?.token ?? null;
   const publicationRequested = useRef<string | null>(null);
   const publicationCompleted = useRef<string | null>(null);
-  const [publication, setPublication] = useState<{ token: string; id: string; status: 'loading' | 'read' | 'map' | 'list' | 'missing' | 'error' } | null>(null);
+  const [publication, setPublication] = useState<{ token: string; id: string; visit: object | null;
+    status: 'loading' | 'read' | 'map' | 'list' | 'missing' | 'error' | 'retired' } | null>(null);
   const traceView = useRef(view); traceView.current = view;
   useEffect(() => { if (traceEnabled) trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); }, [traceEnabled, trace]);
   useFocusEffect(useCallback(() => {
-    const owner = {}; focus.current = owner; navigating.current = false;
-    trace('route-focus', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
+    let owner: object | null = null;
     // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
     // re-renders nothing, so a screen that read it during render kept the token of its FIRST
     // visit: come back to the screen and the guard compared an old token against a new one and
     // refused every press, silently, for the rest of that screen's life.
-    setScope(owner);
-    return () => { trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); if (focus.current === owner) focus.current = null;
+    const enter = () => {
+      if (owner) return;
+      owner = {}; focus.current = owner; navigating.current = false;
+      trace('route-focus', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
+      setScope(owner);
+    };
+    const leave = () => {
+      if (!owner) return;
+      trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
+      if (focus.current === owner) focus.current = null;
+      owner = null; setScope(null);
       // A read retired by blur must be requested again on the next focus. A completed landing
       // stays consumed, so returning from its detail keeps the person's map/list position.
       if (publicationRequested.current === publicationToken && publicationCompleted.current !== publicationToken)
         publicationRequested.current = null;
     };
+    if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive') enter();
+    const subscription = AppState.addEventListener('change', state => state === 'active' ? enter() : leave());
+    return () => { subscription.remove(); leave(); };
   }, [trace, publicationToken]));
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal: AbortSignal) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    try { return await Promise.race([source.otvorenePrilike(), new Promise<never>((_, reject) => {
+    try { return await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source]);
@@ -76,18 +88,21 @@ function Discovery() {
   // for one fresh public read before it claims that the task has a pin or is in Discovery at all.
   useEffect(() => {
     if (!handoff || !publicationIsCurrent(handoff) || !publicationToken || !publishedNeedId
+      || publicationCompleted.current === publicationToken
       || !scope || focus.current !== scope || publicationRequested.current === publicationToken) return;
     publicationRequested.current = publicationToken;
-    setPublication({ token: publicationToken, id: publishedNeedId, status: 'loading' });
+    setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'loading' });
     void resource.refresh(true).then(() => {
-      if (publicationIsCurrent(handoff) && publicationRequested.current === publicationToken && focus.current === scope
+      if (publicationIsCurrent(handoff) && publicationRequested.current === publicationToken
+        && publicationCompleted.current !== publicationToken && focus.current === scope
         && sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision)
-        setPublication({ token: publicationToken, id: publishedNeedId, status: 'read' });
+        setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'read' });
     });
   }, [handoff, publicationToken, publishedNeedId, scope, resource.refresh, user?.id, accountRevision, publication?.status]);
   useEffect(() => {
     if (!handoff || !publicationIsCurrent(handoff) || !publication || publication.status !== 'read'
-      || publication.token !== publicationToken || resource.loading || resource.refreshing) return;
+      || publicationCompleted.current === publicationToken
+      || publication.token !== publicationToken || publication.visit !== scope || resource.loading || resource.refreshing) return;
     if (!scope || focus.current !== scope || sesijaSada().user?.id !== user?.id || sesijaSada().accountRevision !== accountRevision) return;
     if (resource.error || !resource.data) { setPublication({ ...publication, status: 'error' }); return; }
     const item = resource.data.find(row => sameId(row.id, publication.id));
@@ -108,9 +123,9 @@ function Discovery() {
   const visible = (resource.data ?? []).map(row => row.id).join(',');
   // The same 15 s limit as the list read: a read that never answers is a failed read, not one still running, so it costs
   // the labels and never the count, the sheet's start or the map (review r3b).
-  const loadRelations = useCallback(async () => {
+  const loadRelations = useCallback(async (signal: AbortSignal) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    try { return await Promise.race([source.odnosiPremaZadacima(visible ? visible.split(',') : []), new Promise<never>((_, reject) => {
+    try { return await Promise.race([source.odnosiPremaZadacima(visible ? visible.split(',') : [], { signal }), new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('TASK_RELATIONS_READ_TIMEOUT')), 15_000);
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source, visible]);
@@ -133,7 +148,18 @@ function Discovery() {
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
-  const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
+  const navigate = (action: () => void) => {
+    if (current() && !navigating.current) { retirePublicationLanding(); navigating.current = true; action(); }
+  };
+  const retirePublicationLanding = () => {
+    if (!current() || !handoff || !publicationIsCurrent(handoff) || !publicationToken
+      || publicationCompleted.current === publicationToken) return;
+    // A person's newer search, pin or gesture owns the view even while the publication read waits.
+    // The handoff still proves ownership; only its automatic positioning is consumed here.
+    publicationRequested.current = publicationToken;
+    publicationCompleted.current = publicationToken;
+    setPublication({ token: publicationToken, id: handoff.needId, visit: scope, status: 'retired' });
+  };
   const open = (item: MarketplaceItem) => {
     const latest = latestResource.current;
     trace('route-open', current(), navigating.current, latest.loading, !!latest.error, traceView.current.listOffset ?? 0, traceSheet(traceView.current));
@@ -159,9 +185,11 @@ function Discovery() {
         }));
       } : undefined}
       trace={traceEnabled ? trace : undefined}
+      onUserIntent={retirePublicationLanding}
       onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
         if (current()) {
-          if (publication?.token === publicationToken && (publication.status === 'missing' || publication.status === 'error')) {
+          if (publicationCompleted.current !== publicationToken && publication?.token === publicationToken
+            && (publication.status === 'missing' || publication.status === 'error')) {
             publicationRequested.current = null;
             setPublication(null); // the publication effect starts one fresh public read and re-evaluates its row
           } else void resource.refresh(true);

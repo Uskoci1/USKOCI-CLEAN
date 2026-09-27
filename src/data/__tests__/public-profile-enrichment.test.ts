@@ -94,6 +94,30 @@ it('does not start enrichment when the reader is already retired', async () => {
   expect(read).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
 });
 
+it('releases on parent cancellation before its budget and never hydrates queued or late authors', async () => {
+  const parent = new AbortController();
+  const signals: AbortSignal[] = [], late: Array<(value: JavniProfilProjekcija) => void> = [];
+  const read = jest.fn((_id: string, signal: AbortSignal) => {
+    signals.push(signal);
+    return new Promise<JavniProfilProjekcija>(resolve => late.push(resolve));
+  });
+  const pending = enrichPublicProfiles(['a', 'b', 'c', 'd', 'e', 'f'], read, () => true, parent.signal);
+  expect(read).toHaveBeenCalledTimes(4); parent.abort();
+  const result = await pending;
+  expect(result.size).toBe(0); expect(signals.every(signal => signal.aborted)).toBe(true);
+  expect(jest.getTimerCount()).toBe(0);
+  late.forEach((resolve, n) => resolve(profile(String(n)))); await flush();
+  expect(result.size).toBe(0); expect(read).toHaveBeenCalledTimes(4);
+  const fresh = await enrichPublicProfiles(['new'], async id => profile(id), () => true, new AbortController().signal);
+  expect(fresh.get('new')).toEqual(profile('new'));
+});
+
+it('does not start optional hydration with an already aborted parent signal', async () => {
+  const parent = new AbortController(); parent.abort(); const read = jest.fn();
+  expect((await enrichPublicProfiles(['a'], read, () => true, parent.signal)).size).toBe(0);
+  expect(read).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
+});
+
 it('keeps the public-profile validation boundary for malformed and failed projections', async () => {
   mockRpc.mockImplementation((_name, { p_profile_id: id }) => Promise.resolve(
     id === 'failed' ? { data: null, error: { message: 'private diagnostic' } }

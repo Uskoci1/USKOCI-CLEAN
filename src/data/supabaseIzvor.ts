@@ -124,7 +124,7 @@ function publicReviewCount(profile: JavniProfilProjekcija | null | undefined): n
  * degrade to unavailable trust while the explicit javniProfil() port itself
  * still fails loudly when called directly by a profile screen.
  */
-async function safePublicProfiles(profileIds: Array<string | null | undefined>) {
+async function safePublicProfiles(profileIds: Array<string | null | undefined>, signal?: AbortSignal) {
   const owner = sesijaSada();
   const accountId = owner.user?.id;
   const revision = owner.accountRevision;
@@ -135,6 +135,7 @@ async function safePublicProfiles(profileIds: Array<string | null | undefined>) 
       const current = sesijaSada();
       return !!accountId && current.user?.id === accountId && current.accountRevision === revision;
     },
+    signal,
   );
 }
 
@@ -175,12 +176,14 @@ type SupabaseIzvor = Omit<
 export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
-  async otvorenePrilike() {
+  async otvorenePrilike(options) {
+    const signal = options?.signal;
     const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;
     if (!accountId) throw new Error('AUTH_REQUIRED');
     // The whole walk belongs to one account visit. A token refresh keeps it; logout or A -> B -> A
     // retires it before another page/enrichment can start, even if the route already ignored it.
     const assertCurrent = () => {
+      if (signal?.aborted) throw new Error('OPPORTUNITIES_READ_ABORTED');
       const current = sesijaSada();
       if (current.user?.id !== accountId || current.accountRevision !== accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
     };
@@ -194,9 +197,10 @@ export const supabaseIzvor: SupabaseIzvor = {
     for (let page = 0; ; page++) {
       assertCurrent();
       if (page >= 25) throw new Error('OPPORTUNITIES_TOO_MANY_PAGES');
-      const { data, error } = await supabase.rpc('rpc_list_open_tasks_v3', {
+      const request = supabase.rpc('rpc_list_open_tasks_v3', {
         p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
       });
+      const { data, error } = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request);
       assertCurrent();
       if (error) throw error;
       const result = record(data);
@@ -227,7 +231,7 @@ export const supabaseIzvor: SupabaseIzvor = {
     // decide it any more; every row here is an open one.
     const openData = items.map(openTaskRow);
     assertCurrent();
-    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
+    const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id), signal), readNeedUrgencies(openData, signal)]);
     assertCurrent();
 
     return openData.map((r: any) => {
@@ -257,18 +261,31 @@ export const supabaseIzvor: SupabaseIzvor = {
    * application list for one label. The server answers only for the ids asked and says nothing
    * about any other task; a failure throws, so the caller shows no labels rather than wrong ones.
    */
-  async odnosiPremaZadacima(idovi: readonly string[]) {
+  async odnosiPremaZadacima(idovi: readonly string[], options) {
+    const signal = options?.signal;
+    const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    const assertCurrent = () => {
+      if (signal?.aborted) throw new Error('TASK_RELATIONS_READ_ABORTED');
+      const current = sesijaSada();
+      if (current.user?.id !== accountId || current.accountRevision !== accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    };
+    assertCurrent();
     const asked = [...new Set(idovi.filter((id): id is string => typeof id === 'string' && id.length > 0))];
     if (asked.length === 0) return noTaskRelations;
     const items: unknown[] = [];
     // The server refuses more than a hundred in one call; a screen that shows more asks again.
     for (let from = 0; from < asked.length; from += 100) {
-      const { data, error } = await supabase.rpc('rpc_get_my_task_relations', { p_need_ids: asked.slice(from, from + 100) });
+      assertCurrent();
+      const request = supabase.rpc('rpc_get_my_task_relations', { p_need_ids: asked.slice(from, from + 100) });
+      const { data, error } = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request);
+      assertCurrent();
       if (error) throw new Error('TASK_RELATIONS_READ_FAILED');
       const page = (data as { items?: unknown } | null)?.items;
       if (!Array.isArray(page)) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
       items.push(...page);
     }
+    assertCurrent();
     return taskRelationIndex(items, asked);
   },
 

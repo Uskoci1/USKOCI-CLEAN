@@ -49,3 +49,26 @@ it('bounds parallel reads and stops queued urgency work on failure while leaving
   resolves.forEach(resolve => resolve({ data: null, error: { message: 'unavailable' } }));
   expect((await result).size).toBe(0); expect(mockRpc).toHaveBeenCalledTimes(4);
 });
+
+it('aborts the active urgency transports, ignores late receipts and starts no queued hydration', async () => {
+  const parent = new AbortController();
+  const pending: Array<{ id: string; signal: AbortSignal; resolve: (value: unknown) => void }> = [];
+  mockRpc.mockImplementation((_name: string, { p_need_id: id }: { p_need_id: string }) => ({
+    abortSignal: (signal: AbortSignal) => new Promise(resolve => pending.push({ id, signal, resolve })),
+  }));
+  const rows = Array.from({ length: 9 }, (_, index) => ({ id: `22222222-2222-4222-8222-${String(index).padStart(12, '0')}`, urgent: true }));
+  const result = readNeedUrgencies(rows, parent.signal);
+  expect(pending).toHaveLength(4); expect(pending.every(row => row.signal === parent.signal)).toBe(true);
+  parent.abort(); expect(pending.every(row => row.signal.aborted)).toBe(true);
+  pending.forEach(row => row.resolve({ data: { needId: row.id, level: 'NORMAL', activatedAt: null, expiresAt: null, authoritative: true }, error: null }));
+  expect((await result).size).toBe(0); expect(mockRpc).toHaveBeenCalledTimes(4);
+  mockRpc.mockResolvedValue({ data: active(), error: null });
+  expect((await readNeedUrgencies([{ id: nid, urgent: true }], new AbortController().signal)).get(nid))
+    .toEqual({ level: 'HITNO', expiresAt: active().expiresAt });
+});
+
+it('does not dispatch urgency requests for an already aborted collection', async () => {
+  const parent = new AbortController(); parent.abort();
+  expect((await readNeedUrgencies([{ id: nid, urgent: true }], parent.signal)).size).toBe(0);
+  expect(mockRpc).not.toHaveBeenCalled();
+});

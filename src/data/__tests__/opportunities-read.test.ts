@@ -14,10 +14,12 @@ jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
 
 const { mockRpc } = jest.requireMock('../supabaseClient').__testMocks as { mockRpc: jest.Mock };
 const publicProfile = publicProfileClientService.javniProfil as jest.Mock;
+const needId = (n: number) => `22222222-2222-4222-8222-${String(n).padStart(12, '0')}`;
+const NEED1 = needId(3), NEED2 = needId(2), NEED3 = needId(1);
 
 /** One item as public.rpc_list_open_tasks_v3 builds it (pkg023d + pkg023i). */
 const item = (change: Record<string, unknown> = {}) => ({
-  id: 'need-1', sortAt: '2026-09-18T10:00:00Z', publishedAt: '2026-09-18T10:00:00Z',
+  id: NEED1, sortAt: '2026-09-18T10:00:00Z', publishedAt: '2026-09-18T10:00:00Z',
   title: 'Pomoć pri selidbi', category: 'Selidbe', status: 'PUBLISHED', urgent: false,
   scheduleKind: 'FLEXIBLE', startsAt: null, endsAt: null, executionLocationMode: null,
   approximateCity: 'Beograd', approximateArea: 'Centar',
@@ -53,19 +55,20 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
 
   it('walks the pages by keyset and never repeats a row', async () => {
     mockRpc
-      .mockResolvedValueOnce(page([item(), item({ id: 'need-2', sortAt: '2026-09-18T09:00:00Z' })], true))
-      .mockResolvedValueOnce(page([item({ id: 'need-3', sortAt: '2026-09-18T08:00:00Z' })]));
+      .mockResolvedValueOnce(page([item(), item({ id: NEED2, sortAt: '2026-09-18T09:00:00Z' })], true))
+      .mockResolvedValueOnce(page([item({ id: NEED3, sortAt: '2026-09-18T08:00:00Z' })]));
     publicProfile.mockResolvedValue(null);
     const result = await supabaseIzvor.otvorenePrilike();
-    expect(result.map(row => row.id)).toEqual(['need-1', 'need-2', 'need-3']);
+    expect(result.map(row => row.id)).toEqual([NEED1, NEED2, NEED3]);
     expect(mockRpc).toHaveBeenNthCalledWith(1, 'rpc_list_open_tasks_v3', { p_limit: 200, p_before_at: null, p_before_id: null });
     // The cursor is the last row of the page it just read, so the next page starts strictly after it.
     expect(mockRpc).toHaveBeenNthCalledWith(2, 'rpc_list_open_tasks_v3',
-      { p_limit: 200, p_before_at: '2026-09-18T09:00:00Z', p_before_id: 'need-2' });
+      { p_limit: 200, p_before_at: '2026-09-18T09:00:00Z', p_before_id: NEED2 });
   });
 
   it('refuses rather than silently truncating a list that never ends', async () => {
-    mockRpc.mockResolvedValue(page([item()], true));
+    let next = 100;
+    mockRpc.mockImplementation(() => Promise.resolve(page([item({ id: needId(next--) })], true)));
     await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('OPPORTUNITIES_TOO_MANY_PAGES');
   });
 
@@ -78,7 +81,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     const result = await supabaseIzvor.otvorenePrilike();
     expect(publicProfile).toHaveBeenCalledWith('requester-1', expect.any(AbortSignal));
     expect(result).toEqual([{
-      id: 'need-1', naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
+      id: NEED1, naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
       podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin',
       // The description is not in the public list at all; the detail screen reads the one a person opens.
       opis: '',
@@ -95,7 +98,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
   it('reuses each public profile read for its portrait asset without passing through the storage path', async () => {
     const assetId = '33333333-3333-4333-8333-333333333333';
     const path = `11111111-1111-4111-8111-111111111111/v5/${assetId}/${'a'.repeat(64)}.jpg`;
-    mockRpc.mockResolvedValueOnce(page([item(), item({ id: 'need-2' })]));
+    mockRpc.mockResolvedValueOnce(page([item(), item({ id: NEED2 })]));
     publicProfile.mockResolvedValueOnce({ ime: 'Nikola', avatarPutanja: path,
       poverenje: { ocenaDostupna: false, recenzijeDostupne: false } });
 
@@ -123,15 +126,15 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     });
 
   it('keeps every task when optional author reads fail, with unknown rather than zero trust', async () => {
-    mockRpc.mockResolvedValueOnce(page([item(), item({ id: 'need-2', requesterProfileId: 'requester-2' })]));
+    mockRpc.mockResolvedValueOnce(page([item(), item({ id: NEED2, requesterProfileId: 'requester-2' })]));
     publicProfile.mockRejectedValue(new Error('PUBLIC_PROFILE_READ_FAILED'));
     const rows = await supabaseIzvor.otvorenePrilike();
-    expect(rows.map(row => row.id)).toEqual(['need-1', 'need-2']);
+    expect(rows.map(row => row.id)).toEqual([NEED1, NEED2]);
     for (const row of rows) expect(row).toMatchObject({ narucilacIme: '', narucilacOcena: null,
       narucilacBrojOcena: null, narucilacAvatarId: null });
   });
 
-  it('retires optional author data after an A-B-A account change without erasing public tasks', async () => {
+  it('rejects the whole account-owned walk after an A-B-A change during optional enrichment', async () => {
     mockRpc.mockResolvedValueOnce(page([item()]));
     publicProfile.mockImplementationOnce(async () => {
       mockSession = { user: { id: 'reader-b' }, accountRevision: 2 };
@@ -139,9 +142,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
       return { ime: 'Late name', avatarPutanja: null,
         poverenje: { ocenaDostupna: true, ocenaProsek: 5, brojRecenzija: 2, recenzijeDostupne: true } };
     });
-    const rows = await supabaseIzvor.otvorenePrilike();
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: 'need-1', narucilacIme: '', narucilacOcena: null, narucilacBrojOcena: null });
+    await expect(supabaseIzvor.otvorenePrilike()).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
   });
 
   // The rating travels with its actual review count; unavailable metadata is not a guessed zero.

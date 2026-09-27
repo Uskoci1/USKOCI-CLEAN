@@ -28,7 +28,7 @@ const passthrough = (name) => {
 const builder = () => {
   const self = {};
   for (const method of ['duration', 'delay', 'springify', 'damping', 'stiffness', 'easing',
-    'withInitialValues', 'randomDelay', 'reduceMotion', 'build']) self[method] = () => self;
+    'withInitialValues', 'withCallback', 'randomDelay', 'reduceMotion', 'build']) self[method] = () => self;
   return self;
 };
 

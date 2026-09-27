@@ -115,11 +115,13 @@ let snapshot: MarketplaceView, initial: MarketplaceView;
 /** Set once a task is opened: like the route, the screen then takes no more changes of its view (it is not in front). */
 let navigated = false;
 const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest.fn(), openPublished = jest.fn();
+const userIntent = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
     publicationFocus={publicationFocus} publicationUnavailable={publicationUnavailable} onOpenPublishedTask={openPublished}
     trace={tracing ? nativeTrace : undefined}
+    onUserIntent={userIntent}
     onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
 }
@@ -194,7 +196,7 @@ beforeEach(() => {
   publicationFocus = undefined; publicationUnavailable = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
-  for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset]) fn.mockReset();
+  for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset, userIntent]) fn.mockReset();
   for (const fn of [mockDefaultScroll, mockDefaultBeginDrag, mockDefaultEndDrag, mockDefaultMomentumBegin, mockDefaultMomentumEnd]) fn.mockReset();
   (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
 });
@@ -202,13 +204,25 @@ beforeEach(() => {
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
+test('only explicit search, map and list choices retire a pending publication landing', async () => {
+  await render(); await layOutBody();
+  await act(async () => map().props.onViewport({ center: [19.8, 45.2], zoom: 10, bounds: [19.7, 45.1, 19.9, 45.3] }));
+  expect(userIntent).not.toHaveBeenCalled();
+  await act(async () => map().props.onUserIntent());
+  expect(userIntent).toHaveBeenCalledTimes(1);
+  await act(async () => countLine().props.onPress());
+  expect(userIntent).toHaveBeenCalledTimes(2);
+  await tap('Pretraži zadatke');
+  expect(userIntent).toHaveBeenCalledTimes(3);
+});
+
 test('published public point opens the exact task card even when another task shares its pin', async () => {
   rows = [row('a', { priblizno: { lat: 44.79, lng: 20.45 } }), row('bb', { priblizno: { lat: 44.79, lng: 20.45 } })];
   initial = { ...initial, selectedId: 'bb', sheet: 'peek' };
   publicationFocus = { token: 'published:bb:1', id: 'bb', kind: 'map' };
   await render();
   expect(listSheet().props.index).toBe(0);
-  expect(map().props).toMatchObject({ selectedId: 'bb', selectedPlace: null, focusSelectionOnMount: true });
+  expect(map().props).toMatchObject({ selectedId: 'bb', selectedPlace: null, publicationCameraToken: publicationFocus.token });
   expect(tree.root.findByType(DiscoveryPeek).props.item.id).toBe('bb');
   expect(cards()).toEqual(['a', 'bb']);
 });
@@ -1372,7 +1386,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await tap('Cena'); await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
@@ -1392,15 +1406,16 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
   });
   test('closing the panel any other way leaves the list exactly as it was; "Obriši uslove" empties the draft', async () => {
     await render(); await tap('Uslovi pretrage');
-    await choose('Danas'); await act(async () => press('Povećaj broj osoba').props.onPress());
+    await choose('Danas'); await tap('Koliko vas dolazi'); await act(async () => press('Povećaj broj osoba').props.onPress());
     await tap('Zatvori pretragu');
     expect(panel()).toHaveLength(0);
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tap('Uslovi pretrage');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
-    await choose('Danas'); await choose('Navedena cena');
+    await choose('Danas'); await tap('Cena'); await choose('Navedena cena');
     await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
     expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
+    await tap('Kada');
     expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
@@ -1412,13 +1427,15 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tap('Uslovi pretrage');
     expect(texts()).toContain('Kako se radi');
-    await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await tap('Kako se radi'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     await tap('Zatvori pretragu');
     expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
   });
   // Discovery V47: the chips over the map toggle the very filters the panel sets, at once, and only those the loaded tasks
   // can back (a task that says how it is done; a price mode some task uses; a task with two open places).
   test('a quick chip toggles the same filter the panel sets, and only chips the tasks can back are offered', async () => {
+    // The three-person draft must match a real row so the apply action can actually be pressed.
+    rows = rows.map(item => item.id === 'ponude' ? { ...item, pokrivenost: { ukupno: 3, popunjeno: 0, preostalo: 3, udeo: 0 } } : item);
     await render();
     const offered = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState && 'selected' in node.props.accessibilityState
       && !/^Uslovi|^Dodaj/.test(node.props.accessibilityLabel)).map(node => node.props.accessibilityLabel);
@@ -1434,7 +1451,9 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await act(async () => chip('2+ mesta').props.onPress()); expect(snapshot.places).toBe(1);
     // The choice the panel can make beyond two people is said on the same chip, and removed by it.
     await tap('Uslovi pretrage, 1 aktivan');
+    await tap('Koliko vas dolazi');
     for (const _ of [1, 2]) await act(async () => press('Povećaj broj osoba').props.onPress());
+    expect(showAction().props).toMatchObject({ label: 'Prikaži 1 zadatak', disabled: false });
     await act(async () => showAction().props.onPress());
     expect(snapshot.places).toBe(3); expect(chip('3+ mesta').props.accessibilityState).toEqual({ selected: true });
   });

@@ -4,6 +4,8 @@ import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/m
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;
+  /** Immediate manual interaction, distinct from camera/layout observations. */
+  onUserIntent?: () => void;
   /** Legacy fixture entry; publication navigation uses a one-shot token below. */
   focusSelectionOnMount?: boolean;
   /** Pending camera move for the confirmed public task. The screen owns its lifetime across native map remounts. */

@@ -8,10 +8,11 @@ export async function enrichPublicProfiles(
   profileIds: readonly (string | null | undefined)[],
   read: (id: string, signal: AbortSignal) => Promise<JavniProfilProjekcija | null>,
   isCurrent: () => boolean,
+  signal?: AbortSignal,
 ): Promise<Map<string, JavniProfilProjekcija | null>> {
   const ids = [...new Set(profileIds.filter((id): id is string => typeof id === 'string' && id.length > 0))];
   const profiles = new Map<string, JavniProfilProjekcija | null>();
-  if (!ids.length || !isCurrent()) return profiles;
+  if (!ids.length || !isCurrent() || signal?.aborted) return profiles;
 
   const abort = new AbortController();
   const deadline = Date.now() + PUBLIC_PROFILE_BUDGET_MS;
@@ -26,12 +27,13 @@ export async function enrichPublicProfiles(
     retire();
   };
   const active = () => {
-    if (!isCurrent() || Date.now() >= deadline) stop();
+    if (signal?.aborted || !isCurrent() || Date.now() >= deadline) stop();
     return !stopped;
   };
   const timeout = setTimeout(stop, PUBLIC_PROFILE_BUDGET_MS);
   // A stalled transport must also retire after an A -> B -> A account change.
   const accountWatch = setInterval(() => { if (!isCurrent()) stop(); }, 100);
+  signal?.addEventListener('abort', stop, { once: true });
   const worker = async () => {
     while (active() && next < ids.length) {
       const id = ids[next++];
@@ -49,10 +51,11 @@ export async function enrichPublicProfiles(
       boundary,
     ]);
     // Return a snapshot: even a transport that ignores abort cannot mutate the result later.
-    return isCurrent() ? new Map(profiles) : new Map();
+    return !signal?.aborted && isCurrent() ? new Map(profiles) : new Map();
   } finally {
     stop();
     clearTimeout(timeout);
     clearInterval(accountWatch);
+    signal?.removeEventListener('abort', stop);
   }
 }

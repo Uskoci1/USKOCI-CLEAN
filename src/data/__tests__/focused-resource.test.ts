@@ -9,6 +9,49 @@ function deferred<T>() {
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 
 describe('focused account reads', () => {
+  it('aborts a superseded request without letting its late settlement abort or replace the fresh read', async () => {
+    const first = deferred<string[]>(), second = deferred<string[]>();
+    const load = jest.fn<Promise<string[]>, [AbortSignal]>().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const model = createFocusedResource(load, () => true);
+    model.start(); const retry = model.refresh();
+    const [oldSignal, currentSignal] = load.mock.calls.map(([signal]) => signal);
+    expect(oldSignal.aborted).toBe(true); expect(currentSignal.aborted).toBe(false);
+    first.resolve(['retired']); await flush();
+    expect(currentSignal.aborted).toBe(false); expect(model.snapshot().data).toBeNull();
+    second.resolve(['fresh']); await retry;
+    expect(model.snapshot().data).toEqual(['fresh']); expect(currentSignal.aborted).toBe(true);
+  });
+
+  it.each(['stop', 'forget'] as const)('aborts active transport on %s and gives the next focus a fresh signal', async boundary => {
+    const first = deferred<string[]>(), second = deferred<string[]>();
+    const load = jest.fn<Promise<string[]>, [AbortSignal]>().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const model = createFocusedResource(load, () => true, { coalesce: true });
+    model.start(); const old = model.refresh();
+    const oldSignal = load.mock.calls[0][0];
+    expect(oldSignal.aborted).toBe(false);
+    model[boundary](); expect(oldSignal.aborted).toBe(true);
+    model.start(); const freshSignal = load.mock.calls[1][0];
+    first.reject(new Error('transport ignored cancellation')); await old;
+    expect(load).toHaveBeenCalledTimes(2); expect(freshSignal.aborted).toBe(false);
+    second.resolve(['fresh']); await flush();
+    expect(model.snapshot().data).toEqual(['fresh']); expect(model.snapshot().error).toBe(false);
+  });
+
+  it('does not abort a coalesced read early and gives its single trailing read a new signal', async () => {
+    const first = deferred<string[]>(), second = deferred<string[]>();
+    const load = jest.fn<Promise<string[]>, [AbortSignal]>().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const model = createFocusedResource(load, () => true, { coalesce: true });
+    model.start(); const joined = model.refresh();
+    expect(model.refresh()).toBe(joined); expect(load).toHaveBeenCalledTimes(1);
+    const firstSignal = load.mock.calls[0][0]; expect(firstSignal.aborted).toBe(false);
+    first.resolve(['first']); await flush();
+    expect(firstSignal.aborted).toBe(true); expect(load).toHaveBeenCalledTimes(2);
+    const secondSignal = load.mock.calls[1][0];
+    expect(secondSignal).not.toBe(firstSignal); expect(secondSignal.aborted).toBe(false);
+    second.resolve(['second']); await joined;
+    expect(model.snapshot().data).toEqual(['second']); expect(load).toHaveBeenCalledTimes(2);
+  });
+
   it('distinguishes an empty result from a failed read and recovers with retry', async () => {
     const load = jest.fn<Promise<string[]>, []>().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
     const model = createFocusedResource(load, () => true);

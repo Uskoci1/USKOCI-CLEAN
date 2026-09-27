@@ -37,6 +37,10 @@ These are two different digests of the same function, not contradictory versions
 
 The Supabase changelog and its September 25 PostgreSQL upgrade notice were reviewed. This package neither upgrades PostgreSQL nor recreates extensions/operators. That documentation read is not a compatibility certification of the live project. References: [changelog](https://supabase.com/changelog.md), [PostgreSQL upgrade notice](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes).
 
+## Round 13 update — 2026-09-27
+
+`ROUND_13_PUBLICATION_AND_READ_LIFETIME.md` supersedes the historical cancellation and deferred-client-check statements below: the two Discovery read ports now accept an optional signal, propagated through pages, relationship batches and optional enrichment. Blur, background and the existing timeout retire the reader. Focused checks are recorded in `ROUND_13_CHECKS.json`. The collection contract, missing server predicates/counts/facets and deferred native/load acceptance below remain open; cancellation does not turn the full collection walk into bounded Discovery.
+
 ## Current source of truth
 
 1. `src/data/ports.ts:50` still exposes `otvorenePrilike(): Promise<PrilikaProjekcija[]>`, a completed collection, with no cursor/count input or output.

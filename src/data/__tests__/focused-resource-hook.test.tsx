@@ -21,10 +21,10 @@ function deferred<T>() {
   const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
   return { promise, resolve, reject };
 }
-function Probe({ load }: { load: () => Promise<string[]> }) {
+function Probe({ load }: { load: (signal: AbortSignal) => Promise<string[]> }) {
   return React.createElement('Snapshot', useFocusedResource(load));
 }
-function RetainedProbe({ load }: { load: () => Promise<string[]> }) {
+function RetainedProbe({ load }: { load: (signal: AbortSignal) => Promise<string[]> }) {
   return React.createElement('Snapshot', useFocusedResource(load, { retainOnRefresh: true, coalesce: true }));
 }
 let tree: ReactTestRenderer;
@@ -36,6 +36,32 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('focused hook account incarnation', () => {
+  it('keeps a pending read through token refresh, then aborts on background, account change and unmount', async () => {
+    const old = deferred<string[]>(), resumed = deferred<string[]>(), newAccount = deferred<string[]>();
+    const load = jest.fn<Promise<string[]>, [AbortSignal]>().mockReturnValueOnce(old.promise)
+      .mockReturnValueOnce(resumed.promise).mockReturnValueOnce(newAccount.promise);
+    await act(async () => { tree = create(<Probe load={load} />); });
+    const firstSignal = load.mock.calls[0][0];
+    mockSession = { ...mockSession, sessionEpoch: 2 };
+    await act(async () => tree.update(<Probe load={load} />));
+    expect(firstSignal.aborted).toBe(false); expect(load).toHaveBeenCalledTimes(1);
+    await act(async () => { mockAppState = 'background'; mockStateListener?.('background'); });
+    expect(firstSignal.aborted).toBe(true);
+    await act(async () => { mockAppState = 'active'; mockStateListener?.('active'); });
+    const resumedSignal = load.mock.calls[1][0]; expect(resumedSignal.aborted).toBe(false);
+    await act(async () => old.resolve(['stale first visit']));
+    expect(resumedSignal.aborted).toBe(false); expect(snapshot().data).toBeNull();
+    mockSession = { user: { id: 'account-b' }, accountRevision: 2, sessionEpoch: 3 };
+    await act(async () => tree.update(<Probe load={load} />));
+    expect(resumedSignal.aborted).toBe(true);
+    const currentSignal = load.mock.calls[2][0]; expect(currentSignal.aborted).toBe(false);
+    await act(async () => resumed.resolve(['private account-a']));
+    expect(snapshot().data).toBeNull(); expect(currentSignal.aborted).toBe(false);
+    await act(async () => tree.unmount()); expect(currentSignal.aborted).toBe(true);
+    await act(async () => newAccount.resolve(['late account-b']));
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
   it.each(['success', 'failure'] as const)('rejects stale %s after batched A→B→A and starts a new owned read', async result => {
     const old = deferred<string[]>();
     const fresh = deferred<string[]>();
@@ -102,6 +128,8 @@ it('keeps inline refresh options stable and retires an old target including its 
   const oldRefresh = snapshot().refresh;
   await act(async () => { void oldRefresh(); void oldRefresh(); });
   await act(async () => { tree.update(<RetainedProbe load={loadNext} />); });
+  expect(loadOld.mock.calls[1][0].aborted).toBe(true);
+  expect(loadNext.mock.calls[0][0].aborted).toBe(false);
   expect(snapshot()).toMatchObject({ data: null, loading: true });
   await act(async () => { old.resolve(['late old target']); });
   expect(snapshot()).toMatchObject({ data: null, loading: true }); expect(loadOld).toHaveBeenCalledTimes(2);

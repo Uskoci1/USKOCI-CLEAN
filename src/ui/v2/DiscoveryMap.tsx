@@ -116,6 +116,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (token) latest.current.props.onPublicationCameraRetired?.(token, props.scopeKey);
     pendingFocus.current = null;
   };
+  const manualMapIntent = () => {
+    if (!owns()) return;
+    latest.current.props.onUserIntent?.();
+    retirePublicationFocus();
+  };
   const settledZoom = useRef(props.viewport?.zoom ?? null), zoomTarget = useRef<number | null>(null);
   const fitted = useRef<number | null>(null), centeredNearby = useRef<number | null>(null);
   /** When a pill was last pressed, so that the same touch is not also taken as a tap on the empty map. */
@@ -193,7 +198,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
     const properties = feature.properties;
     if (properties?.cluster === true && Number.isInteger(properties.cluster_id)) {
-      initialFitPending.current = false; retirePublicationFocus();
+      initialFitPending.current = false; manualMapIntent();
       const place = await stackOf(properties.cluster_id, Number(properties.point_count));
       if (!owns() || load.current !== 'ready') return;
       if (place) { latest.current.props.onSelectPlace?.(place); return; }
@@ -276,7 +281,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // taps on "+" are three levels, not one. The target is forgotten when the map reports where it settled.
   const changeZoom = (delta: number) => {
     if (!owns() || load.current !== 'ready' || !viewport) return;
-    initialFitPending.current = false; retirePublicationFocus();
+    initialFitPending.current = false; manualMapIntent();
     const next = Math.min(18, Math.max(0, (zoomTarget.current ?? viewport.zoom) + delta));
     zoomTarget.current = next;
     // A zoom button is the person moving the map, though the camera makes the move: the list follows where it settles.
@@ -367,9 +372,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       onDidFinishRenderingFrameFully={nativeFrameReady ? undefined : () => { if (focused.current && owns()) setNativeFrameReady(true); }}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
       // pill's own press is not taken as a tap on the ground under it.
-      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { retirePublicationFocus(); latest.current.props.onClear?.(); } }}
+      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { manualMapIntent(); latest.current.props.onClear?.(); } }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
-      onRegionWillChange={event => { if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; retirePublicationFocus(); cancelArea(); } }}
+      onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; manualMapIntent(); cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
       // phone that left both zoom buttons dead, with no reason beside them, on every fresh open of
@@ -378,7 +383,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       // world overview never becomes the remembered viewport, nor the list's area.
       onRegionDidChange={event => { if (!owns()) return; zoomTarget.current = null; const value = publicViewport(event.nativeEvent); setViewport(value);
         if (value) settledZoom.current = value.zoom;
-        if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; retirePublicationFocus(); }
+        if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; manualMapIntent(); }
         if (value && load.current === 'ready' && !initialFitPending.current) {
           latest.current.props.onViewport(value);
           // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a zoom
