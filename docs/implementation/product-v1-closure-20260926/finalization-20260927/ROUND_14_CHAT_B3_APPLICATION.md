@@ -1,6 +1,6 @@
 # Round 14 — approved Chat B3 application and bounded client integration
 
-Date: 2026-09-27. Starting source: `dac4649e` in `work/uskoci-r6-integration`. The owner explicitly approved applying B3a/B3b after prerequisites, wiring the app and deploying exactly two prepared push body substitutions. **DEV applied; client wired; 11 distinct focused suites / 515 tests pass.** The integration TypeScript check passes; the final exact-source rerun is recorded separately in `ROUND_14_CHECKS.json`. Commit/push receipt is pending at this document's preparation.
+Date: 2026-09-27. Starting source: `dac4649e` in `work/uskoci-r6-integration`. The owner explicitly approved applying B3a/B3b after prerequisites, wiring the app and deploying exactly two prepared push body substitutions. **DEV applied; client wired; 11 distinct focused suites / 515 tests pass.** Both integration and final exact-source TypeScript checks PASS; commands and scope are recorded in `ROUND_14_CHECKS.json`. Source commit [`1005db3a`](https://github.com/Uskoci1/USKOCI-CLEAN/commit/1005db3acf43a55e319cc497040b8684ba6d2164) is pushed to `work/uskoci-ui-unification-20260924`.
 
 ## Problem, cause and product decision
 
@@ -57,7 +57,7 @@ These blob hashes identify content, not a claim that a particular Git commit was
 
 ## Tests and regression evidence
 
-**11 distinct focused suites / 515 tests PASS.** The integration TypeScript check passes; the root's final exact-source rerun is tracked in `ROUND_14_CHECKS.json`, which owns exact commands, chronology and final source/check receipts.
+**11 distinct focused suites / 515 tests PASS.** Integration and final exact-source TypeScript checks PASS (root session51194 exit0). `ROUND_14_CHECKS.json` records exact commands, chronology and source/check receipts.
 
 | Focused group | Suites | Tests |
 | --- | ---: | ---: |
@@ -73,6 +73,6 @@ Regression coverage includes exact microseconds/ties, photo projection identity,
 
 No full Jest run, APK build/install, native scroll or viewability check, physical device/emulator acceptance, provider delivery, voice feature, real upload, query plan, large-history latency or growth acceptance is established by this application. No DEV fixture data was inserted. Mandatory voice and the canonical event-to-message resolver remain unfinished. Native/device/provider and current-app acceptance must use their own evidence, without promoting historical disposable or prior-APK success into this source's result.
 
-This is implemented and focused-tested client source against applied DEV contracts, with commit/push recording pending. Next: finish the exact-source/check/commit receipts, then verify actual native paging, position retention and measured ACKs on the resulting approved build. Query-cost evidence, mandatory voice and a canonical event-to-message resolver need their own work. Bounded rereads and newest probes do not establish gap-free realtime delivery: a late commit can appear behind an earlier cursor, and `asOf` is not a cross-request snapshot.
+This is implemented and focused-tested client source against applied DEV contracts, pushed as `1005db3a`. Next acceptance: actual native paging, position retention and measured ACKs on the resulting approved build. Ongoing source work remains the canonical event-to-message push resolver and continuous message arrival lifecycle. Query-cost evidence, mandatory voice and a canonical event-to-message resolver need their own work. Bounded rereads and newest probes do not establish gap-free realtime delivery: a late commit can appear behind an earlier cursor, and `asOf` is not a cross-request snapshot.
 
 The three approved packages above no longer await the same application permission. Other server changes, dependencies, task-column privacy rollout conditions, closure/export and payments retain their independent scope and gates. Control/dashboard records are maintained separately; local generation remains distinct from remote publication.

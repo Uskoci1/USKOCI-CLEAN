@@ -93,5 +93,7 @@
     "B3 cursor paging is not durable/gap-free realtime delivery.",
     "B3b is used for history restoration and forward windows; exact event-to-message push resolver still absent.",
     "Native measured visibility and keyboard/scroll behavior need exact APK/device acceptance."
-  ]
+  ],
+  "source_commit": "1005db3acf43a55e319cc497040b8684ba6d2164",
+  "source_pushed_to": "origin/work/uskoci-ui-unification-20260924"
 }

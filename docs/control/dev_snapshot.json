@@ -1,10 +1,9 @@
 {
   "project": "leqcwgzvjsxugfgzdmth",
-  "generated_at": "2026-09-26T18:03:15Z",
-  "how": "Fresh 26.09 18:03Z public catalog/cron read + list_edge_functions after Notification A1 runtime apply. Ledger/cron/RPC/Edge fields below are fresh. Current connector was denied private.closure_source_digest_v5, so certificate/retention values are retained only as the historical 24.09 observation and MUST NOT be read as a fresh private check.",
-  "ledger_total": 203,
-  "ledger_dev_alpha": 55,
-  "ledger_last": "clean_notification_push_event_type",
+  "generated_at": "2026-09-27T14:10:08Z",
+  "ledger_total": 205,
+  "ledger_dev_alpha": 57,
+  "ledger_last": "dev_alpha_chat_b3b_message_window",
   "certificate_live": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
   "certificate_certified": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
   "retention_ai_ready": true,
@@ -20,65 +19,8 @@
       "active": true
     }
   ],
-  "cron_runs_24h": 2880,
   "cron_failures_24h": 0,
-  "edge": [
-    {
-      "slug": "uskoci-ai-interview",
-      "version": 50,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-location-search",
-      "version": 14,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-publication-evaluate",
-      "version": 14,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-data-export-worker",
-      "version": 14,
-      "verify_jwt": false
-    },
-    {
-      "slug": "uskoci-data-export-download",
-      "version": 14,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-worker-interview",
-      "version": 17,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-speech-session",
-      "version": 15,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-qa-classify",
-      "version": 13,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-push-transport",
-      "version": 20,
-      "verify_jwt": false
-    },
-    {
-      "slug": "uskoci-media",
-      "version": 13,
-      "verify_jwt": true
-    },
-    {
-      "slug": "uskoci-account-closure-worker",
-      "version": 3,
-      "verify_jwt": false
-    }
-  ],
+  "cron_runs_24h": 2880,
   "rpc_all": [
     "rpc_abandon_worker_ai",
     "rpc_accept_ai_task_review",
@@ -204,6 +146,7 @@
     "rpc_list_open_tasks_v3",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
+    "rpc_mark_displayed_agreement_messages_v1",
     "rpc_mark_group_messages_read_v5",
     "rpc_mark_inbox_read",
     "rpc_mark_response_viewed",
@@ -224,6 +167,8 @@
     "rpc_read_account_lineage_service",
     "rpc_read_agreement_current_location",
     "rpc_read_agreement_location_command",
+    "rpc_read_agreement_message_window_v1",
+    "rpc_read_agreement_messages_page_v1",
     "rpc_read_agreement_photo_messages_v5",
     "rpc_read_ai_task_review",
     "rpc_read_group_command_v5",
@@ -389,6 +334,7 @@
     "rpc_list_open_tasks_v3",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
+    "rpc_mark_displayed_agreement_messages_v1",
     "rpc_mark_group_messages_read_v5",
     "rpc_mark_inbox_read",
     "rpc_mark_response_viewed",
@@ -404,6 +350,8 @@
     "rpc_read_account_closure_execution",
     "rpc_read_agreement_current_location",
     "rpc_read_agreement_location_command",
+    "rpc_read_agreement_message_window_v1",
+    "rpc_read_agreement_messages_page_v1",
     "rpc_read_agreement_photo_messages_v5",
     "rpc_read_ai_task_review",
     "rpc_read_group_command_v5",
@@ -473,7 +421,66 @@
     "rpc_withdraw_response",
     "rpc_write_agreement_current_location"
   ],
-  "ledger_last_version": "20260926180141",
-  "private_current_status": "DENIED_CURRENT_READ_2026-09-26",
-  "private_historical_observed_at": "2026-09-24T20:24:30Z"
+  "how": "Public catalog, cron and certified hash read at generated_at; Edge inventory refreshed after push v21. Private function calls remain denied to execute_sql read-only role. certificate_live and retention_ai_ready were verified inside the successfully applied exact B3b transaction before commit at 20260927140231 (not recomputed at generated_at). Both certificate row fingerprints and readiness function definition were unchanged in postflight at 14:02:58Z. See linked application receipt.",
+  "private_current_status": "VERIFIED_IN_EXACT_B3B_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+  "private_observed_at": "2026-09-27T14:02:31Z",
+  "ledger_last_version": "20260927140231",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
+  "edge": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 50,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-location-search",
+      "version": 14,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-publication-evaluate",
+      "version": 14,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-data-export-worker",
+      "version": 14,
+      "verify_jwt": false
+    },
+    {
+      "slug": "uskoci-data-export-download",
+      "version": 14,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 17,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-speech-session",
+      "version": 15,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-qa-classify",
+      "version": 13,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-push-transport",
+      "version": 21,
+      "verify_jwt": false
+    },
+    {
+      "slug": "uskoci-media",
+      "version": 13,
+      "verify_jwt": true
+    },
+    {
+      "slug": "uskoci-account-closure-worker",
+      "version": 3,
+      "verify_jwt": false
+    }
+  ]
 }

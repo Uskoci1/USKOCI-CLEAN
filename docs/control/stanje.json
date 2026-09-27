@@ -1,17 +1,17 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T13:01:15Z",
+  "osvezeno": "2026-09-27T14:22:49Z",
   "grana": null,
   "head": null,
   "head_poruka": null,
   "server": {
-   "snimljeno": "2026-09-26T18:03:15Z",
-   "migracije": 203,
-   "dev_alpha": 55,
-   "poslednja": "clean_notification_push_event_type",
+   "snimljeno": "2026-09-27T14:10:08Z",
+   "migracije": 205,
+   "dev_alpha": 57,
+   "poslednja": "dev_alpha_chat_b3b_message_window",
    "sertifikat_ok": null,
-   "privatni_status": "DENIED_CURRENT_READ_2026-09-26",
-   "privatni_istorijski": "2026-09-24T20:24:30Z",
+   "privatni_status": "VERIFIED_IN_EXACT_B3B_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+   "privatni_istorijski": null,
    "cron": [
     {
      "job": "uskoci_edge_workers",
@@ -69,7 +69,7 @@
     },
     {
      "slug": "uskoci-push-transport",
-     "version": 20,
+     "version": 21,
      "verify_jwt": false
     },
     {
@@ -92,7 +92,7 @@
  },
  "finalization": {
   "updated_at": "2026-09-27",
-  "source_head": "dd932db13f2e59a40857c85fa233a9c0bfd7317b",
+  "source_head": "1005db3acf43a55e319cc497040b8684ba6d2164",
   "order": [
    "P0",
    "P1",
@@ -105,17 +105,17 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Round13: TypeScript PASS; 11 distinct focused suites / 279 tests PASS. Delayed-publication regressions failed before the fix; initial fixture/default-timeout failures and corrected reruns are preserved in CHECKS. No full-suite/native claim.",
-  "device": "NOT_RUN_FOR_ROUND07_THROUGH_ROUND13",
-  "live_dev_scope": "2026-09-27T10:38:34Z read-only B3 presence, participant nullability and four helper bodies: B3 absent; both participant columns NOT NULL; pinned helpers match. No complete ledger/certificate/Edge attestation. ROUND_09_DEV_B3_READ_ONLY.json.",
+  "tests": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
+  "device": "NOT_RUN_FOR_ROUND07_THROUGH_ROUND14",
+  "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
   "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Bounded relevant source checks accompany changes. Full-suite/build/install/device/provider execution deferred. DEV/Edge application requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-  "implementation": "Round13: newer explicit search/map/list/navigation intent owns Discovery before a delayed publication read completes. Foreground visits and stale retries are fenced. Optional read signals stop later pages, relationship batches and queued profile/urgency work after blur/background/timeout. TaskCard/Peek unchanged. Full-collection server filtering, exact-public-row lookup and unapplied Chat B3 remain separate open work.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md",
+  "implementation": "Round14: B3a/B3b povezani sa privatnim razgovorom: do50poruka po odgovoru, do200u aktivnom prozoru, starije/novije i povratak na zapamćenu poruku; tačni prikazani dolazni ID-evi. Stari potvrđeni lokalni računi slanja ne dupliraju istoriju; odbijen pristup uklanja prepiske, prekid veze čuva pročitano. Push v21 tačno2teksta. Bez TaskCard/Peek promene. Voice, nezavisan realtime i ceo push→tačna poruka još otvoreni.",
+  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
   "dashboard_publication": "PENDING_UPLOAD: prijava vlasnika važi i polje je vidljivo, ali podržani izbor fajla ne vraća prozor za učitavanje. Poslednji pokušaj i nepromenjena udaljena verzija b9aed185/2026-09-24 zabeleženi su u ROUND_09_PUBLICATION.json. Lokalni fajl je osvežen; nije objavljen. Postojeće deljenje: svi sa linkom; nije menjano.",
-  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md",
+  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md",
   "server_proof_source": "be72a1bd",
-  "server_proof": "B3a 11 and B3b 7 disposable SQL/Auth checks PASS in run36312570701 at be72a1bd. Earlier failed oracle runs are preserved. Both candidates remain UNAPPLIED / UNWIRED; explicit primeni is required. No DEV mutation or certificate movement.",
-  "chat_b3": "DISPOSABLE_PROOF_PASS / NOT_APPLIED / NOT_CLIENT_WIRED: run36312570701 at be72a1bd. Exact evidence in ROUND_09_B3_PROOF_RECEIPT.md. Re-read prerequisites before any explicitly approved DEV application.",
+  "server_proof": "B3a11+B3b7 privremenih SQL/Auth provera PASS36312570701; tačni paketi sada APPLIED i CLIENT_WIRED. DEVledger205/hash/ACL/certifikat potvrđeni. Bez novih poslovnih podataka ili uređajskog dokaza.",
+  "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
   "readiness_review": {
    "date": "2026-09-27",
    "document": "docs/implementation/product-v1-closure-20260926/finalization-20260927/READINESS_REVIEW_20260927.md",
@@ -124,13 +124,9 @@
    "distinction": "Missing implementation, unapplied packages, unverified acceptance and owner decisions remain separate. Existing row statuses are unchanged."
   },
   "application_approvals": {
-   "checked_at": "2026-09-27T12:59:38Z",
+   "checked_at": "2026-09-27T14:10:08Z",
    "document": "docs/implementation/product-v1-closure-20260926/finalization-20260927/APPLICATION_APPROVALS_20260927.md",
-   "new_approval_candidates": [
-    "B3a: 11 disposable SQL/Auth checks PASS; fresh DEV absence/body pins confirmed; apply and client wiring pending",
-    "B3b: 7 disposable SQL/Auth checks PASS; fresh DEV absence confirmed; apply and client wiring pending",
-    "Push: exactly two formatter copy changes pending deployment; live v20 entrypoint matches, formatter matches after those two replacements and LF normalization"
-   ],
+   "new_approval_candidates": [],
    "already_approved_conditional": "PKG045b and its internal certificate update already approved after compatible-app/device verification. Fresh protected-column/table grants still present; postcondition not satisfied. Do not ask again for the same approval.",
    "not_ready_for_apply": [
     "P0 exact public-row lookup proof unexecuted",
@@ -138,7 +134,12 @@
     "Voice and complete exact-message push",
     "Written rating comment contract and proof"
    ],
-   "mutation": "NONE; read-only function catalog/privilege flags/live Edge source and GitHub run metadata; no full current DEV parity or device claim"
+   "mutation": "EXPLICIT_USER_APPROVAL_EXECUTED; DEVledger203→205; push20→21; bez pomeranja sertifikata. Uređaj/provider nisu provereni.",
+   "applied": [
+    "B3a20260927140148: stranice i tačni prikazaniID-evi; isti dokazaniSHA256",
+    "B3b20260927140231: prozor oko poruke; isti dokazaniSHA256",
+    "Pushv21: dva neutralna teksta; entrypoint/settings nepromenjeni, tačan readback"
+   ]
   }
  },
  "redovi": [
@@ -2861,10 +2862,15 @@
     "/dogovor/[id]"
    ],
    "servisi": [
-    "agreementMessageClientService"
+    "agreementMessageClientService",
+    "agreementMessageHistoryService",
+    "agreementHistoryModel"
    ],
    "server_deps": [
-    "rpc_send_agreement_message_v2"
+    "rpc_send_agreement_message_v2",
+    "rpc_read_agreement_messages_page_v1",
+    "rpc_mark_displayed_agreement_messages_v1",
+    "rpc_read_agreement_message_window_v1"
    ],
    "lights": {
     "nacrt": "zeleno",
@@ -2875,12 +2881,12 @@
     "telefon": "zuto"
    },
    "note": {
-    "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
-   "problem": "Straničenje, direktan realtime bez push-a, precizna oznaka prikazane poruke, glasovne poruke i dokumenti ostaju otvoreni. Round06 priprema čuvanje nacrta/mesta čitanja i osvežavanje po dolaznom obaveštenju; uređajski dokaz još ne postoji.",
-   "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija. Završni krug 03 / 27.09: Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: pripremljeni B3a/B3b; primena i klijent čekaju dokaz i odobrenje. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. B3a i B3b konačno prolaze na izdvojenoj CI bazi (36312570701); DEV nije menjan, aplikacija ih još ne poziva. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md Završni krug12 (27.09, 672804db): Ime osobe i stvarni zadatak određuju razgovor; dodir konteksta vraća na isti Dogovor. Objedinjena provera novog APK-a još nije urađena. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md",
+   "problem": "B3istorija i precizna potvrda prikazanih poruka sada su na DEV-u i u kodu. Novi APK/uređajsko prihvatanje još nisu urađeni. Direktan realtime bez push-a, glasovne poruke, dokumenti i ceo push do tačne poruke ostaju otvoreni.",
+   "sledece": "Aktuelno Round14: B3a/B3b primenjeni i povezani; istorija do200poruka, starije/novije stranice, povratak na tačnu poruku, samo izmereni dolazni ID-evi. Izvor i515ciljanih provera prolaze; zatim objedinjeno APK/uređajsko prihvatanje, nezavisan realtime i voice kao tip poruke. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2896,15 +2902,15 @@
      "P6"
     ],
     "flow": "Poruke",
-    "ux": "Ime osobe i stvarni zadatak određuju razgovor; dodir konteksta vraća na isti Dogovor.",
-    "ui": "Bela podloga, postojeći oblačići i kraći red za pisanje/fotografiju/slanje. Veća slova zadržavaju polje pune širine.",
-    "backend": "B3a/B3b: 18 provera na privremenoj bazi sa stvarnim Auth/SQL prolazi. Tri nova RPC-a su potvrđeno odsutna na DEV-u; potrebna izričita primena.",
-    "state_sync": "Input, nacrt i otvorene fotografije ostaju isti kroz promenu tastature i veličine slova. Sažetak poruke, retry i terminalni tok nisu zamenjeni.",
-    "performance": "Bez periodičnog upita: jedan aktivan i jedan naknadni zahtev, najmanje 2 s između početaka. Stara istorija i ScrollView još nisu straničeni.",
-    "test": "Round12: tipovi čisti; 11 različitih ciljanih grupa / 317 testova prolazi. Tačan opseg i početni nalazi: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
-    "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
-    "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_PRIVATE_HISTORY_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_MESSAGE_WINDOW_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_B3_WINDOW_ORDERING.md + CI 36312008697 / 36312570701; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json"
+    "ux": "Učitavanje starijih/novijih poruka čuva mesto čitanja; jedan dodir vraća najnovije i kada stara poruka više ne postoji.",
+    "ui": "Postojeći oblačići i unos zadržani. Diskretne radnje Starije/Novije i retry pripadaju istoriji.",
+    "backend": "DEV B3a/B3b APPLIED; ledger205 i svi otisci/dozvole potvrđeni. Bez promene pisanja/sertifikata.",
+    "state_sync": "Aktuelni nalog/poseta/snimak i izmerene dolazne poruke određuju ACK. Stari potvrđeni outbox unosi se ne pojavljuju posle izbacivanja iz prozora; novo mesto čitanja nadjačava čekajuću stranicu.",
+    "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
+    "test": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
+    "device_proof": "Nema novog APK-a ili uređajske provere Round14. Raniji dokazi ostaju istorijski.",
+    "status": "SERVER PRIMENJEN / KLIJENT POVEZAN / CILJANE PROVERE PROŠLE / TELEFON ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -2962,11 +2968,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "CF02 je popravljen u kodu: zatvoren Dogovor zadržava proveru i uklanjanje ranije pripremljenih fotografija, uz zabranu novih slanja. Nova verzija sa tom izmenom još nije proverena na telefonu.",
-   "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano. Završni krug04: privatne fotografije imaju uslovni nalaz u izvoru. Potrebni su poseban kandidat, dokaz i odobren pomeraj sertifikata; bez tvrdnje o stvarnom incidentu. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md Završni krug12 (27.09, 672804db): Fotografija ima jasnu ikonicu u istom redu sa pisanjem i slanjem. Pri većem tekstu zadržava natpis i sopstveni red komandi. Objedinjena provera novog APK-a još nije urađena. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md",
+   "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano. Završni krug04: privatne fotografije imaju uslovni nalaz u izvoru. Potrebni su poseban kandidat, dokaz i odobren pomeraj sertifikata; bez tvrdnje o stvarnom incidentu. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md Završni krug12 (27.09, 672804db): Fotografija ima jasnu ikonicu u istom redu sa pisanjem i slanjem. Pri većem tekstu zadržava natpis i sopstveni red komandi. Objedinjena provera novog APK-a još nije urađena. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md Aktuelno Round14: NULL preduslov prethodnog uslovnog nalaza nije ispunjen na DEV-u; B3 čitanje foto istorije povezano, native upload/recovery još čeka. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2983,7 +2989,7 @@
     "flow": "Slike u porukama",
     "ux": "Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike.",
     "ui": "Fotografija ima jasnu ikonicu u istom redu sa pisanjem i slanjem. Pri većem tekstu zadržava natpis i sopstveni red komandi.",
-    "backend": "Uslovni izvorni nalaz: stara provera učesnika nije bezbedna kada je jedan učesnik NULL. Novi kandidati imaju pozitivnu proveru; stari helper nije promenjen.",
+    "backend": "Svež DEV katalog potvrđuje oba učesnika NOT NULL; raniji NULL-uslovni nalaz nije potvrđena dostupna greška na kanonskim redovima. Stari helper nije menjan. B3 čitanje zadržava pozitivnu proveru učesnika i iste foto metapodatke.",
     "state_sync": "Otvoren ili obavezan panel pripreme fotografija ostaje sačuvan pri promeni rasporeda; profilna slika je izvan drugog dostupnog dugmeta.",
     "performance": "Nije ponovo mereno",
     "test": "Round12: tipovi čisti; 11 različitih ciljanih grupa / 317 testova prolazi. Tačan opseg i početni nalazi: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
@@ -3855,8 +3861,8 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka.",
-   "problem": "PKG-050a je na DEV-u i u trenutnom APK-u. Audit 24.09: potvrda čitanja bez granice može označiti i tek pristiglu neviđenu poruku pročitanom. Dve ranije nedokazane vrste odredišta i dalje ostaju posebno otvorene. Audit 24.09: DN-07: promena filtera ponovo pravi i samu aktiviranu karticu filtera; rizik gubitka fokusa čitača ekrana, konkretno ponašanje na uređaju još čeka.",
-   "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja.",
+   "problem": "Privatni razgovor sada koristi precizne prikazane ID-eve umesto zbirnog ACK-a. Ceo potvrđeni event→tačna poruka→read lanac, dve ranije nedokazane vrste odredišta i DN-07 uređajski fokus ostaju otvoreni.",
+   "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja. Round14: B3a/B3b na DEV-u i povezani sa čitanjem/pozicijom; obaveštenje samo po sebi nije dokaz prikaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4108,8 +4114,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "Stvarna Android dostava jeste ranije viđena. Naknadno je nađen nesklad: otvorena aplikacija je dopuštala samo stare opšte tekstove, a DEV v20 šalje posebne A1 tekstove. Klijentska popravka je pripremljena. Dve poruke dodatno zahtevaju neutralan tekst umesto internih naziva uloga; predlog je u kodu, nije objavljen na serveru. Ne tvrdi se da je jedna ista stvarna chat poruka prošla ceo put do push-a i nazad. iOS i prodavnice ostaju odvojeni.",
-   "sledece": "Push-proof APK36269145651, izvorbd550c64, napravljen i provereni stvarni Firebase Messaging podaci; nije instaliran na fizički telefon. Windows sada vidi HONOR600Pro, ADB još ne. Dva serverska teksta čekaju „primeni“. Zatim isti stvarni chat događaj→push→odgovarajući razgovor na Androidu, pa A2 i iOS. R20_BD550C64_PHONE_APK.json i A1_DISCOVERY_STABILIZATION.md sadrže tačan obim. Završni krug04: ograda za odloženi tap; ceo push do tačne poruke ostaje otvoren. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa.",
+   "problem": "Dva neutralna push teksta sada su objavljena u v21 i tačno pročitana nazad. Raniji Android prijem ostaje istorijski dokaz. Nisu ponovljeni novi APK/prikaz otvorene aplikacije niti ceo isti chat događaj→push→tačna poruka→read. iOS je odvojen.",
+   "sledece": "Aktuelno Round14: odobrena dva teksta su objavljena, više ne čekaju primeni. Slede kanonski rezolver tačne poruke i objedinjeno novo Android/provider prihvatanje kada vlasnik pokrene uređajsku proveru, zatim iOS. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4127,13 +4133,13 @@
     "flow": "Slanje obaveštenja na telefon",
     "ux": "Mapirano; detaljan krug sledi",
     "ui": "Postojeći prikaz; odobrenje po paketu",
-    "backend": "Živi generički push i dalje vodi u Inbox. Tačna poruka zahteva ugovor/rezolver/transport; ništa nije objavljeno.",
+    "backend": "Push v21 ACTIVE: tačno2odobrena tela poruke; ulazni kod i verify_jwtfalse nepromenjeni. B3b nije kompletan push rezolver.",
     "state_sync": "Strogi postojeći javni payload deli isti validator sa osvežavanjem otvorenog razgovora. Hint nije potvrda dostave/čitanja niti novo slanje.",
     "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
-    "test": "Provera tipova prošla; završna ciljana provera 9 grupa / 406 testova prošla. Detalji i početni nalazi u izveštaju.",
-    "device_proof": "Nema novog APK-a, instalacije ili dokaza sa uređaja za ovaj paket.",
-    "status": "KOD I CILJANI TESTOVI PROŠLI / UREĐAJ JOŠ NIJE PROVEREN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md"
+    "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
+    "device_proof": "Nema novog test slanja, APK-a ili uređajske potvrde v21.",
+    "status": "DVA TEKSTA OBJAVLJENA / CILJANE PROVERE PROŠLE / CEO LANAC ČEKA",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -5202,7 +5208,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "117 test fajl(ova)"
+    "test": "119 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -5902,14 +5908,14 @@
   {
    "id": "PG05",
    "oblast": "Svežina i istorija prepiske",
-   "sada": "Round06: istorija se i dalje čita cela. Novi klijentski kod osvežava otvoren Dogovor po dozvoljenom dolaznom push signalu; postoje ručno osvežavanje, čuvanje nacrta i mesta čitanja.",
-   "nedostaje": "Uređajski dokaz ovog paketa; proverena i odobrena primena B3a/B3b, straničenje, tačni prikazani ID-evi i nezavisan realtime. Signal iz push-a nije dokaz dostave ili čitanja.",
+   "sada": "Round14: B3a/B3b primenjeni i povezani, do50poruka po odgovoru i200u aktivnom prozoru; samo izmereni dolazni ID-evi za ACK. Postojeći incoming-hint refresh i recovery ostaju.",
+   "nedostaje": "Novi APK/uređajski dokaz, nezavisan realtime, voice i ceo kanonski event→tačna poruka push. Snapshot stranice ne garantuju prijem svih kasnih commit-a.",
    "redovi": [
     "D03"
    ],
-   "stanje": "klijentsko povezivanje pripremljeno; server i uređaj čekaju",
+   "stanje": "server i klijent povezani; ciljane provere prolaze; uređaj/realtime/voice čekaju",
    "datum": "2026-09-27",
-   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md"
+   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md"
   },
   {
    "id": "PG06",
