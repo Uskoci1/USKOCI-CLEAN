@@ -9,6 +9,13 @@ import { AgreementCollectionPresentation, type AgreementCollectionSection } from
 
 export default function Dogovori() {
   const { user, accountRevision } = useSesija();
+  return <AgreementListSession key={`${user?.id ?? ''}:${accountRevision}`} />;
+}
+function AgreementListSession() {
+  // Display choices contain no private rows. Keep them through the foreground
+  // privacy gate, but retire them with the account incarnation above.
+  const [section, setSection] = useState<AgreementCollectionSection>('active');
+  const [confirmationOnly, setConfirmationOnly] = useState(false);
   const foreground = useRef({ active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', generation: 0 });
   const [, render] = useState(0);
   useEffect(() => {
@@ -22,16 +29,18 @@ export default function Dogovori() {
   }, []);
   // Retire private rows and callbacks synchronously, including a batched
   // background→foreground transition; returning creates a fresh owned read.
-  return foreground.current.active ? <OwnedAgreements key={`${user?.id ?? ''}:${accountRevision}:${foreground.current.generation}`}
-    foreground={foreground.current} /> : null;
+  return foreground.current.active ? <OwnedAgreements key={foreground.current.generation}
+    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly}
+    onSection={setSection} onConfirmationOnly={setConfirmationOnly} /> : null;
 }
-function OwnedAgreements({ foreground }: { foreground: { active: boolean; generation: number } }) {
+function OwnedAgreements({ foreground, section, confirmationOnly, onSection, onConfirmationOnly }: {
+  foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean;
+  onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
+}) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const readGeneration = useRef(0), foregroundGeneration = foreground.generation;
-  const [section, setSection] = useState<AgreementCollectionSection>('active');
-  const [confirmationOnly, setConfirmationOnly] = useState(false);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false;
     // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
@@ -78,8 +87,8 @@ function OwnedAgreements({ foreground }: { foreground: { active: boolean; genera
   };
   return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     section={section} confirmationOnly={confirmationOnly}
-    onSection={value => { if (current()) setSection(value); }}
-    onConfirmationOnly={value => { if (current()) setConfirmationOnly(value); }}
+    onSection={value => { if (current()) onSection(value); }}
+    onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={() => navigate(() => router.navigate('/profil'))}

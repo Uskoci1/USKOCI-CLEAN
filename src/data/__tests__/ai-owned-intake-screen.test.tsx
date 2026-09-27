@@ -1,6 +1,7 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { aiTurnIntentJournal } from '../aiTurnIntentJournal';
+import { readIntakeReviewReturn } from '../intakeReviewReturn';
 jest.mock('@react-native-async-storage/async-storage', () => { const values = new Map<string, string>(); return { getItem: jest.fn(async (key: string) => values.get(key) ?? null), setItem: jest.fn(async (key: string, value: string) => { values.set(key, value); }), removeItem: jest.fn(async (key: string) => { values.delete(key); }), clear: jest.fn(async () => { values.clear(); }) }; });
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
@@ -600,7 +601,7 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
   const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
   await act(async () => review.props.onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
 
 it('does not present UNKNOWN facts as completed answers', async () => {
@@ -635,7 +636,7 @@ it('keeps private address and resolved coordinates out of the compact live card 
   await closeMenu();
   await act(async () => { review.props.onPress(); review.props.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
 
 it('names the first few missing things and counts the rest instead of a wall that gets cut', async () => {
@@ -687,7 +688,50 @@ it('never names a category and does not call the draft ready while only the cate
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
   const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
   await act(async () => review.props.onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id } });
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+});
+
+it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text and disclosure through ready review, return, edit and review again: %s', async kind => {
+  mockParams = kind === 'resumed' ? { conversationId: id } : kind === 'new-entry' ? { entryKey: other } : {};
+  const originalParams = { ...mockParams };
+  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos ormara')] }));
+  mockSend.mockImplementation((_id: string, _body: string, key: string) => Promise.resolve(turn(key, 'SUCCEEDED')));
+  mockTurn.mockImplementation((_id: string, key: string) => Promise.resolve(turn(key, 'SUCCEEDED')));
+  if (kind === 'resumed') await render(); else await start();
+  const sends = mockSend.mock.calls.length;
+  await type('Dopuna koju još nisam poslao.');
+  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  const first = mockRouter.push.mock.calls.at(-1)![0].params;
+  expect(Object.keys(first).sort()).toEqual(['conversationId', 'intakeReturn']);
+  await blur();
+  const retained = readIntakeReviewReturn(first.intakeReturn, first.conversationId)!;
+  expect(retained.params).toEqual(originalParams);
+  // A manual correction saved in the review must come back through the normal canonical read.
+  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos dva ormara')] }));
+  mockParams = { ...retained.params }; await focus();
+  expect(readIntakeReviewReturn(first.intakeReturn, id)).toBeNull();
+  expect(input().value).toBe('Dopuna koju još nisam poslao.');
+  expect(text()).toContain('Prenos dva ormara');
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
+  expect(mockSend).toHaveBeenCalledTimes(sends);
+  await type('Izmenjena neposlata dopuna.');
+  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  const second = mockRouter.push.mock.calls.at(-1)![0].params;
+  expect(second.intakeReturn).not.toBe(first.intakeReturn);
+  expect(readIntakeReviewReturn(second.intakeReturn, id)?.params).toEqual(originalParams);
+  expect(input().value).toBe('Izmenjena neposlata dopuna.');
+  expect(mockSend).toHaveBeenCalledTimes(sends);
+});
+
+it('retires the review return when the original intake unmounts', async () => {
+  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos ormara')] }));
+  await resume();
+  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  const token = mockRouter.push.mock.calls.at(-1)![0].params.intakeReturn;
+  await blur(); expect(readIntakeReviewReturn(token, id)).not.toBeNull();
+  await act(async () => tree.unmount());
+  expect(readIntakeReviewReturn(token, id)).toBeNull();
 });
 
 // Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.

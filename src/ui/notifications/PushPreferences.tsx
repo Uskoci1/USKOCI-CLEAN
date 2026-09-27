@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, Linking, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { AuthAccountScope } from '../../contracts/auth';
 import type { NotificationPreferences, NotificationRole, NotificationSettings } from '../../contracts/notificationPreferences';
@@ -14,6 +14,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { SettingsFooter, SettingsGroup, SettingsInfo, SettingsSwitchRow } from '../settings/SettingsPresentation';
 import { FactArt } from '../system/FactArt';
 import { StateView } from '../system/StateView';
+import { SystemSettingsAction } from '../system/SystemSettingsAction';
 import { useTextScale } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
@@ -200,7 +201,7 @@ export type PushPreferencesViewProps = {
  busy: boolean; error: boolean; locked: boolean; dirty: boolean; validation: string | null; working: Working; justSaved: boolean;
  onEdit: <K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) => void;
  onSave: () => void; onEnable: () => void; onDisable: () => void; onRefresh: () => void;
- /** The phone's own settings; the route passes nothing and the system page opens. */ onOpenSystemSettings?: () => void;
+ /** The phone's own settings; the route passes nothing and the system page opens. */ onOpenSystemSettings?: () => void | Promise<void>;
  /** The phone's zone; read from the device when left out (fixed by the gallery). */ deviceZone?: string | null;
 };
 
@@ -224,12 +225,10 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  </ScrollView></View>;
  const { settings, native, enabled, registered, readiness } = data;
  const zone = fixedZone === undefined ? deviceZone() : fixedZone;
- const settingsPage = onOpenSystemSettings ?? (() => { void Linking.openSettings().catch(() => undefined); });
  const phone = phoneStatus(native, enabled, registered, FOR_SET[role]);
  // The phone's own actions, in the order they are needed; the first one says why they wait (an unconfirmed state, or a
  // change that is not saved yet).
  const phoneActions: { label: string; kind: 'secondary' | 'quiet'; onPress: () => void; working?: Working; guarded: boolean }[] = [];
- if (native === 'DENIED') phoneActions.push({ label: 'Podešavanja telefona', kind: 'secondary', onPress: settingsPage, guarded: false });
  // A device that cannot receive notifications at all (the emulator) or a build without them has no phone action: next to
  // "Nije dostupno na ovom uređaju" a switch-off button contradicted the headline.
  const deviceKnowsPush = native !== 'UNSUPPORTED' && native !== 'UNCONFIGURED';
@@ -266,6 +265,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
     <SettingsGroup title="Na telefonu">
      <SettingsInfo title={phone.title} icon={<FactArt kind="phone" size={26} />} last>{phone.body}</SettingsInfo>
     </SettingsGroup>
+    {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
      reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}

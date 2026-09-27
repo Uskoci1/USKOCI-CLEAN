@@ -69,6 +69,43 @@ test('background and an unfinished foreground refresh reject old actions', async
   mockApp.currentState = 'active'; await act(async () => mockListeners.forEach(listener => listener('active')));
   expect(props().items).toEqual([]); await act(async () => old.onOpen(old.items[0])); expect(mockNavigate).not.toHaveBeenCalled();
 });
+test.each(['active', 'history'] as const)('returning from a backgrounded Agreement keeps %s and its filter, but reloads private rows', async section => {
+  await render();
+  await act(async () => { props().onSection(section); props().onConfirmationOnly(true); });
+  const old = props();
+  await act(async () => old.onOpen(old.items[0]));
+  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'owned' } });
+  mockFocused = false; await update();
+  await act(async () => { mockApp.currentState = 'background'; mockListeners.forEach(listener => listener('background')); });
+  expect(tree.root.findAllByType('Agreements' as React.ElementType)).toHaveLength(0);
+  await act(async () => { old.onSection(section === 'active' ? 'history' : 'active'); old.onConfirmationOnly(false); });
+  await act(async () => { mockApp.currentState = 'active'; mockListeners.forEach(listener => listener('active')); });
+  // The mounted list is still behind the detail route; it must not read until focus returns.
+  expect(mockRead).toHaveBeenCalledTimes(1);
+  expect(props()).toMatchObject({ section, confirmationOnly: true, items: [], loading: true });
+  const fresh = deferred(); mockRead.mockReturnValueOnce(fresh.promise);
+  mockFocused = true; await update();
+  expect(props()).toMatchObject({ section, confirmationOnly: true, items: [], loading: true });
+  await act(async () => fresh.resolve([{ id: 'fresh-owned', verzija: 2 }]));
+  expect(props()).toMatchObject({ section, confirmationOnly: true, items: [{ id: 'fresh-owned', verzija: 2 }] });
+  mockNavigate.mockClear();
+  await act(async () => { old.onOpen(old.items[0]); props().onOpen(props().items[0]); });
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'fresh-owned' } });
+});
+test('account ABA while backgrounded resets retained display choices before the fresh account read', async () => {
+  await render(); await act(async () => { props().onSection('history'); props().onConfirmationOnly(true); });
+  const old = props();
+  await act(async () => { mockApp.currentState = 'background'; mockListeners.forEach(listener => listener('background')); });
+  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+  mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
+  const fresh = deferred(); mockRead.mockReturnValueOnce(fresh.promise);
+  await act(async () => { mockApp.currentState = 'active'; mockListeners.forEach(listener => listener('active')); });
+  await act(async () => { old.onSection('history'); old.onConfirmationOnly(true); });
+  expect(props()).toMatchObject({ section: 'active', confirmationOnly: false, items: [], loading: true });
+  await act(async () => fresh.resolve([{ id: 'fresh-account', verzija: 1 }]));
+  expect(props()).toMatchObject({ section: 'active', confirmationOnly: false, items: [{ id: 'fresh-account', verzija: 1 }] });
+});
 test('batched background and foreground retire the old read even with the same account', async () => {
   const late = deferred(); mockRead.mockReturnValueOnce(late.promise); await render(); const old = props();
   await act(async () => {

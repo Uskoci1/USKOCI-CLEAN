@@ -272,3 +272,40 @@ test('going back from the review into the conversation keeps the conversation, a
   await act(async () => router.back()); await settle();
   expect(tabState().focused).toBe('index');
 });
+
+test('two review returns preserve the original intake entry key and params without accumulating Back history', async () => {
+  type Nav = { type?: string; routes?: { name: string; key: string; params?: Record<string, unknown>; state?: Nav }[] };
+  const findTabs = (state: Nav | undefined): Nav | undefined => !state ? undefined : state.type === 'tab' ? state
+    : state.routes?.map(route => findTabs(route.state)).find(Boolean);
+  const intakeRoute = () => findTabs(require('expo-router/build/global-state/store').store.navigationRef.current.getRootState())!
+    .routes!.find(route => route.name === 'nova')!;
+  const originalParams = { entryKey: '11111111-1111-4111-8111-111111111111' };
+  const conversationId = '22222222-2222-4222-8222-222222222222';
+  await act(async () => { tree = create(<ExpoRoot context={routes} location="/" />); });
+  await settle();
+  await act(async () => router.navigate({ pathname: '/nova', params: originalParams })); await settle();
+  const originalKey = intakeRoute().key;
+  expect(intakeRoute().params).toEqual(originalParams);
+  expect(tabHistory()).toEqual(['index', 'nova']);
+
+  for (const intakeReturn of ['opaque-review-return-first', 'opaque-review-return-second']) {
+    // The assigned conversation belongs to the review URL, while the mounted intake still
+    // has its original entryKey. Returning with conversationId would change OwnedIntake's key.
+    await act(async () => router.push({ pathname: '/pregled-zadatka', params: { conversationId, intakeReturn } }));
+    await settle();
+    expect(tabState()).toEqual({ focused: 'pregled-zadatka', count: APP_ROUTES.length });
+    expect(tabHistory()).toEqual(['index', 'nova', 'pregled-zadatka']);
+    expect(intakeRoute()).toMatchObject({ key: originalKey, params: originalParams });
+    await act(async () => router.replace({ pathname: '/nova', params: originalParams })); await settle();
+    expect(tabState()).toEqual({ focused: 'nova', count: APP_ROUTES.length });
+    expect(intakeRoute().key).toBe(originalKey);
+    expect(intakeRoute().params).toEqual(originalParams);
+    expect(intakeRoute().params).not.toHaveProperty('conversationId');
+    expect(intakeRoute().params).not.toHaveProperty('intakeReturn');
+    expect(tabHistory()).toEqual(['index', 'nova']);
+  }
+  await act(async () => router.back()); await settle();
+  expect(tabState().focused).toBe('index');
+  expect(tabHistory()).toEqual(['index']);
+  expect(router.canGoBack()).toBe(false);
+});

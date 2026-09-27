@@ -38,7 +38,9 @@ it('chooses which of the two server sets to edit here, on the screen, and a flip
  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('WORKER');
  expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
- old(); expect(mockBack).toHaveBeenCalledTimes(1);
+ // Selecting another set retires the prior view's callback; the shown arrow still works.
+ old(); expect(mockBack).not.toHaveBeenCalled();
+ act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
 // Step 11a (2026-09-24): unsaved changes of one set are no longer thrown away without a word by Back or a set switch.

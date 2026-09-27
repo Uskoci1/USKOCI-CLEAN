@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { AccessibilityInfo, AppState, Platform, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, Linking, Platform, StyleSheet } from 'react-native';
 import { PushPreferences, PushPreferencesView } from '../../ui/notifications/PushPreferences';
 const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn(), mockReadiness = jest.fn();
 let mockAccount = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
@@ -259,6 +259,22 @@ it('a phone that refuses notifications says so first and reads again when the pe
   expect(button('Uključi obaveštenja na telefonu')).toBeDefined();
   expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
  } finally { spy.mockRestore(); }
+});
+it('failed OS settings launch leaves notification edits intact and never writes consent', async () => {
+ const open = jest.spyOn(Linking, 'openSettings').mockRejectedValueOnce(Error('unavailable')).mockResolvedValue(undefined);
+ try {
+  mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
+  act(() => control('Dogovor i poruke').props.onPress());
+  await act(async () => { button('Podešavanja telefona').props.onPress(); await flush(); });
+  expect(button('Podešavanja telefona').props.error).toContain('Otvaranje podešavanja nije potvrđeno.');
+  expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  await act(async () => { button('Podešavanja telefona').props.onPress(); await flush(); });
+  expect(button('Podešavanja telefona').props.error).toBeNull();
+  expect(open).toHaveBeenCalledTimes(2);
+  expect(mockRead).toHaveBeenCalledTimes(1);
+  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ } finally { open.mockRestore(); }
 });
 it('coming back to the app never reads over unsaved changes', async () => {
  const listeners: ((state: string) => void)[] = [];

@@ -7,6 +7,7 @@ import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReview
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { reviewFactProblem } from '../../data/reviewFactProblem';
 import { rememberPublication } from '../../data/publicationHandoff';
+import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { correctionFromText, factCorrectionValue, factEditorKind, factLabel, factListItems, factReviewValue,
   factTimestampFields, listCorrectionText, timestampCorrectionText } from '../../data/aiNeedV2Ui';
@@ -50,13 +51,14 @@ function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
 }
 
 export default function ReviewedTaskRoute() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; intakeReturn?: string | string[] }>();
   const { user, accountRevision } = useSesija();
   const conversationId = typeof params.conversationId === 'string' && uuid(params.conversationId) ? params.conversationId : null;
-  return <ReviewedTask key={`${user?.id}:${accountRevision}:${conversationId}`} conversationId={conversationId} />;
+  return <ReviewedTask key={`${user?.id}:${accountRevision}:${conversationId}`} conversationId={conversationId}
+    intakeReturn={typeof params.intakeReturn === 'string' ? params.intakeReturn : undefined} />;
 }
 
-function ReviewedTask({ conversationId }: { conversationId: string | null }) {
+function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string | null; intakeReturn?: string }) {
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
@@ -135,14 +137,19 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   }, [conversationId, accountId, accountRevision]);
   const editor = useOwnedEditor(read);
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
-  const view = useMemo(() => ({}), [snapshot, edit, locationEditor, deadlineEditor]), currentView = useRef(view); currentView.current = view;
+  const view = useMemo(() => ({}), [snapshot, edit, locationEditor, deadlineEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => current() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
-  const back = () => navigate(() => conversationId
-    ? router.replace({ pathname: '/nova', params: { conversationId } }) : router.replace('/nova'));
+  const back = () => navigate(() => {
+    if (!conversationId) { router.replace('/nova'); return; }
+    // Keep the original route key: adding the newly assigned conversationId remounted a new
+    // intake and erased its unsent text. Direct/restored reviews still open the canonical ID.
+    const retained = readIntakeReviewReturn(intakeReturn, conversationId);
+    router.replace({ pathname: '/nova', params: retained?.params ?? { conversationId } });
+  });
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
   const unavailableIdentityFact = review?.publicProjection.find(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one

@@ -2,12 +2,14 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskReviewClientService';
 import type { NeedLocationInput } from '../../contracts/location';
+import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
+import { readPublicationHandoff } from '../publicationHandoff';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
 const NEED = '55555555-5555-4555-8555-555555555555';
 let mockSession = { user: { id: OWNER }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true, mockCounter = 0;
-let mockParams: { conversationId?: string | string[] } = { conversationId: CONVERSATION };
+let mockParams: { conversationId?: string | string[]; intakeReturn?: string | string[] } = { conversationId: CONVERSATION };
 const mockLatest = jest.fn(), mockRead = jest.fn(), mockPrepare = jest.fn(), mockAccept = jest.fn(), mockResume = jest.fn();
 const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), mockAlert = jest.fn(), mockDraft = jest.fn();
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
@@ -107,6 +109,44 @@ beforeEach(() => {
   mockLocationRead.mockResolvedValue(ok({ conversationId: CONVERSATION, revision: 'location-r1', value: null, authoritative: true }));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it.each([{}, { entryKey: OTHER }, { conversationId: CONVERSATION }])('returns to the exact retained intake identity: %j', async params => {
+  const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 }, CONVERSATION, params)!;
+  mockParams.intakeReturn = handoff.token;
+  await render();
+  const back = tree.root.findByProps({ accessibilityLabel: 'Nazad u razgovor' }).props.onPress;
+  await act(async () => { back(); back(); });
+  expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params });
+  expect(mockAccept).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+  retireIntakeReviewReturn(handoff);
+});
+
+it.each(['direct', 'external', 'retired', 'wrong-conversation', 'switch', 'ABA'] as const)(
+  'opens the canonical conversation when the review has no current retained intake: %s', async kind => {
+    const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 },
+      kind === 'wrong-conversation' ? OTHER : CONVERSATION, {})!;
+    if (kind !== 'direct') mockParams.intakeReturn = kind === 'external' ? 'external-token' : handoff.token;
+    if (kind === 'retired') retireIntakeReviewReturn(handoff);
+    if (kind === 'switch') mockSession = { user: { id: OTHER }, accountRevision: 2 };
+    if (kind === 'ABA') mockSession = { user: { id: OWNER }, accountRevision: 3 };
+    await render();
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad u razgovor' }).props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockAccept).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+    retireIntakeReviewReturn(handoff);
+  });
+
+it.each(['blur', 'switch', 'ABA'] as const)('rejects a retained review Back callback after %s', async change => {
+  const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 }, CONVERSATION, {})!;
+  mockParams.intakeReturn = handoff.token; await render();
+  const back = tree.root.findByProps({ accessibilityLabel: 'Nazad u razgovor' }).props.onPress;
+  if (change === 'blur') { await blur(); await focus(); }
+  else { mockSession = { user: { id: change === 'switch' ? OTHER : OWNER }, accountRevision: change === 'switch' ? 2 : 3 }; await update(); }
+  await act(async () => back());
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  retireIntakeReviewReturn(handoff);
+});
 
 it('prepares the displayed public and private review with one publish action and no per-fact confirmation', async () => {
   await render();
@@ -215,7 +255,12 @@ it('shows publication only after the current owned Need revision and published s
   expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Prikaži objavljen zadatak').onPress;
   await act(async () => { retained(); retained(); });
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/zadaci', params: { publishedNeedId: NEED, publishedRevision: '1' } });
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/zadaci', params: {
+    publishedNeedId: NEED, publishedRevision: '1', publishedHandoff: expect.stringMatching(/^publication-\d+$/),
+  } });
+  expect(readPublicationHandoff(mockRouter.replace.mock.calls[0][0].params)).toMatchObject({
+    accountId: OWNER, accountRevision: 1, needId: NEED, needRevision: 1,
+  });
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 

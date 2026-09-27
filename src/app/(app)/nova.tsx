@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from '../../contracts/aiNeedV2';
 import { aiNeedV2Izvor } from '../../data';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
+import { rememberIntakeReviewReturn, retireIntakeReviewReturn, type IntakeReviewReturn } from '../../data/intakeReviewReturn';
 import type { Ishod } from '../../data/ports';
 import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -27,7 +28,7 @@ export default function NovaPotrebaV2() {
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
     || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)));
   return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
-    resumeId={resumeId} invalidRoute={invalidRoute} />;
+    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} />;
 }
 
 /** A conversation that has not been started. It is never sent anywhere and never read back. */
@@ -35,7 +36,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   messages: [], facts: [], safety: 'ALLOW',
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
-function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRoute: boolean }) {
+function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; entryKey?: string; invalidRoute: boolean }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
@@ -47,9 +48,13 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const reviewReturn = useRef<IntakeReviewReturn | null>(null);
+  useEffect(() => () => retireIntakeReviewReturn(reviewReturn.current), []);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false;
+    // A completed return (including Android Back) cannot be reused by an older review route.
+    retireIntakeReviewReturn(reviewReturn.current); reviewReturn.current = null;
     // Leaving retires an open question: its answer checks this focus and would do nothing any more.
     return () => { if (focus.current === scope) focus.current = null; retireConfirmation();
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); };
@@ -311,6 +316,10 @@ function OwnedIntake({ resumeId, invalidRoute }: { resumeId?: string; invalidRou
     } }}
     onReview={() => {
       if (!canAct() || !razgovorId || request.current) return;
-      navigate(() => router.push({ pathname: '/pregled-zadatka', params: { conversationId: razgovorId } }));
+      const handoff = rememberIntakeReviewReturn({ accountId: accountId!, accountRevision }, razgovorId,
+        { ...(resumeId ? { conversationId: resumeId } : {}), ...(entryKey ? { entryKey } : {}) });
+      if (!handoff) return;
+      reviewReturn.current = handoff;
+      navigate(() => router.push({ pathname: '/pregled-zadatka', params: { conversationId: razgovorId, intakeReturn: handoff.token } }));
     }} />{confirmation.sheet}</>;
 }

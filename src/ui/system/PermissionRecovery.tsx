@@ -1,7 +1,8 @@
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { sys } from './tokens';
+import { SystemSettingsAction } from './SystemSettingsAction';
 
 /**
  * Recovery after a denied device permission (owner decision 4, 2026-09-16):
@@ -19,7 +20,7 @@ export function PermissionRecovery({ message, alternative, onAlternative, compac
   return <View style={[s.box, compact && s.compact]} accessibilityLiveRegion="polite">
     <T variant="meta" style={s.copy}>{message}</T>
     <View style={s.actions}>
-      <V2Action label="Podešavanja telefona" onPress={() => { void Linking.openSettings().catch(() => undefined); }} />
+      <SystemSettingsAction />
       {alternative && onAlternative ? <V2Action label={alternative} kind="quiet" onPress={onAlternative} /> : null}
     </View>
   </View>;
