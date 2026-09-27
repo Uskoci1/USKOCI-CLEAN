@@ -1,0 +1,167 @@
+import React from 'react';
+import { Linking } from 'react-native';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { LocationOverviewMap } from '../LocationOverviewMap';
+import { LocationOverviewMap as WebOverview } from '../LocationOverviewMap.web';
+import { LOCATION_MAP_CREDITS, overviewDisplayPoints, type LocationOverviewMapProps } from '../LocationOverviewMap.types';
+
+let mockFocused = true, mockStyle: string | null = 'https://tiles.openfreemap.org/styles/positron';
+let mockSession: { user: { id: string } | null; accountRevision: number } = { user: { id: 'account-a' }, accountRevision: 1 };
+const mockJump = jest.fn(), mockFit = jest.fn(), mockSelect = jest.fn();
+const mockListeners = new Set<(state: string) => void>();
+const mockApp = { currentState: 'active', addEventListener: (_: string, listener: (state: string) => void) => {
+  mockListeners.add(listener); return { remove: () => mockListeners.delete(listener) };
+} };
+jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => unknown) => require('react').useEffect(
+  () => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+jest.mock('../../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
+jest.mock('../mapStyle', () => ({ useMapStyle: () => mockStyle }));
+jest.mock('@maplibre/maplibre-react-native', () => ({ Map: 'NativeMap', Marker: 'NativeMarker',
+  Camera: require('react').forwardRef((props: object, ref: unknown) => {
+    require('react').useImperativeHandle(ref, () => ({ jumpTo: mockJump, fitBounds: mockFit }));
+    return require('react').createElement('NativeCamera', props);
+  }),
+}));
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  return new Proxy(native, { get(target, key) {
+    if (key === 'AppState') return mockApp;
+    return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
+  } });
+});
+jest.mock('../../Text', () => ({ T: 'T' }));
+jest.mock('../../Press', () => ({ Press: 'Press' }));
+jest.mock('../../entry/BrandAssets', () => ({ BrandMark: 'BrandMark' }));
+jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
+
+let tree: ReactTestRenderer;
+const first = { id: 'a', label: 'Preuzimanje', latitude: 45.123456, longitude: 19.654321 };
+const second = { id: 'b', label: 'Isporuka', latitude: 44.812345, longitude: 20.432109 };
+const initial: LocationOverviewMapProps = { points: [first, second], scopeKey: 'account-a:agreement:rev1',
+  coarse: false, interactive: true, height: 280, onSelectPoint: mockSelect };
+const maps = () => tree.root.findAllByType('NativeMap' as React.ElementType);
+const markers = () => tree.root.findAllByType('NativeMarker' as React.ElementType);
+const camera = () => tree.root.findByType('NativeCamera' as React.ElementType);
+const words = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
+const render = async (props: Partial<LocationOverviewMapProps> = {}) => act(async () => { tree = create(<LocationOverviewMap {...initial} {...props} />); });
+const update = async (props: Partial<LocationOverviewMapProps> = {}) => act(async () => tree.update(<LocationOverviewMap {...initial} {...props} />));
+async function ready() {
+  await act(async () => {
+    tree.root.findByProps({ testID: 'location-overview-frame' }).props.onLayout({ nativeEvent: { layout: { width: 320, height: 280 } } });
+    maps()[0].props.onDidFinishLoadingMap();
+  });
+}
+beforeEach(() => {
+  jest.useFakeTimers(); jest.clearAllMocks(); mockFocused = true; mockStyle = 'https://tiles.openfreemap.org/styles/positron';
+  mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockApp.currentState = 'active';
+  mockJump.mockReset(); mockFit.mockReset();
+});
+afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); jest.useRealTimers(); });
+
+it('rounds all coarse native geometry before map/camera props and fits every confirmed stop', async () => {
+  await render({ coarse: true }); await ready();
+  expect(markers().map(marker => marker.props.lngLat)).toEqual([[19.65, 45.12], [20.43, 44.81]]);
+  expect(camera().props.initialViewState).toEqual({ center: [19.65, 45.12], zoom: 10 });
+  expect(mockFit).toHaveBeenCalledWith([19.65, 44.81, 20.43, 45.12], {
+    padding: { top: 52, bottom: 52, left: 52, right: 52 }, duration: 0,
+  });
+  expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('19.654321');
+  expect(tree.root.findAllByType('BrandMark' as React.ElementType)).toHaveLength(2);
+});
+
+it('groups coincident rounded stops without dropping numbers and uses one actual center', async () => {
+  await render({ coarse: true, points: [first, { ...second, latitude: 45.123499, longitude: 19.654399 }], selectedId: 'b' }); await ready();
+  expect(markers()).toHaveLength(1); expect(words()).toContain('1, 2');
+  expect(mockJump).toHaveBeenCalledWith(expect.objectContaining({ center: [19.65, 45.12], zoom: 10 }));
+  expect(mockFit).not.toHaveBeenCalled();
+  await act(async () => markers()[0].props.onPress()); expect(mockSelect).toHaveBeenCalledWith('b');
+});
+
+it('does not refit for equal refreshed rows and disables preview gestures and selection', async () => {
+  await render(); await ready(); mockFit.mockClear();
+  await update({ points: initial.points.map(point => ({ ...point })), interactive: false });
+  expect(mockFit).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+  expect(maps()[0].props).toMatchObject({ dragPan: false, touchZoom: false, doubleTapZoom: false, doubleTapHoldZoom: false, touchPitch: false, touchRotate: false });
+  await act(async () => markers()[0].props.onPress()); expect(mockSelect).not.toHaveBeenCalled();
+});
+
+it('centers a deliberately selected coarse stop, preserves its pan on equal props, then fits all on deselection', async () => {
+  await render({ coarse: true }); await ready(); mockFit.mockClear();
+  await update({ coarse: true, selectedId: 'b' });
+  expect(mockJump).toHaveBeenCalledTimes(1);
+  expect(mockJump).toHaveBeenLastCalledWith({ center: [20.43, 44.81], zoom: 10,
+    padding: { top: 52, bottom: 52, left: 52, right: 52 } });
+  expect(mockFit).not.toHaveBeenCalled();
+  await update({ coarse: true, selectedId: 'b', points: initial.points.map(point => ({ ...point })), onSelectPoint: () => undefined });
+  expect(mockJump).toHaveBeenCalledTimes(1); expect(mockFit).not.toHaveBeenCalled();
+  await update({ coarse: true });
+  expect(mockJump).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenLastCalledWith([19.65, 44.81, 20.43, 45.12], expect.objectContaining({ duration: 0 }));
+});
+
+it('never creates a fallback pin for empty or invalid geometry and preserves source stop numbers', async () => {
+  await render({ points: [] }); expect(maps()).toHaveLength(0); expect(words()).toContain('Nema potvrđenih tačaka');
+  await update({ points: [{ ...first, latitude: NaN }, { ...second, longitude: 181 }] }); expect(maps()).toHaveLength(0);
+  expect(overviewDisplayPoints([{ ...first, latitude: NaN }, second], true)).toEqual([{ ...second, latitude: 44.81, longitude: 20.43, number: 2 }]);
+  await update({ points: [{ ...first, latitude: NaN }, second] });
+  expect(markers()).toHaveLength(1); expect(words()).toContain('Neka mesta nemaju potvrđenu tačku');
+});
+
+it('waits for the style, times out, retries explicitly, and rejects late success from the retired map', async () => {
+  mockStyle = null; await render(); expect(maps()).toHaveLength(0);
+  mockStyle = 'https://tiles.openfreemap.org/styles/positron'; await update(); const old = maps()[0].props;
+  await act(async () => jest.advanceTimersByTime(15_000)); expect(words()).toContain('Mapa nije učitana');
+  await act(async () => old.onDidFinishLoadingMap()); expect(maps()).toHaveLength(0);
+  await act(async () => tree.root.findByType('Action' as React.ElementType).props.onPress());
+  expect(maps()).toHaveLength(1); await ready();
+  await act(async () => old.onDidFailLoadingMap()); expect(maps()).toHaveLength(1);
+});
+
+it('treats a native loading failure as terminal for that attempt and gates logout before a rerender', async () => {
+  await render(); const old = maps()[0].props;
+  await act(async () => old.onDidFailLoadingMap()); expect(maps()).toHaveLength(0);
+  await act(async () => old.onDidFinishLoadingMap()); expect(words()).toContain('Mapa nije učitana');
+  await act(async () => tree.root.findByType('Action' as React.ElementType).props.onPress()); await ready();
+  const select = markers()[0].props.onPress;
+  mockSession = { user: null, accountRevision: 2 };
+  await act(async () => select()); expect(mockSelect).not.toHaveBeenCalled();
+  await update(); expect(maps()).toHaveLength(0);
+});
+
+it.each(['blur', 'scope', 'geometry-ABA', 'account-ABA', 'background'] as const)('retires native callbacks and point selection after %s', async change => {
+  await render(); await ready(); const oldMap = maps()[0].props, oldMarker = markers()[0].props;
+  if (change === 'blur') { mockFocused = false; await update(); expect(maps()).toHaveLength(0); mockFocused = true; await update(); }
+  else if (change === 'scope') await update({ scopeKey: 'account-a:other:rev2' });
+  else if (change === 'geometry-ABA') { await update({ points: [second] }); await update(); }
+  else if (change === 'account-ABA') {
+    mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+    mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
+  } else {
+    await act(async () => { mockApp.currentState = 'background'; mockListeners.forEach(listener => listener('background')); });
+    expect(maps()).toHaveLength(0);
+    await act(async () => { mockApp.currentState = 'active'; mockListeners.forEach(listener => listener('active')); });
+  }
+  await act(async () => { oldMarker.onPress(); oldMap.onDidFinishLoadingMap(); oldMap.onDidFailLoadingMap(); });
+  expect(mockSelect).not.toHaveBeenCalled(); expect(words()).toContain('Učitavamo mapu');
+  await ready(); expect(maps()).toHaveLength(1);
+});
+
+it.each(['rejection', 'synchronous throw'] as const)('keeps all official credits visible and reports a current link %s', async failure => {
+  jest.spyOn(Linking, 'openURL').mockImplementation(() => {
+    if (failure === 'synchronous throw') throw new Error('offline');
+    return Promise.reject(new Error('offline'));
+  });
+  await render(); const links = tree.root.findAllByType('Press' as React.ElementType);
+  expect(links.map(link => link.props.accessibilityLabel)).toEqual(LOCATION_MAP_CREDITS.map(credit => credit.text));
+  await act(async () => links[0].props.onPress());
+  expect(Linking.openURL).toHaveBeenCalledWith('https://www.openstreetmap.org/copyright');
+  expect(words()).toContain('Veza ka izvoru mape nije otvorena');
+});
+
+it('web fallback discloses no coordinates and imports no rendered native map', async () => {
+  await act(async () => { tree = create(<WebOverview {...initial} />); });
+  expect(maps()).toHaveLength(0); expect(words()).toContain('Mapa je dostupna u mobilnoj aplikaciji');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
+});

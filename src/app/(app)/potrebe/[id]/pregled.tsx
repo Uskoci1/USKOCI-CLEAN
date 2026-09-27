@@ -10,7 +10,7 @@ import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } f
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
-import { ResolvedPinMap } from '../../../../ui/location/ResolvedPinMap';
+import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
 import { NeedLifecycleActions, needLifecycleEntries, type NeedLifecycleMenu } from '../../../../ui/needs/NeedLifecycleActions';
 import type { SheetAction } from '../../../../ui/system/ActionSheet';
@@ -198,9 +198,9 @@ function OwnedNeed({ id }: { id: string }) {
 
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
-    map={potreba?.priblizno
-      ? <ResolvedPinMap position={{ latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }} coarse disabled height={184}
-        onChoose={() => {}} scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
+    map={potreba?.priblizno && !ucitava && !greska
+      ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }]} coarse height={184}
+        scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
       : undefined}
     qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
       onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}

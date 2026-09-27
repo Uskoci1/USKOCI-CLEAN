@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import { locationSlots } from '../../lib/location';
+import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
+import { Press } from '../Press';
 import { V2Action as Button } from '../v2/V2Action';
 import { LocationPointEditor } from './LocationPointEditor';
 import { useConfirmSheet } from '../system/ConfirmSheet';
+import { sys } from '../system/tokens';
 
 /**
  * The conversation asks for the map point instead of waiting for the person to discover a form.
@@ -50,6 +54,13 @@ type State =
   | { kind: 'SAVED' };
 
 export function ConversationPointAsk(props: { conversationId: string; onSaved: () => void; onClose: () => void }) {
+  const { user, accountRevision } = useSesija();
+  return <OwnedPointAsk key={`${user?.id}:${accountRevision}:${props.conversationId}`} {...props}
+    accountId={user?.id} accountRevision={accountRevision} />;
+}
+
+function OwnedPointAsk(props: { conversationId: string; onSaved: () => void; onClose: () => void;
+  accountId: string | undefined; accountRevision: number }) {
   // Without this the point editor falls back to an unconfigured resolver, which answers
   // PROVIDER_ACTIVATION_BLOCKED without making a request at all: the search never leaves the
   // device, no candidate arrives, no pin is placed, and the map sits at [0,0] zoom 1 showing
@@ -58,18 +69,40 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   useEffect(() => () => resolver.cancel(), [resolver]);
   const [state, setState] = useState<State>({ kind: 'LOADING' });
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>([]);
+  const [selected, setSelected] = useState<LocationSlot | null>(null);
+  const [pendingSlot, setPendingSlot] = useState<LocationSlot | null>(null);
+  const [editorEpoch, setEditorEpoch] = useState(0);
+  const [focusVisit, setFocusVisit] = useState<object | null>(null);
+  const focused = focusVisit !== null;
+  const focus = useRef(false), focusEpoch = useRef(0), saving = useRef(false), loadEpoch = useRef(0);
+  const view = useRef<object | null>(null);
+  const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit]); view.current = renderedView;
+  const renderedFocus = focusEpoch.current;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  const confirmation = useConfirmSheet();
+  const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
+  const ownsAccount = useCallback(() => alive.current && !!props.accountId
+    && sesijaSada().user?.id === props.accountId && sesijaSada().accountRevision === props.accountRevision,
+  [props.accountId, props.accountRevision]);
+  useFocusEffect(useCallback(() => {
+    focus.current = true; focusEpoch.current++; setFocusVisit({});
+    return () => { focus.current = false; focusEpoch.current++; view.current = null; setFocusVisit(null); resolver.cancel(); closeConfirmation(); };
+  }, [resolver, closeConfirmation]));
+  const canAct = () => ownsAccount() && focus.current && renderedFocus === focusEpoch.current
+    && view.current === renderedView && !saving.current;
 
   const load = useCallback(async () => {
+    if (!ownsAccount() || saving.current) return;
+    const epoch = ++loadEpoch.current;
     setState({ kind: 'LOADING' });
-    const result = await needLocationClientService.read(props.conversationId);
-    if (!alive.current) return;
+    const result = await needLocationClientService.read(props.conversationId).catch(() => ({ ok: false as const,
+      kod: 'NEED_LOCATION_READ_FAILED', poruka: 'Mesto nije učitano. Pokušaj ponovo.' }));
+    if (!ownsAccount() || epoch !== loadEpoch.current) return;
     if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka }); return; }
     setPoints(result.podatak.value.resolvedLocation?.points ?? []);
+    setSelected(null); setPendingSlot(null); setEditorEpoch(value => value + 1);
     setState({ kind: 'READY', review: result.podatak });
-  }, [props.conversationId]);
+  }, [props.conversationId, ownsAccount]);
   useEffect(() => { void load(); }, [load]);
 
   const review = state.kind === 'READY' || state.kind === 'SAVING' ? state.review : state.kind === 'FAILED' ? state.review ?? null : null;
@@ -78,12 +111,17 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   const slots = geography ? locationSlots(geography) : [];
   const placed = new Set(points.map(point => point.slot));
   const next = slots.find(slot => !placed.has(slot));
+  const activeSlot = selected && slots.includes(selected) ? selected : next ?? slots[0];
 
   const commit = useCallback(async (all: readonly ConfirmedLocationPoint[], current: NeedLocationReview) => {
+    if (!ownsAccount() || !focus.current || saving.current || !current.editable
+      || current.accountId !== props.accountId || current.conversationId !== props.conversationId) return;
     if (!current.value.taskCountryCode || !current.value.geography) {
       setState({ kind: 'FAILED', message: 'Zadatku još fali država ili mesto. Dopuni ih u razgovoru pa se vrati.' });
       return;
     }
+    saving.current = true;
+    const visit = focusEpoch.current;
     setState({ kind: 'SAVING', review: current });
     const result = await needLocationClientService.save({
       conversationId: props.conversationId, expectedRevision: current.revision, confirmed: true,
@@ -96,25 +134,43 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
           binding: { taskCountryCode: current.value.taskCountryCode, geography: current.value.geography,
             exactAddress: current.value.exactAddress } },
       },
-    });
-    if (!alive.current) return;
+    }).catch(() => ({ ok: false as const, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED',
+      poruka: 'Čuvanje mesta nije potvrđeno. Potvrđene tačke su ostale za ponovni pokušaj.' }));
+    saving.current = false;
+    if (!ownsAccount()) return;
     if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return; }
     setState({ kind: 'SAVED' });
-    props.onSaved();
-  }, [props]);
+    if (focus.current && focusEpoch.current === visit) props.onSaved();
+  }, [props, ownsAccount]);
 
   // Each point is confirmed by hand. The last one commits, because a confirmation the person
   // then has to remember to save is a confirmation that gets lost.
   const confirm = (point: ConfirmedLocationPoint) => {
-    if (!review) return;
+    if (!canAct() || state.kind !== 'READY' || !review?.editable || point.slot !== activeSlot || !slots.includes(point.slot)) return;
+    view.current = null;
     const all = [...points.filter(existing => existing.slot !== point.slot), point];
-    setPoints(all);
-    if (slots.every(slot => all.some(existing => existing.slot === slot))) void commit(all, review);
+    const complete = slots.every(slot => all.some(existing => existing.slot === slot));
+    setPoints(all); setPendingSlot(null); setSelected(complete ? point.slot : null);
+    if (complete) void commit(all, review);
+  };
+
+  const select = (slot: LocationSlot) => {
+    if (!canAct() || state.kind !== 'READY' || !review?.editable || !slots.includes(slot) || slot === activeSlot) return;
+    const open = () => {
+      if (!canAct()) return;
+      view.current = null; resolver.cancel();
+      setSelected(slot); setPendingSlot(null); setEditorEpoch(value => value + 1);
+    };
+    if (pendingSlot) confirmation.ask({ title: 'Izmena tačke nije potvrđena',
+      message: 'Ako pređeš na drugu tačku, ova izmena se odbacuje. Prethodno potvrđene tačke ostaju.',
+      cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Pređi na drugu tačku', onConfirm: open });
+    else open();
   };
 
   // Leaving with a point confirmed but not yet committed threw it away without a word. Only the
   // last point of a set commits, so on a two-point task that is exactly what "Kasnije" did.
   const leave = () => {
+    if (!canAct()) return;
     if (!points.length || state.kind === 'SAVED') { props.onClose(); return; }
     // A route with stops can hold several confirmed points when the person leaves; the words follow the number.
     const one = points.length === 1;
@@ -123,7 +179,7 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
       message: one
         ? 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.'
         : 'Tačke su potvrđene, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ove tačke se gube.',
-      cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: props.onClose });
+      cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: () => { if (canAct()) props.onClose(); } });
   };
 
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
@@ -137,13 +193,13 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   if (state.kind === 'FAILED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
     {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
-    {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { void commit(points, review); }} /> : null}
+    {points.length && review ? <Button label="Sačuvaj ponovo" onPress={() => { if (canAct()) void commit(points, review); }} /> : null}
     {points.length
       // `load()` puts the saved place back over the points on screen, so the saved place is what replaces.
       ? <Button kind="quiet" label="Učitaj sačuvano mesto" onPress={() => confirmation.ask({ title: 'Učitaj sačuvano mesto?',
         message: 'Poslednje sačuvano mesto zameniće potvrđene tačke koje još nisu sačuvane.',
-        cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { void load(); } })} />
-      : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { void load(); }} />}
+        cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { if (canAct()) void load(); } })} />
+      : <Button kind="quiet" label="Pokušaj ponovo" onPress={() => { if (canAct()) void load(); }} />}
     <Button kind="quiet" label="Zatvori" onPress={leave} />
     {confirmation.sheet}
   </View>;
@@ -168,15 +224,33 @@ export function ConversationPointAsk(props: { conversationId: string; onSaved: (
   return <View style={{ gap: 14 }}>
     <T accessibilityRole="header" variant="title">Gde tačno?</T>
     <T tone="muted">Ovo vidi samo onaj s kim se dogovoriš. Kad se pin pojavi, potvrdi ga ili ga prevuci na tačno mesto.</T>
-    {slots.length > 1
-      ? <T variant="meta" tone="muted">{`Potvrđeno ${points.filter(point => slots.includes(point.slot)).length} od ${slots.length}`}</T>
-      : null}
+    <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+      {slots.map(slot => {
+        const pending = pendingSlot === slot;
+        const status = pending ? 'Čeka potvrdu' : placed.has(slot) ? 'Potvrđeno' : 'Nije potvrđeno';
+        const label = title(slot, geography), place = points.find(point => point.slot === slot)?.address || seed(slot, review.value);
+        return <Press key={slot} accessibilityRole="radio" accessibilityLabel={`${label}${place ? `, ${place}` : ''}, ${status}`}
+          accessibilityState={{ selected: slot === activeSlot, disabled: state.kind === 'SAVING' || !focused }}
+          disabled={state.kind === 'SAVING' || !focused} onPress={() => select(slot)} haptic="select"
+          style={{ minHeight: 56, padding: 12, gap: 4, borderRadius: sys.radius.control, borderWidth: 1,
+            borderColor: slot === activeSlot ? sys.color.green : sys.color.line,
+            backgroundColor: slot === activeSlot ? sys.color.greenSoft : sys.color.surface }}>
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <T variant="bodyStrong" style={{ flex: 1 }}>{label}</T>
+            <T variant="note" style={{ flexShrink: 1 }} tone={placed.has(slot) && !pending ? 'success' : 'muted'}>{status}</T>
+          </View>
+          {place ? <T variant="note" tone="muted">{place}</T> : null}
+        </Press>;
+      })}
+    </View>
     {state.kind === 'SAVING' ? <T accessibilityLiveRegion="polite" tone="muted">Čuvam mesto…</T> : null}
-    {next ? <LocationPointEditor key={next} slot={next} title={title(next, geography)}
-      point={points.find(point => point.slot === next)} scopeKey={`${review.conversationId}:${review.revision}`}
-      countryCode={country} initialQuery={seed(next, review.value)} autoLocate resolver={resolver}
-      disabled={state.kind === 'SAVING'} onInvalidate={() => {}} onConfirm={confirm} /> : null}
-    <Button kind="quiet" label="Kasnije" onPress={leave} />
+    {activeSlot ? <LocationPointEditor key={`${editorEpoch}:${activeSlot}`} slot={activeSlot} title={title(activeSlot, geography)}
+      point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
+      countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate resolver={resolver}
+      disabled={state.kind === 'SAVING' || !focused} onInvalidate={() => {
+        if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);
+      }} onConfirm={confirm} /> : null}
+    <Button kind="quiet" label="Kasnije" disabled={state.kind === 'SAVING'} onPress={leave} />
     {confirmation.sheet}
   </View>;
 }

@@ -24,7 +24,7 @@ jest.mock('react-native', () => {
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 // The old Button is gone (2026-09-24); the private-location actions are V2Action, drawn here under the same name.
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
-jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
+jest.mock('../../ui/location/LocationMapPreview', () => ({ LocationMapPreview: 'PrivateMap' }));
 import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 const at = '2026-09-10T12:00:00Z';
 function state(granted = true, expiresAt: string | null = null): LocationGrantState {
@@ -65,10 +65,10 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     await press('Prikaži privatnu lokaciju');
     expect(mockRead).toHaveBeenCalledTimes(2); expect(content()).toContain('PRIVATE START'); expect(content()).toContain('PRIVATE END');
     expect(content()).toContain('PRIVATE ACCESS');
-    expect(tree.root.findAllByProps({ selectable: true })[0].children.join('')).toBe('0.000000, 0.000000');
-    expect(tree.root.findByType('PrivateMap' as React.ElementType).props).toMatchObject({ disabled: true, position: { latitude: 0, longitude: 0 } });
-    await press('Prikaži na mapi: Završno mesto');
-    expect(tree.root.findByType('PrivateMap' as React.ElementType).props.position).toEqual({ latitude: 45.271234, longitude: 19.831234 });
+    expect(tree.root.findByType('PrivateMap' as React.ElementType).props).toMatchObject({ route: true, points: [
+      { id: 'start', latitude: 0, longitude: 0 }, { id: 'end', latitude: 45.271234, longitude: 19.831234 },
+    ] });
+    expect(content()).not.toContain('0.000000, 0.000000');
   });
   it('does not reveal when the grant is absent or belongs to different participants', async () => {
     mockRead.mockResolvedValueOnce({ ok: true, podatak: state(false) }); await render();

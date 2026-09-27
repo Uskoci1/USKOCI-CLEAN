@@ -16,6 +16,11 @@ import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
  */
 
 const CONVERSATION = '22222222-2222-4222-8222-222222222222';
+let mockFocused = true;
+let mockSession = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
+jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => require('react').useEffect(
+  () => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 const route = { mode: 'POINT_TO_POINT' as const, start: { city: 'Novi Sad', area: 'Lenke Dunđerski' },
   end: { city: 'Petrovaradin', area: 'Petrovaradinska tvrđava' } };
 
@@ -86,6 +91,7 @@ describe('the conversation point ask', () => {
   let tree: ReactTestRenderer | undefined;
   beforeEach(() => {
     mockRead.mockReset(); mockSave.mockReset();
+    mockFocused = true; mockSession = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
     mockRead.mockResolvedValue({ ok: true, podatak: review() });
     mockSave.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, review: review([point('start'), point('end')]) } });
   });
@@ -96,6 +102,107 @@ describe('the conversation point ask', () => {
     return { onSaved, onClose };
   };
   const editor = () => tree!.root.findByType(LocationPointEditor);
+  const slots = () => tree!.root.findAll(node => node.props.accessibilityRole === 'radio');
+  const choose = async (label: string) => { await act(async () => {
+    slots().find(node => node.props.accessibilityLabel.startsWith(`${label},`))!.props.onPress();
+  }); };
+
+  it('shows each actual route point separately with one active map and allows choosing the destination first', async () => {
+    await mount();
+    expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
+      'Polazište, Lenke Dunđerski 11, Novi Sad, Nije potvrđeno',
+      'Odredište, Petrovaradinska tvrđava, Petrovaradin, Nije potvrđeno',
+    ]);
+    expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(1);
+    await choose('Odredište');
+    expect(editor().props.slot).toBe('end');
+    expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('shows one work-place row for a stationary task without inventing another point', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
+      geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } } } } });
+    await mount();
+    expect(slots()).toHaveLength(1);
+    expect(slots()[0].props.accessibilityLabel).toBe('Mesto rada, Lenke Dunđerski 11, Novi Sad, Nije potvrđeno');
+    expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('reopens a confirmed point without changing it and saves its moved replacement only after explicit confirmation', async () => {
+    await mount();
+    await act(async () => editor().props.onConfirm(point('start')));
+    await choose('Polazište');
+    expect(editor().props.point).toEqual(point('start'));
+    expect(slots()[0].props.accessibilityLabel).toContain('Potvrđeno');
+    expect(mockSave).not.toHaveBeenCalled();
+    await act(async () => editor().props.onInvalidate());
+    expect(editor().props.point).toEqual(point('start'));
+    expect(slots()[0].props.accessibilityLabel).toContain('Čeka potvrdu');
+    const moved = { ...point('start'), latitudeE6: 45_260_000 };
+    await act(async () => editor().props.onConfirm(moved));
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(editor().props.slot).toBe('end');
+    await act(async () => editor().props.onConfirm(point('end')));
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([moved, point('end')]);
+  });
+
+  it('asks before switching away from an unconfirmed edit and retains the previous confirmed point when discarded', async () => {
+    await mount();
+    await act(async () => editor().props.onConfirm(point('start')));
+    await choose('Polazište');
+    await act(async () => editor().props.onInvalidate());
+    await choose('Odredište');
+    expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
+    await act(async () => tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
+    expect(editor().props.slot).toBe('start');
+    await choose('Odredište');
+    await act(async () => tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+    expect(editor().props.slot).toBe('end'); expect(mockSave).not.toHaveBeenCalled();
+    await choose('Polazište');
+    expect(editor().props.point).toEqual(point('start'));
+    expect(slots()[0].props.accessibilityLabel).toContain('Potvrđeno');
+  });
+
+  it('keeps multi-stop slot order and seeds each stop from its own server geography', async () => {
+    const stops = { mode: 'MULTI_STOP' as const, start: { city: 'A' }, waypoints: [{ city: 'B' }, { city: 'C' }], end: { city: 'D' } };
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value, geography: stops, exactAddress: null } } });
+    await mount();
+    expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
+      'Polazište, A, Nije potvrđeno', 'Stanica 1, B, Nije potvrđeno', 'Stanica 2, C, Nije potvrđeno', 'Odredište, D, Nije potvrđeno',
+    ]);
+    await choose('Stanica 2'); expect(editor().props.slot).toBe('waypoints/1'); expect(editor().props.initialQuery).toBe('C');
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('rejects an older slot callback and repeated final confirmation while a save is in flight', async () => {
+    let settle!: (value: unknown) => void;
+    mockSave.mockReturnValueOnce(new Promise(resolve => { settle = resolve; }));
+    await mount(); const old = editor().props.onConfirm;
+    await choose('Odredište');
+    await act(async () => old(point('start')));
+    expect(editor().props.slot).toBe('end'); expect(editor().props.point).toBeUndefined();
+    await act(async () => editor().props.onConfirm(point('end')));
+    const final = editor().props.onConfirm;
+    await act(async () => { final(point('start')); final(point('start')); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    await act(async () => settle({ ok: true, podatak: { saved: true, idempotentReplay: false, review: review([point('start'), point('end')]) } }));
+  });
+
+  it.each(['blur', 'blur-refocus', 'ABA'] as const)('rejects retained map confirmation after %s', async reason => {
+    const callbacks = await mount(); const old = editor().props.onConfirm;
+    if (reason !== 'ABA') mockFocused = false;
+    else mockSession = { user: { id: mockSession.user.id }, accountRevision: 3 };
+    await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} />));
+    if (reason === 'blur-refocus') {
+      mockFocused = true;
+      await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} />));
+    }
+    await act(async () => old(point('start')));
+    expect(mockSave).not.toHaveBeenCalled();
+    if (reason === 'ABA') expect(editor().props.point).toBeUndefined();
+  });
 
   it('reads the location review for its own conversation', async () => {
     await mount();

@@ -102,8 +102,9 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Mesto zadatka');
     expect(text()).toContain('Približno područje. Tačna adresa se deli tek u Dogovoru.');
     const map = tree!.root.findByProps({ coarse: true });
-    expect(map.props.position).toEqual({ latitude: 45.2671, longitude: 19.8335 });
-    expect(map.props.disabled).toBe(true);
+    expect(map.props.points).toEqual([{ id: 'area', label: 'Približno mesto', latitude: 45.2671, longitude: 19.8335 }]);
+    expect(map.props.coarse).toBe(true);
+    expect(map.props.route).toBeUndefined();
 
     await act(async () => { tree!.unmount(); }); tree = undefined;
     mockLoad.mockResolvedValue(detail());

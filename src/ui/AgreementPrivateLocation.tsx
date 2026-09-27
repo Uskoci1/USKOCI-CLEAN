@@ -11,7 +11,8 @@ import { FactArt } from './system/FactArt';
 import { vreme } from '../lib/vreme';
 import { V2Action } from './v2/V2Action';
 import { T } from './Text';
-import { ResolvedPinMap } from './location/ResolvedPinMap';
+import { LocationMapPreview } from './location/LocationMapPreview';
+import { locationSlots } from '../lib/location';
 
 type Props = { agreement: DogovorProjekcija; enabled: boolean };
 type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | null };
@@ -131,11 +132,15 @@ const quietStart = { alignSelf: 'flex-start' } as const;
 const slotLabel = (slot: string) => slot === 'start' ? 'Početno mesto' : slot === 'end' ? 'Završno mesto'
   : slot === 'serviceArea' ? 'Područje rada' : `Usputno mesto ${Number(slot.split('/')[1]) + 1}`;
 function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: string }) {
-  const points = value.resolvedLocation?.value.points ?? [];
-  const [selected, setSelected] = useState(points[0]?.slot);
-  const point = points.find(item => item.slot === selected);
-  const position = point ? { latitude: point.latitudeE6 / 1e6, longitude: point.longitudeE6 / 1e6 } : value.exactPosition;
+  const resolved = value.resolvedLocation?.value;
+  const slots = resolved ? locationSlots(resolved.binding.geography) : [];
+  const points = slots.flatMap(slot => resolved?.points.find(point => point.slot === slot) ?? []);
+  const mapPoints = points.map(point => ({ id: point.slot, label: slotLabel(point.slot),
+    latitude: point.latitudeE6 / 1e6, longitude: point.longitudeE6 / 1e6 }));
+  if (!mapPoints.length && value.exactPosition) mapPoints.push({ id: 'start', label: 'Mesto zadatka', ...value.exactPosition });
+  const route = !!resolved && ['POINT_TO_POINT', 'MULTI_STOP'].includes(resolved.binding.geography.mode) && points.length === slots.length;
   return <View style={s.stack}>
+    {mapPoints.length ? <LocationMapPreview points={mapPoints} scopeKey={scope} route={route} height={220} /> : null}
     {value.adresa ? <T>{value.adresa}</T> : null}
     {value.accessNotes ? <T variant="meta">{value.accessNotes}</T> : null}
     {/* Each point is a bare row parted by a hairline; the section around it is the only box. */}
@@ -143,11 +148,8 @@ function PrivatePoints({ value, scope }: { value: ExactLocationReveal; scope: st
       <T variant="bodyStrong">{slotLabel(item.slot)}</T>
       {item.address ? <T>{item.address}</T> : null}
       {item.accessNotes ? <T variant="meta">{item.accessNotes}</T> : null}
-      <T variant="meta" tone="muted" selectable>{(item.latitudeE6 / 1e6).toFixed(6)}, {(item.longitudeE6 / 1e6).toFixed(6)}</T>
-      {points.length > 1 ? <V2Action label={`Prikaži na mapi: ${slotLabel(item.slot)}`} kind="quiet" style={quietStart}
-        disabled={selected === item.slot} onPress={() => setSelected(item.slot)} /> : null}
     </View>)}
-    {position ? <ResolvedPinMap position={position} onChoose={() => {}} disabled scopeKey={`${scope}:${selected ?? 'legacy'}`} /> : null}
+    {points.length < slots.length ? <T variant="meta" tone="muted">Nisu potvrđene sve tačke putanje.</T> : null}
   </View>;
 }
 

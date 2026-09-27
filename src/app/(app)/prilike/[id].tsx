@@ -1,6 +1,6 @@
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
 import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
-import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
+import { LocationMapPreview } from '../../../ui/location/LocationMapPreview';
 import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
 import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
 import { Avatar } from '../../../ui/system/Avatar';
@@ -153,8 +153,8 @@ export default function PrilikaDetaljiEkran() {
     }} /> : undefined}
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     map={fresh && fresh.priblizno && !resource.loading && !resource.error
-      ? <ResolvedPinMap position={{ latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }} coarse disabled height={184}
-        onChoose={() => {}} scopeKey={`${accountId}:${epoch}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
+      ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}
+        scopeKey={`${accountId}:${epoch}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
       : undefined}
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
