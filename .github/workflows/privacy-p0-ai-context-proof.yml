@@ -1,0 +1,151 @@
+name: Privacy P0 AI provider context minimization
+
+on:
+  push:
+    branches:
+      - work/legal-privacy-ai-context-minimization-20260927
+    paths:
+      - 'src/contracts/needFactsV2.ts'
+      - 'src/data/__tests__/ru2-ai-v2-ui.test.ts'
+      - 'supabase/functions/uskoci-ai-interview/index.ts'
+      - 'supabase/candidates/privacy_p0_ai_provider_context_minimization.sql'
+      - 'supabase/proofs/privacy/privacy_p0_ai_provider_context_minimization_proof.sql'
+      - 'supabase/proofs/ai/ai_edge_context.test.mjs'
+      - '.github/workflows/privacy-p0-ai-context-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: privacy-p0-ai-context-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-candidate-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Bind exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "candidate_sha=$GITHUB_SHA"
+          echo "tree_sha=$(git rev-parse 'HEAD^{tree}')"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+
+      - name: Install exact app dependencies
+        run: npm ci
+
+      - name: Frozen source integrity
+        run: python3 supabase/migrations/check_migration_integrity.py
+
+      - name: TypeScript and focused privacy source tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+          node --test supabase/proofs/ai/ai_edge_context.test.mjs
+          npm test -- --runInBand src/data/__tests__/ru2-ai-v2-ui.test.ts
+
+      - name: Reconstruct disposable historical live79
+        run: bash supabase/proofs/ru5_device_ui_live79_env.sh
+
+      - name: Replay recorded live80-87 aliases and source migrations through frozen147
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          root = os.environ['GITHUB_WORKSPACE']
+          db = os.environ['DB_URL']
+          prov = json.load(open(f'{root}/supabase/migrations/MIGRATION_PROVENANCE.json', encoding='utf-8'))
+
+          def scalar(sql):
+              return subprocess.run(['psql', db, '-X', '-Atc', sql], text=True, capture_output=True, check=True).stdout.strip()
+
+          def run_sql(sql, label):
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], input=sql, text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'PRIVACY_P0_REPLAY_FAILED {label}')
+
+          def apply(file, version, name):
+              path = f'{root}/supabase/migrations/{file}'
+              print(f'apply_source={file} recorded_as={version}_{name}', flush=True)
+              r = subprocess.run(['psql', db, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path], text=True, capture_output=True)
+              if r.returncode:
+                  sys.stdout.write(r.stdout[-4000:]); sys.stderr.write(r.stderr[-4000:])
+                  sys.exit(f'PRIVACY_P0_REPLAY_FAILED {file}')
+              body = open(path, encoding='utf-8', newline='').read()
+              tag = '$privacy_p0_stmt$'
+              assert tag not in body, file
+              run_sql(f"insert into supabase_migrations.schema_migrations(version,name,statements) "
+                      f"values ('{version}','{name}',array[{tag}{body}{tag}]);", file)
+
+          assert scalar('select max(version) from supabase_migrations.schema_migrations') == '20260906141409'
+          entries = [e for e in prov['live_history_snapshot']['entries'] if e['version'] > '20260906141409']
+          assert len(entries) == 8, len(entries)
+          for e in entries:
+              apply(e.get('file') or f"{e['version']}_{e['name']}.sql", e['version'], e['name'])
+          assert scalar('select count(*) from supabase_migrations.schema_migrations') == '87'
+          for p in prov['pending_forward_migrations']:
+              apply(p['file'], p['version'], p['name'])
+          print('history=' + scalar("select count(*)::text || '/' || max(version) from supabase_migrations.schema_migrations"))
+          PY
+
+      - name: Preflight exact AI context predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -Atc "select private.retention_ai_source_ready()")" = "t"
+          test "$(psql "$DB_URL" -Atc "select strpos(pg_get_functiondef('private.ai_need_turn_context(uuid)'::regprocedure), $$not in('need.resolved_location','need.public_photo_paths','need.verified_identity_required')$$)>0")" = "t"
+
+      - name: Apply privacy P0 candidate only to disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1             -f supabase/candidates/privacy_p0_ai_provider_context_minimization.sql             | tee /tmp/privacy-p0-candidate.log
+
+      - name: Prove private facts remain internal and provider context is minimized
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1             -f supabase/proofs/privacy/privacy_p0_ai_provider_context_minimization_proof.sql             | tee /tmp/privacy-p0-runtime.log
+          grep -F "PASS PRIVACY_P0_AI_CONTEXT_MINIMIZATION persisted_private retained provider_context_minimized retention_ready acl_preserved"             /tmp/privacy-p0-runtime.log
+          test "$(psql "$DB_URL" -Atc "select private.retention_ai_source_ready()")" = "t"
+
+      - name: Stop disposable database
+        if: always()
+        shell: bash
+        run: cd /tmp/uskoci-ru5-device-ui 2>/dev/null && supabase stop --no-backup || true
+
+      - name: Upload proof logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: privacy-p0-ai-context-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            /tmp/privacy-p0-candidate.log
+            /tmp/privacy-p0-runtime.log
