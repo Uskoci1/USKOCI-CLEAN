@@ -93,6 +93,8 @@ from people with edit rights. The page shows the newer of the embedded state and
 Code, test and route lights recompute from the checked-out tree on every run. The script needs no secrets and no
 network. The one exception is an optional `gh run list` for the latest CI results.
 
+Missing RPC references are split by the same static import graph used by the Code light: `aplikacija_zove_a_server_nema` contains references reachable from a route, while `nepovezani_pozivi_a_server_nema` retains the names and files of prepared, unwired modules. Nothing is dropped from the scan or marked applied. Static reachability is not runtime execution proof; dynamic paths not resolved by the relative-import graph still require review. This avoids describing the unapplied P4 adapter, imported only by its test, as a broken live application call.
+
 ## Functional audit cross-reference (2026-09-22)
 
 Each row's `funkcionalni_audit` points to the dated functional audit and its analytical section IDs.

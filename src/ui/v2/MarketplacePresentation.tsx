@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, SlidersHorizontal, X } from 'phosphor-react-native';
@@ -72,6 +72,15 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
   const [attentionDraft, setAttentionDraft] = useState(view.attention);
   const [searchOpen, setSearchOpen] = useState(!!view.query);
+  const listRef = useRef<FlatList<MarketplaceItem>>(null);
+  const criteria = JSON.stringify([view.section, view.query, view.price, view.attention]);
+  const previousCriteria = useRef(criteria);
+  useEffect(() => {
+    // FlatList retains its native offset when rows change. A new set starts at the top; a reread or return to the
+    // same set keeps the reading position, including while an unapplied filter draft is opened or cancelled.
+    if (previousCriteria.current !== criteria) listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    previousCriteria.current = criteria;
+  }, [criteria]);
   const visible = useMemo(() => marketplaceItems(items, view, true), [items, view]);
   // The sheet promises what the list will show: the same search and section as Apply.
   const draftCount = useMemo(() => loading || error ? null
@@ -96,7 +105,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
   const appear = useAppear();
-  appear.settle(visible.map(keyOf), JSON.stringify([view.section, view.query, view.price, view.attention]));
+  appear.settle(visible.map(keyOf), criteria);
   // `useAppear` returns a new object each render over the same two refs; read it through a ref so
   // `renderItem` keeps its identity and the list does not re-render every cell on every render.
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -135,7 +144,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         {view.query ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => change({ query: '', selectedId: null })} haptic="select" style={s.clear}>
           <X size={18} weight="bold" color={sys.color.ink} /></Press> : null}
       </View> : null}
-      <FlatList<MarketplaceItem> data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
+      <FlatList<MarketplaceItem> ref={listRef} data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.

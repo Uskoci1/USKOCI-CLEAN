@@ -6,8 +6,17 @@ import { sys } from '../../ui/system/tokens';
 let mockReduced = false;
 jest.mock('react-native', () => {
  const native = jest.requireActual('react-native'), React = require('react');
+ // Native FlatList retains its scroll offset when data changes. Keep that state across renders so a new subset
+ // cannot accidentally inherit the position of the old one; ordinary rereads must still keep the reading position.
+ const List = React.forwardRef(({ data, renderItem, ListEmptyComponent, ListHeaderComponent, ...props }: any, ref: any) => {
+  const [offset, setOffset] = React.useState(0);
+  React.useImperativeHandle(ref, () => ({ scrollToOffset: ({ offset: next }: any) => setOffset(next) }), []);
+  return React.createElement('List', { ...props, offset, onScroll: (event: any) => {
+   setOffset(event.nativeEvent.contentOffset.y); props.onScroll?.(event);
+  } }, ListHeaderComponent, data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent);
+ });
  return new Proxy(native, { get(target, key) {
-  if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props, ListHeaderComponent, data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent);
+  if (key === 'FlatList') return List;
   if (key === 'Modal') return ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
   if (key === 'Keyboard') return { dismiss: jest.fn() };
   return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -53,6 +62,8 @@ const click = async (label: string) => act(async () => (label === 'Prikaži zada
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const words = () => tree.root.findAllByType('T' as React.ElementType).map(node => node.props.children);
 const cards = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Otvori Zadatak /.test(node.props.accessibilityLabel ?? ''));
+const list = () => tree.root.findByType('List' as React.ElementType);
+const scrollTo = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
 const render = async () => act(async () => { tree = create(<Screen />); });
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = baseRows(); loading = error = mockReduced = false; allowNew = true; withBack = false; open.mockClear(); refresh.mockClear(); newTask.mockClear(); applications.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
@@ -96,6 +107,27 @@ test('filter count uses the same search and section as Apply, including zero rea
  await tap('Tražim ponude'); expect(action('Prikaži 0 zadataka')).toBeTruthy();
  await click('Prikaži zadatke'); expect(snapshot).toMatchObject({ price: 'OFFERS', query: 'Pomoć one', section: 'active' });
  expect(texts()).toContain('Nema zadataka u ovom prikazu');
+});
+test.each(['section', 'search', 'price', 'attention'])('a changed %s starts its new task results at the top', async choice => {
+ rows = Array.from({ length: 30 }, (_, index) => row(`active-${index}`, { brojPrijavaZaIzbor: index % 2, rezimCene: index % 2 ? 'OFFERS' : 'MY_PRICE' }))
+  .concat(Array.from({ length: 20 }, (_, index) => row(`draft-${index}`, { stanje: 'NACRT' })));
+ await render(); await scrollTo(900); expect(list().props.offset).toBe(900);
+ if (choice === 'section') await tap('Nacrti');
+ else if (choice === 'search') { await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('active-1')); }
+ else { await tap('Filteri'); await tap(choice === 'price' ? 'Tražim ponude' : 'Treba moja radnja'); await click('Prikaži zadatke'); }
+ expect(cards().length).toBeGreaterThan(5);
+ expect(list().props.offset).toBe(0);
+});
+test('a reread and unchanged filter choices keep the task reading position', async () => {
+ rows = Array.from({ length: 30 }, (_, index) => row(`active-${index}`));
+ await render(); await scrollTo(900);
+ rows = rows.map(item => ({ ...item, brojPrijavaZaIzbor: 1 }));
+ await act(async () => tree.update(<Screen />));
+ expect(list().props.offset).toBe(900);
+ await tap('Pretraga'); expect(list().props.offset).toBe(900);
+ await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera');
+ expect(list().props.offset).toBe(900);
+ await tap('Filteri'); await click('Prikaži zadatke'); expect(list().props.offset).toBe(900);
 });
 test.each(['loading', 'error'])('%s removes stale cards; retry is bound', async status => {
  loading = status === 'loading'; error = status === 'error'; await render();

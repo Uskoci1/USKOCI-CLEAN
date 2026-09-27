@@ -144,10 +144,18 @@ const computed = rows.redovi.map(row => {
 
 // Server functions a signed-in user may call that the app never calls (directly or through an Edge function).
 const serverOnly = [...rpcAuth].filter(r => !refs(r, appFiles).length).map(r => ({ rpc: r, preko_edge: refs(r, edgeFiles).length > 0 }));
-// Functions the app calls that do not exist on the server: a broken call.
-const called = new Set();
-for (const text of Object.values(appFiles)) for (const m of text.matchAll(/['"`](rpc_[a-z0-9_]+)['"`]/g)) called.add(m[1]);
-const appCallsMissing = [...called].filter(r => !rpcAll.has(r)).sort();
+// Keep every source reference, but distinguish a screen-reachable call from a
+// prepared/unwired module. Neither a filename nor a test import activates an RPC.
+// This is the same static relative-import graph used by each row's Code light,
+// not proof that a reachable command is executed at runtime.
+const called = new Set(), reachableCalls = new Set();
+for (const [file, text] of Object.entries(appFiles)) for (const m of text.matchAll(/['"`](rpc_[a-z0-9_]+)['"`]/g)) {
+  called.add(m[1]); if (reachable.has(file)) reachableCalls.add(m[1]);
+}
+const sourceCallsMissing = [...called].filter(r => !rpcAll.has(r)).sort();
+const appCallsMissing = sourceCallsMissing.filter(r => reachableCalls.has(r));
+const unwiredCallsMissing = sourceCallsMissing.filter(r => !reachableCalls.has(r))
+  .map(rpc => ({ rpc, files: refs(rpc, appFiles) }));
 
 // ---------------------------------------------------------------------------
 // R4 forensic overlay: the owner's read-only snapshot of 2026-09-22, frozen at 9286fdeb.
@@ -279,6 +287,7 @@ const meta = {
 };
 const counts = computed.reduce((a, r) => (a[r.ukupno] = (a[r.ukupno] ?? 0) + 1, a), {});
 const stanje = { meta, counts, finalization: rows.finalization ?? null, redovi: computed, server_ume_aplikacija_ne_koristi: serverOnly, aplikacija_zove_a_server_nema: appCallsMissing,
+  nepovezani_pozivi_a_server_nema: unwiredCallsMissing,
   tokovi, praznine, nivoi, rute, snimak: r4,
   blokade: rows.blokade, prodavnice: rows.prodavnice, test_dva_telefona: rows.test_dva_telefona, test_dva_telefona_izvrseno: rows.test_dva_telefona_izvrseno, ci };
 
@@ -290,6 +299,7 @@ writeFileSync(join(CONTROL, 'out', 'tabla.html'), tpl.replace('__STANJE__', JSON
 console.log(`Redova: ${computed.length}`, counts);
 console.log(`Server ume, aplikacija ne koristi: ${serverOnly.filter(x => !x.preko_edge).length} (+${serverOnly.filter(x => x.preko_edge).length} preko Edge)`);
 console.log(`Aplikacija zove, server nema: ${appCallsMissing.length}${appCallsMissing.length ? ' → ' + appCallsMissing.join(', ') : ''}`);
+console.log(`Nepovezani moduli referišu na neprimenjene RPC-je: ${unwiredCallsMissing.length}`);
 console.log(`Strana: ${rel(join(CONTROL, 'out', 'tabla.html'))}`);
 
 // Owner finalization matrix: a generated view of the same living rows, not a second status register.
