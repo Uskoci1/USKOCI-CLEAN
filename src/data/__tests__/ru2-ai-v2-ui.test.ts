@@ -5,6 +5,7 @@ import {
   NEED_FACT_V2_DEFINITIONS,
   NEED_FACT_V2_KEYS,
   AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+  AI_PROVIDER_CONTEXT_FACT_V2_KEYS,
   REQUIRED_NEED_FACT_V2_KEYS,
   MAX_NEED_FACT_V2_PAYLOAD,
 } from '../../contracts/needFactsV2';
@@ -41,7 +42,13 @@ describe('RU-2 typed R02 → R07 contract', () => {
     // added here silently widens what the AI may write the moment the function is redeployed.
     expect(NEED_FACT_V2_KEYS).toHaveLength(23);
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(20);
+    expect(AI_PROVIDER_CONTEXT_FACT_V2_KEYS).toHaveLength(18);
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.price_basis');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.exact_address');
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.access_notes');
+    expect(AI_PROVIDER_CONTEXT_FACT_V2_KEYS).not.toContain('need.exact_address');
+    expect(AI_PROVIDER_CONTEXT_FACT_V2_KEYS).not.toContain('need.access_notes');
+    expect(AI_PROVIDER_CONTEXT_FACT_V2_KEYS).toContain('need.price_basis');
     expect(NEED_FACT_V2_DEFINITIONS['need.price_basis'])
       .toMatchObject({ valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: false });
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).not.toContain('need.verified_identity_required');
