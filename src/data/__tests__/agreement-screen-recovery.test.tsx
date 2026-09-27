@@ -5,7 +5,7 @@ let mockAccountRevision = 0;
 let mockPlatform = 'android';
 let mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
 let mockFocused = true;
-const mockAppListeners = new Set<(state: string) => void>();
+const mockAppListeners = require('react-native').AppState.__testListeners as Set<(state: string) => void>;
 const mockBackListeners = new Set<() => boolean>();
 let mockKeyboardVisible = false;
 const mockDismissKeyboard = jest.fn(() => { mockKeyboardVisible = false; });
@@ -25,6 +25,13 @@ const mockOutbox = { reconcile: jest.fn().mockResolvedValue(undefined) };
 let mockOutboxState = { phase: 'loading', entries: [] as any[] };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
+  // Imports may subscribe before this test module's top-level initializers run (B3c -> supabaseClient).
+  // Own the real listener set in the hoisted factory; route recovery still adds/removes and receives every event.
+  const appListeners = new Set<unknown>();
+  const appState = { currentState: 'active', __testListeners: appListeners,
+    addEventListener: (_event: string, listener: (state: string) => void) => {
+      appListeners.add(listener); return { remove: () => appListeners.delete(listener) };
+    } };
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: mockPlatform };
     if (key === 'useWindowDimensions') return () => mockWindow;
@@ -32,9 +39,7 @@ jest.mock('react-native', () => {
     if (key === 'BackHandler') return { addEventListener: (_event: string, listener: () => boolean) => {
       mockBackListeners.add(listener); return { remove: () => mockBackListeners.delete(listener) };
     } };
-    if (key === 'AppState') return { currentState: 'active', addEventListener: (_event: string, listener: (state: string) => void) => {
-      mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
-    } };
+    if (key === 'AppState') return appState;
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });

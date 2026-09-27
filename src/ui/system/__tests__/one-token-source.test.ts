@@ -107,14 +107,35 @@ it('no file under src still spells the checkbox corner as a nested control corne
 });
 
 // Review r3b (Zadaci, low): a sheet's lift is the system's, not a shadow each sheet spells for itself.
+// A physically FULL list joins the search surface: clear its lift, otherwise restore the exact docked token.
+// Exempt only that complete branch, not arbitrary reads/writes of shadow properties or other token fallbacks.
+const DOCKED_FULL_LIFT = /sheetLift\.docked\.boxShadow\s*\?\s*\{\s*boxShadow\s*:\s*full\s*\?\s*\[\s*\]\s*:\s*sheetLift\.docked\.boxShadow\s*\}\s*:\s*\{\s*elevation\s*:\s*full\s*\?\s*0\s*:\s*sheetLift\.docked\.elevation\s*\}/g;
+const INLINE_SHEET_SHADOW = /rgba\s*\(|\bboxShadow\b|\belevation\s*:|\bshadow(?:Color|Opacity|Radius|Offset)\s*:/;
+const withoutDockedFullLift = (source: string, form: string) => form === 'docked'
+  ? source.replace(DOCKED_FULL_LIFT, 'DOCKED_FULL_LIFT') : source;
+
 it('the list sheet and the PeekSheet take their lift from sheetLift and spell no shadow colour', () => {
   expect(sheetLift.docked).toEqual(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 6 } : { boxShadow: expect.stringMatching(/^0px -/) });
   expect(sheetLift.detached).toEqual(Platform.OS === 'android' && Number(Platform.Version) < 28 ? { elevation: 6 } : { boxShadow: expect.any(String) });
   for (const [path, form] of [['src/ui/v2/discovery/DiscoveryListSheet.tsx', 'docked'], ['src/ui/system/PeekSheet.tsx', 'detached']]) {
     const source = read(path);
     expect(source).toMatch(new RegExp(`\\.\\.\\.sheetLift\\.${form}\\b`));
-    expect(source).not.toMatch(/rgba\(|boxShadow|elevation:/);
+    expect(withoutDockedFullLift(source, form)).not.toMatch(INLINE_SHEET_SHADOW);
   }
+});
+
+it('the FULL lift exemption cannot admit raw shadows, nonzero elevation, another token or detached sheets', () => {
+  const allowed = 'sheetLift.docked.boxShadow ? { boxShadow: full ? [] : sheetLift.docked.boxShadow } : { elevation: full ? 0 : sheetLift.docked.elevation }';
+  expect(withoutDockedFullLift(allowed, 'docked')).not.toMatch(INLINE_SHEET_SHADOW);
+  const forbidden = [
+    allowed.replace('[]', "'0px -2px 12px rgba(0, 0, 0, 0.08)'"),
+    allowed.replace('full ? 0', 'full ? 6'),
+    allowed.replaceAll('sheetLift.docked', 'sheetLift.detached'),
+    `${allowed}, boxShadow: '0px -2px 12px #000000'`,
+    `${allowed}, shadowOpacity: 0.08`,
+  ];
+  for (const source of forbidden) expect(withoutDockedFullLift(source, 'docked')).toMatch(INLINE_SHEET_SHADOW);
+  expect(withoutDockedFullLift(allowed, 'detached')).toMatch(INLINE_SHEET_SHADOW);
 });
 
 // Emulator critique B5 (2026-09-24): a list card wore a border and a shadow. A card lying on the white screen is drawn
