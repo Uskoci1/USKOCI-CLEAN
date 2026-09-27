@@ -250,15 +250,73 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // out, so a move of the map never takes a pin away; only the list follows the area. "Now" is read again with every new
   // read, every time choice and every opening of the panel, so "Danas" and the past days of its grid are today's.
   const { query, price, area, when, where, places: freePlaces, place: chosenPlace, dates, pinPlace } = view;
+  // The screen outlives each native MapSession. Keep the publication camera's acknowledgement here so returning from
+  // a task detail restores the saved viewport instead of treating the same publication as a fresh camera command.
+  const cameraFilterKey = JSON.stringify([query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
+  const [cameraIntent, setCameraIntent] = useState<{ token: string; scopeKey: string; filterKey: string;
+    status: 'pending' | 'consumed' | 'retired' } | null>(null);
+  const publicationToken = props.publicationFocus?.kind === 'map' ? props.publicationFocus.token : null;
+  const cameraOwner = useRef({ token: publicationToken, scopeKey: props.scopeKey, filterKey: cameraFilterKey,
+    selected: !!publicationToken && props.publicationFocus?.id === view.selectedId, focused });
+  cameraOwner.current = { token: publicationToken, scopeKey: props.scopeKey, filterKey: cameraFilterKey,
+    selected: !!publicationToken && props.publicationFocus?.id === view.selectedId, focused };
+  useEffect(() => {
+    setCameraIntent(current => {
+      const owner = cameraOwner.current;
+      if (owner.token !== publicationToken || owner.scopeKey !== props.scopeKey) return current;
+      return publicationToken ? current?.token === publicationToken && current.scopeKey === props.scopeKey ? current
+        : { token: publicationToken, scopeKey: props.scopeKey, filterKey: owner.filterKey, status: 'pending' } : null;
+    });
+  }, [publicationToken, props.scopeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const retireCameraIntent = useCallback((token?: string, sourceScopeKey?: string) => {
+    const owner = cameraOwner.current, target = token ?? owner.token;
+    if (!target || target !== owner.token || (sourceScopeKey && sourceScopeKey !== owner.scopeKey)) return;
+    setCameraIntent(current => {
+      const live = cameraOwner.current;
+      if (live.token !== target || live.scopeKey !== owner.scopeKey) return current;
+      if (current?.token === target && current.scopeKey === live.scopeKey) return current.status === 'pending'
+        ? { ...current, status: 'retired' } : current;
+      return { token: target, scopeKey: live.scopeKey, filterKey: live.filterKey, status: 'retired' };
+    });
+  }, []);
+  useEffect(() => {
+    if (!focused || (cameraIntent?.token === publicationToken && cameraIntent.scopeKey === props.scopeKey
+      && cameraIntent.filterKey !== cameraFilterKey)) retireCameraIntent(publicationToken ?? undefined, props.scopeKey);
+  }, [focused, props.scopeKey, cameraFilterKey, cameraIntent, publicationToken, retireCameraIntent]);
+  // A newly arrived token is already actionable on this render: the native map's effect can run before this screen's
+  // initializing effect. Its acknowledgement below still wins whichever state updater runs first.
+  const activeIntent = cameraIntent?.token === publicationToken && cameraIntent.scopeKey === props.scopeKey ? cameraIntent : null;
+  const cameraRequestToken = focused && publicationToken && props.publicationFocus?.id === view.selectedId
+    && (!activeIntent || (activeIntent.status === 'pending' && activeIntent.filterKey === cameraFilterKey))
+    ? publicationToken : null;
+  const consumeCameraIntent = useCallback((token: string, sourceScopeKey: string) => {
+    const owner = cameraOwner.current;
+    if (token !== owner.token || sourceScopeKey !== owner.scopeKey || !owner.selected || !owner.focused) return;
+    setCameraIntent(current => {
+      const live = cameraOwner.current;
+      if (live.token !== token || live.scopeKey !== owner.scopeKey || !live.selected || !live.focused) return current;
+      if (current?.token === token && current.scopeKey === live.scopeKey) return current.status === 'pending'
+        ? { ...current, status: 'consumed' } : current;
+      return { token, scopeKey: live.scopeKey, filterKey: live.filterKey, status: 'consumed' };
+    });
+  }, []);
   const now = useMemo(() => new Date(), [items, when, dates, search]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = useMemo(() => ({ ...initialMarketplaceView(), query, price, area, when, where, places: freePlaces, place: chosenPlace, dates,
     pinPlace: pinPlace ?? null }), [query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
   const { mapped, inArea, withoutPoint, listed: ordinaryList } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, undefined, now),
     [loading, error, items, filters, now]);
+  const [retiredListFocus, setRetiredListFocus] = useState<{ token: string; scopeKey: string } | null>(null);
+  const retireListFocus = () => {
+    const request = props.publicationFocus;
+    if (request?.kind === 'list') setRetiredListFocus(current => current?.token === request.token && current.scopeKey === props.scopeKey
+      ? current : { token: request.token, scopeKey: props.scopeKey });
+  };
   // A published task without a public point cannot be selected on the map. Put its existing
   // public row first in the open list; membership and the count remain exactly those of the read.
   // A later map-area choice restores the usual area-first / point-free section order.
-  const listFocusId = props.publicationFocus?.kind === 'list' && !view.area && !view.pinPlace ? props.publicationFocus.id : null;
+  const listFocusId = props.publicationFocus?.kind === 'list' && !view.area && !view.pinPlace
+    && (retiredListFocus?.token !== props.publicationFocus.token || retiredListFocus.scopeKey !== props.scopeKey)
+    ? props.publicationFocus.id : null;
   const listed = useMemo(() => {
     if (!listFocusId) return ordinaryList;
     const chosen = ordinaryList.find(item => item.id === listFocusId);
@@ -348,12 +406,26 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // A chosen pin: one task, or a place several tasks share, of what the map shows. The list's area never takes it away;
   // a new read that no longer has it does.
+  const selectedPoint = useRef<{ id: string; key: string } | null>(null);
+  const pointWitnessOwner = useRef<{ scopeKey: string; token: string | null }>({ scopeKey: props.scopeKey, token: null });
   useEffect(() => {
     if (loading || error) return;
+    const publication = props.publicationFocus?.token ?? null;
+    if (pointWitnessOwner.current.scopeKey !== props.scopeKey
+      || (publication && pointWitnessOwner.current.token !== publication)) {
+      selectedPoint.current = null;
+      pointWitnessOwner.current = { scopeKey: props.scopeKey, token: publication };
+    }
     const { selectedId, selectedPlace } = latestView.current;
-    const lostTask = !!selectedId && !byId.has(selectedId), lostPlace = !!selectedPlace && !groups.has(selectedPlace);
+    const item = selectedId ? byId.get(selectedId) : null;
+    const point = item ? publicPoint(item) : null;
+    const key = point ? pointKey(point) : null;
+    const prior = selectedPoint.current;
+    const lostTask = !!selectedId && (!key || (prior?.id === selectedId && prior.key !== key));
+    selectedPoint.current = !lostTask && selectedId && key ? { id: selectedId, key } : null;
+    const lostPlace = !!selectedPlace && !groups.has(selectedPlace);
     if (lostTask || lostPlace) change({ ...(lostTask ? { selectedId: null } : {}), ...(lostPlace ? { selectedPlace: null } : {}) });
-  }, [loading, error, byId, groups, change]);
+  }, [loading, error, byId, groups, change, props.scopeKey, props.publicationFocus?.token, view.selectedId, view.selectedPlace]);
   const selectedItem = view.selectedId ? byId.get(view.selectedId) ?? null : null;
   const place = view.selectedPlace ? groups.get(view.selectedPlace) : undefined;
   const placeTasks = useMemo(() => place && place.ids.length > 1 ? place.ids.flatMap(id => byId.get(id) ?? []) : [], [place, byId]);
@@ -361,6 +433,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const select = (id: string) => {
     const item = byId.get(id), point = item && publicPoint(item);
     if (!point) return;
+    retireCameraIntent();
     const shared = groups.get(pointKey(point));
     change(shared && shared.ids.length > 1 ? { selectedId: null, selectedPlace: shared.key } : { selectedId: id, selectedPlace: null });
     setSheetIndex(SNAP.peek);
@@ -368,19 +441,23 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const selectPlace = (key: string) => {
     const shared = groups.get(key);
     if (!shared) return;
+    retireCameraIntent();
     change(shared.ids.length > 1 ? { selectedId: null, selectedPlace: key } : { selectedId: shared.ids[0], selectedPlace: null });
     setSheetIndex(SNAP.peek);
   };
-  const clearSelection = () => { if (latestView.current.selectedId || latestView.current.selectedPlace) change({ selectedId: null, selectedPlace: null }); };
+  const clearSelection = () => { if (latestView.current.selectedId || latestView.current.selectedPlace) {
+    retireCameraIntent(); change({ selectedId: null, selectedPlace: null });
+  } };
   // "Prikaži sve u listi": the mapped part narrows to this one public point; tasks without a
   // point remain below in their own section. The search pill names the chosen point and clears it.
   const showPlace = () => {
     if (!place) return;
+    retireCameraIntent(); retireListFocus();
     change({ pinPlace: place.key, selectedId: null, selectedPlace: null });
     setSheetIndex(SNAP.full);
   };
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
-  const showAll = () => change({ area: null, pinPlace: null });
+  const showAll = () => { retireCameraIntent(); retireListFocus(); change({ area: null, pinPlace: null }); };
   const onIndex = (index: number) => {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
@@ -393,6 +470,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The list follows the map: a settled move of the person's own hands up the bounds it shows, and it is a new "where",
   // so the one point a place's list was narrowed to is let go.
   const followArea = (bounds: PublicBounds) => {
+    retireListFocus();
     const current = latestView.current;
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
   };
@@ -521,18 +599,19 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const fits = useRef(0);
   const apply = (draft: SearchDraft) => {
     const before = latestView.current.place;
+    retireCameraIntent(); retireListFocus();
     change({ ...draft, selectedId: null, selectedPlace: null });
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
     const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? peek : halfSheet) + GAP });
   };
-  const reset = () => props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet });
+  const reset = () => { retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the loaded tasks carry the fact it
   // reads (or it is already on and must be removable). "N+ mesta" is offered only on a count of open places the read gave.
   const timed = useMemo(() => saysWhen(items, now), [items, now]);
   const workModes = useMemo(() => saysWorkMode(items), [items]);
-  const toggle = (patch: Partial<MarketplaceView>) => change({ ...patch, selectedId: null, selectedPlace: null });
+  const toggle = (patch: Partial<MarketplaceView>) => { retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
   const chips: QuickChip[] = [
     // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
@@ -883,7 +962,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
-          focusSelectionOnMount={props.publicationFocus?.kind === 'map' && props.publicationFocus.id === chosen?.id}
+          publicationCameraToken={cameraRequestToken && props.publicationFocus?.id === chosen?.id ? cameraRequestToken : null}
+          onPublicationCameraConsumed={consumeCameraIntent} onPublicationCameraRetired={retireCameraIntent}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}

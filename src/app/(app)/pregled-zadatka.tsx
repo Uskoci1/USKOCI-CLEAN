@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { AppState, BackHandler, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { reviewFactProblem } from '../../data/reviewFactProblem';
+import { rememberPublication } from '../../data/publicationHandoff';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { correctionFromText, factCorrectionValue, factEditorKind, factLabel, factListItems, factReviewValue,
   factTimestampFields, listCorrectionText, timestampCorrectionText } from '../../data/aiNeedV2Ui';
@@ -251,6 +252,21 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
   const evaluation = command?.evaluation;
   const outcome = evaluation?.kind === 'DECISION' ? evaluation.decision.outcome : null;
   const published = command?.state === 'PUBLISHED' && snapshot?.publishedReadback;
+  const openPublished = () => {
+    if (!canAct() || !published || !review || !command || !accountId
+      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
+    const handoff = rememberPublication({ review, command, publishedReadback: true }, { accountId, accountRevision });
+    if (!handoff) return;
+    publishedHere.current = false;
+    navigate(() => router.replace({ pathname: '/zadaci', params: {
+      publishedNeedId: handoff.needId, publishedRevision: String(handoff.needRevision), publishedHandoff: handoff.token,
+    } }));
+  };
+  // Only a command completed on this visit moves forward automatically. Restoring an older published review
+  // keeps its explicit open action. Wait until the editor has accepted the canonical read and released its write.
+  useEffect(() => {
+    if (publishedHere.current && published && !editor.busy && !editor.loading && !editor.uncertain) openPublished();
+  }, [published, command, review, editor.busy, editor.loading, editor.uncertain]); // eslint-disable-line react-hooks/exhaustive-deps
   // `draftId` is the Need this conversation is bound to, and it is set exactly when the person came
   // here to change a task that already exists rather than to publish a new one. The server already
   // knows the difference — accepting a bound review confirms an edit instead of creating a draft —
@@ -453,9 +469,7 @@ function ReviewedTask({ conversationId }: { conversationId: string | null }) {
         {/* After the tap there is one way forward at a time — open the published task, publish the
             saved draft, or go and change it — and that one wears the brand green; the check of the
             outcome stands beside it in white. */}
-        {published && command ? <V2Action label="Prikaži objavljen zadatak" style={brandAction} onPress={() => navigate(() => router.replace({
-          pathname: '/zadaci', params: { publishedNeedId: command.needId, publishedRevision: String(command.needRevision) },
-        }))} />
+        {published && command ? <V2Action label="Prikaži objavljen zadatak" style={brandAction} onPress={openPublished} />
           : command ? <>
             {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?

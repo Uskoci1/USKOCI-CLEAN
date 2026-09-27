@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, publicPoint, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
-import { sameId, uuid } from '../../data/serverReceipt';
+import { sameId } from '../../data/serverReceipt';
+import { publicationIsCurrent, readPublicationHandoff } from '../../data/publicationHandoff';
+import type { TaskRelationIndex } from '../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
@@ -20,10 +22,10 @@ export default function Zadaci() {
   return <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function Discovery() {
-  const params = useLocalSearchParams<{ discoveryTrace?: string; publishedNeedId?: string | string[]; publishedRevision?: string | string[] }>();
-  const publishedNeedId = uuid(params.publishedNeedId) ? params.publishedNeedId : null;
-  const publishedRevision = typeof params.publishedRevision === 'string' && /^[1-9]\d*$/.test(params.publishedRevision)
-    ? params.publishedRevision : null;
+  const params = useLocalSearchParams<{ discoveryTrace?: string; publishedNeedId?: string | string[];
+    publishedRevision?: string | string[]; publishedHandoff?: string | string[] }>();
+  const handoff = readPublicationHandoff(params);
+  const publishedNeedId = handoff?.needId ?? null;
   // Bounded native diagnosis only: the gallery's package gate, narrowed to this exact DEV package.
   // No __DEV__ override, persisted flag, UI entry, identifiers, free text or native event objects.
   const traceEnabled = Constants.expoConfig?.android?.package === 'rs.uskoci.dev' && params.discoveryTrace === '1';
@@ -42,7 +44,7 @@ function Discovery() {
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
-  const publicationToken = publishedNeedId ? `${user?.id ?? ''}:${accountRevision}:${publishedNeedId}:${publishedRevision ?? ''}` : null;
+  const publicationToken = handoff?.token ?? null;
   const publicationRequested = useRef<string | null>(null);
   const publicationCompleted = useRef<string | null>(null);
   const [publication, setPublication] = useState<{ token: string; id: string; status: 'loading' | 'read' | 'map' | 'list' | 'missing' | 'error' } | null>(null);
@@ -73,17 +75,19 @@ function Discovery() {
   // The public list may still contain the snapshot from a previous visit. A publication handoff waits
   // for one fresh public read before it claims that the task has a pin or is in Discovery at all.
   useEffect(() => {
-    if (!publicationToken || !publishedNeedId || !scope || focus.current !== scope || publicationRequested.current === publicationToken) return;
+    if (!handoff || !publicationIsCurrent(handoff) || !publicationToken || !publishedNeedId
+      || !scope || focus.current !== scope || publicationRequested.current === publicationToken) return;
     publicationRequested.current = publicationToken;
     setPublication({ token: publicationToken, id: publishedNeedId, status: 'loading' });
     void resource.refresh(true).then(() => {
-      if (publicationRequested.current === publicationToken && focus.current === scope
+      if (publicationIsCurrent(handoff) && publicationRequested.current === publicationToken && focus.current === scope
         && sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision)
         setPublication({ token: publicationToken, id: publishedNeedId, status: 'read' });
     });
-  }, [publicationToken, publishedNeedId, scope, resource.refresh, user?.id, accountRevision, publication?.status]);
+  }, [handoff, publicationToken, publishedNeedId, scope, resource.refresh, user?.id, accountRevision, publication?.status]);
   useEffect(() => {
-    if (!publication || publication.status !== 'read' || publication.token !== publicationToken || resource.loading || resource.refreshing) return;
+    if (!handoff || !publicationIsCurrent(handoff) || !publication || publication.status !== 'read'
+      || publication.token !== publicationToken || resource.loading || resource.refreshing) return;
     if (!scope || focus.current !== scope || sesijaSada().user?.id !== user?.id || sesijaSada().accountRevision !== accountRevision) return;
     if (resource.error || !resource.data) { setPublication({ ...publication, status: 'error' }); return; }
     const item = resource.data.find(row => sameId(row.id, publication.id));
@@ -92,7 +96,7 @@ function Discovery() {
     setView({ ...initialMarketplaceView(), mode: 'map', selectedId: status === 'map' ? item.id : null,
       sheet: status === 'map' ? 'peek' : 'full', listOffset: 0 });
     setPublication({ ...publication, id: item.id, status });
-  }, [publication, publicationToken, resource.loading, resource.refreshing, resource.error, resource.data, scope, user?.id, accountRevision]);
+  }, [handoff, publication, publicationToken, resource.loading, resource.refreshing, resource.error, resource.data, scope, user?.id, accountRevision]);
   useEffect(() => {
     if (publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
       && scope && focus.current === scope) publicationCompleted.current = publicationToken;
@@ -111,6 +115,15 @@ function Discovery() {
     })]); } finally { if (timer) clearTimeout(timer); }
   }, [source, visible]);
   const relations = useFocusedResource(loadRelations, { coalesce: true });
+  const labeledRelations = useMemo<TaskRelationIndex | undefined>(() => {
+    const base = relations.data ?? undefined;
+    const ownRow = handoff && resource.data?.find(item => sameId(item.id, handoff.needId));
+    if (!ownRow) return base;
+    // Reuse the existing "Tvoj zadatak" presentation for this proved owner. Other relationships stay unknown
+    // until their own read returns; the handoff never invents an application or changes marketplace membership.
+    return { owned: new Set([...(base?.owned ?? []), ownRow.id]), applied: base?.applied ?? new Set<string>(),
+      relation: id => id === ownRow.id ? { kind: 'OWNER' } : base?.relation(id) ?? { kind: 'UNKNOWN' } };
+  }, [relations.data, handoff, resource.data]);
   // Ownership is an overlay, never a visibility filter. A missing answer stays unknown while the
   // public rows, counts and map remain usable. Every explicit refresh retries both reads, even if
   // the public task IDs did not change since a failed overlay read.
@@ -125,21 +138,26 @@ function Discovery() {
     const latest = latestResource.current;
     trace('route-open', current(), navigating.current, latest.loading, !!latest.error, traceView.current.listOffset ?? 0, traceSheet(traceView.current));
     if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
-    const owned = latestRelations.current.data?.relation(item.id).kind === 'OWNER';
+    // The canonical owner read on the review screen already proved this one relationship. A slow or failed
+    // optional relation overlay must not send the publisher through somebody else's public-detail path.
+    const owned = (!!handoff && publicationIsCurrent(handoff) && sameId(item.id, handoff.needId))
+      || latestRelations.current.data?.relation(item.id).kind === 'OWNER';
     navigate(() => router.navigate({ pathname: owned ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: item.id } }));
   };
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
   return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
-      scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
+      scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={labeledRelations} relationsPending={relationsPending}
       relationsError={relations.error}
       publicationFocus={publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
         ? { token: publication.token, id: publication.id, kind: publication.status } : undefined}
       publicationUnavailable={publication?.token === publicationToken && (publication.status === 'missing' || publication.status === 'error')
         ? publication.status : undefined}
-      onOpenPublishedTask={publication?.token === publicationToken && publication.id ? () => navigate(() => router.replace({
-        pathname: '/potrebe/[id]/pregled', params: { id: publication.id },
-      })) : undefined}
+      onOpenPublishedTask={handoff && publication?.token === publicationToken && publication.id ? () => {
+        if (publicationIsCurrent(handoff)) navigate(() => router.navigate({
+          pathname: '/potrebe/[id]/pregled', params: { id: handoff.needId },
+        }));
+      } : undefined}
       trace={traceEnabled ? trace : undefined}
       onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
         if (current()) {

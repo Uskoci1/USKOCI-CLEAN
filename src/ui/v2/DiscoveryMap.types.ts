@@ -4,8 +4,14 @@ import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/m
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;
-  /** A freshly published public task starts selected and must receive the same camera focus as a tap. */
+  /** Legacy fixture entry; publication navigation uses a one-shot token below. */
   focusSelectionOnMount?: boolean;
+  /** Pending camera move for the confirmed public task. The screen owns its lifetime across native map remounts. */
+  publicationCameraToken?: string | null;
+  /** Called only after the native camera method has been invoked for this token. */
+  onPublicationCameraConsumed?: (token: string, scopeKey: string) => void;
+  /** A gesture or competing camera request cancels an undelivered publication move. */
+  onPublicationCameraRetired?: (token: string, scopeKey: string) => void;
   /**
    * The list follows the map (Discovery V47): once a move of the person's own (a drag, a pinch, a zoom button, a cluster
    * tap) has settled and stayed still for `AREA_SETTLE_MS`, the map hands up the bounds it shows. The camera's own moves
