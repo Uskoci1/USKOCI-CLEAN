@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T17:33:27Z",
+  "osvezeno": "2026-09-27T17:44:08Z",
   "grana": "HEAD",
-  "head": "d1091eab",
-  "head_poruka": "fix(account): retire dismissed closure actions and record native acceptance",
+  "head": "cab22249",
+  "head_poruka": "docs: record exact disposable B3c wire proof",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -144,7 +144,9 @@
    ]
   },
   "chat_b3c": "SQL_AUTH_AND_ACTUAL_REALTIME_PASS36336794390_AT601d78f6 / 12WATERMARKS_7HEARTBEATS_21EVENTS / CERTIFICATES_UNCHANGED / NOT_DEPLOYABLE_NOT_CLIENT_WIRED / DISPOSABLE_RECERTIFICATION_APPROVAL_PENDING",
-  "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json"
+  "server_proof_realtime": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json",
+  "p4_exact_message": "SOURCE PREPARED / NOT RUN / NOT APPLIED / NOT CLIENT-WIRED: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
+  "p6_discovery_contract": "PROPOSED CONTRACT ONLY: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_BOUNDED_DISCOVERY_CONTRACT.md"
  },
  "redovi": [
   {
@@ -2908,13 +2910,13 @@
     "flow": "Poruke",
     "ux": "Učitavanje starijih/novijih poruka čuva mesto čitanja; jedan dodir vraća najnovije i kada stara poruka više ne postoji.",
     "ui": "Postojeći oblačići i unos zadržani. Diskretne radnje Starije/Novije i retry pripadaju istoriji.",
-    "backend": "B3a/B3b primenjeni i povezani. B3c SQL/Auth rollback prolazi; prvi websocket dokaz pada pre potvrđene poruke, dijagnoza u toku. Nije primenjeno ni povezano.",
+    "backend": "B3a/B3b primenjeni i povezani. B3c SQL/Auth i stvarni Realtime prolaze na privremenoj bazi (36336794390), sertifikati nepromenjeni/readinessfalse. B3c nije primenjen niti povezan; potpuno brisanje i zasebno odobrenje ostaju.",
     "state_sync": "Aktuelni nalog/poseta/snimak i izmerene dolazne poruke određuju ACK. Stari potvrđeni outbox unosi se ne pojavljuju posle izbacivanja iz prozora; novo mesto čitanja nadjačava čekajuću stranicu. Round16: promenjen tab=poruke otvara postojeći Dogovor bez resetovanja reda za slanje/istorije; kasniji Nazad ostaje. Ponovljen isti parametar bez novog identiteta nije novi signal.",
     "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
     "test": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json Round16: postojeći osveživač/istorija3grupe/104testa PASS; nije dokaz direktne pretplate. Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
     "device_proof": "Round18APK36333830435/6b06540e: inertni čet, tekst iznad tastature i isti nacrt posle Android Back viđeni. Nije dokaz slanja, realtime-a, pročitanog, glasa ili trajnog oporavka.",
     "status": "SERVER PRIMENJEN / KLIJENT POVEZAN / CILJANE PROVERE PROŠLE / TELEFON ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_B3C_SQL_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CHAT_REALTIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_18_B3C_SQL_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_B3C_WIRE_RECEIPT.json"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3866,7 +3868,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka.",
    "problem": "Privatni razgovor sada koristi precizne prikazane ID-eve umesto zbirnog ACK-a. Ceo potvrđeni event→tačna poruka→read lanac, dve ranije nedokazane vrste odredišta i DN-07 uređajski fokus ostaju otvoreni.",
-   "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja. Round14: B3a/B3b na DEV-u i povezani sa čitanjem/pozicijom; obaveštenje samo po sebi nije dokaz prikaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
+   "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja. Round14: B3a/B3b na DEV-u i povezani sa čitanjem/pozicijom; obaveštenje samo po sebi nije dokaz prikaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md Round21: pripremljen zaseban resolver događaj→tačna poruka, sa dokazom na praznoj test bazi; još nije pokrenut, primenjen ili povezan. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3889,7 +3891,7 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
     "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -4119,7 +4121,7 @@
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
    "problem": "Dva neutralna push teksta sada su objavljena u v21 i tačno pročitana nazad. Raniji Android prijem ostaje istorijski dokaz. Nisu ponovljeni novi APK/prikaz otvorene aplikacije niti ceo isti chat događaj→push→tačna poruka→read. iOS je odvojen.",
-   "sledece": "Aktuelno Round14: odobrena dva teksta su objavljena, više ne čekaju primeni. Slede kanonski rezolver tačne poruke i objedinjeno novo Android/provider prihvatanje kada vlasnik pokrene uređajsku proveru, zatim iOS. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
+   "sledece": "Aktuelno Round14: odobrena dva teksta su objavljena, više ne čekaju primeni. Slede kanonski rezolver tačne poruke i objedinjeno novo Android/provider prihvatanje kada vlasnik pokrene uređajsku proveru, zatim iOS. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md Round21: pripremljen zaseban resolver događaj→tačna poruka, sa dokazom na praznoj test bazi; još nije pokrenut, primenjen ili povezan. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4143,7 +4145,7 @@
     "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
     "device_proof": "Nema novog test slanja, APK-a ili uređajske potvrde v21.",
     "status": "DVA TEKSTA OBJAVLJENA / CILJANE PROVERE PROŠLE / CEO LANAC ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -6668,8 +6670,8 @@
    "id": 36337043414,
    "ime": "Build Android development APK",
    "sha": "d1091eab",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-09-27T17:28:05Z"
   },
   {
