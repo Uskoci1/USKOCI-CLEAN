@@ -8,7 +8,9 @@ import {
   NEED_FACT_SCHEMA_V2,
   NEED_FACT_V2_DEFINITIONS,
   AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+  AI_PROVIDER_CONTEXT_FACT_V2_KEYS,
   isAiProposableNeedFactV2Key,
+  isAiProviderContextFactV2Key,
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
 
@@ -28,7 +30,7 @@ const LEGACY_FACT_KEYS = [
 const legacyFactKeySet = new Set<string>(LEGACY_FACT_KEYS);
 // Manual form witnesses remain in the full registry, but are neither AI input
 // nor AI proposals. Keep legacy context during the existing schema transition.
-const AI_CONTEXT_FACT_KEYS = [...LEGACY_FACT_KEYS, ...AI_PROPOSABLE_NEED_FACT_V2_KEYS];
+const AI_CONTEXT_FACT_KEYS = [...LEGACY_FACT_KEYS, ...AI_PROVIDER_CONTEXT_FACT_V2_KEYS];
 const aiContextFactKeySet = new Set<string>(AI_CONTEXT_FACT_KEYS);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRICE_MODES = new Set(['MY_PRICE', 'OFFERS']);
@@ -185,7 +187,7 @@ function validClaimContext(context: unknown) {
     ['USER', 'ASSISTANT', 'SYSTEM'].includes(row.role) && typeof row.body === 'string' && row.body.length <= 6000 &&
     Number.isSafeInteger(row.sequence_no) && row.sequence_no > 0) &&
     context.activeFacts.every((row: unknown) => exact(row, ['fact_key', 'fact_value', 'value_type', 'display_value', 'fact_schema_version', 'status', 'source', 'created_at']) &&
-      isAiProposableNeedFactV2Key(row.fact_key) && row.fact_schema_version === NEED_FACT_SCHEMA_V2);
+      isAiProviderContextFactV2Key(row.fact_key) && row.fact_schema_version === NEED_FACT_SCHEMA_V2);
 }
 
 function geminiText(payload: any): string | null {

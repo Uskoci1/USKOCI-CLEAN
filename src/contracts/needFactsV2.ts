@@ -55,8 +55,24 @@ export const IDENTITY_VERIFICATION_UNAVAILABLE_COPY = 'Provera identiteta dokume
 export const NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS) as NeedFactV2Key[];
 export const AI_PROPOSABLE_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(key =>
   !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]));
+
+/**
+ * Facts that may be replayed to an external AI provider as context on a later turn.
+ *
+ * Exact address and access notes remain AI-proposable from the user's CURRENT message so
+ * the assistant can structure what the user just typed. Once persisted, however, they are
+ * intentionally excluded from provider context: the server retains them inside the private
+ * Need boundary and the user can still review/edit them without automatically re-sending
+ * them to a third-party AI provider on every subsequent turn.
+ */
+export const AI_PROVIDER_CONTEXT_FACT_V2_KEYS = AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key =>
+  key !== 'need.exact_address' && key !== 'need.access_notes');
+
 export function isAiProposableNeedFactV2Key(value: string): value is NeedFactV2Key {
   return AI_PROPOSABLE_NEED_FACT_V2_KEYS.some(key => key === value);
+}
+export function isAiProviderContextFactV2Key(value: string): value is NeedFactV2Key {
+  return AI_PROVIDER_CONTEXT_FACT_V2_KEYS.some(key => key === value);
 }
 export const REQUIRED_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(
   (key) => NEED_FACT_V2_DEFINITIONS[key].requiredForDraft,
