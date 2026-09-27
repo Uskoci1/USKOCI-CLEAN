@@ -100,6 +100,23 @@ const resolvedWitness={version:1,binding:{taskCountryCode:'RS',geography:{mode:'
 const manualFact={key:'need.resolved_location',valueJson:JSON.stringify(resolvedWitness),value:JSON.stringify(resolvedWitness),
   displayValue:'PRIVATE_RESOLVED_DISPLAY',evidence:'PRIVATE_RESOLVED_EVIDENCE',confidence:1};
 
+for(const key of ['need.exact_address','need.access_notes'])test(`stored private fact ${key} is refused before provider I/O`,async()=>{
+  const activeFacts=[{
+    fact_key:key,
+    fact_value:key==='need.exact_address'?'PRIVATE_PERSISTED_ADDRESS':'PRIVATE_PERSISTED_ACCESS_NOTE',
+    value_type:'TEXT',
+    display_value:'PRIVATE_PERSISTED_DISPLAY',
+    fact_schema_version:'NEED_FACT_V2',
+    status:'CONFIRMED',
+    source:'EXPLICIT_USER_ANSWER',
+    created_at:'2026-09-27T06:00:00.000Z',
+  }];
+  const f=fixture({activeFacts}),response=await f.invoke();
+  assert.equal(response.status,502);
+  assert.equal(providerCall(f),undefined,'persisted private fact must never reach Gemini');
+  assert.deepEqual(materialWrites(f),[]);
+});
+
 for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt registry exclude manual-only facts`,async()=>{
   const f=fixture({provider});assert.equal((await f.invoke()).status,200);
   const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
@@ -108,7 +125,14 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]);
   assert.deepEqual(promptRegistry.map(fact=>fact.key),allowedKeys);
   assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
-  assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(!allowedKeys.includes('need.resolved_location'));
+  // The model may structure an address/access note from the CURRENT user message,
+  // but those persisted private facts are not replayed as context on later turns.
+  assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(allowedKeys.includes('need.access_notes'));
+  assert.ok(!f.registry.AI_PROVIDER_CONTEXT_FACT_V2_KEYS.includes('need.exact_address'));
+  assert.ok(!f.registry.AI_PROVIDER_CONTEXT_FACT_V2_KEYS.includes('need.access_notes'));
+  assert.ok(f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS.includes('need.exact_address'));
+  assert.ok(f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS.includes('need.access_notes'));
+  assert.ok(!allowedKeys.includes('need.resolved_location'));
   assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.resolved_location'].manualOnly,true);
   assert.ok(!allowedKeys.includes('need.public_photo_paths'));
   assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly,true);
@@ -121,6 +145,7 @@ for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
       {fact_key:'need.people_needed',fact_value:2,display_value:'2 osobe',status:'CONFIRMED'},
       {fact_key:'naslov',fact_value:'SYNTHETIC_LEGACY_TITLE',status:'CONFIRMED'},
       {fact_key:'need.exact_address',fact_value:'SYNTHETIC_EXISTING_PRIVATE_ADDRESS',status:'CONFIRMED'},
+      {fact_key:'need.access_notes',fact_value:'SYNTHETIC_EXISTING_PRIVATE_ACCESS_NOTE',status:'CONFIRMED'},
       {fact_key:'need.resolved_location',fact_value:resolvedWitness,display_value:manualFact.displayValue,status:'CONFIRMED'},
       {fact_key:'unknown.private_fact',fact_value:'PRIVATE_UNKNOWN_FACT',status:'CONFIRMED'},
     ];
@@ -135,7 +160,8 @@ for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
     const filter=query.get('fact_key');assert.match(filter??'',/^in\.\(.+\)$/);
     const fetchedKeys=JSON.parse(`[${filter.slice(4,-1)}]`);
     assert.ok(fetchedKeys.includes('naslov'));assert.ok(fetchedKeys.includes('need.people_needed'));
-    assert.ok(fetchedKeys.includes('need.exact_address'));assert.ok(!fetchedKeys.includes('need.resolved_location'));
+    assert.ok(!fetchedKeys.includes('need.exact_address'));assert.ok(!fetchedKeys.includes('need.access_notes'));
+    assert.ok(!fetchedKeys.includes('need.resolved_location'));
     assert.ok(!fetchedKeys.includes('unknown.private_fact'));
     assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
   });
