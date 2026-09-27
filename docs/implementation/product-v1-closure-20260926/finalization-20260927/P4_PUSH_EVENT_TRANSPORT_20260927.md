@@ -1,11 +1,12 @@
 # P4 opaque push event transport — source preparation
 
-Status: **EDGE SYNTHETIC PASS / FIRST SQL RUN FAILED IN FIXTURE / CORRECTED RUN PENDING**.
+Status: **DISPOSABLE SQL/AUTH + ACTUAL EDGE PASS / DEV AND EDGE DEPLOYMENT PENDING**.
 No DEV SQL, Edge deployment, environment change, certificate update, provider send,
-device operation or commit was performed by this package. The installed worker
+or device operation was performed by this package. The installed worker
 remains outside this source-only change. Do not mark direct push-to-message proven.
+Exact evidence is in `P4_PUSH_TRANSPORT_RECEIPT.json` and its concise `.md` companion.
 
-## Existing path and the gap
+## Baseline path and the gap at package preparation
 
 | Boundary | Current source behavior | Required change |
 | --- | --- | --- |
@@ -59,7 +60,7 @@ Candidate working-tree SHA-256:
 `bd4957d6a2534d892c64839e0dd8fbd6b03267c9bd18159a6cf7b6ae1824e450`.
 Expected A1 predecessor body MD5: `f946246b96985efefa26e2bd560cc897`.
 Prepared begin body MD5: `ea801be7205a8b07c7c94e20af3bd90e`.
-Rebind source hashes to the eventual committed bytes before a disposable proof.
+The PASS receipt binds these bytes to commit `b4561a9ccb0f49cbdb78782aa16232857cfb8fda`.
 
 ## Certificate boundary and disposable SQL proof
 
@@ -74,7 +75,7 @@ function metadata, closure digest, both certificate rows, erasure binding and re
 definition, with readiness true. Its postcondition pins the new body too. Any boundary
 drift aborts; it contains no recertification.
 
-**The first PostgreSQL run executed the candidate but did not complete the full proof.** The harness
+**The corrected PostgreSQL run passes all ten checks.** The harness
 `supabase/proofs/chat/push_event_transport_proof.mjs` and isolated workflow
 `.github/workflows/chat-p4-push-transport-proof.yml` reuse the unchanged local
 source147 → PKG-050 → A1 → B3a/B3b → 13-check P4 predecessor proof. They then admit:
@@ -91,9 +92,11 @@ source147 → PKG-050 → A1 → B3a/B3b → 13-check P4 predecessor proof. They
 
 Only bounded source hashes, stage verdicts and reports are uploaded, including
 failures; raw predecessor logs/credentials/fixture rows remain private and teardown
-always runs. This machine has no callable local Docker/Postgres/Supabase toolchain,
-so the corrected committed CI run is still required. The Node result below does not substitute
-for that proof. It does not add new claims about account blocking or native delivery.
+always runs. Run `36345502344` at `b4561a9ccb0f49cbdb78782aa16232857cfb8fda`
+passed all ten transport checks, the thirteen-check P4 predecessor, 101 synthetic
+Edge/copy regressions and teardown. Independent receipt validation matched fourteen
+reported source hashes and the complete 712-file manifest against exact Git blobs.
+It does not add new claims about account blocking or native delivery.
 
 Run `36344974563`, exact source `cdb37d692afaf800654c13a0ef70fe4c45f2b370`,
 retained eight PASS checks including source/authority mutation refusals, SQL-only
@@ -161,6 +164,51 @@ Ship/admit the compatible client, prove both cold and live owned taps, then sepa
 enable exact transport. Until the supported installed clients are compatible, retain
 legacy data. No per-device capability exists in this package; a global switch is not
 a safe substitute for compatibility during an uncontrolled mixed-version rollout.
+Inventory every active push registration and its supported installed build before
+global activation. Upgrading one phone does not admit older emulator/phone clients:
+their strict one-key data validator rejects the three-key payload. No registration
+is evidence of capability by itself, and this package adds no per-device negotiation.
+
+The bridge deployment does **not** require creating or changing any secret: an absent
+`EXPO_PUSH_MESSAGE_TARGET_ENABLED` is OFF, as are `false`, `TRUE` and `1`. Before
+claiming the live default, confirm absence using names-only environment metadata;
+source default alone cannot prove that a project-level value is absent. Do not read
+or print secret values. If the name already exists, leave activation unresolved
+until its state can be established through an approved, non-secret mechanism. The
+currently callable Supabase MCP tools do not expose that names-only listing.
+
+Additional deployment admissions:
+
+- Recheck the exact A1 predecessor and P4 resolver bodies, effective privileges,
+  owners/config, current ledger and unchanged ready closure certificate/binding.
+- Preserve the existing worker's `verify_jwt=false` and `import_map=false`; this
+  package requests no gateway-auth, service credential, Expo credential, cron or
+  transport kill-switch change. Read back the complete deployed entrypoint and
+  formatter bytes and active version before admitting SQL.
+- Drain executions from the old worker before SQL, and read only aggregate counts
+  of active `SEND_LEASED`/`SEND_STARTED` attempts and unexpired leases. The existing
+  handler has a 25-second request deadline and SQL claims have 90-second leases;
+  waiting alone does not attest regional deployment convergence or absence of old
+  executions. An old worker that receives the new eight-key begin receipt rejects
+  it after SQL has marked `SEND_STARTED`, later leaving an UNKNOWN outcome. Do not
+  replay such an outcome or clear attempts to make this admission pass.
+- After SQL, retain the compatible Edge. A rollback to worker 21 alone is invalid;
+  any separately authorized rollback must first restore the proven A1 SQL body
+  with the same authority/certificate boundary checks, then restore the old Edge.
+- With the bridge flag proven OFF, existing clients retain exactly the legacy
+  Inbox payload; installing the new client is not required for that bridge phase.
+  Exact payload activation still requires the compatible client and independent
+  cold/live tap evidence, including current-account admission and measured ACK.
+
+Fresh metadata-only DEV preflight at `2026-09-27T19:54:43.313707Z`: ledger 208;
+A1 begin and P4 resolver body/owner/config/effective ACL match; both complete
+certificate rows retain SHA-256 `cc248ff1...936f7` and row MD5
+`2d506928a7f7216c9278bd37b18de76b`; readiness definition MD5 remains
+`092bab686aa5e8c32ce528cbb9767447`. Counts are zero for SEND_LEASED,
+SEND_STARTED and all unexpired leases. Worker metadata remains ACTIVE v21 with
+unchanged gateway/import-map settings. This read did not execute privileged
+digest/binding/readiness functions, inspect environment values or mutate anything.
+It does not replace fresh post-deployment drain/readback and atomic SQL guards.
 
 Reference checked: [Expo notification response and cold-start APIs](https://docs.expo.dev/versions/latest/sdk/notifications/).
 The repository uses the existing installed API; no SDK/package upgrade was made.
