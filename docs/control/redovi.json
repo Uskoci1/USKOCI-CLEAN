@@ -197,7 +197,7 @@
       ],
       "telefon": null,
       "problem": "",
-      "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json Završni krug09: pregled svih privatnih potvrđenih tačaka pre objave; dopuna napomene zadržava pin, a odbacivanje izmene vraća poslednju potvrđenu tačku. Tipovi i 5 ciljanih grupa/173 testa prolaze. Telefon, provajder i glas nisu ponovo provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md Završni krug10: potvrđena mapa ostaje u AI razgovoru, svaka tačka se može ispraviti; nacrt poruke ostaje sačuvan dok se rešava mesto. Stari pregled ne može prepisati novu lokaciju. Tipovi i 4 ciljane grupe / 270 testova prolaze; novi APK, telefon i AI provajder nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md",
+      "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json Završni krug09: pregled svih privatnih potvrđenih tačaka pre objave; dopuna napomene zadržava pin, a odbacivanje izmene vraća poslednju potvrđenu tačku. Tipovi i 5 ciljanih grupa/173 testa prolaze. Telefon, provajder i glas nisu ponovo provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md Završni krug10: potvrđena mapa ostaje u AI razgovoru, svaka tačka se može ispraviti; nacrt poruke ostaje sačuvan dok se rešava mesto. Stari pregled ne može prepisati novu lokaciju. Tipovi i 4 ciljane grupe / 270 testova prolaze; novi APK, telefon i AI provajder nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -211,15 +211,15 @@
           "P0"
         ],
         "flow": "Mesto zadatka (tačka na mapi, adresa privatna)",
-        "ux": "Potvrđena mapa ostaje u razgovoru; svaka stvarna tačka se otvara zasebno. Sačuvano i nepotvrđeno mesto imaju različit izlaz/potvrdu odbacivanja.",
-        "ui": "Mala mapa svih potvrđenih tačaka, sa proširenjem i izričitom navigacijom; bez duplog koraka za već sačuvano mesto.",
+        "ux": "Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja.",
+        "ui": "Vidljivo dugme za otvaranje mape, dostupan ponovni pokušaj i izlaz iz proširenog prikaza.",
         "backend": "Isti rpc_get_need_location_review / rpc_save_need_location_review sa expected revision i confirmed:true. Nema novog geokodera, route provajdera ili javnog skupa privatnih koordinata.",
-        "state_sync": "Tačke su vezane za važeću geografiju/adresu/reviziju. Ručna izmena zaustavlja konkurentno slanje, fotografije i pregled bez brisanja nacrta. Zakasneli odgovor ne otključava novi poset.",
+        "state_sync": "Poznato važenje privatne dozvole proverava se u trenutku navigacije; promena dozvole/poseta poništava stare akcije. Nema novog realtime signala opoziva.",
         "performance": "Nije ponovo mereno",
-        "test": "Round10: TypeScript PASS; 4 distinct focused suites / 270 tests PASS. First fixture-only TSC failure and corrected rerun preserved.",
-        "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07–10. Istorijski telefon.dokaz nije nova provera.",
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
         "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -245,7 +245,7 @@
       ],
       "telefon": null,
       "problem": "Audit 24.09: RC-02: moguće uzajamno čekanje pri paralelnom otkazivanju READY slike i uklanjanju/završavanju; red zaključavanja je obrnut. Dokazano iz koda, još ne konkurentnim izvršavanjem.",
-      "sledece": "R19: prave fotografije su prve na detalju; prevlačenje po jednoj, stvarni 1/N i prikaz preko celog ekrana. Prazna galerija ne zauzima prostor. Proveriti novi APK i sačuvati dokaz; serverski RC-02 ostaje odvojen. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: fotografije potvrđene u nacrtu vidljive su u AI razgovoru kroz postojeći autorizovani čitač; dugme vodi u postojeći editor fotografija. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md",
+      "sledece": "R19: prave fotografije su prve na detalju; prevlačenje po jednoj, stvarni 1/N i prikaz preko celog ekrana. Prazna galerija ne zauzima prostor. Proveriti novi APK i sačuvati dokaz; serverski RC-02 ostaje odvojen. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: fotografije potvrđene u nacrtu vidljive su u AI razgovoru kroz postojeći autorizovani čitač; dugme vodi u postojeći editor fotografija. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -267,15 +267,15 @@
           "P0"
         ],
         "flow": "Fotografije zadatka",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
+        "ux": "Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike.",
+        "ui": "Jedna jasna radnja na neuspešnoj fotografiji, odvojena od sažetka poruke; tekstualni oblačići ostaju isti.",
         "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "state_sync": "Zakasneli odgovor, native greška stare slike i stari retry ne mogu zameniti nov pokušaj. Nalog, revizija, fokus i kontekst fotografije ostaju vezani.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -405,7 +405,7 @@
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objavljen pa zatvoren zadatak prikazan sa istorijskim brojem prijava. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 2026-09-23: novi raspored detalja mog zadatka viđen na telefonu (build 165ab4fa, docs/implementation/design-system/g3-task-detail/G3_RECEIPT.json), samo čitanje. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "",
-      "sledece": "R19: fotografije iznad naslova, bez praznog bloka; kartica zadržava stvarne podatke i kratku popunjenost dole desno. Proveriti oba ulaza i povratak na novom APK-u. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: naziv je ispred statusa; podaci i cena pre prijava. Popunjenost kratko n/m, puna rečenica ostaje čitaču ekrana. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md",
+      "sledece": "R19: fotografije iznad naslova, bez praznog bloka; kartica zadržava stvarne podatke i kratku popunjenost dole desno. Proveriti oba ulaza i povratak na novom APK-u. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: naziv je ispred statusa; podaci i cena pre prijava. Popunjenost kratko n/m, puna rečenica ostaje čitaču ekrana. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -421,15 +421,15 @@
           "P2"
         ],
         "flow": "Moj zadatak (detalj)",
-        "ux": "Mala mapa vlasnikovog zadatka otvara ista približna mesta preko celog ekrana; zatvaranje vraća isti detalj.",
-        "ui": "Novi read-only preview, bela kontrola i brendirani pin; TaskCard/Peek ostaju isti.",
+        "ux": "Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja.",
+        "ui": "Vidljivo dugme za otvaranje mape, dostupan ponovni pokušaj i izlaz iz proširenog prikaza.",
         "backend": "Vlasnički detalj i dalje dobija samo postojeću približnu tačku. Javni prikaz više stanica zahteva zasebnu coarse projekciju; privatne tačke nisu zamena.",
-        "state_sync": "Mapa samo uz tekući uspešan read; nalog/revizija/fokus/pozadina i svaki modal visit povlače stare akcije. Coarse round2 pre native SDK-a i spoljne pretrage.",
+        "state_sync": "Poznato važenje privatne dozvole proverava se u trenutku navigacije; promena dozvole/poseta poništava stare akcije. Nema novog realtime signala opoziva.",
         "performance": "Fit stvarnih tačaka; jednak osvežen skup ne resetuje ručno pomeranje. Bez izmišljene putanje i bez novih periodičnih upita.",
-        "test": "TypeScript za objedinjeni Round07/08 prošao; Round08 8 različitih ciljanih grupa / 183 testa prošlo po poslednjem rezultatu svake grupe. Početni tipovi/fixture ispravke ostaju u CHECKS; nije ceo Jest.",
-        "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
-        "status": "KLIJENT I CILJANE PROVERE PROŠLI / NATIVE PRIHVATANJE ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -1169,7 +1169,7 @@
         "dokaz": "R17 25.09, 8500bf29 / APK 36172923719: javni detalj iz pina otvoren na VKP-NX9; naslov, činjenice, uslovi, opis, osoba i donja komanda vidljivi. Prijava nije poslata. Povratak na isto mesto na mapi je pregledan. docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Stvarni javni detalj i donji deo sa približnom mapom/pitanjima viđeni. Prijava i ostale poslovne radnje nisu izvršene. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: detalj zadatka (naslov u traci pri pomeranju, osoba sa inicijalima, razlog kad prijava nije moguća, retke radnje iza „···“) viđen na emulatoru, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-23: novi raspored detalja tuđeg zadatka viđen na telefonu (build 165ab4fa, g3-task-detail/G3_RECEIPT.json), samo čitanje; prijava nije poslata. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "",
-      "sledece": "R19: stvarne fotografije prve, preko cele raspoložive širine, sa pregledom preko celog ekrana. Naslov, činjenice, pitanja i postojeće dozvoljene radnje ostaju. Proveriti novi APK. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: kratak n/m u detalju i postojeći znak brenda u približnom području na mapi; privatna preciznost se ne prikazuje. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md",
+      "sledece": "R19: stvarne fotografije prve, preko cele raspoložive širine, sa pregledom preko celog ekrana. Naslov, činjenice, pitanja i postojeće dozvoljene radnje ostaju. Proveriti novi APK. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md 2026-09-27 R21: kratak n/m u detalju i postojeći znak brenda u približnom području na mapi; privatna preciznost se ne prikazuje. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md Završna faza 27.09: P0 predlog objava → stvarna kartica/pin, jednokratno približavanje i vezivanje za nalog. Nalazi FIN-P0-01–03 su iz koda; nisu još popravljeni/provereni na uređaju. Dopuna vlasnika: odobren samo beli pin sa narandžastim naglaskom; predlog kartice odbijen. Postojeća kartica i tok zadržani. Pin je pripremljen u kodu bez novih testova/instalacije; ostali P0 nalazi ostaju otvoreni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md P0 / 27.09: odobren tok potvrđene objave ka stvarnom pinu/listi, direktan vlasnički detalj i jednokratno pomeranje mape. Izvor pripremljen; testovi, APK i uređaj nisu pokretani. Postojeća kartica je sačuvana. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1186,15 +1186,15 @@
           "P2"
         ],
         "flow": "Detalj prilike",
-        "ux": "Mala mapa javne prilike otvara istu približnu tačku preko celog ekrana i vraća isti detalj.",
-        "ui": "Read-only preview i ceo ekran koriste postojeći brend; TaskCard/DiscoveryPeek nisu menjani.",
+        "ux": "Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja.",
+        "ui": "Vidljivo dugme za otvaranje mape, dostupan ponovni pokušaj i izlaz iz proširenog prikaza.",
         "backend": "Postojeći javni read daje jednu coarse tačku; nema privatnih tačaka, novog geokodera ili in-app route provajdera.",
-        "state_sync": "Samo fresh read bez loading/error stanja dobija mapu. Nalog/fokus/pozadina/scope i modal visit povlače stare akcije; koordinate se zaokružuju pre SDK-a i spoljnog search linka.",
+        "state_sync": "Poznato važenje privatne dozvole proverava se u trenutku navigacije; promena dozvole/poseta poništava stare akcije. Nema novog realtime signala opoziva.",
         "performance": "Jedna stvarna approximate tačka; jednak skup ne resetuje pan. Nema dokaza serverskog opterećenja.",
-        "test": "TypeScript za objedinjeni Round07/08 prošao; Round08 8 različitih ciljanih grupa / 183 testa prošlo po poslednjem rezultatu svake grupe. Početni tipovi/fixture ispravke ostaju u CHECKS; nije ceo Jest.",
-        "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
-        "status": "KLIJENT I CILJANE PROVERE PROŠLI / NATIVE PRIHVATANJE ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -1629,7 +1629,7 @@
         "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md"
       },
       "problem": "Straničenje, direktan realtime bez push-a, precizna oznaka prikazane poruke, glasovne poruke i dokumenti ostaju otvoreni. Round06 priprema čuvanje nacrta/mesta čitanja i osvežavanje po dolaznom obaveštenju; uređajski dokaz još ne postoji.",
-      "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija. Završni krug 03 / 27.09: Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: pripremljeni B3a/B3b; primena i klijent čekaju dokaz i odobrenje. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. B3a i B3b konačno prolaze na izdvojenoj CI bazi (36312570701); DEV nije menjan, aplikacija ih još ne poziva. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md",
+      "sledece": "Android Nazad sa praznim unosom radi kroz tastaturu→pregled→listu na a69a26c6. Multiline/slanje nije ponovljeno na novom izdanju. Pregled koda 26.09 potvrđuje da istorija nije straničena, nema automatskog prijema dok je ekran otvoren, a potvrda pročitanog važi za ceo Dogovor. Glasovne poruke imaju ugovor i proveru M4A strukture, ali još ne i ceo server/klijent. Sledeći paket i proba na dva uređaja: docs/implementation/product-v1-closure-20260926/CHAT_IMPLEMENTATION_BASELINE.md. To je priprema, ne završena funkcija. Završni krug 03 / 27.09: Postojeća zbirna potvrda čeka vidljiv Dogovor; tačni ID-evi i stranice traže novi paket. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: pripremljeni B3a/B3b; primena i klijent čekaju dokaz i odobrenje. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. B3a i B3b konačno prolaze na izdvojenoj CI bazi (36312570701); DEV nije menjan, aplikacija ih još ne poziva. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1654,15 +1654,15 @@
           "P6"
         ],
         "flow": "Poruke",
-        "ux": "Nacrt čuva tekst pri izlasku; povratak u isti Dogovor čuva mesto čitanja posle svežeg učitavanja.",
-        "ui": "Postojeći izgled poruka; vraćanje na najnovije prati izričito slanje, ne učitavanje starih komandi.",
+        "ux": "Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike.",
+        "ui": "Jedna jasna radnja na neuspešnoj fotografiji, odvojena od sažetka poruke; tekstualni oblačići ostaju isti.",
         "backend": "B3a/B3b: 18 provera na privremenoj bazi sa stvarnim Auth/SQL prolazi. Tri nova RPC-a su potvrđeno odsutna na DEV-u; potrebna izričita primena.",
-        "state_sync": "Primljeno obaveštenje je signal za čitanje otvorenog Dogovora uz nalog/posetu/sesiju. Zbirna oznaka čitanja ostaje; tačni prikazani ID-evi nisu povezani.",
+        "state_sync": "Zakasneli odgovor, native greška stare slike i stari retry ne mogu zameniti nov pokušaj. Nalog, revizija, fokus i kontekst fotografije ostaju vezani.",
         "performance": "Bez periodičnog upita: jedan aktivan i jedan naknadni zahtev, najmanje 2 s između početaka. Stara istorija i ScrollView još nisu straničeni.",
-        "test": "B3a 11 + B3b 7 SQL/Auth checks PASS, run36312570701 / be72a1bd. Prethodna tri pada dokaza ostaju dokumentovana. Nije dokaz realtime/voice/push na uređaju.",
-        "device_proof": "Nema novog APK-a, instalacije ili dokaza sa uređaja za ovaj paket.",
-        "status": "KLIJENT DELIMIČAN / SERVER DOKAZAN NA CI / NIJE PRIMENJEN NI POVEZAN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_PRIVATE_HISTORY_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_MESSAGE_WINDOW_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_B3_WINDOW_ORDERING.md + CI 36312008697 / 36312570701; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_PRIVATE_HISTORY_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_MESSAGE_WINDOW_CONTRACT.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_B3_WINDOW_ORDERING.md + CI 36312008697 / 36312570701; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_B3_PROOF_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -1686,7 +1686,7 @@
       ],
       "telefon": null,
       "problem": "CF02 je popravljen u kodu: zatvoren Dogovor zadržava proveru i uklanjanje ranije pripremljenih fotografija, uz zabranu novih slanja. Nova verzija sa tom izmenom još nije proverena na telefonu.",
-      "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano. Završni krug04: privatne fotografije imaju uslovni nalaz u izvoru. Potrebni su poseban kandidat, dokaz i odobren pomeraj sertifikata; bez tvrdnje o stvarnom incidentu. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa.",
+      "sledece": "26.09: pre popravke7 testova pada; dodatna provera neuspelog čitanja pada pre svoje popravke. Završni12/12 ciljani testovi, tipovi i ceo Jest322/6517 prolaze. Izvor i dokazi: docs/implementation/release-hardening-20260926/CF02_TERMINAL_PHOTO_RECOVERY.md. APK-ovi bd550c64 ne sadrže ovu kasniju izmenu. Slede native fotografije/oporavak na odobrenom probnom Dogovoru; ništa na serveru nije menjano. Završni krug04: privatne fotografije imaju uslovni nalaz u izvoru. Potrebni su poseban kandidat, dokaz i odobren pomeraj sertifikata; bez tvrdnje o stvarnom incidentu. Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. Završni krug11: Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1709,15 +1709,15 @@
           "P4"
         ],
         "flow": "Slike u porukama",
-        "ux": "Ponovljeno slanje proverava i potvrde pripremljenih fotografija da vezana slika ne ostane rezervisana u unosu.",
-        "ui": "Postojeći prikaz fotografija i oporavak zatvorenog Dogovora su sačuvani.",
+        "ux": "Neučitana fotografija ima sopstveni ponovni pokušaj; samo jedan zahtev je aktivan. U porukama ta radnja više nije skrivena unutar drugog dugmeta. Uvećanje fotografije zadatka otvara se samo sa učitane slike.",
+        "ui": "Jedna jasna radnja na neuspešnoj fotografiji, odvojena od sažetka poruke; tekstualni oblačići ostaju isti.",
         "backend": "Uslovni izvorni nalaz: stara provera učesnika nije bezbedna kada je jedan učesnik NULL. Novi kandidati imaju pozitivnu proveru; stari helper nije promenjen.",
-        "state_sync": "Posle tačnog retry-ja čita tekući kontroler fotografija istog Dogovora; zastareli ekran ne osvežava novog vlasnika.",
+        "state_sync": "Zakasneli odgovor, native greška stare slike i stari retry ne mogu zameniti nov pokušaj. Nalog, revizija, fokus i kontekst fotografije ostaju vezani.",
         "performance": "Nije ponovo mereno",
-        "test": "Provera tipova prošla; završna ciljana provera 9 grupa / 406 testova prošla. Detalji i početni nalazi u izveštaju.",
-        "device_proof": "Nema novog APK-a, instalacije ili dokaza sa uređaja za ovaj paket.",
-        "status": "KOD I CILJANI TESTOVI PROŠLI / UREĐAJ JOŠ NIJE PROVEREN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -1883,7 +1883,7 @@
       ],
       "telefon": null,
       "problem": "",
-      "sledece": "25.09: uklonjeni ekran, ruta i ulazi za „Trenutnu lokaciju”. Kontakt i AgreementPrivateLocation ostaju sa svojim dozvolama i oporavkom. Server i postojeći podaci nisu menjani. Dva testa obe strane proveravaju uklonjeni ulaz; zaštićena adresa i dalje prolazi svoje provere. Potrebna provera pravog Dogovora na aktuelnoj verziji. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md",
+      "sledece": "25.09: uklonjeni ekran, ruta i ulazi za „Trenutnu lokaciju”. Kontakt i AgreementPrivateLocation ostaju sa svojim dozvolama i oporavkom. Server i postojeći podaci nisu menjani. Dva testa obe strane proveravaju uklonjeni ulaz; zaštićena adresa i dalje prolazi svoje provere. Potrebna provera pravog Dogovora na aktuelnoj verziji. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md Završni krug11: Otvaranje, izbor tačke i navigacija proveravaju konkretan nalog, dozvolu, njeno važenje i trenutni prikaz. Istekla dozvola ne blokira zatvaranje otvorene mape. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1899,15 +1899,15 @@
           "P3"
         ],
         "flow": "Kontakt i tačna adresa zadatka u Dogovoru",
-        "ux": "Već otkrivena privatna lokacija prikazuje sve potvrđene stanice, sa proširenom mapom i izričitom navigacijom do stanice ili cele dozvoljene putanje.",
-        "ui": "Brojevi stanica i brendirani beli pinovi sa narandžastim izborom; bez sirovih koordinata i izmišljene linije vožnje.",
+        "ux": "Otvaranje, izbor tačke i navigacija proveravaju konkretan nalog, dozvolu, njeno važenje i trenutni prikaz. Istekla dozvola ne blokira zatvaranje otvorene mape.",
+        "ui": "Vidljivo dugme za otvaranje mape, dostupan ponovni pokušaj i izlaz iz proširenog prikaza.",
         "backend": "Postojeći reveal/grant ugovor nepromenjen. Tačna mapa koristi samo odobreni skup; locationSlots određuje redosled. Full-route link postoji samo za potpun skup u podržanoj dužini.",
-        "state_sync": "Nalog/revizija/fokus/pozadina, osveženje/istek dozvole i svaki modal visit povlače privatni prikaz i stare akcije. URL prenosi samo koordinate posle izričitog pritiska.",
+        "state_sync": "Poznato važenje privatne dozvole proverava se u trenutku navigacije; promena dozvole/poseta poništava stare akcije. Nema novog realtime signala opoziva.",
         "performance": "Svi potvrđeni pinovi staju u padded bounds; poklopljena mesta dele pin sa svim brojevima. Duža ruta nikad tiho ne gubi stanice.",
-        "test": "TypeScript za objedinjeni Round07/08 prošao; Round08 8 različitih ciljanih grupa / 183 testa prošlo po poslednjem rezultatu svake grupe. Početni tipovi/fixture ispravke ostaju u CHECKS; nije ceo Jest.",
-        "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
-        "status": "KLIJENT I CILJANE PROVERE PROŠLI / NATIVE PRIHVATANJE ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json"
+        "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
+        "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
       }
     },
     {
@@ -3626,7 +3626,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "9fae4618b30db15907eeefada559848c59fd57cf",
+    "source_head": "d358c8f504d680863f64607fccec352ea2fe9af5",
     "order": [
       "P0",
       "P1",
@@ -3639,14 +3639,14 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "Round10: TypeScript PASS; 4 distinct focused suites / 270 tests PASS. Initial test-only BackHandler type errors preserved and corrected. Earlier round counts overlap; not a full-suite claim. B3a 11 + B3b 7 disposable DB/Auth checks PASS in run36312570701.",
-    "device": "NOT_RUN_FOR_ROUND07_THROUGH_ROUND10",
+    "tests": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS. Final map rerun replaces the earlier map selection. Last 48px caption-only style was source-reviewed. Round10: 4 suites / 270 tests PASS. Counts overlap across rounds, no full-suite claim. B3 disposable proof remains PASS / not applied.",
+    "device": "NOT_RUN_FOR_ROUND07_THROUGH_ROUND11",
     "live_dev_scope": "2026-09-27T10:38:34Z read-only B3 presence, participant nullability and four helper bodies: B3 absent; both participant columns NOT NULL; pinned helpers match. No complete ledger/certificate/Edge attestation. ROUND_09_DEV_B3_READ_ONLY.json.",
     "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Bounded relevant source checks accompany changes. Full-suite/build/install/device/provider execution deferred. DEV/Edge application requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-    "implementation": "Round10 keeps a saved, expandable point/route map in the owned AI conversation; each point is editable. Manual map decisions retain the typed draft while competing send/review/photo actions wait. Stale location/revision mixtures are refused. Round07–09 continuity and public/private map separation remain. TaskCard/Peek unchanged.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md",
+    "implementation": "Round10–11: confirmed maps remain editable in AI conversation; all actual stops retain explicit navigation. Failed maps/photos have reachable retry, photo actions are separated from message summaries, and private-map actions recheck current known grant expiry. Card/Peek preserved. Whole-product, device and AI-provider quality remain open.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
     "dashboard_publication": "PENDING_UPLOAD: prijava vlasnika važi i polje je vidljivo, ali podržani izbor fajla ne vraća prozor za učitavanje. Poslednji pokušaj i nepromenjena udaljena verzija b9aed185/2026-09-24 zabeleženi su u ROUND_09_PUBLICATION.json. Lokalni fajl je osvežen; nije objavljen. Postojeće deljenje: svi sa linkom; nije menjano.",
-    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md",
+    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md",
     "server_proof_source": "be72a1bd",
     "server_proof": "B3a 11 and B3b 7 disposable SQL/Auth checks PASS in run36312570701 at be72a1bd. Earlier failed oracle runs are preserved. Both candidates remain UNAPPLIED / UNWIRED; explicit primeni is required. No DEV mutation or certificate movement.",
     "chat_b3": "DISPOSABLE_PROOF_PASS / NOT_APPLIED / NOT_CLIENT_WIRED: run36312570701 at be72a1bd. Exact evidence in ROUND_09_B3_PROOF_RECEIPT.md. Re-read prerequisites before any explicitly approved DEV application."
