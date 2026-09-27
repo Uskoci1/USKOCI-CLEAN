@@ -1,5 +1,5 @@
 -- Chat B3c disposable candidate / NOT DEPLOYABLE.
--- SQL/Auth rollback proof passed; authenticated websocket phase remains NOT RUN.
+-- SQL/Auth rollback and authenticated websocket proofs have historical receipts.
 -- Transaction fragment, not a migration. The original proof owns BEGIN/ROLLBACK.
 -- A separately admitted ephemeral realtime harness may COMMIT solely because WAL
 -- delivery needs a committed fixture. It must always discard its entire local stack.
@@ -256,5 +256,7 @@ end
 $post$;
 -- NO COMMIT here. LOCAL_ONLY_ROLLBACK callers must ROLLBACK. The distinct
 -- LOCAL_ONLY_EPHEMERAL_REALTIME harness may COMMIT this uncertified fixture and
--- must discard its entire loopback-only stack even on failure; never recertify it.
--- Deployment/recertification and authenticated websocket delivery remain unfinished.
+-- must discard its entire loopback-only stack even on failure. That installation
+-- phase never recertifies. A separately authorized disposable proof may bind the
+-- exact proven state in its three certificate places, then exercise full erasure.
+-- No DEV recertification/application admission is granted by either proof.

@@ -1,7 +1,7 @@
-// Disposable wire proof / NOT DEPLOYABLE. Prior run failed before its first
-// known-message witness; bounded diagnostics below distinguish the next failure.
-// The distinct admission never rebinds certificates. The workflow MUST discard
-// the entire local stack after this phase, including every failure path.
+// Disposable wire proof / NOT DEPLOYABLE. Historical actual-wire PASS is separate
+// from the new exact-source run. This phase never rebinds certificates; its hash-only
+// catalog handoff admits a separately authorized disposable closure proof. The
+// workflow MUST discard the entire local stack, including every failure path.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
@@ -560,7 +560,8 @@ try {
   for (const path of [candidatePath, harnessPath, workflowPath,
     'supabase/proofs/chat/private_invalidation_proof.mjs',
     'supabase/proofs/chat/chat_b3c_private_invalidation_proof.sql',
-    'supabase/proofs/pre_v3/closure_runtime.mjs', 'supabase/proofs/ru5_device_ui_local_guard.mjs']) {
+    'supabase/proofs/pre_v3/closure_runtime.mjs', 'supabase/proofs/ru5_device_ui_local_guard.mjs',
+    'supabase/proofs/chat/private_invalidation_catalog_snapshot.mjs']) {
     const bytes = readFileSync(path);
     assert.deepEqual(bytes, execFileSync('git', ['show', env.GITHUB_SHA + ':' + path]));
     report.sourceArtifactHashes[path] = sha256(bytes);
@@ -747,6 +748,10 @@ finally {
         assert.equal(hashJson(after), hashJson(baseline));
       }
       pass('FINAL_CERTIFICATES_READINESS_DEFINITION_AND_SURFACE_UNCHANGED');
+      // Hash-only handoff to the separately authorized disposable erasure phase.
+      // It must refuse any intervening source/catalog/certificate/history drift.
+      const {invalidationCatalogSnapshot} = await import('./private_invalidation_catalog_snapshot.mjs');
+      report.closureRecertificationPredecessorSha256 = hashJson(invalidationCatalogSnapshot(rt));
     } catch (error) { fail(error); }
   }
   stage = originalStage;
