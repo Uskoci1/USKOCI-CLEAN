@@ -26,12 +26,14 @@ export default function Profil() {
   }, [accountId]);
   const profile = useFocusedResource(load);
   const actionScope = useRef<ActionScope | null>(null);
+  const [renderedScope, setRenderedScope] = useState<ActionScope | null>(null);
   const [busy, setBusy] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
 
   useFocusEffect(useCallback(() => {
     const scope: ActionScope | null = accountId ? { accountId, accountRevision, busy: false } : null;
     actionScope.current = scope;
+    setRenderedScope(scope);
     setBusy(false);
     setLogoutError(false);
     return () => { if (actionScope.current === scope) actionScope.current = null; };
@@ -43,7 +45,8 @@ export default function Profil() {
   }
 
   function beginAction() {
-    const scope = actionScope.current;
+    // A retained callback belongs to the visit that rendered it, never a later account or focus.
+    const scope = renderedScope;
     if (!scope || scope.busy || !isCurrent(scope)) return null;
     scope.busy = true;
     setBusy(true);

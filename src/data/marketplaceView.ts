@@ -285,6 +285,15 @@ export function discoveryShown(items: readonly MarketplaceItem[], view: Marketpl
   now: Date = new Date()): DiscoveryShown {
   view = remoteDiscoveryScope(view);
   const mapped = marketplaceItems(items, { ...view, area: null }, false, now);
+  return discoveryMapScope(mapped, view);
+}
+/**
+ * Partition an already filtered public read for the current map area. Keep `mapped` unchanged: panning must not
+ * rebuild the map's source or repeat time/text filtering. Both ordinary discovery and the retained map use this
+ * same geographic rule; point-free work remains in the list and remote work never inherits a geographic scope.
+ */
+export function discoveryMapScope(mapped: MarketplaceItem[], scope: Pick<MarketplaceView, 'area' | 'pinPlace' | 'where'>): DiscoveryShown {
+  const view = remoteDiscoveryScope(scope);
   const pin = typeof view.pinPlace === 'string' && view.pinPlace ? view.pinPlace : null;
   if (pin !== null) {
     const here = mapped.filter(item => { const point = publicPoint(item); return !!point && pointKey(point) === pin; });

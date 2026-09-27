@@ -19,14 +19,21 @@ export default function Obavestenja() {
   const [role,setRole] = useState<InboxRole|null>(null);
   const {state,model} = useInbox(role);
   const navigating = useRef(false);
-  useFocusEffect(useCallback(() => { navigating.current=false; return () => { navigating.current=true; }; },[model]));
-  const navigate = (action: () => void) => { if (!model.canNavigate() || navigating.current) return; navigating.current=true; action(); };
+  const focus = useRef<object | null>(null);
+  const [renderedFocus,setRenderedFocus] = useState<object | null>(null);
+  useFocusEffect(useCallback(() => {
+    const visit = {}; focus.current=visit; setRenderedFocus(visit); navigating.current=false;
+    return () => { if (focus.current===visit) { focus.current=null; navigating.current=true; } };
+  },[model]));
+  const current = () => renderedFocus!==null && focus.current===renderedFocus && model.canNavigate() && !navigating.current;
+  const navigate = (action: () => void) => { if (!current()) return; navigating.current=true; action(); };
   // The settings open on the set the list is filtered to ("Moje prijave" opens that set); "Sve" leaves the screen's own.
   const settings = () => navigate(() => role
     ? router.push({pathname:'/profil/obavestenja',params:{skup:role}}) : router.push('/profil/obavestenja'));
   async function open(item: InboxItem) {
+    if (!current()) return;
     const target = await model.open(item);
-    if (!target || target.kind==='UNAVAILABLE' || !model.canNavigate()) return;
+    if (!target || target.kind==='UNAVAILABLE' || !current()) return;
     // A question resolves to the Zadatak it belongs to, because the Need id is the only one the
     // server hands out for a CLARIFICATION. "Neko je postavio pitanje" then opened the task and left
     // the question to be found inside it. The event type says what it was about, so the landing does
@@ -66,8 +73,9 @@ export default function Obavestenja() {
       right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
     {/* One list for every filter: it stays mounted, so the tab just pressed keeps a screen reader's focus; the list itself
         treats a filter's first page as what was there, not as arrivals. */}
-    <InboxList state={state} role={role} onRole={setRole} onOpen={onOpen}
-      onReadAll={()=>void model.readAll()} onRefresh={()=>void model.refresh()} onMore={()=>void model.more()} onSettings={settings} />
+    <InboxList state={state} role={role} onRole={next=>{if(current())setRole(next);}} onOpen={onOpen}
+      onReadAll={()=>{if(current())void model.readAll();}} onRefresh={()=>{if(current())void model.refresh();}}
+      onMore={()=>{if(current())void model.more();}} onSettings={settings} />
   </SafeAreaView>;
 }
 

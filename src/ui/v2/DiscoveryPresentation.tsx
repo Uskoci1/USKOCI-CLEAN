@@ -8,7 +8,7 @@ import { State as GestureState } from 'react-native-gesture-handler';
 import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
 import { MapTrifold, X } from 'phosphor-react-native';
-import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
+import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryMapScope, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
   pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, type DiscoveryShown,
   type DiscoverySnap, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter } from '../../data/marketplaceView';
 import { Press } from '../Press';
@@ -301,10 +301,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     });
   }, []);
   const now = useMemo(() => new Date(), [items, when, dates, search]); // eslint-disable-line react-hooks/exhaustive-deps
-  const filters = useMemo(() => ({ ...initialMarketplaceView(), query, price, area, when, where, places: freePlaces, place: chosenPlace, dates,
-    pinPlace: pinPlace ?? null }), [query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
-  const { mapped, inArea, withoutPoint, listed: ordinaryList } = useMemo((): DiscoveryShown => loading || error ? NOTHING : discoveryShown(items, filters, undefined, now),
-    [loading, error, items, filters, now]);
+  const sharedFilters = useMemo(() => ({ ...initialMarketplaceView(), query, price, when, where, places: freePlaces, place: chosenPlace, dates }),
+    [query, price, when, where, freePlaces, chosenPlace, dates]);
+  const filters = useMemo(() => ({ ...sharedFilters, area, pinPlace: pinPlace ?? null }), [sharedFilters, area, pinPlace]);
+  const mapped = useMemo(() => loading || error ? NOTHING.mapped : discoveryShown(items, sharedFilters, undefined, now).mapped,
+    [loading, error, items, sharedFilters, now]);
+  const { inArea, withoutPoint, listed: ordinaryList } = useMemo(() => discoveryMapScope(mapped, { area, pinPlace, where }),
+    [mapped, area, pinPlace, where]);
   const [retiredListFocus, setRetiredListFocus] = useState<{ token: string; scopeKey: string } | null>(null);
   const retireListFocus = () => {
     const request = props.publicationFocus;
@@ -935,7 +938,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     {canRise ? <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ expanded: sheetIndex > SNAP.peek }}
       accessibilityHint={sheetIndex === SNAP.peek ? 'Otvara listu zadataka.' : 'Otvara celu listu.'} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
-      : <View testID="list-count-words" accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
+      : <View testID="list-count-words" accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
     </View>
     {props.publicationUnavailable ? <View style={s.relationsRecovery}>
       <T variant="note" style={s.relationsMessage}>{props.publicationUnavailable === 'missing'
@@ -950,7 +953,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     </View> : null}
     {appliedChips.length ? <View style={s.applied}>{appliedChips.map(chip => <Press key={chip.key} accessibilityRole="button"
       accessibilityLabel={removeWords(chip.label)} haptic="select" hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }}
-      onPress={() => change({ ...chip.clear, selectedId: null, selectedPlace: null })} style={s.appliedChip}>
+      onPress={() => toggle(chip.clear)} style={s.appliedChip}>
       <T variant="meta" style={s.appliedText} numberOfLines={1}>{chip.label}</T><X size={14} weight="bold" color={sys.color.green} />
     </Press>)}</View> : null}
   </View>;

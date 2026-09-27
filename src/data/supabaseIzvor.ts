@@ -20,6 +20,7 @@ import type {
 import { novac } from '../lib/novac';
 import { podrucjeTekst } from '../lib/location';
 import { vreme } from '../lib/vreme';
+import { calendarInstant } from '../lib/calendarTime';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_t, prop) => (supabaseKlijent() as never)[prop],
@@ -175,30 +176,59 @@ export const supabaseIzvor: SupabaseIzvor = {
   poreklo: 'supabase',
 
   async otvorenePrilike() {
+    const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    // The whole walk belongs to one account visit. A token refresh keeps it; logout or A -> B -> A
+    // retires it before another page/enrichment can start, even if the route already ignored it.
+    const assertCurrent = () => {
+      const current = sesijaSada();
+      if (current.user?.id !== accountId || current.accountRevision !== accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    };
     // PKG-023d/i. The list and the map used to read every open task straight from the table, with the
     // description of each and no bound at all. They now read the server's allowlisted projection, ordered
     // by the server-owned published_at, in pages of two hundred. The page walk is a keyset, so nothing
     // repeats and nothing is hidden, and it keeps going until the server says there is no more: the
     // screen shows what it always showed, and the ceiling below is a refusal, never a silent truncation.
-    const items: any[] = [];
-    let cursor: { at: string; id: string } | null = null;
+    const items: Record<string, unknown>[] = [], seen = new Set<string>();
+    let cursor: { at: string; id: string; instant: bigint } | null = null;
     for (let page = 0; ; page++) {
+      assertCurrent();
       if (page >= 25) throw new Error('OPPORTUNITIES_TOO_MANY_PAGES');
       const { data, error } = await supabase.rpc('rpc_list_open_tasks_v3', {
         p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
       });
+      assertCurrent();
       if (error) throw error;
-      const rows = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
-      if (!Array.isArray(rows)) throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
-      items.push(...rows);
-      const last = rows[rows.length - 1] as { sortAt?: unknown; id?: unknown } | undefined;
-      if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
-      cursor = { at: last.sortAt, id: last.id };
+      const result = record(data);
+      if (!result || !Array.isArray(result.items) || result.items.length > 200 || typeof result.hasMore !== 'boolean'
+        || calendarInstant(result.asOf) === null || (result.hasMore && result.items.length === 0)) {
+        throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
+      }
+      // Validate every key before treating the walk as complete. Missing pagination metadata cannot
+      // turn a partial read into a successful list; repeated rows cannot inflate its map/list count.
+      for (const raw of result.items) {
+        const row = record(raw), instant = calendarInstant(row?.sortAt);
+        if (!row || !uuid(row.id) || typeof row.sortAt !== 'string' || instant === null) {
+          throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
+        }
+        const id = row.id.toLowerCase();
+        // PostgreSQL orders the published instant down to microseconds, then UUID bytes. Canonical
+        // UUID strings have the same byte order; locale collation and Date's millisecond loss do not.
+        if (seen.has(id) || (cursor && (instant > cursor.instant || (instant === cursor.instant && id >= cursor.id)))) {
+          throw new Error('OPPORTUNITIES_RESPONSE_INVALID');
+        }
+        seen.add(id);
+        items.push(row);
+        cursor = { at: row.sortAt, id, instant };
+      }
+      if (!result.hasMore) break;
     }
     // The server already refuses a task whose remaining search is closed, so no client-side filter can
     // decide it any more; every row here is an open one.
     const openData = items.map(openTaskRow);
+    assertCurrent();
     const [profiles, urgency] = await Promise.all([safePublicProfiles(openData.map((r: any) => r.requester_profile_id)), readNeedUrgencies(openData)]);
+    assertCurrent();
 
     return openData.map((r: any) => {
       const narucilac = profiles.get(r.requester_profile_id) ?? null;

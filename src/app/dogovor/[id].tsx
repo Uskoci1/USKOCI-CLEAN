@@ -88,14 +88,16 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
     completionReviewRef.current = null; setCompletionReview(null);
   }, []);
   const formFocus = useRef<object | null>(null);
+  const [renderedFormFocus, setRenderedFormFocus] = useState<object | null>(null);
   useFocusEffect(useCallback(() => {
     const focus = {}; formFocus.current = focus;
+    // Focus must reach effects and callbacks even before either independent read settles.
+    setRenderedFormFocus(focus);
     return () => { if (formFocus.current === focus) {
       formFocus.current = null; closeCompletionReview();
       completionDisplay.current = null; setCompleting(false);
     } };
   }, [accountId, accountRevision, closeCompletionReview]));
-  const renderedFormFocus = formFocus.current;
   const ownsAccount = useCallback(() => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const read = useCallback(async (): Promise<Ishod<ProblemWorkspace | null>> => {
     // A review belongs to one exact read. Invalidate synchronously, before a refresh
@@ -198,12 +200,22 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const deniedAttempt = outboxState.entries.filter(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE')
     .map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
   useEffect(() => { if (deniedAttempt) void osvezi(); }, [deniedAttempt, osvezi]);
-  // PKG-050: a person looking at the conversation has read its messages, so the "Nova poruka" notifications about
-  // this Dogovor settle each time the Poruke tab shows a freshly loaded list. Best effort: a refusal changes nothing here.
+  // PKG-050 still settles Agreement-level notifications, not exact message IDs.
+  // Independent message reads may finish while the workspace is hidden or resuming.
+  const messageReadReady = tab === 'poruke' && !!dogovor && !workspace.loading && !workspace.error && !workspace.uncertain
+    && dogovor.ucesnici.some(party => party.viSte && party.id === accountId)
+    && foreground && !resumeRequired && !messages.loading && !messages.error && !!messages.data?.length;
+  const readAcknowledgement = useRef<{ focus: object; rows: NonNullable<typeof messages.data> } | null>(null);
   useEffect(() => {
-    if (tab !== 'poruke' || !messages.data || messages.error) return;
+    if (tab !== 'poruke') { readAcknowledgement.current = null; return; }
+    if (!messageReadReady || !renderedFormFocus || formFocus.current !== renderedFormFocus || !ownsAccount()
+      || !activeRef.current || !freshRef.current || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
+    const rows = messages.data;
+    if (!rows?.length || (readAcknowledgement.current?.focus === renderedFormFocus && readAcknowledgement.current.rows === rows)) return;
+    // Readiness changes may retry admission, but do not repeat an already attempted snapshot.
+    readAcknowledgement.current = { focus: renderedFormFocus, rows };
     izvor.oznaciPorukeProcitanim(id).catch(() => undefined);
-  }, [tab, messages.data, messages.error, izvor, id]);
+  }, [tab, messageReadReady, renderedFormFocus, messages.data, ownsAccount, izvor, id]);
   const chatVisible = tab === 'poruke' && !!dogovor && foreground && !resumeRequired;
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android' || !chatVisible) return;
@@ -316,7 +328,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
   const completeLabel = worker ? 'Posao je gotov' : 'Potvrdi završetak';
   const footerStatus = workspace.loading ? 'Učitavamo Dogovor…'
     : workspace.busy && !completing ? 'Čuvamo promenu…' : null;
-  const review = () => { if (enabled && ownsAccount() && activeRef.current && freshRef.current) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
+  const review = () => { if (formCurrent()) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
   // One brand action per state: completion when the server allows it, the review after
   // completion, otherwise the conversation. The conversation is always one tap away: the Poruke tab.
   // A change proposal waiting for my answer blocks both completions, so answering it is the step.
@@ -426,7 +438,7 @@ function DogovorContent({ id, accountId, accountRevision, initialTab = 'pregled'
               : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
                 onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
             {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
-              onPress={() => { if (enabled && ownsAccount() && activeRef.current && freshRef.current)
+              onPress={() => { if (formCurrent())
                 router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           </WorkspaceRows> : null}
           <AgreementSection art="phone" label="Kontakt" summary={dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Podeli svoj broj kada ti odgovara'}>

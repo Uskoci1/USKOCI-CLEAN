@@ -7,16 +7,17 @@ export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|
 export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,journal:null,receipt:null,canRetry:false,message:null};
 export class GroupConversationController{
  private state:GroupState={...initialGroupState};private busy=false;private disposed=false;private journalLoaded=false;private inMemoryBody:string|null=null;private listeners=new Set<()=>void>();
+ private operationRevision=0;private marking=false;private visible:{groupId:string;ids:string[]}|null=null;
  readonly key:string;
  constructor(private deps:{agreementId:string;account:ReceiptAccount;current:()=>boolean;storage:{getItem(k:string):Promise<string|null>;setItem(k:string,v:string):Promise<unknown>;removeItem(k:string):Promise<unknown>};
  service?:typeof groupConversationService;uuid?:()=>string}){this.key=`uskoci:group-message:v5:${deps.account.accountId}:${deps.agreementId}`;}
  private get service(){return this.deps.service??groupConversationService;}
  private current=()=>!this.disposed&&this.deps.current();snapshot=()=>this.state;
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn);};};
- dispose=()=>{this.disposed=true;this.inMemoryBody=null;this.state={...initialGroupState};this.listeners.clear();};
+ dispose=()=>{this.disposed=true;this.inMemoryBody=null;this.visible=null;this.state={...initialGroupState};this.listeners.clear();};
  private update(patch:Partial<GroupState>){if(!this.current())return;this.state={...this.state,...patch};this.listeners.forEach(fn=>fn());}
- private async run(fn:()=>Promise<void>){if(this.busy||!this.current())return;this.busy=true;try{await fn();}
- catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera nije završena. Osveži sačuvano stanje.'});}finally{this.busy=false;}}
+ private async run(fn:()=>Promise<void>){if(this.busy||!this.current())return;this.busy=true;this.operationRevision++;try{await fn();}
+ catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera nije završena. Osveži sačuvano stanje.'});}finally{this.busy=false;void this.flushVisible();}}
  load=()=>this.run(async()=>{
   this.journalLoaded=false;this.update({...initialGroupState});const raw=await this.deps.storage.getItem(this.key);if(!this.current())return;
   const journal=raw===null?null:parseGroupJournal(raw);this.journalLoaded=true;this.update({journal});
@@ -24,7 +25,7 @@ export class GroupConversationController{
   if(journal){if(journal.groupId!==this.state.context?.group?.groupId){this.update({phase:'ERROR',message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return;}await this.recover();}
   else await this.page();
  });
- private async context(){const result=await this.service.context(this.deps.agreementId,this.deps.account);if(!this.current())return false;
+ private async context(accept:()=>boolean=()=>true){const result=await this.service.context(this.deps.agreementId,this.deps.account);if(!this.current()||!accept())return false;
   if(!result.ok){this.update({phase:this.state.journal?'UNKNOWN':'ERROR',context:null,messages:[],before:null,canRetry:false,message:result.poruka});return false;}
   if(this.state.journal&&this.state.journal.groupId!==result.podatak.group?.groupId){
    this.update({phase:'ERROR',context:null,messages:[],before:null,canRetry:false,message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return false;
@@ -79,12 +80,30 @@ export class GroupConversationController{
  acknowledge=()=>this.run(async()=>{if(this.state.phase!=='CONFIRMED')return;await this.deps.storage.removeItem(this.key);if(!this.current())return;
   this.update({journal:null,receipt:null,phase:'LOADING',message:null});if(await this.context())await this.page();
  });
- markVisible=(ids:string[])=>this.run(async()=>{
-  const g=this.state.context?.group;if(this.state.phase!=='READY'||!g||!ids.length)return;
+ markVisible=async(ids:string[])=>{
+  const g=this.state.context?.group;if(!this.current()||!g)return;
   const allowed=new Set(this.state.messages.map(m=>m.messageId)),unique=[...new Set(ids)].filter(id=>allowed.has(id)).slice(0,50);if(!unique.length)return;
   // The native list supplies only presently viewable rows. No page-wide mark
   // for off-screen content, no new visibility grants and no optimistic count.
-  const result=await this.service.markRead(g.groupId,unique,this.deps.account);if(!this.current())return;
-  if(result.ok)await this.context();
- });
+  // Keep the newest bounded observation while a page or command is in flight.
+  this.visible={groupId:g.groupId,ids:unique};await this.flushVisible();
+ };
+ private async flushVisible(){
+  if(this.marking||this.busy||!this.current()||this.state.phase!=='READY')return;
+  this.marking=true;
+  try{
+   while(this.visible&&this.current()&&!this.busy&&this.state.phase==='READY'){
+    const observed=this.visible;this.visible=null;
+    const g=this.state.context?.group;if(!g||g.groupId!==observed.groupId)continue;
+    const allowed=new Set(this.state.messages.map(m=>m.messageId)),ids=observed.ids.filter(id=>allowed.has(id));if(!ids.length)continue;
+    // Read receipts have their own lock: a slow acknowledgement must not drop
+    // a send/refresh tap. Its optional context read cannot replace newer work.
+    const revision=this.operationRevision,context=this.state.context;
+    const result=await this.service.markRead(g.groupId,ids,this.deps.account);if(!this.current())return;
+    const unchanged=()=>this.operationRevision===revision&&!this.busy&&this.state.phase==='READY'&&this.state.context===context;
+    if(result.ok&&unchanged())await this.context(unchanged);
+   }
+  }catch{/* Best effort only; an unconfirmed read never changes message or command state. */}
+  finally{this.marking=false;if(this.visible)void this.flushVisible();}
+ }
 }

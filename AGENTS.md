@@ -1,5 +1,7 @@
 # USKOČI — repository entry map
 
+FINALIZATION ROUND 03 (2026-09-27): read `docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md`. Source-only client work covers Discovery page/account validation and stable map filtering, current-visit ownership in Profile/settings/Inbox, independent group read receipts and visible-thread admission for the existing private read acknowledgement. Cards/layout remain. Tests/types/build/device NOT RUN; no DEV/Edge application. Discovery and empty-thread fixtures need the documented update when checks are authorized. Related server candidates under `supabase/candidates/` are NOT APPLIED and do not authorize deployment.
+
 P0 PUBLICATION HANDOFF (2026-09-27): owner approved the six-step flow, original card retained. Read `docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md`. Source binds canonical publication to current account revision before opening its real map/list row; direct owner detail and one-shot camera preserve existing card/UI. This supersedes the pin-only scope below. No server changes; tests/build/device are deferred by owner and source is UNVERIFIED. Update publication/pin expectations when verification is authorized.
 
 

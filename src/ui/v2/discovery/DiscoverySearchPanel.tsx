@@ -145,12 +145,12 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, start = 
   // The people label needs more room than the footer: at 361dp / 1.15 it had only ~81dp beside the stepper.
   const stackedPeople = large || width < 380;
   const counted = readiness === 'ready';
-  const others = useMemo(() => mine?.size ? items.filter(item => !mine.has(item.id)) : items, [items, mine]);
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
   const count = useMemo(() => discoveryItems(items, viewOf(draft), mine, now).length, [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
   const undated = useMemo(() => undatedCount(items, viewOf(draft), mine, now), [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
   // "Kako se radi" is offered only when some task says how it is done, or when it is already on and must be removable.
-  const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(others);
+  // Ownership labels do not remove public tasks from Discovery, so they must not hide their filter either.
+  const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(items);
   const today = serbianToday(now);
   const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
   const clearAll = () => { setDraft(NO_SEARCH); setRangeStart(null); };

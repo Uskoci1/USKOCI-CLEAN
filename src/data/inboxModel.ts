@@ -48,6 +48,10 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
   }
   async function open(item: InboxItem): Promise<InboxTarget | null> {
     if (!active || !isCurrent() || state.acting || state.loading || state.paging) return null;
+    // A memoised row can outlive its account/filter/page. Only an event still in this
+    // read may start an acknowledgement; the server remains the destination authority.
+    if (!state.page?.items.some(row => row.id === item.id && row.eventType === item.eventType
+      && row.role === item.role && row.occurredAt === item.occurredAt)) return null;
     const token = ++epoch;
     set({acting:item.id,error:null,unavailable:false});
     try {

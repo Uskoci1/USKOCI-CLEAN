@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -11,6 +11,7 @@ import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
 const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }] as const;
 type SetKey = typeof SETS[number]['key'];
+type ActionScope = { accountId: string; revision: number };
 const CAPTION: Record<SetKey, string> = {
  REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
  WORKER: 'Obaveštenja o poslovima na koje se prijavljuješ.',
@@ -33,29 +34,37 @@ export default function PushSettings() {
  // A save, or the phone switched on or off, is running for the shown set: the set stays until its outcome is read back.
  const [writing, setWriting] = useState(false);
  const confirm = useConfirmSheet();
- const owner = useRef<{ accountId: string; revision: number } | null>(null);
+ const owner = useRef<ActionScope | null>(null);
+ const [renderedOwner, setRenderedOwner] = useState<ActionScope | null>(null);
+ const view = useMemo(() => ({ role, dirty, writing }), [role, dirty, writing]);
+ const latestView = useRef(view); latestView.current = view;
  const closeConfirm = confirm.close;
  useFocusEffect(useCallback(() => {
   const scope = accountId ? { accountId, revision: accountRevision } : null; owner.current = scope;
+  setRenderedOwner(scope);
   // A question left open when the screen loses focus is retired, never answered later.
   return () => { if (owner.current === scope) owner.current = null; closeConfirm(); };
  }, [accountId, accountRevision, closeConfirm]));
+ function current() {
+  return renderedOwner !== null && owner.current === renderedOwner && latestView.current === view
+   && renderedOwner.accountId === accountId && renderedOwner.revision === accountRevision
+   && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+ }
  function back() {
-  const scope = owner.current;
-  if (!scope || scope.accountId !== accountId || scope.revision !== accountRevision
-   || sesijaSada().user?.id !== scope.accountId || sesijaSada().accountRevision !== scope.revision) return;
+  if (!current()) return;
   if (router.canGoBack()) router.back(); else router.replace('/profil');
  }
  /** Asks before unsaved changes are thrown away; the step itself runs its own checks when it is confirmed. */
  function discardThen(proceed: () => void) {
+  if (!current()) return;
   if (!dirty) { proceed(); return; }
   // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
   confirm.ask({ title: 'Odbaci izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
-   cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: proceed });
+   cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
  }
  const requestBack = () => discardThen(back);
  const requestRole = (next: SetKey) => {
-  if (next === role) return;
+  if (!current() || next === role) return;
   // A finger cannot reach the tabs while a write runs (they wait under `pointerEvents`), but a screen reader's double tap
   // still does; it used to do nothing without a word. `Segmented` has no disabled state to draw yet.
   if (writing) { AccessibilityInfo.announceForAccessibility(WAIT_FOR_WRITE); return; }
