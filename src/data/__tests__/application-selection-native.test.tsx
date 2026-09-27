@@ -8,10 +8,15 @@ const mockLinkQuery = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), navigate: jest.fn(), canGoBack: jest.fn(() => true) };
 let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true;
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
+let mockState = 'active';
+const mockListeners = new Set<(state: string) => void>();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
+    if (key === 'AppState') return { currentState: mockState, addEventListener: (_: string, listener: (state: string) => void) => {
+      mockListeners.add(listener); return { remove: () => mockListeners.delete(listener) };
+    } };
     // Native virtualization is a boundary here; render its initial viewport.
     if (key === 'FlatList') return (props: any) => require('react').createElement('FlatList', props,
       props.ListHeaderComponent,
@@ -64,9 +69,10 @@ const edit = async (label: string, value: string) => { await act(async () => {
 }); };
 const render = async (component = Composer) => { screen = component; await act(async () => { tree = create(React.createElement(screen)); }); };
 const update = async () => { await act(async () => { tree!.update(React.createElement(screen)); }); };
+const background = async (state: string) => { await act(async () => { mockState = state; mockListeners.forEach(listener => listener(state)); }); };
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { promise, resolve }; };
 beforeEach(() => {
-  jest.clearAllMocks(); mockFocused = true; mockId = '10000000-0000-4000-8000-000000000001';
+  jest.clearAllMocks(); mockFocused = true; mockState = 'active'; mockId = '10000000-0000-4000-8000-000000000001';
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; mockRouter.canGoBack.mockReturnValue(true);
   mockNeed.mockResolvedValue(need()); mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: null });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE' });
@@ -559,6 +565,50 @@ it('the task row at the top opens the Task itself, once', async () => {
   await act(async () => { open(); open(); });
   expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/potrebe/[id]/pregled', params: { id: mockId } }]]);
   expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
+});
+
+it('retires an offer confirmation in the background and rereads before another selection', async () => {
+  await selection(); const oldConfirm = confirmChoice();
+  await background('background');
+  expect(text()).not.toContain('Dolazimo sa trakama.'); expect(confirmChoice()).toBeUndefined();
+  await act(async () => oldConfirm()); expect(mockSelect).not.toHaveBeenCalled();
+  const late = deferred(); mockCandidates.mockReturnValueOnce(late.promise);
+  await background('active');
+  expect(text()).toContain('Učitavamo aktuelne podatke'); expect(press('Izaberi ovu ponudu')).toBeUndefined();
+  await act(async () => oldConfirm()); expect(mockSelect).not.toHaveBeenCalled();
+  await act(async () => late.resolve([{ ...k(), stanje: 'WITHDRAWN', mozeIzabrati: false }]));
+  await tap('Pogledaj ponudu: Milan'); expect(press('Izaberi ovu ponudu')).toBeUndefined();
+  expect(mockCandidates).toHaveBeenCalledTimes(2); expect(mockSelect).not.toHaveBeenCalled();
+});
+it('keeps comparison and sort across a foreground reread, scoped to the same task and account', async () => {
+  mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: 'second', ime: 'Ana', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } }]);
+  await render(Candidates); await tap('Uporedi'); await tap('Redosled prijava: Redom pristizanja'); await tap('Najniža cena');
+  expect(text()).toContain('Uporedi prijave');
+  await background('inactive'); await background('active');
+  expect(text()).toContain('Uporedi prijave'); expect(press('Redosled prijava: Najniža cena')).toBeDefined();
+  expect(mockCandidates).toHaveBeenCalledTimes(2);
+  mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
+  expect(text()).not.toContain('Uporedi prijave'); expect(press('Redosled prijava: Redom pristizanja')).toBeDefined();
+  expect(mockSelect).not.toHaveBeenCalled();
+});
+it('ignores a read that settles after its foreground visit was retired', async () => {
+  const retired = deferred(), fresh = deferred();
+  mockCandidates.mockReturnValueOnce(retired.promise).mockReturnValueOnce(fresh.promise);
+  await render(Candidates); await background('background'); await background('active');
+  await act(async () => retired.resolve([{ ...k(), ime: 'Zakasnela osoba' }]));
+  expect(text()).not.toContain('Zakasnela osoba'); expect(text()).toContain('Učitavamo aktuelne podatke');
+  await act(async () => fresh.resolve([{ ...k(), ime: 'Aktuelna osoba' }]));
+  expect(press('Pogledaj ponudu: Aktuelna osoba')).toBeDefined(); expect(text()).not.toContain('Zakasnela osoba');
+  expect(mockViewed).not.toHaveBeenCalled(); expect(mockSelect).not.toHaveBeenCalled();
+});
+it('keeps an in-flight selection as the same pending command across foreground return', async () => {
+  const late = deferred(); mockSelect.mockReturnValueOnce(late.promise);
+  await selection(); await tapConfirm(); const sent = mockSelect.mock.calls[0][0];
+  await background('background'); await background('active');
+  expect(press('Povezivanje…')).toBeDefined(); expect(mockSelect).toHaveBeenCalledTimes(1);
+  await act(async () => late.resolve({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri ishod.' }));
+  expect(press('Proveri ishod')).toBeDefined(); await tap('Proveri ishod'); await tap('Ponovi isti izbor');
+  expect(mockSelect.mock.calls[1][0]).toEqual(sent); expect(press('Otvori Dogovor')).toBeDefined();
 });
 
 // Round 6 (unit prijava, 2026-09-24): the composer reads as a checkout step.

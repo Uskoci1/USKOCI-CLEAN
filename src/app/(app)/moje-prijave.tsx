@@ -5,6 +5,7 @@ import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { Ishod, PovuciPrijavuKomanda } from '../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../data/applicationSelectionClientService';
 import { readApplicationCommandState, readExistingApplicationInterval, type ApplicationCommandState } from '../../data/myApplicationsClientService';
+import { applicationSection } from '../../data/myApplicationsView';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
 import { positiveInteger, sameId } from '../../data/serverReceipt';
 import { fixedApplicationPeople, fixedApplicationPrice, readableTitle } from '../../data/needDetailPresentation';
@@ -122,9 +123,14 @@ export default function MojePrijave() {
   // closing it afterwards is the person's decision and is not undone on the next refresh.
   useEffect(() => {
     const id = landing.current;
-    if (!id || !data?.rows.some(row => row.prijavaId === id)) return;
+    if (!id || editor.loading || !session.focused || !session.active || !accountCurrent()) return;
+    const row = data?.rows.find(row => row.prijavaId === id);
+    if (!row) return;
+    // A new explicit destination takes precedence over a retained filter. Consume it once:
+    // later tab choices and closing the review remain the person's own decisions.
+    if (session.tab !== 'all' && session.tab !== applicationSection(row)) session.tab = 'all';
     landing.current = null; session.expanded = id; setFocusId(id); render(v => v + 1);
-  }, [data, session]);
+  }, [data, session, named, editor.loading, accountCurrent]);
   const token = session.token, revision = session.readRevision, editRevision = session.editRevision;
   const current = () => session.focused && session.active && token === session.token && revision === session.readRevision && accountCurrent();
   const rowCurrent = (p: MojaPrijavaProjekcija) => current() && !!data?.rows.some(row => identity(row) === identity(p));

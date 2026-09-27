@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Lightning } from 'phosphor-react-native';
+import { CheckCircle, Lightning, User } from 'phosphor-react-native';
 import type { PinLabel } from '../../../data/marketplaceView';
 import { T } from '../../Text';
 import { sys } from '../../system/tokens';
@@ -7,6 +7,9 @@ import { BrandMark } from '../../entry/BrandAssets';
 
 /** What a pill on the map shows: one task's price label, or how many tasks share one point. */
 export type PillContent = PinLabel | { text: string; tone: 'count'; spoken: string };
+/** A positive answer from the current account's separate relation read, never inferred from public task data. */
+export type PinRelation = 'OWNED' | 'APPLIED';
+export const pinRelationWords = (relation?: PinRelation) => relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Već si se prijavio' : '';
 
 // Measure the selected shape at this size, rather than scaling beyond the native snapshot's bounds.
 const SELECTED_SCALE = 1.06;
@@ -16,11 +19,15 @@ const SELECTED_SCALE = 1.06;
  * a quiet orange halo and a slightly larger measured shape. Urgency keeps its separate lightning cue. MapLibre draws
  * this view as a bitmap; camera and sheet motion happen outside it, without an animated child in the annotation.
  */
-export function PricePill({ content, urgent = false, selected = false }: {
-  content: PillContent; urgent?: boolean; selected?: boolean;
+export function PricePill({ content, urgent = false, selected = false, relation }: {
+  content: PillContent; urgent?: boolean; selected?: boolean; relation?: PinRelation;
 }) {
   const words = content.tone === 'none' ? null : content.text;
   const scale = selected ? SELECTED_SCALE : 1;
+  // A shared point is a group, not an individual relationship. Selection owns the outline; urgency and relationship
+  // retain separate glyphs, so an urgent own task cannot erase either fact or introduce a competing fill colour.
+  const status = content.tone === 'count' ? undefined : relation;
+  const RelationIcon = status === 'OWNED' ? User : CheckCircle;
   return <View collapsable={false} style={s.frame}>
     <View style={s.shape}>
       {selected ? <>
@@ -37,6 +44,10 @@ export function PricePill({ content, urgent = false, selected = false }: {
         {urgent ? <Lightning size={14 * scale} weight="fill" color={sys.color.danger} /> : null}
         {words ? <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3}
           style={[s.text, TONE[content.tone], selected && s.selectedText]}>{words}</T> : null}
+        {status ? <View testID={`pin-relation-${status}`} accessible={false} importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden style={s.relation}>
+          <RelationIcon size={16 * scale} weight="bold" color={sys.color.green} />
+        </View> : null}
       </View>
     </View>
   </View>;
@@ -62,6 +73,7 @@ const s = StyleSheet.create({
     borderWidth: SELECTED_SCALE, borderColor: sys.color.orangeHalo },
   selectedMarkOnly: { paddingRight: 4 * SELECTED_SCALE, minWidth: 40 * SELECTED_SCALE },
   selectedMark: { width: 34 * SELECTED_SCALE, height: 34 * SELECTED_SCALE },
+  relation: { alignItems: 'center', justifyContent: 'center' },
   // The meta size (13), set a little tighter so the pill stays a small mark on the map.
   text: { lineHeight: 16, letterSpacing: 0, fontVariant: ['tabular-nums'] },
   selectedText: { color: sys.color.orangeInk, fontSize: sys.type.meta.fontSize * SELECTED_SCALE, lineHeight: 16 * SELECTED_SCALE },

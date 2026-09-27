@@ -6,7 +6,7 @@ import { discoveryShown, initialMarketplaceView, pinPlaces, publicPoint, type Ma
 import type { DiscoveryPresentationProps } from '../../ui/v2/DiscoveryPresentation';
 
 let mockPackage: string | undefined = 'rs.uskoci.dev';
-let mockParams: { count?: unknown; detail?: unknown; discoveryTrace?: unknown } = {};
+let mockParams: { count?: unknown; detail?: unknown; discoveryTrace?: unknown; relation?: unknown } = {};
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('expo-constants', () => ({ get expoConfig() { return { android: { package: mockPackage } }; } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams }));
@@ -33,7 +33,8 @@ test.each([undefined, 'rs.uskoci', 'rs.uskoci.app.dev', 'other.dev'])(
 );
 
 test.each([{ count: '1001' }, { count: '01' }, { count: ['1000'] }, { count: '1', detail: '1' },
-  { count: '1000', detail: '1000' }, { count: '1000', detail: '-1' }, { count: '1000', detail: '02' }, { detail: ['0'] }])(
+  { count: '1000', detail: '1000' }, { count: '1000', detail: '-1' }, { count: '1000', detail: '02' }, { detail: ['0'] },
+  { relation: 'unknown' }, { relation: ['owned'] }])(
   'rejects malformed or out-of-range scene input before rendering Discovery: %j', async params => {
     mockParams = params; await render();
     expect(tree.root.findAllByType('Discovery' as React.ElementType)).toHaveLength(0);
@@ -51,6 +52,14 @@ test('one-row entry uses the real component with a public point, no image resour
   await act(async () => { p.onProfile(); p.onRefresh(); });
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(words()).toContain('DEV · 1 zadatak · bez baze');
+});
+
+test.each([['owned', 'OWNER'], ['applied', 'APPLIED']])('explicit local %s pin scene stays local and preserves the selected relation on detail return', async (relation, kind) => {
+  mockParams = { count: '1', relation }; await render();
+  const props = discovery(), row = props.items[0];
+  expect(props.relations?.relation(row.id).kind).toBe(kind);
+  await act(async () => props.onOpen(row));
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dizajn-mapa', params: { count: '1', detail: '0', relation } });
 });
 
 test('1,000 deterministic rows cover real local filtering/cluster shapes without media, profiles or invented review scores', async () => {

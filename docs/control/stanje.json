@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T14:22:49Z",
-  "grana": null,
-  "head": null,
-  "head_poruka": null,
+  "osvezeno": "2026-09-27T15:34:31Z",
+  "grana": "HEAD",
+  "head": "98ce628a",
+  "head_poruka": "Prove exact public publication lookup on disposable database",
   "server": {
    "snimljeno": "2026-09-27T14:10:08Z",
    "migracije": 205,
@@ -105,14 +105,14 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Round14: tipovi PASS; 11 različitih ciljanih grupa / 515 testova PASS. Nije ceo Jest niti uređajska potvrda. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
-  "device": "NOT_RUN_FOR_ROUND07_THROUGH_ROUND14",
+  "tests": "Round15: TypeScript PASS; applications4/141 PASS; map pin/gallery2/71 PASS; DiscoveryPresentation suite PASS. Full-suite not run.",
+  "device": "EMULATOR_AUTHORIZED / CONSOLIDATED_BUILD_NEXT / NO_NEW_APK_ACCEPTANCE_YET",
   "live_dev_scope": "27.09 14:01–14:10 UTC: B3a/B3b primenjeni posle ugrađenih preduslova, tačni bajtovi potvrđeni u ledgeru205, sertifikati nepromenjeni. Push v21 readback potvrđuje tačno2odobrena teksta. Javni katalog/RPC/cron osvežen; privatna live/ready provera izvedena u migracionoj transakciji, ne u kasnijem read-only upitu. supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
-  "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Bounded relevant source checks accompany changes. Full-suite/build/install/device/provider execution deferred. DEV/Edge application requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-  "implementation": "Round14: B3a/B3b povezani sa privatnim razgovorom: do50poruka po odgovoru, do200u aktivnom prozoru, starije/novije i povratak na zapamćenu poruku; tačni prikazani dolazni ID-evi. Stari potvrđeni lokalni računi slanja ne dupliraju istoriju; odbijen pristup uklanja prepiske, prekid veze čuva pročitano. Push v21 tačno2teksta. Bez TaskCard/Peek promene. Voice, nezavisan realtime i ceo push→tačna poruka još otvoreni.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
+  "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
+  "implementation": "Round15: iste oznake odnosa na pinovima i karticama; tačna prijava izlazi iz zadržanog filtera; izbor kandidata obnavlja podatke posle povratka i čuva poređenje. P0 dokaz u CI zahteva ispravku probnih podataka; DEV nepromenjen.",
+  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_CLIENT_AND_EMULATOR.md",
   "dashboard_publication": "PENDING_UPLOAD: prijava vlasnika važi i polje je vidljivo, ali podržani izbor fajla ne vraća prozor za učitavanje. Poslednji pokušaj i nepromenjena udaljena verzija b9aed185/2026-09-24 zabeleženi su u ROUND_09_PUBLICATION.json. Lokalni fajl je osvežen; nije objavljen. Postojeće deljenje: svi sa linkom; nije menjano.",
-  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md",
+  "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
   "server_proof_source": "be72a1bd",
   "server_proof": "B3a11+B3b7 privremenih SQL/Auth provera PASS36312570701; tačni paketi sada APPLIED i CLIENT_WIRED. DEVledger205/hash/ACL/certifikat potvrđeni. Bez novih poslovnih podataka ili uređajskog dokaza.",
   "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
@@ -730,13 +730,13 @@
     "flow": "Objava zadatka",
     "ux": "Novija radnja korisnika ima prednost nad automatskim izborom upravo objavljenog zadatka.",
     "ui": "Postojeća kartica, pin i raspored sačuvani.",
-    "backend": "Pripremljen kandidat tačnog javnog čitanja po ID-u, sa istim pravima i projekcijom; NIJE PRIMENJEN ni povezan u aplikaciji.",
+    "backend": "Tačan javni lookup kandidat nije primenjen ni povezan; zasebni CI36329640103 prolazi prethodnike, pada na pripremi probnih podataka (session_replication_role). Dokaz se ispravlja; nema DEV promene.",
     "state_sync": "Objava pripada aktivnoj poseti i nalogu; novi izbor/odlazak troši automatsko pozicioniranje. Zakasneli odgovor ili stari pokušaj ga ne vraćaju.",
     "performance": "Otkazivanje napuštenog čitanja pripremljeno i ciljano provereno; tačno čitanje po ID-u i serversko opterećenje ostaju otvoreni.",
     "test": "Krug13: tipovi i 11 ciljanih grupa / 279 testova prolaze u ukupnom obimu paketa; nije ceo Jest ni uređajska provera.",
     "device_proof": "Nema novog APK-a, instalacije ili provere ovog koda na telefonu/emulatoru; stariji dokazi ostaju istorijski.",
     "status": "CILJANE PROVERE KODA PROLAZE / UREĐAJ I PREOSTALI UGOVORI OTVORENI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_P0_PROOF.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1059,7 +1059,7 @@
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Jedna ponuda pregledana; poređenje više ponuda nije testirano. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac (uskocibusiness, telefon) otvorio prijavu izvođača — server je upisao RESPONSE_VIEWED. Ekran prijava nije snimljen (telefon nije bio priključen).",
    "problem": "",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): ponuda više ne prikazuje veštine kandidata kao oznake („Sposobnosti“ uklonjeno). Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json R11 / 25.09: prijave imaju veću sliku osobe, zaseban red cene i broja ljudi, dužu vidljivu poruku i mirnije poređenje. Puni uslovi, potvrda izbora i oporavak su sačuvani. Tipovi i 313 grupa / 6083 testa prolaze. APK 36121421114 (add23b46) proveren je po otisku, instaliran bez brisanja podataka i pregledan na emulatoru. To nije provera fizičkog telefona. Izvor i obim: docs/implementation/design-system/r11-screen-composition-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md Istraživanje 25.09 — predlog, nije primenjeno: Ponude: ista polja za poređenje, stvarna osoba, cena i obuhvat; pregled tačno onoga što se prihvata. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): ponuda više ne prikazuje veštine kandidata kao oznake („Sposobnosti“ uklonjeno). Poruka kandidata i dostupne činjenice sada se vide i dostupne su čitaču ekrana; nedostajuća ocena više ne tvrdi da je nalog nov. Tipovi i 242 grupe/4719 testova prolaze. Proveriti poređenje i izbor na tačnom APK-u, TalkBack/VoiceOver i nezavisan Claude pregled. Dokaz: docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json R11 / 25.09: prijave imaju veću sliku osobe, zaseban red cene i broja ljudi, dužu vidljivu poruku i mirnije poređenje. Puni uslovi, potvrda izbora i oporavak su sačuvani. Tipovi i 313 grupa / 6083 testa prolaze. APK 36121421114 (add23b46) proveren je po otisku, instaliran bez brisanja podataka i pregledan na emulatoru. To nije provera fizičkog telefona. Izvor i obim: docs/implementation/design-system/r11-screen-composition-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md Istraživanje 25.09 — predlog, nije primenjeno: Ponude: ista polja za poređenje, stvarna osoba, cena i obuhvat; pregled tačno onoga što se prihvata. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. Završni krug15: povezani ulaz do tačne prijave i bezbedan povratak u poređenje/izbor; emulator provera sledi. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1075,15 +1075,15 @@
      "P6"
     ],
     "flow": "Prijave i poređenje",
-    "ux": "Mapirano; detaljan krug sledi",
-    "ui": "Postojeći prikaz; odobrenje po paketu",
+    "ux": "Tačna prijava otvorena iz obaveštenja nije skrivena prethodnim filterom. Poređenje i redosled kandidata čuvaju se za isti nalog i zadatak.",
+    "ui": "Postojeći prikazi ostaju; izbor u toku jasno kaže Povezivanje… .",
     "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-    "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+    "state_sync": "Povratak u izbor kandidata traži sveže podatke; stare potvrde i odgovori ne preuzimaju novu posetu. Isti poslati izbor ostaje isti zahtev.",
     "performance": "Potreban obim upita/stranice/ukupan broj",
-    "test": "NIJE POKRETANO — po nalogu vlasnika",
-    "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-    "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "test": "Round15: četiri različite ciljane grupe / 141 test PASS; integracioni TypeScript PASS.",
+    "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
+    "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md"
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -1142,7 +1142,7 @@
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Izbor uz potvrdu 100 RSD/1 osoba napravio Dogovor. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac izabrao ponudu na telefonu → Dogovor f14625e8 CONFIRMED, RESPONSE_SELECTED izvođaču. Dogovor viđen sa strane izvođača na emulatoru.",
    "problem": "R18-V02 prikaz potvrde popravljen i viđen u lokalnoj galeriji na emulatoru ba3f7dc3 pri fontu 1 i 1,3. Ponovljeni stvarni tok i fizički telefon za ovu verziju nisu provereni.",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): bez veština kao oznaka u ponudi; četiri obavezne rečenice potvrde izbora nepromenjene. 24.09. kasno (PKG-051a PRIMENJENO na DEV, ledger 202, proof 36053060680 17/17, sertifikat cc248ff1 nepomeren): serverski cenovnik za Povezivanje — CONNECTION v1 = 0 RSD, plaća REQUESTER, po osobi (HEADCOUNT), isto kao besplatna politika REQUESTER_SELECTION_V1 koju rpc_select_response i dalje jedina čita; ništa ne naplaćuje i ništa ne prikazuje; naplata isključena. Buduće cene = nove verzije, nikad izmena stare. Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md R19, 26.09: jedna potvrda Dogovor je sklopljen ostaje uz Otvori Dogovor u fiksnom podnožju; native galerija, bez novog izbora na serveru. NATIVE_REVIEW.vector-diagnostic.md.",
+   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Odluka vlasnika 24.09 (1): bez veština kao oznaka u ponudi; četiri obavezne rečenice potvrde izbora nepromenjene. 24.09. kasno (PKG-051a PRIMENJENO na DEV, ledger 202, proof 36053060680 17/17, sertifikat cc248ff1 nepomeren): serverski cenovnik za Povezivanje — CONNECTION v1 = 0 RSD, plaća REQUESTER, po osobi (HEADCOUNT), isto kao besplatna politika REQUESTER_SELECTION_V1 koju rpc_select_response i dalje jedina čita; ništa ne naplaćuje i ništa ne prikazuje; naplata isključena. Buduće cene = nove verzije, nikad izmena stare. Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md R19, 26.09: jedna potvrda Dogovor je sklopljen ostaje uz Otvori Dogovor u fiksnom podnožju; native galerija, bez novog izbora na serveru. NATIVE_REVIEW.vector-diagnostic.md. Završni krug15: povezani ulaz do tačne prijave i bezbedan povratak u poređenje/izbor; emulator provera sledi. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1156,15 +1156,15 @@
      "P2"
     ],
     "flow": "Izbor prijave → nastaje Dogovor",
-    "ux": "Mapirano; detaljan krug sledi",
-    "ui": "Postojeći prikaz; odobrenje po paketu",
+    "ux": "Tačna prijava otvorena iz obaveštenja nije skrivena prethodnim filterom. Poređenje i redosled kandidata čuvaju se za isti nalog i zadatak.",
+    "ui": "Postojeći prikazi ostaju; izbor u toku jasno kaže Povezivanje… .",
     "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-    "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+    "state_sync": "Povratak u izbor kandidata traži sveže podatke; stare potvrde i odgovori ne preuzimaju novu posetu. Isti poslati izbor ostaje isti zahtev.",
     "performance": "Nije ponovo mereno",
-    "test": "NIJE POKRETANO — po nalogu vlasnika",
-    "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-    "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "test": "Round15: četiri različite ciljane grupe / 141 test PASS; integracioni TypeScript PASS.",
+    "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
+    "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1936,14 +1936,14 @@
     ],
     "flow": "Mapa i lista prilika",
     "ux": "Mapa zadržava zajednički skup; oblast menja pripadajuću listu.",
-    "ui": "Postojeća mapa, pin, TaskCard i Peek ostaju; telo Discovery prikaza je izvor zamućenja iza pretrage.",
+    "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
     "backend": "Postojeći RPC ugovori nepromenjeni; opciono transportno otkazivanje. Nema promene DEV-a.",
-    "state_sync": "Novija pretraga/pomeranje/odlazak ostaju vlasnici prikaza; automatske promene kamere nisu korisnički izbor. Otkazan odgovor ne objavljuje delimičnu kolekciju.",
+    "state_sync": "Novija pretraga/pomeranje/odlazak ostaju vlasnici prikaza; automatske promene kamere nisu korisnički izbor. Otkazan odgovor ne objavljuje delimičnu kolekciju. Pin i kartica koriste isti aktuelni odnos naloga prema zadatku; nepoznat odnos nije izmišljen.",
     "performance": "Ciljano potvrđeno zaustavljanje narednih stranica/batcheva i dopuna. Ne dokazuje prekid već poslatog SQL-a ni spremnost za mnogo korisnika.",
-    "test": "Krug13: tipovi i 11 ciljanih grupa / 279 testova prolaze u ukupnom obimu paketa; nije ceo Jest ni uređajska provera.",
-    "device_proof": "Nema novog APK-a, instalacije ili provere ovog koda na telefonu/emulatoru; stariji dokazi ostaju istorijski.",
+    "test": "Round15: pin/DEV galerija 2 grupe / 71 test PASS; DiscoveryPresentation suite PASS; TypeScript PASS. Tri istorijska očekivanja zelenog pina usklađena sa ranije odobrenim belim/narandžastim izgledom.",
+    "device_proof": "Stari dcb19e97 na emulatoru prvo prikazuje neuspelu mapu; pritisak na Pokušaj ponovo vraća stvarnu mapu. Novi APK/provera sledi; nije potvrda novog koda.",
     "status": "CILJANE PROVERE KODA PROLAZE / UREĐAJ I PREOSTALI UGOVORI OTVORENI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_13_PUBLICATION_AND_READ_LIFETIME.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_CLIENT_AND_EMULATOR.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -2442,7 +2442,7 @@
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
    "problem": "Učitava celu listu odjednom. Straničena serverska funkcija postoji, ali nije zamena jedan-za-jedan: redosled joj je drugačiji. R18-E03: Moje prijave gube Na daljinu i krajnji datum; projekcija vraća samo mesto i početak. Treba dodatni serverski ugovor, bez nagađanja iz praznih koordinata.",
-   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana. NA TELEFONU 23.09: ekran prikazuje stvarnu poslatu ponudu od 2.000 RSD, sa karticama Sve/Čeka te/Aktivne i dugmetom „Povuci prijavu“ (nije pritisnuto). Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
+   "sledece": "Projekcija je 23.09. upoređena red po red na živom serveru: sva polja kartice su ista, a stanje prijave računa ista funkcija (private.my_application_state), pa tu nema razlike. Razlika je JEDINA u redosledu: sadašnje čitanje diže na vrh ono što čeka tebe (prijava koju treba ponovo pregledati posle izmene zadatka i izabrana prijava), a straničeno čitanje je strogo od najnovije ka starijoj, jer mu kursor tako radi. Zato prosto prevezivanje gubi „šta čeka mene“ na vrhu. Dva puta dalje: (1) serverski — straničiti po (pažnja, vreme, id) i to dokazati, ili (2) u aplikaciji — kratak odeljak „čeka tebe“ iznad, pa straničena lista ispod. Predlažem (2) i to ide zajedno sa kompozicijom ekrana. NA TELEFONU 23.09: ekran prikazuje stvarnu poslatu ponudu od 2.000 RSD, sa karticama Sve/Čeka te/Aktivne i dugmetom „Povuci prijavu“ (nije pritisnuto). Dokaz: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Završni krug15: povezani ulaz do tačne prijave i bezbedan povratak u poređenje/izbor; emulator provera sledi. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2457,15 +2457,15 @@
      "P6"
     ],
     "flow": "Moje prijave",
-    "ux": "Mapirano; detaljan krug sledi",
-    "ui": "Postojeći prikaz; odobrenje po paketu",
+    "ux": "Tačna prijava otvorena iz obaveštenja nije skrivena prethodnim filterom. Poređenje i redosled kandidata čuvaju se za isti nalog i zadatak.",
+    "ui": "Postojeći prikazi ostaju; izbor u toku jasno kaže Povezivanje… .",
     "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-    "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+    "state_sync": "Povratak u izbor kandidata traži sveže podatke; stare potvrde i odgovori ne preuzimaju novu posetu. Isti poslati izbor ostaje isti zahtev.",
     "performance": "Potreban obim upita/stranice/ukupan broj",
-    "test": "NIJE POKRETANO — po nalogu vlasnika",
-    "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-    "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "test": "Round15: četiri različite ciljane grupe / 141 test PASS; integracioni TypeScript PASS.",
+    "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
+    "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -6659,5 +6659,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36329640103,
+   "ime": "Discovery P0 exact public landing disposable proof",
+   "sha": "98ce628a",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-27T15:27:51Z"
+  },
+  {
+   "id": 36312570701,
+   "ime": "Chat B3 bounded history and exact read disposable proof",
+   "sha": "be72a1bd",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T10:27:02Z"
+  },
+  {
+   "id": 36312008697,
+   "ime": "Chat B3 bounded history and exact read disposable proof",
+   "sha": "7b9f787e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-27T10:16:32Z"
+  },
+  {
+   "id": 36310983457,
+   "ime": "Chat B3 bounded history and exact read disposable proof",
+   "sha": "2749c95e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-27T09:57:09Z"
+  },
+  {
+   "id": 36310433116,
+   "ime": "Chat B3 bounded history and exact read disposable proof",
+   "sha": "96259893",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-27T09:46:24Z"
+  },
+  {
+   "id": 36304343403,
+   "ime": "PRE-P4 integrity",
+   "sha": "1ab01e78",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:50:32Z"
+  },
+  {
+   "id": 36304341558,
+   "ime": "CodeQL",
+   "sha": "1ab01e78",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:50:30Z"
+  },
+  {
+   "id": 36304323342,
+   "ime": "P0-02 processor inventory truth",
+   "sha": "1ab01e78",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:50:11Z"
+  },
+  {
+   "id": 36304153337,
+   "ime": "PRE-P4 integrity",
+   "sha": "d18e830a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:46:48Z"
+  },
+  {
+   "id": 36304151417,
+   "ime": "CodeQL",
+   "sha": "d18e830a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:46:46Z"
+  },
+  {
+   "id": 36304151190,
+   "ime": "Privacy P0 AI provider context minimization",
+   "sha": "d18e830a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:46:45Z"
+  },
+  {
+   "id": 36303904777,
+   "ime": "PRE-P4 integrity",
+   "sha": "341db542",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-27T07:42:02Z"
+  }
+ ]
 }

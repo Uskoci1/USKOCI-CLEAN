@@ -31,6 +31,7 @@ jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
 import { DiscoveryMap, PillAnnotation, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
 import { BrandMark } from '../../ui/entry/BrandAssets';
+import { noTaskRelations, taskRelationIndex } from '../taskRelation';
 import { sys } from '../../ui/system/tokens';
 import { expression, latest, type StylePropertySpecification } from '@maplibre/maplibre-gl-style-spec';
 
@@ -104,8 +105,42 @@ test('a word about money never wears the money colour or weight; the amount does
   const urgent = await draw({ text: '6.000 RSD', tone: 'money', spoken: '6.000 RSD' }, true);
   expect(urgent.frame.borderColor).toBe(sys.color.danger); expect(urgent.lightning[0].props.color).toBe(sys.color.danger);
   let chosen!: ReactTestRenderer; await act(async () => { chosen = create(<PricePill content={{ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' }} selected />); });
-  expect(flat(chosen.root.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.green });
-  expect(flat(chosen.root.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.onGreen);
+  expect(flat(chosen.root.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.orangeHalo });
+  expect(flat(chosen.root.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.orangeInk);
+});
+
+test('positive account relations label individual pins without putting private overlay facts into public GeoJSON', async () => {
+  extra = { relations: taskRelationIndex([
+    { needId: 'money', relation: 'OWNER' },
+    { needId: 'offer', relation: 'APPLIED', applicationId: 'private-application-id', applicationState: 'SUBMITTED' },
+    { needId: 'stack-1', relation: 'OWNER' },
+  ], rows.map(item => item.id)) };
+  await render(); await ready();
+  const byText = (text: string) => pills().find(pill => pill.content.text === text)!;
+  expect(byText('6.000 RSD').relation).toBe('OWNED');
+  expect(byText('Ponude').relation).toBe('APPLIED');
+  expect(byText('2 zadatka').relation).toBeUndefined();
+  const labels = annotations().flatMap(node => node.findAll(child => String(child.type) === 'View' && child.props.accessibilityLabel)
+    .map(child => child.props.accessibilityLabel));
+  expect(labels.some(label => label.includes('Tvoj zadatak'))).toBe(true);
+  expect(labels.some(label => label.includes('Već si se prijavio'))).toBe(true);
+  expect(JSON.stringify(source().props.data)).not.toMatch(/OWNED|OWNER|APPLIED|private-application|relation/);
+  // Retiring the account overlay removes both badges; UNKNOWN never becomes a guess about ownership/application.
+  extra = { relations: noTaskRelations }; await update();
+  expect(pills().every(pill => pill.relation === undefined)).toBe(true);
+});
+
+test('selected urgent own task keeps selection, urgency and relationship distinct; a shared point has no individual badge', async () => {
+  extra = { relations: taskRelationIndex([{ needId: 'urgent', relation: 'OWNER' }], rows.map(item => item.id)) };
+  selectedId = 'urgent'; await render(); await ready();
+  const selected = pills().find(pill => pill.selected);
+  expect(selected).toMatchObject({ urgent: true, relation: 'OWNED' });
+  const pill = annotations().find(node => node.props.id === 'selected-need')!.findByType(PricePill);
+  expect(flat(pill.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.orangeHalo });
+  expect(pill.findAllByProps({ testID: 'pin-relation-OWNED' })).toHaveLength(1);
+  selectedId = null; selectedPlace = '44.79,20.45'; await update();
+  expect(pills().find(item => item.selected)).toMatchObject({ content: { tone: 'count' } });
+  expect(pills().find(item => item.selected)!.relation).toBeUndefined();
 });
 
 // Review r3 item 8: the native side keys annotations by id. An id that stayed `pill-<point>` while the content changed let
@@ -444,7 +479,7 @@ test.each(['layout,frame', 'frame,layout'])(
       layout: () => annotationLayout(chosen())(pillSize),
       frame: native().props.onDidFinishRenderingFrameFully,
     };
-    expect(chosen().findByType(BrandMark).props.size).toBe(30);
+    expect(chosen().findByType(BrandMark).props.size).toBeCloseTo(30 * 1.06);
     expect(chosen().findAllByType(Image)).toHaveLength(0);
     const order = sequence.split(',');
     for (let index = 0; index < order.length; index++) {
@@ -528,7 +563,7 @@ test('many pins stay a bounded number of pills; native logo markers cover the re
 
 // Discovery V47 (the selected pin, Airbnb's pattern in USKOČI's look): the chosen pin is the one filled dark-green pill
 // with white words; every other stays white, and HITNO keeps its own marker on either.
-test('the chosen pin is the one filled green pill with white words; every other pill stays white', async () => {
+test('the chosen pin stays white with an orange selection; urgency retains its independent glyph', async () => {
   rows = [...base(), row('hitno-izabran', 44.9, 20.3, HITNO)];
   mockRendered = rows.map(item => feature(item.id));
   await render(); await ready();
@@ -537,8 +572,8 @@ test('the chosen pin is the one filled green pill with white words; every other 
   expect(drawn.filter(pill => pill.props.selected)).toHaveLength(1);
   const chosen = drawn.find(pill => pill.props.selected)!;
   expect(chosen.props).toMatchObject({ selected: true, urgent: true });
-  expect(flat(chosen.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.green });
-  expect(flat(chosen.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.onGreen);
+  expect(flat(chosen.findByProps({ testID: 'price-pill' }))).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.orangeHalo });
+  expect(flat(chosen.findAllByType('T' as React.ElementType)[0]).color).toBe(sys.color.orangeInk);
   for (const other of drawn.filter(pill => !pill.props.selected)) {
     expect(flat(other.findByProps({ testID: 'price-pill' })).backgroundColor).toBe(sys.color.surface);
   }

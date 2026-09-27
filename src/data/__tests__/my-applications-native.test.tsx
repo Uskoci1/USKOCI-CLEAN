@@ -152,6 +152,30 @@ it('a named submitted application is immediately visible beyond the initial view
   expect(press('Povuci izmenjenu prijavu')).toBeUndefined();
   expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
 });
+it('a new application destination opens through a retained filter, then leaves later filter choices alone', async () => {
+  mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), stale()];
+  await render(); await tap('Aktivne');
+  expect(text()).not.toContain('Potrebna nova provera');
+  const reads = mockRead.mock.calls.length;
+  mockParams = { prijavaId: stale().prijavaId }; await update();
+  expect(text()).toContain('Potrebna nova provera'); expect(press('Zadrži prijavu')).toBeDefined();
+  expect(mockRead).toHaveBeenCalledTimes(reads);
+  await tap('Zatvori pregled izmena'); await tap('Aktivne'); await update();
+  expect(text()).not.toContain('Potrebna nova provera'); expect(press('Zadrži prijavu')).toBeUndefined();
+  expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
+});
+it('waits for the current read before consuming a named application destination', async () => {
+  const late = deferred();
+  mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), stale()];
+  await render(); await tap('Aktivne');
+  mockRead.mockReturnValueOnce(late.promise);
+  await background('background'); await background('active');
+  mockParams = { prijavaId: stale().prijavaId }; await update();
+  expect(press('Zadrži prijavu')).toBeUndefined();
+  await act(async () => late.resolve(mockRows));
+  expect(press('Zadrži prijavu')).toBeDefined();
+  expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
+});
 it('a missing named application gives an honest refresh path without opening a different row', async () => {
   mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' })]; mockParams = { prijavaId: row().prijavaId };
   await render(); expect(text()).toContain('Ova prijava trenutno nije dostupna');

@@ -129,18 +129,22 @@ function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void 
  * identity and terms their own width. An offer opens as a sheet over this list, so the list is still where the person
  * left it when they close it.
  */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, photo, textScale: forcedScale }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
   /** The row at the top opens the Task these offers answer. */
   openTask?: () => void;
   /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
   sort?: CandidateSort; onSort?: (sort: CandidateSort) => void;
+  /** Keep this browsing choice through a current-data reread; offers themselves are read again. */
+  comparison?: boolean; onComparison?: (compare: boolean) => void;
   /** The person's photo in a row; the Avatar with their letters when absent. */
   photo?: CandidatePhoto;
   /** The text size the layout follows; the phone's own (rounded) when absent. Only the internal gallery sets it. */
   textScale?: number;
 }) {
-  const [compare, setCompare] = useState(false);
+  const [ownCompare, setOwnCompare] = useState(false);
+  const compare = comparison ?? ownCompare;
+  const setCompare = (value: boolean) => { if (onComparison) onComparison(value); else setOwnCompare(value); };
   const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
   const [sorting, setSorting] = useState(false);
   const sort = chosenSort ?? ownSort;
@@ -176,7 +180,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // An offer that can be read but not chosen says why on its own card; this says once what that means.
   const unavailable = candidates.some(k => k.stanje !== 'SELECTABLE' && k.stanje !== 'SELECTED');
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}
-    right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(v => !v)} /> : undefined}>
+    right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined}>
     <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
       ListHeaderComponent={<View style={s.listHeader}><TaskBrief need={need} open={openTask} />
@@ -288,8 +292,9 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   const blocked = !candidate.mozeIzabrati && !pending && !confirmed && !selected;
   const primary = confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
     : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
+    : busy ? <BrandAction label="Povezivanje…" onPress={() => { void choose(); }} disabled loading />
     : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-    : pending || busy ? <BrandAction label={busy ? 'Povezivanje…' : 'Ponovi isti izbor'} onPress={() => { void choose(); }} disabled={busy} loading={busy} />
+    : pending ? <BrandAction label="Ponovi isti izbor" onPress={() => { void choose(); }} />
     : candidate.mozeIzabrati ? <BrandAction label={CHOOSE_LABEL} onPress={askToChoose} />
     : null;
   const quiet = reset ? <V2Action label="Pregledaj aktuelne prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;

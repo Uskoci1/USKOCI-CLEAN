@@ -67,21 +67,26 @@ function fixtures(count: Count): PrilikaProjekcija[] {
 const leave = () => router.canGoBack() ? router.back() : router.replace('/dizajn-tabla');
 
 export default function DizajnMapa() {
-  const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[]; discoveryTrace?: string | string[] }>();
+  const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[]; discoveryTrace?: string | string[];
+    relation?: string | string[] }>();
   const internal = Constants.expoConfig?.android?.package === 'rs.uskoci.dev';
   const count = params.count === undefined || params.count === '1' ? 1 : params.count === '1000' ? 1000 : null;
   const detail = params.detail === undefined ? null : typeof params.detail === 'string' && /^(0|[1-9]\d{0,2})$/.test(params.detail)
     ? Number(params.detail) : -1;
-  if (!internal || count === null || (detail !== null && (detail < 0 || detail >= count))) {
+  const relation = params.relation ?? 'none';
+  if (!internal || count === null || (relation !== 'none' && relation !== 'owned' && relation !== 'applied')
+    || (detail !== null && (detail < 0 || detail >= count))) {
     return <SafeAreaView style={s.screen}><T style={s.unavailable}>{internal ? 'Nepoznat prikaz galerije.' : 'Nije dostupno.'}</T>
       <GalleryFooter count={null} onBack={leave} /></SafeAreaView>;
   }
-  return <LocalGallery key={count} count={count} detail={detail} traceEnabled={params.discoveryTrace === '1'} />;
+  return <LocalGallery key={`${count}:${relation}`} count={count} detail={detail} relation={relation} traceEnabled={params.discoveryTrace === '1'} />;
 }
 
 const TRACE_EVENTS = new Set(['seed', 'preopen', 'request', 'ack', 'clamp0', 'ready', 'content']);
 
-function LocalGallery({ count, detail, traceEnabled }: { count: Count; detail: number | null; traceEnabled: boolean }) {
+function LocalGallery({ count, detail, traceEnabled, relation }: {
+  count: Count; detail: number | null; traceEnabled: boolean; relation: 'none' | 'owned' | 'applied';
+}) {
   // Optional diagnosis only in this exact DEV package. Never log task/account text, IDs or native event objects.
   const traceGate = useRef(traceEnabled); traceGate.current = traceEnabled;
   const traceCount = useRef(0), traceSamples = useRef(0);
@@ -93,11 +98,16 @@ function LocalGallery({ count, detail, traceEnabled }: { count: Count; detail: n
     console.info(`[USKOCI_DISCOVERY_TRACE] ${JSON.stringify([++traceCount.current, event, ...safe])}`);
   }, []);
   const items = useMemo(() => fixtures(count), [count]);
-  const relations = useMemo(() => taskRelationIndex([], items.map(item => item.id)), [items]);
+  // Explicit local relation scenes exercise the real overlays without reading/changing a real profile or application.
+  const relations = useMemo(() => taskRelationIndex(relation === 'none' ? [] : [relation === 'owned'
+    ? { needId: items[0].id, relation: 'OWNER' }
+    : { needId: items[0].id, relation: 'APPLIED', applicationId: uuid(20001), applicationState: 'SUBMITTED' }],
+  items.map(item => item.id)), [items, relation]);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
   const open = (item: MarketplaceItem) => {
     const index = items.findIndex(row => row.id === item.id);
-    if (index >= 0) router.push({ pathname: '/dizajn-mapa', params: { count: String(count), detail: String(index) } });
+    if (index >= 0) router.push({ pathname: '/dizajn-mapa', params: { count: String(count), detail: String(index),
+      ...(relation === 'none' ? {} : { relation }) } });
   };
   const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/dizajn-mapa', params: { count: String(count) } });
   const item = detail === null ? null : items[detail];

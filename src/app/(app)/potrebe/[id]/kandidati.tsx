@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
@@ -20,8 +21,12 @@ export default function Kandidati() {
   const id = typeof params.id === 'string' ? params.id : undefined;
   const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
-  const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false }), [id, izvor, user?.id, accountRevision]);
-  const [, render] = useState(0);
+  const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false,
+    active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', focused: false,
+    focusToken: 0, readRevision: 0, reading: false, compare: false }), [id, izvor, user?.id, accountRevision]);
+  const [, render] = useState(0), [resume, setResume] = useState(0);
+  const currentAccount = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
+    sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
   const [opened, setOpened] = useState<{ data: Loaded; candidate: KandidatProjekcija } | null>(null);
   // The order chosen on the list outlives opening one offer and coming back; it belongs to this Task and
   // this account only, and it is a view of rows already read, never a new request.
@@ -35,8 +40,20 @@ export default function Kandidati() {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
   }, [session]));
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      const active = state === 'active';
+      if (session.active === active) return;
+      session.active = active; session.focusToken++; session.readRevision++; session.reading = false;
+      // Private offer/profile/confirmation sheets leave with this visit. A dispatched command is
+      // still owned by its original pending record and is reconciled after the next current read.
+      setOpened(null);
+      if (active) setResume(value => value + 1); else render(value => value + 1);
+    });
+    return () => subscription.remove();
+  }, [session]);
   const read = useCallback(async (): Promise<Ishod<Loaded>> => {
-    const generation = ++session.readRevision; session.reading = true;
+    const generation = ++session.readRevision, token = session.focusToken; session.reading = true;
     session.navigated = false;
     if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Zadatak nije dostupan.' }; }
     try {
@@ -46,21 +63,21 @@ export default function Kandidati() {
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
       if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+      if (generation !== session.readRevision || token !== session.focusToken || !session.focused || !session.active || !currentAccount())
+        return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { need, candidates, receipt: result?.ok ? result.podatak : null } };
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
-  }, [id, izvor, session]);
+  }, [id, izvor, session, currentAccount, resume]);
   const editor = useOwnedEditor(read), data = editor.data;
   const pending = session.pending;
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
   // F05: a candidate is a person; the server resolves the safety target before bezbednost opens.
   const safety = useSafetyEntry(candidate?.radnikProfilId, { needId: id ?? null });
   const focusToken = session.focusToken, readRevision = session.readRevision;
-  const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
-  const current = () => session.focused && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
+  const current = () => session.focused && session.active && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
   const back = () => {
     if (!current()) return;
@@ -87,7 +104,7 @@ export default function Kandidati() {
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proveri stanje.' }; }
       finally { request.inFlight = false; }
       request.result = result;
-      if (session.focused && currentAccount()) render(v => v + 1);
+      if (session.focused && session.active && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
     });
   };
@@ -126,11 +143,13 @@ export default function Kandidati() {
     // `current` reads the render's focus token and read revision and the account; those are the dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needId, chosenId, focusToken, readRevision, user?.id, accountRevision, session]);
-  if (!data) return <SelectionUnavailable loading={editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
+  if (!session.focused || !session.active || editor.loading || !data)
+    return <SelectionUnavailable loading={!session.focused || !session.active || editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
   const list = <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
     open={openOffer} openTask={openTask} sort={sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL'}
-    onSort={sort => setSorted({ scope: sortScope, sort })} photo={photo} />;
+    onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
+    comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} />;
   if (!candidate) return list;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}

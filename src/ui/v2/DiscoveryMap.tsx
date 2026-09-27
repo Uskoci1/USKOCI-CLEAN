@@ -17,7 +17,7 @@ import { useReducedMotion } from '../system/motion';
 import { ActionSheet } from '../system/ActionSheet';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { PricePill, type PillContent } from './discovery/PricePill';
+import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 
 type Owner = { key: string; active: boolean; epoch: number };
@@ -49,9 +49,9 @@ const CREDITS = [
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
 /** Snapshot native vector paths only after the annotation has a measured view in the active rendered map. */
-export function PillAnnotation({ id, point, label, content, urgent, selected, onPress, nativeReady, owns }: {
+export function PillAnnotation({ id, point, label, content, urgent, selected, relation, onPress, nativeReady, owns }: {
   id: string; point: { lng: number; lat: number }; label: string; content: PillContent;
-  urgent?: boolean; selected?: boolean; onPress?: () => void; nativeReady: boolean; owns: () => boolean;
+  urgent?: boolean; selected?: boolean; relation?: PinRelation; onPress?: () => void; nativeReady: boolean; owns: () => boolean;
 }) {
   const annotation = useRef<ViewAnnotationRef>(null), draw = useRef<number | null>(null), alive = useRef(true);
   const laidOut = useRef(false), latest = useRef({ nativeReady, owns }); latest.current = { nativeReady, owns };
@@ -71,10 +71,11 @@ export function PillAnnotation({ id, point, label, content, urgent, selected, on
   }, [refreshLogo]);
   // BrandMark's paths draw synchronously into the native snapshot: no image-load event is required or fabricated.
   // A retained annotation still needs a fresh snapshot after its map reattaches or its displayed terms change.
-  useEffect(refreshLogo, [nativeReady, content.text, content.tone, urgent, selected, refreshLogo]);
+  useEffect(refreshLogo, [nativeReady, content.text, content.tone, urgent, selected, relation, refreshLogo]);
   return <ViewAnnotation ref={setAnnotation} id={id} lngLat={[point.lng, point.lat]} anchor="center" onPress={onPress}>
-    <View collapsable={false} onLayout={onLayout} accessible accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}>
-      <PricePill content={content} urgent={urgent} selected={selected} />
+    <View collapsable={false} onLayout={onLayout} accessible accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={[label, content.tone === 'count' ? '' : pinRelationWords(relation)].filter(Boolean).join(', ')}>
+      <PricePill content={content} urgent={urgent} selected={selected} relation={relation} />
     </View>
   </ViewAnnotation>;
 }
@@ -95,6 +96,10 @@ function boundedFitPadding(frame: { width: number; height: number }, toolsBottom
  * circles with their count.
  */
 function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void; mapStyle: MapStyle }) {
+  const relationFor = (id: string): PinRelation | undefined => {
+    const answer = props.relations?.relation(id);
+    return answer?.kind === 'OWNER' ? 'OWNED' : answer?.kind === 'APPLIED' ? 'APPLIED' : undefined;
+  };
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [nativeFrameReady, setNativeFrameReady] = useState(false), focused = useRef(true);
@@ -420,10 +425,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       </GeoJSONSource>
       {pills.filter(place => place.key !== chosenKey).map(place => {
         const content = contentOf(place), urgent = urgentPlace(place);
+        const relation = place.ids.length === 1 ? relationFor(place.ids[0]) : undefined;
         // The native side keys its annotations by `id`: an id that changes with the content, as the React key does, keeps
         // an insert-before-remove in one commit from leaving a dead pill behind (review r3 item 8).
-        return <PillAnnotation key={`pill:${place.key}:${content.text}:${urgent}`} id={`pill-${place.key}-${content.text}-${urgent}`} point={place.point}
-          content={content} urgent={urgent} nativeReady={status === 'ready' && nativeFrameReady} owns={owns}
+        const identity = `${place.key}-${content.text}-${urgent}${relation ? `-${relation}` : ''}`;
+        return <PillAnnotation key={`pill:${identity}`} id={`pill-${identity}`} point={place.point}
+          content={content} urgent={urgent} relation={relation} nativeReady={status === 'ready' && nativeFrameReady} owns={owns}
           label={place.ids.length > 1 ? placeWords(place) : `${urgent ? 'HITNO, ' : ''}${readableTitle(byId.get(place.ids[0])?.naslov)}, ${content.spoken}`}
           onPress={() => { if (!owns() || load.current !== 'ready') return;
             pillTap.current = Date.now();
@@ -434,7 +441,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         label={`${placeWords(selectedPlace)}, izabrano`} content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} />
         : point && selected ? <PillAnnotation key={`selected-need:${selected.id}`} id="selected-need" point={point}
           label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}
-          content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
+          content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} relation={relationFor(selected.id)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
     </Map>
     {sheetTop && height ? <>
       <Animated.View testID="discovery-map-zoom-ride" pointerEvents="box-none" style={[s.ride, { height }, zoomRide]}>{zoom}</Animated.View>
