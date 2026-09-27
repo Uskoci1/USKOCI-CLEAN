@@ -4,18 +4,18 @@
   "files": [
     {
       "path": "supabase/functions/uskoci-ai-interview/index.ts",
-      "bytes": 46023,
-      "sha256": "a0a8ff1fc5a5e327e9a3979a7fad540902f367d2476ba80c583611dda9a633a1"
+      "bytes": 46093,
+      "sha256": "1bc937e97cf14ad336e15ff83752bcaecf280e7d5db3cc033145f06136bb3290"
     },
     {
       "path": "src/contracts/needFactsV2.ts",
-      "bytes": 7029,
-      "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
+      "bytes": 7869,
+      "sha256": "81bcbed6b872e88b7982a43b5a2be31a1fd38c81378c4851d177536d0dfd72d2"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
-      "bytes": 25643,
-      "sha256": "69c7da8805dc23f21b1a422928f38e9ab792bcb3c77d05d712ce6a47aa39a95c"
+      "bytes": 27122,
+      "sha256": "45a6a866cb37794bb83bda6a027e032c994ea8266cd655518b7a0b845cb91cdb"
     },
     {
       "path": "supabase/proofs/ai/ai_edge_context_proof.mjs",
@@ -25,7 +25,7 @@
     {
       "path": ".github/workflows/ai-edge-context-proof.yml",
       "bytes": 4051,
-      "sha256": "6a0f554e7f6744477e5c25d56e75c0c8787e3300ac0f5135f594ed4675bde4a5"
+      "sha256": "3ce4d50f6207a1ef178b21250e7bb4281b1d282cff83a17eaede2d846ac607a6"
     },
     {
       "path": "supabase/proofs/ai/owned_intake_edge_runtime.mjs",
@@ -39,24 +39,59 @@
     }
   ],
   "refrozen": {
-    "package": "PKG-025d-PRICE-BASIS",
-    "date": "2026-09-20",
-    "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+    "package": "PRIVACY-P0-AI-CONTEXT-MINIMIZATION",
+    "date": "2026-09-27",
+    "reason": "Privacy-by-design hardening: need.exact_address and need.access_notes remain AI-proposable from the CURRENT user message, but once persisted they are excluded from later third-party AI provider context. The Edge claim decoder enforces the narrower provider-context allowlist and two negative tests prove an unexpected persisted private fact is refused before provider I/O. The SQL candidate keeps the full internal fact/material model unchanged and minimizes only the provider projection. No live database change is part of this refreeze.",
     "changedFiles": [
       {
         "path": "supabase/functions/uskoci-ai-interview/index.ts",
-        "bytesBefore": 44769,
-        "bytesAfter": 46023
+        "bytesBefore": 46023,
+        "bytesAfter": 46093,
+        "sha256Before": "a0a8ff1fc5a5e327e9a3979a7fad540902f367d2476ba80c583611dda9a633a1",
+        "sha256After": "1bc937e97cf14ad336e15ff83752bcaecf280e7d5db3cc033145f06136bb3290"
       },
       {
         "path": "src/contracts/needFactsV2.ts",
-        "bytesBefore": 5897,
-        "bytesAfter": 7029
+        "bytesBefore": 7029,
+        "bytesAfter": 7869,
+        "sha256Before": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+        "sha256After": "81bcbed6b872e88b7982a43b5a2be31a1fd38c81378c4851d177536d0dfd72d2"
+      },
+      {
+        "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
+        "bytesBefore": 25643,
+        "bytesAfter": 27122,
+        "sha256Before": "69c7da8805dc23f21b1a422928f38e9ab792bcb3c77d05d712ce6a47aa39a95c",
+        "sha256After": "45a6a866cb37794bb83bda6a027e032c994ea8266cd655518b7a0b845cb91cdb"
+      },
+      {
+        "path": ".github/workflows/ai-edge-context-proof.yml",
+        "bytesBefore": 4051,
+        "bytesAfter": 4051,
+        "sha256Before": "6a0f554e7f6744477e5c25d56e75c0c8787e3300ac0f5135f594ed4675bde4a5",
+        "sha256After": "3ce4d50f6207a1ef178b21250e7bb4281b1d282cff83a17eaede2d846ac607a6"
       }
     ],
     "previousFreeze": {
-      "package": "V3-EDGE-LOG-FIX",
-      "date": "2026-09-19"
+      "package": "PKG-025d-PRICE-BASIS",
+      "date": "2026-09-20",
+      "reason": "Owner approvals of 2026-09-20 (\"sve dozvoljavam\", \"Cena\", \"ajde kreni\", \"primeni pkg025d\"). A task can now say what its price is FOR, and the interview is what states it. needFactsV2.ts gains the need.price_basis key and MAX_NEED_FACT_V2_PAYLOAD, a cap derived from the key list because five decoders had it written by hand as 22 and those decoders discard a whole review over one fact they cannot place. index.ts gains the PRICE_BASES set, its case in valueMatchesContract so a bad basis is refused at the Edge instead of travelling to the server, and two instructions: ask once whether a fixed price is total or per person when more than one person is needed, and, when confirming a per-person price with a known headcount, state the total in the same sentence. That second instruction comes from the first real device run, where the assistant asked correctly, recorded PER_PERSON, confirmed \"5.000 RSD po osobi za 3 radnika\" and never said 15.000 - the number the owner actually pays. No model, schema, budget or request behaviour changed; the only new refusal is of a basis that is neither TOTAL nor PER_PERSON. Deployed as v42 from the 45624-byte index.ts and byte-verified against disk; the redeploy of this 46023-byte source is the one that carries the total.",
+      "changedFiles": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "bytesBefore": 44769,
+          "bytesAfter": 46023
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "bytesBefore": 5897,
+          "bytesAfter": 7029
+        }
+      ],
+      "previousFreeze": {
+        "package": "V3-EDGE-LOG-FIX",
+        "date": "2026-09-19"
+      }
     }
   }
 }
