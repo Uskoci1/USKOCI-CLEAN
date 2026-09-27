@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
+import { getStaticFeatureFlag } from 'react-native-reanimated';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { initialMarketplaceView, publicPoint, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
 import { sameId } from '../../data/serverReceipt';
@@ -33,6 +34,7 @@ function Discovery() {
   const traceGate = useRef(traceEnabled); traceGate.current = traceEnabled;
   const traceCount = useRef(0);
   const traceSamples = useRef(0);
+  const tracedSettledFlag = useRef(false);
   const trace = useCallback<DiscoveryTrace>((event, ...values) => {
     if (!traceGate.current || traceCount.current >= 120 || !TRACE_EVENTS.has(event) || values.length > 20
       || values.some(value => typeof value !== 'boolean' && (typeof value !== 'number' || !Number.isFinite(value)))) return;
@@ -55,7 +57,16 @@ function Discovery() {
   const [publication, setPublication] = useState<{ token: string; id: string; visit: object | null;
     status: 'loading' | 'map' | 'list' | 'missing' | 'error' | 'retired' } | null>(null);
   const traceView = useRef(view); traceView.current = view;
-  useEffect(() => { if (traceEnabled) trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); }, [traceEnabled, trace]);
+  useEffect(() => {
+    if (!traceEnabled) return;
+    // Read the compiled native flag once, only inside the existing explicit DEV trace.
+    // Some isolated Jest routes replace Reanimated without this diagnostic getter.
+    if (!tracedSettledFlag.current && typeof getStaticFeatureFlag === 'function') {
+      tracedSettledFlag.current = true;
+      trace('reanimated-settled-flag', getStaticFeatureFlag('FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS'));
+    }
+    trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
+  }, [traceEnabled, trace]);
   useFocusEffect(useCallback(() => {
     let owner: object | null = null;
     // Publish the focus token as state, exactly as Početna does. A ref written inside an effect
@@ -231,7 +242,7 @@ function Discovery() {
 }
 
 const traceSheet = (view: MarketplaceView) => view.sheet === 'full' ? 2 : view.sheet === 'half' ? 1 : view.sheet === 'peek' ? 0 : -1;
-const TRACE_EVENTS = new Set<Parameters<DiscoveryTrace>[0]>(['route-trace', 'route-focus', 'route-blur', 'route-open', 'route-view',
+const TRACE_EVENTS = new Set<Parameters<DiscoveryTrace>[0]>(['reanimated-settled-flag', 'route-trace', 'route-focus', 'route-blur', 'route-open', 'route-view',
   'focus', 'blur', 'preopen', 'write-offset', 'seed', 'ready', 'geometry', 'index', 'content', 'layout',
   'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'fold', 'drag', 'refresh']);
 const TRACE_SAMPLES = new Set<Parameters<DiscoveryTrace>[0]>(['scroll', 'scroll0', 'scroll-reject', 'restore-check', 'content', 'layout', 'geometry']);

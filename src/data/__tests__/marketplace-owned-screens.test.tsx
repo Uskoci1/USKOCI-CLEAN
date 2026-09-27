@@ -2,6 +2,15 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockMine = jest.fn(), mockPublic = jest.fn(), mockRelations = jest.fn(), mockNavigate = jest.fn();
 let mockTraceParam: unknown, mockPackage = 'rs.uskoci.dev';
+const mockStaticFeatureFlag = jest.fn();
+let mockStaticGetterAvailable = true;
+jest.mock('react-native-reanimated', () => {
+ const module = { ...jest.requireActual('../../../__mocks__/react-native-reanimated') };
+ Object.defineProperty(module, 'getStaticFeatureFlag', {
+  get: () => mockStaticGetterAvailable ? mockStaticFeatureFlag : undefined,
+ });
+ return module;
+});
 jest.mock('expo-constants', () => ({ __esModule: true, get default() { return { expoConfig: { android: { package: mockPackage } } }; } }));
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 const mockSource = { mojePotrebe: (...args: unknown[]) => mockMine(...args), otvorenePrilike: (...args: unknown[]) => mockPublic(...args),
@@ -30,7 +39,7 @@ const props = () => tree.root.findByType('Marketplace' as React.ElementType).pro
 const render = async () => act(async () => { tree = create(<Component />); });
 const update = async () => act(async () => tree.update(<Component />));
 const traceEvent = (call: unknown[]) => JSON.parse(String(call[0]).replace(/^\[USKOCI_DISCOVERY_TRACE\] /, ''));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); mockTraceParam = undefined; mockPackage = 'rs.uskoci.dev'; Component = Public; mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active'; mockMine.mockReset().mockResolvedValue([{ id: 'mine' }]); mockPublic.mockReset().mockResolvedValue([{ id: 'public' }]); mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids)); mockNavigate.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); mockTraceParam = undefined; mockPackage = 'rs.uskoci.dev'; mockStaticGetterAvailable = true; mockStaticFeatureFlag.mockReset().mockReturnValue(false); Component = Public; mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active'; mockMine.mockReset().mockResolvedValue([{ id: 'mine' }]); mockPublic.mockReset().mockResolvedValue([{ id: 'public' }]); mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids)); mockNavigate.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
 test.each([
@@ -40,6 +49,29 @@ test.each([
  const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
  mockPackage = pkg as string; mockTraceParam = query; await render();
  expect(props().trace).toBeUndefined(); expect(logged).not.toHaveBeenCalled();
+ expect(mockStaticFeatureFlag).not.toHaveBeenCalled();
+});
+
+test.each([false, true])('DEV trace reads the compiled settled-animation flag %s once across focus and query changes', async nativeFlag => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockStaticFeatureFlag.mockReturnValue(nativeFlag);
+ await render(); expect(mockStaticFeatureFlag).not.toHaveBeenCalled();
+ mockTraceParam = '1'; await update();
+ mockFocused = false; await update(); mockFocused = true; await update();
+ mockTraceParam = undefined; await update(); mockTraceParam = '1'; await update();
+ expect(mockStaticFeatureFlag).toHaveBeenCalledTimes(1);
+ expect(mockStaticFeatureFlag).toHaveBeenCalledWith('FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS');
+ expect(logged.mock.calls.map(traceEvent).filter(event => event[1] === 'reanimated-settled-flag'))
+  .toEqual([[expect.any(Number), 'reanimated-settled-flag', nativeFlag]]);
+});
+
+test('DEV trace still works with an isolated Reanimated mock that omits the native flag getter', async () => {
+ const logged = jest.spyOn(console, 'info').mockImplementation(() => {});
+ mockStaticGetterAvailable = false; mockTraceParam = '1'; await render();
+ expect(mockStaticFeatureFlag).not.toHaveBeenCalled();
+ const events = logged.mock.calls.map(traceEvent);
+ expect(events.some(event => event[1] === 'route-trace')).toBe(true);
+ expect(events.some(event => event[1] === 'reanimated-settled-flag')).toBe(false);
 });
 
 test('opted-in DEV trace records accepted and rejected view writes without any task, query or account data', async () => {

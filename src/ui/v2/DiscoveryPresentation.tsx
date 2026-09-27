@@ -34,7 +34,7 @@ import type { TaskRelationIndex } from '../../data/taskRelation';
 import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 
 /** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
-export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
+export type DiscoveryTrace = (event: 'reanimated-settled-flag' | 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
   | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
   | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh',
   ...values: (number | boolean)[]) => void;

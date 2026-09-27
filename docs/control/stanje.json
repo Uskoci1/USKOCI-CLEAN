@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-27T22:14:17Z",
+  "osvezeno": "2026-09-27T22:28:05Z",
   "grana": "HEAD",
-  "head": "10739a44",
-  "head_poruka": "fix: recover late native maps and retain catalog art during loading",
+  "head": "9d5d172f",
+  "head_poruka": "docs: synchronize canonical deployments and exact native checkpoint",
   "server": {
    "snimljeno": "2026-09-27T20:20:25Z",
    "migracije": 210,
@@ -202,7 +202,7 @@
    "implementation": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
    "native_report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json"
   },
-  "next_owner_priority": "Ispraviti native nestanak FULL panela pri povratku na osnovu novog trace-a; fizički telefon ažurirati kada se pojavi prekoUSB. Pin latencija/P6/voice/exact-push/iOS ostaju otvoreni.",
+  "next_owner_priority": "Izgraditi tačan Round32 APK, potvrditi compiledflagfalse i ponoviti FULL povratak, mapu/listu i običan panel. TelefonUSB odsutan; Git/DEV provereni. P6/voice/exact-push/iOS ostaju odvojeni.",
   "phone_apk_round30": {
    "status": "ARTIFACT_VERIFIED_NOT_YET_INSTALLED",
    "source": "baa328327b2d7861966780337f16c327c757e1c3",
@@ -232,7 +232,16 @@
    "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
    "device_status": "USB_ABSENT_NOT_INSTALLED"
   },
-  "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json"
+  "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json",
+  "native_sheet_round32": {
+   "status": "SOURCE_MITIGATION_NATIVE_REBUILD_REQUIRED_NOT_ACCEPTED",
+   "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+   "before": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_BEFORE.json",
+   "finding": "Stvarno Android telo FULL liste ostaje alpha0/translationY2424px dok animacija prijavljuje FULL71.2dp. Brojevi i vidljivi nestanak sačuvani.",
+   "change": "Postojeća Reanimated4.5.1: samo FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS=false; bez nadogradnje, promene kartice/pina ili poslovne logike.",
+   "limit": "Moguće više unosa animacija i native commit rada; ovo nije dokaz ubrzanja. Novi APK i ista reprodukcija obavezni."
+  },
+  "hosted_dashboard": "PENDING: prijavljeni vlasnik je vidljiv, ali objavljena stranica pokazuje Nije sačuvano (invalid_argument). Treba ti pravo izmene. Lokalno stanje nije objavljeno; bez novog pokušaja ili promene deljenja."
  },
  "redovi": [
   {
@@ -2040,12 +2049,12 @@
     "ux": "Mapa zadržava zajednički skup; oblast menja pripadajuću listu.",
     "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
     "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
-    "state_sync": "10739a44: stvarni kasni map-loaded oporavlja mapu posle24,399ms; FULL povratak ipak gubi telo panela uprkos index2/readytrue/ack248. Sačuvan bounded trace; uzrok otvoren.",
+    "state_sync": "Round31 native FAIL dokazan: alpha0/translationY2424px uprkos FULL shared vrednostima. Round32 uska SDK mitigacija pripremljena; novi native dokaz nije završen.",
     "performance": "Ponovljena GeoJSON serijalizacija uklonjena u izvoru. Native brzina nije izmerena; server paging ostaje zasebno otvoren.",
     "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
     "device_proof": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran.",
-    "status": "SOURCE_CHECKED / NATIVE_MAP_RECOVERY_PASS / NATIVE_FULL_RETURN_FAIL",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json",
+    "status": "NATIVE_FULL_RETURN_FAIL / SOURCE_MITIGATION_REBUILD_PENDING",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2140,12 +2149,12 @@
     "ux": "Odobreno: jedna otvorena sekcija, ostale pokazuju stvarni izbor; jedna zajednička primena i zatvaranje bez primene.",
     "ui": "Bele odvojene sekcije i blur zadržani; poslednji red kalendara sada ostaje u prirodnoj visini panela.",
     "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
-    "state_sync": "10739a44: stvarni kasni map-loaded oporavlja mapu posle24,399ms; FULL povratak ipak gubi telo panela uprkos index2/readytrue/ack248. Sačuvan bounded trace; uzrok otvoren.",
+    "state_sync": "Round31 native FAIL dokazan: alpha0/translationY2424px uprkos FULL shared vrednostima. Round32 uska SDK mitigacija pripremljena; novi native dokaz nije završen.",
     "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
     "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
     "device_proof": "Emulator5556:10739a44/run36353185115 instaliran sa-r, tačan SHA4c476cff…28a4e i sesija očuvana. Ista mapa oporavljena posle24,399ms bez retry; count→FULL uz pretragu radi. Povratak sa galerije ponovo gubi ceo FULL panel: FAIL sa sačuvanim trace-om. Catalog ilustracije viđene; kvalitet pokreta nije potvrđen. TelefonUSB odsutan; tačan10739a44 ARM64 artifact proveren, nije instaliran.",
-    "status": "SOURCE_CHECKED / NATIVE_MAP_RECOVERY_PASS / NATIVE_FULL_RETURN_FAIL",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json",
+    "status": "NATIVE_FULL_RETURN_FAIL / SOURCE_MITIGATION_REBUILD_PENDING",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"

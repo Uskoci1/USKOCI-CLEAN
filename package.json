@@ -58,6 +58,11 @@
       "decode-uri-component": "$decode-uri-component"
     }
   },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS": false
+    }
+  },
   "scripts": {
     "eas-build-pre-install": "node ./scripts/check-eas-preview.cjs",
     "postinstall": "node ./scripts/sync-entry-reference-assets.cjs",
