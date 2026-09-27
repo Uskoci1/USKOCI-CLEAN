@@ -13,7 +13,7 @@ import { LOCATION_MAP_CREDITS, overviewDisplayPoints, type LocationOverviewMapPr
 export type { LocationOverviewMapProps, LocationOverviewPoint } from './LocationOverviewMap.types';
 
 type Owner = { active: boolean; epoch: number; accountId: string; accountRevision: number; scopeKey: string };
-type Status = 'loading' | 'ready' | 'failed';
+type Status = 'loading' | 'ready' | 'deadline' | 'failed';
 type Frame = { width: number; height: number };
 const foreground = () => AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
 
@@ -34,7 +34,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
     mounted.current = true;
     timer.current = setTimeout(() => {
       if (mounted.current && latest.current.owns() && state.current === 'loading') {
-        state.current = 'failed'; setStatus('failed');
+        state.current = 'deadline'; setStatus('deadline');
       }
     }, 15_000);
     return () => { mounted.current = false; clearTimeout(timer.current); };
@@ -66,7 +66,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
     } catch { fail(); }
   }, [status, frame, points, props.coarse, selectedPoint, props.cameraIntent]);
   const loaded = () => {
-    if (!current() || state.current !== 'loading') return;
+    if (!current() || (state.current !== 'loading' && state.current !== 'deadline')) return;
     state.current = 'ready'; clearTimeout(timer.current); setStatus('ready');
   };
   const select = (group: readonly OverviewDisplayPoint[]) => {
@@ -96,6 +96,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
         if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0)
           setFrame(previous => previous?.width === width && previous.height === height ? previous : { width, height });
       }}>
+      {/* Keep the owned native attempt behind the deadline notice so its actual late success can recover. */}
       {mapStyle && status !== 'failed' ? <Map style={s.map} mapStyle={mapStyle} androidView="texture"
         attribution={false} logo={false} compass={false} dragPan={props.interactive} touchZoom={props.interactive}
         doubleTapZoom={props.interactive} doubleTapHoldZoom={props.interactive} touchPitch={false} touchRotate={false}

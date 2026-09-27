@@ -37,6 +37,7 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
 const native = () => tree.root.findByType('NativeMap' as React.ElementType);
 const source = () => tree.root.findByType('Source' as React.ElementType);
+const sourceData = () => JSON.parse(source().props.data);
 const ready = async () => act(async () => {
  tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function')
   .props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } });
@@ -49,27 +50,46 @@ beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplem
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();
- expect(source().props.cluster).toBe(true); expect(source().props.data.features).toHaveLength(2);
- expect(source().props.data.features[0].geometry.coordinates).toEqual([0, 0]); expect(source().props.data.features[1].geometry.coordinates).toEqual([19.83, 45.25]);
- expect(source().props.data.features[0].properties).toEqual({ needId: 'one' }); expect(JSON.stringify(source().props.data)).not.toContain('Privatan');
+ expect(source().props.cluster).toBe(true); expect(sourceData().features).toHaveLength(2);
+ expect(sourceData().features[0].geometry.coordinates).toEqual([0, 0]); expect(sourceData().features[1].geometry.coordinates).toEqual([19.83, 45.25]);
+ expect(sourceData().features[0].properties).toEqual({ needId: 'one' }); expect(source().props.data).not.toContain('Privatan');
 });
 test('only an existing current public ID selects; unknown and malformed features are rejected', async () => {
- await render(); await ready(); const feature = source().props.data.features[0]; await pressFeature([feature]); expect(select).toHaveBeenCalledWith('one'); select.mockClear();
+ await render(); await ready(); const feature = sourceData().features[0]; await pressFeature([feature]); expect(select).toHaveBeenCalledWith('one'); select.mockClear();
  await pressFeature([{ ...feature, properties: { needId: 'unknown' } }]);
  for (const coordinates of [[181, 0], [0, 91], [NaN, 0], [0], null]) await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates } }]);
  await pressFeature([]); expect(select).not.toHaveBeenCalled();
 });
 test('rendered geometry resolves only the owned ID; selected pin keeps the canonical coarse point', async () => {
  rows = [row('novi-sad', 45.25444, 19.83444)]; await render(); await ready();
- const feature = source().props.data.features[0];
+ const feature = sourceData().features[0];
  await pressFeature([{ ...feature, geometry: { type: 'Point', coordinates: [19.830093383789, 45.249960548] } }]);
  expect(select).toHaveBeenCalledTimes(1); expect(select).toHaveBeenCalledWith('novi-sad');
  selectedId = 'novi-sad'; await update();
  expect(tree.root.findByType('Annotation' as React.ElementType).props.lngLat).toEqual([19.83, 45.25]);
  expect(rows[0]).toMatchObject({ priblizno: { lat: 45.25444, lng: 19.83444 } });
 });
+test('pin selection reuses the identical encoded public payload without serializing its collection again', async () => {
+ rows = [row('first', 45.25444, 19.83444), row('second', 44.81234, 20.46123)];
+ const stringify = jest.spyOn(JSON, 'stringify');
+ const encodes = () => stringify.mock.calls.filter(([value]) => value?.type === 'FeatureCollection').length;
+ await render(); await ready();
+ const payload = source().props.data, features = sourceData().features;
+ expect(typeof payload).toBe('string');
+ expect(sourceData()).toEqual({ type: 'FeatureCollection', features: [
+  { type: 'Feature', id: 'first', geometry: { type: 'Point', coordinates: [19.83, 45.25] }, properties: { needId: 'first' } },
+  { type: 'Feature', id: 'second', geometry: { type: 'Point', coordinates: [20.46, 44.81] }, properties: { needId: 'second' } },
+ ] });
+ const initialEncodes = encodes(); expect(initialEncodes).toBe(1);
+ for (const feature of features) {
+  await pressFeature([feature]); selectedId = feature.properties.needId; await update();
+  expect(select).toHaveBeenLastCalledWith(selectedId);
+  expect(tree.root.findByType('Annotation' as React.ElementType).props.lngLat).toEqual(feature.geometry.coordinates);
+  expect(source().props.data).toBe(payload); expect(encodes()).toBe(initialEncodes);
+ }
+});
 test.each(['dataset', 'account', 'blur', 'remote'])('old rendered pin cannot select after %s changes', async kind => {
- await render(); await ready(); const callback = source().props.onPress, feature = source().props.data.features[0];
+ await render(); await ready(); const callback = source().props.onPress, feature = sourceData().features[0];
  if (kind === 'dataset') rows = [row('new', 45, 19)];
  if (kind === 'account') key = 'owner:2';
  if (kind === 'blur') mockFocused = false;
@@ -209,12 +229,36 @@ test('the region the camera settles into on first load arms the area control wit
  await wait(AREA_SETTLE_MS);
  expect(search).toHaveBeenCalledWith(region.bounds);
 });
-test('bounded native load failure rejects late ready; explicit retry remounts and saved viewport survives', async () => {
- viewport = region as PublicViewport; await render(); const late = native().props.onDidFinishLoadingMap;
+test('display deadline stays retryable, while actual success of the same current native map recovers without a remount', async () => {
+ viewport = region as PublicViewport; await render(); const current = native(), late = current.props.onDidFinishLoadingMap;
  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
- await act(async () => jest.advanceTimersByTime(15_001)); await act(async () => late()); expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
- // The live map is back: its controls (the zoom capsule since critique B11) are on screen again.
- await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' }).props.onPress()); await ready(); expect(zoomButton('Uvećaj mapu')).toBeTruthy();
+ await act(async () => jest.advanceTimersByTime(15_001));
+ expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
+ await act(async () => current.props.onDidFinishRenderingFrameFully());
+ expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
+ await act(async () => late());
+ expect(native()).toBe(current); expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo sa mapom' })).toHaveLength(0);
+ expect(zoomButton('Uvećaj mapu')).toBeTruthy();
+ expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
+});
+test.each(['retry', 'account', 'blur', 'unmount'])('late success of a %s-retired map cannot acknowledge its replacement', async retirement => {
+ viewport = region as PublicViewport; await render(); const old = native().props;
+ await act(async () => jest.advanceTimersByTime(15_001));
+ if (retirement === 'retry') await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' }).props.onPress());
+ if (retirement === 'account') { key = 'owner:2'; await update(); }
+ if (retirement === 'blur') { mockFocused = false; await update(); mockFocused = true; await update(); }
+ if (retirement === 'unmount') { await act(async () => tree.unmount()); await render(); }
+ await act(async () => { old.onDidFinishLoadingMap(); old.onDidFinishRenderingFrameFully(); old.onDidFailLoadingMap(); });
+ expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo sa mapom' })).toHaveLength(0);
+ expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Učitavamo mapu…'))).toHaveLength(1);
+ await ready(); expect(zoomButton('Uvećaj mapu')).toBeTruthy();
+ expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
+});
+test.each([false, true])('an actual native error remains terminal even when display deadline already fired: %s', async afterDeadline => {
+ await render(); const callbacks = native().props;
+ if (afterDeadline) await act(async () => jest.advanceTimersByTime(15_001));
+ await act(async () => { callbacks.onDidFailLoadingMap(); callbacks.onDidFinishLoadingMap(); callbacks.onDidFinishRenderingFrameFully(); });
+ expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
 });
 test('web fallback has real List action and creates no schematic map', async () => {
  await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />); });
@@ -246,7 +290,7 @@ test('a cluster flies at the camera pace when motion is allowed', async () => {
  mockExpand.mockResolvedValue(9); await render(); await ready(); await pressFeature([cluster]);
  expect(mockEase).toHaveBeenCalledWith({ center: [0, 0], zoom: 9, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled();
 });
-test('DEV map diagnostic emits only six deduplicated names and elapsed time without changing late-ready refusal', async () => {
+test('DEV map diagnostic emits only six deduplicated names and elapsed time without changing native-error refusal', async () => {
  mockPackage = 'rs.uskoci.dev'; const log = jest.spyOn(console, 'info').mockImplementation(() => {});
  await render(); const callbacks = native().props;
  await act(async () => { jest.advanceTimersByTime(15_001); });
@@ -280,8 +324,8 @@ test.each([false, true])('Nearby centers once, preserves list semantics and publ
   await update(); expect((reduced ? mockJump : mockEase)).toHaveBeenCalledTimes(1);
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, center: nearby!.center, zoom: 12 } }));
   await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
-  expect(source().props.data.features[0].geometry.coordinates).toEqual([0, 0]);
-  expect(JSON.stringify(source().props.data)).not.toContain('20.412345');
+  expect(sourceData().features[0].geometry.coordinates).toEqual([0, 0]);
+  expect(source().props.data).not.toContain('20.412345');
 });
 test('Nearby waits for map readiness and does not move a blurred map', async () => {
   nearby = { key: 2, center: [20.4, 44.8] }; await render(); expect(mockEase).not.toHaveBeenCalled();

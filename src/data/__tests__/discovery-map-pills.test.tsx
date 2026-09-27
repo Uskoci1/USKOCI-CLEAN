@@ -58,6 +58,7 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
 const native = () => tree.root.findByType('NativeMap' as React.ElementType);
 const source = () => tree.root.findByType('Source' as React.ElementType);
+const sourceData = () => JSON.parse(source().props.data);
 const annotations = () => tree.root.findAllByType('Annotation' as React.ElementType);
 const pills = () => tree.root.findAllByType(PricePill).map(pill => pill.props);
 const ready = async () => act(async () => { native().props.onDidFinishLoadingMap(); });
@@ -76,8 +77,8 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.us
 
 test('pins that stand alone become price pills; the native source still holds only IDs and rounded points', async () => {
   await render(); await ready();
-  expect(source().props.data.features.map((item: { properties: object }) => item.properties)).toEqual(rows.map(item => ({ needId: item.id })));
-  expect(JSON.stringify(source().props.data)).not.toMatch(/RSD|Ponude|Posao/);
+  expect(sourceData().features.map((item: { properties: object }) => item.properties)).toEqual(rows.map(item => ({ needId: item.id })));
+  expect(source().props.data).not.toMatch(/RSD|Ponude|Posao/);
   expect(source().props.cluster).toBe(true);
   // One pill per public point: the duplicate rendered feature and the second task of the stack add none.
   expect(annotations()).toHaveLength(5);
@@ -124,7 +125,7 @@ test('positive account relations label individual pins without putting private o
     .map(child => child.props.accessibilityLabel));
   expect(labels.some(label => label.includes('Tvoj zadatak'))).toBe(true);
   expect(labels.some(label => label.includes('Već si se prijavio'))).toBe(true);
-  expect(JSON.stringify(source().props.data)).not.toMatch(/OWNED|OWNER|APPLIED|private-application|relation/);
+  expect(source().props.data).not.toMatch(/OWNED|OWNER|APPLIED|private-application|relation/);
   // Retiring the account overlay removes both badges; UNKNOWN never becomes a guess about ownership/application.
   extra = { relations: noTaskRelations }; await update();
   expect(pills().every(pill => pill.relation === undefined)).toBe(true);
@@ -327,7 +328,7 @@ test('returning to a narrow saved view restores its observed bounds once, not it
   expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toBe(initial);
   expect(mockFit).not.toHaveBeenCalled(); expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
   expect(search).not.toHaveBeenCalled();
-  expect(source().props.data.features[0].geometry.coordinates).toEqual([20.46, 44.81]);
+  expect(sourceData().features[0].geometry.coordinates).toEqual([20.46, 44.81]);
 });
 
 test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before layout wins over the pending first fit', async intent => {

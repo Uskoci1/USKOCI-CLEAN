@@ -40,6 +40,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const area = coarse && disabled;
   const [status, setStatus] = useState<MapStatus>('loading');
   const load = useRef<MapStatus>('loading');
+  const failure = useRef<'deadline' | 'native-error' | null>(null);
   const active = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const camera = useRef<CameraRef>(null);
@@ -63,15 +64,16 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     if (active.current) setDragOffset(null);
   };
   const mark = (next: MapStatus) => {
-    if (!owns() || (next === 'ready' && load.current !== 'loading')) return;
+    if (!owns() || (next === 'ready' && load.current !== 'loading' && failure.current !== 'deadline')) return;
     if (next === 'failed') cancelDrag();
+    failure.current = next === 'failed' ? 'native-error' : null;
     load.current = next; clearTimeout(timer.current); setStatus(next);
   };
   useEffect(() => {
     active.current = true;
     timer.current = setTimeout(() => {
       if (active.current && latest.current.props.owns() && load.current === 'loading') {
-        load.current = 'failed'; setStatus('failed');
+        failure.current = 'deadline'; load.current = 'failed'; setStatus('failed');
       }
     }, 15_000);
     return () => { active.current = false; clearTimeout(timer.current); cancelDrag(); };

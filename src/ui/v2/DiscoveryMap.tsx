@@ -104,6 +104,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   };
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const failure = useRef<'deadline' | 'native-error' | null>(null);
   const traceStart = useRef(Date.now()), traced = useRef(new Set<LoadTraceEvent>());
   const traceLoad = useCallback((event: LoadTraceEvent) => {
     // Next DEV checkpoint only: six fixed events at most, elapsed time and no map/user/request data.
@@ -165,10 +166,17 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   useEffect(() => {
     mounted.current = true;
     traceLoad('map-mounted');
-    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { traceLoad('deadline'); load.current = 'failed'; setStatus('failed'); } }, 15_000);
+    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { traceLoad('deadline'); failure.current = 'deadline'; load.current = 'failed'; setStatus('failed'); } }, 15_000);
     return () => { traceLoad('retired'); mounted.current = false; clearTimeout(timer); cancelArea(); };
   }, []);
-  const mark = (value: 'ready' | 'failed') => { if (!owns() || load.current === 'failed') return; load.current = value; setStatus(value); };
+  const mark = (value: 'ready' | 'failed') => {
+    if (!owns()) return;
+    // The display deadline offers recovery without retiring this native map. Only its actual load success may
+    // dismiss that notice; an explicit native error stays terminal and retired owners cannot recover another map.
+    if (value === 'ready' && load.current === 'failed' && failure.current !== 'deadline') return;
+    failure.current = value === 'failed' ? 'native-error' : null;
+    load.current = value; setStatus(value);
+  };
   // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
   // only IDs of the current read become pills. A failed read leaves the native logo markers.
   const query = useRef(0);
@@ -418,7 +426,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         void readVisiblePins(); }}>
       <Camera ref={camera} initialViewState={initial} minZoom={0} maxZoom={18} />
       <Images images={PIN_IMAGES} />
-      <GeoJSONSource id="public-needs" ref={source} data={data} cluster clusterRadius={60} clusterMaxZoom={16}
+      {/* The SDK accepts this same JSON text; reuse it instead of re-encoding every point on each pin selection. */}
+      <GeoJSONSource id="public-needs" ref={source} data={dataKey} cluster clusterRadius={60} clusterMaxZoom={16}
         hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
         {/* The SDK exposes no annotation-rendered/error event: query/layout success cannot prove a bitmap exists.

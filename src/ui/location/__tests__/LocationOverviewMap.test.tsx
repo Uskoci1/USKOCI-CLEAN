@@ -161,10 +161,29 @@ it('waits for the style, times out, retries explicitly, and rejects late success
   mockStyle = null; await render(); expect(maps()).toHaveLength(0);
   mockStyle = 'https://tiles.openfreemap.org/styles/positron'; await update(); const old = maps()[0].props;
   await act(async () => jest.advanceTimersByTime(15_000)); expect(words()).toContain('Mapa nije učitana');
-  await act(async () => old.onDidFinishLoadingMap()); expect(maps()).toHaveLength(0);
+  expect(maps()).toHaveLength(1);
   await act(async () => tree.root.findByType('Action' as React.ElementType).props.onPress());
+  await act(async () => { old.onDidFinishLoadingMap(); old.onDidFailLoadingMap(); });
+  expect(words()).toContain('Učitavamo mapu');
   expect(maps()).toHaveLength(1); await ready();
   await act(async () => old.onDidFailLoadingMap()); expect(maps()).toHaveLength(1);
+});
+
+it('retains the current overview behind its deadline notice and recovers only on real load success', async () => {
+  await render(); const current = maps()[0];
+  await act(async () => jest.advanceTimersByTime(15_001));
+  expect(maps()[0]).toBe(current); expect(words()).toContain('Mapa nije učitana');
+  await act(async () => markers()[0].props.onPress()); expect(mockSelect).not.toHaveBeenCalled();
+  await act(async () => current.props.onDidFinishLoadingMap());
+  expect(maps()[0]).toBe(current); expect(words()).not.toContain('Mapa nije učitana');
+  await act(async () => markers()[0].props.onPress()); expect(mockSelect).toHaveBeenCalledWith(first.id);
+});
+
+it('an actual overview error after its display deadline unmounts and cannot be revived by late success', async () => {
+  await render(); const callbacks = maps()[0].props;
+  await act(async () => jest.advanceTimersByTime(15_001));
+  await act(async () => { callbacks.onDidFailLoadingMap(); callbacks.onDidFinishLoadingMap(); });
+  expect(maps()).toHaveLength(0); expect(words()).toContain('Mapa nije učitana');
 });
 
 it('treats a native loading failure as terminal for that attempt and gates logout before a rerender', async () => {

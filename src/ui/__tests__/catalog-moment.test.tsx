@@ -26,6 +26,7 @@ type Props = React.ComponentProps<typeof CatalogMoment>;
 let props: Props;
 const animations = () => tree.root.findAllByType('LottieView' as React.ElementType);
 const image = () => tree.root.findByType('Image' as React.ElementType);
+const stillVisible = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'catalog-moment-still' }).props.style).opacity !== 0;
 const mount = async (patch: Partial<Props> = {}) => {
   props = { focused: true, ...patch };
   await act(async () => { tree = create(<CatalogMoment {...props} />); });
@@ -52,13 +53,56 @@ it('rests on the exact matching PNG and is decorative at 32 dp', async () => {
 
 it('plays one explicit event without a loop and returns to the PNG after finishing', async () => {
   await mount({ event: 1 });
+  expect(image().props.source).toEqual(require('../../../assets/catalog27/support.png'));
+  expect(stillVisible()).toBe(true);
   expect(animations()[0].props).toMatchObject({ autoPlay: true, loop: false });
   expect(animations()[0].props.progress).toBeUndefined();
+  expect(StyleSheet.flatten(animations()[0].props.style).opacity).toBe(0);
+  await act(async () => animations()[0].props.onAnimationLoaded());
+  expect(stillVisible()).toBe(false);
+  expect(StyleSheet.flatten(animations()[0].props.style).opacity).not.toBe(0);
   await act(async () => animations()[0].props.onAnimationFinish(false));
   expect(animations()).toHaveLength(0);
+  expect(stillVisible()).toBe(true);
   expect(image().props.source).toEqual(require('../../../assets/catalog27/support.png'));
   await update();
   expect(animations()).toHaveLength(0);
+});
+
+it('an old native load cannot reveal or hide the newer event or resurrect a finished event', async () => {
+  await mount({ event: 1 });
+  const oldLoaded = animations()[0].props.onAnimationLoaded;
+  await update({ event: 2 });
+  await act(async () => oldLoaded());
+  expect(stillVisible()).toBe(true);
+  const loaded = animations()[0].props.onAnimationLoaded;
+  await act(async () => loaded());
+  expect(stillVisible()).toBe(false);
+  await act(async () => oldLoaded());
+  expect(stillVisible()).toBe(false);
+  await act(async () => animations()[0].props.onAnimationFinish(false));
+  await act(async () => loaded());
+  expect(animations()).toHaveLength(0);
+  expect(stillVisible()).toBe(true);
+});
+
+it('a finish queued before native load still retires that same playback after loading', async () => {
+  await mount({ event: 1 });
+  const finish = animations()[0].props.onAnimationFinish;
+  await act(async () => animations()[0].props.onAnimationLoaded());
+  await act(async () => finish(false));
+  expect(animations()).toHaveLength(0);
+  expect(stillVisible()).toBe(true);
+});
+
+it('background retirement rejects a late load and keeps the PNG on foreground', async () => {
+  await mount({ event: 1 });
+  const loaded = animations()[0].props.onAnimationLoaded;
+  await appState('background');
+  await act(async () => loaded());
+  await appState('active');
+  expect(animations()).toHaveLength(0);
+  expect(stillVisible()).toBe(true);
 });
 
 it('a stale native finish cannot retire a newer explicit event', async () => {

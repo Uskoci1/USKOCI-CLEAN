@@ -219,9 +219,9 @@
         "state_sync": "Ponovni izbor mesta ili svih tačaka ponovo centrira mapu. Početni prikaz ne označava proizvoljno prvu tačku.",
         "performance": "Nije ponovo mereno",
         "test": "34 ciljana testa; stariji APK potvrđuje 3 tačke/izbor/Back i reprodukuje problem ponovnog izbora. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
-        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
-        "status": "KOD I CILJANE PROVERE / OGRANIČEN EMULATOR PASS / CELOKUPAN TOK ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "device_proof": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
+        "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
       }
     },
@@ -1089,12 +1089,12 @@
         "ux": "Mapa zadržava zajednički skup; oblast menja pripadajuću listu.",
         "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
         "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
-        "state_sync": "Tačan javni read potvrđuje ID/reviziju objave; red spojen bez duplikata sa mapom/listom. Nova namera povlači kameru; neuspešno osvežavanje ne uklanja potvrđen red.",
-        "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
+        "state_sync": "Izvor razlikuje display deadline od stvarnog native-error; kasni current-map success sme da oporavi prikaz. Jedan povremeni nestanak retained FULL panela još nema potvrđen uzrok.",
+        "performance": "Ponovljena GeoJSON serijalizacija uklonjena u izvoru. Native brzina nije izmerena; server paging ostaje zasebno otvoren.",
         "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
-        "device_proof": "Round17eff72a25: calendar5/6rows at font1/1.3 and readyAI green action accepted in inert scenes. Round18 APK36333830435/6b06540e sha572c850b installed/hash verified; actual public map fills frame, brand-only pin and Android Back/detail/list position observed. Round19 new settings source not yet built. No new real E2E/phone/provider proof.",
-        "status": "P0 SERVER APPLIED / CLIENT CHECKS PASS / NATIVE PENDING / P6 OPEN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_26_APPLIED_CONNECTIONS.md",
+        "device_proof": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
+        "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -1156,9 +1156,9 @@
         "state_sync": "Tačan javni read potvrđuje ID/reviziju objave; red spojen bez duplikata sa mapom/listom. Nova namera povlači kameru; neuspešno osvežavanje ne uklanja potvrđen red.",
         "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
         "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
-        "device_proof": "Round17eff72a25: 5/6redova pri1.0/1.3, svaki poslednji cilj126px; datum i sklapanje sačuvani. Lokalni inertni prikaz, ne serverska pretraga.",
-        "status": "P0 SERVER APPLIED / CLIENT CHECKS PASS / NATIVE PENDING / P6 OPEN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_26_APPLIED_CONNECTIONS.md",
+        "device_proof": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
+        "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2836,9 +2836,9 @@
         "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
         "performance": "Izvor: eksplicitno preskače provere ocena koje ovaj ekran ne prikazuje; sve stranice i zaštite ostaju.",
         "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
-        "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md",
+        "device_proof": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
+        "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "catalog27": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
           "status": "SELECTIVE_STATIC_ART_SOURCE_NATIVE_PENDING"
@@ -3008,9 +3008,9 @@
         "state_sync": "Dugmad Privatnosti pripadaju aktivnom ulasku, bez zavisnosti od kasnijeg odgovora servera.",
         "performance": "Nije ponovo mereno",
         "test": "29/29 ciljanih testova; 4 nove reprodukcije pre ispravke. Na prethodnom APK-u ulaz u dijalog nije reagovao, pa zatvaranje naloga nije testirano. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "device_proof": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
+        "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
         "catalog27": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
@@ -3676,7 +3676,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "b33aa16c",
+    "source_head": "745f07d6 + Round31 native corrections",
     "order": [
       "P0",
       "P1",
@@ -3689,14 +3689,14 @@
     ],
     "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
     "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-    "tests": "Krug30: Discovery3/194PASS, map-style3/22PASS, Catalog27 pet grupa/118 različitih PASS, uska DEV dijagnostika6PASS. Integrisani TypeScriptPASS; završna kontrola posle dijagnostike u receipt-u. Ceo Jest nije ponavljan. Nezavisni pregled našao i zatvorio povratak sa praznog FULL prikaza:139/139PASS, završni TypeScriptPASS.",
-    "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
+    "tests": "CI36351959072 na745f07d6: TypeScript i342grupe/7199testova PASS. Naknadne native korekcije:4map grupe/143testa+13Catalog PASS i integrisani TypeScriptPASS(session73004). Novi source nije u baa32832 APK-u.",
+    "device": "Emulator5556 baa32832/run36351035015 instaliran sa -r; tačan SHA5325691d…863b, sesija očuvana. FULL/pretraga/grupisanje, AI predlog/ispravka u inertnoj probi i originalne ikonice viđeni. Reprodukovan kasni-map-load i blank animation startup; korekcije čekaju sledećiAPK. Jedan nestanak FULL panela ostaje otvoren. Telefon odsutan saUSB; ARM64 artifact verified, nije instaliran.",
     "live_dev_scope": "B3c DEV208→209/ver20260927201030, tri odobrena vezivanja f66818aa…1755b; P4 transport209→210/ver20260927201531 + Edge22 tačan readback. Exact flag odsutan/OFF. Oba SQL SHA proverena u ledgeru; P4 čuva novi B3c sertifikat.",
     "rule": "Normal UI/flow refinements approved; preserve TaskCard/Peek. Focused checks and consolidated emulator build/install/check now expressly authorized by latest owner request. DEV/Edge application still requires explicit primeni; dependencies, certificate and payments retain separate restrictions. Source is not READY.",
-    "implementation": "Krug30: direktno otvaranje cele liste spojene sa pretragom; odvojene stvarne grupe Na mapi / Na daljinu / Bez označenog mesta; zakašnjeli stil osvežava istu mapu, izraženije boje vode i zelenila. Četiri originalne Catalog27 ikonice povezane sa pomoći/privatnošću/dokumentima, jedan pokret samo u DEV probnom prikazu. Kartica i brendirani pin očuvani.",
-    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
+    "implementation": "Krug31: ista mapa se oporavlja od roka15s kada stigne pravi uspešan završetak; stvarne greške i stare instance ostaju odbijene. Postojeći GeoJSON string sprečava ponovnu serijalizaciju svih tačaka pri izboru pina. Catalog27 slika ostaje dok se native animacija učitava; pokret i dalje samo DEV proba.",
+    "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
     "dashboard_publication": "PENDING_REPUBLISH: poznata prepreka na podržanom filechooser-u; nova lokalna verzija šablona prikazuje nepovezane RPC-je odvojeno i zahteva objavu istog Artifact-a. Lokalna generacija nije objava.",
-    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_29_AI_LOCATION_AND_CATALOG.md",
+    "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
     "server_proof_source": "be72a1bd",
     "server_proof": "P0 SQL-role9PASS36330122549; P4 SQL/Auth13PASS36339724742; P5 SQL-role7PASS36341487304. Primena DEV potvrđena u zasebnom receipt-u; ovo nije ceo native/provajder tok.",
     "chat_b3": "APPLIED_DEV / CLIENT_WIRED / FOCUSED_CHECKS_PASS / DEVICE_PENDING: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md",
@@ -3749,10 +3749,15 @@
       "limits": "Nema dekodiranja/prihvatanja pravog snimka. Nema runtime importa, snimača, slanja ili plejera. B1/B2 i kompatibilnost starog B3 čitanja tek slede."
     },
     "consolidated_apk": {
-      "run": "36344044088",
-      "source": "04b66de6f2dbcd85aaf448152e7582085aabb1af",
-      "status": "INSTALLED_EMULATOR_HASH_MATCHED_P0_P4_P5_SCOPED_REVIEW",
-      "sha256": "a046e6e8f90e310f8b281cc9687871e9f3956e09606a850f1f55376119a96e37"
+      "status": "INSTALLED_WITH_R_SESSION_PRESERVED_INSTALLED_SHA_MATCHED_SCOPED_REVIEW",
+      "source": "baa328327b2d7861966780337f16c327c757e1c3",
+      "tree": "a79a317ee9d796fbc4420e78521e3b9ccfe3fb8b",
+      "run": 36351035015,
+      "package": "rs.uskoci.dev",
+      "abi": "x86_64",
+      "sha256": "5325691d20dfe121973f5c065a81c994704da220ce0917040e13b2956383863b",
+      "bytes": 72921333,
+      "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
     },
     "apk_round24": {
       "run": "36341487306",
@@ -3773,12 +3778,24 @@
       "b3c_client_included": false
     },
     "catalog27": {
-      "status": "FOUR_STILLS_CONNECTED_ONE_DEV_MOTION_TRIAL_NATIVE_PENDING",
+      "status": "FOUR_STILLS_NATIVE_OBSERVED; DEV_MOTION_STARTUP_FIX_SOURCE; PLAYBACK_ACCEPTANCE_PENDING",
       "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_REVIEW.md",
       "manifest": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_MANIFEST.json",
       "scope": "54 originalna statična prikaza i 55 JSON izvoza; porodice, stanja i varijante nisu sabrane kao različite ikonice. Kartica i brendirani pin ostaju.",
-      "implementation": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md"
+      "implementation": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
+      "native_report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md"
     },
-    "next_owner_priority": "Konsolidovan APK na oba uređaja: direktan FULL i grupisanje, stvarno vreme pin→kartica, kompaktno AI mesto i Catalog27. Kašnjenje pina nije proglašeno rešenim bez merenja."
+    "next_owner_priority": "Potvrditi native korekcije u sledećemAPK; razjasniti povremeno nestajanje FULL panela; ponovo spojiti fizički telefon za brzinu pin→kartica. P6/voice/exact-push/iOS ostaju otvoreni.",
+    "phone_apk_round30": {
+      "status": "ARTIFACT_VERIFIED_NOT_YET_INSTALLED",
+      "source": "baa328327b2d7861966780337f16c327c757e1c3",
+      "tree": "a79a317ee9d796fbc4420e78521e3b9ccfe3fb8b",
+      "run": 36351037945,
+      "package": "rs.uskoci.preview",
+      "abi": "arm64-v8a",
+      "sha256": "b32e8f863a3092ef337f529118d350ad47cece13bda8ca48b122558d0d18ea13",
+      "bytes": 71070002,
+      "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+    }
   }
 }

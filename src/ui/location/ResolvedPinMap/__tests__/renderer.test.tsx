@@ -197,13 +197,24 @@ it('unmounts the map on blur and rejects old callbacks after refocus', async () 
   await act(async () => retained(tap(19, 45))); expect(onChoose).not.toHaveBeenCalled();
 });
 
-it('times out without accepting a late load, then retries a new real map instance', async () => {
+it('recovers the same owned pin map after its display deadline only when the real load succeeds', async () => {
+  await render(); const current = map(), callbacks = current.props;
+  await act(async () => jest.advanceTimersByTime(15_001));
+  await act(async () => callbacks.onPress(tap(19, 45)));
+  expect(text()).toContain('Mapa nije učitana'); expect(onChoose).not.toHaveBeenCalled();
+  await act(async () => callbacks.onDidFinishLoadingMap());
+  expect(map()).toBe(current); expect(text()).not.toContain('Mapa nije učitana');
+  await act(async () => map().props.onPress(tap(19, 45)));
+  expect(onChoose).toHaveBeenCalledWith({ latitude: 45, longitude: 19 });
+});
+
+it('retries a new real map after a deadline and rejects all callbacks of the retired attempt', async () => {
   await render(); const old = map().props;
   await act(async () => jest.advanceTimersByTime(15_001));
   expect(text()).toContain('Mapa nije učitana');
-  await act(async () => { old.onDidFinishLoadingMap(); old.onPress(tap(19, 45)); });
-  expect(text()).toContain('Mapa nije učitana'); expect(onChoose).not.toHaveBeenCalled();
   await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' }).props.onPress());
+  await act(async () => { old.onDidFinishLoadingMap(); old.onDidFailLoadingMap(); old.onPress(tap(19, 45)); });
+  expect(onChoose).not.toHaveBeenCalled();
   expect(text()).toContain('Učitavamo mapu'); await ready();
   await act(async () => { old.onPress(tap(19, 45)); map().props.onPress(tap(20, 44)); });
   expect(onChoose).toHaveBeenCalledTimes(1); expect(onChoose).toHaveBeenCalledWith({ latitude: 44, longitude: 20 });
@@ -325,9 +336,16 @@ it('fails the map visibly if its local marker cannot load and does not accept la
   const marker = markerImage().props;
   await act(async () => marker.onError());
   expect(text()).toContain('Mapa nije učitana'); expect(handle().props.onStartShouldSetResponder()).toBe(false);
-  await act(async () => { marker.onLoad(); map().props.onPress(tap(19.84, 45.26)); });
+  await act(async () => { marker.onLoad(); map().props.onDidFinishLoadingMap(); map().props.onPress(tap(19.84, 45.26)); });
   expect(mockProject).not.toHaveBeenCalled(); expect(onChoose).not.toHaveBeenCalled();
   expect(text()).not.toContain('Tačka je na sredini mape');
+});
+
+it('an explicit native error after the display deadline cannot recover from a late load', async () => {
+  await render(); const callbacks = map().props;
+  await act(async () => jest.advanceTimersByTime(15_001));
+  await act(async () => { callbacks.onDidFailLoadingMap(); callbacks.onDidFinishLoadingMap(); callbacks.onPress(tap(19, 45)); });
+  expect(text()).toContain('Mapa nije učitana'); expect(onChoose).not.toHaveBeenCalled();
 });
 
 it.each(['project', 'unproject'] as const)('fences late native %s after cancel, failed map, timeout, disable, point ABA, account ABA, blur or unmount', async phase => {
