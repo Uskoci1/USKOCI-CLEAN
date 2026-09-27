@@ -114,14 +114,24 @@ Deno.serve(async req => {
    if (kind === 'SEND') {
     const begin = await rpc('rpc_begin_push_send', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId });
     if (row(begin) && only(begin, ['kind']) && begin.kind === 'SUPPRESSED') return 'SUPPRESSED';
-    if (!row(begin) || !only(begin, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority', 'eventType']) || begin.kind !== 'SEND'
+    const beginKeys = ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority', 'eventType'];
+    // Compatibility bridge: A1 receipts have no eventId. A newer receipt may add
+    // exactly one opaque MESSAGE_RECEIVED event identity, never an entity/body.
+    if (!row(begin) || !(only(begin, beginKeys) || (only(begin, [...beginKeys, 'eventId'])
+      && begin.eventType === 'MESSAGE_RECEIVED' && uuid(begin.eventId))) || begin.kind !== 'SEND'
      || begin.attemptId !== claim.attemptId || begin.leaseId !== claim.leaseId || begin.leaseExpiresAt !== claim.leaseExpiresAt || !live(begin.leaseExpiresAt)
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
      || !['NORMAL', 'HIGH'].includes(String(begin.priority))
      || typeof begin.eventType !== 'string' || !/^[A-Z][A-Z0-9_]{2,63}$/.test(begin.eventType)) throw new Invalid();
     const copy = notificationPushCopy(begin.eventType, begin.priority === 'HIGH' ? 'HITNO' : 'NORMAL');
+    // Older installed clients admit only {kind:'INBOX'}. Keep that default until
+    // the owned exact-target client has shipped and its cold/live tap is proven.
+    const exactMessage = Deno.env.get('EXPO_PUSH_MESSAGE_TARGET_ENABLED') === 'true'
+      && begin.eventType === 'MESSAGE_RECEIVED' && uuid(begin.eventId);
+    const data = exactMessage ? { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: (begin.eventId as string).toLowerCase() }
+      : { kind: 'INBOX' };
     body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,
-     data: { kind: 'INBOX' }, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl: 0 }];
+     data, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl: 0 }];
    } else body = { ids: [claim.ticketId] };
    let parsed: { result: Result; ticketId: string | null } = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
    try {

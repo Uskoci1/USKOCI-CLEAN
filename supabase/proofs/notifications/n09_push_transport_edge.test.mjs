@@ -12,7 +12,10 @@ const id='11111111-1111-4111-8111-111111111111',lease='22222222-2222-4222-8222-2
 const secret='synthetic-service-only',expoSecret='synthetic-expo-only',token='ExpoPushToken[synthetic_device]';
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{'Content-Type':'application/json'}});
 function harness(options={}) {
- const calls=[],logs=[],envReads=[];let handler;const expires=new Date(Date.now()+90000).toISOString();
+ const calls=[],logs=[],envReads=[];let handler;
+ // Both receipts describe one lease; tests must not create different timestamps
+ // merely because their fixture construction crosses a millisecond boundary.
+ const expires=options.expires??options.begin?.leaseExpiresAt??new Date(Date.now()+90000).toISOString();
  const claim={kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expires,ticketId:null};
  const begun={kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expires,expoPushToken:token,priority:'NORMAL',eventType:'MESSAGE_RECEIVED'};
  const fetch=async(url,init)=>{
@@ -44,6 +47,65 @@ function harness(options={}) {
  }};
 }
 const completion=h=>h.calls.find(x=>x.url.endsWith('rpc_complete_push_transport'))?.body;
+const messageEvent='ABCDEF01-3333-4333-8333-333333333333';
+const messageBegin=extra=>({kind:'SEND',attemptId:id,leaseId:lease,
+ leaseExpiresAt:new Date(Date.now()+90000).toISOString(),expoPushToken:token,
+ priority:'NORMAL',eventType:'MESSAGE_RECEIVED',eventId:messageEvent,...extra});
+
+test('P4 enabled message transport adds only the opaque event identity to fixed public data',async()=>{
+ const h=harness({begin:messageBegin(),env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:'true'}});const r=await h.run();
+ assert.equal(r.response.status,200);assert.equal(r.body.send,'TICKET_PENDING');
+ const send=h.calls.find(x=>x.url.endsWith('/push/send'));
+ assert.deepEqual(send.body,[{to:token,title:'Nova poruka u Dogovoru',body:'Imaš novu poruku.',
+  data:{kind:'INBOX',eventType:'MESSAGE_RECEIVED',eventId:messageEvent.toLowerCase()},
+  channelId:'default',sound:'default',priority:'normal',ttl:0}]);
+ assert.equal(completion(h).p_result,'TICKET');
+ assert.ok(!JSON.stringify(r.body).includes(messageEvent.toLowerCase()));
+});
+
+test('P4 urgent transport priority cannot change message copy or attach more routing data',async()=>{
+ const h=harness({begin:messageBegin({priority:'HIGH'}),env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:'true'}});assert.equal((await h.run()).response.status,200);
+ const value=h.calls.find(x=>x.url.endsWith('/push/send')).body[0];
+ assert.equal(value.priority,'high');assert.equal(value.title,'Nova poruka u Dogovoru');
+ assert.deepEqual(value.data,{kind:'INBOX',eventType:'MESSAGE_RECEIVED',eventId:messageEvent.toLowerCase()});
+});
+
+for(const enabled of [undefined,'false','TRUE','1'])
+ test(`P4 new receipt preserves legacy clients unless explicitly enabled: ${enabled}`,async()=>{
+  const h=harness({begin:messageBegin(),env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:enabled}});
+  assert.equal((await h.run()).response.status,200);
+  assert.deepEqual(h.calls.find(x=>x.url.endsWith('/push/send')).body[0].data,{kind:'INBOX'});
+ });
+
+test('P4 enabled Edge remains compatible with an unchanged A1 begin receipt',async()=>{
+ const h=harness({env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:'true'}});assert.equal((await h.run()).response.status,200);
+ assert.deepEqual(h.calls.find(x=>x.url.endsWith('/push/send')).body[0].data,{kind:'INBOX'});
+});
+
+test('P4 event identity does not relax the exact lease expiration binding',async()=>{
+ const h=harness({begin:messageBegin(),expires:new Date(Date.now()+120000).toISOString(),
+  env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:'true'}});
+ assert.equal((await h.run()).response.status,503);assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+});
+
+for(const eventId of [null,42,[],{},'', '../message', 'abc', messageEvent+'x'])
+ test(`P4 rejects malformed event identity before provider: ${JSON.stringify(eventId)}`,async()=>{
+  const h=harness({begin:messageBegin({eventId})});assert.equal((await h.run()).response.status,503);
+  assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));assert.ok(!h.envReads.includes('EXPO_ACCESS_TOKEN'));
+ });
+
+for(const eventType of ['OPPORTUNITY_AVAILABLE','RESPONSE_RECEIVED','FUTURE_EVENT'])
+ test(`P4 does not expose identifiers for ${eventType}`,async()=>{
+  const h=harness({begin:messageBegin({eventType})});assert.equal((await h.run()).response.status,503);
+  assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+ });
+
+for(const extra of [{messageId:id},{agreementId:id},{accountId:id},{url:'/dogovor/private'},
+ {title:'PRIVATE'},{body:'PRIVATE'},{payload:{message_id:id}}])
+ test(`P4 exact event receipt rejects extra private/routing data: ${Object.keys(extra)[0]}`,async()=>{
+  const h=harness({begin:messageBegin(extra)});assert.equal((await h.run()).response.status,503);
+  assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+ });
 test('service-only: client JWT and arbitrary token cannot claim/read secrets or send',async()=>{
  for(const authorization of ['Bearer client-jwt','Bearer service_role','',`Bearer ${secret}extra`]){const h=harness();const r=await h.run(undefined,{authorization});assert.equal(r.response.status,403);assert.equal(h.calls.length,0);assert.deepEqual(h.envReads,['SUPABASE_SERVICE_ROLE_KEY']);}
 });
