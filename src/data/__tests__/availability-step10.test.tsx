@@ -39,7 +39,7 @@ jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: () => mockEdito
 
 import { router } from 'expo-router';
 import Dostupnost from '../../app/(app)/profil/dostupnost';
-import { AvailabilityForm } from '../../ui/calendar/AvailabilityForm';
+import { AvailabilityForm, RuleSheet } from '../../ui/calendar/AvailabilityForm';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 const ids = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003'];
@@ -67,6 +67,66 @@ const form = async (value = availability(), extra: Partial<React.ComponentProps<
   return onSave;
 };
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.clearAllMocks(); mockBack.handlers = []; mockFontScale = 1; });
+
+describe('P5: a calendar edit belongs to the draft it opened', () => {
+  it.each(['delete', 'copy'])('a retained %s confirmation cannot replace a newly read schedule', async operation => {
+    const previous = availability({ rules: [rule(ids[0], [1], '09:00', '17:00'), rule(ids[1], [2], '10:00', '14:00')] });
+    const fresh = availability({ revision: 'b'.repeat(64), rules: [rule(ids[0], [1], '09:00', '17:00'), rule(ids[2], [2], '18:00', '20:00')] });
+    const onSave = await form(previous, { candidateMode: true });
+    await openDay('Ponedeljak');
+    await press(operation === 'delete' ? 'Ukloni Ponedeljak 09:00' : 'Isto za sve radne dane kao Ponedeljak');
+    const retainedConfirm = tree.root.findByType(ConfirmSheet).props.onConfirm;
+    await act(async () => tree.update(<AvailabilityForm availability={fresh} busy={false} uncertain={false} candidateMode onSave={onSave} />));
+    await act(async () => retainedConfirm());
+    await act(async () => tree.root.findByType('Switch' as React.ElementType).props.onValueChange(true));
+    await press('Primeni na pregled profila');
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0].rules).toEqual(fresh.rules.map(item => ({ ...item, startTime: `${item.startTime}:00`, endTime: `${item.endTime}:00` })));
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  });
+
+  it('a question retired by a read stays retired when the same schedule becomes editable again', async () => {
+    const value = availability({ rules: [rule(ids[0], [1], '09:00', '17:00')] });
+    const onSave = await form(value, { candidateMode: true });
+    await openDay('Ponedeljak'); await press('Ukloni Ponedeljak 09:00');
+    const retainedConfirm = tree.root.findByType(ConfirmSheet).props.onConfirm;
+    await act(async () => tree.update(<AvailabilityForm availability={value} busy={false} uncertain={false} candidateMode refreshing onSave={onSave} />));
+    await act(async () => tree.update(<AvailabilityForm availability={value} busy={false} uncertain={false} candidateMode onSave={onSave} />));
+    await act(async () => retainedConfirm());
+    await act(async () => tree.root.findByType('Switch' as React.ElementType).props.onValueChange(true));
+    await press('Primeni na pregled profila');
+    expect(onSave.mock.calls[0][0].rules).toEqual(value.rules.map(item => ({ ...item, startTime: `${item.startTime}:00`, endTime: `${item.endTime}:00` })));
+    expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  });
+
+  it('a dismissed term editor cannot later add its old draft to the current schedule', async () => {
+    const onSave = await form(availability(), { candidateMode: true });
+    await press('Dodaj — Ponedeljak');
+    const dismissed = tree.root.findByType(RuleSheet).props;
+    await act(async () => { dismissed.close(); dismissed.accept([rule(ids[0], [1], '09:00', '17:00')]); });
+    await act(async () => tree.root.findByType('Switch' as React.ElementType).props.onValueChange(true));
+    await press('Primeni na pregled profila');
+    expect(onSave.mock.calls[0][0].rules).toEqual([]);
+  });
+
+  it('the current deletion still applies and saves only on explicit apply', async () => {
+    const value = availability({ rules: [rule(ids[0], [1], '09:00', '17:00')] });
+    const onSave = await form(value, { candidateMode: true });
+    await openDay('Ponedeljak'); await press('Ukloni Ponedeljak 09:00'); await press('Ukloni');
+    expect(onSave).not.toHaveBeenCalled();
+    await press('Primeni na pregled profila');
+    expect(onSave).toHaveBeenCalledTimes(1); expect(onSave.mock.calls[0][0].rules).toEqual([]);
+  });
+
+  it('the current draft remains editable after StrictMode remounts effects', async () => {
+    const value = availability(), onSave = jest.fn();
+    await act(async () => { tree = create(<React.StrictMode><AvailabilityForm availability={value} busy={false} uncertain={false}
+      candidateMode onSave={onSave} /></React.StrictMode>); });
+    await act(async () => tree.root.findByType('Switch' as React.ElementType).props.onValueChange(true));
+    expect(onSave).not.toHaveBeenCalled(); await press('Primeni na pregled profila');
+    expect(onSave).toHaveBeenCalledTimes(1); expect(onSave.mock.calls[0][0].availableNow).toBe(true);
+  });
+});
 
 describe('the Termin sheet', () => {
   it('explains work over midnight only when the end is before the start', async () => {

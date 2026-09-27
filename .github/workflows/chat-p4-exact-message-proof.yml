@@ -123,7 +123,9 @@ jobs:
             assert.equal(report.providerCalls,0); assert.equal(report.storageCalls,0);
             assert.equal(report.catalogBeforeSha256,report.catalogAfterSha256);
             assert.deepEqual(report.fixtureCounts,{actors:4,agreements:2,admittedSessions:4});
-            assert.ok(report.checks.length>=12 && report.checks.every(check=>check.result==='PASS'));
+            assert.equal(report.checks.length,13);
+            assert.equal(new Set(report.checks.map(check=>check.name)).size,13);
+            assert.ok(report.checks.every(check=>check.result==='PASS'));
             assert.equal(Object.keys(report.sourceArtifactHashes).length,7);
             assert.ok(Object.values(report.sourceArtifactHashes).every(hash=>/^[a-f0-9]{64}$/.test(hash)));
             console.log('PASS CHAT_P4_EXACT_RECIPIENT_MESSAGE_TARGET_ONLY');

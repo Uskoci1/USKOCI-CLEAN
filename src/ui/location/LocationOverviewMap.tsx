@@ -64,7 +64,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
       if (center) camera.current.jumpTo({ center: [center.longitude, center.latitude], zoom, padding });
       else camera.current.fitBounds(bounds, { padding, duration: 0 });
     } catch { fail(); }
-  }, [status, frame, points, props.coarse, selectedPoint]);
+  }, [status, frame, points, props.coarse, selectedPoint, props.cameraIntent]);
   const loaded = () => {
     if (!current() || state.current !== 'loading') return;
     state.current = 'ready'; clearTimeout(timer.current); setStatus('ready');

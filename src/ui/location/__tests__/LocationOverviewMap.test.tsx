@@ -143,6 +143,20 @@ it('never creates a fallback pin for empty or invalid geometry and preserves sou
   expect(markers()).toHaveLength(1); expect(words()).toContain('Neka mesta nemaju potvrđenu tačku');
 });
 
+it('repeats an explicit camera action without remounting or resetting an ordinary refreshed map', async () => {
+  await render({ cameraIntent: 0 }); await ready(); const map = maps()[0]; mockFit.mockClear();
+  await update({ cameraIntent: 1 });
+  expect(mockFit).toHaveBeenCalledTimes(1);
+  await update({ cameraIntent: 2 });
+  expect(mockFit).toHaveBeenCalledTimes(2);
+  await update({ cameraIntent: 2, points: initial.points.map(point => ({ ...point })) });
+  expect(mockFit).toHaveBeenCalledTimes(2);
+  await update({ cameraIntent: 3, selectedId: 'b' });
+  await update({ cameraIntent: 4, selectedId: 'b' });
+  expect(mockJump).toHaveBeenCalledTimes(2);
+  expect(maps()[0]).toBe(map);
+});
+
 it('waits for the style, times out, retries explicitly, and rejects late success from the retired map', async () => {
   mockStyle = null; await render(); expect(maps()).toHaveLength(0);
   mockStyle = 'https://tiles.openfreemap.org/styles/positron'; await update(); const old = maps()[0].props;

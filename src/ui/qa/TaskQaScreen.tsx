@@ -20,7 +20,8 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
   onWorkerProfile?:()=>void}) {
   const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;
   const account={accountId:accountId??'',accountRevision};
-  const focus=useRef<object|null>(null),active=useRef(AppState.currentState==='active'),lock=useRef(false);
+  const focus=useRef<object|null>(null),active=useRef(AppState.currentState==='active'),lock=useRef(false),leaving=useRef(false);
+  const [visit,setVisit]=useState<object|null>(null);
   const viewGeneration=useRef(0),renderGeneration=viewGeneration.current;
   const [context,setContext]=useState<QaContext|null>(null),[rows,setRows]=useState<Question[]>([]);
   const [intent,setIntent]=useState<QaIntent|null>(null),[absent,setAbsent]=useState(false);
@@ -29,7 +30,8 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
   const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[messageTone,setMessageTone]=useState<'danger'|'info'>('danger'),[receipt,setReceipt]=useState('');
   // Only a real problem is red: a fact about the thread (a version filter, a checked text, a send still being checked) is said plainly.
   const say=(text:string,tone:'danger'|'info'='danger')=>{setMessage(text);setMessageTone(tone);};
-  const live=(token:object|null)=>!!token&&token===focus.current&&active.current&&!!needId&&!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
+  const ownsVisit=(token:object|null)=>!!token&&token===focus.current&&!leaving.current&&active.current&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
+  const live=(token:object|null)=>ownsVisit(token)&&!!needId&&!!accountId;
 
   async function readFeed(token:object) {
     viewGeneration.current++;
@@ -106,19 +108,20 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     if(saved)await readIntent(saved,token);
     if(live(token))await readFeed(token);
   }
-  async function run(work:(token:object)=>Promise<void>) {
-    const token=focus.current;if(!live(token)||lock.current)return;
+  async function run(work:(token:object)=>Promise<void>,token=visit) {
+    if(!live(token)||lock.current)return;
     lock.current=true;setBusy(true);say('');
     try{await work(token!);}catch{if(live(token))say('Stanje radnje nije potvrđeno. Proveri ponovo pre slanja.');}
     finally{if(live(token)){lock.current=false;setBusy(false);}}
   }
   useFocusEffect(useCallback(()=>{
-    const token={};focus.current=token;active.current=AppState.currentState==='active';lock.current=false;
-    if(needId&&accountId)void run(restore);else{setBusy(false);say('Ponovo otvori zadatak sa prijavljenog naloga.');}
+    const token={};focus.current=token;setVisit(token);leaving.current=false;active.current=AppState.currentState==='active';lock.current=false;
+    if(needId&&accountId)void run(restore,token);else{setBusy(false);say('Ponovo otvori zadatak sa prijavljenog naloga.');}
     const subscription=AppState.addEventListener('change',next=>{
       active.current=next==='active';
+      if(leaving.current)return;
       if(!active.current){focus.current=null;lock.current=false;}
-      else if(focus.current===null){focus.current={};void run(restore);}
+      else if(focus.current===null){const foreground={};focus.current=foreground;setVisit(foreground);void run(restore,foreground);}
     });
     return()=>{focus.current=null;lock.current=false;subscription.remove();};
   // The screen is keyed by Task and account incarnation, and explicitly checks
@@ -180,7 +183,15 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     if(result.ok)await consumeAi(intent,result.podatak,token);else{say(result.poruka);await readIntent(intent,token);}
     if(live(token))await readFeed(token);
   });
-  const choose=(q:OwnerPreselectionQuestion)=>{if(renderGeneration===viewGeneration.current&&live(focus.current)&&!lock.current&&!intent){setTarget(q);setText(q.answerText??'');setReceipt('');}};
+  const canEdit=()=>renderGeneration===viewGeneration.current&&live(visit)&&!lock.current;
+  const choose=(q:OwnerPreselectionQuestion)=>{if(canEdit()&&!intent){setTarget(q);setText(q.answerText??'');setReceipt('');}};
+  // Navigation retires this visit synchronously: blur can arrive after a saved
+  // intent finishes. Keep that intent for read-first recovery on a real return.
+  // Back also works on an invalid-task error; data admission still requires live().
+  const leave=(navigate:()=>void,idleOnly=false)=>{
+    if(!ownsVisit(visit)||(idleOnly&&lock.current))return;
+    leaving.current=true;focus.current=null;lock.current=false;viewGeneration.current++;navigate();
+  };
   const current=rows.filter(q=>q.needRevision===context?.needRevision);
   const pending=current.filter((q):q is OwnerPreselectionQuestion=>'status'in q&&q.status==='PENDING_ANSWER');
   const answered=current.filter(q=>!('status'in q)||q.status==='ANSWERED_PUBLIC');
@@ -192,13 +203,13 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     recovery={intent?{kind:intent.type==='DISPOSITION'?'DISPOSITION':'TEXT',absent,canCancel:!!classification?.canCancel}:null}
     cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker
       ?{text:'Za postavljanje pitanja potreban je aktivan Radni profil.',
-        ...(onWorkerProfile?{action:{label:'Dopuni radni profil',onPress:()=>{if(live(focus.current)&&!lock.current)onWorkerProfile();}}}:{})}
+        ...(onWorkerProfile?{action:{label:'Dopuni radni profil',onPress:()=>leave(onWorkerProfile,true)}}:{})}
       :context.ratePolicyState==='NOT_READY'?{text:'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.'}
         :{text:'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}):null}
     composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,answeringId:target?.questionId??null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,
       maxChars:(target?context?.answerMaxChars:context?.questionMaxChars)??null}:null}
     text={text} canAnswer={!!context?.canComposeAnswer} pending={pending} answered={answered} set={set} historical={historical}
-    onBack={()=>{if(live(focus.current))onBack();}} onRefresh={()=>void run(restore)} onText={setText} onSend={()=>submit()}
+    onBack={()=>leave(onBack)} onRefresh={()=>void run(restore)} onText={value=>{if(canEdit())setText(value);}} onSend={()=>submit()}
     onRetry={()=>void retry()} onCancel={()=>void cancel()} onChoose={choose} onDispose={(action,q)=>submit(action,q)}
-    onCloseAnswer={()=>{setTarget(null);setText('');}} onEditTask={()=>{if(live(focus.current)&&!lock.current)onBack();}}/>;
+    onCloseAnswer={()=>{if(canEdit()){setTarget(null);setText('');}}} onEditTask={()=>leave(onBack,true)}/>;
 }

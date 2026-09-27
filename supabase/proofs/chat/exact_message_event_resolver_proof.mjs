@@ -284,19 +284,21 @@ try {
   await target(requester, event.id, agreementId, messageId, 'REQUESTER');
   pass('EVENT_ROLE_TYPE_VERSION_CANONICAL_DEDUPE_PAYLOAD_SENDER_AND_AGREEMENT_LINKS');
 
-  stage = 'DELIVERY_ALLOWLIST_EXPIRY_AND_READ_HISTORY';
+  stage = 'SYNTHETIC_DELIVERY_STATE_LINK_AND_EXPIRY_MATRIX';
   const deliveries = rows(`select * from public.notification_deliveries where event_id=${q(event.id)} and channel='IN_APP'`);
   assert.equal(deliveries.length, 1); const delivery = deliveries[0];
   assert.equal(delivery.state, 'CREATED'); assert.equal(delivery.suppression_reason, null);
   const deliveryWhere = `where id=${q(delivery.id)}`;
+  // Synthetic policy matrix only: these SQL mutations do not claim that the
+  // current IN_APP writer or ACK canonically produces every admitted state.
   for (const state of ['CREATED', 'SENT', 'DELIVERED', 'READ', 'QUEUED', 'FAILED_RETRYABLE', 'FAILED_FINAL', 'EXPIRED', 'SUPPRESSED']) {
-    const allowed = ['CREATED', 'SENT', 'DELIVERED', 'READ'].includes(state);
+    const allowed = ['CREATED', 'SENT', 'DELIVERED', 'READ', 'EXPIRED'].includes(state);
     await changed(`update public.notification_deliveries set state=${q(state)},suppression_reason=${state === 'SUPPRESSED' ? "'IN_APP_OFF'" : 'null'} ${deliveryWhere}`,
       `update public.notification_deliveries set state='CREATED',suppression_reason=null ${deliveryWhere}`,
       () => allowed ? target(requester, event.id, agreementId, messageId, 'REQUESTER') : unavailable(requester, event.id));
   }
   for (const [assignment, restore] of [
-    ["expires_at=clock_timestamp()-interval '1 second'", 'expires_at=null'],
+    ["suppression_reason='IN_APP_OFF'", 'suppression_reason=null'],
     [`recipient_user_id=${q(stranger.id)}`, `recipient_user_id=${q(requester.id)}`],
     ["recipient_role='WORKER'", "recipient_role='REQUESTER'"],
     [`event_id=${q(ownEvent.id)}`, `event_id=${q(event.id)}`],
@@ -304,13 +306,17 @@ try {
     [`dedupe_key=${q('proof:' + randomUUID())}`, `dedupe_key=${q(delivery.dedupe_key)}`],
   ]) await changed(`update public.notification_deliveries set ${assignment} ${deliveryWhere}`,
     `update public.notification_deliveries set ${restore} ${deliveryWhere}`, () => unavailable(requester, event.id));
-  await changed(`update public.notification_deliveries set expires_at=clock_timestamp()+interval '1 hour' ${deliveryWhere}`,
-    `update public.notification_deliveries set expires_at=null ${deliveryWhere}`,
-    () => target(requester, event.id, agreementId, messageId, 'REQUESTER'));
-  await changed(`update public.user_activity_events set read_at=clock_timestamp() ${eventWhere}`,
-    `update public.user_activity_events set read_at=null ${eventWhere}`,
-    () => target(requester, event.id, agreementId, messageId, 'REQUESTER'));
-  pass('EXPLICIT_NINE_STATE_MATRIX_DELIVERY_LINK_EXPIRY_AND_ALREADY_READ_TAPS');
+  for (const state of ['CREATED', 'EXPIRED']) {
+    for (const expiry of ["clock_timestamp()-interval '1 second'", "clock_timestamp()+interval '1 hour'"]) {
+      await changed(`update public.notification_deliveries set state=${q(state)},expires_at=${expiry} ${deliveryWhere}`,
+        `update public.notification_deliveries set state='CREATED',expires_at=null ${deliveryWhere}`,
+        () => target(requester, event.id, agreementId, messageId, 'REQUESTER'));
+    }
+    await changed(`update public.notification_deliveries set state=${q(state)},suppression_reason='IN_APP_OFF' ${deliveryWhere}`,
+      `update public.notification_deliveries set state='CREATED',suppression_reason=null ${deliveryWhere}`,
+      () => unavailable(requester, event.id));
+  }
+  pass('SYNTHETIC_NINE_STATE_ALLOWLIST_EXPIRED_HISTORY_LINK_AND_SUPPRESSION_MATRIX');
 
   stage = 'OLD_EQUAL_TIME_TARGET_B3B_CHAIN_AND_LATER_ARRIVAL';
   sql(`insert into public.agreement_messages(id,agreement_id,agreement_version,sender_account_id,body,created_at)
@@ -340,7 +346,8 @@ try {
     p_expected_user_id: worker.id, p_agreement_id: agreementId, p_expected_version: 1,
     p_client_message_id: randomUUID(), p_body: '', p_asset_ids: [assetId],
   }));
-  await target(requester, eventFor(photo.messageId).id, agreementId, photo.messageId, 'REQUESTER');
+  const photoEvent = eventFor(photo.messageId);
+  await target(requester, photoEvent.id, agreementId, photo.messageId, 'REQUESTER');
   pass('CANONICAL_PHOTO_EVENT_RETURNS_ONLY_THE_EXACT_TARGET_ALLOWLIST');
 
   stage = 'DELETED_EXACT_MESSAGE_DOES_NOT_FALL_BACK';
@@ -350,22 +357,72 @@ try {
   await target(requester, event.id, agreementId, messageId, 'REQUESTER');
   pass('MISSING_EXACT_MESSAGE_UNAVAILABLE_WITH_OTHER_HISTORY_PRESENT');
 
-  stage = 'TERMINAL_HISTORY_AND_CLOSURE_FENCES';
-  // Cancellation canonically expires CREATED IN_APP deliveries too. Preserve
-  // one explicit READ fixture to test eligible historical taps, and separately
-  // require the still-CREATED photo event to become unavailable after expiry.
-  sql(`update public.notification_deliveries set state='READ' ${deliveryWhere}`);
-  await ok(requester.client.rpc('rpc_cancel_agreement', {p_agreement_id: agreementId, p_reason: 'Disposable P4 history proof'}));
-  assert.equal(sql(`select status from public.agreements where id=${q(agreementId)}`), 'CANCELLED');
-  assert.equal(sql(`select state from public.notification_deliveries ${deliveryWhere}`), 'READ');
+  stage = 'CANONICAL_HISTORY_ACK_RPC';
+  // Canonical flow, independent of the synthetic matrix: ACK changes e.read_at,
+  // never delivery.state. Cancellation then expires both read and unread IN_APP
+  // deliveries. Neither transition removes the event's exact historical target.
+  const beforeAck = unchangedReadState();
+  const ack = await ok(requester.client.rpc('rpc_mark_displayed_agreement_messages_v1', {
+    p_expected_user_id: requester.id, p_agreement_id: agreementId, p_message_ids: [messageId],
+  }));
+  stage = 'CANONICAL_HISTORY_ACK_RECEIPT_AND_READ_STATE';
+  assert.deepEqual(ack, {schema: 'AGREEMENT_MESSAGE_READ_V1', accountId: requester.id, agreementId,
+    displayedMessageIds: [messageId], markedEventCount: 1, authoritative: true});
+  const afterAck = unchangedReadState();
+  assert.notEqual(afterAck.user_activity_events, beforeAck.user_activity_events);
+  for (const name of ['agreement_messages', 'notification_deliveries', 'notification_push_attempts']) {
+    assert.equal(afterAck[name], beforeAck[name]);
+  }
+  const readAt = rows(`select read_at from public.user_activity_events ${eventWhere}`)[0].read_at;
+  assert.ok(readAt);
+  assert.equal(rows(`select read_at from public.user_activity_events where id=${q(photoEvent.id)}`)[0].read_at, null);
+  const photoDeliveryWhere = `where event_id=${q(photoEvent.id)} and channel='IN_APP'`;
+  assert.equal(sql(`select state from public.notification_deliveries ${deliveryWhere}`), 'CREATED');
+  assert.equal(sql(`select state from public.notification_deliveries ${photoDeliveryWhere}`), 'CREATED');
+  stage = 'CANONICAL_HISTORY_READ_TEXT_TARGET_BEFORE_CANCEL';
   await target(requester, event.id, agreementId, messageId, 'REQUESTER');
-  await unavailable(requester, eventFor(photo.messageId).id);
+  stage = 'CANONICAL_HISTORY_CANCEL_RPC';
+  await ok(requester.client.rpc('rpc_cancel_agreement', {p_agreement_id: agreementId, p_reason: 'Disposable P4 history proof'}));
+  stage = 'CANONICAL_HISTORY_CANCELLED_AND_EXPIRED_DELIVERY_STATE';
+  assert.equal(sql(`select status from public.agreements where id=${q(agreementId)}`), 'CANCELLED');
+  assert.equal(sql(`select state from public.notification_deliveries ${deliveryWhere}`), 'EXPIRED');
+  assert.equal(sql(`select state from public.notification_deliveries ${photoDeliveryWhere}`), 'EXPIRED');
+  const beforeHistory = unchangedReadState();
+  stage = 'CANONICAL_HISTORY_INBOX_RPC';
+  const inbox = await ok(requester.client.rpc('rpc_list_inbox', {
+    p_role: 'REQUESTER', p_limit: 100, p_before_at: null, p_before_id: null,
+  }));
+  for (const [historicalEvent, historicalMessage, kind] of [
+    [event.id, messageId, 'TEXT'], [photoEvent.id, photo.messageId, 'PHOTO'],
+  ]) {
+    stage = kind === 'TEXT' ? 'CANONICAL_HISTORY_TEXT_INBOX_VISIBILITY' : 'CANONICAL_HISTORY_PHOTO_INBOX_VISIBILITY';
+    assert.ok(inbox.items.some(item => item.id === historicalEvent));
+    stage = kind === 'TEXT' ? 'CANONICAL_HISTORY_TEXT_EXACT_TARGET' : 'CANONICAL_HISTORY_PHOTO_EXACT_TARGET';
+    const exact = await target(requester, historicalEvent, agreementId, historicalMessage, 'REQUESTER');
+    stage = kind === 'TEXT' ? 'CANONICAL_HISTORY_TEXT_B3B_WINDOW' : 'CANONICAL_HISTORY_PHOTO_B3B_WINDOW';
+    const historicalWindow = await ok(requester.client.rpc('rpc_read_agreement_message_window_v1', {
+      p_expected_user_id: requester.id, p_agreement_id: exact.agreementId,
+      p_target_message_id: exact.messageId, p_before_count: 0, p_after_count: 0,
+    }));
+    assert.equal(historicalWindow.targetMessageId, historicalMessage);
+    assert.equal(historicalWindow.messages.length, 1);
+    assert.equal(historicalWindow.messages[0].messageId, historicalMessage);
+    assert.equal(historicalWindow.messages[0].kind, kind);
+    if (kind === 'PHOTO') assert.equal(historicalWindow.messages[0].photos[0].assetId, assetId);
+  }
+  stage = 'CANONICAL_HISTORY_READ_STATE_UNCHANGED';
+  assert.deepEqual(unchangedReadState(), beforeHistory);
+  assert.equal(rows(`select read_at from public.user_activity_events ${eventWhere}`)[0].read_at, readAt);
+  assert.equal(rows(`select read_at from public.user_activity_events where id=${q(photoEvent.id)}`)[0].read_at, null);
+  pass('CANONICAL_ACK_THEN_CANCEL_INBOX_EXPIRED_READ_TEXT_UNREAD_PHOTO_EXACT_B3B_WINDOWS');
+  stage = 'HISTORICAL_TARGET_BOTH_ACCOUNT_CLOSURE_FENCES';
   for (const actor of [requester, worker]) {
+    stage = actor === requester ? 'HISTORICAL_TARGET_CALLER_CLOSURE_FENCE' : 'HISTORICAL_TARGET_COUNTERPART_CLOSURE_FENCE';
     await changed(`insert into private.account_closure_requests(account_id,state,revision) values(${q(actor.id)},'READY',1)`,
       `delete from private.account_closure_requests where account_id=${q(actor.id)}`,
-      () => unavailable(requester, event.id));
+      async () => { await unavailable(requester, event.id); await unavailable(requester, photoEvent.id); });
   }
-  pass('TERMINAL_AGREEMENT_ELIGIBLE_READ_HISTORY_EXPIRED_PENDING_DELIVERY_AND_BOTH_CLOSURE_FENCES');
+  pass('HISTORICAL_TEXT_AND_PHOTO_TARGETS_STILL_REQUIRE_BOTH_ACCOUNTS_OPEN');
 
   stage = 'EXPIRED_BANNED_AND_REVOKED_REAL_SESSION';
   const requesterSession = sessions[0];

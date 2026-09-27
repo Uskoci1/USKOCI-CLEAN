@@ -9,6 +9,8 @@ export type LocationOverviewMapProps = Readonly<{
   /** Numeric canvas height for previews; fill consumes a bounded parent's remainder. */
   height: number | 'fill';
   selectedId?: string;
+  /** Explicit camera action, including reselecting a point after a manual pan. */
+  cameraIntent?: number;
   onSelectPoint?: (id: string) => void;
   testID?: string;
 }>;

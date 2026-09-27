@@ -109,11 +109,12 @@ begin
       and exists(select 1 from public.notification_deliveries d
         where d.event_id=e.id and d.recipient_user_id=u and d.recipient_role=target_role
           and d.channel='IN_APP' and d.dedupe_key=e.dedupe_key||':in_app'
-          -- CREATED is canonical IN_APP emission. Retain legitimate delivered
-          -- and read history; pending/retry/failure/expiry/suppression are denied.
-          and d.state in('CREATED','SENT','DELIVERED','READ')
-          and d.suppression_reason is null
-          and (d.expires_at is null or d.expires_at>clock_timestamp()));
+          -- Delivery expiry stops new delivery, not access to an exact historical
+          -- target still shown by Inbox. Canonical ACK changes e.read_at only;
+          -- cancellation expires CREATED deliveries whether read or unread.
+          -- Queue/retry/failure/suppression never admit a historical target.
+          and d.state in('CREATED','SENT','DELIVERED','READ','EXPIRED')
+          and d.suppression_reason is null);
   perform private.support_auth_v5(u);
   if target_message is null then return unavailable;end if;
   -- No current-status/version equality: terminal/historical Agreement messages
@@ -129,7 +130,7 @@ grant execute on function public.rpc_resolve_activity_message_v1(uuid,uuid) to a
 do $post$
 begin
   if not exists(select 1 from pg_proc where oid='public.rpc_resolve_activity_message_v1(uuid,uuid)'::regprocedure
-      and md5(replace(prosrc,E'\r\n',E'\n'))='dc06e399d221726fcf8a8bd604ad0b68'
+      and md5(replace(prosrc,E'\r\n',E'\n'))='1769346f2fbf4a70ccf53b47614d2c0f'
       and proowner='postgres'::regrole and prolang=(select oid from pg_language where lanname='plpgsql')
       and prosecdef and provolatile='v' and not proisstrict and not proleakproof
       and proparallel='u' and prokind='f' and not proretset and prorettype='jsonb'::regtype

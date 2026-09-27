@@ -195,6 +195,20 @@ const panelSubmit=(panel:string)=>panel==='manual'?()=>tree.root.findByType('Man
  :panel==='availability'?()=>tree.root.findByType('Availability' as any).props.onSave({...availability(),availableNow:true})
  :()=>action('Sačuvaj i aktiviraj profil').props.onPress();
 const panelBack=(panel:string)=>panel==='availability'?tree.root.findByType(CalendarScreen).props.back:tree.root.findByType('Frame' as any).props.back;
+it('P5: the worker calendar retires editing for the whole conversation read',async()=>{
+ mockRealAvailability=true;await render();await enterPanel('availability');
+ const retainedChange=tree.root.findByType('Switch' as any).props.onValueChange;
+ const reading=deferred();mockApi.read.mockReturnValueOnce(reading.promise);
+ await click('Proveri stanje razgovora');
+ expect(tree.root.findByType('Switch' as any).props.disabled).toBe(true);
+ await act(async()=>retainedChange(true));
+ expect(tree.root.findByType('Switch' as any).props.value).toBe(false);
+ expect(tree.root.findAllByProps({label:'Primeni na pregled profila'})).toHaveLength(0);
+ await act(async()=>reading.resolve(ok({...snapshot(),revision:1,candidate:{...candidate(),availability:{...availability(),availableNow:true}}})));
+ expect(tree.root.findByType('Switch' as any).props.disabled).toBe(false);
+ expect(tree.root.findByType('Switch' as any).props.value).toBe(true);
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
 it.each([1,1.6])('worker availability has one Android vertical scroll path and reachable guarded save/recovery at font scale %s',async scale=>{
  mockRealAvailability=true;mockFontScale=scale;await render();await enterPanel('availability');
  expect(tree.root.findAllByType('ScrollView' as any)).toHaveLength(1);

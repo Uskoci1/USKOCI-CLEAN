@@ -2,13 +2,25 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
+let mockDelayRouteFocus = false, mockFocusHookCount = 0;
+let mockStartRouteFocus: () => void = () => {}, mockStopRouteFocus: () => void = () => {};
 const mockPolicy = jest.fn(), mockExecution = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), navigate: jest.fn(), push: jest.fn() };
 jest.mock('../retentionPolicyClientService', () => ({ retentionPolicyClientService: {
   readStatus: () => mockPolicy(), readExecutionStatus: () => mockExecution(),
 } }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useRouter: () => mockRouter, useFocusEffect: (effect: () => void) =>
-  require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useRouter: () => mockRouter, useFocusEffect: (effect: () => void | (() => void)) => {
+  const React = require('react');
+  // The route owns the first focus hook; delay only its event so both independent
+  // resource readers can finish before navigation establishes this visit.
+  const routeFocus = React.useRef(mockFocusHookCount++ === 0).current;
+  React.useEffect(() => {
+    if (!mockFocused) return;
+    if (!routeFocus || !mockDelayRouteFocus) return effect();
+    mockStartRouteFocus = () => { const cleanup = effect(); mockStopRouteFocus = typeof cleanup === 'function' ? cleanup : () => {}; };
+    return () => mockStopRouteFocus();
+  }, [effect, mockFocused]);
+} }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
@@ -36,6 +48,7 @@ const texts = () => tree.root.findAll(node => node.type === 'T' as React.Element
 beforeEach(() => {
   jest.clearAllMocks(); mockPolicy.mockReset(); mockExecution.mockReset();
   mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true;
+  mockDelayRouteFocus = false; mockFocusHookCount = 0; mockStartRouteFocus = () => {}; mockStopRouteFocus = () => {};
   mockRouter.canGoBack.mockReturnValue(true);
   mockPolicy.mockResolvedValue(ok({ ready: false, reason: 'RETENTION_POLICY_NOT_PUBLISHED', missingDataClasses: [] }));
   mockExecution.mockResolvedValue(ok({ ...execution(), executionAdmitted: false, policyVersion: null }));
@@ -174,4 +187,34 @@ it('a failed deletion read takes the danger note; a version mismatch stays a pla
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1')));
   await act(async () => button('Osveži stanje').onPress());
   expect(block().props.tone).toBe('neutral'); expect(texts()).toContain('Dostupnost automatskog brisanja nije potvrđena');
+});
+it.each(['closure', 'export', 'back'])('establishes usable %s after reads finish before route focus, without another read', async action => {
+  mockDelayRouteFocus = true; await render();
+  expect(texts()).toContain('Potpun raspored rokova čuvanja još nije dostupan.');
+  expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
+  await act(async () => mockStartRouteFocus());
+  const press = action === 'closure' ? button('Zatvaranje naloga').onPress : action === 'export'
+    ? button('Izvoz podataka').onPress : tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress;
+  await act(async () => { press(); press(); });
+  if (action === 'closure') expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(1);
+  else if (action === 'export') expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
+  else expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
+});
+it('refocus enables new callbacks while retiring old ones without relying on resource state changes', async () => {
+  mockDelayRouteFocus = true; await render();
+  await act(async () => mockStartRouteFocus());
+  // Establish a render for the original implementation too; the regression here
+  // is the next focus event with unchanged, already-loaded resource snapshots.
+  await update();
+  const oldExport = button('Izvoz podataka').onPress, oldClosure = button('Zatvaranje naloga').onPress;
+  const oldBack = tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress;
+  await act(async () => { mockStopRouteFocus(); mockStartRouteFocus(); });
+  await act(async () => { oldExport(); oldClosure(); oldBack(); });
+  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockRouter.back).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
+  const currentExport = button('Izvoz podataka').onPress;
+  await act(async () => { currentExport(); currentExport(); });
+  expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
+  expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
 });

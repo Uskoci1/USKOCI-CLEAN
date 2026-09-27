@@ -60,6 +60,7 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
   const [expanded, setExpanded] = useState<object | null>(null);
   const modalVisit = useRef<object | null>(null);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [cameraIntent, setCameraIntent] = useState(0);
   const [launch, setLaunch] = useState<'idle' | 'opening' | 'error'>('idle');
   const life = useRef({ alive: true, sequence: 0, busy: false, timer: undefined as ReturnType<typeof setTimeout> | undefined });
   const currentOwns = useRef(owns); currentOwns.current = owns;
@@ -92,7 +93,10 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
     try { void Promise.resolve(Linking.openURL(url)).then(() => settle('idle'), () => settle('error')); }
     catch { settle('error'); }
   };
-  const choose = (id: string) => { if (ownsModal() && points.some(point => point.id === id)) setSelectedId(id); };
+  const choose = (id: string) => {
+    if (!ownsModal() || !points.some(point => point.id === id)) return;
+    setSelectedId(id); setCameraIntent(value => value + 1);
+  };
   if (!points.length) return null;
   return <View>
     {!expanded ? <View>
@@ -108,19 +112,21 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
         <ProductHeader title={coarse ? 'Približno mesto' : points.length > 1 ? 'Tačke zadatka' : 'Mesto zadatka'} back={close} backLabel="Zatvori mapu" />
         <View style={s.expandedContent}>
           <LocationOverviewMap points={points} scopeKey={`${scopeKey}:expanded`} coarse={coarse} interactive
-            selectedId={selectedId} onSelectPoint={choose} height="fill" testID="location-expanded-map" />
+            selectedId={selectedId} cameraIntent={cameraIntent} onSelectPoint={choose} height="fill" testID="location-expanded-map" />
           <ScrollView testID="location-map-actions" style={s.footer} contentContainerStyle={s.content}
             keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="never">
           <View style={s.details}>
             {coarse ? <T tone="muted" variant="meta">Prikazano je približno područje, ne tačna adresa.</T> : null}
             {points.length > 1 ? <View style={s.stops}>
               {points.map((point, index) => <Press key={point.id} accessibilityRole="button"
-                accessibilityLabel={`Prikaži na mapi: ${point.label}`} accessibilityState={{ selected: selected?.id === point.id }}
-                onPress={() => choose(point.id)} style={[s.stop, selected?.id === point.id && s.selected]}>
+                accessibilityLabel={`Prikaži na mapi: ${point.label}`} accessibilityState={{ selected: selectedId === point.id }}
+                onPress={() => choose(point.id)} style={[s.stop, selectedId === point.id && s.selected]}>
                 <View style={s.number}><T variant="bodyStrong" style={{ color: sys.color.green }}>{index + 1}</T></View>
                 <T variant="bodyStrong" style={s.stopLabel}>{point.label}</T>
               </Press>)}
-              <V2Action label="Prikaži sve tačke" kind="quiet" onPress={() => { if (ownsModal()) setSelectedId(undefined); }} />
+              <V2Action label="Prikaži sve tačke" kind="quiet" onPress={() => {
+                if (ownsModal()) { setSelectedId(undefined); setCameraIntent(value => value + 1); }
+              }} />
             </View> : null}
             <V2Action label={coarse ? 'Otvori područje u Google mapama' : points.length > 1 ? `Navigacija: ${selected?.label}` : 'Otvori navigaciju'}
               style={brandAction}

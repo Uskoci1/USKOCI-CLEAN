@@ -3,8 +3,12 @@ import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const mockContext=jest.fn(),mockRead=jest.fn(),mockOwnerFeed=jest.fn(),mockPublicFeed=jest.fn(),mockAsk=jest.fn(),mockAnswer=jest.fn(),mockDisposition=jest.fn(),mockAiSubmit=jest.fn(),mockAiRecover=jest.fn(),mockAiCancel=jest.fn(),mockLoad=jest.fn(),mockSave=jest.fn(),mockClear=jest.fn();
 const A='11111111-1111-4111-8111-111111111111',N='22222222-2222-4222-8222-222222222222',mockKey='33333333-3333-4333-8333-333333333333';
 let mockOwner={user:{id:A},accountRevision:1};let mockApp:(value:string)=>void=()=>{};
+let mockFocus:()=>void=()=>{},mockBlur:()=>void=()=>{};
 jest.mock('../../../store/sesija',()=>({sesijaSada:()=>mockOwner,useSesija:()=>mockOwner}));
-jest.mock('expo-router',()=>({useFocusEffect:(f:()=>unknown)=>require('react').useEffect(f,[f])}));
+jest.mock('expo-router',()=>({useFocusEffect:(f:()=>unknown)=>require('react').useEffect(()=>{
+ mockFocus=()=>{const cleanup=f();mockBlur=typeof cleanup==='function'?cleanup as ()=>void:()=>{};};
+ mockFocus();return()=>mockBlur();
+},[f])}));
 jest.mock('react-native',()=>{const o=jest.requireActual('react-native');return new Proxy(o,{get:(obj,k)=>['View','ActivityIndicator','KeyboardAvoidingView','TextInput'].includes(String(k))?k:k==='AppState'?{currentState:'active',addEventListener:(_e:string,f:(s:string)=>void)=>{mockApp=f;return{remove:jest.fn()};}}:Reflect.get(obj,k)});});
 jest.mock('../../../data/qaRecoveryClientService',()=>({qaRecoveryClientService:{context:(...a:unknown[])=>mockContext(...a),read:(...a:unknown[])=>mockRead(...a)}}));
 jest.mock('../../../data/preselectionQaClientService',()=>({preselectionQaClientService:{ownerQuestions:(...a:unknown[])=>mockOwnerFeed(...a),publicQa:(...a:unknown[])=>mockPublicFeed(...a),askQuestion:(...a:unknown[])=>mockAsk(...a),answerQuestion:(...a:unknown[])=>mockAnswer(...a),dispositionQuestion:(...a:unknown[])=>mockDisposition(...a)}}));
@@ -36,7 +40,7 @@ let tree:ReactTestRenderer;
 // and heard by, on the outermost element that carries it.
 const button=(label:string)=>tree.root.findAll(n=>typeof n.type!=='string'&&(n.props.label===label||n.props.accessibilityLabel===label))[0];
 const allText=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');
-async function render(){await act(async()=>{tree=create(<TaskQaScreen needId={N} onBack={jest.fn()}/>);});}
+async function render(onBack=jest.fn(),needId:string|null=N){await act(async()=>{tree=create(<TaskQaScreen needId={needId} onBack={onBack}/>);});}
 async function type(value:string,label='Tekst pitanja'){await act(async()=>tree.root.findByProps({accessibilityLabel:label}).props.onChangeText(value));}
 beforeEach(()=>{jest.clearAllMocks();mockOwner={user:{id:A},accountRevision:1};mockContext.mockResolvedValue(ok(context()));mockRead.mockResolvedValue(ok({found:false,command:null}));mockPublicFeed.mockResolvedValue(ok([]));mockOwnerFeed.mockResolvedValue(ok([]));mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockAiSubmit.mockResolvedValue({ok:false,kod:'QA_CLASSIFICATION_UNCONFIRMED',poruka:'Ishod nije potvrđen.'});mockAiRecover.mockResolvedValue(ok(absent()));mockAiCancel.mockResolvedValue(ok(status({state:'CANCELLED',canCancel:false})));});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
@@ -173,4 +177,41 @@ it('a skip confirmed after the questions were read again writes nothing',async()
  await act(async()=>button('Preskoči pitanje')!.props.onPress());const confirm=tree.root.findByType(ConfirmSheet).findByProps({testID:'confirm-sheet-confirm'}).props.onPress;
  await act(async()=>button('Osveži pitanja i ishod radnje')!.props.onPress());await act(async()=>confirm());
  expect(mockSave).not.toHaveBeenCalled();expect(mockDisposition).not.toHaveBeenCalled();
+});
+it('Back retires the question visit before blur, including repeated Back and a retained send',async()=>{
+ const back=jest.fn();mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));
+ await render(back);await type('Da li ima lift?');const old=tree.root.findByType(TaskQaPresentation).props;
+ await act(async()=>{old.onBack();old.onBack();old.onSend();});
+ expect(back).toHaveBeenCalledTimes(1);expect(mockSave).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
+});
+it.each([false,true])('Back during answer persistence leaves recovery intact without dispatch (foreground=%s)',async foreground=>{
+ const back=jest.fn();mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true,answerMaxChars:1000})));
+ mockOwnerFeed.mockResolvedValue(ok([{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));
+ await render(back);await act(async()=>button('Odgovori')!.props.onPress());await type('Lift postoji.','Tekst odgovora');
+ let done!:()=>void;mockSave.mockReturnValue(new Promise<void>(resolve=>{done=resolve;}));
+ await act(async()=>tree.root.findByType(TaskQaPresentation).props.onSend());expect(mockSave).toHaveBeenCalledTimes(1);
+ await act(async()=>{tree.root.findByType(TaskQaPresentation).props.onBack();if(foreground){mockApp('background');mockApp('active');}done();});
+ expect(back).toHaveBeenCalledTimes(1);expect(mockLoad).toHaveBeenCalledTimes(1);
+ expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockClear).not.toHaveBeenCalled();
+ // A genuine return recovers the saved identity by reading it; it never replays the answer automatically.
+ mockLoad.mockResolvedValue({...pending(),type:'ANSWER',questionId:N,textSha256:qaTextHash('Lift postoji.')});
+ await act(async()=>{mockBlur();mockFocus();});
+ expect(mockRead).toHaveBeenCalledWith(N,mockKey,{accountId:A,accountRevision:1});expect(mockAiSubmit).not.toHaveBeenCalled();
+ expect(allText()).toContain('Provera prethodnog slanja');
+});
+it('callbacks from an old visit cannot leave or change the answer after a genuine refocus',async()=>{
+ const back=jest.fn();mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true})));
+ mockOwnerFeed.mockResolvedValue(ok([{questionId:N,needRevision:2,questionText:'CURRENT',status:'PENDING_ANSWER',answerText:null,edited:false}]));
+ await render(back);await act(async()=>button('Odgovori')!.props.onPress());await type('Sačuvan odgovor.','Tekst odgovora');
+ const old=tree.root.findByType(TaskQaPresentation).props;
+ await act(async()=>{mockBlur();mockFocus();});
+ await act(async()=>{old.onBack();old.onCloseAnswer();old.onText('STARI POZIV');});
+ expect(back).not.toHaveBeenCalled();expect(tree.root.findByType(TaskQaPresentation).props.text).toBe('Sačuvan odgovor.');
+ expect(allText()).toContain('Odgovaraš');
+ await act(async()=>tree.root.findByType(TaskQaPresentation).props.onBack());expect(back).toHaveBeenCalledTimes(1);
+});
+it('the invalid task error still has a working one-shot Back without reading or sending',async()=>{
+ const back=jest.fn();await render(back,null);expect(allText()).toContain('Ponovo otvori zadatak');
+ const leave=tree.root.findByType(TaskQaPresentation).props.onBack;await act(async()=>{leave();leave();});
+ expect(back).toHaveBeenCalledTimes(1);expect(mockLoad).not.toHaveBeenCalled();expect(mockContext).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
 });

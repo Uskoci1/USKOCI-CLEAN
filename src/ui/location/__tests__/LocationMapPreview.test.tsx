@@ -38,6 +38,27 @@ beforeEach(() => { jest.clearAllMocks(); mockOpen.mockResolvedValue(undefined); 
   mockSession = { user: { id: 'worker' }, accountRevision: 1 }; scopeKey = 'grant1'; });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('task map expansion and explicit navigation', () => {
+  it('keeps overview unselected and makes repeated all-points and stop taps explicit camera actions', async () => {
+    await render(); await press({ accessibilityLabel: 'Otvori mapu' });
+    const canvas = () => tree.root.findByType('Canvas' as React.ElementType);
+    const stop = (label: string) => tree.root.findByProps({ accessibilityLabel: `Prikaži na mapi: ${label}` });
+    expect(stop('Početno mesto').props.accessibilityState.selected).toBe(false);
+    expect(stop('Završno mesto').props.accessibilityState.selected).toBe(false);
+    await press({ label: 'Prikaži sve tačke' });
+    expect(canvas().props).toMatchObject({ cameraIntent: 1 });
+    await press({ label: 'Prikaži sve tačke' });
+    expect(canvas().props).toMatchObject({ cameraIntent: 2 });
+    await press({ accessibilityLabel: 'Prikaži na mapi: Završno mesto' });
+    await press({ accessibilityLabel: 'Prikaži na mapi: Završno mesto' });
+    expect(canvas().props).toMatchObject({ selectedId: 'end', cameraIntent: 4 });
+    expect(stop('Završno mesto').props.accessibilityState.selected).toBe(true);
+    await press({ label: 'Prikaži sve tačke' });
+    expect(canvas().props.selectedId).toBeUndefined();
+    expect(canvas().props.cameraIntent).toBe(5);
+    expect(stop('Početno mesto').props.accessibilityState.selected).toBe(false);
+    expect(stop('Završno mesto').props.accessibilityState.selected).toBe(false);
+    expect(mockOpen).not.toHaveBeenCalled();
+  });
   it('opens the same points, selects a stop, returns without a route push or provider request', async () => {
     await render(); expect(mockOpen).not.toHaveBeenCalled();
     await press({ accessibilityLabel: 'Otvori mapu' });

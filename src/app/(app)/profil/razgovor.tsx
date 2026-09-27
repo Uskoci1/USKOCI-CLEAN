@@ -213,7 +213,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   if(panel==='availability')return <CalendarScreen title="Dostupnost za rad" back={back} scroll={false}
     footer={<>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
       <V2Action label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></>}>
-    <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} candidateMode
+    <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} refreshing={editor.loading} candidateMode
       onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value));}}/>
   </CalendarScreen>;
   if(panel==='manual')return <WorkerProfileFrame back={back}><WorkerAiManual key={data.revision} profile={data.candidate} disabled={!enabled}

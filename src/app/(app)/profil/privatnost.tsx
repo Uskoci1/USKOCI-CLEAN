@@ -15,9 +15,10 @@ export default function Privatnost() {
 function OwnedPrivacy() {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  const [visit, setVisit] = useState<object | null>(null);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
-    const scope = {}; focus.current = scope; navigating.current = false; setExpandedRule(null);
+    const scope = {}; focus.current = scope; navigating.current = false; setVisit(scope); setExpandedRule(null);
     return () => { if (focus.current === scope) focus.current = null; };
   }, [accountId, accountRevision]));
   const readPolicy = useCallback(async () => {
@@ -33,8 +34,9 @@ function OwnedPrivacy() {
   const policy = useFocusedResource(readPolicy), execution = useFocusedResource(readExecution);
   const admitted = policy.data?.ready === true && execution.data?.executionAdmitted === true
     && execution.data.policyVersion === policy.data.policyVersion;
-  const renderedFocus = focus.current;
-  const current = () => renderedFocus !== null && focus.current === renderedFocus && !navigating.current && !!accountId
+  // A focus event must render its own callbacks even if both reads have settled
+  // and closing an already-collapsed rule produces no state change.
+  const current = () => visit !== null && focus.current === visit && !navigating.current && !!accountId
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const navigate = (action: () => void) => { if (!current()) return; navigating.current = true; action(); };
   const refresh = () => { if (!current() || policy.loading || execution.loading) return;

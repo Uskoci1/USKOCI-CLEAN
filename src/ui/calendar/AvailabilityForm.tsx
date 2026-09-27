@@ -335,7 +335,23 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   const instant = !candidateMode;
   const [statusSaving, setStatusSaving] = useState(false);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const blocked = busy || uncertain || refreshing;
+  // A confirmation or editor owns the exact draft it displayed. In the AI
+  // profile this component survives a new server revision; an old callback must
+  // never replace that fresh schedule with its captured rules/windows array.
+  const editScope = useRef({ availability, draft, blocked, editing, windowEditor, copySource });
+  if (editScope.current.availability !== availability || editScope.current.draft !== draft || editScope.current.blocked !== blocked
+    || editScope.current.editing !== editing || editScope.current.windowEditor !== windowEditor || editScope.current.copySource !== copySource) {
+    editScope.current = { availability, draft, blocked, editing, windowEditor, copySource };
+  }
+  const renderedEdit = editScope.current;
+  const canEdit = () => alive.current && editScope.current === renderedEdit && !renderedEdit.blocked;
+  // Retire before scheduling state, including a second native callback in the
+  // same turn. A later loading→editable transition cannot revive the old scope.
+  const retireEdit = () => { editScope.current = { ...editScope.current }; };
+  const closeConfirmation = confirmation.close;
+  useEffect(() => { closeConfirmation(); }, [renderedEdit, closeConfirmation]);
   const report = useRef(onDirtyChange); report.current = onDirtyChange;
   useEffect(() => { report.current?.(dirty); }, [dirty]);
   useEffect(() => () => report.current?.(false), []);
@@ -347,32 +363,33 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     const timer = setTimeout(() => setShowSaved(false), 3000);
     return () => clearTimeout(timer);
   }, [saved]);
-  const blocked = busy || uncertain || refreshing;
   const sheetOpen = !!editing || !!windowEditor || !!copySource;
   const update = (value: Partial<WorkerAvailabilityInput>) => {
-    if (blocked) return;
+    if (!canEdit()) return;
+    retireEdit();
     setDraft(current => ({ ...current, ...value })); setError(null);
   };
   const deleteItem = (kind: 'rules' | 'windows', id: string) => {
-    if (blocked) return;
+    if (!canEdit()) return;
     confirmation.ask({ title: 'Ukloniti termin?', message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.',
       cancelLabel: 'Odustani', confirmLabel: 'Ukloni', tone: 'danger', onConfirm: () => update({ [kind]: draft[kind].filter(item => item.id !== id) }) });
   };
   const save = () => {
-    if (blocked || !dirty || sheetOpen) return;
+    if (!canEdit() || !dirty || sheetOpen) return;
     const normalized = normalizeWorkerAvailability(draft);
     if (!normalized) { setError('Proveri unetu vremensku zonu i raspored.'); return; }
     onSave(normalized);
   };
-  const discard = () => { if (blocked) return; setDraft(baseline); setError(null); };
+  const discard = () => { if (!canEdit()) return; retireEdit(); setDraft({ ...baseline }); setError(null); };
   // The status saves on its own: it sends the SAVED week with only the status changed, so it never carries other edits
   // along. While other edits are unsaved it joins them (the screen keys this form by revision, so a save of its own
   // would drop them). Every guard of the save stays with the editor; an outcome that is not confirmed ends in the same
   // "Učitaj sačuvano stanje" as a Save.
   const changeStatus = (value: boolean) => {
-    if (blocked) return;
+    if (!canEdit()) return;
     if (!instant || otherDirty) { update({ availableNow: value }); return; }
     const next = { ...baseline, availableNow: value };
+    retireEdit();
     setDraft(next); setError(null);
     if (value === baseline.availableNow) return;
     const normalized = normalizeWorkerAvailability(next);
@@ -381,18 +398,20 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     void Promise.resolve(onSave(normalized)).finally(() => { if (alive.current) setStatusSaving(false); });
   };
   const editRule = (rule?: AvailabilityRule, day?: number) => {
-    if (blocked) return;
+    if (!canEdit()) return;
+    retireEdit();
     setEditing(rule ? { rule, isNew: false, day: null } : { isNew: true, day: day ?? null, rule: { id: noviUuidZahtevId(),
       weekdays: day === undefined ? [] : [day], startTime: '', endTime: '', startsOn: zonedParts(new Date(), draft.timezone).date,
       endsOn: null, label: '', active: true } });
   };
   const copy = (source: Weekday, targets: readonly number[], announce: string) => {
+    if (!canEdit()) return;
     const night = nightNote(draft.rules, source.day);
     update({ rules: copyDay(draft.rules, source.day, targets) });
     AccessibilityInfo.announceForAccessibility(night ? `${announce} ${night}` : announce);
   };
   const sameForWorkdays = (source: Weekday) => {
-    if (blocked) return;
+    if (!canEdit()) return;
     const targets = WORKDAYS.filter(day => day !== source.day);
     const apply = () => copy(source, targets, 'Termini su kopirani na radne dane.');
     if (!copyTakesAway(draft.rules, source.day, targets)) { apply(); return; }
@@ -407,7 +426,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // action on the "Redovna nedelja" heading, since the standing refresh button is gone (round-5c: on the ScrollView the
   // action was never offered: Android's scroll view keeps its own accessibility delegate, and VoiceOver does not focus it).
   const canReload = !!onRefresh && !dirty;
-  const reload = () => { if (!dirty) onRefresh?.(); };
+  const reload = () => { if (canEdit() && !dirty) onRefresh?.(); };
   // The hint says when the status starts to count: at once on its own, with the other edits while there are any, or with
   // the profile in the profile conversation.
   const hint = profileDraft
@@ -505,7 +524,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
                 <V2Action label="Isto za sve radne dane" accessibilityLabel={`Isto za sve radne dane kao ${day.name}`} kind="quiet" disabled={blocked}
                   onPress={() => sameForWorkdays(day)} />
                 <V2Action label="Kopiraj na…" accessibilityLabel={`Kopiraj ${day.name} na druge dane`} kind="quiet" disabled={blocked}
-                  onPress={() => { if (!blocked) setCopySource(day); }} />
+                  onPress={() => { if (canEdit()) { retireEdit(); setCopySource({ ...day }); } }} />
               </View>
             </View> : null}
           </View>;
@@ -523,7 +542,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
           return <View key={window.id} style={[s.windowRow, index ? s.divided : null]}>
             <Press accessibilityRole="button" accessibilityLabel={`Uredi izuzetak ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
               accessibilityValue={{ text: `${when}, ${line}` }}
-              haptic="select" scaleTo={0.99} onPress={() => { if (!blocked) setWindowEditor({ value: window }); }} style={s.windowBody}>
+              haptic="select" scaleTo={0.99} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: window }); } }} style={s.windowBody}>
               <T variant="bodyStrong" tone={over ? 'muted' : 'ink'}>{when}</T>
               <T variant="note" tone="muted">{line}</T>
             </Press>
@@ -532,12 +551,13 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
               <Trash size={20} color={blocked ? sys.color.muted : sys.color.danger} /></Press>
           </View>;
         })}</View> : <T variant="note" tone="muted">Nema posebnih datuma.</T>}
-        <V2Action label="Dodaj izuzetak" kind="secondary" disabled={blocked} onPress={() => { if (!blocked) setWindowEditor({ value: null }); }} />
+        <V2Action label="Dodaj izuzetak" kind="secondary" disabled={blocked} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: null }); } }} />
       </View>
     </ScrollView>
     {footer}
     {editing && !blocked ? <RuleSheet rule={editing.rule} isNew={editing.isNew} timezone={draft.timezone} phoneZone={phoneZone}
-      close={() => setEditing(null)} accept={rules => {
+      close={() => { if (alive.current && editScope.current.editing === editing) { retireEdit(); setEditing(null); } }} accept={rules => {
+        if (!canEdit()) return;
         update({ rules: [...draft.rules.filter(rule => rule.id !== editing.rule.id), ...rules] });
         // The day just filled stays open, so "Isto za sve radne dane" is one tap away.
         const first = rules[0]?.weekdays ?? [];
@@ -545,8 +565,10 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         if (open !== undefined) setExpandedDay(open);
       }} /> : null}
     {windowEditor && !blocked ? <WindowSheet window={windowEditor.value} timezone={draft.timezone} phoneZone={phoneZone}
-      close={() => setWindowEditor(null)} accept={window => update({ windows: [...draft.windows.filter(item => item.id !== window.id), window] })} /> : null}
-    {copySource && !blocked ? <CopySheet source={copySource} rules={draft.rules} close={() => setCopySource(null)}
+      close={() => { if (alive.current && editScope.current.windowEditor === windowEditor) { retireEdit(); setWindowEditor(null); } }}
+      accept={window => update({ windows: [...draft.windows.filter(item => item.id !== window.id), window] })} /> : null}
+    {copySource && !blocked ? <CopySheet source={copySource} rules={draft.rules}
+      close={() => { if (alive.current && editScope.current.copySource === copySource) { retireEdit(); setCopySource(null); } }}
       apply={targets => copy(copySource, targets, 'Termini su kopirani.')} /> : null}
     {confirmation.sheet}
   </View>;
