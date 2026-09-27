@@ -36,7 +36,8 @@ import { FactListEditor, FactTimestampEditor } from '../../ui/aiFirst/FactValueE
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { publicSummary } from '../../ui/v2/draftSummary';
-import { publicAnchorPoint, reviewRowValue, reviewTodos } from '../../ui/objava/reviewFacts';
+import { privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos } from '../../ui/objava/reviewFacts';
+import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
 import { PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewFactRow, ReviewPhotos, ReviewPreview,
   ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
 
@@ -393,6 +394,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const titleFact = review?.publicProjection.find(fact => fact.key === 'need.title');
   const geography = review?.publicProjection.find(fact => fact.key === 'need.task_geography');
   const geographyMode = (geography?.value as { mode?: string } | null | undefined)?.mode;
+  const privateMap = privateReviewMap(review?.location);
   // A route names its stops (street and place, never a house number: owner decision 2, 2026-09-24); one place is the line above.
   const routeLines = geography && (geographyMode === 'POINT_TO_POINT' || geographyMode === 'MULTI_STOP')
     ? factReviewValue(displayFact(geography)).split('\n').slice(1) : [];
@@ -449,7 +451,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             <PublicPlace zone={summary.zone || null} lines={routeLines} anchor={publicAnchorPoint(review.location)}
               pointsConfirmed={!!review.location?.resolvedLocation?.points.length}
               scopeKey={`${accountId}:${review.reviewId}:preview`} />
-            {review.ownerPrivateProjection.length ? <PrivatePlace>{rows(review.ownerPrivateProjection)}</PrivatePlace> : null}
+            {review.ownerPrivateProjection.length || privateMap.points.length ? <PrivatePlace>
+              {privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
+                scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={200} /> : null}
+              {rows(review.ownerPrivateProjection)}
+            </PrivatePlace> : null}
           </ReviewSection>
           {publicRows.length ? <ReviewSection title="Detalji">
             <View>{rows(publicRows)}</View>

@@ -8,7 +8,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { TurningCaret } from '../system/Disclosure';
 import { brandAction, cardCompact, field, inset, sys } from '../system/tokens';
 import { CardFact, CardTitle, CardValue, WaitingDot, valueSpoken, type TaskValue } from '../v2/TaskFace';
-import { ResolvedPinMap } from '../location/ResolvedPinMap';
+import { LocationMapPreview } from '../location/LocationMapPreview';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import type { Summary } from '../v2/draftSummary';
 import type { PublicAnchor } from './reviewFacts';
@@ -112,7 +112,8 @@ export function PublicPlace({ zone, lines, anchor, scopeKey, pointsConfirmed }: 
   return <PlaceGroup kind="public">
     <T variant="body">{zone || 'Mesto još nije navedeno.'}</T>
     {lines.map((line, index) => <T key={index} variant="note" tone="muted">{line}</T>)}
-    {anchor ? <ResolvedPinMap position={anchor} coarse disabled height={160} scopeKey={scopeKey} onChoose={() => {}} /> : null}
+    {anchor ? <LocationMapPreview points={[{ id: 'public-area', label: zone || 'Približno mesto', ...anchor }]}
+      coarse height={160} scopeKey={scopeKey} /> : null}
     {anchor || pointsConfirmed ? <T variant="note" tone="muted">Na javnoj mapi prikazuje se približno područje. Tačne tačke ostaju privatne.</T> : null}
   </PlaceGroup>;
 }

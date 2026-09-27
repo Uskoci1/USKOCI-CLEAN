@@ -6,6 +6,24 @@ import { REVIEW_FACT_COPY } from '../../data/reviewFactProblem';
 import { dogovorenoVreme } from '../../lib/dogovorenoVreme';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
 import { novac } from '../../lib/novac';
+import type { LocationOverviewPoint } from '../location/LocationOverviewMap.types';
+
+/** Owner-only review points in task order. Never use this for a public projection. */
+export function privateReviewMap(location: NeedLocationInput | null | undefined): {
+  points: readonly LocationOverviewPoint[]; route: boolean;
+} {
+  const value = normalizeNeedLocation(location);
+  if (!value?.resolvedLocation || value.geography.mode === 'REMOTE') return { points: [], route: false };
+  const slots = locationSlots(value.geography);
+  const stationary = value.geography.mode === 'STATIONARY';
+  const points = slots.flatMap(slot => {
+    const point = value.resolvedLocation!.points.find(item => item.slot === slot);
+    return point ? [{ id: slot, label: slotLabel(slot, stationary),
+      latitude: point.latitudeE6 / 1e6, longitude: point.longitudeE6 / 1e6 }] : [];
+  });
+  return { points, route: (value.geography.mode === 'POINT_TO_POINT' || value.geography.mode === 'MULTI_STOP')
+    && slots.length === points.length };
+}
 
 /**
  * What the publish review shows in a fact's row. Pure (no service, no Supabase), so a screen suite can import it.

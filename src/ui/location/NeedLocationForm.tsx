@@ -110,6 +110,9 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
   const titleForSlot = (slot: LocationSlot) => slot === 'start' ? (mode === 'STATIONARY' ? 'Mesto rada' : 'Polazište')
     : slot === 'end' ? 'Odredište' : slot === 'serviceArea' ? 'Područje rada' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
   const selectedSlot = activeSlot && slots.includes(activeSlot) ? activeSlot : slots[0];
+  // Keep the last confirmed value as the editor's restore baseline. A pending
+  // draft is neither counted as confirmed nor eligible for the form's save.
+  const confirmedPoints = points.filter(point => !pendingPoint || point.slot !== selectedSlot);
   function submit() {
     if (disabled || pendingPoint || !selectableCountry(countryOptions.countries, country)) return;
     if (!baseValue) { setInvalid(true); return; }
@@ -169,9 +172,10 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
         <GroupHeader art="lock" label="Samo u Dogovoru" />
         <PrivateLocationNote />
         {!baseValue || !slots.length ? <T>Prvo unesi državu i javno mesto za potrebne tačke.</T> : <>
-          <T variant="bodyStrong">Potvrđeno tačaka: {points.length} od {slots.length}</T>
+          <T variant="bodyStrong">Potvrđeno tačaka: {confirmedPoints.length} od {slots.length}</T>
           {slots.length > 1 ? <LocationChoice label="Tačka koju uređuješ" value={selectedSlot}
-            options={slots.map(slot => ({ value: slot, label: `${titleForSlot(slot)}${points.some(point => point.slot === slot) ? ' · potvrđeno' : ''}` }))}
+            options={slots.map(slot => ({ value: slot, label: `${titleForSlot(slot)}${pendingPoint && slot === selectedSlot
+              ? ' · čeka potvrdu' : confirmedPoints.some(point => point.slot === slot) ? ' · potvrđeno' : ''}` }))}
             disabled={disabled || pendingPoint} onChange={slot => { if (!disabled && !pendingPoint) setActiveSlot(slot as LocationSlot); }} /> : null}
           {selectedSlot ? <LocationPointEditor key={`${pinEpoch}:${selectedSlot}`} slot={selectedSlot} title={titleForSlot(selectedSlot)}
             countryCode={baseValue.taskCountryCode}
@@ -180,9 +184,9 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
             resolver={resolver} confirmAsPrimary={false}
             point={points.find(point => point.slot === selectedSlot)} disabled={disabled}
             scopeKey={`${review.accountId}:${review.conversationId}:${review.revision}:${pinEpoch}:${selectedSlot}`}
-            onInvalidate={() => change(() => { setPoints(old => old.filter(point => point.slot !== selectedSlot)); setPendingPoint(true); }, false)}
+            onInvalidate={() => change(() => setPendingPoint(true), false)}
             onConfirm={point => change(() => { setPoints(old => [...old.filter(item => item.slot !== selectedSlot), point]); setPendingPoint(false); }, false)} /> : null}
-          {points.length < slots.length ? <T variant="meta" tone="muted">Mesto je potpuno potvrđeno tek kada potvrdiš sve tačke.</T> : null}
+          {confirmedPoints.length < slots.length ? <T variant="meta" tone="muted">Mesto je potpuno potvrđeno tek kada potvrdiš sve tačke.</T> : null}
         </>}
         <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
         <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}

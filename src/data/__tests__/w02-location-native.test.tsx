@@ -94,14 +94,63 @@ describe('actual native Need location form', () => {
     expect(JSON.stringify(onSave.mock.calls[0][0].geography)).not.toMatch(/latitude|longitude|Privatna/);
   });
 
-  it('editing a city and returning to the original text cannot revive confirmed coordinates', async () => {
+  it('discard restores the latest confirmed point and preserves the other route point without saving a draft', async () => {
+    const onSave = jest.fn(), base = review();
+    const geography = { mode: 'POINT_TO_POINT' as const, start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
+    const startPoint = { slot: 'start' as const, latitudeE6: 45251234, longitudeE6: 19831234,
+      origin: { kind: 'MANUAL_PIN' as const }, address: 'Potvrđena polazna adresa', accessNotes: 'Zvono 2' };
+    const endPoint = { slot: 'end' as const, latitudeE6: 44812345, longitudeE6: 20461234,
+      origin: { kind: 'MANUAL_PIN' as const }, address: 'Potvrđena adresa odredišta' };
+    const resolvedLocation = { version: 1 as const, binding: { taskCountryCode: 'RS', geography,
+      exactAddress: base.value.exactAddress }, points: [startPoint, endPoint] };
+    const loaded: NeedLocationReview = { ...base, value: { ...base.value, geography, resolvedLocation } };
+    await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
+    const map = () => tree.root.findByType('ResolvedPinMap' as never);
+    const move = async (latitude: number, longitude: number) => {
+      await act(async () => map().props.onChoose({ latitude, longitude }));
+    };
+    const discard = async () => {
+      await act(async () => tree.root.findByProps({ label: 'Odbaci nepotvrđenu tačku' }).props.onPress());
+    };
+
+    await move(45.26, 19.84); await move(45.27, 19.85);
+    expect(saveButton().props.disabled).toBe(true);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Tačka koju uređuješ' }).props.accessibilityValue.text).toContain('čeka potvrdu');
+    await save(); expect(onSave).not.toHaveBeenCalled();
+    await discard();
+    expect(onSave).not.toHaveBeenCalled();
+    expect(map().props.position).toEqual({ latitude: 45.251234, longitude: 19.831234 });
+    expect(saveButton().props.disabled).toBe(false);
+    await save(); expect(onSave.mock.calls[0][0].resolvedLocation).toEqual(resolvedLocation);
+
+    // A new explicit confirmation becomes the baseline, not the original server value.
+    await move(45.28, 19.86);
+    await act(async () => tree.root.findByProps({ label: 'Potvrdi tačku: Polazište' }).props.onPress());
+    await save();
+    const latest = onSave.mock.calls[1][0].resolvedLocation;
+    expect(latest.points[0]).toMatchObject({ slot: 'start', latitudeE6: 45280000, longitudeE6: 19860000 });
+    expect(latest.points[1]).toEqual(endPoint);
+    await move(45.29, 19.87);
+    await save(); expect(onSave).toHaveBeenCalledTimes(2);
+    await discard();
+    expect(map().props.position).toEqual({ latitude: 45.28, longitude: 19.86 });
+    await save(); expect(onSave.mock.calls[2][0].resolvedLocation).toEqual(latest);
+  });
+
+  it.each(['city', 'country'] as const)('changing %s and returning cannot revive the confirmed baseline of a pending point', async field => {
     const onSave = jest.fn(), base = review();
     const loaded: NeedLocationReview = { ...base, value: { ...base.value, resolvedLocation: { version: 1, binding: { taskCountryCode: 'RS',
       geography: base.value.geography!, exactAddress: base.value.exactAddress }, points: [
       { slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } },
     ] } } };
     await act(async () => { tree = create(<NeedLocationForm review={loaded} busy={false} uncertain={false} onSave={onSave} />); });
-    await edit('Mesto rada — grad ili mesto', 'Beograd'); await edit('Mesto rada — grad ili mesto', 'Novi Sad');
+    await act(async () => tree.root.findByType('ResolvedPinMap' as never).props.onChoose({ latitude: 45.26, longitude: 19.84 }));
+    if (field === 'city') {
+      await edit('Mesto rada — grad ili mesto', 'Beograd'); await edit('Mesto rada — grad ili mesto', 'Novi Sad');
+    } else {
+      await chooseMode('Bosna i Hercegovina'); await chooseMode('Srbija');
+    }
+    expect(tree.root.findAllByProps({ label: 'Odbaci nepotvrđenu tačku' })).toHaveLength(0);
     await save();
     expect(onSave.mock.calls[0][0].resolvedLocation).toBeNull();
     expect(tree.root.findByType('ResolvedPinMap' as never).props.position).toBeNull();

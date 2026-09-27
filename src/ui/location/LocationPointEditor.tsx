@@ -172,6 +172,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     }
     retireSearch(); setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label); invalidate();
   };
+  const useCandidateAddress = () => {
+    if (!owns() || !selectedLabel || !position) return;
+    const label = selectedLabel;
+    retireSearch(); setAddress(label); invalidate();
+  };
   const cancelSearch = () => { if (owns()) { retireSearch(lookupMode === 'search'); if (lookupMode === 'search') invalidate(); } };
   const confirm = () => {
     if (!owns() || !position) return;
@@ -218,6 +223,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     </Press> : null}
     {/* The address the person is about to confirm is content, not a caption: body size, readable. */}
     {selectedLabel ? <T variant="body">Predlog za proveru: <T variant="bodyStrong">{selectedLabel}</T></T> : null}
+    {selectedLabel && selectedLabel !== address.trim() ? <Button label="Koristi predlog kao privatnu adresu" kind="quiet"
+      disabled={disabled || !focused} onPress={useCandidateAddress} /> : null}
     {/* After a suggestion is applied there is no search in flight, so "Otkaži pretragu" was really
         "delete the pin I just chose", under a name that promised the opposite. */}
     {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu" kind="quiet" disabled={disabled || !focused} onPress={cancelSearch} /> : null}
@@ -229,11 +236,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
       kind="quiet" disabled={disabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
     <LocationDetails label={`${title} — privatni detalji tačke`} disabled={disabled || !focused}
-      summary={address || notes ? 'Privatni detalji su uneti. Otvori za pregled.' : 'Dodaj adresu ili napomenu po potrebi'}>
+      summary={[address, notes].filter(value => value.trim()).join(' · ') || 'Dodaj adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} value={address} maxLength={1000} editable={!disabled && focused}
-      onChangeText={value => { if (owns()) { retireSearch(true); setAddress(value); invalidate(); } }} />
+      onChangeText={value => { if (owns()) { retireSearch(); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} value={notes} maxLength={2000} multiline editable={!disabled && focused}
-      onChangeText={value => { if (owns()) { retireSearch(true); setNotes(value); invalidate(); } }} />
+      onChangeText={value => { if (owns()) { retireSearch(); setNotes(value); invalidate(); } }} />
     </LocationDetails>
     {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
     {/* The line beside the confirm button says why it is grey while there is no point to confirm. */}

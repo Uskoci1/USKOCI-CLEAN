@@ -112,14 +112,36 @@ it('text edits retire the selected candidate and reject its retained confirmatio
   await act(async () => oldConfirm());expect(props.onConfirm).not.toHaveBeenCalled();expect(map().props.position).toBeNull();
 });
 
-it('editing private text invalidates pending lookup and an unconfirmed provider pin', async () => {
+it('editing private text retires lookup and stale confirmation but retains the explicitly selected pin', async () => {
   const pending = deferred<ConfiguredLocationResolution>(), resolver = configured();resolver.search.mockReturnValueOnce(pending.promise);
   await render({ resolver, initialQuery: 'Place' });await press('Pronađi na mapi');
   await change('privatna adresa (opciono)', 'Another private address');await act(async () => pending.resolve(proposals));
   expect(buttons().some(node => named(node).startsWith('Izaberi predlog'))).toBe(false);
   await press('Pronađi na mapi');await press(`Izaberi predlog: ${candidate.label}`);
-  await change('privatne napomene za pristup (opciono)', 'Private note');expect(map().props.position).toBeNull();
-  expect(button('Potvrdi tačku: Početak').props.disabled).toBe(true);
+  const oldConfirm = button('Potvrdi tačku: Početak').props.onPress;
+  await change('privatne napomene za pristup (opciono)', 'Private note');
+  expect(map().props.position).toEqual(candidate.position);
+  await act(async () => oldConfirm()); expect(props.onConfirm).not.toHaveBeenCalled();
+  await press('Potvrdi tačku: Početak');
+  expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ origin: candidate.origin,
+    latitudeE6: 44123456, longitudeE6: 20654321, address: 'Another private address', accessNotes: 'Private note' }));
+});
+
+it('shows existing private details and replaces the address with the candidate only on explicit action', async () => {
+  await render({ resolver: configured(), initialQuery: 'Place', point: { slot: 'start', latitudeE6: 45000000,
+    longitudeE6: 19000000, origin: { kind: 'MANUAL_PIN' }, address: 'Old address', accessNotes: 'Bell 2' } });
+  await press('Pronađi na mapi'); await press(`Izaberi predlog: ${candidate.label}`);
+  expect(tree.root.findByType('LocationDetails' as React.ElementType).props.summary).toBe('Old address · Bell 2');
+  expect(field('privatna adresa (opciono)').props.value).toBe('Old address');
+  const useAddress = button('Koristi predlog kao privatnu adresu').props.onPress;
+  await act(async () => useAddress());
+  expect(field('privatna adresa (opciono)').props.value).toBe(candidate.label);
+  expect(map().props.position).toEqual(candidate.position); expect(props.onConfirm).not.toHaveBeenCalled();
+  await change('privatna adresa (opciono)', 'Corrected address');
+  await act(async () => useAddress());
+  expect(field('privatna adresa (opciono)').props.value).toBe('Corrected address');
+  await press('Potvrdi tačku: Početak');
+  expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ address: 'Corrected address', accessNotes: 'Bell 2' }));
 });
 
 it('a map move changes the proposed origin to MANUAL_PIN and keeps private fields explicitly entered by the user', async () => {

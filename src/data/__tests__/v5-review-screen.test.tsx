@@ -31,7 +31,7 @@ jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEd
 jest.mock('../../ui/calendar/CalendarControls', () => ({ CivilField: 'CivilField' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: () => null }));
 // The preview's read-only public map is MapLibre; the harness draws it as a host element.
-jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
+jest.mock('../../ui/location/LocationMapPreview', () => ({ LocationMapPreview: 'LocationMapPreview' }));
 jest.mock('../../ui/system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,

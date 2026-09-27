@@ -235,9 +235,9 @@ it('announces real selected coordinates outside the Android bitmap and updates o
   const status = tree.root.findByProps({ accessibilityLabel: 'Predložena tačka na mapi. Geografska širina 45.251234; geografska dužina 19.831234.' });
   expect(status.props.accessible).toBe(true);
   expect(annotation().findAllByProps({ accessibilityRole: 'text' })).toHaveLength(0);
-  expect(text()).toContain('Proveri položaj oznake');
+  expect(text()).toContain('Dodirni mapu ili prevuci oznaku do pravog mesta.');
   await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.8312344, 45.2512344], zoom: 15 } }));
-  expect(text()).toContain('Mapa je centrirana na izabranu tačku.');
+  expect(text()).toContain('Tačka je na sredini mape. Pomeri oznaku ako treba.');
 });
 
 it('camera readiness requires the current native center and zoom, then clears on movement', async () => {
@@ -245,12 +245,12 @@ it('camera readiness requires the current native center and zoom, then clears on
   await act(async () => markerImage().props.onLoad());
   for (const state of [{ center: [19.83, 45.25], zoom: 1 }, { center: [0, 0], zoom: 15 }, { center: [NaN, 45.25], zoom: 15 }, null]) {
     await act(async () => map().props.onRegionDidChange({ nativeEvent: state }));
-    expect(text()).not.toContain('Mapa je centrirana');
+    expect(text()).not.toContain('Tačka je na sredini mape');
   }
   await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
-  expect(text()).toContain('Mapa je centrirana');
+  expect(text()).toContain('Tačka je na sredini mape');
   await act(async () => map().props.onRegionWillChange());
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
 });
 
 it('coarse accessibility rounds both coordinates and never announces private precision', async () => {
@@ -267,10 +267,10 @@ it('clears selected-coordinate and idle state on point removal, account switch, 
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
   await act(async () => tree.update(<ResolvedPinMap {...initial} />));
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
-  expect(text()).not.toContain('Geografska'); expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Geografska'); expect(text()).not.toContain('Tačka je na sredini mape');
   await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} scopeKey="other-account" />));
   await act(async () => oldIdle({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
   mockFocused = false;
   await act(async () => tree.update(<ResolvedPinMap {...initial} position={position} scopeKey="other-account" />));
   expect(text()).not.toContain('Geografska');
@@ -288,9 +288,9 @@ it('keeps decoded image readiness separate from actual camera idle without any o
     jest.advanceTimersByTime(500);
   });
   expect(mockProject).not.toHaveBeenCalled();
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
   await act(async () => marker.props.onLoad());
-  expect(text()).toContain('Mapa je centrirana');
+  expect(text()).toContain('Tačka je na sredini mape');
   expect(annotation().props.onDragEnd).toBeUndefined();
 });
 
@@ -298,7 +298,7 @@ it('retains early decoded pixels until map readiness but rejects stale image eve
   await render({ position: { latitude: 45.25, longitude: 19.83 } });
   const oldImage = markerImage().props;
   await act(async () => oldImage.onLoad());
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
   await ready();
   await act(async () => tree.update(<ResolvedPinMap {...initial} position={{ latitude: 45.26, longitude: 19.84 }} />));
   await act(async () => { oldImage.onLoad(); oldImage.onError(); });
@@ -327,7 +327,7 @@ it('fails the map visibly if its local marker cannot load and does not accept la
   expect(text()).toContain('Mapa nije učitana'); expect(handle().props.onStartShouldSetResponder()).toBe(false);
   await act(async () => { marker.onLoad(); map().props.onPress(tap(19.84, 45.26)); });
   expect(mockProject).not.toHaveBeenCalled(); expect(onChoose).not.toHaveBeenCalled();
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
 });
 
 it.each(['project', 'unproject'] as const)('fences late native %s after cancel, failed map, timeout, disable, point ABA, account ABA, blur or unmount', async phase => {
@@ -404,7 +404,7 @@ it('cancels an active marker gesture when the viewport moves or its measured fra
 it('allows a visible marker to be dragged after a user-changed viewport becomes idle without demanding a centered camera', async () => {
   await render({ position: { latitude: 45, longitude: 19 } });
   await dragReady([19.001, 45.001], 14);
-  expect(text()).not.toContain('Mapa je centrirana');
+  expect(text()).not.toContain('Tačka je na sredini mape');
   expect(handle().props.onStartShouldSetResponder()).toBe(true);
   await act(async () => { handle().props.onResponderGrant(gesture(100, 100)); handle().props.onResponderRelease(gesture(110, 130)); });
   expect(mockUnproject).toHaveBeenCalledWith([180, 190]);

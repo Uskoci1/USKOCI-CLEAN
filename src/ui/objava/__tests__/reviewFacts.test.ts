@@ -3,7 +3,7 @@ import type { NeedLocationInput } from '../../../contracts/location';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../../contracts/needFactsV2';
 import { factReviewValue } from '../../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../../data/reviewFactProblem';
-import { publicAnchorPoint, reviewRowValue, reviewTodos } from '../reviewFacts';
+import { privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos } from '../reviewFacts';
 
 const fact = (key: NeedFactV2Key, value: unknown): AiNeedV2Fact => ({ id: key, key, value, displayValue: String(value),
   valueType: NEED_FACT_V2_DEFINITIONS[key].valueType, privacyClass: NEED_FACT_V2_DEFINITIONS[key].privacyClass,
@@ -56,6 +56,20 @@ describe('publicAnchorPoint', () => {
     expect(publicAnchorPoint(null)).toBeNull();
     expect(publicAnchorPoint({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null } as NeedLocationInput)).toBeNull();
     expect(publicAnchorPoint(at({ mode: 'AREA_BASED', serviceArea: { city: 'Beograd' } }, []))).toBeNull();
+  });
+  it('orders an owner route by its topology, not confirmation order, without leaking precision to the public anchor', () => {
+    const value = at({ mode: 'MULTI_STOP', start: { city: 'Novi Sad' }, waypoints: [{ city: 'Sremski Karlovci' }], end: { city: 'Beograd' } },
+      [{ slot: 'end', latitudeE6: 44811111, longitudeE6: 20461111 },
+        { slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234 },
+        { slot: 'waypoints/0', latitudeE6: 45201111, longitudeE6: 19931111 }]);
+    expect(privateReviewMap(value)).toMatchObject({ route: true, points: [
+      { id: 'start', latitude: 45.251234, longitude: 19.831234 },
+      { id: 'waypoints/0', latitude: 45.201111, longitude: 19.931111 },
+      { id: 'end', latitude: 44.811111, longitude: 20.461111 }] });
+    expect(publicAnchorPoint(value)).toEqual({ latitude: 45.25, longitude: 19.83 });
+    expect(privateReviewMap({ ...value, resolvedLocation: { ...value.resolvedLocation!, points: value.resolvedLocation!.points.slice(1) } }).route).toBe(false);
+    expect(privateReviewMap({ ...value, geography: { mode: 'REMOTE' } })).toEqual({ points: [], route: false });
+    expect(privateReviewMap({ ...value, exactAddress: 'Changed binding' })).toEqual({ points: [], route: false });
   });
 });
 

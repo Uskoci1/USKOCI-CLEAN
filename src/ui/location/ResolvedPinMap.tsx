@@ -223,22 +223,15 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         </Press>)}
     </View> : null}
     </View>
-    {/* Everything below is the picker talking to the person choosing a point: the live coordinate
-        readout, whether the marker is centred, what to do next. A read-only map chooses nothing, and
-        on the public Task these three lines printed as a strip of instrument output under the map —
-        latitude and longitude, "Mapa je centrirana", "Prikazana je izabrana lokacija" — where the
-        screen's own sentence belongs. A screen reader still hears the point: it is on the frame. */}
-    {pin && !disabled ? <View style={{ gap: sys.space.xs }}>
+    {/* One usable instruction, not a coordinate readout. The precise point remains available
+        to assistive technology and the parent still owns explicit confirmation. */}
+    {pin && !disabled ?
       <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
-        variant="meta" tone="muted">{coordinateText}</T>
-      <T accessibilityLiveRegion="polite" variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
-        ? 'Mapa je centrirana na izabranu tačku.' : 'Proveri položaj oznake na mapi.'}</T>
-    </View> : null}
-    {disabled ? null : !pin ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađi područje i dodirni mapu.</T>
-      : <T variant="meta" tone="muted">{coarse ? 'Prikazana je približna tačka. Dodirni mapu ili prevuci oznaku da predložiš drugu.'
-          : 'Dodirni mapu ili prevuci oznaku da predložiš drugu tačku.'}</T>}
-    {!disabled ? <T variant="meta" tone="muted">Izbor na mapi treba potvrditi u obrascu.</T> : null}
+        variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
+          ? 'Tačka je na sredini mape. Pomeri oznaku ako treba.'
+          : 'Dodirni mapu ili prevuci oznaku do pravog mesta.'}</T>
+      : !disabled ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađi područje i dodirni mapu.</T> : null}
   </View>;
 }
 
