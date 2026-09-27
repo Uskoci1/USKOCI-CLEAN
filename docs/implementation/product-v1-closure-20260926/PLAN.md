@@ -1,8 +1,16 @@
 # USKOČI V1 closure plan — 26.09.2026
 
-Status: **ACTIVE SCOPE; EXECUTION ORDER UPDATED 2026-09-27**. The owner now prioritizes P0 publication through P7 account/release in `finalization-20260927/ROUND_01.md`. The P0 flow is now approved and implemented in source, with the existing card retained; see `finalization-20260927/ROUND_02_P0.md` for pending verification. The older package sequence below is retained as historical scope. Before changing appearance or user flow, show a concrete screenshot proposal and obtain owner approval. Do not run tests, builds, installs or device acceptance until the owner asks. This pause does not make untested changes accepted. The sole living finalization matrix is generated from `docs/control/redovi.json`. This is the product-level order after the real Android push proof. It does not replace exact package evidence; it tells the next package what must be true before it is called finished.
+Status: **ACTIVE FINALIZATION — ROUND31**. Canonical branch: `work/uskoci-ui-unification-20260924`; latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.
 
-## Current product baseline
+Start with [AGENTS.md](../../../AGENTS.md), [Round31](finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md) and [its exact check record](finalization-20260927/ROUND_31_CHECKS.json). P0 is applied and connected; current application outcomes are in [APPLICATION_APPROVALS_20260927.md](finalization-20260927/APPLICATION_APPROVALS_20260927.md). The active order remains P0 through P7, with `docs/control/redovi.json` as the living inventory.
+
+Ordinary UI/flow refinement with critical review is authorized; preserve TaskCard/Peek. Focused checks and consolidated emulator/device build, install and verification are authorized. Existing server, certificate, dependency, payment and secret boundaries remain. Installation and native acceptance for the `10739a44` corrections must be read from their exact APK checkpoint receipts; neither follows from the source being pushed.
+
+## Historical scope and baseline — 2026-09-26
+
+The dated baseline and package sequence below retain the original product scope, not current deployment or acceptance status. Follow the current references above when deciding what is implemented, applied, installed or still unproved.
+
+## Recorded product baseline
 
 The marketplace core exists and has a real two-account journey: Need → Response → selection → Agreement → messages → completion → ratings. Android push has now been observed on the owner's physical phone after explicit permission and session-bound device registration. A one-shot proof created exactly one PUSH attempt, Expo returned a ticket, the notification arrived, tapping it opened Inbox, and a pre-existing real MESSAGE_RECEIVED Inbox event correctly opened an Agreement that contains real messages. The synthetic proof event itself deliberately did not contain a real message, so it is **not** evidence that one same real chat message travelled end-to-end through push.
 

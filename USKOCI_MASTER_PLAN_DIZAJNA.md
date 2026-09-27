@@ -1,5 +1,17 @@
 # USKOČI — glavni plan dizajna (UI/UX nastavak)
 
+## Current checkpoint — finalization Round31
+
+Canonical branch: `work/uskoci-ui-unification-20260924`. Latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.
+Start with [AGENTS.md](AGENTS.md), [Round31](docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md)
+and [its exact check record](docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_CHECKS.json).
+Ordinary UI/flow refinement with critical review is authorized, preserving TaskCard/Peek; focused checks and consolidated emulator/device build, install and verification are authorized.
+Server, certificate, dependency, payment and secret boundaries remain. The `10739a44` corrections are pushed source; read matching installation and native acceptance separately from the exact checkpoint receipts.
+
+## Historical design record — through 2026-09-25
+
+The dated decisions, batches and device claims below retain their original scope. R17 is historical; the Round31 references above control current execution and acceptance status.
+
 Radna grana: `work/uskoci-ui-unification-20260924` (od `724f4ed1`; glavna grana `clean-alpha-backend` se ne dira).
 Ovaj fajl je glavni plan za UI/UX nastavak. Detalji i slike: Claude Doc „USKOČI · Master dizajn“, kartica
 „Plan ekrana (23. sep)“ (https://claude.ai/code/artifact/4e3c1c50-fa0b-48a7-b998-454e0b8b6923) i skice
@@ -18,7 +30,7 @@ map/results composition. The current R10 map already has the combined sheet and 
 reduces competing header chrome and visual weight while preserving identity access, complete attribution and all
 true task facts. This is recorded design intent, not a new implemented screen or APK. It does not restart the plan.
 
-## Current execution checkpoint — 2026-09-25
+## Historical execution checkpoint — 2026-09-25
 
 Research supplement (proposal only):
 `docs/implementation/design-system/premium-research-plan-20260925/PLAN.md` connects the owner's 62-area

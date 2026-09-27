@@ -22,7 +22,7 @@
       "session": 73004,
       "exit": 0
     },
-    "native": "PENDING_FOLLOWING_EXACT_BUILD"
+    "native": "See exact_correction_checkpoint; no blanket acceptance"
   },
   "emulator": {
     "status": "INSTALLED_WITH_R_SESSION_PRESERVED_INSTALLED_SHA_MATCHED_SCOPED_REVIEW",
@@ -104,5 +104,34 @@
       "sha256": "ba4f6963335f1d61d8fcfbe47234170867c8c3081d9585c905b8e8cc549d5cbe",
       "bytes": 11720
     }
+  },
+  "exact_correction_checkpoint": {
+    "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+    "receipt": "ROUND_31_NATIVE_RECEIPT.json",
+    "emulator": {
+      "status": "INSTALLED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
+      "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+      "tree": "e16f38fd172813e7e85f7cf165ba34638f29188c",
+      "run": 36353185115,
+      "package": "rs.uskoci.dev",
+      "abi": "x86_64",
+      "sha256": "4c476cffb61ee40f25aee99b0d522723aafd60ae2314541ed1aaa1174b528a4e",
+      "bytes": 72902621,
+      "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "device": "emulator-5556"
+    },
+    "phone": {
+      "status": "ARTIFACT_VERIFIED_NOT_YET_INSTALLED",
+      "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+      "tree": "e16f38fd172813e7e85f7cf165ba34638f29188c",
+      "run": 36353187030,
+      "package": "rs.uskoci.preview",
+      "abi": "arm64-v8a",
+      "sha256": "54fbf761e678c3a162862676647a2f0ccea01fd9e852438264d1c858d3c4b775",
+      "bytes": 71051286,
+      "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "device_status": "USB_ABSENT_NOT_INSTALLED"
+    },
+    "status": "MAP_DEADLINE_RECOVERY_NATIVE_PASS_FULL_RETURN_NATIVE_FAIL_CATALOG_SCOPED_ONLY"
   }
 }

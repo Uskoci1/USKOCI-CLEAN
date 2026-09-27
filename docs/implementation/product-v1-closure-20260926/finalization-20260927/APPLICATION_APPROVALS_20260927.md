@@ -1,12 +1,39 @@
-# Current approval update — Round26
+# Current application status — Round31, 2026-09-27
 
-Owner approved pending P0/P4/P5 application and wiring. All three are applied on DEV (205→208), exact hashes and authority verified; see `ROUND_26_APPLIED_CONNECTIONS.md` and application receipt. B3c disposable recertification is approved and in progress; no DEV certificate application claimed. The earlier pending statements below are historical and superseded for these named packages. Dependency/payment/legal and other unfinished packages remain separate.
+The latest completed client corrections are committed and pushed as `10739a440611fc32e3bd6d9ee6dd66a5479e091b`. The canonical DEV metadata read at **21:52 UTC** reports ledger **210** and push Edge **22 ACTIVE**. The six latest ledger SHA256 values match the recorded application receipts. Both certificate rows retain SHA256 `f66818aa870492e397cb991e5e82f1f3d03262352b7830ce62c0d1aa9691755b`; the readiness-function definition MD5 is `8bfe3af6ea5e67cfe40c9fb518f36ef1`. These are metadata/readback facts: this check did not execute private readiness helpers or freshly inspect the exact-push flag.
 
-# Application approvals and recorded outcomes — 2026-09-27
+## Applied and connected
+
+| Package | Current outcome | Evidence and remaining boundary |
+| --- | --- | --- |
+| Chat B3a/B3b | Applied in Round14; bounded history, exact-message window and displayed-message ACK connected. | [Round14 receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json). Native/provider acceptance is scoped separately. |
+| P0 exact public-row lookup | Applied as `20260927185408` / ledger206 and connected to the publication landing. | [P0/P4/P5 receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json), [Round26](ROUND_26_APPLIED_CONNECTIONS.md). Full Discovery paging remains separate. |
+| P4 exact event/message resolver | Applied as `20260927185451` / ledger207; Inbox and compatible push ingress use the exact-message client path. | Same Round26 receipt; the real provider event→push→tap→window→ACK path remains unaccepted. |
+| P5 owned licenses | Applied as `20260927185545` / ledger208 and connected to the manual worker editor. | Same Round26 receipt. These are self-declared licenses, not a verification claim. |
+| B3c conversation invalidation | Applied as `20260927201030` / ledger209 with the explicitly approved certificate bindings; client CDC/push refresh owners connected. | [B3c receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_chat_b3c_application.receipt.json), [Round28](ROUND_28_LIVE_CHAT_AND_PHONE.md). Native arrival/reconnect between two devices remains unproved. |
+| Compatible P4 push transport and the two approved copy changes | SQL `20260927201531` / ledger210 and Edge22 applied; the earlier Round14 copy substitutions are retained. | [Transport receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_chat_p4_push_transport_application.receipt.json). Exact payload was OFF at the recorded **20:12:44 UTC** flag-name check; this is the last confirmed flag state, not a new flag read at 21:52. Legacy INBOX remains supported. |
+
+No repeat application approval is pending for the named applied packages. Exact-message payload activation still awaits compatible active registrations; one upgraded device is insufficient. Controlled end-to-end provider acceptance remains a separate open proof.
+
+## Remaining gates and unfinished work
+
+- **PKG045b:** the existing owner approval remains conditional on compatible-app rollout and verification. The last accepted physical-phone build is `b589994e`; the phone was unavailable during the Round31 checkpoint. The newer `10739a44` phone artifact is verified but not installed. All relevant active test devices and actual task reads must meet the documented rollout gate, followed by fresh canonical candidate preflight. This is not ready to apply, and the same conditional approval need not be requested again. The old 12:59 privilege read below is historical.
+- **P6 bounded Discovery:** PAGE/EXACT_PUBLIC has disposable proof (8 SQL groups, 208 client-parity vectors, 1,004 rows), but remains rollback-only/unapplied/unwired. Whole-map/place contracts, Auth/PostgREST and query-cost evidence remain engineering work.
+- **Voice messages:** source-only AAC/media preparation does not supply native recording/playback or the complete message lifecycle. Engineering, exact media authority and device evidence remain.
+- **Written rating comments:** the product direction is approved; a complete length/visibility/reporting/retention contract, candidate and proof remain to be prepared.
+- **Native and release evidence:** exact10739a44 is installed/hash-matched on emulator; native late-map recovery passed, while FULL-list return reproduced a whole-panel disappearance. Pin responsiveness, two-device realtime/reconnect, exact provider push, iOS and complete release acceptance remain open. Legal/operator/retention inputs and separately owned payment work retain their own boundaries.
+
+The P6/voice/rating-comment gaps above are development and evidence gaps, not deployable packages awaiting the same broad approval. [Round31](ROUND_31_NATIVE_CORRECTIONS.md), [its check record](ROUND_31_CHECKS.json) and [exact native receipt](ROUND_31_NATIVE_RECEIPT.json) distinguish pushed source, installed10739a44 emulator, older phone, observed PASS and native FAIL. The342-suite/7,199-test full CI passed before the latest native corrections; those corrections have their own focused checks and integrated TypeScript pass. Local control generation still does not establish hosted dashboard publication.
+
+---
+
+# Historical application record — Rounds14–26
+
+The sections below retain their original observations and pending statements for traceability. Their timestamps, certificate values and then-unapplied P0/B3c/P4 statements are historical; the Round31 section above controls current status.
 
 Updated after explicit owner approval and the Round 14 application. Earlier read-only inventory was at `c63199cf`; its pending status for Chat B3a/B3b and the two push literals is superseded. This document records authorization/outcomes and links the [application receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json); it is not complete DEV or device acceptance.
 
-## Approved and applied in Round 14
+## Historical: approved and applied in Round14
 
 | Package | Intended change | Evidence and boundary |
 | --- | --- | --- |
@@ -22,7 +49,7 @@ Immediate DEV preflight at **14:01:30 UTC** verified ledger 203, all three B3 fu
 
 Advisor comparison adds exactly three expected authenticated SECURITY DEFINER RPC notices; all other stable findings are unchanged. This does not clear historical advisories. The original disposable replay excludes PKG051 and remains historical proof, independently from the current DEV application receipt. Client integration is wired and 11 distinct focused suites / 515 tests pass, including 82 service tests. Integration TypeScript passes; final exact-source/check and commit receipts are tracked in Round 14. Native acceptance, voice, gap-free realtime and complete exact-message push behavior remain separate.
 
-## Already approved, still conditional
+## Historical: conditional approval and its then-current rollout gate
 
 **PKG045b task-column privacy plus its internal certificate update** was explicitly approved by the owner after compatible-app verification. Do not ask for that same approval again.
 
@@ -30,7 +57,7 @@ Fresh DEV catalog read at **12:59:38 UTC** still reports table SELECT and the th
 
 The remaining gate is the documented compatible APK rollout: preserve app data, verify actual task reads, account for all active test devices, then run fresh canonical preflight and apply the exact candidate under the existing conditional approval. The user deferred new full-suite/build/install/device execution, so a consolidated verification run must be authorized before this condition can be fulfilled. The 17-check historical disposable proof is not current device acceptance. See `docs/implementation/v5-ai-first/pkg045/PKG045_TASK_COLUMN_PRIVACY.md` and `docs/implementation/NEXT_AI_HANDOFF_20260922_TASK_PRIVACY.md`.
 
-## Not ready for an application-only approval
+## Historical: packages not ready at that earlier inventory
 
 - **P0 exact public-row lookup:** candidate and proof source exist; proof not executed, not applied or wired.
 - **Bounded Discovery filters/counts/paging/map projection:** contract/implementation/proof work remains.
@@ -42,7 +69,7 @@ The remaining gate is the documented compatible APK rollout: preserve app data, 
 
 Media v13, Notification A1 SQL/runtime, PKG045a and PKG051a have prior applied receipts and are not awaiting the same approval again. The two later formatter literals are now also deployed in push v21 under their explicit approval.
 
-## Tracking and limits
+## Historical: Round14 tracking and limits
 
 Round 14 changes are bounded to three new B3 RPCs and the two approved push bodies. No DEV fixture/business-data test, provider send, certificate rebind, helper ACL expansion, notification preference, dependency or device change is claimed. Application success does not prove native display, scrolling, ACK viewability, provider delivery or query cost. Frozen candidates remain byte-identical to the successful disposable proof.
 

@@ -1,5 +1,18 @@
 # Round31: native findings, map recovery and catalog continuity
 
+## Current exact-source checkpoint — 2026-09-28 local
+
+Source `10739a440611fc32e3bd6d9ee6dd66a5479e091b` is pushed on the canonical branch. Emulator build [36353185115](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36353185115) was installed with `-r`; the installed APK SHA256 independently matches `4c476cffb61ee40f25aee99b0d522723aafd60ae2314541ed1aaa1174b528a4e`. The existing session survived. Phone build [36353187030](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36353187030) is verified against source/tree/package/ABI/signature and SHA256 `54fbf761e678c3a162862676647a2f0ccea01fd9e852438264d1c858d3c4b775`, but remains uninstalled because the USB phone is absent.
+
+- **Native recovery PASS:** the same map hit its display deadline at15,120ms and completed at24,399ms. The map visibly recovered without retry. This closes the reproduced stuck-error case, not slow map loading or pin responsiveness.
+- **Native FULL entry PASS:** tapping the count opens the list directly under search/quick filters.
+- **Native FULL return FAIL:** after scrolling, opening the Catalog gallery and using Android Back, the entire sheet/header/cards disappear. The settled screenshot and accessibility tree confirm absence. The trace nevertheless records request/ACK248 and ready=true/index2/position71.2. This failure remains open; the new trace narrows investigation but does not establish its cause.
+- **Catalog scoped observation:** four original32dp illustrations render; the first captured trial frame retains its art. That capture spans360–4526ms after the tap, so continuous startup, real animation timing and FPS remain unaccepted. Production motion remains disabled.
+
+[ROUND_31_NATIVE_RECEIPT.json](ROUND_31_NATIVE_RECEIPT.json) records both exact artifacts, these outcomes and hashed native evidence. No new server application occurred: [fresh DEV readback](ROUND_31_DEV_READBACK.json) retains ledger210, push Edge22 ACTIVE, expected six latest migration hashes and certificate metadata. Main handoff pointers and current control statuses were aligned; older records below remain historical evidence.
+
+## Previous build and correction evidence
+
 The consolidated Round30 emulator APK was built from `baa328327b2d7861966780337f16c327c757e1c3`, installed with `-r`, and its installed SHA-256 matched `5325691d20dfe121973f5c065a81c994704da220ce0917040e13b2956383863b`. The existing session survived. The ARM64 phone artifact from the same source was also verified, but the physical phone was no longer visible through ADB. It was not installed or accepted.
 
 ## What the native checkpoint established

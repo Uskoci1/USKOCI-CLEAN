@@ -1,6 +1,16 @@
 # USKOČI UI unification — cloud handoff (2026-09-24)
 
-## Active checkpoint — 2026-09-25 cohesion package
+## Current checkpoint — finalization Round31
+
+Canonical branch: `work/uskoci-ui-unification-20260924`; latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.
+Start with [AGENTS.md](../../../../AGENTS.md), [Round31](../../product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md)
+and [its exact check record](../../product-v1-closure-20260926/finalization-20260927/ROUND_31_CHECKS.json).
+Ordinary UI/flow refinement with critical review is authorized, preserving TaskCard/Peek; focused checks and consolidated emulator/device build, install and verification are authorized.
+Server, certificate, dependency, payment and secret boundaries remain. The `10739a44` corrections are pushed source; their matching APK installation/native acceptance is not established by this handoff.
+
+The dated workflow, “current head” sections and progress tables below are historical handoff records. Their status and older approval/test pauses do not supersede the current references above; still-applicable safety constraints remain in force.
+
+## Historical checkpoint — 2026-09-25 cohesion package
 
 Continue from `USKOCI_MASTER_PLAN_DIZAJNA.md`'s current execution checkpoint and
 `../r7-cohesion-20260925/REPORT.md` / `RECEIPT.json`. Earlier “done” rows below retain their original scope/date;
