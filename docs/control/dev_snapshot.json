@@ -1,12 +1,10 @@
 {
-  "project": "leqcwgzvjsxugfgzdmth",
-  "generated_at": "2026-09-27T14:10:08Z",
-  "ledger_total": 205,
-  "ledger_dev_alpha": 57,
-  "ledger_last": "dev_alpha_chat_b3b_message_window",
-  "certificate_live": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
+  "generated_at": "2026-09-27T18:59:45Z",
+  "ledger_total": 208,
+  "ledger_dev_alpha": 60,
+  "ledger_last": "dev_alpha_worker_profile_licenses_owned_projection",
+  "ledger_last_version": "20260927185545",
   "certificate_certified": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
-  "retention_ai_ready": true,
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -198,6 +196,7 @@
     "rpc_report_problem",
     "rpc_request_data_export",
     "rpc_resolve_activity_event",
+    "rpc_resolve_activity_message_v1",
     "rpc_resolve_data_export_download",
     "rpc_resolve_stale_response_after_need_edit",
     "rpc_respond_agreement_change",
@@ -374,6 +373,7 @@
     "rpc_report_problem",
     "rpc_request_data_export",
     "rpc_resolve_activity_event",
+    "rpc_resolve_activity_message_v1",
     "rpc_resolve_stale_response_after_need_edit",
     "rpc_respond_agreement_change",
     "rpc_reveal_contact",
@@ -421,11 +421,13 @@
     "rpc_withdraw_response",
     "rpc_write_agreement_current_location"
   ],
-  "how": "Public catalog, cron and certified hash read at generated_at; Edge inventory refreshed after push v21. Private function calls remain denied to execute_sql read-only role. certificate_live and retention_ai_ready were verified inside the successfully applied exact B3b transaction before commit at 20260927140231 (not recomputed at generated_at). Both certificate row fingerprints and readiness function definition were unchanged in postflight at 14:02:58Z. See linked application receipt.",
-  "private_current_status": "VERIFIED_IN_EXACT_B3B_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
-  "private_observed_at": "2026-09-27T14:02:31Z",
-  "ledger_last_version": "20260927140231",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "certificate_live": "cc248ff125c67146bb343db7d222230cb291be99048125d55f6b547ce49e36f7",
+  "retention_ai_ready": true,
+  "how": "Public catalog/cron/certified hash read at generated_at; Edge inventory freshly read. Private digest/binding/readiness verified atomically inside exact P0/P4/P5 application transactions, last at 20260927185545, not recomputed by read-only snapshot. Read-only helper execute authority remains unchanged.",
+  "private_current_status": "VERIFIED_IN_EXACT_P5_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+  "private_observed_at": "2026-09-27T18:55:45Z",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20260927_p0_p4_p5_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",

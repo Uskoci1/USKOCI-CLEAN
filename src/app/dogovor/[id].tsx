@@ -70,13 +70,16 @@ function AgreementStatus({ loading = false, error = false, retry }: { loading?: 
 }
 export default function Dogovor() {
   // A notification about a message opens the conversation itself, not the overview it lives behind.
-  const { id, tab } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[] }>();
+  const { id, tab, messageId } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[] }>();
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
+  if (messageId !== undefined && (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId))) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
-    requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} />;
+    requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined} />;
 }
-function DogovorContent({ id, accountId, accountRevision, requestedTab }: { id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab }) {
+function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId }: {
+  id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string;
+}) {
   const izvor = useIzvor();
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
   // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
@@ -87,11 +90,16 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab }: { id: 
   }, []);
   // The router may retain this account/Agreement while changing its tab intent.
   // Consume that change once; later renders/focus must preserve the user's tab.
-  useEffect(() => { setTab(requestedTab); }, [requestedTab, setTab]);
+  useEffect(() => { setTab(requestedTab); }, [requestedTab, requestedMessageId, setTab]);
   const renderedChatVisit = chatVisit.current;
   // Survives the foreground freshness gate and the Pregled/Poruke switch, but not
   // a different account incarnation or Agreement (the route content is keyed above).
-  const chatReadingPosition = useRef<AgreementReadingPosition>({ following: true, offset: 0 });
+  // An arriving P4 target creates a fresh bounded B3 window/geometry owner. It does
+  // not remount the Agreement, workspace, photo intents or persistent send journal.
+  // The router ID is only an intent: B3 must independently authorize the exact row.
+  const chatReadingPosition = useMemo<{ current: AgreementReadingPosition }>(() => ({ current: requestedMessageId
+    ? { following: false, offset: 0, anchor: { messageId: requestedMessageId, within: 0 } }
+    : { following: true, offset: 0 } }), [requestedMessageId]);
   const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
@@ -424,7 +432,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab }: { id: 
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {tab === 'poruke' ? <AgreementThreadPresentation agreement={dogovor} person={other}
+      {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
           writable, terminal: !dogovor.chatDostupan, refresh: refreshMessages, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,

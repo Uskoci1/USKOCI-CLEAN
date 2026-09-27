@@ -13,6 +13,45 @@ function setup() {
   return {port,model,logout:()=>{current=false;}};
 }
 describe('Inbox lifecycle and command ownership',()=>{
+  it('uses the exact message target and never reads the event or falls back to an Agreement guess',async()=>{
+    const {port}=setup(), message={...row(),eventType:'MESSAGE_RECEIVED'};
+    port.list.mockResolvedValue(page([message]));
+    const target={kind:'AGREEMENT_MESSAGE',id:'agreement',messageId:'message',eventId:message.id,role:'WORKER'};
+    const resolveMessage=jest.fn().mockResolvedValue(target);
+    const model=createInboxModel(port,null,()=>true,resolveMessage);
+    model.start();await flush();
+    expect(await model.open(message)).toEqual(target);
+    expect(resolveMessage).toHaveBeenCalledWith(message.id,expect.any(AbortSignal));
+    expect(port.resolve).not.toHaveBeenCalled();expect(port.read).not.toHaveBeenCalled();
+    expect(model.snapshot().page?.unreadCount).toBe(1);
+  });
+  it.each(['missing','unavailable','error','wrong event','wrong role','generic'] as const)(
+    'never guesses or acknowledges a message target when %s',async mode=>{
+      const {port}=setup(),message={...row(),eventType:'MESSAGE_RECEIVED'};
+      port.list.mockResolvedValue(page([message]));
+      const exact={kind:'AGREEMENT_MESSAGE',id:'agreement',messageId:'message',eventId:message.id,role:'WORKER'};
+      const resolve=jest.fn().mockResolvedValue(mode==='unavailable'?{kind:'UNAVAILABLE'}:
+        mode==='wrong event'?{...exact,eventId:'other'}:mode==='wrong role'?{...exact,role:'REQUESTER'}:
+          mode==='generic'?{kind:'AGREEMENT',id:'agreement',role:'WORKER'}:exact);
+      if(mode==='error')resolve.mockRejectedValue(new Error('unconfirmed'));
+      const model=createInboxModel(port,null,()=>true,mode==='missing'?undefined:resolve);
+      model.start();await flush();const result=await model.open(message);
+      expect(result).toEqual(mode==='unavailable'?{kind:'UNAVAILABLE'}:null);
+      expect(port.resolve).not.toHaveBeenCalled();expect(port.read).not.toHaveBeenCalled();
+      expect(model.snapshot().page?.unreadCount).toBe(1);
+      expect(model.snapshot()).toMatchObject(mode==='unavailable'?{unavailable:true,error:null}:{error:'action'});
+    });
+  it.each(['stop','account'] as const)('retires exact-message navigation after %s',async mode=>{
+    const {port}=setup(),message={...row(),eventType:'MESSAGE_RECEIVED'};
+    port.list.mockResolvedValue(page([message]));let current=true;
+    const pending=deferred<any>(), resolve=jest.fn().mockReturnValue(pending.promise);
+    const model=createInboxModel(port,null,()=>current,resolve);
+    model.start();await flush();const opened=model.open(message);await flush();
+    expect(await model.open(message)).toBeNull();expect(resolve).toHaveBeenCalledTimes(1);
+    if(mode==='stop'){model.stop();expect(resolve.mock.calls[0][1].aborted).toBe(true);}else current=false;
+    pending.resolve({kind:'AGREEMENT_MESSAGE',id:'agreement',messageId:'message',eventId:message.id,role:'WORKER'});
+    expect(await opened).toBeNull();expect(port.read).not.toHaveBeenCalled();expect(port.resolve).not.toHaveBeenCalled();
+  });
   it('never displays a late page after logout or blur',async()=>{
     for (const method of ['logout','blur']) {
       const {port,model,logout}=setup();const pending=deferred<InboxPage>();port.list.mockReturnValue(pending.promise);

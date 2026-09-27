@@ -247,10 +247,10 @@ test('ownership retired before the target resolves opens nothing, and there is n
 // F14 / PG06: the server answers with the thing the event is about; the event type says which part of
 // it the person came for. Everything else keeps the overview, where the next step is stated.
 test('a message opens the conversation, not the overview it lives behind',async()=>{
-  mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
+  mockModel.open.mockResolvedValue({kind:'AGREEMENT_MESSAGE',id:'actual-agreement',messageId:'exact-message',eventId:item.id,role:'WORKER'});
   mockState.page.items=[{...item,eventType:'MESSAGE_RECEIVED'}];mockState.page.unreadCount=1;await render();
   await openItem();
-  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/dogovor/[id]',params:{id:'actual-agreement',tab:'poruke'}}]]);
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/dogovor/[id]',params:{id:'actual-agreement',tab:'poruke',messageId:'exact-message'}}]]);
 });
 test('a proposed change opens the change itself',async()=>{
   mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'REQUESTER'});

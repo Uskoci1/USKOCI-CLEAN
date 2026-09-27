@@ -154,6 +154,8 @@ export type RadnikProfilProjekcija = {
   vestine: string[];
   alati: string[];
   vozila: string[];
+  /** Owned, self-declared values; required even when empty, never evidence of verification. */
+  licence: string[];
   stanje: StanjeProfila;
   dostupanOdmah: boolean;
   radijusKm: number;

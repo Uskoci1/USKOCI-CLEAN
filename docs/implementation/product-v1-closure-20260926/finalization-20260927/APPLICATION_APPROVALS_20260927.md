@@ -1,3 +1,7 @@
+# Current approval update — Round26
+
+Owner approved pending P0/P4/P5 application and wiring. All three are applied on DEV (205→208), exact hashes and authority verified; see `ROUND_26_APPLIED_CONNECTIONS.md` and application receipt. B3c disposable recertification is approved and in progress; no DEV certificate application claimed. The earlier pending statements below are historical and superseded for these named packages. Dependency/payment/legal and other unfinished packages remain separate.
+
 # Application approvals and recorded outcomes — 2026-09-27
 
 Updated after explicit owner approval and the Round 14 application. Earlier read-only inventory was at `c63199cf`; its pending status for Chat B3a/B3b and the two push literals is superseded. This document records authorization/outcomes and links the [application receipt](../../../../supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json); it is not complete DEV or device acceptance.

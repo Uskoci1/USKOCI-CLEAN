@@ -11,6 +11,8 @@ let mockKeyboardVisible = false;
 const mockDismissKeyboard = jest.fn(() => { mockKeyboardVisible = false; });
 let mockId: string | string[] = '20000000-0000-4000-8000-000000000001';
 let mockTab: string | string[] | undefined;
+let mockMessageId: string | string[] | undefined;
+const mockHistoryWindow = jest.fn();
 const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: jest.fn(), push: jest.fn() };
 const mockGroupContext = jest.fn();
 const mockRead = jest.fn();
@@ -36,7 +38,7 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId, tab: mockTab }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ id: mockId, tab: mockTab, messageId: mockMessageId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: (...args: unknown[]) => mockProblemSubmit(...args), read: (...args: unknown[]) => mockProblemRead(...args) } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: (...args: unknown[]) => mockGroupContext(...args) } }));
@@ -65,9 +67,9 @@ jest.mock('../agreementMessageHistoryService', () => ({
     page: async (id: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
       accountId: scope.accountId, agreementId: id, messages: await mockMessages(id, scope.accountId), olderCursor: null,
       asOf: '2026-09-27T13:00:00.123456Z' } }),
-    window: async (id: string, target: string, _options: unknown, scope: any) => ({ ok: true, podatak: {
+    window: async (id: string, target: string, options: unknown, scope: any) => { mockHistoryWindow(id,target,options,scope); return ({ ok: true, podatak: {
       accountId: scope.accountId, agreementId: id, targetMessageId: target,
-      messages: await mockMessages(id, scope.accountId), beforeCursor: null, afterCursor: null, asOf: '2026-09-27T13:00:00.123457Z' } }),
+      messages: await mockMessages(id, scope.accountId), beforeCursor: null, afterCursor: null, asOf: '2026-09-27T13:00:00.123457Z' } }); },
     markDisplayed: (...args: unknown[]) => mockDisplayed(...args),
   },
 }));
@@ -109,7 +111,7 @@ async function confirmCompletion(worker = false) {
 }
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset(); mockMessages.mockReset();
-  mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id; mockTab = undefined;
+  mockAccount = ownMessage.posiljalacAccountId; mockId = workspace.id; mockTab = undefined; mockMessageId = undefined;
   mockAccountRevision = 0;
   mockFocused = true;
   mockBackListeners.clear(); mockKeyboardVisible = false;
@@ -129,6 +131,45 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 describe('D03 actual route and scoped resource integration', () => {
+  it('opens the exact notification window without acknowledging loaded rows or replacing the outbox owner',async()=>{
+    mockTab='poruke';mockMessageId=ownMessage.id;
+    const pending={phase:'ready',entries:[{state:'unknown',command:{clientMessageId:'kept-command'}}]};
+    mockOutboxState=pending;
+    await render();
+    const chat=()=>tree.root.findByType('AgreementChat' as any).props;
+    expect(mockHistoryWindow).toHaveBeenCalledWith(workspace.id,ownMessage.id,
+      expect.objectContaining({beforeCount:24,afterCount:25}),{accountId:mockAccount,accountRevision:0});
+    expect(chat().readingPosition.current).toEqual({following:false,offset:0,anchor:{messageId:ownMessage.id,within:0}});
+    expect(chat().state).toBe(pending);expect(chat().outbox).toBe(mockOutbox);expect(mockDisplayed).not.toHaveBeenCalled();
+    const reads=mockRead.mock.calls.length,originalPosition=chat().readingPosition;
+    const display=chat().onDisplayedMessageIds;
+    const next='30000000-0000-4000-8000-000000000002';
+    mockMessageId=next;mockMessages.mockResolvedValue([{...ownMessage,id:next}]);
+    await act(async()=>tree.update(<Dogovor/>));
+    expect(mockHistoryWindow).toHaveBeenLastCalledWith(workspace.id,next,
+      expect.objectContaining({beforeCount:24,afterCount:25}),{accountId:mockAccount,accountRevision:0});
+    expect(chat().readingPosition).not.toBe(originalPosition);
+    expect(chat().readingPosition.current.anchor.messageId).toBe(next);
+    expect(chat().state).toBe(pending);expect(chat().outbox).toBe(mockOutbox);expect(mockRead).toHaveBeenCalledTimes(reads);
+    await act(async()=>display([ownMessage.id]));expect(mockDisplayed).not.toHaveBeenCalled();
+    await hardwareBack();await act(async()=>tree.update(<Dogovor/>));
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+  });
+  it('keeps a failed exact window distinct from latest messages and permits an explicit latest recovery',async()=>{
+    mockTab='poruke';mockMessageId=ownMessage.id;mockMessages.mockRejectedValue(new Error('CHAT_MESSAGE_NOT_AVAILABLE'));
+    await render();const chat=()=>tree.root.findByType('AgreementChat' as any).props;
+    expect(chat().error).toBe(true);expect(chat().messages).toEqual([]);expect(mockHistoryWindow).toHaveBeenCalledTimes(1);
+    expect(mockDisplayed).not.toHaveBeenCalled();
+    mockMessages.mockResolvedValue([ownMessage]);
+    await act(async()=>chat().onShowLatest());
+    expect(chat().error).toBe(false);expect(chat().messages[0].id).toBe(ownMessage.id);
+    expect(mockHistoryWindow).toHaveBeenCalledTimes(1);
+  });
+  it.each(['not-an-id',['30000000-0000-4000-8000-000000000001']])('rejects malformed exact-message route intent %s',async target=>{
+    mockTab='poruke';mockMessageId=target;await render();
+    expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
+    expect(mockRead).not.toHaveBeenCalled();expect(mockMessages).not.toHaveBeenCalled();
+  });
   it('opens a changed message-tab route intent without replacing the retained conversation owners or overriding later Back', async () => {
     await render(); await act(async () => button('Poruke').props.onPress());
     const chat = () => tree.root.findByType('AgreementChat' as any).props;

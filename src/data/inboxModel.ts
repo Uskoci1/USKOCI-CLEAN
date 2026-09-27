@@ -11,10 +11,12 @@ export type InboxState = {
 
 // Request ownership lives outside rendering. A blurred screen, replaced role or
 // signed-out account cannot publish an old response or navigate the new session.
-export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurrent: () => boolean) {
+export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurrent: () => boolean,
+  resolveMessage?: (eventId: string, signal: AbortSignal) => Promise<InboxTarget>) {
   let state: InboxState = {page:null,loading:false,paging:false,acting:null,error:null,unavailable:false};
   let active = false;
   let epoch = 0;
+  let messageRead: AbortController | null = null;
   const listeners = new Set<() => void>();
   const valid = (token: number) => active && token === epoch && isCurrent();
   function set(patch: Partial<InboxState>) {
@@ -54,6 +56,8 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
       && row.role === item.role && row.occurredAt === item.occurredAt)) return null;
     const token = ++epoch;
     set({acting:item.id,error:null,unavailable:false});
+    const controller = item.eventType === 'MESSAGE_RECEIVED' ? new AbortController() : null;
+    if (controller) messageRead = controller;
     try {
       // Opening a message notification is only an attempt to reach its conversation.
       // The shown thread owns its read acknowledgement; a failed/unavailable landing
@@ -66,13 +70,23 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
         set({page:{...previous,items:previous.items.map(row=>row.id===item.id?{...row,readAt}:row),
           unreadCount:Math.max(0,previous.unreadCount-(wasUnread?1:0))}});
       }
-      const target = await port.resolve(item.id);
+      // P4 resolves this recipient's event to its canonical message. Never downgrade a
+      // failed/absent resolver to the legacy Agreement-only target or a newest-row guess.
+      if (controller && !resolveMessage) throw new Error('INBOX_MESSAGE_TARGET_UNCONFIRMED');
+      const target = controller ? await resolveMessage!(item.id, controller.signal) : await port.resolve(item.id);
       if (!valid(token)) return null;
+      if (controller && target.kind !== 'UNAVAILABLE' && (target.kind !== 'AGREEMENT_MESSAGE'
+        || target.eventId.toLowerCase() !== item.id.toLowerCase() || target.role !== item.role)) {
+        throw new Error('INBOX_MESSAGE_TARGET_INVALID');
+      }
       set({acting:null,unavailable:target.kind==='UNAVAILABLE'});
       return target;
     } catch {
       if (valid(token)) set({acting:null,error:'action'});
       return null;
+    } finally {
+      controller?.abort();
+      if (messageRead === controller) messageRead = null;
     }
   }
   async function readAll() {
@@ -94,7 +108,7 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
     snapshot: () => state,
     subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; },
     start() { if (active) return; active=true; set({acting:null}); void refresh(); },
-    stop() { active=false; epoch++; set({page:null,loading:false,paging:false,acting:null,error:null,unavailable:false}); },
+    stop() { active=false; epoch++; messageRead?.abort(); messageRead=null; set({page:null,loading:false,paging:false,acting:null,error:null,unavailable:false}); },
     refresh,more,open,readAll,
   };
 }

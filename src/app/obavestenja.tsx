@@ -12,7 +12,8 @@ import { sys } from '../ui/system/tokens';
 
 /**
  * The inbox. The list is drawn by `InboxList` (day groups, rows on a hairline, a dot for unread); this route owns what
- * a row does: the model marks it read and resolves it, and the landing below goes exactly where the event points. The
+ * a row does: the model resolves it, and the landing below goes exactly where the event points. Message events are
+ * acknowledged only by the measured conversation, never by this navigation. The
  * route literals stay in this file: the control table (scripts/control/osvezi.mjs) checks them here.
  */
 export default function Obavestenja() {
@@ -49,9 +50,9 @@ export default function Obavestenja() {
     // overview, which is where the next step is stated.
     const agreementTarget = (id: string) => item.eventType === 'AGREEMENT_CHANGE_PROPOSED'
       ? {pathname:'/dogovor/[id]/izmene' as const,params:{id}}
-      : item.eventType === 'MESSAGE_RECEIVED' ? {pathname:'/dogovor/[id]' as const,params:{id,tab:'poruke'}}
       : {pathname:'/dogovor/[id]' as const,params:{id}};
     const go = () => { switch (target.kind) {
+      case 'AGREEMENT_MESSAGE': router.push({pathname:'/dogovor/[id]',params:{id:target.id,tab:'poruke',messageId:target.messageId}}); break;
       case 'AGREEMENT': router.push(agreementTarget(target.id)); break;
       case 'APPLICATIONS': router.push({pathname:'/moje-prijave',params:{prijavaId:target.id}}); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;

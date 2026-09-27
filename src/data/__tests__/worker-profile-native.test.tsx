@@ -24,7 +24,7 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAcc
   sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockRevision }) }));
 import Profile from '../../app/(app)/profil/radnik';
 const profile = { id: '20000000-0000-4000-8000-000000000001', ime: 'Ana', grad: 'Novi Sad', biografija: '',
-  vestine: ['Prevoz, utovar'], alati: ['Bušilica'], vozila: ['Kombi'], stanje: 'ACTIVE', dostupanOdmah: true, radijusKm: 20, kapacitetTima: 1, capacityRevision: 'a'.repeat(64) };
+  vestine: ['Prevoz, utovar'], alati: ['Bušilica'], vozila: ['Kombi'], licence: ['B, C'], stanje: 'ACTIVE', dostupanOdmah: true, radijusKm: 20, kapacitetTima: 1, capacityRevision: 'a'.repeat(64) };
 let tree: ReactTestRenderer;
 const control = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(value => typeof value === 'string')).join(' ');
@@ -154,6 +154,33 @@ it('availability is a read-only summary that links to its revision-bound writer'
   click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
   expect(mockWrite).not.toHaveBeenCalled();
 });
+it('shows self-declared licenses, retains an unadded term, and confirms edits only after exact license readback', async () => {
+  await render();
+  expect(texts()).toContain('Licence koje navodiš'); expect(texts()).toContain('B, C');
+  expect(texts()).toContain('Licence navodiš ti; USKOČI ih ne proverava.');
+  input('Nova stavka: Licence koje navodiš', 'ADR'); click('Sačuvaj izmene');
+  expect(mockWrite).not.toHaveBeenCalled(); expect(texts()).toContain('još nije dodata');
+  click('Dodaj: Licence koje navodiš'); click('Sačuvaj izmene'); await settle();
+  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, licence: ['B, C', 'ADR'] });
+  expect(texts()).not.toContain('Izmene profila su sačuvane i proverene');
+  expect(control('Nova stavka: Licence koje navodiš').props.editable).toBe(false);
+  mockRead.mockResolvedValue({ ...profile, licence: ['B, C', 'ADR'] });
+  click('Pogledaj sačuvani profil'); await settle();
+  expect(texts()).toContain('Izmene profila su sačuvane i proverene'); expect(mockWrite).toHaveBeenCalledTimes(1);
+});
+it('only an explicit removal writes an empty licenses list and waits for the empty readback', async () => {
+  await render(); click('Ukloni licence koje navodiš: B, C');
+  mockRead.mockResolvedValue({ ...profile, licence: [] }); click('Sačuvaj izmene'); await settle();
+  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, licence: [] });
+  expect(texts()).toContain('Izmene profila su sačuvane i proverene');
+});
+it('activation does not confirm a concurrently changed self-declared license list', async () => {
+  mockRead.mockResolvedValueOnce({ ...profile, stanje: 'DRAFT' }).mockResolvedValue({ ...profile, licence: [] });
+  await render(); click('Proveri i aktiviraj profil'); await settle();
+  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: true });
+  expect(texts()).not.toContain('Profil je aktivan. Sačuvani podaci su potvrđeni');
+  expect(control('Pogledaj sačuvani profil')).toBeTruthy(); expect(texts()).toContain('B, C');
+});
 it.each(['account'])('retires retained callbacks and late reads across %s changes', async change => {
   await render(); input('Ime na radnom profilu', 'Unos starog naloga'); const oldSave = control('Sačuvaj izmene').props.onPress;
   let late!: (value: unknown) => void; mockRead.mockImplementationOnce(() => new Promise(resolve => { late = resolve; }));
@@ -171,11 +198,13 @@ it('a flip of the retired app mode keeps the typed draft and lets the retained s
 });
 it('blur retains draft and new-item input, while old callbacks cannot run after refocus', async () => {
   await render(); input('Ime na radnom profilu', 'Sačuvani lokalni unos'); input('Nova stavka: Veštine i usluge', 'Krečenje');
+  input('Nova stavka: Licence koje navodiš', 'ADR');
   const save = control('Sačuvaj izmene').props.onPress;
   mockFocused = false; await act(async () => tree.update(<Profile />)); expect(texts()).not.toContain('Sačuvani lokalni unos');
   mockFocused = true; await act(async () => tree.update(<Profile />)); act(() => save()); expect(mockWrite).not.toHaveBeenCalled();
   expect(control('Ime na radnom profilu').props.value).toBe('Sačuvani lokalni unos');
   expect(control('Nova stavka: Veštine i usluge').props.value).toBe('Krečenje');
+  expect(control('Nova stavka: Licence koje navodiš').props.value).toBe('ADR');
 });
 it('background hides the form and foreground waits for a pending write then rereads its actual result', async () => {
   let finish!: (value: unknown) => void; mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));

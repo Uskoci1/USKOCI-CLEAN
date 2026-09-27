@@ -56,6 +56,27 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 describe('D03 actual message component', () => {
+  it('lands a notification anchor at its measured row and waits for native visibility before acknowledging it',async()=>{
+    const messages=['older','target','newer'].map(id=>({id,telo:id,moja:false,posiljalacIme:'Marko',vremeTekst:'12:00',procitano:null}));
+    const readingPosition={current:{following:false,offset:0,anchor:{messageId:'target',within:0}}};
+    const onDisplayedMessageIds=jest.fn();
+    await render({messages,readingPosition,hasOlder:true,hasNewer:true,onDisplayedMessageIds});
+    const scroll=tree.root.findByProps({testID:'agreement-chat-history'});
+    await act(async()=>{
+      scroll.props.onLayout({nativeEvent:{layout:{height:200}}});scroll.props.onContentSizeChange(390,2000);
+      tree.root.findByProps({testID:'agreement-message-row-older'}).props.onLayout({nativeEvent:{layout:{y:100}}});
+    });
+    await flushFrames();expect(scrollTo).not.toHaveBeenCalled();expect(onDisplayedMessageIds).not.toHaveBeenCalled();
+    await act(async()=>{
+      tree.root.findByProps({testID:'agreement-message-row-target'}).props.onLayout({nativeEvent:{layout:{y:700}}});
+      tree.root.findByProps({testID:'agreement-message-bubble-target'}).props.onLayout({nativeEvent:{layout:{y:0,height:80}}});
+    });
+    await flushFrames();
+    expect(scrollTo).toHaveBeenLastCalledWith({y:700,animated:false});expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(onDisplayedMessageIds).not.toHaveBeenCalled();
+    await act(async()=>scroll.props.onScroll(scrollEvent(700,200,2000)));await flushFrames();
+    expect(onDisplayedMessageIds).toHaveBeenLastCalledWith(['target']);
+  });
   it('never injects hydrated or evicted confirmed receipts into an older window but keeps newly confirmed sends', async () => {
     const messageId = '30000000-0000-4000-8000-000000000001';
     const confirmed = { command, state: 'confirmed' as const, messageId, persisted: true, attempt: 1 };

@@ -7,7 +7,7 @@ jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ auth: { getUser: mockGetUser }, from: mockFrom, rpc: mockRpc }) }));
 import { supabaseIzvor } from '../supabaseIzvor';
 const row = { id: P, account_id: A, kind: 'WORKER', display_name: 'Ana', city: 'Novi Sad', bio: '', skills: ['Prevoz'],
-  tools: [], vehicles: ['Kombi'], profile_status: 'ACTIVE', available_now: true, radius_km: 20, team_capacity: 3, capacity_revision: 'a'.repeat(64) };
+  tools: [], vehicles: ['Kombi'], licenses: ['B, C', 'ADR'], profile_status: 'ACTIVE', available_now: true, radius_km: 20, team_capacity: 3, capacity_revision: 'a'.repeat(64) };
 beforeEach(() => {
   jest.clearAllMocks(); mockSession = { user: { id: A }, accountRevision: 1 };
   mockGetUser.mockReset().mockResolvedValue({ data: { user: { id: A } }, error: null });
@@ -19,10 +19,17 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 it('reads only the captured authenticated Worker projection, preserving explicit availability and radius', async () => {
   const profile = await supabaseIzvor.mojRadnikProfil();
-  expect(profile).toEqual({ id: P, ime: 'Ana', grad: 'Novi Sad', biografija: '', vestine: ['Prevoz'], alati: [], vozila: ['Kombi'],
+  expect(profile).toEqual({ id: P, ime: 'Ana', grad: 'Novi Sad', biografija: '', vestine: ['Prevoz'], alati: [], vozila: ['Kombi'], licence: ['B, C', 'ADR'],
     stanje: 'ACTIVE', dostupanOdmah: true, radijusKm: 20, kapacitetTima: 3, capacityRevision: 'a'.repeat(64) });
   expect(mockRpc).toHaveBeenCalledWith('rpc_get_worker_profile_for_edit', {});
   expect(mockFrom).not.toHaveBeenCalled();
+});
+it('preserves an explicitly empty licenses list but rejects an older projection without that field', async () => {
+  mockRead.mockResolvedValueOnce({ data: { ...row, licenses: [] }, error: null });
+  expect(await supabaseIzvor.mojRadnikProfil()).toMatchObject({ licence: [] });
+  const { licenses: _licenses, ...olderRow } = row;
+  mockRead.mockResolvedValueOnce({ data: olderRow, error: null });
+  await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');
 });
 it('only successful missing row is absence; Auth and table errors cannot create a default profile', async () => {
   mockRead.mockResolvedValue({ data: null, error: null }); await expect(supabaseIzvor.mojRadnikProfil()).resolves.toBeNull();
@@ -35,6 +42,7 @@ it.each([
   { team_capacity: null }, { team_capacity: 0 }, { team_capacity: '2' }, { team_capacity: 51 }, { capacity_revision: 'bad' }, { account_id: B }, { id: 'invalid' }, { kind: 'REQUESTER' }, { profile_status: 'UNKNOWN' }, { radius_km: null },
   { radius_km: 0 }, { radius_km: 201 }, { radius_km: '20' }, { radius_km: 1.5 }, { available_now: null },
   { available_now: 'false' }, { skills: null }, { tools: [null] }, { vehicles: 'Kombi' }, { city: 123 },
+  { licenses: null }, { licenses: undefined }, { licenses: 'B' }, { licenses: ['B', null] },
 ])('rejects malformed or unavailable source values without default substitution: %j', async patch => {
   mockRead.mockResolvedValue({ data: { ...row, ...patch }, error: null });
   await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');

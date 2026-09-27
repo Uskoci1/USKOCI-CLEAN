@@ -40,6 +40,8 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
   ...values: (number | boolean)[]) => void;
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
+  /** An exact published row can be shown while the independent collection is incomplete. */
+  collectionStatus?: 'loading' | 'error';
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   /** Explicit interaction supersedes an automatic publication landing still waiting for its read. */
   onUserIntent?: () => void;
@@ -342,7 +344,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const conditionCount = discoveryConditions(view);
   const hasFilter = !!view.query.trim() || discoveryFiltered(view) || !!view.area || !!view.place || !!view.pinPlace;
   // Ownership only labels rows: counts describe the same public subset before and after the overlay arrives.
-  const readiness: SearchReadiness = loading ? 'loading' : error ? 'error' : 'ready';
+  const readiness: SearchReadiness = loading || props.collectionStatus === 'loading' ? 'loading'
+    : error || props.collectionStatus === 'error' ? 'error' : 'ready';
 
   // Where the sheet rests is remembered in the route's view; a view that has one is where the sheet starts again.
   // A ready cold screen must give native its actual first detent at mount. Previously it mounted at half, then the
@@ -410,7 +413,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const mapShown = where !== 'remote' && !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // One filled action at a time: an empty list's own green action (its state view) and the floating green "Mapa" of the
   // full height would stand on one screen, so an empty list over the map rests at half at most (review of V47).
-  const emptyOverMap = !loading && !error && !listed.length && mapShown;
+  const emptyOverMap = !loading && !error && !props.collectionStatus && !listed.length && mapShown;
 
   // A chosen pin: one task, or a place several tasks share, of what the map shows. The list's area never takes it away;
   // a new read that no longer has it does.
@@ -878,8 +881,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
   const empty = <View style={s.empty}>
-    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
-      : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
+    {loading || props.collectionStatus === 'loading' ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
+      : error || props.collectionStatus === 'error' ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: refreshList }} />
         // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
         : (pinPlace || area) && mapped.length ? <StateView art="map" title={pinPlace ? 'Nema zadataka na ovom mestu' : 'Nema zadataka u ovoj oblasti'}
@@ -913,11 +916,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // on one point, that point's tasks. It is independent of the account overlay.
   const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
     withoutPoint: withoutPoint.length, pinless: view.where === 'remote' ? 0 : mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
-  const spoken = `${line.words}${line.extra}`;
+  const collectionWords = props.collectionStatus === 'loading' ? 'Učitavamo ostale zadatke…'
+    : props.collectionStatus === 'error' ? 'Ostali zadaci nisu učitani' : null;
+  const spoken = collectionWords ?? `${line.words}${line.extra}`;
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="bodyStrong" numberOfLines={1} style={s.count}>
-    {loading || error ? line.words : listed.length ? zadataka(listed.length) : 'Nema zadataka'}
+    {collectionWords ?? (loading || error ? line.words : listed.length ? zadataka(listed.length) : 'Nema zadataka')}
   </T>;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
@@ -946,9 +951,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
       : <View testID="list-count-words" accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
     </View>
+    {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
+      <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži spisak da vidiš i ostale.</T>
+      <Press accessibilityRole="button" accessibilityLabel="Osveži ostale zadatke" onPress={refreshList}
+        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Osveži</T></Press>
+    </View> : null}
     {props.publicationUnavailable ? <View style={s.relationsRecovery}>
       <T variant="note" style={s.relationsMessage}>{props.publicationUnavailable === 'missing'
-        ? 'Objavljen zadatak još nije u spisku otvorenih zadataka.' : 'Spisak otvorenih zadataka nije učitan.'}</T>
+        ? 'Objavljen zadatak trenutno nije dostupan u pretrazi.' : 'Prikaz objavljenog zadatka nije potvrđen.'}</T>
       {props.onOpenPublishedTask ? <Press accessibilityRole="button" accessibilityLabel="Otvori moj objavljen zadatak"
         onPress={props.onOpenPublishedTask} style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Otvori moj zadatak</T></Press> : null}
     </View> : null}

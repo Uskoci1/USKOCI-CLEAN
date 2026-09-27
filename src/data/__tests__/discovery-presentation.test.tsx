@@ -106,6 +106,7 @@ let relationsPending = false, relationsError = false;
 let tracing = false;
 let publicationFocus: { token: string; id: string; kind: 'map' | 'list' } | undefined;
 let publicationUnavailable: 'missing' | 'error' | undefined;
+let collectionStatus: 'loading' | 'error' | undefined;
 const nativeTrace = jest.fn();
 const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
   ...own.map(needId => ({ needId, relation: 'OWNER' })),
@@ -119,6 +120,7 @@ const userIntent = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
+    collectionStatus={collectionStatus}
     publicationFocus={publicationFocus} publicationUnavailable={publicationUnavailable} onOpenPublishedTask={openPublished}
     trace={tracing ? nativeTrace : undefined}
     onUserIntent={userIntent}
@@ -193,7 +195,7 @@ beforeEach(() => {
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
-  publicationFocus = undefined; publicationUnavailable = undefined;
+  publicationFocus = undefined; publicationUnavailable = undefined; collectionStatus = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset, userIntent]) fn.mockReset();
@@ -241,7 +243,7 @@ test('published remote task opens the full list with its public row first and th
 test('a published task absent from the public read offers its owned detail without inventing a public row', async () => {
   publicationUnavailable = 'missing';
   await render();
-  expect(texts()).toContain('Objavljen zadatak još nije u spisku otvorenih zadataka.');
+  expect(texts()).toContain('Objavljen zadatak trenutno nije dostupan u pretrazi.');
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
   await tap('Otvori moj objavljen zadatak');
   expect(openPublished).toHaveBeenCalledTimes(1);
@@ -1503,6 +1505,30 @@ test('reading, not read and nothing in this view keep their meanings, through th
   // The one reset of the app: "Obriši uslove", on the empty list as in the panel.
   expect(tree.root.findAll(node => node.props.label === 'Poništi filtere')).toHaveLength(0);
   await click('Obriši uslove'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
+});
+
+test.each(['loading','error'] as const)('an incomplete %s collection never claims an authoritative empty filtered result',async status=>{
+  collectionStatus=status;rows=[row('published')];
+  initial={...initial,query:'nema ovih reči',sheet:'full'};
+  await render();
+  expect(cards()).toEqual([]);
+  expect(texts()).toContain(status==='loading'?'Učitavamo zadatke…':'Zadatke trenutno nije moguće učitati');
+  expect(texts()).toContain(status==='loading'?'Učitavamo ostale zadatke…':'Ostali zadaci nisu učitani');
+  expect(texts()).not.toContain('Nema zadataka u ovom prikazu');
+  expect(texts()).not.toContain('Trenutno nema otvorenih zadataka');
+  expect(action('Dopuni radni profil')).toBeUndefined();
+  expect(action('Obriši uslove')).toBeUndefined();
+});
+
+test.each(['loading','error'] as const)('an incomplete %s collection outside the map area remains unknown, not empty',async status=>{
+  collectionStatus=status;rows=[row('published',at(44.8,20.4))];
+  initial={...initial,area:[19.7,45.1,19.9,45.3],sheet:'full'};
+  await render();
+  expect(cards()).toEqual([]);
+  expect(map().props.items).toHaveLength(1);
+  expect(texts()).toContain(status==='loading'?'Učitavamo zadatke…':'Zadatke trenutno nije moguće učitati');
+  expect(texts()).not.toContain('Nema zadataka u ovoj oblasti');
+  expect(action('Prikaži sve zadatke')).toBeUndefined();
 });
 
 test('pull to refresh is the list\'s own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {

@@ -7,6 +7,7 @@ import { initialMarketplaceView, publicPoint, type MarketplaceItem, type Marketp
 import { sameId } from '../../data/serverReceipt';
 import { publicationIsCurrent, readPublicationHandoff } from '../../data/publicationHandoff';
 import type { TaskRelationIndex } from '../../data/taskRelation';
+import type { ExactPublicOpportunityRead } from '../../data/ports';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
@@ -47,8 +48,12 @@ function Discovery() {
   const publicationToken = handoff?.token ?? null;
   const publicationRequested = useRef<string | null>(null);
   const publicationCompleted = useRef<string | null>(null);
+  const successfulLanding = useRef<string | null>(null);
+  const [publicationAttempt, setPublicationAttempt] = useState(0);
+  const [landingRow, setLandingRow] = useState<{ token: string; visit: object; collectionGeneration: number;
+    item: NonNullable<ExactPublicOpportunityRead['item']> } | null>(null);
   const [publication, setPublication] = useState<{ token: string; id: string; visit: object | null;
-    status: 'loading' | 'read' | 'map' | 'list' | 'missing' | 'error' | 'retired' } | null>(null);
+    status: 'loading' | 'map' | 'list' | 'missing' | 'error' | 'retired' } | null>(null);
   const traceView = useRef(view); traceView.current = view;
   useEffect(() => { if (traceEnabled) trace('route-trace', traceView.current.listOffset ?? 0, traceSheet(traceView.current)); }, [traceEnabled, trace]);
   useFocusEffect(useCallback(() => {
@@ -68,59 +73,78 @@ function Discovery() {
       trace('route-blur', traceView.current.listOffset ?? 0, traceSheet(traceView.current));
       if (focus.current === owner) focus.current = null;
       owner = null; setScope(null);
-      // A read retired by blur must be requested again on the next focus. A completed landing
-      // stays consumed, so returning from its detail keeps the person's map/list position.
-      if (publicationRequested.current === publicationToken && publicationCompleted.current !== publicationToken)
-        publicationRequested.current = null;
+      // Membership may revalidate on return, but an already consumed camera never repeats.
+      if (publicationRequested.current === publicationToken) publicationRequested.current = null;
+      if (AppState.currentState === 'background' || AppState.currentState === 'inactive') setLandingRow(null);
     };
     if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive') enter();
     const subscription = AppState.addEventListener('change', state => state === 'active' ? enter() : leave());
     return () => { subscription.remove(); leave(); };
   }, [trace, publicationToken]));
+  const collectionGeneration = useRef(0);
+  const collectionReceipt = useRef<{ generation: number; rows: readonly MarketplaceItem[] } | null>(null);
   const load = useCallback(async (signal: AbortSignal) => {
+    const generation = ++collectionGeneration.current;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    try { return await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
+    try { const rows = await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
-    })]); } finally { if (timer) clearTimeout(timer); }
+    })]);
+      if (!signal.aborted) collectionReceipt.current = { generation, rows };
+      return rows;
+    } finally { if (timer) clearTimeout(timer); }
   }, [source]);
   const resource = useFocusedResource(load, { coalesce: true });
-  // The public list may still contain the snapshot from a previous visit. A publication handoff waits
-  // for one fresh public read before it claims that the task has a pin or is in Discovery at all.
+  // Publication has its own bounded public read: an older collection or a slow page walk is
+  // never evidence that the new task is absent. It owns one row, not the collection's total.
   useEffect(() => {
     if (!handoff || !publicationIsCurrent(handoff) || !publicationToken || !publishedNeedId
-      || publicationCompleted.current === publicationToken
+      || (publicationCompleted.current === publicationToken && successfulLanding.current !== publicationToken)
       || !scope || focus.current !== scope || publicationRequested.current === publicationToken) return;
     publicationRequested.current = publicationToken;
-    setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'loading' });
-    void resource.refresh(true).then(() => {
-      if (publicationIsCurrent(handoff) && publicationRequested.current === publicationToken
-        && publicationCompleted.current !== publicationToken && focus.current === scope
-        && sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision)
-        setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'read' });
-    });
-  }, [handoff, publicationToken, publishedNeedId, scope, resource.refresh, user?.id, accountRevision, publication?.status]);
+    const shouldPosition = publicationCompleted.current !== publicationToken;
+    const controller = new AbortController();
+    let active = true;
+    const current = () => active && !controller.signal.aborted && publicationIsCurrent(handoff)
+      && publicationRequested.current === publicationToken && (!shouldPosition || publicationCompleted.current !== publicationToken)
+      && focus.current === scope && izvorSada() === source
+      && sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
+    if (shouldPosition) setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'loading' });
+    const fail = () => { if (current()) setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'error' }); };
+    const timer = setTimeout(() => { fail(); controller.abort(); }, 15_000);
+    void source.otvorenaPrilika(publishedNeedId, { signal: controller.signal }).then(result => {
+      if (!current()) return;
+      const item = result.item;
+      if (!item) { setLandingRow(null); setPublication({ token: publicationToken, id: publishedNeedId, visit: scope, status: 'missing' }); return; }
+      if (!sameId(item.id, publishedNeedId) || (shouldPosition ? item.revision !== handoff.needRevision : item.revision < handoff.needRevision)) { fail(); return; }
+      const status = publicPoint(item) ? 'map' : 'list';
+      publicationCompleted.current = publicationToken;
+      successfulLanding.current = publicationToken;
+      setLandingRow({ token: publicationToken, visit: scope, collectionGeneration: collectionGeneration.current, item });
+      if (shouldPosition) setView({ ...initialMarketplaceView(), mode: 'map', selectedId: status === 'map' ? item.id : null,
+        sheet: status === 'map' ? 'peek' : 'full', listOffset: 0 });
+      setPublication({ token: publicationToken, id: item.id, visit: scope, status });
+    }, fail).finally(() => clearTimeout(timer));
+    return () => { active = false; clearTimeout(timer); controller.abort(); };
+  }, [handoff, publicationToken, publishedNeedId, scope, source, user?.id, accountRevision, publicationAttempt]);
   useEffect(() => {
-    if (!handoff || !publicationIsCurrent(handoff) || !publication || publication.status !== 'read'
-      || publicationCompleted.current === publicationToken
-      || publication.token !== publicationToken || publication.visit !== scope || resource.loading || resource.refreshing) return;
-    if (!scope || focus.current !== scope || sesijaSada().user?.id !== user?.id || sesijaSada().accountRevision !== accountRevision) return;
-    if (resource.error || !resource.data) { setPublication({ ...publication, status: 'error' }); return; }
-    const item = resource.data.find(row => sameId(row.id, publication.id));
-    if (!item) { setPublication({ ...publication, status: 'missing' }); return; }
-    const status = publicPoint(item) ? 'map' : 'list';
-    setView({ ...initialMarketplaceView(), mode: 'map', selectedId: status === 'map' ? item.id : null,
-      sheet: status === 'map' ? 'peek' : 'full', listOffset: 0 });
-    setPublication({ ...publication, id: item.id, status });
-  }, [handoff, publication, publicationToken, resource.loading, resource.refreshing, resource.error, resource.data, scope, user?.id, accountRevision]);
-  useEffect(() => {
-    if (publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
-      && scope && focus.current === scope) publicationCompleted.current = publicationToken;
-  }, [publication, publicationToken, scope]);
+    const receipt = collectionReceipt.current;
+    // A completed refresh may have failed, and a late collection may have started BEFORE
+    // the exact lookup. Only a successful newer read may supersede its public snapshot.
+    if (landingRow && receipt && receipt.rows === resource.data && !resource.error
+      && receipt.generation > landingRow.collectionGeneration) setLandingRow(null);
+  }, [landingRow, resource.data, resource.error]);
+  // Like the collection, retain a public row through a detail visit while revalidating it.
+  // Background/account departure clears it; revalidation never repeats the camera.
+  const exactItem = landingRow?.token === publicationToken && scope
+    && focus.current === scope ? landingRow.item : null;
+  const items = useMemo(() => exactItem ? [exactItem, ...(resource.data ?? []).filter(row => !sameId(row.id, exactItem.id))]
+    : resource.data ?? [], [exactItem, resource.data]);
+  const collectionPending = !!exactItem && (resource.loading || !!resource.error);
   // Which of these tasks are mine and which I have applied to: labels only, read beside the list so
   // that a failure here costs the labels and never the list. Since PKG-023b it is one bounded call
   // for the tasks actually on this page, instead of my whole task list and my whole application
   // list; the server answers for those ids and says nothing about any other task.
-  const visible = (resource.data ?? []).map(row => row.id).join(',');
+  const visible = items.map(row => row.id).join(',');
   // The same 15 s limit as the list read: a read that never answers is a failed read, not one still running, so it costs
   // the labels and never the count, the sheet's start or the map (review r3b).
   const loadRelations = useCallback(async (signal: AbortSignal) => {
@@ -132,18 +156,19 @@ function Discovery() {
   const relations = useFocusedResource(loadRelations, { coalesce: true });
   const labeledRelations = useMemo<TaskRelationIndex | undefined>(() => {
     const base = relations.data ?? undefined;
-    const ownRow = handoff && resource.data?.find(item => sameId(item.id, handoff.needId));
+    const ownRow = handoff && items.find(item => sameId(item.id, handoff.needId));
     if (!ownRow) return base;
     // Reuse the existing "Tvoj zadatak" presentation for this proved owner. Other relationships stay unknown
     // until their own read returns; the handoff never invents an application or changes marketplace membership.
     return { owned: new Set([...(base?.owned ?? []), ownRow.id]), applied: base?.applied ?? new Set<string>(),
       relation: id => id === ownRow.id ? { kind: 'OWNER' } : base?.relation(id) ?? { kind: 'UNKNOWN' } };
-  }, [relations.data, handoff, resource.data]);
+  }, [relations.data, handoff, items]);
   // Ownership is an overlay, never a visibility filter. A missing answer stays unknown while the
   // public rows, counts and map remain usable. Every explicit refresh retries both reads, even if
   // the public task IDs did not change since a failed overlay read.
   const relationsPending = relations.loading || relations.refreshing;
   const latestResource = useRef(resource); latestResource.current = resource;
+  const latestItems = useRef(items); latestItems.current = items;
   const latestRelations = useRef(relations); latestRelations.current = relations;
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
@@ -163,7 +188,7 @@ function Discovery() {
   const open = (item: MarketplaceItem) => {
     const latest = latestResource.current;
     trace('route-open', current(), navigating.current, latest.loading, !!latest.error, traceView.current.listOffset ?? 0, traceSheet(traceView.current));
-    if (latest.loading || latest.error || !latest.data?.some(row => row.id === item.id)) return;
+    if ((!exactItem && (latest.loading || latest.error)) || !latestItems.current.some(row => row.id === item.id)) return;
     // The canonical owner read on the review screen already proved this one relationship. A slow or failed
     // optional relation overlay must not send the publisher through somebody else's public-detail path.
     const owned = (!!handoff && publicationIsCurrent(handoff) && sameId(item.id, handoff.needId))
@@ -172,7 +197,8 @@ function Discovery() {
   };
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
-  return <DiscoveryPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
+  return <DiscoveryPresentation items={items} loading={!exactItem && resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!exactItem && !!resource.error}
+      collectionStatus={collectionPending ? resource.error ? 'error' : 'loading' : undefined}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={labeledRelations} relationsPending={relationsPending}
       relationsError={relations.error}
       publicationFocus={publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
@@ -188,11 +214,14 @@ function Discovery() {
       onUserIntent={retirePublicationLanding}
       onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
         if (current()) {
-          if (publicationCompleted.current !== publicationToken && publication?.token === publicationToken
+          if ((publicationCompleted.current !== publicationToken || successfulLanding.current === publicationToken)
+            && publication?.token === publicationToken
             && (publication.status === 'missing' || publication.status === 'error')) {
             publicationRequested.current = null;
-            setPublication(null); // the publication effect starts one fresh public read and re-evaluates its row
-          } else void resource.refresh(true);
+            setPublication(null);
+            setPublicationAttempt(attempt => attempt + 1);
+          }
+          void resource.refresh(true);
           void relations.refresh(true);
         }
       }} onOpen={open}

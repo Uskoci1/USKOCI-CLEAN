@@ -129,8 +129,8 @@ const MAX_TERMS = 50;
  * person could type ("Kombi", "Transportna kolica"); nothing new is stored and matching is unchanged. Tapping a chosen
  * picture again removes that term in any spelling of its case.
  */
-function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen, values, pending, setPending, change, disabled, inputRef }: {
-  label: string; art: FactArtKind; group: PictogramGroup; placeholder: string; quickLabel: string; quickOpen: boolean;
+function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen = false, description, values, pending, setPending, change, disabled, inputRef }: {
+  label: string; art: FactArtKind; group?: PictogramGroup; placeholder: string; quickLabel?: string; quickOpen?: boolean; description?: string;
   values: string[]; pending: string; setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void;
   disabled: boolean; inputRef?: RefObject<TextInput | null>;
 }) {
@@ -141,6 +141,7 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen, va
   const tiles = pictogramCatalog.filter(p => p.group === group && p.kind !== 'ostalo');
   return <View style={s.section}>
     <SectionHead art={art} title={label} />
+    {description ? <T variant="note" tone="muted">{description}</T> : null}
     {values.length ? <View style={s.chips}>
       {values.map((value, index) => <Press key={index} accessibilityRole="button" accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`}
         accessibilityState={{ disabled }} disabled={disabled} haptic="select" hitSlop={{ top: 4, bottom: 4 }}
@@ -156,14 +157,14 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen, va
         disabled={disabled || !pending.trim() || full} style={s.add} />
     </View>
     {full ? <T variant="note" tone="muted">Najviše 50 stavki.</T> : null}
-    <Disclosure label={quickLabel} defaultExpanded={quickOpen}>
+    {group && quickLabel ? <Disclosure label={quickLabel} defaultExpanded={quickOpen}>
       <PickerGrid>{tiles.map(tile => {
         const selected = hasTerm(values, tile.label), blocked = !selected && full;
         return <PickerTile key={tile.kind} kind={tile.kind} label={tile.label} size="medium" mode="multiple" selected={selected}
           disabled={disabled || blocked} reason={blocked ? 'Najviše 50 stavki' : undefined}
           onPress={() => { if (!disabled && !blocked) change(toggleTerm(values, tile.label)); }} />;
       })}</PickerGrid>
-    </Disclosure>
+    </Disclosure> : null}
   </View>;
 }
 
@@ -286,10 +287,12 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     <TermsPicker label="Alat i oprema" art="tool" group="alat" placeholder="Dodaj alat" quickLabel="Brzi izbor alata" quickOpen={false}
       values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
       change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
-    {/* No picture is refused for a licence: the profile holds no licence data. */}
     <TermsPicker label="Vozila" art="vehicle" group="vozila" placeholder="Dodaj vozilo" quickLabel="Brzi izbor vozila" quickOpen={false}
       values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
       change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} />
+    <TermsPicker label="Licence koje navodiš" art="document" placeholder="Dodaj licencu" description="Licence navodiš ti; USKOČI ih ne proverava."
+      values={draft.licence} pending={draft.newLicense} setPending={newLicense => patch({ newLicense })}
+      change={(licence, clear) => patch({ licence, ...(clear ? { newLicense: '' } : {}) })} disabled={disabled} />
     <Disclosure label="Kratko predstavljanje" hint="Opciono" defaultExpanded={!!draft.biografija}>
       <Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </Disclosure>

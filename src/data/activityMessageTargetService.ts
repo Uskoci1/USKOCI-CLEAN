@@ -46,7 +46,7 @@ function current(account: ReceiptAccount): boolean {
 }
 type Rpc = (name: string, args: Record<string, unknown>, signal: AbortSignal) => PromiseLike<unknown>;
 
-/** Prepared for P4; deliberately UNWIRED until the resolver is applied. No navigation, message read or ACK. */
+/** P4 body-free resolver; callers own navigation. Resolving alone performs no message read or ACK. */
 export function createActivityMessageTargetService(rpc: Rpc) {
   return {
     async resolve(eventId: string, options: ActivityMessageTargetOptions = {}, scope?: ReceiptAccount): Promise<Ishod<ActivityMessageTarget>> {

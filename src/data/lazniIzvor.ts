@@ -120,6 +120,7 @@ const POCETNO: Stanje = {
     vestine: [],
     alati: [],
     vozila: [],
+    licence: [],
     stanje: 'DRAFT',
     dostupanOdmah: false,
     radijusKm: 10,
@@ -796,6 +797,7 @@ export const lazniIzvor: Izvor = {
     if (k.vestine !== undefined) stanje.profil.vestine = k.vestine;
     if (k.alati !== undefined) stanje.profil.alati = k.alati;
     if (k.vozila !== undefined) stanje.profil.vozila = k.vozila;
+    if (k.licence !== undefined) stanje.profil.licence = k.licence;
     if (k.radijusKm !== undefined) stanje.profil.radijusKm = k.radijusKm;
     if (k.dostupanOdmah !== undefined) stanje.profil.dostupanOdmah = k.dostupanOdmah;
     if (k.zavrsi) stanje.profil.stanje = 'ACTIVE';

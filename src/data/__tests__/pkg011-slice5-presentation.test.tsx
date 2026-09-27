@@ -19,7 +19,7 @@ const byLabel = (label: string) => presses().find(node => node.props.accessibili
 const inputs = () => tree.root.findAllByType('TextInput' as React.ElementType).map(node => node.props.accessibilityLabel);
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const draft = (patch: Partial<WorkerDraft> = {}): WorkerDraft => ({ ime: 'Marko Marić', capacity: '2', capacityRevision: 3, vestine: ['Selidbe', 'Montaža'], newSkill: '', alati: ['Kolica'], newTool: '',
-  vozila: [], newVehicle: '', grad: 'Novi Sad', radius: '25', biografija: '', dostupanOdmah: false, ...patch } as WorkerDraft);
+  vozila: [], newVehicle: '', licence: [], newLicense: '', grad: 'Novi Sad', radius: '25', biografija: '', dostupanOdmah: false, ...patch } as WorkerDraft);
 const change = jest.fn(), navigate = jest.fn();
 beforeEach(() => { change.mockClear(); navigate.mockClear(); });
 function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDraft; status?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; disabled?: boolean }) {

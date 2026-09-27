@@ -43,7 +43,7 @@ import Profile from '../../app/(app)/profil/radnik';
 const REV = 'a'.repeat(64);
 const readyDraft = (change: Record<string, unknown> = {}) => ({
   id: '20000000-0000-4000-8000-000000000001',
-  ime: 'Ana', grad: 'Novi Sad', biografija: '', vestine: ['Selidbe'], alati: [], vozila: [],
+  ime: 'Ana', grad: 'Novi Sad', biografija: '', vestine: ['Selidbe'], alati: [], vozila: [], licence: [],
   stanje: 'DRAFT', dostupanOdmah: false, radijusKm: 15, kapacitetTima: 1, capacityRevision: REV,
   ...change,
 });

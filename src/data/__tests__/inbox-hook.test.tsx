@@ -5,6 +5,8 @@ let mockSession={user:{id:'account-a'},accountRevision:1};
 let mockFocused=true, mockAppState='active';
 const mockListeners=new Set<(state:string)=>void>();
 const mockPort={list:jest.fn(),read:jest.fn(),readAll:jest.fn(),resolve:jest.fn()};
+const mockMessageTarget=jest.fn();
+jest.mock('../activityMessageTargetService',()=>({activityMessageTargetService:{resolve:(...args:unknown[])=>mockMessageTarget(...args)}}));
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');const app={get currentState(){return mockAppState;},addEventListener:(_event:string,listener:(state:string)=>void)=>{
   mockListeners.add(listener);return {remove:()=>mockListeners.delete(listener)};
 }};return new Proxy(native,{get:(target,key)=>key==='AppState'?app:Reflect.get(target,key)});});
@@ -28,6 +30,30 @@ test('account ABA retires pending page and navigation before a replacement rende
   await act(async()=>target.resolve({kind:'AGREEMENT',role:'WORKER',id:'old'}));
   expect(await pending).toBeNull();expect(old.canNavigate()).toBe(false);
   await act(async()=>tree.update(<Probe/>));expect(current().model).not.toBe(old);expect(current().model.canNavigate()).toBe(true);
+});
+
+test('P4 exact resolution carries the captured account incarnation and aborts on blur without ACK',async()=>{
+  const message={...row,eventType:'MESSAGE_RECEIVED'}, target=deferred<any>();
+  mockPort.list.mockResolvedValue({...page,items:[message]});mockMessageTarget.mockReturnValue(target.promise);
+  await act(async()=>{tree=create(<Probe/>);});const old=current().model;
+  let pending!:Promise<unknown>;await act(async()=>{pending=old.open(message);});
+  expect(mockMessageTarget).toHaveBeenCalledWith(row.id,{signal:expect.any(AbortSignal)},{accountId:'account-a',accountRevision:1});
+  await act(async()=>{mockFocused=false;tree.update(<Probe/>);});
+  expect(mockMessageTarget.mock.calls[0][1].signal.aborted).toBe(true);
+  await act(async()=>target.resolve({ok:true,podatak:{kind:'AGREEMENT_MESSAGE',agreementId:'agreement',
+    messageId:'exact',eventId:row.id,role:row.role}}));
+  expect(await pending).toBeNull();expect(mockPort.read).not.toHaveBeenCalled();expect(mockPort.resolve).not.toHaveBeenCalled();
+});
+test.each(['resolved','unavailable','refused'] as const)('P4 %s preserves its distinction at the real hook boundary',async mode=>{
+  const message={...row,eventType:'MESSAGE_RECEIVED'};mockPort.list.mockResolvedValue({...page,items:[message]});
+  mockMessageTarget.mockResolvedValue(mode==='refused'?{ok:false,kod:'ACTIVITY_MESSAGE_TARGET_UNCONFIRMED'}:
+    {ok:true,podatak:mode==='unavailable'?{kind:'UNAVAILABLE'}:{kind:'AGREEMENT_MESSAGE',agreementId:'agreement',
+      messageId:'exact',eventId:row.id,role:row.role}});
+  await act(async()=>{tree=create(<Probe/>);});let result:any;
+  await act(async()=>{result=await current().model.open(message);});
+  expect(result).toEqual(mode==='refused'?null:mode==='unavailable'?{kind:'UNAVAILABLE'}:
+    {kind:'AGREEMENT_MESSAGE',id:'agreement',messageId:'exact',eventId:row.id,role:row.role});
+  expect(mockPort.read).not.toHaveBeenCalled();expect(mockPort.resolve).not.toHaveBeenCalled();
 });
 test.each(['background','blur','role'])('%s retires the pending target and foreground/refocus reads fresh state',async kind=>{
   await act(async()=>{tree=create(<Probe/>);});const old=current().model;
