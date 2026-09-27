@@ -20,7 +20,7 @@ owner's archive, unchanged. Their useful parts are carried here:
 | `dev_snapshot.json` | an agent, through the Supabase connector | Read-only catalog of canonical DEV: every RPC, what `authenticated` may call, Edge functions, cron, ledger and certificate. Query: `dev_snapshot.sql`. |
 | `stanje.json` | `scripts/control/osvezi.mjs` | The computed state. Commit it; its diff shows what changed. |
 | `tabla.template.html` | people | The page layout. |
-| `out/tabla.html` | `scripts/control/osvezi.mjs` | The page to publish (git-ignored). |
+| `out/tabla.html` | `scripts/control/osvezi.mjs` | The generated page to publish (currently tracked; commit refreshed output). |
 | `izvori/r4-20260922/` | copied once, never edited | The owner's read-only forensic snapshot R4, frozen at `9286fdeb`. Ten machine tables, each verified against the package's own `MANIFEST_SHA256.json` before copying, plus `prevod.json`: the Serbian text the table shows for the snapshot's English prose. |
 
 ## The six lights per row
@@ -103,3 +103,8 @@ The latest owner instruction also requires refreshing and republishing after eac
 requires an authenticated owner session and an Artifact publish capability for the existing URL;
 generation alone must never be reported as publication. If that capability is unavailable, retain
 the exact generated file and record publication as pending, without creating a different public site.
+
+
+## Final product phase (2026-09-27)
+
+The existing62 rows now carry `finalization`: overlapping P0–P7 priorities and explicit UX/UI/backend/state-sync/performance/test/device/status cells. Root `finalization` records current owner scope. `osvezi.mjs` preserves these fields in `stanje.json` and generates `FINALIZATION_MATRIX.md`. Edit `redovi.json` only; the Markdown matrix is a view, not another tracker. No structural light promotes these evidence labels to READY. The owner currently requires appearance/flow proposals before implementation and has withheld tests/build/install execution until asked. Only the white/orange selected pin treatment was accepted; the generated card proposal was rejected and is not an implementation target.
