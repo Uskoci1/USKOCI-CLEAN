@@ -3626,7 +3626,7 @@
   },
   "finalization": {
     "updated_at": "2026-09-27",
-    "source_head": "42640f67 (Round06 base)",
+    "source_head": "bcd24f31",
     "order": [
       "P0",
       "P1",
@@ -3645,6 +3645,6 @@
     "rule": "Owner no longer requires individual UI proposals. One bounded types/focused check pass accompanies Round06. Full-suite/build/install/device/provider checks remain deferred; backend/dependency/certificate restrictions remain. Source is not READY. Same 62-row tracker.",
     "implementation": "Round06: Agreement hierarchy, incoming foreground push invalidation, route-scoped reading restoration, durable unsent text and exact photo retry receipt refresh. No new server deployment or device proof.",
     "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md",
-    "dashboard_publication": "Same owner artifact; generation/upload evidence is recorded in docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_PUBLICATION.json. Generating a file alone is not publication."
+    "dashboard_publication": "PENDING_UPLOAD: signed-in owner artifact is reachable, but both documented file-chooser attempts timed out on2026-09-27. Remote page still shows2026-09-24. Local generation is current; exact evidence: ROUND_06_PUBLICATION.json."
   }
 }

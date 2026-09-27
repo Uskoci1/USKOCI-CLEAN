@@ -78,3 +78,7 @@ The final executed total is **9 distinct suites / 406 tests**. Five other suites
 ## Remaining gates / next step
 
 Validate this combined native package once approved, particularly resume/older-history position, keyboard, photo retry and same-event foreground receipt. Then prove the prepared bounded private-history/exact displayed acknowledgement/message-window package on a disposable database; DEV application needs separate owner approval. Voice, exact-message push landing and production-scale query/virtualization proof remain open. The existing 62-row tracker is authoritative; this round is not whole-product READY.
+
+## Delivery
+
+Source implementation commit: `bcd24f31`. Control generation completed with the same 62 rows and no app-called RPC missing from the stored DEV catalog; these are structural checks against the dated snapshot, not fresh runtime proof. The signed-in Claude artifact is reachable, but its documented file chooser timed out twice (AX button and grounded frame input). The remote page still displays 2026-09-24. Publication remains pending; `ROUND_06_PUBLICATION.json` identifies the exact local file.
