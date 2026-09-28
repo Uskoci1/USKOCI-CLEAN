@@ -68,7 +68,7 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json
+          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_FAIL_36492982087.json
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record quarantined P6 real presentation seam'
       - name: Fast-forward only on unchanged canonical source
