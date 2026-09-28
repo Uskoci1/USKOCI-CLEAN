@@ -94,7 +94,9 @@ jobs:
           git add -- AGENTS.md docs/implementation/product-v1-closure-20260926/PLAN.md \
             docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md \
             docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_CLIENT_CHECKS.json \
-            docs/control/redovi.json docs/control/stanje.json docs/control/out/tabla.html docs/control/FINALIZATION_MATRIX.md
+            docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md
+          # README explicitly requires this generated page; do not change global ignore rules.
+          git add -f -- docs/control/out/tabla.html
           git commit -m 'docs(control): record P5 client proof and native boundary'
       - name: Publish only on an unchanged canonical predecessor
         shell: bash
