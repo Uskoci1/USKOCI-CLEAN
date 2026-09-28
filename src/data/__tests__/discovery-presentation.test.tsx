@@ -562,20 +562,26 @@ test.each(['native probe', 'onChange'] as const)('confirming a requested peek th
   expect(committed).toHaveBeenCalled();
 });
 
-test('two unchanged deep returns remain retained without a duplicate native scroll event', async () => {
+test('two unchanged deep FULL returns each rebuild native presentation and restore the same logical offset', async () => {
   rows = Array.from({ length: 40 }, (_, i) => row(`native${i}`));
   initial = { ...initial, sheet: 'full', listOffset: 8000 };
   await render(); await readyList(15000); nativeDetent(2); await deliverUi();
   await nativeScroll(8000);
-  const sheet = listSheet(), cell = nativeCell();
-  scrollToOffset.mockClear();
+  let sheet = listSheet();
   for (let visit = 0; visit < 2; visit++) {
-    mockFocused = false; await update(); mockFocused = true; await update(); await deliverUi();
-    // The native list never moved. No onScroll/content-size/layout event is invented after returning.
-    expect(listSheet() === sheet).toBe(true); expect(nativeCell() === cell).toBe(true);
+    scrollToOffset.mockClear();
+    mockFocused = false; await update(); mockFocused = true; await update();
+    expect(listSheet()).not.toBe(sheet);
+    expect(listSheet().props).toMatchObject({ index: 2, animateOnMount: false });
     expect(snapshot.listOffset).toBe(8000);
+    // A fresh native mount must earn its own geometry/readiness before restoring the saved logical offset.
+    expect(scrollToOffset).not.toHaveBeenCalled();
+    await readyList(15000);
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 8000, animated: false });
+    await nativeScroll(8000);
+    expect(snapshot.listOffset).toBe(8000);
+    sheet = listSheet();
   }
-  expect(scrollToOffset).not.toHaveBeenCalled();
 });
 
 test('a genuinely settled native full detent replaces a stale half request before a changed-data fallback', async () => {
@@ -589,46 +595,57 @@ test('a genuinely settled native full detent replaces a stale half request befor
   expect(snapshot.listOffset).toBe(160);
 });
 
-test.each(['locked', 'mismatch', 'drag', 'momentum'] as const)('a retained return rejects a hidden %s witness', async kind => {
+test.each(['locked', 'mismatch', 'drag', 'momentum'] as const)('a retired FULL mount cannot use a hidden %s witness to certify the new visit', async kind => {
   tracing = true; initial = { ...initial, sheet: 'full', listOffset: 160 };
   await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  const oldSheet = listSheet(), oldHandlers = list().props.nativeHandlers;
   mockFocused = false; await update();
   await act(async () => {
-    const handlers = list().props.nativeHandlers, event = { contentOffset: { y: kind === 'mismatch' ? 80 : 160 } };
+    const event = { contentOffset: { y: kind === 'mismatch' ? 80 : 160 } };
     if (kind === 'locked') mockNativeScrollStatus.value = 0;
-    if (kind === 'drag') handlers.handleOnBeginDrag(event, {});
-    else if (kind === 'momentum') handlers.handleOnMomentumBegin(event, {});
-    else handlers.handleOnScroll(event, {});
+    if (kind === 'drag') oldHandlers.handleOnBeginDrag(event, {});
+    else if (kind === 'momentum') oldHandlers.handleOnMomentumBegin(event, {});
+    else oldHandlers.handleOnScroll(event, {});
     mockNativeScrollStatus.value = 1;
   });
   scrollToOffset.mockClear(); nativeTrace.mockClear();
   mockFocused = true; await update(); await deliverUi();
-  if (kind === 'drag' || kind === 'momentum') expect(scrollToOffset).not.toHaveBeenCalled();
-  else expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 160, animated: false });
+  expect(listSheet()).not.toBe(oldSheet);
+  expect(snapshot.listOffset).toBe(160);
+  expect(scrollToOffset).not.toHaveBeenCalled();
   expect(nativeTrace.mock.calls.some(call => call[0] === 'ack' && call[4] === true)).toBe(false);
+  await readyList();
+  expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 160, animated: false });
+  await nativeScroll(160);
   expect(snapshot.listOffset).toBe(160);
 });
 
-test.each(['momentum', 'temporary', 'animation'] as const)('%s ending after focus confirms the idle native target without another onScroll', async kind => {
+test.each(['momentum', 'temporary', 'animation'] as const)('a retired FULL %s state cannot hold the fresh return mount', async kind => {
   initial = { ...initial, sheet: 'full', listOffset: 160 };
   await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
-  const sheet = listSheet(), event = { contentOffset: { y: 160 } };
+  const oldSheet = listSheet(), oldHandlers = list().props.nativeHandlers, event = { contentOffset: { y: 160 } };
   mockFocused = false; await update();
   await act(async () => {
-    if (kind === 'momentum') list().props.nativeHandlers.handleOnMomentumBegin(event, {});
+    if (kind === 'momentum') oldHandlers.handleOnMomentumBegin(event, {});
     if (kind === 'temporary') mockNativeTemporary.value = true;
     if (kind === 'animation') mockNativeAnimation.value.status = 1;
   });
   scrollToOffset.mockClear();
   mockFocused = true; await update(); await deliverUi();
+  expect(listSheet()).not.toBe(oldSheet);
   expect(scrollToOffset).not.toHaveBeenCalled();
+  expect(snapshot.listOffset).toBe(160);
+
+  // The new native sheet owns the new visit. Once its own state is idle/unlocked and its geometry is measured,
+  // restoration proceeds without accepting any completion from the retired sheet.
   await act(async () => {
-    if (kind === 'momentum') list().props.nativeHandlers.handleOnMomentumEnd(event, {});
+    if (kind === 'momentum') oldHandlers.handleOnMomentumEnd(event, {});
     mockNativeTemporary.value = false; mockNativeAnimation.value.status = 2;
   });
-  await deliverUi();
-  mockFocused = false; await update(); mockFocused = true; await update(); await deliverUi();
-  expect(listSheet()).toBe(sheet); expect(snapshot.listOffset).toBe(160);
+  await readyList();
+  expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 160, animated: false });
+  await nativeScroll(160);
+  expect(snapshot.listOffset).toBe(160);
 });
 
 test.each(['running', 'interrupted', 'content gesture', 'handle gesture', 'temporary', 'between detents', 'out of range'] as const)(
