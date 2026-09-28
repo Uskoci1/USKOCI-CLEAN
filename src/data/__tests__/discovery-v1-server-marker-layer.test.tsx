@@ -2,7 +2,10 @@ import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { DiscoveryV1ServerMarkerLayer } from '../../ui/v2/discovery/DiscoveryV1ServerMarkerLayer';
 
-jest.mock('../../ui/v2/DiscoveryMap',()=>({PillAnnotation:(props:any)=>React.createElement('p6-pill',props)}));
+jest.mock('../../ui/v2/DiscoveryMap',()=> {
+  const ReactForMock = require('react');
+  return { PillAnnotation: (props:any) => ReactForMock.createElement('p6-pill', props) };
+});
 
 const markers:any[]=[
  {kind:'TASK',key:'task:a',point:{lat:45.25,lng:19.83},taskId:'11111111-1111-4111-8111-111111111111',taskCount:1},
