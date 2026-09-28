@@ -45,7 +45,11 @@ select 'P6_COST_SAMPLES '||jsonb_agg(jsonb_build_object('mode',label,'sample',sa
 reset role;
 -- Trace only after the uninstrumented samples. PostgreSQL 17 supports nested
 -- auto_explain plans; a top-level SELECT function(...) is not internal proof.
-load 'auto_explain';
+-- Supabase already preloads auto_explain; LOAD itself requires superuser.
+-- Do not grant superuser/role privileges just to collect a plan.
+do $loaded$ begin
+ if current_setting('auto_explain.log_min_duration',true) is null then raise exception 'P6_AUTO_EXPLAIN_NOT_PRELOADED'; end if;
+end $loaded$;
 set local auto_explain.log_analyze=on;
 set local auto_explain.log_buffers=on;
 set local auto_explain.log_timing=off;
@@ -54,7 +58,6 @@ set local auto_explain.log_parameter_max_length=0;
 set local auto_explain.log_format=json;
 set local auto_explain.log_level=notice;
 set local auto_explain.log_min_duration=1;
-set local track_io_timing=on;
 set local role authenticated;
 do $tag$ begin raise notice 'P6_TRACE_BEGIN_PAGE'; end $tag$;
 select pg_temp.p6_cost_once('PAGE',0);

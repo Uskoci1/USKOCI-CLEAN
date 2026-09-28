@@ -29,7 +29,8 @@ EXPECTED=['CURRENT_CLIENT_ORACLE_208_VECTORS','HELPERS_AND_INVOKER_ENVELOPE','10
  'AUTH_AND_ANON_REFUSALS','COVERAGE_WITH_RESTRICTED_COLUMNS','EXISTING_AUTHORITY_UNCHANGED','ROLLBACK_NO_RPC_OR_FIXTURES_RETAINED']
 report={'unit':'P6_CURRENT_DEPENDENCY_AND_COST','sourceSha':os.getenv('GITHUB_SHA'),'result':'FAIL',
  'liveAccess':False,'serverApplied':False,'providerCalled':False,'deviceProven':False,'productionWired':False,
- 'releaseReady':False,'historicalCertificateReplay':True,'sourceHashes':{},'checks':[]}
+ 'releaseReady':False,'historicalCertificateReplay':True,'sourceHashes':{},'checks':[],
+ 'previousAttempt':{'run':'36449434649','result':'FAIL','sqlState':'42501','receipt':'ROUND_46_FAIL_36449434649.json'}}
 stage='LOCAL_ADMISSION'
 
 def sql(text, name, timeout=90):
@@ -68,6 +69,18 @@ try:
         report['sourceHashes'][path]=hashlib.sha256(b).hexdigest()
     assert report['sourceHashes'][CANDIDATE]=='1d7edb92f85cb84099f0bc02a3b8edebea40907ec18fa861c14408bcf10f6e2e'
     assert report['sourceHashes'][PROOF]=='007098b59de47872c726fe50a8ec92e1fc6fb2fe2e31595d0eb112c8bc345c59'
+    stage='TRACE_INSTRUMENTATION_ADMISSION'
+    # Fail before rebuilding data/measuring if the installed module cannot be
+    # configured transaction-locally. No role/grant/server-setting mutation.
+    sql("""begin;
+    do $admit$ begin if current_setting('auto_explain.log_min_duration',true) is null
+      then raise exception 'P6_AUTO_EXPLAIN_NOT_PRELOADED'; end if; end $admit$;
+    set local auto_explain.log_analyze=on; set local auto_explain.log_buffers=on;
+    set local auto_explain.log_timing=off; set local auto_explain.log_nested_statements=on;
+    set local auto_explain.log_parameter_max_length=0; set local auto_explain.log_format=json;
+    set local auto_explain.log_level=notice; set local auto_explain.log_min_duration=0;
+    select 1;rollback;""",'trace-admission')
+    report['traceAdmission']={'preloaded':True,'transactionLocalSettings':True,'rolePrivilegesChanged':False}
     stage='PRE_COLUMN_BOUNDARY_REPLAY'
     for path in FILES[9:11]:
         sql(Path(path).read_text(),Path(path).stem)
@@ -106,6 +119,15 @@ try:
     if ran.returncode:
         m=re.search(r'(?:ERROR|FATAL):\s+([A-Z0-9]{5}):',stderr)
         if m: report['sqlState']=m[1]
+        line=re.search(r'p6-cost-composed\.sql:(\d+):',stderr)
+        if line:report['diagnosticLine']=int(line[1])
+        # Preserve completed numeric samples even when later instrumentation
+        # fails; partial evidence never promotes the package to PASS.
+        try:
+            values=json.loads(next(x[len('P6_COST_SAMPLES '):] for x in stdout.splitlines() if x.startswith('P6_COST_SAMPLES ')))
+            report['partialMeasurements']={'summary':summarize(values),'packageAccepted':False}
+            (PUBLIC/'p6-partial-cost-samples.json').write_text(json.dumps(values,indent=2)+'\n')
+        except (ValueError,StopIteration,KeyError): pass
         raise ValueError('P6_COMPOSED_PROOF_REFUSED')
     assert all(x['result']=='PASS' for x in report['checks'])
     stage='PUBLIC_SAFE_MEASUREMENT_PROJECTION'
@@ -124,6 +146,7 @@ try:
     report['checks'].extend([{'name':'30_SAMPLES_EACH_OF_FOUR_MODES','result':'PASS'},
       {'name':'INTERNAL_MAIN_QUERY_ANALYZE_BUFFERS_THREE_MODES','result':'PASS'}])
 except Exception as exc:
+    report['result']='FAIL'
     report['failure']={'stage':stage,'category':'PROOF_REFUSED'}
     if re.fullmatch(r'P6_[A-Z0-9_]+',str(exc)):report['failure']['code']=str(exc)
 finally:
