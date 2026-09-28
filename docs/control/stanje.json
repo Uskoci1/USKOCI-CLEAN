@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-28T21:24:06Z",
+  "osvezeno": "2026-09-28T21:37:50Z",
   "grana": "HEAD",
-  "head": "e457ca73",
-  "head_poruka": "fix(p6): type explicit point-members scope without impossible union extract",
+  "head": "7e9520bf",
+  "head_poruka": "test(p6): require cross-kind selection to clear stale member state",
   "server": {
    "snimljeno": "2026-09-27T20:20:25Z",
    "migracije": 210,
@@ -2173,11 +2173,11 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "25 test fajl(ova)"
+    "test": "26 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "FULL-return source fix i postojeći map/list UX ostaju. Round41 dodaje stroge PAGE/EXACT/MAP/PLACES wire decodere i CI guard, ali bounded Discovery još nije serverski kompletan niti produkciono povezan; zato scale/performance nije zatvoren.",
-   "sledece": "P6 only: integrate owner/adapter with bounded overlay and server MAP/PLACES screen model under quarantine; production switch remains off pending rollout/performance/native acceptance.",
+   "sledece": "P6 only: bounded overlay owner + unreachable server-backed presentation seam; keep route switch off pending rollout/performance/native gates.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2200,10 +2200,10 @@
     "backend": "Scoped 11-function/7-table current read-dependency fingerprints after normalized expression deparse MATCH. Known045b compatible-device rollout remains. Latest optimized real local Auth/PostgREST/current wire PASS. No live P6 apply/wiring.",
     "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen. Round39: postojeći viewport/objava/izbor i nova radnja imaju prednost; stari nalog/poseta/timeout ne primenjuju zakasnelu kameru.",
     "performance": "Round49: three blocks x30 x8 cases on one runner, same RLS/identity/payload guards; 720 timings. RPC1000ms all blocks: True. Other distributions/concurrency/native remain OPEN.",
-    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS.",
+    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS.",
     "device_proof": "Round39 nije instaliran ili proveravan na uređaju; istorijski dokazi ostaju vezani za svoje verzije.",
-    "status": "P6 OWNER+VIEW ADAPTER PASS / QUARANTINED SCREEN INTEGRATION+ROLLOUT+NATIVE OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json",
+    "status": "P6 QUARANTINED SCREEN SESSION+TRANSPORT PASS / OVERLAY+UI SEAM+ROLLOUT+NATIVE OPEN",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2357,6 +2357,17 @@
      "serverApplied": false,
      "native": false,
      "p6Finished": false
+    },
+    "round52": {
+     "source": "7e9520bfd9aef8c4ec2aa61a29a035c187508d58",
+     "run": "36487046625",
+     "screenSession": true,
+     "exactTransport": true,
+     "mapListFilterOwner": true,
+     "productionWired": false,
+     "serverApplied": false,
+     "native": false,
+     "p6Finished": false
     }
    },
    "ukupno": "PROBLEM",
@@ -2423,11 +2434,11 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "18 test fajl(ova)"
+    "test": "19 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filter UX/source postoji; Round41 sada ima strogi bounded PAGE/PLACES contract, ali server facets/counts i paging owner još nisu povezani. Aktuelni filteri i dalje zavise od sadašnjeg kompletnog collection čitanja.",
-   "sledece": "P6 only: integrate owner/adapter with bounded overlay and server MAP/PLACES screen model under quarantine; production switch remains off pending rollout/performance/native acceptance.",
+   "sledece": "P6 only: bounded overlay owner + unreachable server-backed presentation seam; keep route switch off pending rollout/performance/native gates.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2450,10 +2461,10 @@
     "backend": "Scoped 11-function/7-table current read-dependency fingerprints after normalized expression deparse MATCH. Known045b compatible-device rollout remains. Latest optimized real local Auth/PostgREST/current wire PASS. No live P6 apply/wiring.",
     "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen.",
     "performance": "Round49: three blocks x30 x8 cases on one runner, same RLS/identity/payload guards; 720 timings. RPC1000ms all blocks: True. Other distributions/concurrency/native remain OPEN.",
-    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS.",
+    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS.",
     "device_proof": "Novi Round33 kod nije instaliran/proveren na emulatoru ili telefonu u ovoj sesiji. Poslednji native dokaz ostaje Round32 rollback/stariji failure; ne prenosi se na b0648051.",
-    "status": "P6 OWNER+VIEW ADAPTER PASS / QUARANTINED SCREEN INTEGRATION+ROLLOUT+NATIVE OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json",
+    "status": "P6 QUARANTINED SCREEN SESSION+TRANSPORT PASS / OVERLAY+UI SEAM+ROLLOUT+NATIVE OPEN",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2582,6 +2593,17 @@
      "viewAdapter": true,
      "pointMembersOwner": true,
      "boundedEnrichmentTargets": true,
+     "productionWired": false,
+     "serverApplied": false,
+     "native": false,
+     "p6Finished": false
+    },
+    "round52": {
+     "source": "7e9520bfd9aef8c4ec2aa61a29a035c187508d58",
+     "run": "36487046625",
+     "screenSession": true,
+     "exactTransport": true,
+     "mapListFilterOwner": true,
      "productionWired": false,
      "serverApplied": false,
      "native": false,
@@ -5849,7 +5871,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "123 test fajl(ova)"
+    "test": "124 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -6183,7 +6205,14 @@
   }
  ],
  "aplikacija_zove_a_server_nema": [],
- "nepovezani_pozivi_a_server_nema": [],
+ "nepovezani_pozivi_a_server_nema": [
+  {
+   "rpc": "rpc_discovery_v1",
+   "files": [
+    "src/data/discoveryV1ClientTransport.ts"
+   ]
+  }
+ ],
  "tokovi": {
   "stavke": [
    {
