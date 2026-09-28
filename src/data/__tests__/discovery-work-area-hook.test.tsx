@@ -42,10 +42,20 @@ it('a newer explicit user intent retires a delayed answer synchronously', async 
   focus = null; await update(); focus = {}; await update(); expect(mockRead).toHaveBeenCalledTimes(1);
 });
 it('the optional read times out once without blocking anything or accepting its later result', async () => {
-  const read = deferred(); mockRead.mockReturnValue(read.promise); await render();
-  await act(async () => { jest.advanceTimersByTime(WORK_AREA_CAMERA_WAIT_MS); });
-  await act(async () => read.resolve(ok())); expect(result.target).toBeNull();
-  await update(); expect(mockRead).toHaveBeenCalledTimes(1); expect(jest.getTimerCount()).toBe(0);
+  // The React renderer also schedules timers. Prove ownership/cleanup of this hook's exact timer,
+  // rather than requiring the unrelated process-wide fake-timer queue to be empty.
+  const timers = jest.spyOn(global, 'setTimeout'), clears = jest.spyOn(global, 'clearTimeout');
+  try {
+    const read = deferred(); mockRead.mockReturnValue(read.promise); await render();
+    const index = timers.mock.calls.findIndex(([, delay]) => delay === WORK_AREA_CAMERA_WAIT_MS);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const timer = timers.mock.results[index].value;
+    expect(timers.mock.calls.filter(([, delay]) => delay === WORK_AREA_CAMERA_WAIT_MS)).toHaveLength(1);
+    await act(async () => { jest.advanceTimersByTime(WORK_AREA_CAMERA_WAIT_MS); });
+    await act(async () => read.resolve(ok())); expect(result.target).toBeNull();
+    await update(); expect(mockRead).toHaveBeenCalledTimes(1);
+    await act(async () => tree.unmount()); expect(clears).toHaveBeenCalledWith(timer);
+  } finally { timers.mockRestore(); clears.mockRestore(); }
 });
 it.each(['blur', 'publication', 'account-aba', 'source'] as const)('a %s transition fences an old result', async condition => {
   const read = deferred(); mockRead.mockReturnValue(read.promise); await render();
