@@ -1,4 +1,5 @@
 name: P7 signup confirmation recovery
+# Integrated rerun after P6 quarantine type fixes.
 on:
   push:
     branches: [work/uskoci-ui-unification-20260924]
