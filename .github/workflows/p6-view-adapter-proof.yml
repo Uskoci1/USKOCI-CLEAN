@@ -1,15 +1,8 @@
 # Round51 owns the next source evolution; Round50 is frozen and no longer retriggers on this owner file.
 name: P6 view adapter and point members
+# Round51 is frozen after its accepted evidence/control commit.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/data/discoveryV1Owner.ts'
-      - 'src/data/discoveryV1MarketplaceAdapter.ts'
-      - 'src/data/__tests__/discovery-v1-owner.test.ts'
-      - 'src/data/__tests__/discovery-v1-marketplace-adapter.test.ts'
-      - 'scripts/proofs/p6-view-adapter-record.cjs'
-      - '.github/workflows/p6-view-adapter-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
