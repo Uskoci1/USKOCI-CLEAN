@@ -1382,15 +1382,21 @@
           "P2"
         ],
         "flow": "Pošalji ponudu",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
+        "ux": "Zadatak→cena/ljudi/termin/poruka→eksplicitni pregled→slanje→potvrđene poslate činjenice. Unknown/refusal/new-offer stanja su odvojena.",
+        "ui": "Jedna zelena sledeća radnja; zaključana TOTAL/PER_PERSON cena objašnjena, OFFERS unos ostaje uredljiv; potvrđen rezultat zamenjuje formu i vodi u Moje prijave.",
         "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "state_sync": "Durable command pre I/O; isti Need read daje prikaz i command reviziju; unknown ishod prvo owned readback, pa samo isti immutable retry. Kasni/drugi nalog/focus ne mogu da potvrde slanje.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round35 / run36400916665: application-selection-native PASS + povezani client/state/interval testovi PASS; puni Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Aktuelni Round35 source nije novim APK-om proveren u ovoj sesiji. Istorijska stvarna slanja ostaju dokaz svojih buildova, ne trenutnog kandidata.",
+        "status": "CLIENT FLOW SOURCE/CI PASS / SERVER PRICE-AUTHORITY DECISION OPEN / CURRENT NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_35_P2_APPLICATION_SOURCE_20260928.md",
+        "round35": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "device": "PENDING"
+        }
       }
     },
     {
@@ -1467,8 +1473,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Isti snimak: dugme „Povuci prijavu“ je vidljivo na kartici poslate ponude. Nije pritisnuto — povlačenje menja stvarne podatke."
       },
-      "problem": "",
-      "sledece": "",
+      "problem": "Aktuelni source već ima eksplicitnu potvrdu povlačenja, KEEP/UPDATE/WITHDRAW version guards i unknown-outcome readback. Serverska fixed-price authority iz B09 ostaje zasebna granica; ovaj flow je ne rešava.",
+      "sledece": "Na objedinjenom APK-u, uz odobren disposable nalog/prijavu, proveriti cancel bez write-a, potvrđeno povlačenje, povratak iz pozadine i prikaz sačuvanog ishoda. Ne ponavljati destruktivno na vlasnikovoj stvarnoj prijavi.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1482,15 +1488,21 @@
           "P2"
         ],
         "flow": "Izmeni ili povuci ponudu",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Povlačenje je destructive potvrda sa imenovanim zadatkom; izmena stale prijave jasno nudi Zadrži / Izmeni / Povuci i ne meša povlačenje sa otkazivanjem Dogovora.",
+        "ui": "Postojeća ApplicationCard i review površina ostaju; destructive Povuci je sekundarno odvojeno od primarne izmena/zadržavanje radnje.",
+        "backend": "Postojeći rpc_withdraw_response i rpc_resolve_stale_response_after_need_edit; bez nove DEV primene.",
+        "state_sync": "Exact application/Need/version identity; double answer, blur/background/account change, late reads/writes i unknown rezultat su ograđeni; retry ponavlja samo isti command posle readback-a.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round35 / run36400916665: my-applications-native PASS (uključuje confirm/cancel/double/unknown/stale/account/background) + command-state/interval client PASS; puni Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Nema nove aktuelne instalacije u ovoj sesiji; destruktivni real flow zahteva disposable prijavu i tačan build/hash.",
+        "status": "SOURCE/CI PASS / DISPOSABLE NATIVE WITHDRAW PROOF PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_35_P2_APPLICATION_SOURCE_20260928.md",
+        "round35": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "device": "PENDING"
+        }
       }
     },
     {
