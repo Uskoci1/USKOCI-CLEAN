@@ -324,6 +324,13 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
     return promise;
   }
 
+  const clearSelectionReads = () => {
+    membersSequence++; exactSequence++;
+    abort(membersAbort); abort(exactAbort);
+    membersAbort = exactAbort = null; nextMembersFlight = null;
+    members = null; membersBase = null; exact = null;
+  };
+
   async function readExact(needId: string): Promise<DiscoveryV1OwnerResult<DiscoveryV1ExactResponse>> {
     if (!requireIntent()) return noop('NO_INTENT');
     const sequence = ++exactSequence, token = { epoch, sequence };
@@ -349,5 +356,5 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
     pageAnchor = null; placesBase = null; membersBase = null;
   };
 
-  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, firstMembers, nextMembers, readExact, retire, snapshot };
+  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, firstMembers, nextMembers, clearSelectionReads, readExact, retire, snapshot };
 }
