@@ -22,7 +22,7 @@ function pinPoint(value: string): DiscoveryV1Point {
     throw new Error('DISCOVERY_V1_VIEW_PIN_INVALID');
   return point;
 }
-export function discoveryV1PointMembersScope(key: string): Extract<DiscoveryV1Scope,{kind:'POINT_MEMBERS'}> {
+export function discoveryV1PointMembersScope(key: string): { kind: 'POINT_MEMBERS'; point: DiscoveryV1Point } {
   return { kind:'POINT_MEMBERS', point:pinPoint(key) };
 }
 export function discoveryV1ViewPlan(view: MarketplaceView): DiscoveryV1ViewPlan {
