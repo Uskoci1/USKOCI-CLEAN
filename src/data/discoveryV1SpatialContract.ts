@@ -14,7 +14,7 @@ export type DiscoveryV1MapResponse = {
   counts: { kind: 'exact_live'; observedAt: string; mapped: number; withoutPoint: number };
 };
 
-export type DiscoveryV1PlaceCursor = { count: number; key: string };
+export type DiscoveryV1PlaceCursor = { count: number; text: string; key: string };
 export type DiscoveryV1PlaceRow = { key: string; text: string; count: number };
 export type DiscoveryV1PlacesResponse = {
   version: typeof DISCOVERY_V1; mode: 'PLACES'; asOf: string; filterKey: string; anchor: DiscoveryV1Anchor;
@@ -142,8 +142,10 @@ export function decodeDiscoveryV1Places(value: unknown, expectedLimit=30):Discov
   const hasMore=typeof row.hasMore==='boolean'?row.hasMore:invalid('DISCOVERY_V1_PLACES_HAS_MORE');
   let nextCursor:DiscoveryV1PlaceCursor|null=null;
   if(row.nextCursor!==null){
-    const cursor=object(row.nextCursor); exact(cursor,['count','key'],'DISCOVERY_V1_PLACE_CURSOR_SHAPE');
-    nextCursor={count:integer(cursor.count,'DISCOVERY_V1_PLACE_CURSOR_COUNT',1),key:text(cursor.key,'DISCOVERY_V1_PLACE_CURSOR_KEY',500)};
+    const cursor=object(row.nextCursor); exact(cursor,['count','text','key'],'DISCOVERY_V1_PLACE_CURSOR_SHAPE');
+    const display=text(cursor.text,'DISCOVERY_V1_PLACE_CURSOR_TEXT',500), normalized=text(cursor.key,'DISCOVERY_V1_PLACE_CURSOR_KEY',500);
+    if(placeKey(display)!==normalized) invalid('DISCOVERY_V1_PLACE_CURSOR_KEY_MISMATCH');
+    nextCursor={count:integer(cursor.count,'DISCOVERY_V1_PLACE_CURSOR_COUNT',1),text:display,key:normalized};
   }
   if(hasMore!==(nextCursor!==null)) invalid('DISCOVERY_V1_PLACE_CURSOR_PRESENCE');
   const counts=object(row.counts); exact(counts,['kind','observedAt','everywhere','inArea'],'DISCOVERY_V1_PLACE_COUNTS_SHAPE');

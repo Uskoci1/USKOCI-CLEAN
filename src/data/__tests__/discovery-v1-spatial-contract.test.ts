@@ -10,7 +10,7 @@ const map=():any=>({version:'DISCOVERY_V1',mode:'MAP',asOf:AT,filterKey:F,anchor
   ],counts:{kind:'exact_live',observedAt:AT,mapped:20,withoutPoint:8}});
 const places=():any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:F,anchor:anchor(),items:[
   {key:'novi sad, liman',text:'Novi Sad, Liman',count:8},{key:'beograd, vračar',text:'Beograd, Vračar',count:4}],
-  hasMore:true,nextCursor:{count:4,key:'beograd, vračar'},counts:{kind:'exact_live',observedAt:AT,everywhere:20,inArea:12}});
+  hasMore:true,nextCursor:{count:4,text:'Beograd, Vračar',key:'beograd, vračar'},counts:{kind:'exact_live',observedAt:AT,everywhere:20,inArea:12}});
 
 it('decodes bounded TASK/PLACE/CLUSTER map buckets without TaskCard/private payload',()=>{
   const value=decodeDiscoveryV1Map(map());
@@ -41,6 +41,7 @@ it('rejects place-key drift, duplicate facets and fake continuation state',()=>{
   const drift=places();drift.items[0].key='liman';expect(()=>decodeDiscoveryV1Places(drift)).toThrow('DISCOVERY_V1_PLACE_KEY_MISMATCH');
   const dup=places();dup.items[1]={...dup.items[0]};expect(()=>decodeDiscoveryV1Places(dup)).toThrow('DISCOVERY_V1_PLACE_DUPLICATE');
   const cursor=places();cursor.hasMore=false;expect(()=>decodeDiscoveryV1Places(cursor)).toThrow('DISCOVERY_V1_PLACE_CURSOR_PRESENCE');
+  const driftCursor=places();driftCursor.nextCursor.text='Drugo mesto';expect(()=>decodeDiscoveryV1Places(driftCursor)).toThrow('DISCOVERY_V1_PLACE_CURSOR_KEY_MISMATCH');
 });
 it('rejects facet order/count contradictions rather than sorting or repairing server output',()=>{
   const order=places();order.items=[{key:'beograd, vračar',text:'Beograd, Vračar',count:4},{key:'novi sad, liman',text:'Novi Sad, Liman',count:8}];

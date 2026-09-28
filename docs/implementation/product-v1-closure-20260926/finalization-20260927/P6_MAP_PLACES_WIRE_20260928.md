@@ -20,7 +20,7 @@ MAP deliberately carries no title, description, requester profile, exact address
 
 ## PLACES
 
-PLACES returns only `{key,text,count}` locality facets, ordered by count descending then Serbian display text, plus exact-live Everywhere / optional map-area counts. `key` must equal the current client `placeKey(text)`; the client does not silently repair drift.
+PLACES returns only `{key,text,count}` locality facets, ordered by count descending then Serbian display text and normalized key, plus exact-live Everywhere / optional map-area counts. Continuation is `{count,text,key}` so the keyset carries every ordering component. `key` must equal the current client `placeKey(text)`; the client does not silently repair drift.
 
 ## Safety / rollout
 
