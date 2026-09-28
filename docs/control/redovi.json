@@ -359,8 +359,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objava prošla; drugi nalog vidi zadatak. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu."
       },
-      "problem": "Tačno javno čitanje sada je primenjeno i povezano. Nedostaje nova nativna potvrda objava→pin/kartica; obična kolekcija još nije serverski ograničena.",
-      "sledece": "Proveri objedinjeni APK; zatim P6 serverski filteri/stranice/brojevi. Ne ponavljati već odobrenu i izvedenu primenu P0.",
+      "problem": "P0 klijentski lanac objava→potvrđen Need ID/revizija→exact public read→Discovery focus je već implementiran i objedinjenim source dokazom potvrđen; nema nove source rupe. Novi native dokaz objava→izabrani pin/Peek ili truthful list group i dalje nedostaje. P6 obična kolekcija ostaje serverski neograničena.",
+      "sledece": "Na objedinjeni Android kandidat spojiti Round33 FULL-return proveru sa stvarnom objavom i proveriti automatski tačan pin/Peek ili list grupu; ne reimplementirati već primenjeni P0 server paket. Zatim P6.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -380,10 +380,18 @@
         "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
         "state_sync": "Tačan javni read potvrđuje ID/reviziju objave; red spojen bez duplikata sa mapom/listom. Nova namera povlači kameru; neuspešno osvežavanje ne uklanja potvrđen red.",
         "performance": "Tačan javni read po ID-u nezavisan je od učitavanja cele kolekcije; ostatak liste i serversko opterećenje ostaju P6.",
-        "test": "Krug26: ruta objave i prikaz mape/liste 2grupe159PASS; završni integrisani TypeScriptPASS. DEV tačan kandidatski hash/telo/ACL potvrđeni, SQL9PASS. Nije cela aplikacija niti novi uređaj dokaz.",
-        "device_proof": "Nema novog APK-a, instalacije ili provere ovog koda na telefonu/emulatoru; stariji dokazi ostaju istorijski.",
-        "status": "P0 SERVER APPLIED / CLIENT CHECKS PASS / NATIVE PENDING / P6 OPEN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_26_APPLIED_CONNECTIONS.md"
+        "test": "Round34 na exact code b0648051 / run36400916665: v5-review-screen PASS + published-task-discovery-route PASS + DiscoveryPresentation PASS (140/140 focused); puni Jest 342 suite / 7.214 testova PASS. Source chain objava→exact public landing je pokriven; nije native/provider dokaz.",
+        "device_proof": "Nema novog instaliranog kandidata u ovoj sesiji. Stvarno publish→Discovery selected pin/approved Peek ili remote/no-coordinate group mora biti dokazano na istom APK-u sa build/hash.",
+        "status": "P0 CLIENT SOURCE/CI CHAIN PROVEN / SERVER ALREADY APPLIED / NATIVE LANDING PENDING / P6 OPEN",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_26_APPLIED_CONNECTIONS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md",
+        "round34": {
+          "source_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "review_screen": "PASS",
+          "published_discovery_route": "PASS",
+          "discovery_presentation": "PASS",
+          "device": "PENDING"
+        }
       }
     },
     {
@@ -1094,7 +1102,7 @@
         "test": "Round33 exact source b0648051: TypeScript PASS; Discovery 140/140 PASS; puni Jest 342 suite / 7.214 testova PASS. GitHub Actions 36400916665 SUCCESS. Nije uređajski dokaz.",
         "device_proof": "Novi Round33 kod nije instaliran/proveren na emulatoru ili telefonu u ovoj sesiji. Poslednji native dokaz ostaje Round32 rollback/stariji failure; ne prenosi se na b0648051.",
         "status": "SOURCE/CI PASS / EXACT NATIVE FULL-RETURN PROOF PENDING / P6 OPEN",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -1104,6 +1112,14 @@
           "workflow_run": 36400916665,
           "focused": "140/140 PASS",
           "full": "342 suites / 7214 tests PASS",
+          "device": "PENDING"
+        },
+        "round34": {
+          "source_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "review_screen": "PASS",
+          "published_discovery_route": "PASS",
+          "discovery_presentation": "PASS",
           "device": "PENDING"
         }
       }
