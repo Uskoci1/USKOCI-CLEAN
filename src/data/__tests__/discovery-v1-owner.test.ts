@@ -76,8 +76,9 @@ it('one cursor has one paging owner and duplicate rows across pages are deduplic
 it('rejects continuation anchor drift instead of silently restarting',async()=>{
  const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
  const first=owner.firstPage();h.pending[0].resolve(page());await first;
- const next=owner.nextPage();h.pending[1].resolve(page([ID2],'c'.repeat(32),false));
- await expect(next).rejects.toThrow('DISCOVERY_V1_OWNER_PAGE_ANCHOR_DRIFT');
+ const next=owner.nextPage(),rejection=expect(next).rejects.toThrow('DISCOVERY_V1_OWNER_PAGE_ANCHOR_DRIFT');
+ h.pending[1].resolve(page([ID2],'c'.repeat(32),false));
+ await rejection;
  expect(owner.snapshot().page?.items.map(x=>x.id)).toEqual([ID1]);
 });
 it('new locality query fences old suggestions and paging keeps the exact first query context',async()=>{
