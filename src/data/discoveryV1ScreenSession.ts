@@ -5,7 +5,10 @@ import { discoveryV1MapMarkers, discoveryV1Opportunities, discoveryV1PlaceSugges
   type DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import type { PrilikaProjekcija } from '../contracts/projections';
 import type { DiscoveryV1Counts, DiscoveryV1Availability } from './discoveryV1Contract';
-import type { DiscoveryV1MapCounts, DiscoveryV1PlaceCounts, DiscoveryV1PlaceRow } from './discoveryV1SpatialContract';
+import type { DiscoveryV1MapResponse, DiscoveryV1PlacesResponse, DiscoveryV1PlaceRow } from './discoveryV1SpatialContract';
+
+type DiscoveryV1MapCounts = DiscoveryV1MapResponse['counts'];
+type DiscoveryV1PlaceCounts = DiscoveryV1PlacesResponse['counts'];
 
 export type DiscoveryV1Peek =
   | { kind: 'TASK'; item: PrilikaProjekcija & { revision: number } }
