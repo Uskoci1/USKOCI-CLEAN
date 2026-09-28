@@ -2645,8 +2645,8 @@
       ],
       "server": [],
       "telefon": null,
-      "problem": "Isporuka emaila za potvrdu na DEV nije dokazana (16.09). 28.09: stvarna Gmail isporuka, potvrda i povratak još nisu prihvaćeni. Registracija nema eksplicitan emailRedirectTo; ekran traži ručni povratak na prijavu i nema ponovno slanje registracionog mejla. Nije dokazano da dostava ne radi; nedostaje dokaz celog toka.",
-      "sledece": "Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
+      "problem": "Eksplicitan signup emailRedirectTo i ponovno slanje potvrde su sada implementirani i regresiono zeleni. Još nije dokazano da kanonski Supabase allowlist prihvata callback, da email stvarno stiže i da current APK otvara login posle potvrde.",
+      "sledece": "Na odobrenom disposable email nalogu i current objedinjnom APK-u: read-only proveriti provider redirect konfiguraciju, izvršiti signup, realnu isporuku, resend, tap confirmation linka→USKOČI login, zatim login. Ne koristiti vlasnikovu primarnu adresu kao destruktivni test.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2660,15 +2660,23 @@
           "P7"
         ],
         "flow": "Registracija i potvrda emaila",
-        "ux": "28.09: stvarna Gmail isporuka, potvrda i povratak još nisu prihvaćeni. Registracija nema eksplicitan emailRedirectTo; ekran traži ručni povratak na prijavu i nema ponovno slanje registracionog mejla. Nije dokazano da dostava ne radi; nedostaje dokaz celog toka.",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
-        "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "OTVORENO / PREGLED KODA I VEZA 28.09, BEZ NOVOG DOKAZA NA UREĐAJU",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md"
+        "ux": "Posle signup-a: Proveri email, stabilan povratak na prijavu i eksplicitno Pošalji ponovo potvrdu; nema tvrdnje da je email dostavljen.",
+        "ui": "Postojeći beli Auth stage; resend je sekundarna link-radnja, jedna primarna Nazad na prijavu.",
+        "backend": "Postojeći Supabase Auth signUp/resend; bez server migracije ili Auth settings promene. Native callback uskociapp://auth?form=login mora biti provider-allowlisted.",
+        "state_sync": "Auth command serialization; resend samo signed-out, vezan za accountRevision; late session/account change odbija rezultat.",
+        "performance": "Nije posebno mereno.",
+        "test": "Round42 run36429311101: TypeScript PASS; focused Auth 4 suite/66 PASS; full Jest 347 suite/7.288 PASS.",
+        "device_proof": "Nema current APK stvarne email isporuke, resend-a ili confirmation deep-link dokaza.",
+        "status": "SIGNUP CONFIRMATION SOURCE/CI PASS / PROVIDER ALLOWLIST + REAL EMAIL + CURRENT NATIVE CALLBACK PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_42_P7_SIGNUP_CONFIRMATION_20260928.md",
+        "round42": {
+          "source": "22d0813b8fbbfe1110d0ef947526574602e968b3",
+          "workflow_run": 36429311101,
+          "focused": "4/66 PASS",
+          "full": "347/7288 PASS",
+          "provider": "PENDING",
+          "device": "PENDING"
+        }
       }
     },
     {
