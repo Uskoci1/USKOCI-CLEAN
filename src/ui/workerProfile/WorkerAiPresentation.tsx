@@ -116,6 +116,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
         value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />):<T variant="body" tone="muted">Nema posebnih datuma.</T>}
     </ReviewSection>
     <T variant="note" tone="muted">Veštine i licence navodiš ti. Postojeći Dogovori ostaju obaveze. Dostupnost ne uključuje HITNO.</T>
+    <T testID="worker-matching-explanation" variant="note" tone="muted">Za automatske preporuke koriste se veštine, područje rada i dostupnost. Alat, vozila i licence koje navodiš proveravaju uslove zadatka, a broj ljudi ograničava kapacitet prijave. Ime i kratko predstavljanje služe profilu i ne povećavaju poklapanje.</T>
   </View>;
 }
 function Field({label,value,change,disabled,numeric=false,multiline=false}:{label:string;value:string;change:(v:string)=>void;disabled:boolean;numeric?:boolean;multiline?:boolean}){

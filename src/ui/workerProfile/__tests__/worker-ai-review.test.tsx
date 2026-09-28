@@ -71,6 +71,17 @@ it('shows a malformed rule day as it came instead of an invented date', async ()
   expect(copy).toContain('od 2026-02-31'); expect(copy).not.toMatch(/Invalid|NaN/);
 });
 
+
+it('explains which saved profile facts affect matching without claiming verification or a score', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });
+  const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
+  const copy = explanation.children.filter(child => typeof child === 'string').join('');
+  expect(copy).toContain('veštine'); expect(copy).toContain('područje rada'); expect(copy).toContain('dostupnost');
+  expect(copy).toContain('Alat'); expect(copy).toContain('vozila'); expect(copy).toContain('licence');
+  expect(copy).toContain('kapacitet prijave'); expect(copy).toContain('ne povećavaju poklapanje');
+  expect(copy).not.toMatch(/verifikovan|%|skor/i);
+});
+
 it('draws the activation choice on a flat tint with a white thumb', async () => {
   await act(async () => { tree = create(<WorkerAiActivation activate={false} disabled={false} change={() => {}} />); });
   const toggle = tree.root.findByType('Switch' as React.ElementType);

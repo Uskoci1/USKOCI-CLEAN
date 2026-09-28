@@ -84,26 +84,34 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const large = useTextScale() >= 1.3;
   const stackValue = large || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
   const { expanded, toggle } = useAiDraftDisclosure();
-  const status = `${editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
   const ready = open && !stillNeeded && !hiddenMissing;
-  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
+  // A complete authoritative draft is no longer presented as if it were still being collected. It keeps the same
+  // TaskFace language, but shows the facts needed for the decision and leaves exactly one primary review action in the
+  // conversation footer. This is not the published TaskCard/Peek and carries no publication state.
+  const readyForReview = ready && reviewAtEnd;
+  const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
+  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
+    summary.people, summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
   const DisclosureCaret = expanded ? CaretUp : CaretDown;
+  const title = <View style={s.titleSide}>
+    <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
+      <T variant="label" numberOfLines={1} style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
+    <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : 2}
+      style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+  </View>;
   return <View testID="intake-task-summary"
-    style={[s.card, compact && s.cardCompact]}>
-    <Press testID="intake-draft-disclosure" accessibilityRole="button"
+    style={[s.card, compact && s.cardCompact, readyForReview && s.cardReady]}>
+    {readyForReview ? <View testID="intake-ready-head" accessible accessibilityLabel={spoken} style={s.disclosure}>
+      {title}
+    </View> : <Press testID="intake-draft-disclosure" accessibilityRole="button"
       accessibilityLabel={expanded ? 'Sakrij detalje nacrta' : 'Pokaži detalje nacrta'} accessibilityValue={{ text: spoken }}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru." accessibilityState={{ expanded }}
       onPress={toggle} haptic="select" style={s.disclosure}>
-      <View style={s.titleSide}>
-        <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy]} />
-          <T variant="label" numberOfLines={1} style={s.status}>{status}</T></View>
-        <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={expanded ? 0 : 2}
-          style={[s.compactTitle, !summary.title && s.titleEmpty]} />
-      </View>
+      {title}
       <DisclosureCaret size={20} color={sys.color.green} />
-    </Press>
-    {expanded ? <View testID="intake-draft-details" style={s.details}>
+    </Press>}
+    {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
       {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={20} />} text={summary.zone} /> : null}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={20} />} text={summary.schedule} lines={2} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={20} />} text={summary.people} /> : null}
@@ -268,6 +276,7 @@ const s = StyleSheet.create({
   // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.
   card: { ...cardCompact, paddingVertical: 8, gap: 4, backgroundColor: sys.conversation.summary, borderColor: sys.conversation.edge },
   cardCompact: { paddingVertical: 6 },
+  cardReady: { borderColor: sys.color.green },
   disclosure: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
   details: { gap: 8, paddingTop: 8, paddingBottom: 4 },
   reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -280,7 +289,9 @@ const s = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
   // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.
   dotBusy: { backgroundColor: sys.color.orange },
+  dotReady: { backgroundColor: sys.color.green },
   status: { flex: 1, color: sys.color.muted, letterSpacing: 0.3 },
+  statusReady: { color: sys.color.green },
   titleSide: { flex: 1, minWidth: 0, gap: 4 },
   titleEmpty: { color: sys.color.muted },
   next: { marginTop: 2 },
