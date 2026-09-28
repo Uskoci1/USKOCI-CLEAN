@@ -131,10 +131,10 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
   function nextPage(): Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> {
     const currentIntent = requireIntent();
     if (!currentIntent) return Promise.resolve(noop('NO_INTENT'));
-    if (!page || !page.hasMore || !page.nextCursor || !pageAnchor) return Promise.resolve(noop('NO_MORE'));
-    const flightKey = [epoch, pageSequence, cursorIdentity(page.nextCursor)].join(':');
+    const previous = page, previousCursor = previous?.nextCursor ?? null;
+    if (!previous || !previous.hasMore || !previousCursor || !pageAnchor) return Promise.resolve(noop('NO_MORE'));
+    const flightKey = [epoch, pageSequence, cursorIdentity(previousCursor)].join(':');
     if (nextPageFlight?.key === flightKey) return nextPageFlight.promise;
-    const previous = page, previousCursor = previous.nextCursor;
     const sequence = ++pageSequence, token = { epoch, sequence };
     abort(pageAbort);
     const controller = new AbortController(); pageAbort = controller;
@@ -217,9 +217,9 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
   function nextPlaces(): Promise<DiscoveryV1OwnerResult<DiscoveryV1PlacesState>> {
     const currentIntent = requireIntent();
     if (!currentIntent) return Promise.resolve(noop('NO_INTENT'));
-    if (!places || !placesBase) return Promise.resolve(noop('NO_PLACES_CHAIN'));
-    if (!places.hasMore || !places.nextCursor) return Promise.resolve(noop('NO_MORE'));
-    const current = places, previousCursor = current.nextCursor, base = placesBase;
+    const current = places, base = placesBase, previousCursor = current?.nextCursor ?? null;
+    if (!current || !base) return Promise.resolve(noop('NO_PLACES_CHAIN'));
+    if (!current.hasMore || !previousCursor) return Promise.resolve(noop('NO_MORE'));
     const flightKey = [epoch, placesSequence, placeCursorIdentity(previousCursor)].join(':');
     if (nextPlacesFlight?.key === flightKey) return nextPlacesFlight.promise;
     const sequence = ++placesSequence, token = { epoch, sequence };
