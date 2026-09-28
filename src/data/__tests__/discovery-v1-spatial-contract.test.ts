@@ -2,13 +2,13 @@ import { decodeDiscoveryV1Map, decodeDiscoveryV1Places } from '../discoveryV1Spa
 
 const AT='2026-09-28T10:00:00.000000Z', EX='2026-09-28T10:30:00.000000Z', F='a'.repeat(32);
 const anchor=()=>({version:'DISCOVERY_V1',filterKey:F,timeAt:AT,publishedThrough:AT,expiresAt:EX});
-const map=()=>({version:'DISCOVERY_V1',mode:'MAP',asOf:AT,filterKey:F,anchor:anchor(),coverageBounds:[19.7,45.1,20.0,45.4],
+const map=():any=>({version:'DISCOVERY_V1',mode:'MAP',asOf:AT,filterKey:F,anchor:anchor(),coverageBounds:[19.7,45.1,20.0,45.4],
   effectiveGrid:12,wholeBounds:[19.5,44.9,20.2,45.6],buckets:[
     {kind:'TASK',key:'task:1',point:{lat:45.25,lng:19.83},taskId:'11111111-1111-4111-8111-111111111111'},
     {kind:'PLACE',key:'place:1',point:{lat:45.26,lng:19.84},taskCount:3},
     {kind:'CLUSTER',key:'cluster:1',point:{lat:45.27,lng:19.85},taskCount:8,distinctPointCount:4,memberBounds:[19.82,45.24,19.9,45.31]},
   ],counts:{kind:'exact_live',observedAt:AT,mapped:20,withoutPoint:8}});
-const places=()=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:F,anchor:anchor(),items:[
+const places=():any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:F,anchor:anchor(),items:[
   {key:'novi sad, liman',text:'Novi Sad, Liman',count:8},{key:'beograd, vračar',text:'Beograd, Vračar',count:4}],
   hasMore:true,nextCursor:{count:4,key:'beograd, vračar'},counts:{kind:'exact_live',observedAt:AT,everywhere:20,inArea:12}});
 
