@@ -4,7 +4,7 @@ import { createDiscoveryV1Owner, type DiscoveryV1OwnerTransport, type DiscoveryV
 import { discoveryV1MapMarkers, discoveryV1Opportunities, discoveryV1PlaceSuggestions, discoveryV1ViewPlan,
   type DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import type { PrilikaProjekcija } from '../contracts/projections';
-import type { DiscoveryV1Counts, DiscoveryV1Availability } from './discoveryV1Contract';
+import type { DiscoveryV1Counts, DiscoveryV1Availability, DiscoveryV1Item } from './discoveryV1Contract';
 import type { DiscoveryV1MapResponse, DiscoveryV1PlacesResponse, DiscoveryV1PlaceRow } from './discoveryV1SpatialContract';
 
 type DiscoveryV1MapCounts = DiscoveryV1MapResponse['counts'];
@@ -17,6 +17,8 @@ export type DiscoveryV1Peek =
 export type DiscoveryV1ScreenSnapshot = {
   active: boolean;
   view: MarketplaceView | null;
+  /** Strict public PAGE rows retained for bounded optional overlay ownership. */
+  wireItems: DiscoveryV1Item[];
   items: (PrilikaProjekcija & { revision: number })[];
   mapMarkers: DiscoveryV1MapMarker[];
   mapWholeBounds: PublicBounds | null;
@@ -62,6 +64,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const state=owner.snapshot();
     return {
       active:state.active,view:view?cloneView(view):null,
+      wireItems:state.page?[...state.page.items]:[],
       items:state.page?discoveryV1Opportunities(state.page.items):[],
       mapMarkers:state.map?discoveryV1MapMarkers(state.map):[],
       mapWholeBounds:state.map?.wholeBounds ? [...state.map.wholeBounds] as PublicBounds : null,
