@@ -22,6 +22,8 @@ import { zadataka } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { floating, sys } from '../system/tokens';
 import { DiscoveryMap } from './DiscoveryMap';
+import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
+import type { DiscoveryV1Counts } from '../../data/discoveryV1Contract';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
 import { DiscoverySearchBar, type QuickChip } from './discovery/DiscoverySearchBar';
@@ -40,6 +42,22 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
   | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh',
   ...values: (number | boolean)[]) => void;
 
+export type DiscoveryV1PresentationSeam = {
+  /** Server MAP geometry; legacy client GeoJSON clustering is bypassed only while this quarantined seam is supplied. */
+  map: Omit<DiscoveryV1ServerMapSeam, 'onClear'>;
+  /** Exact TASK or bounded POINT_MEMBERS rows already owned by the P6 screen session. */
+  peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[] } | null;
+  /** Exact live PAGE counts; loaded rows may be only the first bounded pages. */
+  counts: DiscoveryV1Counts | null;
+  pageHasMore: boolean;
+  loadingMore?: boolean;
+  onArea: (bounds: PublicBounds) => void;
+  onClearPeek: () => void;
+  onShowPlace: () => void;
+  onShowAll: () => void;
+  onNextPage: () => void;
+};
+
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   /** An exact published row can be shown while the independent collection is incomplete. */
   collectionStatus?: 'loading' | 'error';
@@ -55,7 +73,10 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   /** Account-owned answers, only for the IDs the read covered. Missing coverage remains UNKNOWN. */
   relations?: TaskRelationIndex;
   /** These labels do not delay public rows, counts, map fit or the sheet's initial position. */
-  relationsPending?: boolean; relationsError?: boolean; trace?: DiscoveryTrace };
+  relationsPending?: boolean; relationsError?: boolean;
+  /** P6-only presentation seam. No production route supplies this until rollout/native gates explicitly close. */
+  p6Seam?: DiscoveryV1PresentationSeam;
+  trace?: DiscoveryTrace };
 
 const GAP = sys.space.md;
 /** The tools' lower edge before it has been measured: the search pill's row and one row of chips under it. */
@@ -316,10 +337,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const sharedFilters = useMemo(() => ({ ...initialMarketplaceView(), query, price, when, where, places: freePlaces, place: chosenPlace, dates }),
     [query, price, when, where, freePlaces, chosenPlace, dates]);
   const filters = useMemo(() => ({ ...sharedFilters, area, pinPlace: pinPlace ?? null }), [sharedFilters, area, pinPlace]);
-  const mapped = useMemo(() => loading || error ? NOTHING.mapped : discoveryShown(items, sharedFilters, undefined, now).mapped,
-    [loading, error, items, sharedFilters, now]);
-  const { inArea, withoutPoint, listed: ordinaryList } = useMemo(() => discoveryMapScope(mapped, { area, pinPlace, where }),
-    [mapped, area, pinPlace, where]);
+  const mapped = useMemo(() => loading || error ? NOTHING.mapped
+    : props.p6Seam ? [...items] : discoveryShown(items, sharedFilters, undefined, now).mapped,
+    [loading, error, items, sharedFilters, now, props.p6Seam]);
+  const { inArea, withoutPoint, listed: ordinaryList } = useMemo(() => props.p6Seam
+    ? { inArea: mapped.filter(item => !!publicPoint(item)), withoutPoint: mapped.filter(item => !publicPoint(item)), listed: mapped }
+    : discoveryMapScope(mapped, { area, pinPlace, where }),
+    [mapped, area, pinPlace, where, props.p6Seam]);
   const [retiredListFocus, setRetiredListFocus] = useState<{ token: string; scopeKey: string } | null>(null);
   const retireListFocus = () => {
     const request = props.publicationFocus;
@@ -362,7 +386,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     return answer?.kind === 'OWNER' ? 'OWNED' : answer?.kind === 'APPLIED' ? 'APPLIED'
       : answer?.kind === 'NONE' ? undefined : pending ? 'PENDING' : 'UNKNOWN';
   }, [relations, pending]);
-  const undated = useMemo(() => loading || error ? 0 : undatedCount(items, filters, undefined, now), [loading, error, items, filters, now]);
+  const undated = useMemo(() => loading || error ? 0 : props.p6Seam?.counts?.undated
+    ?? undatedCount(items, filters, undefined, now), [loading, error, items, filters, now, props.p6Seam?.counts?.undated]);
   const conditionCount = discoveryConditions(view);
   const hasFilter = !!view.query.trim() || discoveryFiltered(view) || !!view.area || !!view.place || !!view.pinPlace;
   // Ownership only labels rows: counts describe the same public subset before and after the overlay arrives.
@@ -432,7 +457,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
-  const mapShown = where !== 'remote' && !loading && !error && (mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
+  const mapShown = where !== 'remote' && !loading && !error && (props.p6Seam
+    ? props.p6Seam.map.markers.length > 0 || !!props.p6Seam.map.wholeBounds || !!view.viewport || nearby.mapRequested
+    : mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
   // An empty full list keeps its own recovery action and a quiet, gesture-free return to the map.
   const emptyOverMap = !loading && !error && !props.collectionStatus && !listed.length && mapShown;
 
@@ -441,7 +468,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const selectedPoint = useRef<{ id: string; key: string } | null>(null);
   const pointWitnessOwner = useRef<{ scopeKey: string; token: string | null }>({ scopeKey: props.scopeKey, token: null });
   useEffect(() => {
-    if (loading || error) return;
+    if (props.p6Seam || loading || error) return;
     const publication = props.publicationFocus?.token ?? null;
     if (pointWitnessOwner.current.scopeKey !== props.scopeKey
       || (publication && pointWitnessOwner.current.token !== publication)) {
@@ -457,11 +484,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     selectedPoint.current = !lostTask && selectedId && key ? { id: selectedId, key } : null;
     const lostPlace = !!selectedPlace && !groups.has(selectedPlace);
     if (lostTask || lostPlace) change({ ...(lostTask ? { selectedId: null } : {}), ...(lostPlace ? { selectedPlace: null } : {}) });
-  }, [loading, error, byId, groups, change, props.scopeKey, props.publicationFocus?.token, view.selectedId, view.selectedPlace]);
+  }, [loading, error, byId, groups, change, props.scopeKey, props.publicationFocus?.token, view.selectedId, view.selectedPlace, props.p6Seam]);
   const selectedItem = view.selectedId ? byId.get(view.selectedId) ?? null : null;
   const place = view.selectedPlace ? groups.get(view.selectedPlace) : undefined;
-  const placeTasks = useMemo(() => place && place.ids.length > 1 ? place.ids.flatMap(id => byId.get(id) ?? []) : [], [place, byId]);
-  const chosen = selectedItem && publicPoint(selectedItem) ? selectedItem : null;
+  const legacyPlaceTasks = useMemo(() => place && place.ids.length > 1 ? place.ids.flatMap(id => byId.get(id) ?? []) : [], [place, byId]);
+  const legacyChosen = selectedItem && publicPoint(selectedItem) ? selectedItem : null;
+  const placeTasks = props.p6Seam?.peek?.place ?? legacyPlaceTasks;
+  const chosen = props.p6Seam ? props.p6Seam.peek?.item ?? null : legacyChosen;
   const select = (id: string) => {
     const item = byId.get(id), point = item && publicPoint(item);
     if (!point) return;
@@ -477,19 +506,29 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     change(shared.ids.length > 1 ? { selectedId: null, selectedPlace: key } : { selectedId: shared.ids[0], selectedPlace: null });
     setSheetIndex(SNAP.peek);
   };
-  const clearSelection = () => { if (latestView.current.selectedId || latestView.current.selectedPlace) {
-    retireCameraIntent(); change({ selectedId: null, selectedPlace: null });
-  } };
+  const clearSelection = () => {
+    if (props.p6Seam) { retireCameraIntent(); props.p6Seam.onClearPeek(); return; }
+    if (latestView.current.selectedId || latestView.current.selectedPlace) {
+      retireCameraIntent(); change({ selectedId: null, selectedPlace: null });
+    }
+  };
   // "Prikaži sve u listi": the mapped part narrows to this one public point; tasks without a
   // point remain below in their own section. The search pill names the chosen point and clears it.
   const showPlace = () => {
+    if (props.p6Seam) {
+      if (!props.p6Seam.peek?.place.length) return;
+      userIntent?.(); retireCameraIntent(); retireListFocus(); props.p6Seam.onShowPlace(); setSheetIndex(SNAP.full); return;
+    }
     if (!place) return;
     userIntent?.(); retireCameraIntent(); retireListFocus();
     change({ pinPlace: place.key, selectedId: null, selectedPlace: null });
     setSheetIndex(SNAP.full);
   };
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
-  const showAll = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ area: null, pinPlace: null }); };
+  const showAll = () => {
+    userIntent?.(); retireCameraIntent(); retireListFocus();
+    if (props.p6Seam) props.p6Seam.onShowAll(); else change({ area: null, pinPlace: null });
+  };
   const onIndex = (index: number) => {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
@@ -503,6 +542,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // so the one point a place's list was narrowed to is let go.
   const followArea = (bounds: PublicBounds) => {
     userIntent?.(); retireListFocus();
+    if (props.p6Seam) { props.p6Seam.onArea(bounds); return; }
     const current = latestView.current;
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
   };
@@ -939,15 +979,20 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   ];
   // The count says what is listed, honestly: under a map area, the area's tasks and, apart, those with no point at all;
   // on one point, that point's tasks. It is independent of the account overlay.
-  const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: listed.length, inArea: inArea.length,
-    withoutPoint: withoutPoint.length, pinless: view.where === 'remote' ? 0 : mappedWithoutPin, area: !!area, pinPlace: !!pinPlace });
+  const p6Counts = props.p6Seam?.counts;
+  const exactListed = p6Counts?.listed ?? listed.length;
+  const exactInArea = p6Counts?.inArea ?? inArea.length;
+  const exactWithoutPoint = p6Counts?.withoutPoint ?? withoutPoint.length;
+  const exactPinless = view.where === 'remote' ? 0 : p6Counts?.withoutPoint ?? mappedWithoutPin;
+  const line = countLineWords({ status: loading ? 'loading' : error ? 'error' : 'ready', listed: exactListed, inArea: exactInArea,
+    withoutPoint: exactWithoutPoint, pinless: exactPinless, area: !!area, pinPlace: !!pinPlace });
   const collectionWords = props.collectionStatus === 'loading' ? 'Učitavamo ostale zadatke…'
     : props.collectionStatus === 'error' ? 'Ostali zadaci nisu učitani' : null;
   const spoken = collectionWords ?? `${line.words}${line.extra}`;
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="bodyStrong" numberOfLines={1} style={s.count}>
-    {collectionWords ?? (loading || error ? line.words : listed.length ? zadataka(listed.length) : 'Nema zadataka')}
+    {collectionWords ?? (loading || error ? line.words : exactListed ? zadataka(exactListed) : 'Nema zadataka')}
   </T>;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
@@ -1004,7 +1049,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <Animated.View testID="discovery-map-layer" style={[StyleSheet.absoluteFill, mapShown && mapVisibility]}
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
-        {mapShown ? <DiscoveryMap items={mapped} selectedId={chosen?.id ?? null} selectedPlace={placeTasks.length > 1 ? place!.key : null}
+        {mapShown ? <DiscoveryMap items={mapped} selectedId={props.p6Seam ? null : chosen?.id ?? null}
+          selectedPlace={props.p6Seam ? null : placeTasks.length > 1 ? place!.key : null}
+          p6Server={props.p6Seam ? { ...props.p6Seam.map, onClear: props.p6Seam.onClearPeek } : undefined}
           relations={relations}
           onUserIntent={userIntent}
           publicationCameraToken={cameraRequestToken && props.publicationFocus?.id === chosen?.id ? cameraRequestToken : null}
@@ -1046,7 +1093,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={sectionsSignature}
-          refreshing={!!props.refreshing && !loading} onRefresh={refreshList} {...scrollProps} onContentSizeChange={onContentSizeChange}
+          refreshing={!!props.refreshing && !loading} onRefresh={refreshList}
+          onEndReached={props.p6Seam?.pageHasMore && !props.p6Seam.loadingMore ? () => { if (currentList()) props.p6Seam?.onNextPage(); } : undefined}
+          onEndReachedThreshold={props.p6Seam?.pageHasMore ? 0.4 : undefined}
+          {...scrollProps} onContentSizeChange={onContentSizeChange}
           onLayout={event => {
             trace('layout', currentSheet(), event.nativeEvent.layout.height, listHeight.current, contentHeight.current, restore.current ?? -1);
             if (!currentList()) return;
@@ -1074,7 +1124,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
         </Press>
       </Animated.View> : null}
-      {cardShown ? <DiscoveryPeek key={chosen ? `task:${chosen.id}` : `place:${place!.key}`}
+      {cardShown ? <DiscoveryPeek key={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
         item={chosen} place={placeTasks} relation={relation} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}

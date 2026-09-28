@@ -2,9 +2,19 @@ import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
 import type { SharedValue } from 'react-native-reanimated';
 import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/marketplaceView';
 import type { TaskRelationIndex } from '../../data/taskRelation';
+import type { DiscoveryV1MapMarker } from '../../data/discoveryV1MarketplaceAdapter';
 /** Ephemeral camera instruction, never a public pin, task location, search filter, or stored location. */
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
+export type DiscoveryV1ServerMapSeam = {
+  markers: readonly DiscoveryV1MapMarker[];
+  selectedKey: string | null;
+  wholeBounds: PublicBounds | null;
+  onSelect: (marker: DiscoveryV1MapMarker) => void;
+  onClear?: () => void;
+};
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
+  /** Quarantined P6 MAP path. When present, server buckets own map geometry; legacy GeoJSON clustering is not mounted. */
+  p6Server?: DiscoveryV1ServerMapSeam;
   /** Handled means attempted/retired, not device-render acceptance. */
   initialWorkArea?: WorkAreaCamera | null; onInitialWorkAreaHandled?: (key: string) => void;
   /** Account-owned overlay for rich pins only. Never added to the SDK's public GeoJSON. */

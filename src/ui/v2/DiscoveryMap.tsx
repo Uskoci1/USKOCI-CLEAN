@@ -20,6 +20,7 @@ import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
+import { DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
 
 type Owner = { key: string; active: boolean; epoch: number };
 type LoadTraceEvent = 'map-mounted' | 'deadline' | 'native-error' | 'map-loaded' | 'frame-fully' | 'retired';
@@ -147,13 +148,19 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const [creditHeight, setCreditHeight] = useState(48);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const mounted = useRef(true), load = useRef(status);
+  const serverMap = props.p6Server ?? null;
   const data = useMemo(() => publicFeatures(props.items), [props.items]);
   const places = useMemo(() => pinPlaces(props.items), [props.items]);
   const byId = useMemo(() => new globalThis.Map(props.items.map(item => [item.id, item] as const)), [props.items]);
-  const stacked = useMemo(() => [...places.values()].some(place => place.ids.length > 1), [places]);
-  // Selection, layout and camera state do not change the public geometry. Retain its
-  // exact fingerprint instead of serializing every task again on each map render.
-  const dataKey = useMemo(() => JSON.stringify(data), [data]);
+  const stacked = useMemo(() => !serverMap && [...places.values()].some(place => place.ids.length > 1), [serverMap, places]);
+  // P6 MAP buckets already own clustering. Geometry ownership intentionally excludes selectedKey/callbacks:
+  // selecting a bucket must not remount the native map or lose its viewport.
+  const dataKey = useMemo(() => serverMap
+    ? JSON.stringify(serverMap.markers.map(marker => marker.kind === 'TASK'
+      ? [marker.kind, marker.key, marker.point, marker.taskId]
+      : marker.kind === 'PLACE' ? [marker.kind, marker.key, marker.point, marker.taskCount]
+        : [marker.kind, marker.key, marker.point, marker.taskCount, marker.distinctPointCount, marker.memberBounds]))
+    : JSON.stringify(data), [serverMap?.markers, data]);
   const latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
   // Restore the actual visible bounds. Native camera `center` is the padded target after a pin/fit move; restoring
@@ -161,8 +168,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // offset, and need no new fit to the task dataset. This constructor runs only when this map session mounts.
   // A new map gets only an unoccluded provisional bounds view: the screen's
   // first render still holds whole-window sheet estimates, so those must never be frozen into the native camera.
-  const initialFitPending = useRef(!props.viewport && data.features.length > 0);
+  const serverInitialBounds = serverMap?.wholeBounds ?? null;
+  const initialFitPending = useRef(!props.viewport && (serverMap ? !!serverInitialBounds : data.features.length > 0));
   const [initial] = useState(() => props.viewport ? { bounds: props.viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } }
+    : serverMap ? serverInitialBounds ? { bounds: serverInitialBounds, padding: { top: 24, right: 50, bottom: 24, left: 50 } }
+      : { center: [0, 0] as [number, number], zoom: 1 }
     : data.features.length ? { bounds: publicInitialBounds(props.items)!, padding: { top: 24, right: 50, bottom: 24, left: 50 } }
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
@@ -183,7 +193,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // only IDs of the current read become pills. A failed read leaves the native logo markers.
   const query = useRef(0);
   const readVisiblePins = async () => {
-    if (!owns() || load.current !== 'ready') return;
+    if (serverMap || !owns() || load.current !== 'ready') return;
     const ask = ++query.current;
     try {
       const features = await map.current?.queryRenderedFeatures?.({ layers: ['need-pins'] });
@@ -217,7 +227,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     } catch { return null; }
   };
   const pressFeature = async (features: GeoJSON.Feature[]) => {
-    if (!owns() || load.current !== 'ready' || !Array.isArray(features)) return;
+    if (serverMap || !owns() || load.current !== 'ready' || !Array.isArray(features)) return;
     const feature = features[0]; if (!feature || feature.geometry?.type !== 'Point') return;
     const coordinates = feature.geometry.coordinates;
     if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite) || Math.abs(coordinates[0]) > 180 || Math.abs(coordinates[1]) > 90) return;
@@ -321,12 +331,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     // A deliberate camera destination always wins, even if it is still waiting for the layout below.
     if (props.fitTo || props.centerNearby) { initialFitPending.current = false; return; }
     if (!frame || props.cameraLayoutReady === false || !camera.current) return;
-    const bounds = publicInitialBounds(props.items);
+    const bounds = serverMap ? serverMap.wholeBounds : publicInitialBounds(props.items);
     initialFitPending.current = false;
     if (!bounds) return;
     cancelArea(); intent.current = 0;
     camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
-  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key, serverMap?.wholeBounds]); // eslint-disable-line react-hooks/exhaustive-deps
   // The route owns this optional first-camera lifetime; fields and public GeoJSON never change.
   // Remembered viewport, publication, selected pin, search, Nearby and manual gestures win.
   useEffect(() => {
@@ -420,7 +430,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       onDidFinishRenderingFrameFully={nativeFrameReady ? undefined : () => { if (focused.current && owns()) { traceLoad('frame-fully'); setNativeFrameReady(true); } }}
       // A tap on the map where there is no pin closes an open pin's card. A pin's press stops at its source, and a price
       // pill's own press is not taken as a tap on the ground under it.
-      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) { manualMapIntent(); latest.current.props.onClear?.(); } }}
+      onPress={() => { if (owns() && load.current === 'ready' && Date.now() - pillTap.current > PILL_TAP_MS) {
+        manualMapIntent(); if (serverMap) latest.current.props.p6Server?.onClear?.(); else latest.current.props.onClear?.();
+      } }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
       onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; manualMapIntent(); cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
@@ -451,7 +463,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       <Camera ref={camera} initialViewState={initial} minZoom={0} maxZoom={18} />
       <Images images={PIN_IMAGES} />
       {/* The SDK accepts this same JSON text; reuse it instead of re-encoding every point on each pin selection. */}
-      <GeoJSONSource id="public-needs" ref={source} data={dataKey} cluster clusterRadius={60} clusterMaxZoom={16}
+      {!serverMap ? <GeoJSONSource id="public-needs" ref={source} data={dataKey} cluster clusterRadius={60} clusterMaxZoom={16}
         hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
         onPress={event => { event.stopPropagation(); void pressFeature(event.nativeEvent.features); }}>
         {/* The SDK exposes no annotation-rendered/error event: query/layout success cannot prove a bitmap exists.
@@ -459,15 +471,19 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
             inside a rich pill's 40dp solid body, so the fallback never leaves a second ring around a successful pill. */}
         <Layer id="need-clusters" type="circle" filter={['has', 'point_count']} paint={{ 'circle-radius': 20, 'circle-color': sys.color.surface, 'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
         <Layer id="need-cluster-count" type="symbol" filter={['has', 'point_count']}
-          // RN 11.3's Android bridge treats string-first arrays as expressions: the font stack must be literal.
           layout={{ 'text-field': ['to-string', ['get', 'point_count_abbreviated']], 'text-size': 14, 'text-font': ['literal', ['Noto Sans Regular']], 'text-allow-overlap': true }} paint={{ 'text-color': sys.color.green }} />
         <Layer id="need-pins" type="circle" filter={['!', ['has', 'point_count']]}
           paint={{ 'circle-radius': 16, 'circle-color': sys.color.surface, 'circle-stroke-width': 2,
             'circle-stroke-color': ['case', ['in', ['get', 'needId'], ['literal', urgentIds]], sys.color.danger, sys.color.green] }} />
         <Layer id="need-pin-marks" type="symbol" filter={['!', ['has', 'point_count']]}
           layout={{ 'icon-image': 'uskoci-task', 'icon-size': 30 / 640, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
-      </GeoJSONSource>
-      {pills.filter(place => place.key !== chosenKey).map(place => {
+      </GeoJSONSource> : null}
+      {serverMap ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey}
+        nativeReady={status === 'ready' && nativeFrameReady} owns={owns} onSelect={marker => {
+          if (!owns() || load.current !== 'ready') return;
+          pillTap.current = Date.now(); manualMapIntent(); latest.current.props.p6Server?.onSelect(marker);
+        }} /> : null}
+      {!serverMap ? pills.filter(place => place.key !== chosenKey).map(place => {
         const content = contentOf(place), urgent = urgentPlace(place);
         const relation = place.ids.length === 1 ? relationFor(place.ids[0]) : undefined;
         // The native side keys its annotations by `id`: an id that changes with the content, as the React key does, keeps
@@ -480,8 +496,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
             pillTap.current = Date.now();
             if (place.ids.length > 1 && latest.current.props.onSelectPlace) latest.current.props.onSelectPlace(place.key);
             else latest.current.props.onSelect(place.ids[0]); }} />;
-      })}
-      {selectedPlace ? <PillAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" point={selectedPlace.point}
+      }) : null}
+      {!serverMap && selectedPlace ? <PillAnnotation key={`selected-place:${selectedPlace.key}`} id="selected-place" point={selectedPlace.point}
         label={`${placeWords(selectedPlace)}, izabrano`} content={contentOf(selectedPlace)} urgent={urgentPlace(selectedPlace)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} />
         : point && selected ? <PillAnnotation key={`selected-need:${selected.id}`} id="selected-need" point={point}
           label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}

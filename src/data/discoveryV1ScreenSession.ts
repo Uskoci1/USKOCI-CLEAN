@@ -19,6 +19,7 @@ export type DiscoveryV1ScreenSnapshot = {
   view: MarketplaceView | null;
   items: (PrilikaProjekcija & { revision: number })[];
   mapMarkers: DiscoveryV1MapMarker[];
+  mapWholeBounds: PublicBounds | null;
   places: DiscoveryV1PlaceRow[];
   peek: DiscoveryV1Peek | null;
   counts: DiscoveryV1Counts | null;
@@ -63,6 +64,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       active:state.active,view:view?cloneView(view):null,
       items:state.page?discoveryV1Opportunities(state.page.items):[],
       mapMarkers:state.map?discoveryV1MapMarkers(state.map):[],
+      mapWholeBounds:state.map?.wholeBounds ? [...state.map.wholeBounds] as PublicBounds : null,
       places:state.places?discoveryV1PlaceSuggestions(state.places):[],
       peek,
       counts:state.page?.counts ?? null,availability:state.page?.availability ?? null,mapCounts:state.map?.counts ?? null,
