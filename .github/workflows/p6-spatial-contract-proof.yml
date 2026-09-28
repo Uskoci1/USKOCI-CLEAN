@@ -1,0 +1,34 @@
+name: P6 spatial wire quarantine
+on:
+  push:
+    branches: [work/uskoci-ui-unification-20260924]
+    paths:
+      - '.github/workflows/p6-spatial-contract-proof.yml'
+      - 'src/data/discoveryV1SpatialContract.ts'
+      - 'src/data/__tests__/discovery-v1-spatial-contract.test.ts'
+      - 'docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_MAP_PLACES_WIRE_20260928.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove:
+    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Spatial wire contract
+        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/data/__tests__/discovery-v1-spatial-contract.test.ts
+      - name: Keep partial P6 out of production
+        run: |
+          if grep -R --line-number --fixed-strings "rpc_discovery_v1" src/app src/data/supabaseIzvor.ts src/data/ports.ts; then
+            echo "P6 remains quarantined until PAGE+MAP+PLACES runtime/performance proof is accepted"
+            exit 1
+          fi
