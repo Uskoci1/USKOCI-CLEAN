@@ -160,7 +160,8 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
       }
     })();
     nextPageFlight = { key: [epoch, sequence, cursorIdentity(previousCursor)].join(':'), promise };
-    void promise.finally(() => { if (nextPageFlight?.promise === promise) nextPageFlight = null; });
+    const clearNextPage = () => { if (nextPageFlight?.promise === promise) nextPageFlight = null; };
+    void promise.then(clearNextPage, clearNextPage);
     return promise;
   }
 
@@ -245,7 +246,8 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
       }
     })();
     nextPlacesFlight = { key: [epoch, sequence, placeCursorIdentity(previousCursor)].join(':'), promise };
-    void promise.finally(() => { if (nextPlacesFlight?.promise === promise) nextPlacesFlight = null; });
+    const clearNextPlaces = () => { if (nextPlacesFlight?.promise === promise) nextPlacesFlight = null; };
+    void promise.then(clearNextPlaces, clearNextPlaces);
     return promise;
   }
 
