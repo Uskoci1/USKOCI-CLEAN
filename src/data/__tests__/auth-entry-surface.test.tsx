@@ -7,7 +7,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 const mockRead = jest.fn();
 const mockPrepare = jest.fn();
 let mockParams: { form?: string } = {};
-const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), sendPhoneOtp: jest.fn(),
+const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), resendSignupConfirmation: jest.fn(), sendPhoneOtp: jest.fn(),
   verifyPhoneOtp: jest.fn(), requestPasswordRecovery: jest.fn() };
 let mockSession = { user: null as null | { id: string }, accountRevision: 0 };
 let mockForeground: (state: string) => void;
@@ -46,6 +46,7 @@ jest.mock('../authAvailabilityClientService', () => ({ authAvailabilityClientSer
 jest.mock('../authClientService', () => ({ authClientService: {
   signInWithPassword: (...args: unknown[]) => mockAuth.signInWithPassword(...args),
   signUp: (...args: unknown[]) => mockAuth.signUp(...args),
+  resendSignupConfirmation: (...args: unknown[]) => mockAuth.resendSignupConfirmation(...args),
   sendPhoneOtp: (...args: unknown[]) => mockAuth.sendPhoneOtp(...args),
   verifyPhoneOtp: (...args: unknown[]) => mockAuth.verifyPhoneOtp(...args),
   requestPasswordRecovery: (...args: unknown[]) => mockAuth.requestPasswordRecovery(...args),
@@ -198,6 +199,21 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
   expect(text()).toContain('Ako je registracija prihvaćena'); expect(text()).not.toContain('Poslali smo Vam poruku');
   expect(button('Izmeni email')).toBeDefined(); await press('Nazad na prijavu');
   expect(button('Prijavi se')).toBeDefined(); expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+});
+
+it('offers an explicit confirmation resend after signup and serializes duplicate taps', async () => {
+  await render(); await press('Napravi nalog');
+  for (const [placeholder, value] of [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Tvoj grad', 'Novi Sad'],
+    ['ime@primer.rs', 'ana@example.test'], ['Unesi lozinku', 'password'], ['Ponovi lozinku', 'password']]) await fill(placeholder, value);
+  await press('Napravi nalog');
+  expect(button('Pošalji ponovo potvrdu')).toBeDefined();
+  const pending = deferred<void>(); mockAuth.resendSignupConfirmation.mockReturnValueOnce(pending.promise);
+  const resend = button('Pošalji ponovo potvrdu').props.onPress;
+  await act(async () => { resend(); resend(); });
+  expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledTimes(1);
+  expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledWith('ana@example.test');
+  await act(async () => pending.resolve());
+  expect(text()).toContain('Zahtev za novu potvrdu je prihvaćen.');
 });
 
 it('visibly gates unfinished recovery and never sends a broken reset link', async () => {

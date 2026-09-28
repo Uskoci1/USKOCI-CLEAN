@@ -3,7 +3,7 @@ const mockRevokePush = jest.fn();
 jest.mock('../pushDeviceClientService', () => ({ revokePushBeforeLogout: (scope: unknown) => mockRevokePush(scope) }));
 
 const mockAuth = {
-  signInWithPassword: jest.fn(), signUp: jest.fn(), signInWithOtp: jest.fn(),
+  signInWithPassword: jest.fn(), signUp: jest.fn(), resend: jest.fn(), signInWithOtp: jest.fn(),
   verifyOtp: jest.fn(), resetPasswordForEmail: jest.fn(), getSession: jest.fn(), signOut: jest.fn(),
 };
 let mockCurrent: { user: { id: string } | null; accountRevision: number } = { user: { id: 'account-a' }, accountRevision: 1 };
@@ -34,7 +34,8 @@ describe('central Auth client boundary', () => {
         firstName: 'Ana', lastName: 'Petrović', city: 'Novi Sad' });
       expect(mockAuth.signUp.mock.calls).toEqual([[{
         email: 'ana@example.test', password: 'password',
-        options: { data: { first_name: 'Ana', last_name: 'Petrović', full_name: 'Ana Petrović', city: 'Novi Sad' } },
+        options: { emailRedirectTo: 'uskociapp://auth?form=login',
+          data: { first_name: 'Ana', last_name: 'Petrović', full_name: 'Ana Petrović', city: 'Novi Sad' } },
       }]]);
       expect(result).toEqual({ hasSession: !!session });
     },
@@ -45,10 +46,34 @@ describe('central Auth client boundary', () => {
     await authClientService.signUp({ email: 'private-prefix@example.test', password: '  untouched  ',
       firstName: '  Đorđe ', lastName: ' Ćurčić  ', city: 'Žabalj' });
     expect(mockAuth.signUp.mock.calls[0][0]).toEqual({
-      email: 'private-prefix@example.test', password: '  untouched  ', options: { data: {
-        first_name: '  Đorđe ', last_name: ' Ćurčić  ', full_name: 'Đorđe Ćurčić', city: 'Žabalj',
-      } },
+      email: 'private-prefix@example.test', password: '  untouched  ', options: {
+        emailRedirectTo: 'uskociapp://auth?form=login', data: {
+          first_name: '  Đorđe ', last_name: ' Ćurčić  ', full_name: 'Đorđe Ćurčić', city: 'Žabalj',
+        },
+      },
     });
+  });
+
+  it('binds signup and signup-confirmation resend to the same stable native callback', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    mockAuth.signUp.mockResolvedValue({ data: { session: null, user: { id: 'account-a' } }, error: null });
+    await authClientService.signUp({ email: 'ana@example.test', password: 'password', firstName: 'Ana', lastName: 'P', city: 'Novi Sad' });
+    await authClientService.resendSignupConfirmation(' ana@example.test ');
+    expect(mockAuth.signUp.mock.calls[0][0].options.emailRedirectTo).toBe('uskociapp://auth?form=login');
+    expect(mockAuth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'ana@example.test',
+      options: { emailRedirectTo: 'uskociapp://auth?form=login' } });
+  });
+
+  it('does not resend signup confirmation from a signed-in or changed account', async () => {
+    await expect(authClientService.resendSignupConfirmation('ana@example.test')).rejects.toThrow('neprijavljenom');
+    expect(mockAuth.resend).not.toHaveBeenCalled();
+    mockCurrent = { user: null, accountRevision: 0 };
+    let resolve!: (value: unknown) => void;
+    mockAuth.resend.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+    const pending = authClientService.resendSignupConfirmation('ana@example.test');
+    mockCurrent = { user: null, accountRevision: 2 };
+    resolve({ error: null });
+    await expect(pending).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
   });
 
   it('keeps existing phone OTP options and explicitly verifies an sms token', async () => {

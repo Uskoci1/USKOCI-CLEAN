@@ -6,6 +6,7 @@ import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
 import { forgetAgreementOutboxes } from './agreementOutbox';
+import { signupConfirmationRedirect } from './authSignupRedirect';
 
 function assertCurrentAccount(expected: AuthAccountScope) {
   const current = sesijaSada();
@@ -15,7 +16,7 @@ function assertCurrentAccount(expected: AuthAccountScope) {
   }
 }
 
-type UserAuthOperation = 'SIGN_IN' | 'SIGN_UP' | 'PHONE_SEND' | 'PHONE_VERIFY';
+type UserAuthOperation = 'SIGN_IN' | 'SIGN_UP' | 'SIGNUP_RESEND' | 'PHONE_SEND' | 'PHONE_VERIFY';
 function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
   const value = error && typeof error === 'object' ? error as { status?: unknown; code?: unknown } : {};
   const status = typeof value.status === 'number' ? value.status : null;
@@ -28,6 +29,7 @@ function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
   }
   if (operation === 'SIGN_IN') return new Error('Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.');
   if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.');
+  if (operation === 'SIGNUP_RESEND') return new Error('Novu potvrdu trenutno nije moguće zatražiti. Pokušaj ponovo.');
   if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.');
   return new Error('Kod nije potvrđen. Proveri kod i pokušaj ponovo.');
 }
@@ -40,15 +42,30 @@ export const authClientService: AuthClientPort = {
   },
 
   async signUp({ email, password, firstName, lastName, city }) {
+    const emailRedirectTo = signupConfirmationRedirect();
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna u ovom okruženju.');
     const { data, error } = await supabaseKlijent().auth.signUp({
       email, password,
       // The existing signup trigger reads full_name. Keep the split metadata
       // as well; neither credentials nor historical profile rows are rewritten.
-      options: { data: { first_name: firstName, last_name: lastName,
+      options: { emailRedirectTo, data: { first_name: firstName, last_name: lastName,
         full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
     });
     if (error) throw safeAuthFailure(error, 'SIGN_UP');
     return { hasSession: !!data.session };
+  },
+
+  async resendSignupConfirmation(email) {
+    const owner = sesijaSada();
+    if (owner.user) throw new Error('Potvrda registracije je namenjena neprijavljenom nalogu.');
+    const emailRedirectTo = signupConfirmationRedirect();
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna u ovom okruženju.');
+    const address = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesi ispravnu email adresu.');
+    const { error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } });
+    const current = sesijaSada();
+    if (current.user || current.accountRevision !== owner.accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    if (error) throw safeAuthFailure(error, 'SIGNUP_RESEND');
   },
 
   async sendPhoneOtp(input) {

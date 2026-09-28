@@ -12,6 +12,7 @@ export type AuthAccountScope = { accountId: string; accountRevision: number };
 export type AuthClientPort = {
   signInWithPassword(input: PasswordSignInInput): Promise<void>;
   signUp(input: EmailSignUpInput): Promise<{ hasSession: boolean }>;
+  resendSignupConfirmation(email: string): Promise<void>;
   sendPhoneOtp(input: PhoneOtpInput): Promise<void>;
   verifyPhoneOtp(input: PhoneOtpVerificationInput): Promise<void>;
   requestPasswordRecovery(email: string): Promise<void>;

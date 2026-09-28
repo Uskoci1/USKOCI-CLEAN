@@ -206,6 +206,14 @@ export default function AuthScreen() {
     }, prijaviGresku);
   }
 
+  async function ponoviPotvrduEmaila() {
+    if (!confirmationRequired || !email.trim()) return;
+    await commands.run(async () => {
+      setGreska(null); setPoruka(null);
+      await authClientService.resendSignupConfirmation(email.trim());
+    }, () => setPoruka('Zahtev za novu potvrdu je prihvaćen. Proveri email i neželjenu poštu.'), prijaviGresku);
+  }
+
   async function posaljiTelefon() {
     if (!availability.current()?.phoneOtp) return;
     await commands.run(async () => {
@@ -510,9 +518,13 @@ export default function AuthScreen() {
                 <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
                 <Text style={styles.stateTitle}>{confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'}</Text>
                 <Text style={styles.stateCopy}>{confirmationRequired
-                  ? 'Ako je registracija prihvaćena, dobićeš poruku sa daljim uputstvom. Posle potvrde emaila vrati se na prijavu.'
+                  ? 'Ako je registracija prihvaćena, potvrdi email preko poruke koju dobiješ. Link te vraća na USKOČI prijavu.'
                   : 'Nalog još nije prijavljen. Vrati se na prijavu. Ako ti je stigla poruka za potvrdu emaila, prvo prati njeno uputstvo.'}</Text>
                 <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
+                {confirmationRequired ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi}
+                  onPress={() => void ponoviPotvrduEmaila()} style={styles.linkButton}>
+                  <Text style={styles.linkText}>Pošalji ponovo potvrdu</Text>
+                </Pressable> : null}
                 <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => commands.changeForm(() => {
                   setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
                 })} style={styles.linkButton}>
