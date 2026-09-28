@@ -1,4 +1,6 @@
 -- New fixtures remain in the SAME rolled-back, local-only transaction.
+-- First run 36441177762 reached PAGE/EXACT then refused a null city (SQLSTATE
+-- 23502). Preserve needs.approximate_city NOT NULL; an unnamed city is ''.
 reset role;
 select set_config('p6.spatial_prefix','P6SPATIAL_'||gen_random_uuid()::text,true);
 create function pg_temp.p6_spatial_seed(first_id integer,last_id integer) returns void
@@ -15,7 +17,7 @@ begin
   case when i>2900 then null when i=2897 then 90 when i=2898 then -90 when i in (2899,2900) then 10 when i<=1500 then 45.25 else round(-80::numeric+mod(i-1501,140)*160::numeric/139,2) end,
   case when i>2900 then null when i=2897 then 180 when i=2898 then -180 when i=2899 then 179.99 when i=2900 then -179.99 when i<=1500 then 19.83 else round(-175::numeric+((i-1501)/140)*350::numeric/9,2) end,
   current_setting('p6.spatial_prefix')||case when i<=1500 then ' Alpha' when i>2900 then ' NoPoint' when i in (2899,2900) then ' Dateline' else ' L'||lpad(mod(i,50)::text,2,'0') end,
-  null,'RS','Europe/Belgrade'
+  '','RS','Europe/Belgrade'
  from generate_series(first_id,last_id) i;
 end $seed$;
 create function pg_temp.p6_spatial_map_request(text_filter text,bounds jsonb) returns jsonb
