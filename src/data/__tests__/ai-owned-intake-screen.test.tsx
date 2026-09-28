@@ -623,12 +623,11 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(text()).toContain('Unos ormara'); expect(text()).toContain('Nacrt');
+  expect(text()).toContain('Unos ormara'); expect(text()).toContain('Spremno za pregled');
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
-  const disclosure = tree.root.findByProps({ testID: 'intake-draft-disclosure' });
-  await act(async () => disclosure.props.onPress());
-  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
@@ -700,7 +699,8 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text and dis
   if (kind === 'resumed') await render(); else await start();
   const sends = mockSend.mock.calls.length;
   await type('Dopuna koju još nisam poslao.');
-  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
   await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
   const first = mockRouter.push.mock.calls.at(-1)![0].params;
   expect(Object.keys(first).sort()).toEqual(['conversationId', 'intakeReturn']);
@@ -871,7 +871,7 @@ it('shows actual typed fixed dates and times in Serbian time, in the app’s one
   // Review r4 ra item 8: the card writes the window as every agreed term is written (src/lib/vreme.ts), read in Serbian
   // time and named so on a phone set elsewhere (the suite runs in UTC). It said "(vreme u Beogradu)" in a format of its own.
   await resume();
-  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
   expect(text()).toContain('10. sep · 18:00–19:00 (po vremenu u Srbiji)');
   expect(text()).not.toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
@@ -879,13 +879,13 @@ it('omits an incomplete fixed interval without inventing an end time', async () 
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z')] }));
   await resume();
-  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
   expect(text()).not.toContain('18:00'); expect(text()).not.toContain('Tačan termin');
 });
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.people_needed', count)] }));
   await resume();
-  await act(async () => tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.onPress());
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
   expect(text()).toContain(label as string);
 });
 
