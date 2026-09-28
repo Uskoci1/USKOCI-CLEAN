@@ -73,6 +73,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
 
   async function open(next:MarketplaceView,pageLimit=50){
     view=cloneView(next);peek=null;selectionSequence++;
+    owner.clearSelectionReads();
     const plan=discoveryV1ViewPlan(view);
     owner.begin(plan.filter,plan.pageScope,pageLimit);
     const page=await owner.firstPage();
@@ -88,7 +89,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
     const area=bounds(nextBounds);
     view={...view,area:[...area] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null};
-    peek=null;selectionSequence++;
+    peek=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'AREA',bounds:[...area] as PublicBounds});
     const pagePromise=owner.firstPage(),mapPromise=owner.loadMap(area);
     const [page,map]=await Promise.all([pagePromise,mapPromise]);
@@ -100,7 +101,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
     const key=pointKey(point);
     if(!key) throw new Error('DISCOVERY_V1_SCREEN_POINT');
-    view={...view,pinPlace:key,selectedId:null,selectedPlace:null};peek=null;selectionSequence++;
+    view={...view,pinPlace:key,selectedId:null,selectedPlace:null};peek=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'POINT_LIST',point:{...point}});
     const result=await owner.firstPage();
     return {kind:result.kind,snapshot:snapshot()};
@@ -108,15 +109,15 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
 
   async function showAll(){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
-    view={...view,area:null,pinPlace:null,selectedId:null,selectedPlace:null};peek=null;selectionSequence++;
+    view={...view,area:null,pinPlace:null,selectedId:null,selectedPlace:null};peek=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'ALL'});
     const result=await owner.firstPage();
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function selectMarker(marker:DiscoveryV1MapMarker):Promise<DiscoveryV1SelectionResult>{
-    const selection=++selectionSequence;
-    if(marker.kind==='CLUSTER') return {kind:'CLUSTER',bounds:[...marker.memberBounds] as PublicBounds};
+    const selection=++selectionSequence;owner.clearSelectionReads();
+    if(marker.kind==='CLUSTER'){peek=null;return {kind:'CLUSTER',bounds:[...marker.memberBounds] as PublicBounds};}
     if(marker.kind==='TASK'){
       const result=await owner.readExact(marker.taskId);
       if(selection!==selectionSequence||!isCurrent()||result.kind==='stale') return {kind:'stale'};
@@ -139,7 +140,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const result=await owner.firstPlaces(prefix,facetArea?bounds(facetArea):null,limit);return {kind:result.kind,snapshot:snapshot()};
   }
   async function nextPlaces(){const result=await owner.nextPlaces();return {kind:result.kind,snapshot:snapshot()};}
-  const clearPeek=()=>{selectionSequence++;peek=null;};
+  const clearPeek=()=>{selectionSequence++;peek=null;owner.clearSelectionReads();};
   const retire=()=>{selectionSequence++;peek=null;view=null;owner.retire();};
 
   return {open,settleMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,retire,snapshot};
