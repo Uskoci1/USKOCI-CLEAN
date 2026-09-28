@@ -7,6 +7,7 @@ on:
       - 'src/ui/v2/IntakePresentation.tsx'
       - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
       - 'src/data/__tests__/ai-conversation-layout.test.tsx'
+      - 'src/data/__tests__/ai-owned-intake-screen.test.tsx'
       - 'src/ui/workerProfile/__tests__/worker-ai-review.test.tsx'
       - 'src/data/__tests__/p5-matching-field-contract.test.ts'
   workflow_dispatch:
