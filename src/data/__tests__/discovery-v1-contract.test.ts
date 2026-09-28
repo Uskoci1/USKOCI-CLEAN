@@ -39,7 +39,7 @@ it('rejects PAGE fields on EXACT and EXACT shape on PAGE',()=>{
 });
 it('rejects fabricated or contradictory paging/count state',()=>{
   const cursor=page();cursor.hasMore=false;expect(()=>decodeDiscoveryV1Page(cursor)).toThrow('DISCOVERY_V1_CURSOR_PRESENCE');
-  const count=page();count.counts.listed=0;expect(()=>decodeDiscoveryV1Page(count)).toThrow('DISCOVERY_V1_COUNT_UNDERFLOW');
+  const count=page();count.counts={...count.counts,listed:0,inArea:0,withoutPoint:0};expect(()=>decodeDiscoveryV1Page(count)).toThrow('DISCOVERY_V1_COUNT_UNDERFLOW');
 });
 it('rejects malformed authority-sensitive item facts instead of defaulting them',()=>{
   for(const patch of [
