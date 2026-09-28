@@ -120,3 +120,19 @@ it('copies caller filter and scope so later local mutation cannot rewrite an in-
  expect((h.pending[0].request as any).filter.text).toBe('original');expect((h.pending[0].request as any).scope.bounds).toEqual([19,44,21,46]);
  h.pending[0].resolve(page());await read;
 });
+
+it('POINT_MEMBERS has a separate paging owner and never replaces the main list',async()=>{
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
+ const first=owner.firstPage();h.pending[0].resolve(page());await first;
+ const members=owner.firstMembers({lat:45.25,lng:19.83},2);
+ expect((h.pending[1].request as any).scope).toEqual({kind:'POINT_MEMBERS',point:{lat:45.25,lng:19.83}});
+ h.pending[1].resolve(page([ID2],A,false));expect((await members).kind).toBe('applied');
+ expect(owner.snapshot().page?.items.map(x=>x.id)).toEqual([ID1]);expect(owner.snapshot().members?.items.map(x=>x.id)).toEqual([ID2]);
+});
+it('newer chosen place fences older POINT_MEMBERS response even when abort is ignored',async()=>{
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
+ const first=owner.firstPage();h.pending[0].resolve(page());await first;
+ const old=owner.firstMembers({lat:45.25,lng:19.83},2);const fresh=owner.firstMembers({lat:44.82,lng:20.46},2);
+ expect(h.pending[1].signal.aborted).toBe(true);h.pending[2].resolve(page([ID2],A,false));await fresh;
+ h.pending[1].resolve({bad:'old'});expect((await old).kind).toBe('stale');expect(owner.snapshot().members?.items.map(x=>x.id)).toEqual([ID2]);
+});

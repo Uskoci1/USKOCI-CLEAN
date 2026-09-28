@@ -29,7 +29,7 @@ export type DiscoveryV1PageState = Omit<DiscoveryV1PageResponse, 'items'> & { it
 export type DiscoveryV1PlacesState = Omit<DiscoveryV1PlacesResponse, 'items'> & { items: DiscoveryV1PlacesResponse['items'] };
 export type DiscoveryV1OwnerSnapshot = {
   active: boolean; epoch: number; page: DiscoveryV1PageState | null; map: DiscoveryV1MapResponse | null;
-  places: DiscoveryV1PlacesState | null; exact: DiscoveryV1ExactResponse | null;
+  places: DiscoveryV1PlacesState | null; members: DiscoveryV1PageState | null; exact: DiscoveryV1ExactResponse | null;
 };
 export type DiscoveryV1OwnerResult<T> =
   | { kind: 'applied'; value: T }
@@ -39,6 +39,7 @@ export type DiscoveryV1OwnerResult<T> =
 type Intent = { filter: DiscoveryV1Filter; scope: DiscoveryV1Scope; pageLimit: number };
 type Token = { epoch: number; sequence: number };
 type PlacesBase = { prefix: string; facetArea: DiscoveryV1Bounds | null; limit: number };
+type MembersBase = { point: DiscoveryV1Point; limit: number };
 
 const stale = <T>(): DiscoveryV1OwnerResult<T> => ({ kind: 'stale' });
 const noop = <T>(reason: 'NO_INTENT' | 'NO_PAGE_ANCHOR' | 'NO_MORE' | 'NO_PLACES_CHAIN'): DiscoveryV1OwnerResult<T> => ({ kind: 'noop', reason });
@@ -55,6 +56,12 @@ const cloneBounds = (bounds: DiscoveryV1Bounds): DiscoveryV1Bounds => [...bounds
 const cloneScope = (scope: DiscoveryV1Scope): DiscoveryV1Scope => scope.kind === 'ALL' ? { kind: 'ALL' }
   : scope.kind === 'AREA' ? { kind: 'AREA', bounds: cloneBounds(scope.bounds) }
   : { kind: scope.kind, point: { ...scope.point } };
+const validPoint = (point: DiscoveryV1Point): DiscoveryV1Point => {
+  if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng) || Math.abs(point.lat) > 90 || Math.abs(point.lng) > 180
+    || Math.round(point.lat * 100) / 100 !== point.lat || Math.round(point.lng * 100) / 100 !== point.lng)
+    throw new Error('DISCOVERY_V1_OWNER_POINT');
+  return { ...point };
+};
 const sameAnchor = (a: DiscoveryV1Anchor | null, b: DiscoveryV1Anchor | null) => !!a && !!b
   && a.version === b.version && a.filterKey === b.filterKey && a.timeAt === b.timeAt
   && a.publishedThrough === b.publishedThrough && a.expiresAt === b.expiresAt;
@@ -67,31 +74,32 @@ const placeCursorIdentity = (cursor: DiscoveryV1PlacesResponse['nextCursor']) =>
 export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isCurrent: () => boolean = () => true) {
   let active = true, epoch = 0, intent: Intent | null = null;
   let page: DiscoveryV1PageState | null = null, map: DiscoveryV1MapResponse | null = null;
-  let places: DiscoveryV1PlacesState | null = null, exact: DiscoveryV1ExactResponse | null = null;
-  let pageAnchor: DiscoveryV1Anchor | null = null, placesBase: PlacesBase | null = null;
-  let pageSequence = 0, mapSequence = 0, placesSequence = 0, exactSequence = 0;
+  let places: DiscoveryV1PlacesState | null = null, members: DiscoveryV1PageState | null = null, exact: DiscoveryV1ExactResponse | null = null;
+  let pageAnchor: DiscoveryV1Anchor | null = null, placesBase: PlacesBase | null = null, membersBase: MembersBase | null = null;
+  let pageSequence = 0, mapSequence = 0, placesSequence = 0, membersSequence = 0, exactSequence = 0;
   let pageAbort: AbortController | null = null, mapAbort: AbortController | null = null;
-  let placesAbort: AbortController | null = null, exactAbort: AbortController | null = null;
+  let placesAbort: AbortController | null = null, membersAbort: AbortController | null = null, exactAbort: AbortController | null = null;
   let nextPageFlight: { key: string; promise: Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> } | null = null;
   let nextPlacesFlight: { key: string; promise: Promise<DiscoveryV1OwnerResult<DiscoveryV1PlacesState>> } | null = null;
+  let nextMembersFlight: { key: string; promise: Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> } | null = null;
 
   const abort = (controller: AbortController | null) => controller?.abort();
   const abortAll = () => {
-    abort(pageAbort); abort(mapAbort); abort(placesAbort); abort(exactAbort);
-    pageAbort = mapAbort = placesAbort = exactAbort = null;
-    nextPageFlight = null; nextPlacesFlight = null;
+    abort(pageAbort); abort(mapAbort); abort(placesAbort); abort(membersAbort); abort(exactAbort);
+    pageAbort = mapAbort = placesAbort = membersAbort = exactAbort = null;
+    nextPageFlight = null; nextPlacesFlight = null; nextMembersFlight = null;
   };
   const tokenCurrent = (token: Token, sequence: number) =>
     active && token.epoch === epoch && token.sequence === sequence && isCurrent();
-  const snapshot = (): DiscoveryV1OwnerSnapshot => ({ active, epoch, page, map, places, exact });
+  const snapshot = (): DiscoveryV1OwnerSnapshot => ({ active, epoch, page, map, places, members, exact });
 
   const begin = (filter: DiscoveryV1Filter, scope: DiscoveryV1Scope = { kind: 'ALL' }, pageLimit = 50) => {
     if (!active) throw new Error('DISCOVERY_V1_OWNER_RETIRED');
     validLimit(pageLimit, 100, 'DISCOVERY_V1_OWNER_PAGE_LIMIT');
     epoch++; abortAll();
     intent = { filter: cloneFilter(filter), scope: cloneScope(scope), pageLimit };
-    page = null; map = null; places = null; exact = null; pageAnchor = null; placesBase = null;
-    pageSequence++; mapSequence++; placesSequence++; exactSequence++;
+    page = null; map = null; places = null; members = null; exact = null; pageAnchor = null; placesBase = null; membersBase = null;
+    pageSequence++; mapSequence++; placesSequence++; membersSequence++; exactSequence++;
     return snapshot();
   };
   const requireIntent = () => intent;
@@ -99,9 +107,10 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
   const setScope = (scope: DiscoveryV1Scope) => {
     const currentIntent = requireIntent();
     if (!currentIntent) return false;
-    abort(pageAbort); pageAbort = null; nextPageFlight = null; pageSequence++;
+    abort(pageAbort); abort(membersAbort); pageAbort = membersAbort = null; nextPageFlight = nextMembersFlight = null;
+    pageSequence++; membersSequence++;
     intent = { ...currentIntent, scope: cloneScope(scope) };
-    page = null;
+    page = null; members = null; membersBase = null;
     return true;
   };
 
@@ -251,6 +260,70 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
     return promise;
   }
 
+  async function firstMembers(point: DiscoveryV1Point, limit = 50): Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> {
+    const currentIntent = requireIntent();
+    if (!currentIntent) return noop('NO_INTENT');
+    if (!pageAnchor) return noop('NO_PAGE_ANCHOR');
+    validLimit(limit, 100, 'DISCOVERY_V1_OWNER_PAGE_LIMIT');
+    const base: MembersBase = { point: validPoint(point), limit };
+    const sequence = ++membersSequence, token = { epoch, sequence };
+    abort(membersAbort); nextMembersFlight = null;
+    const controller = new AbortController(); membersAbort = controller;
+    const request: DiscoveryV1PageRequest = { mode: 'PAGE', filter: cloneFilter(currentIntent.filter), anchor: { ...pageAnchor },
+      scope: { kind: 'POINT_MEMBERS', point: { ...base.point } }, limit, after: null };
+    try {
+      let raw: unknown;
+      try { raw = await transport(request, controller.signal); }
+      catch (error) { if (!tokenCurrent(token, membersSequence)) return stale(); throw error; }
+      if (!tokenCurrent(token, membersSequence)) return stale();
+      const decoded = decodeDiscoveryV1Page(raw, limit);
+      if (!sameAnchor(pageAnchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_MEMBERS_ANCHOR_DRIFT');
+      members = decoded; membersBase = base;
+      return applied(members);
+    } finally {
+      controller.abort();
+      if (membersAbort === controller) membersAbort = null;
+    }
+  }
+
+  function nextMembers(): Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> {
+    const currentIntent = requireIntent();
+    if (!currentIntent) return Promise.resolve(noop('NO_INTENT'));
+    const current = members, base = membersBase, previousCursor = current?.nextCursor ?? null;
+    if (!current || !base) return Promise.resolve(noop('NO_PLACES_CHAIN'));
+    if (!current.hasMore || !previousCursor || !pageAnchor) return Promise.resolve(noop('NO_MORE'));
+    const flightKey = [epoch, membersSequence, cursorIdentity(previousCursor)].join(':');
+    if (nextMembersFlight?.key === flightKey) return nextMembersFlight.promise;
+    const sequence = ++membersSequence, token = { epoch, sequence };
+    abort(membersAbort);
+    const controller = new AbortController(); membersAbort = controller;
+    const request: DiscoveryV1PageRequest = { mode: 'PAGE', filter: cloneFilter(currentIntent.filter), anchor: { ...pageAnchor },
+      scope: { kind: 'POINT_MEMBERS', point: { ...base.point } }, limit: base.limit, after: { ...previousCursor } };
+    const promise = (async (): Promise<DiscoveryV1OwnerResult<DiscoveryV1PageState>> => {
+      try {
+        let raw: unknown;
+        try { raw = await transport(request, controller.signal); }
+        catch (error) { if (!tokenCurrent(token, membersSequence)) return stale(); throw error; }
+        if (!tokenCurrent(token, membersSequence)) return stale();
+        const decoded = decodeDiscoveryV1Page(raw, base.limit);
+        if (!sameAnchor(pageAnchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_MEMBERS_ANCHOR_DRIFT');
+        if (decoded.nextCursor && decoded.nextCursor.scopeKey !== previousCursor.scopeKey)
+          throw new Error('DISCOVERY_V1_OWNER_MEMBERS_SCOPE_DRIFT');
+        const seen = new Set(current.items.map(item => item.id)), items = [...current.items];
+        for (const item of decoded.items) if (!seen.has(item.id)) { seen.add(item.id); items.push(item); }
+        members = { ...decoded, items };
+        return applied(members);
+      } finally {
+        controller.abort();
+        if (membersAbort === controller) membersAbort = null;
+      }
+    })();
+    nextMembersFlight = { key: [epoch, sequence, cursorIdentity(previousCursor)].join(':'), promise };
+    const clearNextMembers = () => { if (nextMembersFlight?.promise === promise) nextMembersFlight = null; };
+    void promise.then(clearNextMembers, clearNextMembers);
+    return promise;
+  }
+
   async function readExact(needId: string): Promise<DiscoveryV1OwnerResult<DiscoveryV1ExactResponse>> {
     if (!requireIntent()) return noop('NO_INTENT');
     const sequence = ++exactSequence, token = { epoch, sequence };
@@ -271,9 +344,10 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
 
   const retire = () => {
     if (!active) return;
-    active = false; epoch++; pageSequence++; mapSequence++; placesSequence++; exactSequence++;
-    abortAll(); intent = null; page = null; map = null; places = null; exact = null; pageAnchor = null; placesBase = null;
+    active = false; epoch++; pageSequence++; mapSequence++; placesSequence++; membersSequence++; exactSequence++;
+    abortAll(); intent = null; page = null; map = null; places = null; members = null; exact = null;
+    pageAnchor = null; placesBase = null; membersBase = null;
   };
 
-  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, readExact, retire, snapshot };
+  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, firstMembers, nextMembers, readExact, retire, snapshot };
 }
