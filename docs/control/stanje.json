@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-28T05:56:29Z",
+  "osvezeno": "2026-09-28T06:00:10Z",
   "grana": "HEAD",
-  "head": "cc426c4f",
-  "head_poruka": "docs: consolidate closure plan and native screenshot evidence",
+  "head": "fbf001f0",
+  "head_poruka": "docs: defer privacy branches to final whole-app review",
   "server": {
    "snimljeno": "2026-09-27T20:20:25Z",
    "migracije": 210,
@@ -320,6 +320,15 @@
    "integration": "NOT_INTEGRATED",
    "application": "NOT_APPLIED",
    "release_boundary": "Review and close before public release; this is a scheduling change, not a completed or removed requirement."
+  },
+  "external_review_alignment": {
+   "date": "2026-09-28",
+   "input": "USKOCI_PREGLED_STANJA_2026-09-27.md",
+   "input_sha256": "630a4d5d6f8eff7d22f025c6c1f9f0bfae846f09da65d056d13c433b288591c6",
+   "document": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EXTERNAL_REVIEW_ALIGNMENT_20260928.md",
+   "verdict": "ALIGNED_DATED_EVIDENCE_REVIEW_REQUIRES_CURRENT_HANDOFF_UPDATES",
+   "scope": "Matrix blob and historical/current CI independently checked; no new application tests, live DEV read, device or provider acceptance.",
+   "next": "Use current PLAN and Round32 rollback boundary; privacy branches remain owner-deferred to final whole-app pass."
   }
  },
  "redovi": [
