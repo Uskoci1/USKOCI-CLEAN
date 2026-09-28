@@ -1109,7 +1109,7 @@
         "dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
       },
       "problem": "FULL-return source fix i postojeći map/list UX ostaju. Round41 dodaje stroge PAGE/EXACT/MAP/PLACES wire decodere i CI guard, ali bounded Discovery još nije serverski kompletan niti produkciono povezan; zato scale/performance nije zatvoren.",
-      "sledece": "Pripremiti/izolovano dokazati kompletan server MAP+PLACES kandidat i query-cost, zatim uz eksplicitno odobrenje primeniti kompatibilan P6 paket, pa tek onda povezati paging/map adapter i uraditi native J07/J20.",
+      "sledece": "Complete P6 PAGE+EXACT+MAP+PLACES candidate and isolated proof without live apply; then paging ownership/adapters and native large-data acceptance. Round43 guards must remain.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1138,15 +1138,15 @@
           "P6"
         ],
         "flow": "Mapa i lista prilika",
-        "ux": "28.09: početna mapa vraća zapamćen pogled ili obuhvata javne pinove zadataka; grad iz registracije ne određuje početno uvećanje. Izvorni kvar nestajanja cele liste ostaje otvoren.",
+        "ux": "Round33 preserves logical FULL, offset, viewport and selection across a fresh native mount. Round39 adds optional saved work-area initial camera; explicit user intent/publication/remembered viewport wins. These are source/CI facts, not current native acceptance. Personal locality and GPS remain separate.",
         "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
-        "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
+        "backend": "P0 exact public lookup remains applied. P6 PAGE/EXACT has historical rollback proof; complete MAP/PLACES server, Auth/PostgREST and cost proof remain engineering work. rpc_discovery_v1 absent on DEV at 2026-09-28T14:38:29Z; no application or production wiring.",
         "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen. Round39: postojeći viewport/objava/izbor i nova radnja imaju prednost; stari nalog/poseta/timeout ne primenjuju zakasnelu kameru.",
         "performance": "Ponovljena GeoJSON serijalizacija uklonjena u izvoru. Native brzina nije izmerena; server paging ostaje zasebno otvoren.",
-        "test": "Round39 1b11e046 / run36415825211: TypeScript PASS; 8/348 focused PASS; full Jest 344/7259 PASS. No new device/provider proof.",
+        "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof.",
         "device_proof": "Round39 nije instaliran ili proveravan na uređaju; istorijski dokazi ostaju vezani za svoje verzije.",
-        "status": "FULL RETURN SOURCE/CI PASS / P6 CLIENT WIRE QUARANTINE PASS / SERVER+PERFORMANCE+NATIVE PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md",
+        "status": "P6 SPATIAL GUARDS SOURCE/CI PASS / COMPLETE SERVER+PERFORMANCE+NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -1186,6 +1186,33 @@
           "server_applied": false,
           "performance": "PENDING",
           "device": "PENDING"
+        },
+        "round43": {
+          "base": "4523d501c0022f89bf2104343a3661f260cc2a40",
+          "testedSource": "c43c078188633bf022e13489bc9eb5379e142457",
+          "run": "36439653581",
+          "scope": "QUARANTINED_CLIENT_ONLY",
+          "typecheck": "PASS",
+          "before": {
+            "failed": 8,
+            "runtimeErrors": 0
+          },
+          "focused": {
+            "suites": 347,
+            "tests": 7299
+          },
+          "full": {
+            "suites": 347,
+            "tests": 7299
+          },
+          "hashes": {
+            "src/data/discoveryV1SpatialContract.ts": "54c75735d619e70da01548de1bff4f68008a70380cb24ba36008d48f2fac6091",
+            "src/data/__tests__/discovery-v1-spatial-contract.test.ts": "2cd814554afe9fc33db43e32fb58240ddb9c6ff7d7744ce7c95d4789a158b63c"
+          },
+          "serverApplied": false,
+          "providerCalled": false,
+          "nativeTested": false,
+          "releaseReady": false
         }
       }
     },
@@ -1212,7 +1239,7 @@
         "dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni."
       },
       "problem": "Filter UX/source postoji; Round41 sada ima strogi bounded PAGE/PLACES contract, ali server facets/counts i paging owner još nisu povezani. Aktuelni filteri i dalje zavise od sadašnjeg kompletnog collection čitanja.",
-      "sledece": "P6 server MAP/PLACES + exact-live facet/count proof, zatim client paging/facet owner i stale-request/native acceptance. Ne povezivati parcijalni PAGE reader na postojeći full-collection mapper.",
+      "sledece": "Complete P6 PAGE+EXACT+MAP+PLACES candidate and isolated proof without live apply; then paging ownership/adapters and native large-data acceptance. Round43 guards must remain.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1240,13 +1267,13 @@
         "flow": "Pretraga i filteri",
         "ux": "Odobreno: jedna otvorena sekcija, ostale pokazuju stvarni izbor; jedna zajednička primena i zatvaranje bez primene.",
         "ui": "Bele odvojene sekcije i blur zadržani; poslednji red kalendara sada ostaje u prirodnoj visini panela.",
-        "backend": "P0 exact needId primenjen na DEV, ledger206; P6 ograničena pretraga/ukupni brojevi/klasteri još nisu implementirani.",
+        "backend": "P0 exact public lookup remains applied. P6 PAGE/EXACT has historical rollback proof; complete MAP/PLACES server, Auth/PostgREST and cost proof remain engineering work. rpc_discovery_v1 absent on DEV at 2026-09-28T14:38:29Z; no application or production wiring.",
         "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen.",
         "performance": "SQL_ROLE_PARITY_PASS36346675417:8grupa/208vektora/1004redova. NOT_APPLIED/NOT_WIRED; MAP/PLACES, Auth/PostgREST i trošak upita otvoreni: docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_PAGE_RUNTIME_RECEIPT.md",
-        "test": "Round33 exact source b0648051: TypeScript PASS; Discovery 140/140 PASS; puni Jest 342 suite / 7.214 testova PASS. GitHub Actions 36400916665 SUCCESS. Nije uređajski dokaz.",
+        "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof.",
         "device_proof": "Novi Round33 kod nije instaliran/proveren na emulatoru ili telefonu u ovoj sesiji. Poslednji native dokaz ostaje Round32 rollback/stariji failure; ne prenosi se na b0648051.",
-        "status": "CURRENT FILTER SOURCE/CI + P6 WIRE CONTRACT PASS / BOUNDED SERVER+CLIENT OWNER PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md",
+        "status": "P6 SPATIAL GUARDS SOURCE/CI PASS / COMPLETE SERVER+PERFORMANCE+NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md",
         "round30": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
           "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -1265,6 +1292,33 @@
           "server_applied": false,
           "performance": "PENDING",
           "device": "PENDING"
+        },
+        "round43": {
+          "base": "4523d501c0022f89bf2104343a3661f260cc2a40",
+          "testedSource": "c43c078188633bf022e13489bc9eb5379e142457",
+          "run": "36439653581",
+          "scope": "QUARANTINED_CLIENT_ONLY",
+          "typecheck": "PASS",
+          "before": {
+            "failed": 8,
+            "runtimeErrors": 0
+          },
+          "focused": {
+            "suites": 347,
+            "tests": 7299
+          },
+          "full": {
+            "suites": 347,
+            "tests": 7299
+          },
+          "hashes": {
+            "src/data/discoveryV1SpatialContract.ts": "54c75735d619e70da01548de1bff4f68008a70380cb24ba36008d48f2fac6091",
+            "src/data/__tests__/discovery-v1-spatial-contract.test.ts": "2cd814554afe9fc33db43e32fb58240ddb9c6ff7d7744ce7c95d4789a158b63c"
+          },
+          "serverApplied": false,
+          "providerCalled": false,
+          "nativeTested": false,
+          "releaseReady": false
         }
       }
     },
