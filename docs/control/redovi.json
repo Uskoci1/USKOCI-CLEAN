@@ -2982,7 +2982,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
-      "sledece": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
+      "sledece": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Odluka vlasnika 28.09: ove dve grane ostaviti za završni pregled privatnosti cele aplikacije pre javnog izdanja; sada nisu prioritet za primenu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3009,7 +3009,7 @@
         "performance": "Nije ponovo mereno",
         "test": "29/29 ciljanih testova; 4 nove reprodukcije pre ispravke. Na prethodnom APK-u ulaz u dijalog nije reagovao, pa zatvaranje naloga nije testirano. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
         "device_proof": "baa32832: Catalog27 stills i stvarna Privacy ilustracija viđeni.10739a44: sve četiri ilustracije i prvi uhvaćen probni okvir imaju sliku; početnih360–4526ms nisu precizno snimljeni, kvalitet motion-a nije prihvaćen. TelefonUSB odsutan.",
-        "status": "OTVORENO / PREGLED KODA I VEZA 28.09, BEZ NOVOG DOKAZA NA UREĐAJU",
+        "status": "OTVORENO / VLASNIK ODLOŽIO DVE GRANE ZA ZAVRŠNI PREGLED CELE APLIKACIJE",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
         "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
         "catalog27": {
@@ -3883,7 +3883,7 @@
       "updated_at": "2026-09-28",
       "document": "docs/implementation/product-v1-closure-20260926/PLAN.md",
       "status": "CURRENT_P0_P7_ORDER_WITH_DEPENDENCIES_AND_EXIT_CRITERIA",
-      "next": "Original FULL-return repair and independent narrow integration of the two privacy branches; then publication/map/list continuity.",
+      "next": "Original FULL-return repair, then publication/map/list continuity and P0–P7. Owner deferred the two privacy branches to the final whole-app privacy pass before public release.",
       "tracker": "docs/control/redovi.json; no second execution matrix",
       "boundary": "Documentation and screenshot checkpoint only; no source/backend change or new end-to-end acceptance."
     },
@@ -3893,6 +3893,17 @@
       "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
       "scope": "28.09 emulator-5556: inert task-location proposal, loading and rendered map. No real AI/geocoder/save/phone proof.",
       "status": "CAPTURED_REVIEWED_FOR_COMMIT_NOT_PRODUCT_ACCEPTANCE"
+    },
+    "privacy_branch_schedule": {
+      "decision_date": "2026-09-28",
+      "decision": "DEFERRED_BY_OWNER_TO_FINAL_WHOLE_APP_PRIVACY_PASS",
+      "branches": [
+        "work/legal-privacy-ai-context-minimization-20260927",
+        "work/legal-privacy-processor-inventory-truth-20260927"
+      ],
+      "integration": "NOT_INTEGRATED",
+      "application": "NOT_APPLIED",
+      "release_boundary": "Review and close before public release; this is a scheduling change, not a completed or removed requirement."
     }
   }
 }

@@ -66,6 +66,8 @@ Exact-message push activation remains a separate gate; last recorded flag state 
 
 ## Bounded completion order
 
+Scheduling update from the owner, 2026-09-28: item 1 below is deferred to the final whole-app privacy pass before public release. The original audit recommendation is retained below as history; the current order is in [PLAN.md](../PLAN.md). No privacy package has been integrated or applied by this scheduling change.
+
 1. Safely integrate the two privacy packages into current source, repeat their relevant proof against current prerequisites, then separately record actual DEV/Edge application. Keep certificate and exact-byte requirements; do not blindly merge old Edge code.
 2. Complete registration/email return/recovery and an editable personal locality with an explicit server contract. Add a short first-entry completion path, preserving one account for both roles.
 3. Use chosen personal locality for the first map visit, subordinate to explicit search/publication and remembered viewport. Preserve separate work-area matching and GPS consent.
