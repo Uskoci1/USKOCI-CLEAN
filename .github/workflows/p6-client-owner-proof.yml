@@ -1,12 +1,7 @@
 name: P6 client paging owner and stale fencing
+# Round50 is a frozen, already-recorded proof. Future owner evolution belongs to a new round.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/data/discoveryV1Owner.ts'
-      - 'src/data/__tests__/discovery-v1-owner.test.ts'
-      - 'scripts/proofs/p6-client-owner-record.cjs'
-      - '.github/workflows/p6-client-owner-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
