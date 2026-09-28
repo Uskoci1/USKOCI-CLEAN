@@ -461,7 +461,7 @@ test.each(['scope', 'focus'] as const)('a queued covered-map delivery from a ret
   expect(layer().props.accessibilityElementsHidden).toBe(true);
 });
 
-test('a settled unchanged focus return retains the native sheet and measured list geometry', async () => {
+test('a settled unchanged FULL return replaces only the native sheet and restores the saved deep offset', async () => {
   jest.useFakeTimers();
   try {
     rows = Array.from({ length: 40 }, (_, i) => row(`keep${i}`));
@@ -476,34 +476,52 @@ test('a settled unchanged focus return retains the native sheet and measured lis
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(8000);
-    const oldCell = nativeCell(), oldScroll = list().props.onScroll;
+    const oldScroll = list().props.onScroll;
     scrollToOffset.mockClear();
     mockFocused = false; await update();
-    rows = rows.map(item => ({ ...item })); // A fresh but equal read is still the same layout.
+    rows = rows.map(item => ({ ...item })); // A fresh but equal read keeps the same logical collection.
     mockFocused = true; await update();
-    expect(listSheet()).toBe(oldSheet);
-    expect(nativeCell() === oldCell).toBe(true);
+    expect(listSheet()).not.toBe(oldSheet);
+    expect(listSheet().props).toMatchObject({ index: 2, animateOnMount: false });
     expect(scrollToOffset).not.toHaveBeenCalled();
     expect(snapshot.listOffset).toBe(8000);
     expect(cards()).toEqual(rows.map(item => item.id));
-    // No new content-size or layout event arrives. A fresh focus observation reuses the measured deep window.
-    await deliverUi();
-    expect(scrollToOffset).toHaveBeenCalledTimes(1);
-    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+
+    // The retired mount cannot overwrite the new visit. The fresh FULL native sheet restores only after
+    // its own unlocked/settled geometry is known.
     await act(async () => {
       oldScroll({ nativeEvent: { contentOffset: { y: 0 } } });
-      list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(8000);
+    await readyList(frame + 12000, frame);
+    expect(scrollToOffset).toHaveBeenCalledWith({ offset: 8000, animated: false });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000 } } });
+      jest.advanceTimersByTime(OFFSET_SETTLE_MS);
+    });
+    expect(snapshot.listOffset).toBe(8000);
+
+    await act(async () => {
       list().props.onScrollBeginDrag();
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 7900 } } });
       jest.advanceTimersByTime(OFFSET_SETTLE_MS);
     });
     expect(snapshot.listOffset).toBe(7900);
   } finally { jest.useRealTimers(); }
+});
+
+test('a settled unchanged peek return keeps its native mount, viewport and selected pin', async () => {
+  const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12,
+    bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
+  initial = { ...initial, sheet: 'peek', selectedId: 'bb', viewport };
+  await render(); await layOutBody();
+  const oldSheet = listSheet();
+  mockFocused = false; await update();
+  mockFocused = true; await update();
+  expect(listSheet()).toBe(oldSheet);
+  expect(snapshot).toMatchObject({ sheet: 'peek', selectedId: 'bb', viewport });
+  expect(tree.root.findByType(DiscoveryPeek).props.item.id).toBe('bb');
 });
 
 const nativeDetent = (index: number) => {

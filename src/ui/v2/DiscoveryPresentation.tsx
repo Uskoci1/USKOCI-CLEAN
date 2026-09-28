@@ -566,8 +566,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const unchangedMount = sheetMount.current.scopeKey === props.scopeKey
     && sheetMount.current.rows === rowMountSignature && sheetMount.current.layout === layoutMountSignature;
   if (previousFocused && !focused) {
-    sheetMount.current.reusable = unchangedMount && !nativeSpringMoving.current && nativeSettledIndex.current === sheetIndex
-      && restore.current === null && Math.abs(offset.current - (latestView.current.listOffset ?? 0)) <= 1;
+    // Round31 proved a retained FULL Android sheet can come back with its native body reset to Gorhom's hidden
+    // mount props (alpha 0 / off-screen translation) while shared index/position and the saved list offset still
+    // report the correct FULL state. Retire only that native FULL mount on route departure. The logical view,
+    // viewport, filters, selection and listOffset live above this keyed boundary; the existing bounded restore
+    // rebuilds the list at the saved offset after the fresh native sheet becomes unlocked. Peek/half mounts may
+    // still be retained when their physical state is settled. Do not replace this with a global Reanimated flag.
+    const nativeMountMaySurviveReturn = sheetIndex !== SNAP.full;
+    sheetMount.current.reusable = nativeMountMaySurviveReturn && unchangedMount && !nativeSpringMoving.current
+      && nativeSettledIndex.current === sheetIndex && restore.current === null
+      && Math.abs(offset.current - (latestView.current.listOffset ?? 0)) <= 1;
   } else if (!previousFocused && focused) {
     const reusable = sheetMount.current.reusable && unchangedMount;
     if (!reusable) {
