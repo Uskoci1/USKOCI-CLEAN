@@ -20,7 +20,7 @@ BASE='supabase/candidates/p6_discovery_all.sql'
 DELTA='supabase/candidates/p6_discovery_cost_v2.sql'
 ORIGINAL_PROOF=PREFIX+'p6_discovery_all_proof.sql'
 FILES=[BASE,DELTA,ORIGINAL_PROOF,PREFIX+'p6_cost_compare.py',PREFIX+'p6_cost_compare.sql',
- PREFIX+'p6_cost_parse.py',PREFIX+'p6_needs_columns_observed.json',PREFIX+'p6_discovery_parity_vectors.mjs',
+ PREFIX+'p6_cost_parse.py',PREFIX+'p6_needs_columns_observed.json',PREFIX+'p6_discovery_parity_vectors.mjs',PREFIX+'p6_cost_explicit_ranges.sql',
  '.github/workflows/p6-cost-optimization-proof.yml','package.json','package-lock.json']
 GROUPS=['CURRENT_CLIENT_ORACLE_208_VECTORS','HELPERS_AND_INVOKER_ENVELOPE','1004_ROWS_TIES_MICROSECONDS_SCOPES_EXACT_ALLOWLIST',
  'ZERO_ONE_AND_STRICT_CURSOR_ANCHOR_REFUSALS','MAP_0_1_100_1000_3000_BOUNDED_COMPLETE_COVERAGE',
@@ -82,7 +82,11 @@ try:
     assert proof.count(needle)==1
     proof=proof.replace(needle,"\\i '"+str(alias)+"'\n\\i '"+str(ROOT/BASE)+"'\n\\i '"+str(ROOT/DELTA)+"'")
     anchor="select set_config('request.jwt.claim.sub','',true);";assert proof.count(anchor)==1
-    proof=proof.replace(anchor,Path(PREFIX+'p6_cost_compare.sql').read_text()+'\n'+anchor)
+    cost_probe=Path(PREFIX+'p6_cost_compare.sql').read_text()
+    range_gate="\\echo 'PASS P6_COST_HELPER_AND_FILTER_PARITY'"
+    assert cost_probe.count(range_gate)==1
+    cost_probe=cost_probe.replace(range_gate,Path(PREFIX+'p6_cost_explicit_ranges.sql').read_text()+'\n'+range_gate)
+    proof=proof.replace(anchor,cost_probe+'\n'+anchor)
     composed=PRIVATE/'paired.sql';composed.write_text(proof);r['composedProofSha256']=hashlib.sha256(proof.encode()).hexdigest()
     stage='PAIRED_SQL_FUNCTIONAL_AND_MEASURED'
     cmd=['psql',os.environ['DB_URL'],'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose',
@@ -102,6 +106,8 @@ try:
             if m:r['diagnosticCode']=m[1]
         raise ValueError('P6_PAIRED_PROOF_REFUSED')
     assert all(x['result']=='PASS' for x in r['checks'])
+    r['explicitRangeParity']='PASS P6_COST_EXPLICIT_RANGE_PARITY' in stdout.splitlines()
+    assert r['explicitRangeParity']
     stage='EXACT_EVIDENCE'
     samples=json.loads(next(x[len('P6_COST_SAMPLES '):] for x in stdout.splitlines() if x.startswith('P6_COST_SAMPLES ')))
     assert len(samples)==240
