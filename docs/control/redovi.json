@@ -2253,8 +2253,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka."
       },
-      "problem": "Privatni razgovor sada koristi precizne prikazane ID-eve umesto zbirnog ACK-a. Ceo potvrđeni event→tačna poruka→read lanac, dve ranije nedokazane vrste odredišta i DN-07 uređajski fokus ostaju otvoreni.",
-      "sledece": "R19: dodir push obaveštenja ponovo koristi Inbox umesto dodavanja duplog ekrana. Zadržani fiksno odredište, provera naloga i zaštita ponavljanja događaja. Lokalna regresija nije dokaz stvarne isporuke obaveštenja ili celog lanca. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md Završni krug 03 / 27.09: Stara poseta ili događaj van trenutne liste ne mogu započeti otvaranje; odgovor se ponovo proverava. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug04: nema preuranjenog označavanja poruke pri otvaranju obaveštenja. Round14: B3a/B3b na DEV-u i povezani sa čitanjem/pozicijom; obaveštenje samo po sebi nije dokaz prikaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md Round21: pripremljen zaseban resolver događaj→tačna poruka, sa dokazom na praznoj test bazi; još nije pokrenut, primenjen ili povezan. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
+      "problem": "Inbox/exact-target klijent je u current full regresiji zelen. Provider→tap→exact→displayed-ACK na jednom istom novom događaju nije dokazano na current artefaktu; exact transport ostaje OFF.",
+      "sledece": "Kad bude odobrena provider/device provera, korelisati jedan novi message event kroz ceo lanac na finalnom Android kandidatu; zatim iOS. Do tada ne menjati transport flag.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2283,12 +2283,19 @@
         "backend": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
         "state_sync": "Inbox događaj→tačan B3 message window; ACK samo kroz postojeće merene prikazane poruke. Outbox/foto/workspace ostaju isti.",
         "performance": "Postojeće straničenje sačuvano.",
-        "test": "P4 integration10suites503PASS; TypeScriptPASS.",
+        "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
-        "status": "KOMPATIBILNI P4 PRIMENJEN / TAČAN PUSH ISKLJUČEN / NOVI PROVIDER TOK ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md",
+        "status": "P4 CLIENT SOURCE/CI PASS / EXACT TRANSPORT OFF / CURRENT PROVIDER+DEVICE PROOF PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
         "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
-        "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja."
+        "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
+        "round38": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "exact_transport": "OFF per canonical repository evidence",
+          "device": "CURRENT ARTIFACT PENDING"
+        }
       }
     },
     {
@@ -2334,10 +2341,17 @@
         "backend": "Otvaranje OS strane nije pristanak niti registracija. Nema novog preference/device/provider write-a.",
         "state_sync": "Izlaz je jednom po poseti/nalogu; stari i dvostruki callback ne preskaču ekran. Postojeća potvrda odbacivanja i zaštita čuvanja ostaju.",
         "performance": "Jedan eksplicitni native poziv po pokušaju; timeout 10 s, bez polling-a.",
-        "test": "Notification/legal2suites33PASS; integrated TypeScript PASS.",
-        "device_proof": "Round19APK36335552115/f04e6b11: otvaranje podešavanja, Nazad na Profil i ponovni ulazak provereni bez čuvanja/promene dozvola. Dupli događaj i dalje ima ciljanu regresiju; nema novog provider/phone dokaza.",
-        "status": "KLIJENT I CILJANE PROVERE PROŠLI / NATIVE PRIHVATANJE ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json"
+        "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Istorijski Settings native prolaz postoji; current exact APK i finalna notification permission/preference acceptance nisu izvedeni u ovoj sesiji.",
+        "status": "SETTINGS SOURCE/CI PASS / CURRENT RELEASE NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
+        "round38": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "exact_transport": "OFF per canonical repository evidence",
+          "device": "CURRENT ARTIFACT PENDING"
+        }
       }
     },
     {
@@ -2366,8 +2380,8 @@
         "stanje": "DOKAZANO",
         "dokaz": "26.09.2026: corrected push-proof APK source 463215ef / build 36252278794 opened on the owner's physical Android phone. After explicit permission/enable, fresh DEV read-back showed exactly one active ANDROID device, revision-bound and session-bound, for one active user; old push backlog remained 0."
       },
-      "problem": "ANDROID DOKAZAN 26.09: Firebase/Expo token acquisition and owned session-bound registration work on the corrected push-proof APK. This closes the Android proof scope only; iOS registration and final production/store package remain separate release acceptance.",
-      "sledece": "Ne ponavljati Android proof. Sačuvati rotation/logout/session fences. Kasnije dokazati isti lifecycle na finalnom production Android artefaktu i zasebno na iOS/TestFlight-u. Realni Android dokaz: docs/implementation/release-hardening-20260926/PUSH_REAL_DEVICE_EVIDENCE.md.",
+      "problem": "Android owned registration je stvarno dokazivan 26.09. na tadašnjem APK-u; current release kandidat i iOS lifecycle nisu dokazani.",
+      "sledece": "Ne ponavljati development Android proof bez potrebe. Na finalnom artefaktu proveriti token/rotation/logout lifecycle; zasebno TestFlight/APNs.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2384,13 +2398,20 @@
         "flow": "Registracija telefona za obaveštenja",
         "ux": "Odbijena dozvola ostavlja eksplicitni ulaz u OS settings, objašnjen neuspeh/timeout i retry; samo uspešno otvaranje ne prikazuje dozvolu kao odobrenu.",
         "ui": "Zajednički settings action unutar postojećeg push prikaza; nema nove registracione forme.",
-        "backend": "Round07 nije ponavljao token acquisition, registraciju ili push send. Raniji Android dokaz ostaje vezan za svoj APK; iOS i release ostaju otvoreni.",
+        "backend": "Postojeći owned push-device/session ugovor; bez nove server primene u Round38.",
         "state_sync": "Postojeća permission/session-bound provera po povratku ostaje; settings attempt ne upisuje consent i ne prepisuje nesačuvane izbore.",
         "performance": "Timeout settings bridge-a je ograničen na 10 s; nema novog provider poziva.",
-        "test": "TypeScript za objedinjeni Round07/08 prošao; Round07 12 različitih ciljanih grupa / 337 testova prošlo kroz početni prolaz i korektivni rerun. Prvih 5 padova u 4 grupe ostaje u CHECKS; nije ceo Jest. Opseg ovog reda je samo settings recovery, ne stvarna registracija uređaja.",
-        "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
-        "status": "KLIJENT I CILJANE PROVERE PROŠLI / NATIVE PRIHVATANJE ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json"
+        "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "26.09 istorijski fizički Android registration PASS ostaje važeći za taj APK. Current exact kandidat nije instaliran u ovoj sesiji; iOS nije dokazan.",
+        "status": "ANDROID HISTORICAL DEVICE PASS / CURRENT RELEASE ARTIFACT + IOS PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
+        "round38": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "exact_transport": "OFF per canonical repository evidence",
+          "device": "CURRENT ARTIFACT PENDING"
+        }
       }
     },
     {
@@ -2410,8 +2431,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "Dva neutralna push teksta sada su objavljena u v21 i tačno pročitana nazad. Raniji Android prijem ostaje istorijski dokaz. Nisu ponovljeni novi APK/prikaz otvorene aplikacije niti ceo isti chat događaj→push→tačna poruka→read. iOS je odvojen.",
-      "sledece": "Aktuelno Round14: odobrena dva teksta su objavljena, više ne čekaju primeni. Slede kanonski rezolver tačne poruke i objedinjeno novo Android/provider prihvatanje kada vlasnik pokrene uređajsku proveru, zatim iOS. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md Round21: pripremljen zaseban resolver događaj→tačna poruka, sa dokazom na praznoj test bazi; još nije pokrenut, primenjen ili povezan. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md",
+      "problem": "Klijent/resolver je spreman i regresiono zelen, ali exact-message provider transport ostaje namerno OFF dok se ne provere aktivne registracije i isti-event native lanac. Povezani Supabase u ovoj sesiji nije kanonski clean DEV, pa flag nije čitan/menjan.",
+      "sledece": "Uz eksplicitno odobrenje i pristup kanonskom DEV-u: prvo read-only inventar kompatibilnosti i flag, zatim jedan novi message event kroz provider→tap→resolver→exact window→displayed ACK; tek onda odluka o enable-u.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2432,12 +2453,19 @@
         "backend": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
         "state_sync": "Push još nosi samo INBOX. Odabrano obaveštenje je sada povezano sa tačnom porukom. Jedan dodir push→tačna poruka zahteva transport eventId i uređajski dokaz.",
         "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
-        "test": "Push-runtime161test PASS uz korišćenje stvarnog formatter modula; prethodni sandbox EPERM nije neuspeh poslovne logike. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json",
+        "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Nema novog test slanja, APK-a ili uređajske potvrde v21.",
-        "status": "KOMPATIBILNI P4 PRIMENJEN / TAČAN PUSH ISKLJUČEN / NOVI PROVIDER TOK ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md",
+        "status": "P4 CLIENT SOURCE/CI PASS / EXACT PROVIDER TRANSPORT GATED+OFF / CURRENT NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
         "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
-        "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja."
+        "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
+        "round38": {
+          "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
+          "workflow_run": 36400916665,
+          "full": "342 suites / 7214 PASS",
+          "exact_transport": "OFF per canonical repository evidence",
+          "device": "CURRENT ARTIFACT PENDING"
+        }
       }
     },
     {
@@ -2452,8 +2480,8 @@
         "NOVO: podsetnik pred dogovoreni termin"
       ],
       "telefon": null,
-      "problem": "Podsetnik je predložen u UX nacrtu; ovaj audit nije potvrdio postojeći put od zakazivanja do prijema. Pre novog servera treba proveriti postojeće događaje i zakazane poslove.",
-      "sledece": "Odlučiti; nova serverska funkcija uz dokaz.",
+      "problem": "Nema potvrđenog postojećeg scheduler→event→recipient→push puta za podsetnik pred prihvaćeni termin. Ovo je novi serverski paket, ne UI sitnica.",
+      "sledece": "Pripremiti zaseban server/event contract i dokaz bez primene; primena tek uz posebno odobrenje. Ne koristiti lokalni telefon timer kao lažnu zamenu za pouzdani server reminder.",
       "override": {
         "kod": "crveno",
         "razlog": "Nije napravljeno u aplikaciji"
@@ -2471,15 +2499,15 @@
           "P4"
         ],
         "flow": "Podsetnik pred termin",
-        "ux": "Mapirano; detaljan krug sledi",
+        "ux": "Podsetnik mora koristiti prihvaćeni termin Dogovora i voditi u tačan Dogovor; ne stari termin zadatka.",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "backend": "NOVO — scheduler/event/reminder package potreban; nije primenjen.",
+        "state_sync": "Mora biti idempotentan po Dogovoru/terminu, povučen ili reschedulovan kad se prihvaćeni termin promeni/otkaže i poštovati preference/quiet-hours ugovor.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Nije implementirano; Round38 potvrđuje samo da nije bezbedno glumiti ga klijentskim timerom.",
+        "device_proof": "Nema.",
+        "status": "SERVER/EVENT PACKAGE REQUIRED / NOT IMPLEMENTED",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md"
       }
     },
     {
