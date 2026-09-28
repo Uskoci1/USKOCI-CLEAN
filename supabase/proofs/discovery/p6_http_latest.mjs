@@ -23,6 +23,18 @@ once("${readFileSync(candidate,'utf8')}\\ncommit;","${readFileSync(candidate,'ut
 assert.equal(source.split('P6_REAL_AUTH_POSTGREST_WIRE').length,3);
 source=source.replaceAll('P6_REAL_AUTH_POSTGREST_WIRE','P6_REAL_AUTH_POSTGREST_COST_V3');
 const generatedSha256=createHash('sha256').update(source).digest('hex');
+function bindReceipt(receipt){
+ return {...receipt,reusedHarnessBlob:blob,generatedHarnessSha256:generatedSha256,
+   executedHarness:'exact frozen Round45 with source-bound additive candidate stack only',
+   candidateStack:['supabase/candidates/p6_discovery_all.sql',...deltas]};
+}
+// Exercise the same receipt serializer in admission as in the actual proof.
+// A syntax-only check does not detect an undefined metadata identifier.
+const admission=JSON.parse(JSON.stringify(bindReceipt({result:'NOT_RUN'})));
+assert.equal(admission.generatedHarnessSha256,generatedSha256);
+assert.equal(admission.reusedHarnessBlob,blob);
+assert.equal(admission.result,'NOT_RUN');
+assert.deepEqual(admission.candidateStack,['supabase/candidates/p6_discovery_all.sql',...deltas]);
 let created=false;
 try{
  writeFileSync(generatedPath,source,{flag:'wx',mode:0o600});created=true;
@@ -36,8 +48,7 @@ try{
   const originalReceipt=out+'/p6-http-boundary-receipt.json';
   if(existsSync(originalReceipt)){
    const receipt=JSON.parse(readFileSync(originalReceipt,'utf8'));
-   writeFileSync(out+'/p6-http-latest-receipt.json',JSON.stringify({...receipt,reusedHarnessBlob:blob,generatedHarnessSha256,
-      executedHarness:'exact frozen Round45 with source-bound additive candidate stack only',candidateStack:['supabase/candidates/p6_discovery_all.sql',...deltas]},null,2)+'\n');
+   writeFileSync(out+'/p6-http-latest-receipt.json',JSON.stringify(bindReceipt(receipt),null,2)+'\n');
   }
   assert.equal(run.status,0,'OPTIMIZED_HTTP_PROOF_REFUSED');
   const r=JSON.parse(readFileSync(out+'/p6-http-latest-receipt.json','utf8'));
