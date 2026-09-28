@@ -63,7 +63,9 @@ it('PLACE map marker uses separate POINT_MEMBERS and never replaces main list',a
 it('a newer cross-kind selection fences an older PLACE response',async()=>{
  const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
  const old=s.selectMarker(s.snapshot().mapMarkers[1]),fresh=s.selectMarker(s.snapshot().mapMarkers[0]);
- x.pending[3].resolve(exact());await fresh;x.pending[2].resolve(page([ID2]));expect((await old).kind).toBe('stale');expect(s.snapshot().peek).toMatchObject({kind:'TASK'});
+ expect(x.pending[2].signal.aborted).toBe(true);
+ x.pending[3].resolve(exact());await fresh;x.pending[2].resolve(page([ID2]));expect((await old).kind).toBe('stale');
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK'});expect(s.snapshot().memberHasMore).toBe(false);
 });
 it('CLUSTER is navigation geometry only and performs no task read',async()=>{
  const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
