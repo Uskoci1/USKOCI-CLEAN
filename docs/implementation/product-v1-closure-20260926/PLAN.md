@@ -1,12 +1,58 @@
-CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores runtime 10739a44; the exact emulator APK is restored and its installed hash matches. Candidate 2b2cf4d7 and its phone APK are rejected after repeated Android ANR. Read docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json and ROUND_32_ANR_DIAGNOSIS.md. The original FULL navigation-return bug remains open. DEV ledger 210 / push Edge v22 are unchanged; phone USB is absent and the hosted dashboard invalid_argument error is unresolved. Older checkpoints below are historical.
+# USKOČI V1 closure plan
 
-# USKOČI V1 closure plan — 26.09.2026
+Updated **2026-09-28**. Status: **ACTIVE FINALIZATION / WORKING CORE / RELEASE NOT ACCEPTED**.
+Canonical repository: `Uskoci1/USKOCI-CLEAN`, branch `work/uskoci-ui-unification-20260924`.
+Documentation baseline: `4276bca4`. Current runtime remains equivalent to `10739a440611fc32e3bd6d9ee6dd66a5479e091b` after the Round32 rollback.
 
-Status: **ACTIVE FINALIZATION — ROUND31**. Canonical branch: `work/uskoci-ui-unification-20260924`; latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.
+This is the execution plan, not a second status tracker. [redovi.json](../../control/redovi.json) remains the sole living inventory; [FINALIZATION_MATRIX.md](../../control/FINALIZATION_MATRIX.md) is generated from it. The matrix keeps **FLOW | UX | UI | BACKEND | STATE SYNC | PERFORMANCE | TEST | DEVICE PROOF | STATUS** separate.
 
-Start with [AGENTS.md](../../../AGENTS.md), [Round31](finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md) and [its exact check record](finalization-20260927/ROUND_31_CHECKS.json). P0 is applied and connected; current application outcomes are in [APPLICATION_APPROVALS_20260927.md](finalization-20260927/APPLICATION_APPROVALS_20260927.md). The active order remains P0 through P7, with `docs/control/redovi.json` as the living inventory.
+## Start here: current evidence and boundaries
 
-Ordinary UI/flow refinement with critical review is authorized; preserve TaskCard/Peek. Focused checks and consolidated emulator/device build, install and verification are authorized. Existing server, certificate, dependency, payment and secret boundaries remain. Installation and native acceptance for the `10739a44` corrections must be read from their exact APK checkpoint receipts; neither follows from the source being pushed.
+- Read [AGENTS.md](../../../AGENTS.md), the [branch/first-entry audit](finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md), [application outcomes](finalization-20260927/APPLICATION_APPROVALS_20260927.md), and [Round32 native receipt](finalization-20260927/ROUND_32_NATIVE_RECEIPT.json).
+- The named Claude worktree is clean and its `be03fcc4` HEAD is included in the canonical branch. This is not an assertion that every historical folder on disk was audited. Two independent Sep27 privacy branches are on GitHub but **not integrated or applied**. The default GitHub branch still points to older code; always use the canonical branch link.
+- B3a/B3b/B3c, P0 public landing, P4 resolver/transport, P5 owned licenses and the two push-copy changes have application receipts. Latest recorded live check on Sep28: DEV ledger **210**, push Edge **v22**. There is one canonical DEV project; no separately verified production environment.
+- Candidate `2b2cf4d7` caused repeated Android ANR and was reversed. Runtime `10739a44` is restored on emulator-5556; the original **FULL list disappears after navigation-return** defect remains open. Passing automated tests did not make that candidate acceptable.
+- The latest phone APK is verified as an artifact but not installed; the physical phone was absent from ADB at the latest check. The hosted Claude table still rejects upload with `invalid_argument`; generated/committed files do not mean hosted publication succeeded.
+- [Screenshot index](finalization-20260927/SCREENSHOTS.md) separates fresh inert scenes, historical native evidence and rejected candidates. Screenshots are appearance evidence, not proof of live AI, delivery, performance or end-to-end completion.
+
+## Execution order and completion conditions
+
+The owner's P0–P7 order remains. Privacy integration can run independently alongside P0/P1; first-entry identity/location work is a dependency for a coherent map experience, not a reason to postpone the rest. Each row below is a workstream within the existing tracker.
+
+| Priority / surface | Current gap and concrete next work | Completion evidence required |
+| --- | --- | --- |
+| **Parallel: consolidate privacy work** | Narrowly port `d18e830a` AI context minimization and `1ab01e78` processor-inventory truth to current source. Do not replace complete older Edge files and lose newer dialogue/schedule/price guards. | Review exact diff; fresh disposable proof on current source; separately record applicable DEV/Edge application, hash and readback. Old branch CI alone is insufficient. |
+| **P0: publish → visible result** | Public exact-task lookup is applied/wired. Finish explicit success → selected task on map/list, including remote/unlocated results. Repair original FULL navigation-return without the rejected global animation flag. | Publish result is the actual persisted task; correct pin/card or remote destination; back/re-entry retains state; same native reproduction no longer loses the sheet or produces ANR. |
+| **P1: map + search + filters + list** | One result source for bounds/filter/pin/card. Full sheet reaches the search surface; preserve viewport/scroll/selection. Make unlocated and remote tasks discoverable without false pins. Investigate pin-opening delay and large result sets. | Pin→card and card→pin agree; pan/zoom/filter updates agree; zero/error/offline/retry states; bounded fetching and measured interaction on an exact build. Preserve approved TaskCard/Peek. |
+| **First-entry dependency** | Verify email confirmation and app return, resend/recovery, first useful profile setup. Separate editable personal city, worker service area and ephemeral GPS. Personal-city editing needs an explicit server contract. | Actual mail→confirm→return proof; no credentials in evidence. Initial map precedence: explicit task/search → saved viewport → permitted city fallback. Never derive an exact home address or silently request GPS. |
+| **P2: Home / tasks / applications / agreements** | Make the next action visible and links reversible without repeated Back presses. Agreement starts with task/context, accepted terms and person; overview/messages belong together. Check own tasks, multiple people, competing offers, changes, cancellation and rating boundaries. | Both roles reach correct authorized state; capacity shown succinctly (e.g. 1/3); accepted terms remain server truth; completion/cancellation/recovery variants have scoped evidence. |
+| **P3: messages** | B3 reads/refresh are wired; reconnect and read synchronization need device acceptance. Finish voice as a real message type with recorder/player/media ownership, retry and recovery; not merely an audio validator. | Two-account text/photo/voice lifecycle: pending→confirmed or recoverable failure, no duplicate sends, older-page/read boundaries, reconnect and membership authorization. |
+| **P4: push** | Android arrival exists as earlier scoped proof. Exact-message payload routing was last verified OFF. Check compatible active registrations before activation; keep fallback intact. | The **same real message**→event→push→warm/cold tap→correct authorized conversation/message→read acknowledgement. Permission-denied/sign-out/wrong-account cases; iOS proved separately. |
+| **P5: both AI conversations + matching** | Improve task and worker interviews together: concise questions, visible corrections, compact per-point maps/routes, photos and explicit review. Full task card only when ready is the owner's **proposal, not implemented**; retain access to draft edits. Worker review/activation must be as discoverable as task review. | Structured category/time/people/tools/vehicle/price/location facts survive correction, resume and review; real matching consumes profile/need criteria. Provider-quality, voice input and activation proofs are separately scoped and authorized. |
+| **P6: scale and performance** | PAGE/EXACT_PUBLIC SQL-role proof exists; MAP/PLACES, Auth/PostgREST, app integration and cost evidence are incomplete. Bound Home, applications, agreements/history, ratings and chat as well as Discovery. | Server filters/pagination/authorization, query plans/indexes, bounded payload and request count, cancellation/cache/subscription behavior and device responsiveness. A 1,000-card render alone is not backend capacity proof. |
+| **P7: deep surfaces + release** | Profile/photo, notifications, account, safety/report/block, support, privacy, export/deletion recovery, legal content, review-comment contract and store surfaces. Payments stay with their assigned owner. | Every reachable secondary surface has intentional states and a valid next action; actual export/recovery is proved safely; operator/legal/retention requirements, Android/iOS builds, permissions, links and store evidence are complete. |
+
+## Apply the same product review to every surface
+
+For every screen, tab, nested route, sheet, modal and notification, record the user's intention, previous action, server-backed facts and next action. Check default/loading/empty/error/offline/success, interrupted writes, focus/account changes and permission refusal. Decide **KEEP / CONNECT / REFACTOR / MIGRATE / REMOVE** from use and evidence, not simply from the existence of an RPC.
+
+Use a white base, strong readable type (minimum 12), saturated USKOČI green, restrained orange and consistent icon/spacing/radius/state rules. Preserve the approved task card. Reduce unnecessary boxes and explanation; give task, offer and agreement their own hierarchy. Motion must explain state changes, remain responsive and respect reduced motion. Provider attribution stays readable; it is not optional visual clutter.
+
+For each implemented group: **understand → reproduce → decide → implement → focused regression checks → consolidate native verification → commit/push → next**. Do not build/install after every tiny visual change. Broaden tests when the change or a failure warrants it. A new source change invalidates acceptance only for the affected behavior; preserve older evidence with its exact scope and build.
+
+## Saving, screenshots and reporting
+
+- Save finished source/docs to the canonical branch. Keep **local / GitHub / DEV applied / app wired / installed / proved** distinct; source push never implies database or Edge deployment.
+- Capture unedited before/after screenshots for meaningful screen/flow changes and representative states. Record route/state, device, capture time, app source SHA, APK run and installed hash. Inspect for private content before committing. Use inert scenes for safe composition capture and label them as such.
+- Record failures as failures, with the reproduction and recovery; never use a rejected build screenshot as the accepted result. For motion/performance use a trace/video/measurement when needed, not only a still.
+- After each concrete group, update `redovi.json`, run `node scripts/control/osvezi.mjs`, commit the generated views and attempt the established publication path only when the blocking condition can be resolved. Keep the hosted failure explicit.
+- Report problem, cause, product/UX decision, files, backend/RPC impact, checks, device scope, regression, commit, status and next priority. Documentation-only work does not turn a product row green.
+
+## Decisions versus unfinished engineering
+
+Most remaining work is engineering, not waiting for another broad approval. Already approved/applied packages need no repeat request. PKG045b has conditional approval; satisfy its compatible-app preconditions. Unfinished P6, voice and written rating comments are not ready-to-deploy packages. Operator/legal/retention inputs, necessary device/account participation, new dependencies, protected certificate changes and any additional paid/provider testing retain their specific boundaries.
+
+**Immediate next implementation:** reproduce and repair the original FULL-return defect on the current source, while narrowly integrating the two privacy branches independently. Then close publication/map/list continuity before expanding to the next priority.
 
 ## Historical scope and baseline — 2026-09-26
 
