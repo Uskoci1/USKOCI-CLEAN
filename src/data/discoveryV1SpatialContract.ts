@@ -115,7 +115,11 @@ export function decodeDiscoveryV1Map(value: unknown):DiscoveryV1MapResponse{
   const mapped=integer(counts.mapped,'DISCOVERY_V1_MAP_COUNT'), withoutPoint=integer(counts.withoutPoint,'DISCOVERY_V1_MAP_COUNT');
   if(withoutPoint>mapped) invalid('DISCOVERY_V1_MAP_COUNT');
   const bucketTasks=buckets.reduce((sum,item)=>sum+(item.kind==='TASK'?1:item.taskCount),0);
-  if(bucketTasks>mapped) invalid('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
+  // mapped includes point-free rows; these cannot contribute to a spatial bucket.
+  if(!Number.isSafeInteger(bucketTasks) || bucketTasks>mapped-withoutPoint)
+    invalid('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
+  const taskIds=buckets.flatMap(item=>item.kind==='TASK'?[item.taskId]:[]);
+  if(new Set(taskIds).size!==taskIds.length) invalid('DISCOVERY_V1_MAP_TASK_DUPLICATE');
   return {version:DISCOVERY_V1,mode:'MAP',asOf,filterKey:key,anchor:anchor(row.anchor,key),coverageBounds,effectiveGrid,
     wholeBounds,buckets,counts:{kind:'exact_live',observedAt:instant(counts.observedAt,'DISCOVERY_V1_MAP_COUNT_TIME'),mapped,withoutPoint}};
 }
@@ -148,11 +152,20 @@ export function decodeDiscoveryV1Places(value: unknown, expectedLimit=30):Discov
     nextCursor={count:integer(cursor.count,'DISCOVERY_V1_PLACE_CURSOR_COUNT',1),text:display,key:normalized};
   }
   if(hasMore!==(nextCursor!==null)) invalid('DISCOVERY_V1_PLACE_CURSOR_PRESENCE');
+  // Continue after exactly the emitted tail, never a plausible unrelated tuple.
+  if(nextCursor!==null){
+    const last=items[items.length-1];
+    if(!last || last.count!==nextCursor.count || last.text!==nextCursor.text || last.key!==nextCursor.key)
+      invalid('DISCOVERY_V1_PLACE_CURSOR_TAIL');
+  }
   const counts=object(row.counts); exact(counts,['kind','observedAt','everywhere','inArea'],'DISCOVERY_V1_PLACE_COUNTS_SHAPE');
   if(counts.kind!=='exact_live') invalid('DISCOVERY_V1_PLACE_COUNTS_KIND');
   const everywhere=integer(counts.everywhere,'DISCOVERY_V1_PLACE_COUNTS');
   const inArea=counts.inArea===null?null:integer(counts.inArea,'DISCOVERY_V1_PLACE_COUNTS');
   if(inArea!==null && inArea>everywhere) invalid('DISCOVERY_V1_PLACE_COUNTS');
+  // A task contributes to at most one locality, including on a filtered page.
+  const listed=items.reduce((sum,item)=>sum+item.count,0);
+  if(!Number.isSafeInteger(listed) || listed>everywhere) invalid('DISCOVERY_V1_PLACE_COUNTS');
   return {version:DISCOVERY_V1,mode:'PLACES',asOf,filterKey:key,anchor:anchor(row.anchor,key),items,hasMore,nextCursor,
     counts:{kind:'exact_live',observedAt:instant(counts.observedAt,'DISCOVERY_V1_PLACE_COUNTS_TIME'),everywhere,inArea}};
 }

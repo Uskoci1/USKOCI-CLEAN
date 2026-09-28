@@ -48,3 +48,39 @@ it('rejects facet order/count contradictions rather than sorting or repairing se
   expect(()=>decodeDiscoveryV1Places(order)).toThrow('DISCOVERY_V1_PLACE_ORDER');
   const counts=places();counts.counts.inArea=21;expect(()=>decodeDiscoveryV1Places(counts)).toThrow('DISCOVERY_V1_PLACE_COUNTS');
 });
+
+// P6 guard: invalid server output must be refused, never repaired or sorted.
+it.each([
+ ['wrong count',(v:any)=>{v.nextCursor.count=3;}],
+ ['earlier row',(v:any)=>{v.nextCursor={...v.items[0]};}],
+ ['display drift with identical key',(v:any)=>{v.nextCursor.text='BEOGRAD, VRAČAR';}],
+ ['empty continuation',(v:any)=>{v.items=[];}],
+])('P6 guard: cursor must be the exact emitted tail: %s',(_name,corrupt)=>{
+ const v=places();corrupt(v);expect(()=>decodeDiscoveryV1Places(v)).toThrow('DISCOVERY_V1_PLACE_CURSOR_TAIL');
+});
+it.each([
+ ['one facet exceeds total',(v:any)=>{v.items[0].count=21;}],
+ ['sum exceeds total',(v:any)=>{v.counts.everywhere=11;v.counts.inArea=null;}],
+])('P6 guard: impossible locality counts: %s',(_name,corrupt)=>{
+ const v=places();corrupt(v);expect(()=>decodeDiscoveryV1Places(v)).toThrow('DISCOVERY_V1_PLACE_COUNTS');
+});
+it('P6 guard: point-free tasks cannot contribute to spatial buckets',()=>{
+ const v=map();v.counts.withoutPoint=9;expect(()=>decodeDiscoveryV1Map(v)).toThrow('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
+});
+it('P6 guard: aggregated bucket counts must stay safe integers',()=>{
+ const v=map();v.counts.mapped=Number.MAX_SAFE_INTEGER;v.counts.withoutPoint=0;v.buckets[1].taskCount=Number.MAX_SAFE_INTEGER;
+ expect(()=>decodeDiscoveryV1Map(v)).toThrow('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
+});
+it('P6 guard: a task UUID cannot recur under another bucket key',()=>{
+ const v=map();v.counts.withoutPoint=0;v.buckets.push({...v.buckets[0],key:'another-key'});
+ expect(()=>decodeDiscoveryV1Map(v)).toThrow('DISCOVERY_V1_MAP_TASK_DUPLICATE');
+});
+it('P6 guard: short continuing and terminal empty pages remain valid',()=>{
+ expect(decodeDiscoveryV1Places(places(),30).hasMore).toBe(true);
+ const v=places();v.hasMore=false;v.nextCursor=null;expect(decodeDiscoveryV1Places(v).items).toHaveLength(2);
+ v.items=[];expect(decodeDiscoveryV1Places(v).items).toEqual([]);
+});
+it('P6 guard: point-free-only and empty viewport responses remain valid',()=>{
+ const v=map();v.buckets=[];v.wholeBounds=null;v.counts.withoutPoint=v.counts.mapped;
+ expect(decodeDiscoveryV1Map(v).buckets).toEqual([]);v.counts.withoutPoint=0;expect(decodeDiscoveryV1Map(v).buckets).toEqual([]);
+});
