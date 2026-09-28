@@ -58,6 +58,8 @@ const exact = (value: Obj, keys: readonly string[], code = 'DISCOVERY_V1_SHAPE_I
 const text = (value: unknown, code: string, max = 16_000) => typeof value === 'string' && value.length <= max ? value : invalid(code);
 const nullableText = (value: unknown, code: string, max = 16_000) => value === null ? null : text(value, code, max);
 const bool = (value: unknown, code: string) => typeof value === 'boolean' ? value : invalid(code);
+const finiteNumber = (value: unknown, code: string): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : invalid(code);
 const integer = (value: unknown, code: string, min = 0) =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= min ? value : invalid(code);
 const instant = (value: unknown, code: string) => {
@@ -80,9 +82,9 @@ const coarse = (value: number) => Math.round(value * 100) / 100 === value;
 function decodePin(value: unknown): DiscoveryV1Pin | null {
   if (value === null) return null;
   const row = object(value); exact(row, ['lat','lng','precision'], 'DISCOVERY_V1_PIN_SHAPE');
-  const lat = row.lat, lng = row.lng;
-  if (row.precision !== 'COARSE_1KM' || typeof lat !== 'number' || !Number.isFinite(lat)
-    || typeof lng !== 'number' || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180
+  const lat = finiteNumber(row.lat, 'DISCOVERY_V1_PIN_INVALID');
+  const lng = finiteNumber(row.lng, 'DISCOVERY_V1_PIN_INVALID');
+  if (row.precision !== 'COARSE_1KM' || Math.abs(lat) > 90 || Math.abs(lng) > 180
     || !coarse(lat) || !coarse(lng)) invalid('DISCOVERY_V1_PIN_INVALID');
   return { lat, lng, precision: 'COARSE_1KM' };
 }
@@ -199,7 +201,7 @@ function decodeAvailability(value: unknown): DiscoveryV1Availability {
   const rawModes: unknown[] = Array.isArray(row.priceModes) ? row.priceModes : invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
   const modes: Array<'MY_PRICE' | 'OFFERS'> = rawModes.map((mode: unknown) => {
     if (mode !== 'MY_PRICE' && mode !== 'OFFERS') invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
-    return mode;
+    return mode as 'MY_PRICE' | 'OFFERS';
   });
   if (new Set(modes).size !== modes.length) invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
   return { hasKnownWorkMode: bool(row.hasKnownWorkMode, 'DISCOVERY_V1_AVAILABILITY_MODE'),
