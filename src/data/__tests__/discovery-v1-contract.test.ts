@@ -2,19 +2,19 @@ import { decodeDiscoveryV1Exact, decodeDiscoveryV1Page } from '../discoveryV1Con
 
 const ID='11111111-1111-4111-8111-111111111111', PROFILE='22222222-2222-4222-8222-222222222222';
 const AT='2026-09-28T10:00:00.000000Z', EXPIRES='2026-09-28T10:30:00.000000Z';
-const item=()=>({id:ID,revision:3,sortAt:AT,publishedAt:AT,title:'Prenos ormara',category:'selidbe',status:'PUBLISHED',urgent:false,
+const item=():any=>({id:ID,revision:3,sortAt:AT,publishedAt:AT,title:'Prenos ormara',category:'selidbe',status:'PUBLISHED',urgent:false,
   scheduleKind:'FLEXIBLE',startsAt:null,endsAt:null,executionLocationMode:'STATIONARY',taskCountryCode:'RS',taskTimezone:'Europe/Belgrade',
   verifiedIdentityRequired:false,approximateCity:'Novi Sad',approximateArea:'Liman',pin:{lat:45.25,lng:19.83,precision:'COARSE_1KM'},
   requiredSlots:2,coveredSlots:0,requiredSkills:['Selidbe'],requiredTools:[],requiredVehicles:[],requiredLicenses:[],
   minimumExperienceYears:null,priceMode:'MY_PRICE',requesterPriceRsd:4000,priceBasis:'TOTAL',requesterProfileId:PROFILE,
   responseDeadline:null,acceptsApplications:true,publicTopology:{mode:'STATIONARY',start:{city:'Novi Sad',area:'Liman'}},
   criticalConditions:['Treći sprat']});
-const page=()=>({version:'DISCOVERY_V1',mode:'PAGE',asOf:AT,filterKey:'a'.repeat(32),
+const page=():any=>({version:'DISCOVERY_V1',mode:'PAGE',asOf:AT,filterKey:'a'.repeat(32),
   anchor:{version:'DISCOVERY_V1',filterKey:'a'.repeat(32),timeAt:AT,publishedThrough:AT,expiresAt:EXPIRES},
   items:[item()],hasMore:true,nextCursor:{scopeKey:'b'.repeat(32),section:0,sortAt:AT,id:ID},
   counts:{kind:'exact_live',observedAt:AT,mapped:1,listed:1,inArea:1,withoutPoint:0,undated:0},
   availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['MY_PRICE','OFFERS']}});
-const exact=()=>({version:'DISCOVERY_V1',mode:'EXACT_PUBLIC',asOf:AT,items:[item()],hasMore:false,nextCursor:null});
+const exact=():any=>({version:'DISCOVERY_V1',mode:'EXACT_PUBLIC',asOf:AT,items:[item()],hasMore:false,nextCursor:null});
 
 it('accepts the exact PAGE allowlist without turning counts into loaded length',()=>{
   const value=decodeDiscoveryV1Page(page(),50);

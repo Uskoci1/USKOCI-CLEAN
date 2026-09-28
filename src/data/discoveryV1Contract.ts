@@ -70,8 +70,9 @@ const uuid = (value: unknown, code: string) => {
   return uuidRe.test(result) ? result : invalid(code);
 };
 const strings = (value: unknown, code: string): string[] => {
-  if (!Array.isArray(value) || value.length > 100) invalid(code);
-  return value.map(item => typeof item === 'string' && item.length > 0 && item.length <= 160 ? item : invalid(code));
+  const array: unknown[] = Array.isArray(value) ? value : invalid(code);
+  if (array.length > 100) invalid(code);
+  return array.map((item: unknown) => typeof item === 'string' && item.length > 0 && item.length <= 160 ? item : invalid(code));
 };
 const nullableStrings = (value: unknown, code: string) => value === null ? null : strings(value, code);
 const coarse = (value: number) => Math.round(value * 100) / 100 === value;
@@ -79,10 +80,11 @@ const coarse = (value: number) => Math.round(value * 100) / 100 === value;
 function decodePin(value: unknown): DiscoveryV1Pin | null {
   if (value === null) return null;
   const row = object(value); exact(row, ['lat','lng','precision'], 'DISCOVERY_V1_PIN_SHAPE');
-  if (row.precision !== 'COARSE_1KM' || typeof row.lat !== 'number' || !Number.isFinite(row.lat)
-    || typeof row.lng !== 'number' || !Number.isFinite(row.lng) || Math.abs(row.lat) > 90 || Math.abs(row.lng) > 180
-    || !coarse(row.lat) || !coarse(row.lng)) invalid('DISCOVERY_V1_PIN_INVALID');
-  return { lat: row.lat, lng: row.lng, precision: 'COARSE_1KM' };
+  const lat = row.lat, lng = row.lng;
+  if (row.precision !== 'COARSE_1KM' || typeof lat !== 'number' || !Number.isFinite(lat)
+    || typeof lng !== 'number' || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180
+    || !coarse(lat) || !coarse(lng)) invalid('DISCOVERY_V1_PIN_INVALID');
+  return { lat, lng, precision: 'COARSE_1KM' };
 }
 
 function decodeItem(value: unknown, asOf: string): DiscoveryV1Item {
@@ -153,10 +155,11 @@ function decodeItem(value: unknown, asOf: string): DiscoveryV1Item {
     publicTopology, criticalConditions };
 }
 
-function decodeItems(value: unknown, asOf: string, limit: number) {
-  if (!Array.isArray(value) || value.length > limit) invalid('DISCOVERY_V1_ITEMS_INVALID');
-  const items = value.map(item => decodeItem(item, asOf));
-  if (new Set(items.map(item => item.id)).size !== items.length) invalid('DISCOVERY_V1_ITEMS_DUPLICATE');
+function decodeItems(value: unknown, asOf: string, limit: number): DiscoveryV1Item[] {
+  const array: unknown[] = Array.isArray(value) ? value : invalid('DISCOVERY_V1_ITEMS_INVALID');
+  if (array.length > limit) invalid('DISCOVERY_V1_ITEMS_INVALID');
+  const items = array.map((item: unknown) => decodeItem(item, asOf));
+  if (new Set(items.map((item: DiscoveryV1Item) => item.id)).size !== items.length) invalid('DISCOVERY_V1_ITEMS_DUPLICATE');
   return items;
 }
 
@@ -165,7 +168,8 @@ function decodeCursor(value: unknown): DiscoveryV1Cursor | null {
   const row = object(value); exact(row, ['scopeKey','section','sortAt','id'], 'DISCOVERY_V1_CURSOR_SHAPE');
   const scopeKey = text(row.scopeKey, 'DISCOVERY_V1_CURSOR_SCOPE', 64);
   if (!md5Re.test(scopeKey) || (row.section !== 0 && row.section !== 1)) invalid('DISCOVERY_V1_CURSOR_INVALID');
-  return { scopeKey, section: row.section, sortAt: instant(row.sortAt, 'DISCOVERY_V1_CURSOR_SORT'),
+  const section = row.section as 0 | 1;
+  return { scopeKey, section, sortAt: instant(row.sortAt, 'DISCOVERY_V1_CURSOR_SORT'),
     id: uuid(row.id, 'DISCOVERY_V1_CURSOR_ID') };
 }
 
@@ -192,8 +196,8 @@ function decodeCounts(value: unknown): DiscoveryV1Counts {
 
 function decodeAvailability(value: unknown): DiscoveryV1Availability {
   const row = object(value); exact(row, ['hasKnownWorkMode','hasKnownSchedule','priceModes'], 'DISCOVERY_V1_AVAILABILITY_SHAPE');
-  if (!Array.isArray(row.priceModes)) invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
-  const modes = row.priceModes.map(mode => {
+  const rawModes: unknown[] = Array.isArray(row.priceModes) ? row.priceModes : invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
+  const modes: Array<'MY_PRICE' | 'OFFERS'> = rawModes.map((mode: unknown) => {
     if (mode !== 'MY_PRICE' && mode !== 'OFFERS') invalid('DISCOVERY_V1_AVAILABILITY_PRICE');
     return mode;
   });
