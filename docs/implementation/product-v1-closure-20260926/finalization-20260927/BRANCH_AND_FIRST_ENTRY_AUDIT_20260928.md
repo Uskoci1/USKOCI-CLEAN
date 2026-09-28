@@ -75,3 +75,15 @@ Exact-message push activation remains a separate gate; last recorded flag state 
 ## Evidence scope
 
 The earlier 342-suite / 7,213-test pass still belongs to runtime equivalent `10739a44` and rollback commit `36c57b84`. No new automated checks were needed for this read-only audit. This report is not release acceptance. Hosted control publication remains blocked by the previously observed `invalid_argument`; local generation and Git push are not publication to Claude.
+
+## Follow-up: the owner's named Claude folder and AI-card direction
+
+Read-only worktree check against canonical `662e4638` confirms:
+
+- `C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/uskoci-kompletan-audit-2e715e` is at `be03fcc4` with empty status including all untracked files. It is a strict ancestor of canonical HEAD, with zero unique commits and ten newer canonical commits. `git cherry` is empty. Its committed application/server source is included in canonical Git history; that does not deploy every SQL candidate.
+- Earlier Codex worktree `work/uskoci-html-native` is clean at `88af02e8`.
+- Three older round-5 agent worktrees retain local snapshots. Current canonical versions contain their settings/picker/term-helper work and later changes; the settings, picker, worker-draft and time-helper blobs are traceable in canonical history. The old privacy presentation files also exist in newer canonical form. These worktrees were not reset, pulled, deleted or published as new work. This is not an exhaustive certification of every historical folder on disk.
+
+Owner is considering showing the full task card only when the conversation reaches a reviewable draft. Product recommendation (not implemented here): keep ordinary conversation and point-map corrections in the body; retain only a small branded header/draft entry during collection; reveal the approved card language once the authoritative draft is ready, with one `Pregledaj zadatak` action. Publication remains an explicit action after review. A floating full-size card should not continuously consume the conversation viewport. Existing draft ownership/recovery and real TaskCard remain unchanged until implementation.
+
+No new blanket owner approval is required for routine source integration and UI completion. Remaining owner inputs are legal/operator/retention content, separately owned payment decisions, login/device participation when needed and any future explicitly bounded paid-provider test or new dependency. PKG045b already has conditional approval; its device/preflight conditions still apply. Exact push activation still requires compatible active registrations and the stated device proof. Unfinished engineering must not be relabeled as awaiting a general owner decision.

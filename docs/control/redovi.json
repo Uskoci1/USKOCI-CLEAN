@@ -3868,7 +3868,16 @@
       "stored_private_context_exclusion_present": false,
       "technical_inventory_reconciled": false,
       "mutation": false,
-      "native_or_provider_acceptance": false
+      "native_or_provider_acceptance": false,
+      "claude_local_worktree": {
+        "head": "be03fcc4",
+        "compared_canonical_head": "662e4638",
+        "status_including_untracked": "CLEAN",
+        "unique_commits": 0,
+        "canonical_newer_commits": 10,
+        "meaning": "All committed source in this named worktree is in canonical Git history; not proof of deployment of every SQL candidate."
+      },
+      "ai_card_direction": "PROPOSED_NOT_IMPLEMENTED: full task card at authoritative ready-for-review state; compact brand/draft access during conversation; preserve actual TaskCard and explicit review/publication."
     }
   }
 }
