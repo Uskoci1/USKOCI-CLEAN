@@ -4,6 +4,8 @@ Updated **2026-09-28**. Status: **ACTIVE FINALIZATION / WORKING CORE / RELEASE N
 Canonical repository: `Uskoci1/USKOCI-CLEAN`, branch `work/uskoci-ui-unification-20260924`.
 Documentation baseline: `4276bca4`. Current runtime remains equivalent to `10739a440611fc32e3bd6d9ee6dd66a5479e091b` after the Round32 rollback.
 
+Detailed implementation, UI/UX, cleanup, performance, all-62-row coverage and store-release gates are in the [Final product execution runbook](FINAL_PRODUCT_EXECUTION_RUNBOOK_20260928.md). Read it before continuing work in another session. It elaborates this plan without changing current acceptance status or the owner-deferred privacy sequence.
+
 This is the execution plan, not a second status tracker. [redovi.json](../../control/redovi.json) remains the sole living inventory; [FINALIZATION_MATRIX.md](../../control/FINALIZATION_MATRIX.md) is generated from it. The matrix keeps **FLOW | UX | UI | BACKEND | STATE SYNC | PERFORMANCE | TEST | DEVICE PROOF | STATUS** separate.
 
 ## Start here: current evidence and boundaries

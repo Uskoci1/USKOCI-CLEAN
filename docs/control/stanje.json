@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-28T06:00:10Z",
+  "osvezeno": "2026-09-28T06:14:23Z",
   "grana": "HEAD",
-  "head": "fbf001f0",
-  "head_poruka": "docs: defer privacy branches to final whole-app review",
+  "head": "b8c93cfe",
+  "head_poruka": "docs: align external status review with current handoff",
   "server": {
    "snimljeno": "2026-09-27T20:20:25Z",
    "migracije": 210,
@@ -301,7 +301,10 @@
    "status": "CURRENT_P0_P7_ORDER_WITH_DEPENDENCIES_AND_EXIT_CRITERIA",
    "next": "Original FULL-return repair, then publication/map/list continuity and P0–P7. Owner deferred the two privacy branches to the final whole-app privacy pass before public release.",
    "tracker": "docs/control/redovi.json; no second execution matrix",
-   "boundary": "Documentation and screenshot checkpoint only; no source/backend change or new end-to-end acceptance."
+   "boundary": "Documentation and screenshot checkpoint only; no source/backend change or new end-to-end acceptance.",
+   "runbook": "docs/implementation/product-v1-closure-20260926/FINAL_PRODUCT_EXECUTION_RUNBOOK_20260928.md",
+   "runbook_scope": "Detailed P0–P7 work packages, all 62 control rows, deep surfaces, UX/UI/motion/accessibility, cleanup, measured performance, backend application, native/provider evidence, final privacy and store release.",
+   "runbook_status": "DOCUMENTED_NOT_IMPLEMENTED_NOT_RELEASE_ACCEPTANCE"
   },
   "screenshots": {
    "index": "docs/implementation/product-v1-closure-20260926/finalization-20260927/SCREENSHOTS.md",
