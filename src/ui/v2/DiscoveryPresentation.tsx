@@ -1,3 +1,4 @@
+import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
@@ -42,6 +43,8 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
   /** An exact published row can be shown while the independent collection is incomplete. */
   collectionStatus?: 'loading' | 'error';
+  /** One-shot locality fallback, never a filter, task point or GPS marker. */
+  initialWorkArea?: WorkAreaCamera | null; onInitialWorkAreaHandled?: (key: string) => void;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   /** Explicit interaction supersedes an automatic publication landing still waiting for its read. */
   onUserIntent?: () => void;
@@ -1006,6 +1009,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           onUserIntent={userIntent}
           publicationCameraToken={cameraRequestToken && props.publicationFocus?.id === chosen?.id ? cameraRequestToken : null}
           onPublicationCameraConsumed={consumeCameraIntent} onPublicationCameraRetired={retireCameraIntent}
+          initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}

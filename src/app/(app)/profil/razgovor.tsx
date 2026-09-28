@@ -254,7 +254,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     || data.candidate.skills.length > 0 || data.candidate.tools.length > 0 || data.candidate.licenses.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
-    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} review={()=>{void review();}}/>:null}
+    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} reviewInFooter review={()=>{void review();}}/>:null}
+    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action label="Pregledaj profil" style={brandAction}
+      disabled={!enabled} reason={!enabled?unavailableNow:undefined} onPress={()=>{void review();}}/>:undefined}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
     openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']}

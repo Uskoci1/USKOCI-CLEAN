@@ -364,3 +364,45 @@ test('visible map attribution has one 48 dp source control instead of a competin
   expect(StyleSheet.flatten(control.props.style).minHeight).toBeGreaterThanOrEqual(48);
   expect(tree.root.findAll(node => node.props.persistentScrollbar)).toHaveLength(0);
 });
+
+// P5 exercises the real camera boundary, never fake GPS or area filtering.
+const workAreaTarget = { key: 'saved-work-area', bounds: [19.5, 45, 20.2, 45.6] as [number, number, number, number] };
+function workAreaPage(extra: Record<string, unknown> = {}) {
+  return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId}
+    onSelect={select} onViewport={setViewport} onArea={search} onList={list} onUserIntent={userIntent}
+    {...{ initialWorkArea: workAreaTarget, ...extra }} />;
+}
+test('P5 work-area: the saved footprint fits once without becoming a filter, a pin or GPS', async () => {
+  const handled = jest.fn();
+  await act(async () => { tree = create(workAreaPage({ onInitialWorkAreaHandled: handled })); }); await ready();
+  expect(mockFit).toHaveBeenLastCalledWith(workAreaTarget.bounds, expect.objectContaining({ duration: 0 }));
+  expect(handled).toHaveBeenCalledWith(workAreaTarget.key);
+  expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+  expect(sourceData().features).toHaveLength(rows.length);
+  const calls = mockFit.mock.calls.length;
+  await act(async () => tree.update(workAreaPage({ onInitialWorkAreaHandled: handled })));
+  expect(mockFit).toHaveBeenCalledTimes(calls); expect(handled).toHaveBeenCalledTimes(1);
+});
+test('P5 work-area: late layout delays the fit instead of consuming an unperformed request', async () => {
+  await act(async () => { tree = create(workAreaPage()); });
+  await act(async () => native().props.onDidFinishLoadingMap());
+  expect(mockFit).not.toHaveBeenCalled(); await ready();
+  expect(mockFit).toHaveBeenLastCalledWith(workAreaTarget.bounds, expect.anything());
+});
+test('P5 work-area: a remembered viewport wins over the optional seed', async () => {
+  viewport = { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9] };
+  await act(async () => { tree = create(workAreaPage()); }); await ready();
+  expect(mockFit).not.toHaveBeenCalled();
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState.bounds).toEqual(viewport.bounds);
+});
+test('P5 work-area: manual pan before readiness wins over a delayed seed', async () => {
+  await act(async () => { tree = create(workAreaPage()); });
+  await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } })); await ready();
+  expect(mockFit).not.toHaveBeenCalled();
+});
+test('P5 work-area: a selected task keeps priority and no invented point enters GeoJSON', async () => {
+  selectedId = rows[0].id;
+  await act(async () => { tree = create(workAreaPage({ publicationCameraToken: 'publication' })); }); await ready();
+  expect(mockFit.mock.calls.some(([bounds]) => JSON.stringify(bounds) === JSON.stringify(workAreaTarget.bounds))).toBe(false);
+  expect(sourceData().features.every((feature: any) => feature.properties.needId !== workAreaTarget.key)).toBe(true);
+});

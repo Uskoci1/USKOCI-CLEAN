@@ -1,3 +1,4 @@
+import { useDiscoveryWorkArea } from '../../hooks/useDiscoveryWorkArea';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -46,6 +47,8 @@ function Discovery() {
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
   const publicationToken = handoff?.token ?? null;
+  const workArea = useDiscoveryWorkArea({ accountId: user?.id ?? null, accountRevision, source,
+    focus: scope, focusRef: focus, view, publication: !!handoff });
   const publicationRequested = useRef<string | null>(null);
   const publicationCompleted = useRef<string | null>(null);
   const successfulLanding = useRef<string | null>(null);
@@ -174,7 +177,7 @@ function Discovery() {
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => {
-    if (current() && !navigating.current) { retirePublicationLanding(); navigating.current = true; action(); }
+    if (current() && !navigating.current) { workArea.retire(); retirePublicationLanding(); navigating.current = true; action(); }
   };
   const retirePublicationLanding = () => {
     if (!current() || !handoff || !publicationIsCurrent(handoff) || !publicationToken
@@ -199,6 +202,7 @@ function Discovery() {
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
   return <DiscoveryPresentation items={items} loading={!exactItem && resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!exactItem && !!resource.error}
       collectionStatus={collectionPending ? resource.error ? 'error' : 'loading' : undefined}
+      initialWorkArea={handoff ? null : workArea.target} onInitialWorkAreaHandled={workArea.handled}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={labeledRelations} relationsPending={relationsPending}
       relationsError={relations.error}
       publicationFocus={publication?.token === publicationToken && (publication.status === 'map' || publication.status === 'list')
@@ -211,7 +215,7 @@ function Discovery() {
         }));
       } : undefined}
       trace={traceEnabled ? trace : undefined}
-      onUserIntent={retirePublicationLanding}
+      onUserIntent={() => { if (current()) { workArea.retire(); retirePublicationLanding(); } }}
       onView={next => { const accepted = current(); trace('route-view', accepted, traceView.current.listOffset ?? 0, next.listOffset ?? 0, traceSheet(next)); if (accepted) setView(next); }} onRefresh={() => {
         if (current()) {
           if ((publicationCompleted.current !== publicationToken || successfulLanding.current === publicationToken)

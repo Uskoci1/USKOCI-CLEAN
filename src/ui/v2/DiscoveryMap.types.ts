@@ -1,9 +1,12 @@
+import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
 import type { SharedValue } from 'react-native-reanimated';
 import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/marketplaceView';
 import type { TaskRelationIndex } from '../../data/taskRelation';
 /** Ephemeral camera instruction, never a public pin, task location, search filter, or stored location. */
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;
+  /** Handled means attempted/retired, not device-render acceptance. */
+  initialWorkArea?: WorkAreaCamera | null; onInitialWorkAreaHandled?: (key: string) => void;
   /** Account-owned overlay for rich pins only. Never added to the SDK's public GeoJSON. */
   relations?: TaskRelationIndex;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;

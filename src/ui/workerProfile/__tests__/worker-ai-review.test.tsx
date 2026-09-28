@@ -77,3 +77,18 @@ it('draws the activation choice on a flat tint with a white thumb', async () => 
   expect(toggle.props.thumbColor).toBe(sys.color.surface);
   expect(toggle.props.accessibilityLabel).toBe('Aktiviraj profil posle čuvanja');
 });
+
+jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
+it('P5 worker review: map belongs to the frozen review and is read-only, not a new live location', async () => {
+  const saved = review({}, { location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
+    approximatePosition: { latitude: 45.25, longitude: 19.83 } } });
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
+  const map = tree.root.findByType('ReviewedWorkAreaMap' as React.ElementType);
+  expect(map.props).toMatchObject({ coarse: true, disabled: true, height: 220, position: saved.profile.location.approximatePosition });
+  expect(map.props.scopeKey).toContain(saved.reviewId); expect(map.props.scopeKey).toContain(saved.accountId);
+  expect(texts()).not.toContain('tačka radnog područja je sačuvana');
+});
+it('P5 worker review: missing coordinates never render a fabricated map', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+});

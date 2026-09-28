@@ -317,3 +317,22 @@ test('background clears the exact snapshot and resumes with a new read without r
   mockRows=[exact];await finishRead();
   expect(discovery().items).toHaveLength(1);expect(discovery().view).toEqual(position);
 });
+
+const mockWorkArea = { target: { key: 'work-area', bounds: [19, 44, 20, 45] }, retire: jest.fn(), handled: jest.fn() };
+jest.mock('../../hooks/useDiscoveryWorkArea', () => ({ useDiscoveryWorkArea: () => mockWorkArea }));
+beforeEach(() => { mockWorkArea.retire.mockClear(); mockWorkArea.handled.mockClear(); });
+test('P5 work-area: the route passes the optional camera without changing any applied criterion', async () => {
+  mockParams = {}; await render(); const original = discovery().view;
+  expect(discovery().initialWorkArea).toBe(mockWorkArea.target);
+  await act(async () => discovery().onInitialWorkAreaHandled('work-area'));
+  expect(mockWorkArea.handled).toHaveBeenCalledWith('work-area'); expect(discovery().view).toBe(original);
+});
+test('P5 work-area: explicit intent retires the seed and stale visit callbacks do not', async () => {
+  mockParams = {}; await render(); const old = discovery().onUserIntent;
+  mockFocused = false; await update(); mockFocused = true; await update();
+  await act(async () => old()); expect(mockWorkArea.retire).not.toHaveBeenCalled();
+  await act(async () => discovery().onUserIntent()); expect(mockWorkArea.retire).toHaveBeenCalledTimes(1);
+});
+test('P5 work-area: a trusted publication is never handed a competing default camera', async () => {
+  await render(); expect(discovery().initialWorkArea).toBeNull();
+});

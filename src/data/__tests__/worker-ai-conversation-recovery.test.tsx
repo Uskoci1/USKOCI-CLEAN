@@ -449,3 +449,20 @@ it('late dispatched exit after account reincarnation cannot clear the old journa
  await act(async()=>release(ok(recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false}))));
  expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
+
+it('P5 worker review: one reachable footer action prepares the existing review, never saves or activates implicitly', async () => {
+  mockApi.prepare.mockResolvedValue({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proveri stanje.' });
+  await render(); const footer = shell().props.footerAction;
+  expect(footer.props.label).toBe('Pregledaj profil'); expect(footer.props.disabled).toBe(false);
+  expect(shell().props.card(false).props.reviewInFooter).toBe(true);
+  expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
+  await act(async () => footer.props.onPress());
+  expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true); expect(mockApi.save).not.toHaveBeenCalled();
+});
+it('P5 worker review: no empty-profile call to action and no review during an unresolved turn', async () => {
+  mockApi.read.mockResolvedValue(ok({ ...snapshot(), candidate: { ...candidate(), skills: [] } }));
+  await render(); expect(shell().props.footerAction).toBeUndefined(); await act(async () => tree.unmount());
+  mockApi.read.mockResolvedValue(ok(snapshot(turn()))); await render();
+  const footer = shell().props.footerAction; expect(footer.props.disabled).toBe(true);
+  await act(async () => footer.props.onPress()); expect(mockApi.prepare).not.toHaveBeenCalled();
+});

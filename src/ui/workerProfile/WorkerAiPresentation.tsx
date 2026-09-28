@@ -10,6 +10,8 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { sys, card, inset, field } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { V2Action } from '../v2/V2Action';
+import { ResolvedPinMap } from '../location/ResolvedPinMap';
+import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { osoba, plural } from '../system/plural';
@@ -18,7 +20,7 @@ import { osoba, plural } from '../system/plural';
 const EMPTY='Nije navedeno';
 const list=(values:readonly string[])=>values.length?values.join(' · '):EMPTY;
 /** Live card of the worker profile proposal beside the conversation. */
-export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean}){
+export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean}){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
   const place = `${profile.location.city || 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
@@ -44,12 +46,12 @@ export function WorkerAiCard({profile,compact,review,disabled}:{profile:WorkerAi
         <PreviewFact art="users">{`${team} · ${availability}`}</PreviewFact>
         <PreviewFact art="clock">{schedule}</PreviewFact>
       </View>:null}
-      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+      {!reviewInFooter?<Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
         accessibilityHint="Otvara sve podatke pre završnog čuvanja." accessibilityState={{disabled}} disabled={disabled}
         onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
         <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
         <ReviewCue disabled={disabled}/>
-      </Press>
+      </Press>:null}
   </View>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
@@ -73,6 +75,7 @@ function ReviewSection({title,art,children}:{title:string;art:FactArtKind;childr
 /** The frozen review the worker accepts: every fact the save will write, nothing else. */
 export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
   const p=review.profile;
+  const point=displayedPinPosition(p.location.approximatePosition,true);
   return <View style={s.review}>
     <View style={s.reviewIntro}>
       <View style={s.sectionHead}><View style={s.introIcon}><FactArt kind="person" size={32}/></View>
@@ -92,7 +95,10 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
     <ReviewSection title="Područje rada" art="map">
       <Row label="Grad i država" value={`${p.location.city||EMPTY}${p.location.operatingCountryCode?' · '+p.location.operatingCountryCode:''}`} />
       <Row label="Radijus rada" value={`${p.location.radiusKm} km`} />
-      <T variant="note" tone="muted">{p.location.approximatePosition?'Približna tačka radnog područja je sačuvana.':'Približna tačka nije uneta. Možeš je podesiti kroz postojeće područje rada.'}</T>
+      {point?<ResolvedPinMap coarse disabled height={220} position={point}
+        scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
+        onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
+      <T variant="note" tone="muted">{point?'Prikazan je približan centar područja. Radijus važi kako je naveden iznad.':'Približna tačka nije uneta. Možeš je podesiti kroz postojeće područje rada.'}</T>
     </ReviewSection>
     <ReviewSection title="Kada možeš da radiš" art="clock">
       <Row label="Dostupnost" value={p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'} />

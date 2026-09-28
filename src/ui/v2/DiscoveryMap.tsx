@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { Info, Minus, Plus } from 'phosphor-react-native';
-import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, type MarketplaceItem, type PinPlace }
+import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, publicBounds, type MarketplaceItem, type PinPlace }
   from '../../data/marketplaceView';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { useMapStyle, type MapStyle } from '../location/mapStyle';
@@ -105,6 +105,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const failure = useRef<'deadline' | 'native-error' | null>(null);
+  const workAreaMayApply = useRef(!props.viewport);
   const traceStart = useRef(Date.now()), traced = useRef(new Set<LoadTraceEvent>());
   const traceLoad = useCallback((event: LoadTraceEvent) => {
     // Next DEV checkpoint only: six fixed events at most, elapsed time and no map/user/request data.
@@ -133,6 +134,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   };
   const manualMapIntent = () => {
     if (!owns()) return;
+    workAreaMayApply.current = false;
     latest.current.props.onUserIntent?.();
     retirePublicationFocus();
   };
@@ -315,6 +317,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // changing rows, sheet height, tools or font size later cannot take the map away from the person's chosen view.
   useEffect(() => {
     if (!initialFitPending.current || status !== 'ready' || !owns()) return;
+    if (props.initialWorkArea && workAreaMayApply.current) return;
     // A deliberate camera destination always wins, even if it is still waiting for the layout below.
     if (props.fitTo || props.centerNearby) { initialFitPending.current = false; return; }
     if (!frame || props.cameraLayoutReady === false || !camera.current) return;
@@ -323,7 +326,28 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!bounds) return;
     cancelArea(); intent.current = 0;
     camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
-  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The route owns this optional first-camera lifetime; fields and public GeoJSON never change.
+  // Remembered viewport, publication, selected pin, search, Nearby and manual gestures win.
+  useEffect(() => {
+    if (!owns() || !workAreaMayApply.current) return;
+    if (props.selectedId || props.selectedPlace || props.publicationCameraToken || props.fitTo || props.centerNearby) {
+      workAreaMayApply.current = false; return;
+    }
+    const request = props.initialWorkArea;
+    if (!request || status !== 'ready' || !frame || props.cameraLayoutReady === false || !camera.current) return;
+    const bounds = publicBounds(request.bounds);
+    workAreaMayApply.current = false;
+    if (bounds && bounds[0] <= bounds[2]) {
+      cancelArea(); intent.current = 0;
+      try {
+        camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
+        initialFitPending.current = false;
+      } catch { /* Optional failure leaves the existing initial-fit/retry path intact. */ }
+    }
+    props.onInitialWorkAreaHandled?.(request.key);
+  }, [props.initialWorkArea, status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom,
+    props.selectedId, props.selectedPlace, props.publicationCameraToken, props.fitTo, props.centerNearby]); // eslint-disable-line react-hooks/exhaustive-deps
   // A place chosen in the search: the camera brings its pins into view once, as its own move (never an area).
   useEffect(() => {
     const request = props.fitTo;
