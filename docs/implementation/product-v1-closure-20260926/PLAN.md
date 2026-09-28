@@ -8,6 +8,8 @@ Detailed implementation, UI/UX, cleanup, performance, all-62-row coverage and st
 
 This is the execution plan, not a second status tracker. [redovi.json](../../control/redovi.json) remains the sole living inventory; [FINALIZATION_MATRIX.md](../../control/FINALIZATION_MATRIX.md) is generated from it. The matrix keeps **FLOW | UX | UI | BACKEND | STATE SYNC | PERFORMANCE | TEST | DEVICE PROOF | STATUS** separate.
 
+Latest P5 client checkpoint: [Round39](finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md), tested source `1b11e046643c0f50cfa8eede360d03c0752eaab7`. Older runtime/installation references below are dated baselines, not this package's device acceptance.
+
 ## Start here: current evidence and boundaries
 
 - Read [AGENTS.md](../../../AGENTS.md), the [branch/first-entry audit](finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md), [application outcomes](finalization-20260927/APPLICATION_APPROVALS_20260927.md), and [Round32 native receipt](finalization-20260927/ROUND_32_NATIVE_RECEIPT.json).
