@@ -1999,8 +1999,8 @@
         "rpc_report_problem"
       ],
       "telefon": null,
-      "problem": "",
-      "sledece": "",
+      "problem": "Stari tracker je bio iza aktuelnog source-a: problem-report tok i authority/readback zaštite sada postoje. Ostaje native dokaz na tačnom kandidatu.",
+      "sledece": "Objedinjeni disposable Agreement native pass; bez prijavljivanja problema na vlasnikovom stvarnom Dogovoru.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2014,15 +2014,15 @@
           "P2"
         ],
         "flow": "Prijavi problem u Dogovoru",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Aktivan Dogovor ima odvojenu prijavu problema sa jasnim objašnjenjem da opis vidi druga strana, da nije poverljiva prijava podršci i da sama ne određuje krivicu/dug.",
+        "ui": "Problem je zasebna upozoravajuća površina; jedan opis, eksplicitno slanje/odustajanje, sačuvan prvi opis i jasan recovery bez dupliranja.",
+        "backend": "Postojeći agreement problem RPC/reader; bez nove DEV primene.",
+        "state_sync": "Prvi immutable opis ostaje vlasnik pokušaja; receipt mora biti potvrđen canonical readback-om. Unknown, race, late/account/background i legacy detail su ograđeni.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round36: agreement-screen-recovery + agreement-problem-client PASS u exact full run 36400916665; ukupno 342 suite / 7.214 testova PASS; TypeScript PASS.",
+        "device_proof": "Nema novog exact APK/device dokaza u ovoj sesiji; disposable Agreement proveriti u objedinjenom native krugu.",
+        "status": "SOURCE/CI PASS / DISPOSABLE NATIVE PROBLEM FLOW PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
     },
     {
@@ -2046,8 +2046,8 @@
         "stanje": "NIJE",
         "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: „Završio sam“ nije pritisnuto — naručilac je završio Dogovor pre toga; put izvođač-javlja-završetak ostaje neproveren na uređaju."
       },
-      "problem": "",
-      "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+      "problem": "Source više nema neobrađen završetak; otvoren je native dokaz tačnog kandidata.",
+      "sledece": "Na disposable dvostrukom nalogu proveriti worker review→mark done→requester AWAITING_REQUESTER na istom build-u.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2061,15 +2061,15 @@
           "P2"
         ],
         "flow": "Završio sam (strana koja radi)",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Izvršilac prvo vidi Pregled završetka sa prihvaćenim terminom, brojem ljudi i ukupnim iznosom; tek izričito Da, posao je gotov šalje komandu.",
+        "ui": "Jedna primarna completion radnja; review je page-sheet i ne menja Dogovor dok nije potvrđen.",
+        "backend": "Postojeći rpc_mark_work_done + canonical Agreement readback; bez nove DEV primene.",
+        "state_sync": "Server actionState je jedina permission authority. Review je vezan za tačan read/focus; double tap, blur/account/background i unknown outcome su ograđeni. Uspeh tek na AWAITING_REQUESTER/COMPLETED readback-u.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round36: agreement-screen-recovery PASS, uključujući worker mark confirmation/readback/unknown/account fences; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Tačan current APK nije proverio worker → Završio sam u ovoj sesiji; istorijski dokaz nije prenet.",
+        "status": "SOURCE/CI PASS / TWO-ACCOUNT NATIVE WORKER-COMPLETION PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
     },
     {
@@ -2093,8 +2093,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Potvrda završetka prošla uz pregled uslova. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac potvrdio završetak na telefonu (server COMPLETED 08:38, bez prethodnog „Završio sam“ izvođača); izvođač na emulatoru vidi „Završeno“, „Dogovor je završen“ i „Oceni saradnju“ (zavrseno-08). Automatsko završavanje viđeno na jučerašnjem stvarnom Dogovoru („Rok za potvrdu je istekao…“, 22.09 12:41) u obaveštenjima (zavrseno-12). Ekran naručioca nije snimljen."
       },
-      "problem": "",
-      "sledece": "Dodat pregled pre završetka sa prihvaćenim iznosom/terminom i izričitom potvrdom. Stara radnja i oporavak su sačuvani; 242 grupe/4719 testova i tipovi prolaze. Sledi tačan APK, provera obe strane i Claude. Otvoren problem sprečava automatski završetak, ali ne ukida dozvoljenu izričitu potvrdu. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
+      "problem": "Aktuelni source već ima review, authoritative receipt i readback. Automatsko završavanje se ne simulira u klijentu.",
+      "sledece": "Objedinjeni current APK: worker mark→requester confirm→oba naloga vide COMPLETED; bez menjanja server auto-completion pravila.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2108,15 +2108,15 @@
           "P2"
         ],
         "flow": "Potvrdi završetak (i automatsko završavanje)",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Naručilac potvrđuje završetak kroz isti pregled prihvaćenih uslova; problem ostaje vidljiv i ne izjednačava se sa krivicom/dugom.",
+        "ui": "Jedna primarna Potvrdi završetak; terminalni rezultat se prikazuje tek posle canonical readback-a.",
+        "backend": "Postojeći rpc_confirm_completion authoritative terminal receipt + workspace readback; automatski završetak ostaje serverska politika, ne lokalni timer.",
+        "state_sync": "Structured COMPLETED receipt nije dovoljan sam: aktuelni workspace mora potvrditi terminalno stanje. Missing/denied action fail-closed; unknown zahteva reconciliation.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round36: pkg007-completion-receipt + agreement-screen-recovery PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Istorijska realna potvrda postoji za stariji build; current exact APK/two-account pass nije izveden u ovoj sesiji.",
+        "status": "SOURCE/CI PASS / CURRENT TWO-ACCOUNT NATIVE COMPLETION PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
     },
     {
@@ -2141,8 +2141,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Ocena 5/5 sačuvana na telefonu i zasebno emulatoru. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: "
       },
-      "problem": "R18 je na dva naloga zaista sačuvao obe ocene 5/5; stara tvrdnja da čuvanje nije provereno više ne važi. Server copy nalaz F15 iz ranijeg audita ostaje za posebno proveravanje.",
-      "sledece": "25.09. integracija prekinutog rada: Preuzete dorade ocene i učitavanja osobe. Pisani komentar ostaje zaseban serverski posao. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: ocena prerađena (osoba prva, velike zvezde, oznake, iskren uspeh, tačan „Nazad“). Odluka vlasnika 24.09: PISANI KOMENTAR UZ OCENU — DA (traži serverski paket: kolona, dužina, prijava, vidljivost, čuvanje; na DEV tek na „primeni“). Nije urađeno. Vlasnik prstom na telefonu sa novim buildom oceni drugi Dogovor; zaseban predlog izmene serverskog teksta (F15). Istraživanje 25.09 — predlog, nije primenjeno: Ocena: pošten prikaz zvezdica i postojećih oznaka; komentar čeka serverski kandidat, dokaz i posebno odobrenje primene. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md.",
+      "problem": "Zvezdasta ocena je implementirana i dokazano testirana; prethodni crveni opis je zastareo. Pisani komentar ostaje poseban, neprimenjen server/schema/privacy/moderation paket.",
+      "sledece": "Na disposable completed Agreement-u proveriti current APK rating jednom po nalogu. Za pisani komentar traži se zasebno odobrenje server paketa pre bilo kakve DEV izmene.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2156,15 +2156,15 @@
           "P2"
         ],
         "flow": "Ocena",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Ocena je zaseban ekran posle COMPLETED, sa jasnom osobom, eksplicitnim izborom 1–5 i dozvoljenim server tagovima; nema 0.0 za neocenjenog.",
+        "ui": "Velike zvezde i jedna submit radnja; uspeh tek posle matching own-review readback-a. Agreement prestaje da nudi ocenu kada read kaže GIVEN/CLOSED.",
+        "backend": "Postojeći rpc_submit_agreement_review/rpc_get_my_agreement_review. Pisani komentar NIJE deo trenutnog server ugovora i nije dodat.",
+        "state_sync": "Immutable review command; double tap serializovan; unknown/lost ACK prvo readback, tek zatim isti retry; account/background/route guards.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round36: reviews-authority + review-screen + oceni-dogovor-route PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Istorijske dve stvarne 5/5 ocene ostaju dokaz starijih buildova. Current exact APK nije ocenjen u ovoj sesiji.",
+        "status": "STAR RATING SOURCE/CI PASS / CURRENT NATIVE PENDING / WRITTEN COMMENT SERVER PACKAGE OPEN",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
     },
     {
@@ -2182,12 +2182,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: kartica „Sledeći korak“ viđena u tri stanja na emulatoru — „Kada završiš, označi završetak“ (Dogovoreno), „Dogovor je završen“ (Završeno) — i na telefonu za završen Dogovor (22.09)."
       },
-      "problem": "Nedostaje prikaz koraka. Server daje stvarna stanja, ali ne daje kretanje/stizanje. Zatvorena potraga nije isto što i završen posao.",
-      "sledece": "Posle odobrenja funkcionalne analize: prikazati važeću sledeću radnju, rok i blokadu problemom; bez izmišljanja koraka. Audit D3/F12.",
-      "override": {
-        "kod": "crveno",
-        "razlog": "Nije napravljeno u aplikaciji"
-      },
+      "problem": "Raniji override „nije napravljeno” više nije tačan: NextStepCard i state-derived sledeći korak postoje. Namerno se ne uvode izmišljeni movement/arrival statusi koje server ne zna.",
+      "sledece": "U objedinjenom native prolazu proveriti worker/requester prikaz kroz CONFIRMED→AWAITING_REQUESTER→COMPLETED i pending-change prioritet.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2201,15 +2197,15 @@
           "P2"
         ],
         "flow": "Koraci napretka Dogovora",
-        "ux": "Mapirano; detaljan krug sledi",
-        "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Postojeći katalog; nije novo funkcionalno dokazivanje",
-        "state_sync": "Detaljan krug sledi; istorijski dokazi ostaju",
+        "ux": "Dogovor prikazuje samo stvarno poznato stanje i sledeću dozvoljenu radnju: pending izmena, Dogovoreno, čeka potvrdu, Završeno/ocena ili Otkazano. Nema izmišljenih Krenuo/Stigao/Započeo koraka.",
+        "ui": "NextStepCard stoji između izvornog zadatka i prihvaćenih uslova; upozoravajući tint samo kada nešto čeka osobu. Sačuvana hronologija je zasebna sekcija stvarnih događaja.",
+        "backend": "Koristi postojeći Agreement status/actionState/deadline/history; nema novog progress RPC-a niti lažnog klijentskog stanja.",
+        "state_sync": "Pending change ima prioritet i blokira completion; AWAITING_REQUESTER razlikuje uloge; own-rating read određuje da li COMPLETED stvarno čeka moju ocenu.",
         "performance": "Nije ponovo mereno",
-        "test": "NIJE POKRETANO — po nalogu vlasnika",
-        "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-        "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "test": "Round36: agreement-screen-recovery + overview/workspace announcement testovi PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
+        "device_proof": "Aktuelna kompozicija/step state nije ponovo prihvaćena na current exact APK-u u ovoj sesiji.",
+        "status": "REAL NEXT-STEP SOURCE/CI PASS / CURRENT NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
     },
     {
