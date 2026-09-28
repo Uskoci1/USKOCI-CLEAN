@@ -11,6 +11,7 @@ on:
       - 'src/app/auth.tsx'
       - 'src/data/__tests__/auth-client.test.ts'
       - 'src/data/__tests__/auth-entry-surface.test.tsx'
+      - 'src/data/__tests__/pkg002-auth-safe-errors.test.ts'
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,5 +27,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit -p tsconfig.json
-      - run: npx jest -w 2 --testTimeout=30000 --runTestsByPath src/data/__tests__/auth-client.test.ts src/data/__tests__/auth-entry-surface.test.tsx src/data/__tests__/auth-route-parameters.test.tsx
+      - run: npx jest -w 2 --testTimeout=30000 --runTestsByPath src/data/__tests__/auth-client.test.ts src/data/__tests__/auth-entry-surface.test.tsx src/data/__tests__/auth-route-parameters.test.tsx src/data/__tests__/pkg002-auth-safe-errors.test.ts
       - run: npx jest -w 3 --testTimeout=30000

@@ -47,9 +47,12 @@ describe('PKG-002 safe Auth error boundary', () => {
     await expect(authClientService.signUp({ email: 'ana@example.test', password: 'secret', firstName: ' Ana ', lastName: ' Ivić ', city: 'Novi Sad' }))
       .resolves.toEqual({ hasSession: true });
     expect(mockAuth.signUp).toHaveBeenCalledWith({
-      email: 'ana@example.test', password: 'secret', options: { data: {
-        first_name: ' Ana ', last_name: ' Ivić ', full_name: 'Ana Ivić', city: 'Novi Sad',
-      } },
+      email: 'ana@example.test', password: 'secret', options: {
+        emailRedirectTo: 'uskociapp://auth?form=login',
+        data: {
+          first_name: ' Ana ', last_name: ' Ivić ', full_name: 'Ana Ivić', city: 'Novi Sad',
+        },
+      },
     });
 
     await authClientService.sendPhoneOtp({ phone: '+381601234567' });
