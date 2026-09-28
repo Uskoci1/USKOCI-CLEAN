@@ -20,7 +20,7 @@ it('decodes bounded TASK/PLACE/CLUSTER map buckets without TaskCard/private payl
 it('rejects more than 256 buckets and bucket totals beyond mapped count',()=>{
   const tooMany=map();tooMany.buckets=Array.from({length:257},(_,i)=>({kind:'TASK',key:'t'+i,point:{lat:45.25,lng:19.83},taskId:`11111111-1111-4111-8111-${String(i).padStart(12,'0')}`}));
   expect(()=>decodeDiscoveryV1Map(tooMany)).toThrow('DISCOVERY_V1_MAP_BUCKETS');
-  const over=map();over.counts.mapped=5;expect(()=>decodeDiscoveryV1Map(over)).toThrow('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
+  const over=map();over.counts={...over.counts,mapped:10,withoutPoint:0};expect(()=>decodeDiscoveryV1Map(over)).toThrow('DISCOVERY_V1_MAP_BUCKET_OVERCOUNT');
 });
 it('rejects private/extra map payload and points outside requested coverage',()=>{
   const extra=map();(extra.buckets[0] as any).title='private-ish card field';expect(()=>decodeDiscoveryV1Map(extra)).toThrow('DISCOVERY_V1_MAP_BUCKET_SHAPE');
