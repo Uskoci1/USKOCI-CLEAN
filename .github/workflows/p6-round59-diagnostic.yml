@@ -57,7 +57,13 @@ jobs:
           assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL,process.env.RU5_DEVICE_DB_URL);
           if(process.env.DB_URL!==process.env.RU5_DEVICE_DB_URL) throw Error('P6_LOCAL_TARGET_ADMISSION');
           NODE
-          run_stage() { local label="$1"; shift; "$@" > "$PRE_V3_ARTIFACT_DIR/$label.log" 2>&1; }
+          run_stage() {
+            local label="$1" status=0
+            shift
+            "$@" > "$PRE_V3_ARTIFACT_DIR/$label.log" 2>&1 || status=$?
+            printf '%s exit=%s\n' "$label" "$status" | tee -a "$P6_PUBLIC_ARTIFACT_DIR/stages.txt"
+            return "$status"
+          }
           run_stage source147 python3 supabase/proofs/pkg023j/replay_source147.py
           run_stage pkg027 node supabase/proofs/pkg027/pkg027_proof.mjs replay
           run_stage pkg028 node supabase/proofs/pkg028/pkg028_proof.mjs replay
