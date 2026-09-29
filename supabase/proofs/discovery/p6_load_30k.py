@@ -95,6 +95,11 @@ def main()->int:
         report['sampleSha256']=hashlib.sha256(payload.encode()).hexdigest()
     except Exception as e:
         report['failure']={'stage':stage,'category':'PROOF_REFUSED','code':str(e) if re.fullmatch(r'P6_[A-Z0-9_]+',str(e)) else 'P6_LOAD_PROOF_FAILED'}
+        stderr=getattr(e,'stderr','') or ''
+        diagnostic=re.search(r'(P6_LOAD_[A-Z0-9_]+(?::[^\\n]*)?)',stderr)
+        if diagnostic: report['failure']['diagnostic']=diagnostic.group(1)[:240]
+        detail=re.search(r'DETAIL:\\s+([^\\n]+)',stderr)
+        if detail: report['failure']['detail']=detail.group(1)[:240]
     finally:
         report['limits']=[
           'Disposable local SQL-only benchmark; no canonical DEV mutation and no provider/native claim.',
