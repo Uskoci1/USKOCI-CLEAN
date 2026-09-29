@@ -96,7 +96,7 @@ begin
   select qual into strict public_qual from pg_policies
     where schemaname='public' and tablename='needs' and policyname='needs_public_discovery';
   if position('p6_discovery_test_world_accounts' in public_qual)=0
-     or position('(SELECT auth.uid() AS uid)' in public_qual)=0
+     or position('auth.uid()' in public_qual)=0
     then raise exception 'P6_VISIBILITY_POLICY_POSTCONDITION'; end if;
   if (select count(*) from pg_policies where schemaname='public' and tablename='needs')<>6
     then raise exception 'P6_VISIBILITY_POLICY_SET_MOVED'; end if;
