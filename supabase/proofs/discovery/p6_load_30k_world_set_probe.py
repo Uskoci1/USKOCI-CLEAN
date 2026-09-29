@@ -99,7 +99,7 @@ alter policy needs_public_discovery on public.needs
   status=any(array['PUBLISHED'::text,'SELECTION'::text])
   and (select auth.uid()) is not null
   and (
-   requester_account_id=any((select rls_private.p6_probe_test_world_accounts()))
+   requester_account_id=any(coalesce((select rls_private.p6_probe_test_world_accounts()),array[]::uuid[]))
   ) = (select rls_private.p6_probe_viewer_test_world())
  );
 
