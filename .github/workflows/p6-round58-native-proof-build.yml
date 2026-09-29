@@ -105,11 +105,14 @@ jobs:
             echo "Proof APK must be ARM64-only."
             exit 1
           fi
-      - name: Restore source tree after native package injection
+      - name: Restore exact tracked source after native prebuild mutation
         run: |
           set -euo pipefail
-          git restore --source="$GITHUB_SHA" -- app.json
-          git diff -- app.json --exit-code
+          # Expo prebuild may rewrite tracked app/package metadata. APK bytes are already bound above;
+          # evidence must start from the exact source commit, with generated android/ remaining untracked/ignored.
+          git restore --source="$GITHUB_SHA" --worktree --staged -- .
+          git diff --quiet
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Evidence and generated control
         run: |
           set -euo pipefail
