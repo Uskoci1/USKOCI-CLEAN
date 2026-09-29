@@ -79,6 +79,8 @@ def main()->int:
             if m: report['diagnostic']=m.group(1)[:240]
             detail=re.search(r'DETAIL:\s+([^\n]+)',run.stderr)
             if detail: report['detail']=detail.group(1)[:240]
+            starts=[line.strip() for line in run.stdout.splitlines() if line.startswith('P6_LOAD_CASE_START ')]
+            if starts: report['lastCaseStart']=starts[-1]
             raise ValueError('P6_LOAD_SQL_REFUSED')
         require('PASS P6_LOAD_30000_CORRECTNESS_AND_720_SAMPLES' in run.stdout.splitlines(),'P6_LOAD_PASS_MARKER')
 
