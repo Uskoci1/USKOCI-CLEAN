@@ -43,7 +43,13 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
    * Zadaci only, in memory (Discovery V47): where the list sheet rests and how far its list is scrolled, kept with the
    * camera (`viewport`) in the route's view so a return to the tab finds all three where they were.
    */
-  sheet?: DiscoverySnap; listOffset?: number };
+  sheet?: DiscoverySnap; listOffset?: number;
+  /**
+   * P6 server reads only, owned by the route coordinator (a screen never writes it): how many pages of the current traversal
+   * the list had read. A return to the screen reads that many pages again, within a bound, before the list offset is restored;
+   * otherwise an offset deeper than the first page would be clamped to its end. Absent means the first page only.
+   */
+  pages?: number };
 export const initialMarketplaceView = (): MarketplaceView => ({ query: '', section: 'active', attention: false,
   price: 'all', mode: 'list', area: null, viewport: null, selectedId: null, when: 'any', where: 'any', places: 1, selectedPlace: null,
   place: null, dates: null, pinPlace: null });

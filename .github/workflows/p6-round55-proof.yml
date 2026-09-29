@@ -1,20 +1,10 @@
 name: P6 server search and route coordinator
+# HISTORICAL (2026-09-30): this workflow proved the Round55 (server search and route coordinator) while P6 was quarantined. Its evidence step commits to the branch and its
+# static admission assumed the P6 reader was unreachable from src/app. The production reader cutover made that obsolete, so it no longer
+# runs on pushes; run it manually only to reproduce the historical evidence. Current proofs: p6-native-apk.yml, p6-native-journey.yml,
+# p6-client-final-check.yml.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/data/discoveryV1SearchOwner.ts'
-      - 'src/data/discoveryV1RouteCoordinator.ts'
-      - 'src/data/discoveryV1OverlayOwner.ts'
-      - 'src/data/discoveryV1PresentationBridge.tsx'
-      - 'src/ui/v2/DiscoveryPresentation.tsx'
-      - 'src/ui/v2/discovery/DiscoverySearchPanel.tsx'
-      - 'src/data/__tests__/discovery-v1-search-owner.test.ts'
-      - 'src/data/__tests__/discovery-v1-route-coordinator.test.ts'
-      - 'src/data/__tests__/discovery-v1-overlay-owner.test.ts'
-      - 'src/data/__tests__/discovery-search-panel.test.tsx'
-      - 'scripts/proofs/p6-round55-record.cjs'
-      - '.github/workflows/p6-round55-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

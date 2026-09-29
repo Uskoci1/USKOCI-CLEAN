@@ -72,9 +72,9 @@ export type DiscoveryV1PresentationBridgeProps =
   };
 
 /**
- * Unreachable P6 integration seam over the real DiscoveryPresentation. It is not an alternate screen:
- * the existing list/sheet/search/Peek/Map components remain the UI. A production route must not import
- * this until server rollout, performance and native acceptance explicitly admit the switch.
+ * P6 integration seam over the real DiscoveryPresentation. It is not an alternate screen: the existing
+ * list/sheet/search/Peek/Map components remain the UI. The Zadaci route reaches it only through DiscoveryV1Route,
+ * and only in a build compiled with the P6 reader (`selectDiscoveryReader`), against a backend that carries the rollout.
  */
 export function DiscoveryV1PresentationBridge({ snapshot, overlay, selectedMarkerKey, loadingMore = false, search, actions, ...props }
   : DiscoveryV1PresentationBridgeProps) {

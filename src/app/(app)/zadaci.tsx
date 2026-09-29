@@ -12,8 +12,8 @@ import type { ExactPublicOpportunityRead } from '../../data/ports';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
-import { discoveryV1NativeProofAllowed } from '../../data/discoveryV1NativeProofGate';
-import { DiscoveryV1NativeProofRoute } from '../../ui/v2/discovery/DiscoveryV1NativeProofRoute';
+import { selectDiscoveryReader } from '../../data/discoveryV1ReaderGate';
+import { DiscoveryV1Route } from '../../ui/v2/discovery/DiscoveryV1Route';
 
 /**
  * Zadaci, the middle tab: open tasks with this account's relationship labeled (Početna | Zadaci |
@@ -26,11 +26,12 @@ export default function Zadaci() {
   const proofParams = useLocalSearchParams<{ p6Proof?: string | string[]; publishedNeedId?: string | string[];
     publishedRevision?: string | string[]; publishedHandoff?: string | string[] }>();
   const proofParam = Array.isArray(proofParams.p6Proof) ? proofParams.p6Proof[0] : proofParams.p6Proof;
-  // Publication keeps its separately proved exact-public landing until P6 production cutover is admitted.
+  // The build's compile-time flag (never a URL parameter) selects the P6 server reader. This session's own confirmed publication
+  // keeps its separately proved exact-public landing: the P6 route has no publication landing and must not take that visit over.
   // A URL alone cannot open the proof reader: the compile-time proof flag + exact DEV package are both required.
-  const publicationRoute = !!(proofParams.publishedNeedId || proofParams.publishedRevision || proofParams.publishedHandoff);
-  return !publicationRoute && discoveryV1NativeProofAllowed(proofParam)
-    ? <DiscoveryV1NativeProofRoute key={`p6:${user?.id ?? ''}:${accountRevision}`} />
+  const publicationHandoff = readPublicationHandoff(proofParams) !== null;
+  return selectDiscoveryReader({ publicationHandoff, proofParam }) === 'P6'
+    ? <DiscoveryV1Route key={`p6:${user?.id ?? ''}:${accountRevision}`} />
     : <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function Discovery() {

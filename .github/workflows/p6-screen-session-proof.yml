@@ -1,14 +1,10 @@
 name: P6 quarantined screen session
+# HISTORICAL (2026-09-30): this workflow proved the Round52 (quarantined P6 screen session) while P6 was quarantined. Its evidence step commits to the branch and its
+# static admission assumed the P6 reader was unreachable from src/app. The production reader cutover made that obsolete, so it no longer
+# runs on pushes; run it manually only to reproduce the historical evidence. Current proofs: p6-native-apk.yml, p6-native-journey.yml,
+# p6-client-final-check.yml.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/data/discoveryV1ClientTransport.ts'
-      - 'src/data/discoveryV1ScreenSession.ts'
-      - 'src/data/__tests__/discovery-v1-client-transport.test.ts'
-      - 'src/data/__tests__/discovery-v1-screen-session.test.ts'
-      - 'scripts/proofs/p6-screen-session-record.cjs'
-      - '.github/workflows/p6-screen-session-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

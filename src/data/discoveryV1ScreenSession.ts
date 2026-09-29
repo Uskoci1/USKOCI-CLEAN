@@ -37,6 +37,13 @@ export type DiscoveryV1SelectionResult =
   | { kind: 'CLUSTER'; bounds: PublicBounds }
   | { kind: 'stale' };
 
+/**
+ * The first MAP request of a view with no viewport or area covers the whole world. It exists only to learn the server's
+ * whole-filter bounds (the map mounts and fits from them); the markers for the fitted area come from a second request over
+ * exactly those bounds, so the first picture is not one world-sized bucket.
+ */
+export const DISCOVERY_V1_SEED_BOUNDS: PublicBounds = [-180, -90, 180, 90];
+
 function cloneView(view: MarketplaceView): MarketplaceView {
   return {
     ...view,
@@ -53,8 +60,8 @@ function bounds(value: readonly number[]): PublicBounds {
 }
 
 /**
- * Production-shaped P6 screen state under quarantine. It owns how list/map/filter/pin/places share
- * one server anchor, but it is not mounted by any app route until the rollout gate is explicitly opened.
+ * P6 screen state. It owns how list/map/filter/pin/places share one server anchor. The Zadaci route mounts it (through
+ * DiscoveryV1Route) only in a build compiled with the P6 reader, against a backend that carries the P6 rollout.
  */
 export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransport, isCurrent: () => boolean = () => true) {
   const owner=createDiscoveryV1Owner(transport,isCurrent);
@@ -83,8 +90,14 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     owner.begin(plan.filter,plan.pageScope,pageLimit);
     const page=await owner.firstPage();
     if(page.kind!=='applied') return page.kind==='stale'?{kind:'stale' as const,snapshot:snapshot()}:{kind:'noop' as const,snapshot:snapshot()};
-    if(plan.mapBounds){
-      const mapped=await owner.loadMap(plan.mapBounds);
+    let mapBounds=plan.mapBounds;
+    if(!mapBounds&&plan.mapSeed){
+      const seeded=await owner.loadMap([...DISCOVERY_V1_SEED_BOUNDS] as PublicBounds);
+      if(seeded.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
+      mapBounds=seeded.kind==='applied'&&seeded.value.wholeBounds?[...seeded.value.wholeBounds] as PublicBounds:null;
+    }
+    if(mapBounds){
+      const mapped=await owner.loadMap(mapBounds);
       if(mapped.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
     }
     return {kind:'applied' as const,snapshot:snapshot()};

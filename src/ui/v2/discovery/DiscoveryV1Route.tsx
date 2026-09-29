@@ -7,13 +7,14 @@ import type { TaskRelation } from '../../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
 import { StateView } from '../../system/StateView';
-import { DiscoveryV1NativeProofScreen } from './DiscoveryV1NativeProofScreen';
+import { DiscoveryV1Screen } from './DiscoveryV1Screen';
 
 /**
- * The proof build uses the real Zadaci route and real presentation components, but a separate fail-closed
- * owner makes it impossible for an ordinary build/deep-link to switch readers.
+ * The P6 server-read Zadaci route: the real presentation components over the P6 coordinator. Which reader a build mounts is decided
+ * only by `selectDiscoveryReader` (compile-time production flag, or the fail-closed native proof gate); this component never reads
+ * a route parameter itself, and an authentic publication handoff never reaches it.
  */
-export function DiscoveryV1NativeProofRoute() {
+export function DiscoveryV1Route() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
@@ -73,7 +74,7 @@ export function DiscoveryV1NativeProofRoute() {
     <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
   </View>;
 
-  return <DiscoveryV1NativeProofScreen key={`${user.id}:${accountRevision}`}
+  return <DiscoveryV1Screen key={`${user.id}:${accountRevision}`}
     source={source} scopeKey={`${user.id}:${accountRevision}`} initialView={view}
     initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
     isCurrent={current} onPersistView={setView} onOpen={open}

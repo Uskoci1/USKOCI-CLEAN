@@ -65,3 +65,10 @@ it('aggregate MAP buckets do not fabricate task cards',()=>{
   expect.objectContaining({kind:'PLACE',taskCount:2}),expect.objectContaining({kind:'CLUSTER',taskCount:5,distinctPointCount:3})]));
  expect(JSON.stringify(markers)).not.toContain('Prenos troseda');
 });
+
+it('a view with no viewport or area asks the session to seed its map; a camera, an area or remote intent does not',()=>{
+ expect(discoveryV1ViewPlan(view()).mapSeed).toBe(true);expect(discoveryV1ViewPlan(view()).mapBounds).toBeNull();
+ expect(discoveryV1ViewPlan(view({viewport:{center:[20,45],zoom:10,bounds:[19,44,21,46]}})).mapSeed).toBe(false);
+ expect(discoveryV1ViewPlan(view({area:[19,44,21,46]})).mapSeed).toBe(false);
+ expect(discoveryV1ViewPlan(view({where:'remote'})).mapSeed).toBe(false);
+});

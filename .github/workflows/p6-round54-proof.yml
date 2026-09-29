@@ -1,16 +1,10 @@
 name: P6 real presentation seam quarantine
+# HISTORICAL (2026-09-30): this workflow proved the Round54 (quarantined P6 seam) while P6 was quarantined. Its evidence step commits to the branch and its
+# static admission assumed the P6 reader was unreachable from src/app. The production reader cutover made that obsolete, so it no longer
+# runs on pushes; run it manually only to reproduce the historical evidence. Current proofs: p6-native-apk.yml, p6-native-journey.yml,
+# p6-client-final-check.yml.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/ui/v2/DiscoveryMap.types.ts'
-      - 'src/ui/v2/DiscoveryMap.tsx'
-      - 'src/ui/v2/DiscoveryPresentation.tsx'
-      - 'src/data/discoveryV1ScreenSession.ts'
-      - 'src/data/discoveryV1PresentationBridge.tsx'
-      - 'src/data/__tests__/discovery-v1-presentation-bridge.test.ts'
-      - 'scripts/proofs/p6-round54-record.cjs'
-      - '.github/workflows/p6-round54-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

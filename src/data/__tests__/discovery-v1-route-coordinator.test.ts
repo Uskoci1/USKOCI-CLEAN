@@ -1,4 +1,4 @@
-import { createDiscoveryV1RouteCoordinator, discoveryV1RouteIntentKey } from '../discoveryV1RouteCoordinator';
+import { createDiscoveryV1RouteCoordinator, discoveryV1RouteIntentKey, DISCOVERY_V1_RESTORE_PAGES } from '../discoveryV1RouteCoordinator';
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex } from '../taskRelation';
 import { discoveryV1PresentationBridgeModel, type DiscoveryV1PresentationActions } from '../discoveryV1PresentationBridge';
@@ -154,4 +154,91 @@ it('TASK selection is persisted in route view and restored after coordinator rem
  expect(restored.snapshot().view).toMatchObject({selectedId:ID,sheet:'peek',listOffset:360});
  restored.clearPeek();
  expect(restored.snapshot().view).toMatchObject({selectedId:null,selectedPlace:null});
+});
+
+const B='b'.repeat(32);
+const rowId=(n:number)=>`00000000-0000-4000-8000-${String(n+1).padStart(12,'0')}`;
+/** A traversal of `pages` pages of one row each; `failAt` makes that page (0-based) fail. */
+function pagedHarness(pages:number,failAt=-1){
+ const calls:DiscoveryV1OwnerRequest[]=[];
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  calls.push(request);
+  if(request.mode==='MAP')return map(request.bounds);
+  if(request.mode!=='PAGE')return exact();
+  const index=request.after?Number((request.after as any).id.slice(-12)):0;
+  if(index===failAt)throw new Error('PAGE_FAILED');
+  const more=index<pages-1;
+  return {...page(pages),items:[{...item(),id:rowId(index)}],hasMore:more,
+   nextCursor:more?{scopeKey:B,section:0,sortAt:AT,id:rowId(index)}:null};
+ });
+ const overlay={relations:jest.fn(async(ids:readonly string[])=>taskRelationIndex([],ids)),profile:jest.fn(async()=>null),urgencies:jest.fn(async()=>new Map())};
+ return {calls,transport,overlay};
+}
+const pageCalls=(calls:DiscoveryV1OwnerRequest[])=>calls.filter(x=>x.mode==='PAGE') as any[];
+
+it('a return reads the depth the list had before presenting, so a deep offset is not clamped to page one',async()=>{
+ const h=pagedHarness(6),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const result=await route.restore(view({sheet:'full',listOffset:2400,pages:4}));
+ expect(result.kind).toBe('applied');
+ expect(pageCalls(h.calls).map(x=>x.after?x.after.id:null)).toEqual([null,rowId(0),rowId(1),rowId(2)]);
+ expect(route.snapshot().screen.items.map(x=>x.id)).toEqual([0,1,2,3].map(rowId));
+ expect(route.snapshot().view).toMatchObject({pages:4,sheet:'full',listOffset:2400});
+});
+
+it('the restored depth is bounded and a first-page view reads one page only',async()=>{
+ const deep=pagedHarness(30),route=createDiscoveryV1RouteCoordinator(deep.transport,deep.overlay);
+ await route.restore(view({pages:50}));
+ expect(pageCalls(deep.calls)).toHaveLength(DISCOVERY_V1_RESTORE_PAGES);
+ expect(route.snapshot().view?.pages).toBe(DISCOVERY_V1_RESTORE_PAGES);
+ for(const pages of [undefined,0,1,-3,Number.NaN]){
+  const h=pagedHarness(5),first=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+  await first.restore(view({pages}));
+  expect(pageCalls(h.calls)).toHaveLength(1);expect(first.snapshot().view?.pages).toBe(1);
+ }
+});
+
+it('restoring keeps the pages already read when a later page fails or the traversal ends early',async()=>{
+ const failing=pagedHarness(6,2),a=createDiscoveryV1RouteCoordinator(failing.transport,failing.overlay);
+ expect((await a.restore(view({pages:5}))).kind).toBe('applied');
+ expect(a.snapshot().screen.items).toHaveLength(2);expect(a.snapshot().view?.pages).toBe(2);
+ const short=pagedHarness(2),b=createDiscoveryV1RouteCoordinator(short.transport,short.overlay);
+ await b.restore(view({pages:5}));
+ expect(pageCalls(short.calls)).toHaveLength(2);expect(b.snapshot().view?.pages).toBe(2);
+});
+
+it('a retired coordinator stops restoring instead of reading further pages',async()=>{
+ const h=pagedHarness(6),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const pending=route.restore(view({pages:5}));
+ await Promise.resolve();route.retire();
+ expect((await pending).kind).toBe('stale');
+ expect(pageCalls(h.calls).length).toBeLessThan(5);
+});
+
+it('a refresh reads fresh and forgets the depth; a search change or a scope change starts over',async()=>{
+ const h=pagedHarness(6),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.restore(view({pages:3}));expect(route.snapshot().view?.pages).toBe(3);
+ await route.open(route.snapshot().view!);expect(route.snapshot().view?.pages).toBe(1);
+ await route.restore(view({pages:3}));
+ await route.updateView({...route.snapshot().view!,query:'kombi'});expect(route.snapshot().view?.pages).toBe(1);
+ await route.restore(view({pages:3}));
+ await route.settleMap([19.5,44.5,20.5,45.5]);expect(route.snapshot().view?.pages).toBe(1);
+ await route.restore(view({pages:3}));
+ await route.showAll();expect(route.snapshot().view?.pages).toBe(1);
+});
+
+it('paging counts reads, and a screen handing back an older view cannot rewind the depth',async()=>{
+ const h=pagedHarness(6),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view());const older=route.snapshot().view!;
+ await route.nextPage();await route.nextPage();expect(route.snapshot().view?.pages).toBe(3);
+ const result=await route.updateView({...older,sheet:'full',listOffset:900});
+ expect(result.kind).toBe('passive');
+ expect(route.snapshot().view).toMatchObject({pages:3,sheet:'full',listOffset:900});
+});
+
+it('a first visit with no camera reads PAGE, seeds MAP over the world and then reads the markers over the whole bounds',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const result=await route.open({...initialMarketplaceView(),mode:'map'});
+ expect(result.kind).toBe('applied');expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP','MAP']);
+ expect((h.calls[1] as any).bounds).toEqual([-180,-90,180,90]);expect((h.calls[2] as any).bounds).toEqual([19,44,21,46]);
+ expect(route.snapshot().screen.mapMarkers).toHaveLength(1);expect(route.snapshot().screen.mapWholeBounds).toEqual([19,44,21,46]);
 });

@@ -15,7 +15,7 @@ import type { DiscoveryTrace } from '../DiscoveryPresentation';
 
 type Coordinator = ReturnType<typeof createDiscoveryV1RouteCoordinator>;
 
-export type DiscoveryV1NativeProofScreenProps = {
+export type DiscoveryV1ScreenProps = {
   source: Pick<Izvor, 'odnosiPremaZadacima'>;
   scopeKey: string;
   initialView: MarketplaceView;
@@ -32,7 +32,7 @@ export type DiscoveryV1NativeProofScreenProps = {
 
 const SEARCH_SETTLE_MS = 250;
 
-export function DiscoveryV1NativeProofScreen(props: DiscoveryV1NativeProofScreenProps) {
+export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const initialViewRef = useRef(props.initialView);
   const currentRef = useRef(props.isCurrent); currentRef.current = props.isCurrent;
   const persistRef = useRef(props.onPersistView); persistRef.current = props.onPersistView;
@@ -70,7 +70,7 @@ export function DiscoveryV1NativeProofScreen(props: DiscoveryV1NativeProofScreen
   useEffect(() => {
     mounted.current = true;
     setLoading(true); setError(false);
-    void coordinator.open(initialViewRef.current).then(() => {
+    void coordinator.restore(initialViewRef.current).then(() => {
       if (!mounted.current || !currentRef.current()) return;
       commit(); setLoading(false);
     }, () => {

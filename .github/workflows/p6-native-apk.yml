@@ -1,8 +1,12 @@
 name: P6 native proof APK (x86_64, disposable local endpoint)
 
-# Builds the guarded P6 proof APK for an EMULATOR bound to a disposable local Supabase (10.0.2.2:54321).
-# It is not a store artifact and never talks to the canonical DEV project. The proof gate stays triple:
-# route param p6Proof=1 + compile flag EXPO_PUBLIC_P6_DISCOVERY_PROOF=1 + Android package rs.uskoci.dev.
+# Builds a P6 native APK for an EMULATOR bound to a disposable local Supabase (10.0.2.2:54321).
+# It is not a store artifact and never talks to the canonical DEV project. The flavour is recorded in
+# supabase/proofs/discovery/p6_native_apk_flavor.txt:
+#   proof       the guarded proof gate stays triple: route param p6Proof=1 + compile flag EXPO_PUBLIC_P6_DISCOVERY_PROOF=1 +
+#               Android package rs.uskoci.dev (the ordinary Zadaci route keeps the legacy reader)
+#   production  the production reader flag EXPO_PUBLIC_P6_DISCOVERY_READER=1 alone (no route parameter, no proof flag): the
+#               ordinary Zadaci route mounts the P6 reader, exactly like a DEV/store build compiled with that flag
 # Touch supabase/proofs/discovery/p6_native_apk_build.txt (or this file) to rebuild; the journey workflow reads the run id
 # from supabase/proofs/discovery/p6_native_apk_run.txt so a driver-only change never rebuilds the APK.
 on:
@@ -11,6 +15,7 @@ on:
     paths:
       - '.github/workflows/p6-native-apk.yml'
       - 'supabase/proofs/discovery/p6_native_apk_build.txt'
+      - 'supabase/proofs/discovery/p6_native_apk_flavor.txt'
 permissions:
   contents: read
 concurrency:
@@ -29,12 +34,22 @@ jobs:
       EXPO_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
       EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
-      EXPO_PUBLIC_P6_DISCOVERY_PROOF: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
+      - name: Select the build flavour recorded in the repository
+        run: |
+          set -euo pipefail
+          flavor="$(tr -d '[:space:]' < supabase/proofs/discovery/p6_native_apk_flavor.txt)"
+          case "$flavor" in
+            proof) echo "EXPO_PUBLIC_P6_DISCOVERY_PROOF=1" >> "$GITHUB_ENV" ;;
+            production) echo "EXPO_PUBLIC_P6_DISCOVERY_READER=1" >> "$GITHUB_ENV" ;;
+            *) echo "p6_native_apk_flavor.txt must be proof or production"; exit 1 ;;
+          esac
+          echo "P6N_APK_FLAVOR=$flavor" >> "$GITHUB_ENV"
+          echo "APK flavour: $flavor"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
@@ -97,6 +112,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "$out/USKOCI-P6-NATIVE-x86_64.apk"
           (cd "$out" && sha256sum USKOCI-P6-NATIVE-x86_64.apk > USKOCI-P6-NATIVE-x86_64.apk.sha256)
           echo "$GITHUB_SHA" > "$out/apk-source.txt"
+          echo "$P6N_APK_FLAVOR" > "$out/flavor.txt"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort | tail -1)"
           "$AAPT" dump badging "$out/USKOCI-P6-NATIVE-x86_64.apk" | head -1 | tee "$out/badging.txt"
           grep -F "package: name='rs.uskoci.dev'" "$out/badging.txt"
@@ -115,6 +131,7 @@ jobs:
             /tmp/p6-native-apk/USKOCI-P6-NATIVE-x86_64.apk
             /tmp/p6-native-apk/USKOCI-P6-NATIVE-x86_64.apk.sha256
             /tmp/p6-native-apk/apk-source.txt
+            /tmp/p6-native-apk/flavor.txt
             /tmp/p6-native-apk/badging.txt
             /tmp/p6-native-apk/abi.txt
           if-no-files-found: error

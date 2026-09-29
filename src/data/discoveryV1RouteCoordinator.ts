@@ -17,6 +17,9 @@ export type DiscoveryV1RouteSnapshot = {
   loadingMore: boolean;
 };
 
+/** A return to the screen reads at most this many pages again before it restores the list offset (8 pages of 50 rows). */
+export const DISCOVERY_V1_RESTORE_PAGES=8;
+
 const cloneBounds=(value:PublicBounds|null)=>value?[...value] as PublicBounds:null;
 const cloneView=(view:MarketplaceView):MarketplaceView=>({...view,area:cloneBounds(view.area),dates:view.dates?{...view.dates}:null,
   viewport:view.viewport?{...view.viewport,center:[...view.viewport.center] as [number,number],
@@ -28,7 +31,7 @@ export function discoveryV1RouteIntentKey(view:MarketplaceView):string{
 }
 
 /**
- * Quarantined route owner. Search/filter intent may reopen the server traversal; viewport, sheet and list offset never do.
+ * P6 route owner. Search/filter intent may reopen the server traversal; viewport, sheet and list offset never do.
  * Map-area, point and paging operations stay on the accepted anchor through DiscoveryV1ScreenSession.
  */
 export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTransport,overlayLoaders:DiscoveryV1OverlayLoaders,
@@ -72,7 +75,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function open(next:MarketplaceView,pageLimit=50){
     if(!active)return {kind:'stale' as const,snapshot:snapshot()};
-    const g=++generation;routeView=cloneView(next);selectedMarkerKey=null;loadingMore=false;
+    const g=++generation;routeView={...cloneView(next),pages:1};selectedMarkerKey=null;loadingMore=false;
     const result=await screen.open(routeView,pageLimit);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind!=='applied')return {kind:result.kind,snapshot:snapshot()};
@@ -82,11 +85,33 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
+  /**
+   * Opens the traversal for a return to the screen: the first page as `open` reads it, then as many further pages as the list
+   * had read (`next.pages`, at most DISCOVERY_V1_RESTORE_PAGES), so that the presentation restores its offset over the same
+   * rows instead of clamping it to the end of page one. Extra pages are best effort: a failed or exhausted one keeps what is read.
+   */
+  async function restore(next:MarketplaceView,pageLimit=50){
+    const wanted=Math.min(DISCOVERY_V1_RESTORE_PAGES,Math.max(1,Math.trunc(next.pages??1)||1));
+    const first=await open(next,pageLimit);
+    if(first.kind!=='applied'||wanted<2)return first;
+    const g=generation;
+    for(let read=1;read<wanted&&screen.snapshot().pageHasMore;read++){
+      let step;
+      try{step=await screen.nextPage();}catch{break;}
+      if(!current(g)||step.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
+      if(step.kind!=='applied'||!routeView)break;
+      routeView={...routeView,pages:read+1};
+    }
+    refreshOverlayInBackground(g);
+    return {kind:'applied' as const,snapshot:snapshot()};
+  }
+
   async function updateView(next:MarketplaceView){
     if(!routeView)return open(next);
     const copy=cloneView(next);
     if(discoveryV1RouteIntentKey(copy)!==discoveryV1RouteIntentKey(routeView))return open(copy);
-    routeView=copy;
+    // The read depth is the coordinator's: a screen hands back the view it was last given, which may be one page behind.
+    routeView={...copy,pages:routeView.pages};
     return {kind:'passive' as const,snapshot:snapshot()};
   }
 
@@ -95,7 +120,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     const g=generation,result=await screen.settleMap(bounds);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      routeView={...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null};
+      routeView={...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null,pages:1};
       selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
@@ -106,7 +131,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     const g=generation,result=await screen.showPoint(point);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      routeView={...routeView,pinPlace:pointKey(point),selectedId:null,selectedPlace:null};
+      routeView={...routeView,pinPlace:pointKey(point),selectedId:null,selectedPlace:null,pages:1};
       selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
@@ -117,7 +142,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     const g=generation,result=await screen.showAll();
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      routeView={...routeView,area:null,pinPlace:null,selectedId:null,selectedPlace:null};
+      routeView={...routeView,area:null,pinPlace:null,selectedId:null,selectedPlace:null,pages:1};
       selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
@@ -150,7 +175,10 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     try{
       const result=await screen.nextPage();
       if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-      if(result.kind==='applied')refreshOverlayInBackground(g);
+      if(result.kind==='applied'){
+        if(routeView)routeView={...routeView,pages:(routeView.pages??1)+1};
+        refreshOverlayInBackground(g);
+      }
       return {kind:result.kind,snapshot:snapshot()};
     }finally{if(current(g))loadingMore=false;}
   }
@@ -171,6 +199,6 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;
     screen.retire();overlay.retire();search.retire();};
 
-  return {open,updateView,settleMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
+  return {open,restore,updateView,settleMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
     snapshot,refreshOverlay:()=>refreshOverlay(generation),retire};
 }

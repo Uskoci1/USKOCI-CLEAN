@@ -88,3 +88,40 @@ it('retire clears screen state and old responses cannot return it',async()=>{
  const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());s.retire();x.pending[0].resolve(page());
  expect((await opening).kind).toBe('stale');expect(s.snapshot()).toMatchObject({active:false,view:null,items:[],mapMarkers:[],peek:null});
 });
+
+const fresh=()=>({...initialMarketplaceView(),mode:'map' as const});
+it('a first visit with no camera seeds MAP over the world, then reads the markers over the server\'s whole bounds',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);
+ expect(x.pending[1].request).toEqual(expect.objectContaining({mode:'MAP',anchor:anchor(),bounds:[-180,-90,180,90]}));
+ x.pending[1].resolve({...map([-180,-90,180,90]),wholeBounds:[19.5,44.7,21.9,45.3],buckets:[]});
+ await wait(x,2);
+ expect(x.pending[2].request).toEqual(expect.objectContaining({mode:'MAP',anchor:anchor(),bounds:[19.5,44.7,21.9,45.3]}));
+ x.pending[2].resolve({...map([19.5,44.7,21.9,45.3]),wholeBounds:[19.5,44.7,21.9,45.3]});
+ const result=await opening;expect(result.kind).toBe('applied');
+ expect(result.snapshot.mapMarkers).toHaveLength(3);expect(result.snapshot.mapWholeBounds).toEqual([19.5,44.7,21.9,45.3]);
+});
+it('a first visit with no pinned task stops after the seed and shows no map',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);
+ x.pending[1].resolve({...map([-180,-90,180,90]),wholeBounds:null,buckets:[]});
+ const result=await opening;expect(result.kind).toBe('applied');expect(x.pending).toHaveLength(2);
+ expect(result.snapshot.mapMarkers).toEqual([]);expect(result.snapshot.mapWholeBounds).toBeNull();
+});
+it('remote intent and a remembered camera never seed',async()=>{
+ const a=h(),sa=createDiscoveryV1ScreenSession(a.transport),ra=sa.open({...fresh(),where:'remote'});
+ a.pending[0].resolve(page());expect((await ra).kind).toBe('applied');expect(a.pending).toHaveLength(1);
+ const b=h(),sb=createDiscoveryV1ScreenSession(b.transport),rb=sb.open(view());
+ b.pending[0].resolve(page());await wait(b,1);
+ expect(b.pending[1].request).toEqual(expect.objectContaining({mode:'MAP',bounds:[19,44,21,46]}));
+ b.pending[1].resolve(map());await rb;expect(b.pending).toHaveLength(2);
+});
+it('a newer open fences the seed answer that resolves late',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),old=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);
+ const newer=s.open({...fresh(),query:'novo'});
+ x.pending[1].resolve({...map([-180,-90,180,90]),wholeBounds:[19,44,21,46]});
+ expect((await old).kind).toBe('stale');
+ x.pending[2].resolve(page([ID2]));await wait(x,3);x.pending[3].resolve({...map([-180,-90,180,90]),wholeBounds:null,buckets:[]});
+ expect((await newer).kind).toBe('applied');expect(s.snapshot().items[0].id).toBe(ID2);
+});

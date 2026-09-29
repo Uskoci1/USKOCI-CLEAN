@@ -8,7 +8,12 @@ import type { DiscoveryV1Filter, DiscoveryV1Item } from './discoveryV1Contract';
 import type { DiscoveryV1MapResponse, DiscoveryV1PlaceRow, DiscoveryV1PlacesResponse } from './discoveryV1SpatialContract';
 import type { DiscoveryV1Point, DiscoveryV1Scope } from './discoveryV1Owner';
 
-export type DiscoveryV1ViewPlan = { filter: DiscoveryV1Filter; pageScope: DiscoveryV1Scope; mapBounds: PublicBounds | null; placesFacetArea: PublicBounds | null };
+/**
+ * `mapBounds` are the bounds the person's own viewport or area already names. `mapSeed` is true when the map has neither yet (a
+ * first visit, or a filter change before any camera exists): the session then asks the server for the whole-filter bounds once,
+ * because the map is only mounted, and only fitted, from a MAP answer.
+ */
+export type DiscoveryV1ViewPlan = { filter: DiscoveryV1Filter; pageScope: DiscoveryV1Scope; mapBounds: PublicBounds | null; mapSeed: boolean; placesFacetArea: PublicBounds | null };
 export type DiscoveryV1MapMarker =
   | { kind: 'TASK'; key: string; point: DiscoveryV1Point; taskId: string; taskCount: 1 }
   | { kind: 'PLACE'; key: string; point: DiscoveryV1Point; taskCount: number }
@@ -38,7 +43,7 @@ export function discoveryV1ViewPlan(view: MarketplaceView): DiscoveryV1ViewPlan 
   }
   const mapBounds=scoped.where==='remote' ? null : publicBounds(scoped.viewport?.bounds) ?? publicBounds(scoped.area);
   const placesFacetArea=scoped.where==='remote' ? null : publicBounds(scoped.area);
-  return {filter,pageScope,mapBounds,placesFacetArea};
+  return {filter,pageScope,mapBounds,mapSeed:scoped.where!=='remote'&&mapBounds===null,placesFacetArea};
 }
 function rawItem(item:DiscoveryV1Item):Record<string,unknown>{
   return { id:item.id,title:item.title,status:item.status,urgent:item.urgent,category:item.category,schedule_kind:item.scheduleKind,
