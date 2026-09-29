@@ -24,7 +24,6 @@ jobs:
       contents: write
     env:
       CI: '1'
-      NODE_ENV: production
       EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
@@ -89,6 +88,8 @@ jobs:
           NODE
       - name: Build proof APK
         working-directory: android
+        env:
+          NODE_ENV: production
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
       - name: Bind proof APK
         run: |

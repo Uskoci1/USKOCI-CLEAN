@@ -126,13 +126,15 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   async function selectMarker(marker:DiscoveryV1MapMarker){
     const g=generation,result=await screen.selectMarker(marker);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-    if(marker.kind==='CLUSTER'){
+    if(result.kind==='CLUSTER'){
       if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
       selectedMarkerKey=null;
     }else if(result.applied&&routeView){
-      routeView=marker.kind==='TASK'
-        ? {...routeView,selectedId:marker.taskId,selectedPlace:null,sheet:'peek'}
-        : {...routeView,selectedId:null,selectedPlace:pointKey(marker.point),sheet:'peek'};
+      if(result.kind==='TASK'&&marker.kind==='TASK')
+        routeView={...routeView,selectedId:marker.taskId,selectedPlace:null,sheet:'peek'};
+      else if(result.kind==='PLACE'&&marker.kind==='PLACE')
+        routeView={...routeView,selectedId:null,selectedPlace:pointKey(marker.point),sheet:'peek'};
+      else throw new Error('DISCOVERY_V1_ROUTE_SELECTION_KIND_DRIFT');
       selectedMarkerKey=marker.key;
     }else{
       if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
