@@ -124,11 +124,18 @@ def scroll_list(direction='down', fraction=0.5):
 
 
 def rpc_calls():
-    q = "select coalesce(sum(calls),0)::bigint from pg_stat_statements where query ilike '%rpc_discovery_v1%' and query not ilike '%pg_stat_statements%'"
+    """Number of rpc_discovery_v1 executions since the last reset (track_functions=all is enabled by the workflow)."""
     try:
-        return int(psql(q) or 0)
+        return int(psql("select coalesce(sum(calls),0)::bigint from pg_stat_user_functions where funcname='rpc_discovery_v1'") or 0)
     except Exception:
         return -1
+
+
+def reset_rpc_calls():
+    try:
+        psql("select pg_stat_reset_single_function_counters('public.rpc_discovery_v1(jsonb)'::regprocedure)")
+    except Exception as exc:                                  # noqa: BLE001
+        note('RPC_COUNTER_RESET_FAILED', error=str(exc)[:160])
 
 
 def mem_kb():
@@ -179,12 +186,12 @@ def s_login():
 
 
 def s_route():
-    psql("create extension if not exists pg_stat_statements")
-    psql("select pg_stat_statements_reset()") if psql("select count(*) from pg_extension where extname='pg_stat_statements'") == '1' else None
+    reset_rpc_calls()
+    time.sleep(1.5)
     REPORT['rpcBefore'] = rpc_calls()
     open_deep_link('uskociapp://zadaci?p6Proof=1')
     wait_nodes(timeout=60, minimum=1, contains='zadatak')
-    time.sleep(4)
+    time.sleep(5)
     root, inv = snapshot('P6_02_route_initial')
     REPORT['initialCount'] = count_from(root)
     REPORT['rpcAfterRoute'] = rpc_calls()
