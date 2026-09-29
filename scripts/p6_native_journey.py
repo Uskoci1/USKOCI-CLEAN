@@ -82,9 +82,25 @@ def px_per_dp():
     return _DEVICE['dp']
 
 
+_NAV = {'top': None}
+
+
+def note_nav(root):
+    """The app window's own tree carries the system bar's scrim (android:id/navigationBarBackground): its top is exact."""
+    for n in root.iter():
+        if n.attrib.get('resource-id', '').startswith('android:id/navigationBarBa'):
+            try:
+                _NAV['top'] = parse_bounds(n.attrib.get('bounds'))[1]
+            except RuntimeError:
+                pass
+            return
+
+
 def safe_bottom():
     """Lowest y a finger may safely press: the system navigation bar (48 dp in 3-button mode) can cover the app window's
     bottom edge, and a press inside the bar goes to the bar, never to the app (observed on the entry screen)."""
+    if _NAV['top']:
+        return _NAV['top'] - 8
     w, h = screen_size()
     return h - int(round(48 * px_per_dp())) - 8
 
@@ -128,6 +144,7 @@ def dump(retries=5):
             root, parent, _ = dump_tree()
             if dismiss_known_system_anr(root, parent):
                 continue
+            note_nav(root)
             return root, parent
         except Exception as exc:                              # noqa: BLE001
             if getattr(exc, 'native_surface_fatal', False):
@@ -145,6 +162,7 @@ def poll(pred, timeout=30, interval=1.0, what='condition'):
             root, parent, _ = dump_tree()
             if dismiss_known_system_anr(root, parent):
                 continue
+            note_nav(root)
             value = pred(root, parent)
             if value:
                 return value, root, parent
@@ -163,7 +181,8 @@ def press_at(x, y, hold_ms=120):
 
 def center_of(node, parent):
     """Middle of the part of a control that is really on screen and above the system navigation bar."""
-    target = clickable_for(node, parent) or node
+    target = clickable_for(node, parent)
+    target = node if target is None else target
     x1, y1, x2, y2 = parse_bounds(target.attrib.get('bounds'))
     y2 = min(y2, safe_bottom())
     if y2 - y1 < 10:
@@ -490,15 +509,22 @@ def press_entry_pill():
 def s_login():
     launch_clean()                   # force-stop, clear the disposable app data, start, wait for "Prijavi se", signed-out asserts
     time.sleep(2)
+    dump()
     press_entry_pill()
-    assert_signed_out_surface(form_open=True)
+    root, parent = dump()
+    fields = sorted(nodes(root, clazz='android.widget.EditText'), key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])
+    if len(fields) != 2 or not nodes(root, text='Email') or not nodes(root, text='Lozinka'):
+        raise RuntimeError(f'sign-in sheet is not the expected email/password form: fields={len(fields)}')
+    snapshot('P6_00_login_sheet')
     edit_text(0, VIEWER_EMAIL)
     edit_text(1, PASSWORD)
     hide_keyboard()
-    found, root, parent = poll(lambda r, p: nodes(r, text='Prijavite se') or nodes(r, desc='Prijavite se'), 30, what='"Prijavite se" submit')
-    tap_visible(sorted(found, key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])[-1], parent)
-    poll(lambda r, p: nodes(r, desc='Zadaci'), 60, what='signed-in tab bar')
-    time.sleep(2)
+    # The sheet's submit is the TOPMOST "Prijavi se" (the entry's own pill stays in the tree behind the sheet).
+    found, root, parent = poll(lambda r, p: sorted([n for n in nodes(r, desc='Prijavi se') if n.attrib.get('clickable') == 'true'],
+                                                   key=lambda n: parse_bounds(n.attrib.get('bounds'))[1]), 30, what='sign-in submit')
+    tap_visible(found[0], parent)
+    poll(lambda r, p: not nodes(r, rid_='entry-intents') and not nodes(r, rid_='auth-reference-sheet'), 90, what='signed-in surface (entry gone)')
+    time.sleep(3)
     dismiss_permission_dialogs()
     snapshot('P6_01_after_login')
 
@@ -510,6 +536,9 @@ def s_ordinary_route():
     tabs = sorted(nodes(root, desc='Zadaci'), key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])
     if tabs:
         tap_visible(tabs[-1], parent)
+    else:
+        note('TAB_BAR_LABEL_NOT_FOUND', inventory=[i['desc'] or i['text'] for i in ui_inventory(root) if i['click']][:14])
+        open_deep_link('uskociapp://zadaci')
     poll(lambda r, p: count_nodes(r) or nodes(r, contains='Nema zadataka') or nodes(r, contains='nisu učitani'), 60, what='ordinary Zadaci screen')
     time.sleep(4)
     root = snapshot('P6_01b_ordinary_route')
