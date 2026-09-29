@@ -28,7 +28,7 @@ import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
 import { DiscoverySearchBar, type QuickChip } from './discovery/DiscoverySearchBar';
 import { useNearbyMap } from './discovery/useNearbyMap';
-import { DiscoverySearchPanel, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
+import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
 import { CLEAR_ALL, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, datesWords, placesWords, quoted, removeWords, said,
   undatedWords, whereWords } from './discovery/discoveryWords';
 import { TaskCard } from './TaskCard';
@@ -49,6 +49,8 @@ export type DiscoveryV1PresentationSeam = {
   peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[] } | null;
   /** Exact live PAGE counts; loaded rows may be only the first bounded pages. */
   counts: DiscoveryV1Counts | null;
+  /** Server-owned draft count/locality facets. Loaded PAGE rows are never used as its fallback. */
+  search?: DiscoveryV1SearchPanelSeam;
   pageHasMore: boolean;
   loadingMore?: boolean;
   onArea: (bounds: PublicBounds) => void;
@@ -1131,7 +1133,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
     </BlurTargetView>
     {search ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
-      start={search} reduced={reduced} readiness={readiness} onApply={apply} onClose={() => setSearch(null)} /> : null}
+      start={search} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search}
+      onApply={apply} onClose={() => setSearch(null)} /> : null}
     {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
       ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
       { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },

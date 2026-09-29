@@ -16,6 +16,7 @@ export type DiscoveryV1OverlayLoaders = {
 };
 export type DiscoveryV1OverlaySnapshot = {
   active: boolean; generation: number; sliceKey: string | null; loading: boolean;
+  admitted: ReadonlyMap<string, string>;
   relations: TaskRelationIndex | null; profiles: ReadonlyMap<string, JavniProfilProjekcija>;
   urgency: ReadonlyMap<string, NeedUrgencyProjection>; missingProfiles: ReadonlySet<string>;
   errors: { relations: boolean; profiles: boolean; urgencies: boolean };
@@ -33,6 +34,8 @@ const reviewCount = (profile: JavniProfilProjekcija | undefined): number | null 
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 };
 
+const overlayFingerprint=(item:DiscoveryV1Item)=>[item.revision,item.requesterProfileId,item.urgent?'1':'0'].join(':');
+
 export function discoveryV1OverlaySliceKey(items: readonly DiscoveryV1Item[]): string {
   if (items.length > DISCOVERY_V1_OVERLAY_LIMIT) throw new Error('DISCOVERY_V1_OVERLAY_BOUND');
   const ids = new Set<string>();
@@ -45,10 +48,12 @@ export function discoveryV1OverlaySliceKey(items: readonly DiscoveryV1Item[]): s
 
 export function discoveryV1ApplyOverlays(items: readonly DiscoveryV1Item[], overlay: DiscoveryV1OverlaySnapshot)
   : (PrilikaProjekcija & { revision: number })[] {
-  const key = discoveryV1OverlaySliceKey(items), base = discoveryV1Opportunities(items);
-  if (overlay.sliceKey !== key || overlay.loading) return base;
+  const base = discoveryV1Opportunities(items);
+  if (overlay.loading) return base;
   return base.map((item, index) => {
-    const source = items[index], profile = overlay.profiles.get(source.requesterProfileId), urgency = overlay.urgency.get(source.id);
+    const source = items[index];
+    if (overlay.admitted.get(source.id) !== overlayFingerprint(source)) return item;
+    const profile = overlay.profiles.get(source.requesterProfileId), urgency = overlay.urgency.get(source.id);
     return { ...item, ...(urgency ? { urgency } : {}), narucilacIme: profile?.ime ?? '',
       narucilacOcena: formatRating(profile), narucilacBrojOcena: reviewCount(profile), narucilacAvatarId: null };
   });
@@ -67,19 +72,19 @@ export function createDiscoveryV1ExistingOverlayLoaders(source: Pick<Izvor, 'odn
 
 export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders, isCurrent: () => boolean = () => true) {
   let active = true, generation = 0, controller: AbortController | null = null;
-  let state: DiscoveryV1OverlaySnapshot = { active: true, generation: 0, sliceKey: null, loading: false, relations: null,
+  let state: DiscoveryV1OverlaySnapshot = { active: true, generation: 0, sliceKey: null, loading: false, admitted:new Map(), relations: null,
     profiles: new Map(), urgency: new Map(), missingProfiles: new Set(), errors: { relations: false, profiles: false, urgencies: false } };
-  const snapshot = (): DiscoveryV1OverlaySnapshot => ({ ...state, profiles: new Map(state.profiles), urgency: new Map(state.urgency),
+  const snapshot = (): DiscoveryV1OverlaySnapshot => ({ ...state, admitted:new Map(state.admitted), profiles: new Map(state.profiles), urgency: new Map(state.urgency),
     missingProfiles: new Set(state.missingProfiles), errors: { ...state.errors } });
   const current = (g: number) => active && generation === g && isCurrent();
 
   async function load(items: readonly DiscoveryV1Item[]): Promise<DiscoveryV1OverlayLoadResult> {
     if (!active) return { kind: 'stale' };
-    const sliceKey = discoveryV1OverlaySliceKey(items);
+    const sliceKey = discoveryV1OverlaySliceKey(items), admitted=new Map(items.map(item=>[item.id,overlayFingerprint(item)] as const));
     const { needIds, profileIds } = discoveryV1EnrichmentTargets(items, DISCOVERY_V1_OVERLAY_LIMIT);
     controller?.abort();
     const own = new AbortController(); controller = own; const g = ++generation;
-    state = { active: true, generation: g, sliceKey, loading: true, relations: null, profiles: new Map(), urgency: new Map(),
+    state = { active: true, generation: g, sliceKey, loading: true, admitted, relations: null, profiles: new Map(), urgency: new Map(),
       missingProfiles: new Set(), errors: { relations: false, profiles: false, urgencies: false } };
 
     const relationTask = loaders.relations(needIds, own.signal).then(value => ({ ok: true as const, value }), () => ({ ok: false as const }));
@@ -111,7 +116,7 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
         if (!valid) { own.abort(); throw new Error('DISCOVERY_V1_OVERLAY_URGENCY_INVALID'); }
       }
     }
-    state = { active: true, generation: g, sliceKey, loading: false, relations: relations.ok ? relations.value : null,
+    state = { active: true, generation: g, sliceKey, loading: false, admitted, relations: relations.ok ? relations.value : null,
       profiles: new Map(profiles), urgency: urgencies.ok ? new Map(urgencies.value) : new Map(), missingProfiles: new Set(missingProfiles),
       errors: { relations: !relations.ok, profiles: profileFailed, urgencies: !urgencies.ok } };
     if (controller === own) controller = null;
@@ -122,7 +127,7 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
   const retire = () => {
     if (!active) return;
     active = false; generation++; controller?.abort(); controller = null;
-    state = { active: false, generation, sliceKey: null, loading: false, relations: null, profiles: new Map(), urgency: new Map(),
+    state = { active: false, generation, sliceKey: null, loading: false, admitted:new Map(), relations: null, profiles: new Map(), urgency: new Map(),
       missingProfiles: new Set(), errors: { relations: false, profiles: false, urgencies: false } };
   };
   return { load, snapshot, retire };

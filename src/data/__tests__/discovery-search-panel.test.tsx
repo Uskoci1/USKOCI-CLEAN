@@ -2,6 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView, type PublicBounds } from '../marketplaceView';
+import { discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot } from '../discoveryV1SearchOwner';
 // The window the panel is drawn in: React Native's Jest default (a 2× text size) unless a test says otherwise.
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
 jest.mock('react-native', () => {
@@ -22,7 +23,7 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-import { DiscoverySearchPanel, NO_SEARCH, type SearchDraft, type SearchReadiness, type SearchStep } from '../../ui/v2/discovery/DiscoverySearchPanel';
+import { DiscoverySearchPanel, NO_SEARCH, type DiscoveryV1SearchPanelSeam, type SearchDraft, type SearchReadiness, type SearchStep } from '../../ui/v2/discovery/DiscoverySearchPanel';
 import { sys } from '../../ui/system/tokens';
 
 /**
@@ -38,11 +39,11 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.84 }, taskTimezone: 'Europe/Belgrade',
   ...day('2026-09-26'), ...patch } as unknown as MarketplaceItem);
 let rows: MarketplaceItem[] = [], view: MarketplaceView, mine: ReadonlySet<string> | undefined, mapArea: PublicBounds | null, start: SearchStep;
-let readiness: SearchReadiness = 'ready';
+let readiness: SearchReadiness = 'ready', p6Search: DiscoveryV1SearchPanelSeam | undefined;
 const apply = jest.fn(), close = jest.fn();
 let tree: ReactTestRenderer;
 const panelOf = () => <DiscoverySearchPanel items={rows} view={view} mine={mine} now={NOW} mapArea={mapArea}
-  start={start} reduced={false} readiness={readiness} onApply={apply} onClose={close} />;
+  start={start} reduced={false} readiness={readiness} p6Search={p6Search} onApply={apply} onClose={close} />;
 const render = async () => act(async () => { tree = create(panelOf()); });
 const byLabel = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label);
 const tap = async (label: string) => act(async () => byLabel(label)[0].props.onPress());
@@ -70,11 +71,59 @@ beforeEach(() => {
     row('c', { podrucjeTekst: 'Liman,  Novi Sad', rezimCene: 'OFFERS', ponudjenaCena: undefined, ...day('2026-09-30') }),
     row('remote', { podrucjeTekst: 'Na daljinu', priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }),
     row('mine', { podrucjeTekst: 'Zemun, Beograd' })];
-  view = { ...initialMarketplaceView(), mode: 'map' }; mine = new Set(['mine']); mapArea = null; start = 'gde'; readiness = 'ready';
+  view = { ...initialMarketplaceView(), mode: 'map' }; mine = new Set(['mine']); mapArea = null; start = 'gde'; readiness = 'ready'; p6Search = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   apply.mockReset(); close.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
+
+const p6Snapshot = (patch: Partial<DiscoveryV1SearchSnapshot> = {}): DiscoveryV1SearchSnapshot => ({
+  active: true, generation: 1, key: discoveryV1SearchPreviewKey(view, mapArea), status: 'ready', count: 37, undated: 6,
+  availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE', 'OFFERS'] },
+  places: [{ key: 'novi sad, liman', text: 'Novi Sad, Liman', count: 21 }, { key: 'beograd, vračar', text: 'Beograd, Vračar', count: 9 }],
+  placeHasMore: false, placePaging: false, everywhere: 80, inMapArea: mapArea ? 23 : null, facetError: false, ...patch,
+});
+const p6Seam = (snapshot: DiscoveryV1SearchSnapshot): DiscoveryV1SearchPanelSeam => ({
+  snapshot, onDraft: jest.fn(), onNextPlaces: jest.fn(),
+});
+
+test('P6 search count and locality suggestions come from server preview, never the bounded loaded rows', async () => {
+  rows = [row('only-loaded-row')]; mapArea = [19, 44, 21, 46]; p6Search = p6Seam(p6Snapshot());
+  await render();
+  expect(show().props.label).toBe('Prikaži 37 zadataka');
+  expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual([
+    'Svi zadaci, 80 zadataka', 'Oblast sa mape, 23 zadatka', 'Novi Sad, Liman, 21 zadatak', 'Beograd, Vračar, 9 zadataka',
+  ]);
+  expect(texts()).toContain('6 zadataka bez datuma nisu u ovom izboru.');
+});
+
+test('a stale P6 preview shows loading and never falls back to local row counts', async () => {
+  rows = [row('a'), row('b')]; p6Search = p6Seam(p6Snapshot({ key: 'old-key', count: 999 }));
+  await render();
+  expect(show().props).toMatchObject({ label: 'Učitavamo zadatke…', disabled: true });
+  expect(offeredPlaces()[0].props.accessibilityLabel).toBe('Svi zadaci');
+  expect(texts()).not.toContain('999');
+});
+
+test('P6 facet failure keeps authoritative task count usable and does not fabricate place zeroes', async () => {
+  p6Search = p6Seam(p6Snapshot({ facetError: true, places: [], everywhere: null, inMapArea: null, count: 14 }));
+  await render();
+  expect(show().props).toMatchObject({ label: 'Prikaži 14 zadataka', disabled: false });
+  expect(texts()).toContain('Mesta trenutno nisu dostupna. Pretraga zadataka i dalje radi.');
+  expect(offeredPlaces()[0].props.accessibilityLabel).toBe('Svi zadaci');
+});
+
+test('P6 place continuation and draft preview are explicit server callbacks', async () => {
+  mapArea = [19, 44, 21, 46];
+  const seam=p6Seam(p6Snapshot({ placeHasMore: true }));p6Search=seam;
+  await render();
+  expect(seam.onDraft).toHaveBeenCalledWith(expect.objectContaining({ query: '' }), mapArea);
+  const more=tree.root.findAllByType('Action' as React.ElementType).find(node=>node.props.label==='Prikaži još mesta')!;
+  await act(async()=>more.props.onPress());expect(seam.onNextPlaces).toHaveBeenCalledTimes(1);
+  await act(async()=>tree.root.findByProps({ accessibilityLabel:'Pretraži mesta i zadatke' }).props.onChangeText('vrač'));
+  expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query:'vrač' }), mapArea);
+  expect(show().props.label).toBe('Učitavamo zadatke…');
+});
 
 test('choosing remote clears geographic scope in the draft, retains conditions, and applies only on confirmation', async () => {
   view = { ...view, place: 'Liman, Novi Sad', area: [19.8, 45.2, 19.9, 45.3], pinPlace: '45.25,19.84',

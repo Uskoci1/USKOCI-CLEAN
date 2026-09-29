@@ -5,6 +5,7 @@ import { BlurView } from 'expo-blur';
 import { Check, MagnifyingGlass, Minus, Plus, X } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, PLACES_MAX, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
+import { discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot } from '../../../data/discoveryV1SearchOwner';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { withInter } from '../../interFont';
@@ -33,6 +34,11 @@ export const draftOf = (view: MarketplaceView): SearchDraft => remoteDiscoverySc
  * (`pending`), so a count could still drop a moment later and none is said.
  */
 export type SearchReadiness = 'ready' | 'loading' | 'error' | 'pending';
+export type DiscoveryV1SearchPanelSeam = {
+  snapshot: DiscoveryV1SearchSnapshot;
+  onDraft: (draft: SearchDraft, mapArea: PublicBounds | null) => void;
+  onNextPlaces: () => void;
+};
 
 /** "Gde" at its "everything": no place, no words, no map area, no single point. */
 const ANYWHERE = { query: '', place: null, area: null, pinPlace: null } as const satisfies Partial<SearchDraft>;
@@ -177,7 +183,8 @@ function Stepper({ value, expanded, onChange }: { value: number; expanded: boole
  * area and every task; the words typed there also search the tasks' titles, places and conditions, as the search over
  * the map did.
  */
-export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, start = 'gde', reduced, readiness = 'ready', onApply, onClose }: {
+export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, start = 'gde', reduced, readiness = 'ready',
+  p6Search, onApply, onClose }: {
   items: readonly MarketplaceItem[]; view: MarketplaceView; mine: ReadonlySet<string> | undefined; now: Date;
   /** The map's visible area when the camera has settled somewhere, for "Oblast sa mape"; null when unknown. */
   mapArea: PublicBounds | null;
@@ -188,6 +195,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   reduced: boolean;
   /** Whether the list it counts is known; see `SearchReadiness`. */
   readiness?: SearchReadiness;
+  /** Optional P6 server-owned count/facet seam. A stale preview never falls back to the bounded loaded PAGE. */
+  p6Search?: DiscoveryV1SearchPanelSeam;
   onApply: (draft: SearchDraft) => void; onClose: () => void;
 }) {
   const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
@@ -219,13 +228,23 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const stackedActions = large || width < 360;
   // The people label needs more room than the footer: at 361dp / 1.15 it had only ~81dp beside the stepper.
   const stackedPeople = large || width < 380;
-  const counted = readiness === 'ready';
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
-  const count = useMemo(() => discoveryItems(items, viewOf(draft), mine, now).length, [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const undated = useMemo(() => undatedCount(items, viewOf(draft), mine, now), [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  // "Kako se radi" is offered only when some task says how it is done, or when it is already on and must be removable.
-  // Ownership labels do not remove public tasks from Discovery, so they must not hide their filter either.
-  const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(items);
+  const localCount = useMemo(() => discoveryItems(items, viewOf(draft), mine, now).length, [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const localUndated = useMemo(() => undatedCount(items, viewOf(draft), mine, now), [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const serverKey = discoveryV1SearchPreviewKey(viewOf(draft), mapArea);
+  const serverCurrent = !!p6Search && p6Search.snapshot.active && p6Search.snapshot.key === serverKey;
+  const effectiveReadiness: SearchReadiness = p6Search
+    ? !serverCurrent || p6Search.snapshot.status === 'loading' || p6Search.snapshot.status === 'idle' ? 'loading'
+      : p6Search.snapshot.status === 'error' ? 'error' : 'ready'
+    : readiness;
+  const counted = effectiveReadiness === 'ready';
+  const count = p6Search ? serverCurrent ? p6Search.snapshot.count ?? 0 : 0 : localCount;
+  const undated = p6Search ? serverCurrent ? p6Search.snapshot.undated ?? 0 : 0 : localUndated;
+  // P6 availability is whole-collection authority. While its preview is changing, keep the control visible rather than
+  // infer absence from a bounded page; a selected old value also remains removable.
+  const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any'
+    || (p6Search ? !serverCurrent || p6Search.snapshot.availability?.hasKnownWorkMode !== false : saysWorkMode(items));
+  useEffect(() => { p6Search?.onDraft(draft, mapArea); }, [p6Search?.onDraft, draft, mapArea]);
   // Own measurements by disclosure/layout generation, without retiring them for count or text rerenders.
   const layoutOwner = useMemo(() => ({}), [activeStep, datesOpen, workModes, width, large]);
   const currentLayoutOwner = useRef(layoutOwner); currentLayoutOwner.current = layoutOwner;
@@ -281,21 +300,31 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     edit({ dates: { from: rangeStart, to: day }, when: 'any' });
   };
 
-  // Gde: the places the loaded tasks name, narrowed by the words typed, counted under the other choices.
+  // Gde: legacy mode derives from the full loaded collection. P6 uses exact PLACES rows/counts and never derives
+  // a zero or a locality list from the bounded PAGE slice.
   const typed = placeKey(draft.query);
-  const places = useMemo(() => placeSuggestions(items, viewOf(draft), mine, now), [items, view, draft.when, draft.dates, draft.where, draft.places, draft.price, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const shownPlaces = typed ? places.filter(place => placeKey(place.text).includes(typed)) : places;
-  const everywhere = useMemo(() => discoveryItems(items, viewOf({ ...draft, ...ANYWHERE }), mine, now).length,
+  const localPlaces = useMemo(() => placeSuggestions(items, viewOf(draft), mine, now), [items, view, draft.when, draft.dates, draft.where, draft.places, draft.price, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const localEverywhere = useMemo(() => discoveryItems(items, viewOf({ ...draft, ...ANYWHERE }), mine, now).length,
     [items, view, draft.when, draft.dates, draft.where, draft.places, draft.price, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const inMapArea = useMemo(() => mapArea ? discoveryItems(items, viewOf({ ...draft, ...ANYWHERE, area: mapArea }), mine, now).length : 0,
+  const localInMapArea = useMemo(() => mapArea ? discoveryItems(items, viewOf({ ...draft, ...ANYWHERE, area: mapArea }), mine, now).length : 0,
     [items, view, mapArea, draft.when, draft.dates, draft.where, draft.places, draft.price, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const known = (value: number) => counted ? value : null;
+  const serverPlaces: { text: string; count: number | null }[] = serverCurrent
+    ? p6Search!.snapshot.places.map(place => ({ text: place.text, count: place.count })) : [];
+  if (p6Search && serverCurrent && draft.place && !serverPlaces.some(place => placeKey(place.text) === placeKey(draft.place))) {
+    // A selected locality stays removable even if a live facet refresh no longer returns it.
+    serverPlaces.push({ text: draft.place, count: null });
+  }
+  const places: { text: string; count: number | null }[] = p6Search ? serverPlaces : localPlaces;
+  const shownPlaces = p6Search ? places : typed ? places.filter(place => placeKey(place.text).includes(typed)) : places;
+  const everywhere = p6Search ? serverCurrent ? p6Search.snapshot.everywhere : null : localEverywhere;
+  const inMapArea = p6Search ? serverCurrent ? p6Search.snapshot.inMapArea : null : localInMapArea;
+  const known = (value: number | null) => counted ? value : null;
 
-  // The one green action. What it can say depends on what is known; nothing to show says so on the button itself, which
-  // cannot be pressed then.
-  const show = readiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
-    : readiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
-      : readiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
+  // The one green action. What it can say depends on authoritative membership count; a stale P6 preview never falls
+  // back to the number of rows already loaded.
+  const show = effectiveReadiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
+    : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
+      : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
   const groupProps = (step: SearchStep) => ({ step, open: activeStep === step, large,
     onToggle: toggleStep, onPosition: positionGroup,
@@ -341,7 +370,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
                   {shownPlaces.map(place => <Suggestion key={placeKey(place.text)} art="pin" text={place.text} count={known(place.count)}
                     checked={!!draft.place && placeKey(draft.place) === placeKey(place.text)}
                     onPress={() => edit({ ...ANYWHERE, place: place.text })} />)}
-                  {typed && !shownPlaces.length ? <T variant="note" tone="muted">Nijedno mesto ne sadrži ove reči. Traže se u naslovima i uslovima zadataka.</T> : null}
+                  {p6Search && serverCurrent && p6Search.snapshot.placeHasMore
+                    ? <V2Action label={p6Search.snapshot.placePaging ? 'Učitavamo još mesta…' : 'Prikaži još mesta'}
+                      disabled={p6Search.snapshot.placePaging} kind="quiet" onPress={p6Search.onNextPlaces} /> : null}
+                  {p6Search && serverCurrent && p6Search.snapshot.facetError
+                    ? <T variant="note" tone="muted">Mesta trenutno nisu dostupna. Pretraga zadataka i dalje radi.</T> : null}
+                  {typed && !shownPlaces.length && !(p6Search && serverCurrent && p6Search.snapshot.facetError)
+                    ? <T variant="note" tone="muted">Nijedno mesto ne sadrži ove reči. Traže se u naslovima i uslovima zadataka.</T> : null}
                 </View></>}
               </View>
             </SearchGroup>

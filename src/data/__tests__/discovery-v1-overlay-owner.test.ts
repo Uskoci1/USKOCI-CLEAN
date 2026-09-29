@@ -79,3 +79,17 @@ it('account/focus guard and retire fence ignored aborts',async()=>{
  owner2.retire();gate2.resolve(taskRelationIndex([], [ID1]));
  expect((await read2).kind).toBe('stale');expect(owner2.snapshot().active).toBe(false);
 });
+
+it('a bounded overlay can enrich its admitted prefix without rejecting a longer paged list',async()=>{
+ const source=Array.from({length:120},(_,i)=>item(String(i).padStart(8,'0')+'-1111-4111-8111-111111111111',
+  {requesterProfileId:String(i%2).padStart(8,'0')+'-2222-4222-8222-222222222222'}));
+ const admitted=source.slice(0,100);
+ const loaders:DiscoveryV1OverlayLoaders={relations:async ids=>taskRelationIndex([],ids),profile:async id=>profile(id),urgencies:async()=>new Map()};
+ const owner=createDiscoveryV1OverlayOwner(loaders);await owner.load(admitted);
+ const mapped=discoveryV1ApplyOverlays(source,owner.snapshot());
+ expect(mapped).toHaveLength(120);
+ expect(mapped[0].narucilacIme).toBe('Ana');
+ expect(mapped[99].narucilacIme).toBe('Ana');
+ expect(mapped[100].narucilacIme).toBe('');
+ expect(mapped[119].narucilacOcena).toBeNull();
+});

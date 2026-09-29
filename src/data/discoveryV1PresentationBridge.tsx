@@ -1,8 +1,10 @@
 import { DiscoveryPresentation, type DiscoveryPresentationProps, type DiscoveryV1PresentationSeam } from '../ui/v2/DiscoveryPresentation';
+import type { SearchDraft } from '../ui/v2/discovery/DiscoverySearchPanel';
 import type { DiscoveryV1ScreenSnapshot } from './discoveryV1ScreenSession';
 import { discoveryV1ApplyOverlays, type DiscoveryV1OverlaySnapshot } from './discoveryV1OverlayOwner';
 import type { DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import type { MarketplaceView, PublicBounds } from './marketplaceView';
+import type { DiscoveryV1SearchSnapshot } from './discoveryV1SearchOwner';
 
 export type DiscoveryV1PresentationActions = {
   onSelectMarker: (marker: DiscoveryV1MapMarker) => void;
@@ -11,6 +13,8 @@ export type DiscoveryV1PresentationActions = {
   onShowPlace: () => void;
   onShowAll: () => void;
   onNextPage: () => void;
+  onSearchDraft?: (draft: SearchDraft, mapArea: PublicBounds | null) => void;
+  onNextSearchPlaces?: () => void;
 };
 
 export type DiscoveryV1PresentationBridgeModel = {
@@ -23,7 +27,8 @@ export type DiscoveryV1PresentationBridgeModel = {
 };
 
 export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSnapshot, overlay: DiscoveryV1OverlaySnapshot,
-  selectedMarkerKey: string | null, loadingMore: boolean, actions: DiscoveryV1PresentationActions): DiscoveryV1PresentationBridgeModel {
+  selectedMarkerKey: string | null, loadingMore: boolean, actions: DiscoveryV1PresentationActions,
+  search?: DiscoveryV1SearchSnapshot): DiscoveryV1PresentationBridgeModel {
   if (!snapshot.active || !snapshot.view) throw new Error('DISCOVERY_V1_PRESENTATION_INACTIVE');
   const items = discoveryV1ApplyOverlays(snapshot.wireItems, overlay);
   const peek = snapshot.peek?.kind === 'TASK'
@@ -42,6 +47,9 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
         onSelect: actions.onSelectMarker },
       peek,
       counts: snapshot.counts,
+      ...(search && actions.onSearchDraft && actions.onNextSearchPlaces ? { search: {
+        snapshot: search, onDraft: actions.onSearchDraft, onNextPlaces: actions.onNextSearchPlaces,
+      } } : {}),
       pageHasMore: snapshot.pageHasMore,
       loadingMore,
       onArea: actions.onArea,
@@ -59,6 +67,7 @@ export type DiscoveryV1PresentationBridgeProps =
     overlay: DiscoveryV1OverlaySnapshot;
     selectedMarkerKey: string | null;
     loadingMore?: boolean;
+    search?: DiscoveryV1SearchSnapshot;
     actions: DiscoveryV1PresentationActions;
   };
 
@@ -67,9 +76,9 @@ export type DiscoveryV1PresentationBridgeProps =
  * the existing list/sheet/search/Peek/Map components remain the UI. A production route must not import
  * this until server rollout, performance and native acceptance explicitly admit the switch.
  */
-export function DiscoveryV1PresentationBridge({ snapshot, overlay, selectedMarkerKey, loadingMore = false, actions, ...props }
+export function DiscoveryV1PresentationBridge({ snapshot, overlay, selectedMarkerKey, loadingMore = false, search, actions, ...props }
   : DiscoveryV1PresentationBridgeProps) {
-  const model = discoveryV1PresentationBridgeModel(snapshot, overlay, selectedMarkerKey, loadingMore, actions);
+  const model = discoveryV1PresentationBridgeModel(snapshot, overlay, selectedMarkerKey, loadingMore, actions, search);
   return <DiscoveryPresentation {...props} items={model.items} view={model.view} relations={model.relations}
     relationsPending={model.relationsPending} relationsError={model.relationsError} p6Seam={model.p6Seam} />;
 }
