@@ -92,9 +92,12 @@ revoke all on function rls_private.p6_probe_test_world_accounts(),rls_private.p6
 grant execute on function rls_private.p6_probe_test_world_accounts(),rls_private.p6_probe_viewer_test_world()
  to authenticated;
 
+alter policy v5_closed_account_visibility on public.needs
+ using ((select public.rpc_storage_account_open()));
 alter policy needs_public_discovery on public.needs
  using (
   status=any(array['PUBLISHED'::text,'SELECTION'::text])
+  and (select auth.uid()) is not null
   and (
    requester_account_id=any((select rls_private.p6_probe_test_world_accounts()))
   ) = (select rls_private.p6_probe_viewer_test_world())
@@ -166,7 +169,7 @@ def main()->int:
         report['limits']=[
           'Disposable rollback-only diagnostic; no canonical DEV mutation.',
           'TEST-account set and viewer classification are evaluated as statement-level InitPlans; row check is UUID-array membership.',
-          'The helpers are in non-PostgREST rls_private and the probe proves only performance/semantic equivalence, not deployment approval.',
+          'The helpers are in non-PostgREST rls_private; the probe also applies the already-measured statement-level closed-account fence, all inside rollback.',
           'Three samples per case are diagnostic; final P6 performance acceptance remains separate.'
         ]
         (PUBLIC/'p6-30k-world-set-probe.json').write_text(json.dumps(report,indent=2)+'\n')
