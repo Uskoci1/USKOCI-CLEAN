@@ -21,11 +21,16 @@ def psql(source:str,timeout=120)->subprocess.CompletedProcess:
     return subprocess.run(['psql',os.environ['DB_URL'],'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
       input=source,capture_output=True,text=True,timeout=timeout)
 
-def apply_candidate()->None:
+def apply_candidate(report:dict)->None:
     source="begin;\nset local p6_discovery.disposable='SOURCE_ONLY_ROLLBACK';\n"+CANDIDATE.read_text()+"\ncommit;\n"
     r=psql(source,120)
     (PRIVATE/'apply.stdout').write_text(r.stdout);(PRIVATE/'apply.stderr').write_text(r.stderr)
-    require(r.returncode==0,'P6_VISIBILITY_APPLY_REFUSED')
+    if r.returncode:
+        state=re.search(r'(?:ERROR|FATAL):\\s+([0-9A-Z]{5}):',r.stderr)
+        diag=re.search(r'(P6_[A-Z0-9_]+(?::[^\\n]*)?)',r.stderr)
+        if state: report['applySqlState']=state.group(1)
+        if diag: report['applyDiagnostic']=diag.group(1)[:240]
+        raise ValueError('P6_VISIBILITY_APPLY_REFUSED')
     repeat=psql(source,60)
     (PRIVATE/'repeat.stdout').write_text(repeat.stdout);(PRIVATE/'repeat.stderr').write_text(repeat.stderr)
     require(repeat.returncode!=0 and 'P6_VISIBILITY_ALREADY_INSTALLED' in repeat.stderr,'P6_VISIBILITY_REPEAT_NOT_REFUSED')
@@ -80,7 +85,7 @@ def main()->int:
         require(probe.returncode==0 and probe.stdout.strip()=='t','P6_VISIBILITY_ROLLOUT_NOT_INSTALLED')
         before=psql("select private.closure_source_digest_v5()||'|'||(select sha256 from private.closure_source_v5 where singleton)||'|'||(select sha256 from private.closure_erasure_source_v5 where singleton)",30)
         require(before.returncode==0,'P6_VISIBILITY_CERT_BEFORE')
-        apply_candidate()
+        apply_candidate(report)
         after=psql("select private.closure_source_digest_v5()||'|'||(select sha256 from private.closure_source_v5 where singleton)||'|'||(select sha256 from private.closure_erasure_source_v5 where singleton)",30)
         require(after.returncode==0 and after.stdout.strip()==before.stdout.strip(),'P6_VISIBILITY_CERT_MOVED')
 
