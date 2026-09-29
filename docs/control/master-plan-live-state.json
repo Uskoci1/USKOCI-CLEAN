@@ -4,7 +4,7 @@
   },
   "p6": {
     "status": "OPEN",
-    "note": "30k SQL screening ZELEN (Round67, run 36632921473, 67ffd458); to nije HTTP/native/concurrency dokaz. Round68 (2026-09-30): deployable rollout v2 = frozen ce1dab6b… + visibility + PLACES sloj, sastavljen deterministički i dokazan na disposable PKG045b meti (run 36640264441, sha256 da01a4f1…): isti body/policy/helper kao proveren stack, sertifikat i Need ACL nepromenjeni, ponovna primena odbijena. x86_64 proof APK izgrađen (run 36638658459); nativni prolaz na disposable restricted serveru u toku. Preostalo: nativno prihvatanje FULL→detalj→Back + memorija/ANR, PKG045b zapis kompatibilnosti pa DEV primena (preflight + readback), primena rollout v2, cutover čitača, završni P6 receipt. P6 RPC još nije na DEV-u (ledger 210)."
+    "note": "30k SQL screening ZELEN (Round67, run 36632921473, 67ffd458); to nije HTTP/native/concurrency dokaz. Round68 (2026-09-30): deployable rollout v2 = frozen ce1dab6b… + visibility + PLACES sloj, sastavljen deterministički i dokazan na disposable PKG045b meti (run 36640264441, sha256 da01a4f1…): isti body/policy/helper kao proveren stack, sertifikat i Need ACL nepromenjeni, ponovna primena odbijena. x86_64 proof APK izgrađen (run 36638658459); nativni prolaz na disposable restricted serveru u toku. Preostalo: nativno prihvatanje FULL→detalj→Back + memorija/ANR, PKG045b zapis kompatibilnosti pa DEV primena (preflight + readback), primena rollout v2, cutover čitača, završni P6 receipt. P6 RPC još nije na DEV-u (ledger 210). Round69: PKG045b imao jedan zastareo otisak (rpc_list_open_tasks_v3 posle P0) — napravljena P0-kompatibilna verzija (jedan otisak) i dokazana na disposable meti (run 36641388832 PASS, rollout v2 PASS i tu); preflight baze: 5/5 politika, 5/6 funkcija i sve 41 kolona se poklapaju."
   },
   "release": {
     "status": "NOT READY",
@@ -52,6 +52,12 @@
       "run": 36638658459,
       "sha": "76f30d556f18cd562d0ee0920242f00d5553aeb8",
       "result": "BUILT (rs.uskoci.dev, proof flag, endpoint 10.0.2.2:54321); not device acceptance"
+    },
+    {
+      "id": "PKG045B-P0-COMPAT",
+      "run": 36641388832,
+      "sha": "dc6aca569bce34352301dfa36fffded7db9bf2c7",
+      "result": "PASS (P0-aware preparation + rollout v2 on the P0-aware disposable target)"
     }
   ]
 }
