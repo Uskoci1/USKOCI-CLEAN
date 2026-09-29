@@ -20,7 +20,10 @@ jest.mock('expo-router', () => ({ router: { back: (...a: unknown[]) => mockBack(
 // error state and the scene still draws. Every call is counted and must stay at zero, and nothing may be stored.
 const mockClient = jest.fn(() => { throw new Error('The gallery must not reach the data layer.'); });
 const mockStore = { getItem: jest.fn(async () => null), setItem: jest.fn(async () => {}), removeItem: jest.fn(async () => {}) };
-jest.mock('../supabaseClient', () => ({ supabaseKlijent: (...a: unknown[]) => (mockClient as (...args: unknown[]) => unknown)(...a) }));
+jest.mock('../supabaseClient', () => ({
+  supabaseKonfigurisan: () => false,
+  supabaseKlijent: (...a: unknown[]) => (mockClient as (...args: unknown[]) => unknown)(...a),
+}));
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
   getItem: (...a: unknown[]) => (mockStore.getItem as (...args: unknown[]) => unknown)(...a),
   setItem: (...a: unknown[]) => (mockStore.setItem as (...args: unknown[]) => unknown)(...a),
