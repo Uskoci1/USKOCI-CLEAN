@@ -310,9 +310,11 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     [items, view, mapArea, draft.when, draft.dates, draft.where, draft.places, draft.price, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
   const serverPlaces: { text: string; count: number | null }[] = serverCurrent
     ? p6Search!.snapshot.places.map(place => ({ text: place.text, count: place.count })) : [];
-  if (p6Search && serverCurrent && draft.place && !serverPlaces.some(place => placeKey(place.text) === placeKey(draft.place))) {
+  const selectedServerPlace = draft.place;
+  if (p6Search && serverCurrent && selectedServerPlace
+    && !serverPlaces.some(place => placeKey(place.text) === placeKey(selectedServerPlace))) {
     // A selected locality stays removable even if a live facet refresh no longer returns it.
-    serverPlaces.push({ text: draft.place, count: null });
+    serverPlaces.push({ text: selectedServerPlace, count: null });
   }
   const places: { text: string; count: number | null }[] = p6Search ? serverPlaces : localPlaces;
   const shownPlaces = p6Search ? places : typed ? places.filter(place => placeKey(place.text).includes(typed)) : places;

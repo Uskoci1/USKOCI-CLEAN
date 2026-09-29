@@ -23,6 +23,7 @@ const screen=(peek:any=null):DiscoveryV1ScreenSnapshot=>({active:true,view,wireI
  availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['OFFERS']},mapCounts:{kind:'exact_live',observedAt:AT,mapped:1000,withoutPoint:140},
  placeCounts:null,pageHasMore:true,memberHasMore:false,placeHasMore:false});
 const overlay=(loading=false):DiscoveryV1OverlaySnapshot=>({active:true,generation:2,sliceKey:[ID,1,PROFILE,'0'].join(':'),loading,
+ admitted:new Map([[ID,[1,PROFILE,'0'].join(':')]]),
  relations:taskRelationIndex([{needId:ID,relation:'APPLIED',applicationId:'33333333-3333-4333-8333-333333333333',applicationState:'SUBMITTED',agreementId:null}],[ID]),
  profiles:new Map([[PROFILE,{profilId:PROFILE,uloga:'narucilac',ime:'Ana',avatarPutanja:null,grad:'Novi Sad',naslov:null,biografija:null,
   poverenje:{ocenaProsek:4.9,brojRecenzija:7,zavrseniBroj:5,identitetVerifikovan:false,ocenaDostupna:true,recenzijeDostupne:true,verifikacijaIdentitetaDostupna:false}}]]),
