@@ -30,9 +30,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.sha }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:\n          node-version: '24'\n          cache: npm
+        with:
+          node-version: '24'
+          cache: npm
       - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
-        with:\n          version: 2.116.0\n          github-token: ${{ github.token }}
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
       - name: Exact source and locked dependencies
         run: |
           set -euo pipefail
