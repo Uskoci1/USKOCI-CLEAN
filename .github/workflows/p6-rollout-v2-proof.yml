@@ -98,7 +98,7 @@ jobs:
           run_stage pkg039 node supabase/proofs/pkg039/pkg039_proof.mjs replay
           run_stage pkg040 node supabase/proofs/pkg040/pkg040_proof.mjs replay
           run_stage pkg042 node supabase/proofs/pkg042/pkg042_proof.mjs replay
-          run_stage historical045 node supabase/proofs/discovery/p6_discovery_prepare.mjs
+          run_stage p0aware045 node supabase/proofs/discovery/p6_discovery_prepare_p0.mjs
       - name: Prove the v2 candidate body/policy/helper-equivalent, certificate-neutral and idempotent
         run: |
           set -euo pipefail

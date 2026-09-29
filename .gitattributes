@@ -49,3 +49,7 @@ supabase/candidates/pkg051*.sql text eol=lf
 
 supabase/candidates/p6_*.sql text eol=lf
 scripts/proofs/build-p6-rollout-v2.mjs text eol=lf
+
+supabase/candidates/pkg045b_task_column_privileges_p0.sql text eol=lf
+scripts/proofs/build-pkg045b-p0.mjs text eol=lf
+supabase/proofs/discovery/p6_discovery_prepare_p0.mjs text eol=lf

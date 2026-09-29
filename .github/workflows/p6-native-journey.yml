@@ -102,17 +102,13 @@ jobs:
           run_stage pkg039 node supabase/proofs/pkg039/pkg039_proof.mjs replay
           run_stage pkg040 node supabase/proofs/pkg040/pkg040_proof.mjs replay
           run_stage pkg042 node supabase/proofs/pkg042/pkg042_proof.mjs replay
-          run_stage historical045 node supabase/proofs/discovery/p6_discovery_prepare.mjs
-      - name: Apply exact frozen P6 rollout
-        run: psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -f supabase/candidates/p6_discovery_rollout.sql > "$PRE_V3_ARTIFACT_DIR/rollout.log" 2>&1
-      - name: Apply proven visibility candidate
+          run_stage p0aware045 node supabase/proofs/discovery/p6_discovery_prepare_p0.mjs
+      - name: Apply the deployable P6 rollout v2 (frozen rollout + visibility + PLACES layers, one transaction)
         run: |
-          { printf '%s\n' 'begin;' "set local p6_discovery.disposable='SOURCE_ONLY_ROLLBACK';"; cat supabase/candidates/p6_discovery_visibility_cost_v1.sql; printf '%s\n' 'commit;'; } > /tmp/p6-vis.sql
-          psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -f /tmp/p6-vis.sql > "$PRE_V3_ARTIFACT_DIR/visibility.log" 2>&1
-      - name: Apply proven PLACES cost candidate
-        run: |
-          { printf '%s\n' 'begin;' "set local p6_discovery.disposable='SOURCE_ONLY_ROLLBACK';"; cat supabase/candidates/p6_discovery_places_cost_v1.sql; printf '%s\n' 'commit;'; } > /tmp/p6-places.sql
-          psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -f /tmp/p6-places.sql > "$PRE_V3_ARTIFACT_DIR/places.log" 2>&1
+          set -euo pipefail
+          node scripts/proofs/build-p6-rollout-v2.mjs --check
+          psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -f supabase/candidates/p6_discovery_rollout_v2.sql > "$PRE_V3_ARTIFACT_DIR/rollout-v2.log" 2>&1
+          echo "PASS P6_ROLLOUT_V2_APPLIED_LOCAL"
       - name: Track function calls and bind the APK to this stack
         run: |
           set -euo pipefail

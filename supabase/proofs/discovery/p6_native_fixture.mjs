@@ -92,7 +92,8 @@ const probe = await viewer.client.rpc('rpc_discovery_v1', { p_request: { mode: '
   anchor: null, scope: { kind: 'ALL' }, limit: 5, after: null } });
 if (probe.error) throw new Error(`VIEWER_RPC_FAILED:${probe.error.message}`);
 assert.equal(probe.data.mode, 'PAGE');
-assert.equal(probe.data.counts.everywhere, total, 'server total must equal the seeded published tasks');
+assert.equal(probe.data.counts.listed, total, 'server list total must equal the seeded published tasks');
+assert.equal(probe.data.counts.kind, 'exact_live');
 
 mkdirSync(env.P6N_ARTIFACT_DIR || 'artifacts/p6-native', { recursive: true });
 writeFileSync(`${env.P6N_ARTIFACT_DIR || 'artifacts/p6-native'}/fixture.json`, JSON.stringify({
@@ -102,4 +103,4 @@ writeFileSync(`${env.P6N_ARTIFACT_DIR || 'artifacts/p6-native'}/fixture.json`, J
 console.log(`::add-mask::${password}`);
 appendFileSync(githubEnv, [`P6N_VIEWER_EMAIL=${viewerEmail}`, `P6N_PASSWORD=${password}`, `P6N_OWNER_ID=${owner.id}`,
   `P6N_VIEWER_ID=${viewer.id}`, `P6N_TOTAL=${total}`, `P6N_ARTIFACT_DIR=${env.P6N_ARTIFACT_DIR || 'artifacts/p6-native'}`].map((l) => `${l}\n`).join(''));
-console.log(`PASS P6_NATIVE_FIXTURE local real-auth accounts=2 needs=${total} restricted_need_acl page_probe_total=${probe.data.counts.everywhere}`);
+console.log(`PASS P6_NATIVE_FIXTURE local real-auth accounts=2 needs=${total} restricted_need_acl page_probe_listed=${probe.data.counts.listed}`);
