@@ -105,7 +105,7 @@ begin
  execute format('grant usage on schema %I to authenticated',temp_schema);
 end $temp_acl$;
 grant execute on function pg_temp.p6_load_filter(text,integer),pg_temp.p6_load_normalize(jsonb),pg_temp.p6_load_page_anchor(jsonb) to authenticated;
-grant select,update on p6_load_cases to authenticated;
+grant select,insert,update on p6_load_cases to authenticated;
 grant select,insert on p6_load_samples to authenticated;
 
 set local role authenticated;
