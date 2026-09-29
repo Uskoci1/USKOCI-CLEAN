@@ -50,7 +50,8 @@ const ownerProfile = profiles.data.find((p) => p.kind === 'REQUESTER');
 assert.ok(ownerProfile?.id, 'owner requester profile missing');
 
 // Ordering by published_at desc is the list order, so title number 001 is the newest task.
-// Kinds: i%10 in (1,2,3) DENSE (30) · (4,5,6,7) SPARSE (40) · 8 and i%20=10 REMOTE (15) · 9 and i%20=0 NOPOINT (15).
+// Kinds: i%10 in (1,2,3) DENSE (30, ONE shared public point) · (4,5,6,7) SPARSE (40, each its own point around eight cities) ·
+// 8 and i%20=10 REMOTE (15) · 9 and i%20=0 NOPOINT (15).
 psql(`
 begin;
 set local statement_timeout='60s';
@@ -62,8 +63,8 @@ select gen_random_uuid(),'${owner.id}'::uuid,'${ownerProfile.id}'::uuid,'PUBLISH
   case when kind='REMOTE' then 'REMOTE_ANYTIME' else 'FLEXIBLE' end,
   statement_timestamp()-i*interval '1 minute',
   case when kind='REMOTE' then 'REMOTE' else 'STATIONARY' end,
-  case kind when 'DENSE' then 45.25::numeric when 'SPARSE' then (array[44.7960,44.8430,43.3209,44.0128,46.1000,45.2510,43.8914,43.7258])[1+mod(i,8)]::numeric end,
-  case kind when 'DENSE' then 19.83::numeric when 'SPARSE' then (array[20.4780,20.4010,21.8954,20.9114,19.6650,19.8650,20.3497,20.6894])[1+mod(i,8)]::numeric end,
+  case kind when 'DENSE' then 45.25::numeric when 'SPARSE' then ((array[44.7960,44.8430,43.3209,44.0128,46.1000,45.2510,43.8914,43.7258])[1+mod(i,8)] + mod(i*7,11)*0.003)::numeric end,
+  case kind when 'DENSE' then 19.83::numeric when 'SPARSE' then ((array[20.4780,20.4010,21.8954,20.9114,19.6650,19.8650,20.3497,20.6894])[1+mod(i,8)] + mod(i*5,13)*0.003)::numeric end,
   case kind when 'DENSE' then 'Liman' when 'SPARSE' then (array['Vračar','Zemun','Centar','Centar','Centar','Petrovaradin','Centar','Centar'])[1+mod(i,8)]
             when 'REMOTE' then 'Na daljinu' else 'Bez tačke' end,
   case kind when 'DENSE' then 'Novi Sad' when 'SPARSE' then (array['Beograd','Beograd','Niš','Kragujevac','Subotica','Novi Sad','Čačak','Kraljevo'])[1+mod(i,8)]
@@ -95,12 +96,23 @@ assert.equal(probe.data.mode, 'PAGE');
 assert.equal(probe.data.counts.listed, total, 'server list total must equal the seeded published tasks');
 assert.equal(probe.data.counts.kind, 'exact_live');
 
+// What the SERVER itself answers for the exact filters the emulator will press: the UI must equal these, not my arithmetic.
+const listedFor = async (patch) => {
+  const answer = await viewer.client.rpc('rpc_discovery_v1', { p_request: { mode: 'PAGE', filter: { text: '', price: 'all', where: 'any', places: 1,
+    when: 'any', dates: null, place: null, ...patch }, anchor: null, scope: { kind: 'ALL' }, limit: 5, after: null } });
+  if (answer.error) throw new Error(`VIEWER_RPC_FAILED:${answer.error.message}`);
+  return answer.data.counts.listed;
+};
+const expected = { any: total, remote: await listedFor({ where: 'remote' }), onsite: await listedFor({ where: 'onsite' }), dense: counts.DENSE };
+assert.equal(expected.remote, counts.REMOTE, 'server remote filter must equal the seeded remote tasks');
+assert.ok(expected.onsite > 0 && expected.onsite < total, 'server onsite filter must be a proper subset');
+
 mkdirSync(env.P6N_ARTIFACT_DIR || 'artifacts/p6-native', { recursive: true });
 writeFileSync(`${env.P6N_ARTIFACT_DIR || 'artifacts/p6-native'}/fixture.json`, JSON.stringify({
   result: 'PASS', sourceSha: env.GITHUB_SHA, localOnly: true, ownerId: owner.id, viewerId: viewer.id, total, counts,
-  restrictedNeedAcl: true, pageProbeCounts: probe.data.counts, titleFormat: 'P6N nnn KIND, 001 newest',
+  restrictedNeedAcl: true, pageProbeCounts: probe.data.counts, expected, titleFormat: 'P6N nnn KIND, 001 newest',
 }, null, 2) + '\n');
 console.log(`::add-mask::${password}`);
 appendFileSync(githubEnv, [`P6N_VIEWER_EMAIL=${viewerEmail}`, `P6N_PASSWORD=${password}`, `P6N_OWNER_ID=${owner.id}`,
   `P6N_VIEWER_ID=${viewer.id}`, `P6N_TOTAL=${total}`, `P6N_ARTIFACT_DIR=${env.P6N_ARTIFACT_DIR || 'artifacts/p6-native'}`].map((l) => `${l}\n`).join(''));
-console.log(`PASS P6_NATIVE_FIXTURE local real-auth accounts=2 needs=${total} restricted_need_acl page_probe_listed=${probe.data.counts.listed}`);
+console.log(`PASS P6_NATIVE_FIXTURE local real-auth accounts=2 needs=${total} restricted_need_acl page_probe_listed=${probe.data.counts.listed} expected=${JSON.stringify(expected)}`);

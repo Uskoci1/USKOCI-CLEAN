@@ -112,8 +112,13 @@ jobs:
       - name: Track function calls and bind the APK to this stack
         run: |
           set -euo pipefail
-          # The `postgres` role of the local stack cannot set track_functions; supabase_admin can (best effort, the driver also reads gateway logs).
-          psql "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres" -X -qAt -c "alter system set track_functions='all'" -c "select pg_reload_conf()" || echo "track_functions unavailable (non-fatal)"
+          # The `postgres` role of the local stack cannot change these settings; supabase_admin can. Statement logging makes the
+          # DISPOSABLE database record each bound rpc_discovery_v1 body, so the driver can compare the UI with the exact requests the
+          # app sent (the logs stay on the runner; only parsed request shapes reach the report).
+          admin="postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres"
+          psql "$admin" -X -qAt -c "alter system set track_functions='all'" || echo "track_functions unavailable (non-fatal)"
+          psql "$admin" -X -qAt -c "alter system set log_statement='all'" -c "alter system set log_parameter_max_length=-1" -c "select pg_reload_conf()"
+          psql "$admin" -X -qAt -c "show log_statement"
           expected='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
           if [[ "$RU5_DEVICE_ANON_KEY" != "$expected" ]]; then
             echo "The live stack anon key differs from the key compiled into the APK."
