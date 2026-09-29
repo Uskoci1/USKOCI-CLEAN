@@ -26,10 +26,11 @@ def apply_candidate(report:dict)->None:
     r=psql(source,120)
     (PRIVATE/'apply.stdout').write_text(r.stdout);(PRIVATE/'apply.stderr').write_text(r.stderr)
     if r.returncode:
-        state=re.search(r'(?:ERROR|FATAL):\\s+([0-9A-Z]{5}):',r.stderr)
-        diag=re.search(r'(P6_[A-Z0-9_]+(?::[^\\n]*)?)',r.stderr)
+        state=re.search(r'(?:ERROR|FATAL):\s+([0-9A-Z]{5}):',r.stderr)
+        diag=re.search(r'(P6_[A-Z0-9_]+(?::[^\n]*)?)',r.stderr)
         if state: report['applySqlState']=state.group(1)
         if diag: report['applyDiagnostic']=diag.group(1)[:240]
+        report['applyStderrTail']=[line[:240] for line in r.stderr.splitlines()[-6:]]
         raise ValueError('P6_VISIBILITY_APPLY_REFUSED')
     repeat=psql(source,60)
     (PRIVATE/'repeat.stdout').write_text(repeat.stdout);(PRIVATE/'repeat.stderr').write_text(repeat.stderr)
@@ -50,7 +51,7 @@ select pg_temp.p6_load_refresh_anchor('PLACES_SPARSE');
     tail=r"""
 select format('select pg_temp.p6_load_once(%L,0,0);',label)
 from p6_load_cases order by label
-\gexec
+\\gexec
 """+refresh+f"""
 select format(
  'select pg_temp.p6_load_once(%L,1,%s); select %L||elapsed_ms from pg_temp.p6_load_samples where block=1 and label=%L and sample=%s;',
@@ -58,8 +59,8 @@ select format(
 from p6_load_cases cross join generate_series(1,3) s
 where label in ({labels})
 order by s,label
-\gexec
-\echo 'PASS P6_VISIBILITY_30K_SHORT'
+\\gexec
+\\echo 'PASS P6_VISIBILITY_30K_SHORT'
 rollback;
 """
     return prefix+tail
