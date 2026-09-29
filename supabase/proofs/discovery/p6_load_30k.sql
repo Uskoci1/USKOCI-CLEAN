@@ -85,9 +85,16 @@ create temporary table p6_load_samples(
 create function pg_temp.p6_load_filter(text_value text,people integer default 1) returns jsonb language sql immutable security invoker as $f$
  select jsonb_build_object('text',text_value,'price','all','where','any','places',people,'when','any','dates',null,'place',null)
 $f$;
-create function pg_temp.p6_load_normalize(j jsonb) returns jsonb language sql immutable security invoker as $f$
- select case when j?'counts' then jsonb_set((j-'asOf')#-'{counts,observedAt}','{anchor,timeAt}','"FIXED"',true)
-   #-'{anchor,publishedThrough}'#-'{anchor,expiresAt}' else j-'asOf' end
+create function pg_temp.p6_load_normalize(j jsonb) returns jsonb language plpgsql immutable security invoker as $f$
+declare x jsonb;
+begin
+ x:=case when j?'counts' then jsonb_set((j-'asOf')#-'{counts,observedAt}','{anchor,timeAt}','"FIXED"',true)
+   #-'{anchor,publishedThrough}'#-'{anchor,expiresAt}' else j-'asOf' end;
+ if jsonb_typeof(x->'nextCursor')='object' and x->'nextCursor'?'scopeKey' then
+  x:=jsonb_set(x,'{nextCursor,scopeKey}','"FIXED"');
+ end if;
+ return x;
+end
 $f$;
 create function pg_temp.p6_load_page_anchor(f jsonb) returns jsonb language plpgsql security invoker as $f$
 declare r jsonb;
@@ -139,6 +146,28 @@ begin
 
  insert into p6_load_cases(label,request) values('SCAN',null),('COVERAGE_SCAN',null);
 end $cases$;
+
+create function pg_temp.p6_load_refresh_anchors() returns void language plpgsql security invoker as $refresh$
+declare c record; answer jsonb; fresh_anchor jsonb; seed jsonb;
+begin
+ if current_user<>'authenticated' or auth.uid() is distinct from current_setting('p6.load.reader')::uuid
+    or not row_security_active('public.needs') or current_setting('row_security')<>'on'
+  then raise exception 'P6_LOAD_AUTHORITY_REQUIRED'; end if;
+ for c in select label,request from pg_temp.p6_load_cases
+   where request is not null and request->>'mode' in ('PAGE','MAP','PLACES')
+ loop
+  if c.request->>'mode'='PLACES' then
+   seed:=jsonb_set(c.request,'{anchor}','null'::jsonb);
+   answer:=public.rpc_discovery_v1(seed);
+   fresh_anchor:=answer->'anchor';
+  else
+   fresh_anchor:=pg_temp.p6_load_page_anchor(c.request->'filter');
+  end if;
+  if jsonb_typeof(fresh_anchor)<>'object' then raise exception 'P6_LOAD_REFRESH_ANCHOR:%',c.label; end if;
+  update pg_temp.p6_load_cases set request=jsonb_set(c.request,'{anchor}',fresh_anchor) where label=c.label;
+ end loop;
+end $refresh$;
+grant execute on function pg_temp.p6_load_refresh_anchors() to authenticated;
 
 create function pg_temp.p6_load_once(kind text,batch integer,sequence integer) returns void language plpgsql security invoker as $run$
 declare req jsonb; expected_reply jsonb; answer jsonb; started timestamptz; elapsed numeric;
@@ -202,9 +231,19 @@ select 'P6_LOAD_ENV '||jsonb_build_object('postgres',current_setting('server_ver
 
 select format('select pg_temp.p6_load_once(%L,0,0);',label) from p6_load_cases cross join generate_series(1,3) w order by w,label
 \gexec
-select format('select pg_temp.p6_load_once(%L,%s,%s);',label,b,s) from p6_load_cases
- cross join generate_series(1,3) b cross join generate_series(1,30) s
- order by b,s,case when (b+s)%2=0 then label end asc,case when (b+s)%2<>0 then label end desc
+-- A Discovery snapshot expires after 30 minutes. This benchmark intentionally lasts longer, so each
+-- 30-sample block starts from a fresh legitimate anchor rather than weakening expiry semantics.
+select pg_temp.p6_load_refresh_anchors();
+select format('select pg_temp.p6_load_once(%L,1,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+ order by s,case when (1+s)%2=0 then label end asc,case when (1+s)%2<>0 then label end desc
+\gexec
+select pg_temp.p6_load_refresh_anchors();
+select format('select pg_temp.p6_load_once(%L,2,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+ order by s,case when (2+s)%2=0 then label end asc,case when (2+s)%2<>0 then label end desc
+\gexec
+select pg_temp.p6_load_refresh_anchors();
+select format('select pg_temp.p6_load_once(%L,3,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+ order by s,case when (3+s)%2=0 then label end asc,case when (3+s)%2<>0 then label end desc
 \gexec
 
 select 'P6_LOAD_SAMPLES '||jsonb_agg(jsonb_build_object('block',block,'case',label,'sample',sample,'ms',elapsed_ms,
