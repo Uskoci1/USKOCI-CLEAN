@@ -43,7 +43,20 @@ CORE106 = True  # the helpers' "current three-zone shell" wait after login
 FIXTURE_PATH = ARTIFACT_DIR / 'fixture.json'
 FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding='utf-8')) if FIXTURE_PATH.exists() else {}
 EXPECTED = FIXTURE.get('expected', {})
-START_ISO = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 5))
+def _capture_start():
+    """The capture window opens 30 s before the fixture's own PAGE probes, so the probes themselves prove the capture works."""
+    observed = (FIXTURE.get('pageProbeCounts') or {}).get('observedAt')
+    try:
+        from datetime import datetime, timedelta, timezone
+        at = datetime.fromisoformat(observed.replace('Z', '+00:00')) if observed else None
+        if at is not None:
+            return (at.astimezone(timezone.utc) - timedelta(seconds=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    except Exception:                                         # noqa: BLE001
+        pass
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 5))
+
+
+START_ISO = _capture_start()
 
 # Borrow only the FUNCTION definitions of the proven RU5 driver (input pacing, ANR handling, tap/wait, paced typing).
 _source = Path(__file__).with_name('ru5_android_device_ui_journey.py')
@@ -51,10 +64,14 @@ _defs = ast.Module(body=[n for n in ast.parse(_source.read_text(encoding='utf-8'
                    type_ignores=[])
 exec(compile(_defs, str(_source), 'exec'), globals())
 
-REPORT = {'mode': MODE, 'sourceSha': os.environ.get('GITHUB_SHA'), 'steps': [], 'checks': [], 'result': 'FAIL'}
-ITEM_DESC = re.compile(r'^Otvori (?:priliku|Zadatak) (P6N (\d{3}) (DENSE|SPARSE|REMOTE|NOPOINT))$')
+REPORT = {'mode': MODE, 'route': os.environ.get('P6N_ROUTE', 'proof'), 'sourceSha': os.environ.get('GITHUB_SHA'), 'steps': [], 'checks': [], 'result': 'FAIL'}
+ITEM_DESC = re.compile(r'^Otvori (?:priliku|Zadatak) (P6N (\d{3}) (DENSE|SPARSE|REMOTE|NOPOINT))\b')   # the label continues with the card's spoken facts
 MARKER_DESC = re.compile(r'^(?:(\d+) zadat\w+ (na ovom mestu|u ovoj oblasti)|Jedan zadatak na mapi)')
-LIST_URL = 'uskociapp://zadaci?p6Proof=1'
+# proof: the guarded proof APK (route parameter + compile flag + DEV package); production: an APK compiled with the production
+# reader flag, where the ordinary Zadaci tab IS the P6 route and no parameter exists.
+ROUTE = os.environ.get('P6N_ROUTE', 'proof')
+assert ROUTE in ('proof', 'production')
+LIST_URL = 'uskociapp://zadaci?p6Proof=1' if ROUTE == 'proof' else 'uskociapp://zadaci'
 
 
 def note(kind, **fields):
@@ -200,16 +217,16 @@ def swipe(x1, y1, x2, y2, ms=600):
     time.sleep(1.0)
 
 
-def scroll_list(direction='down', fraction=0.5):
+def scroll_list(direction='down', fraction=0.5, ms=600):
     w, h = screen_size()
     span = int(h * fraction)
     x = int(w * 0.9)              # away from the centred "Mapa" pill
     if direction == 'down':      # finger moves up: content moves up, later items appear
         start = int(h * 0.80)
-        swipe(x, start, x, start - span)
+        swipe(x, start, x, start - span, ms)
     else:
         start = int(h * 0.30)
-        swipe(x, start, x, start + span)
+        swipe(x, start, x, start + span, ms)
 
 
 def open_deep_link(url):
@@ -221,6 +238,22 @@ def open_deep_link(url):
 def back():
     adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
     time.sleep(2.5)
+
+
+def back_to_list(need_cards=True, need_peek=False, timeout=60):
+    """Android Back from a pushed screen. The P6 Discovery screen is rebuilt from its saved view (placeholder, reads, list),
+    so wait for the real list (and cards / Peek), then give the saved list offset time to be restored before measuring."""
+    back()
+
+    def ready(r, p):
+        if not count_nodes(r):
+            return False
+        if need_cards and not cards(r):
+            return False
+        return bool(peek_task_title(r)) if need_peek else True
+    poll(ready, timeout, what='Discovery list after Back')
+    time.sleep(2.5)
+    return dump()
 
 
 def mem_kb():
@@ -266,6 +299,7 @@ def ui_inventory(root, limit=160):
 
 def snapshot(name):
     """PNG + XML (RU5 shot(), retried) and a compact JSON inventory next to them."""
+    dump()          # lets the RU5 helper recover a launcher (Quickstep) ANR dialog before the capture, which would otherwise be fatal
     for attempt in range(3):
         try:
             shot(name)
@@ -348,37 +382,99 @@ def selected(node):
 
 
 # ------------------------------------------------------------------------------------------------ server-side evidence
-def _db_container():
+def _container(fragment):
     names = subprocess.run(['docker', 'ps', '--format', '{{.Names}}'], capture_output=True, text=True, timeout=20).stdout.split()
-    return next((n for n in names if n.startswith('supabase_db_')), None)
+    return next((n for n in names if fragment in n), None)
+
+
+def _db_container():
+    return next((n for n in subprocess.run(['docker', 'ps', '--format', '{{.Names}}'], capture_output=True, text=True, timeout=20).stdout.split()
+                 if n.startswith('supabase_db_')), None)
+
+
+def _docker_logs(name, since=None):
+    cmd = ['docker', 'logs'] + (['--since', since] if since else []) + [name]
+    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='replace', timeout=120).stdout or ''
+
+
+def _bodies_from(text):
+    decoder = json.JSONDecoder()
+    out = []
+    for line in text.splitlines():
+        at = line.find('parameters: $')
+        if at < 0:
+            continue
+        for marker in ("$1 = '", "$2 = '"):
+            pos = line.find(marker, at)
+            start = line.find('{', pos) if pos >= 0 else -1
+            if start < 0:
+                continue
+            try:
+                body, _ = decoder.raw_decode(line[start:].replace("''", "'"))
+            except ValueError:
+                continue
+            req = body.get('p_request') if isinstance(body, dict) else None
+            if isinstance(req, dict) and req.get('mode') in ('PAGE', 'MAP', 'PLACES', 'EXACT_PUBLIC'):
+                out.append(req)
+                break
+    return out
 
 
 def harvest():
-    """Every rpc_discovery_v1 request (the parsed p_request body) the disposable database logged since the journey began.
+    """Every rpc_discovery_v1 request (the parsed p_request body) the disposable database logged since the capture window opened.
 
-    The statement log (log_statement=all) carries the bound JSON of each PostgREST call in a `parameters: $1 = '...'`
-    detail line; only bodies with a P6 mode are kept, in log order."""
+    log_statement=all makes each bound PostgREST call appear in a `parameters: $n = '...'` detail line. Only bodies with a P6
+    mode are kept, in log order. The container log is read first; a database that logs to files is read from its log directory."""
     name = _db_container()
     if not name:
         return []
-    r = subprocess.run(['docker', 'logs', '--since', START_ISO, name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                       text=True, errors='replace', timeout=120)
-    decoder = json.JSONDecoder()
-    out = []
-    for line in (r.stdout or '').splitlines():
-        at = line.find("parameters: $1 = '")
-        if at < 0:
-            continue
-        start = line.find('{', at)
-        if start < 0:
-            continue
-        try:
-            body, _ = decoder.raw_decode(line[start:].replace("''", "'"))
-        except ValueError:
-            continue
-        req = body.get('p_request') if isinstance(body, dict) else None
-        if isinstance(req, dict) and req.get('mode') in ('PAGE', 'MAP', 'PLACES', 'EXACT_PUBLIC'):
-            out.append(req)
+    bodies = _bodies_from(_docker_logs(name, START_ISO))
+    if bodies:
+        return bodies
+    r = subprocess.run(['docker', 'exec', name, 'sh', '-c', 'cat /var/log/postgresql/* 2>/dev/null | tail -n 200000'],
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='replace', timeout=120)
+    return _bodies_from(r.stdout or '')
+
+
+def log_samples(limit=8):
+    """Bounded raw evidence of what the statement log really looks like (for diagnosing a capture that finds nothing)."""
+    name = _db_container()
+    if not name:
+        return {'container': None}
+    text = _docker_logs(name, START_ISO)
+    lines = text.splitlines()
+    hits = [l[:360] for l in lines if 'rpc_discovery_v1' in l][:limit]
+    params = [l[:360] for l in lines if 'parameters:' in l][:limit]
+    return {'container': name, 'lines': len(lines), 'rpcLines': hits, 'parameterLines': params}
+
+
+def gateway_counts():
+    """Gateway access-log lines per RPC name (no bodies there): which reader the app really called, and with which status."""
+    name = _container('kong')
+    if not name:
+        return {}
+    counts = {}
+    for m in re.finditer(r'"POST /rest/v1/rpc/([a-z0-9_]+)[^"]*" (\d{3})', _docker_logs(name, START_ISO)):
+        key = f'{m.group(1)}:{m.group(2)}'
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def function_counts():
+    try:
+        rows = _admin_psql("select funcname||'='||calls from pg_stat_user_functions where funcname in ('rpc_discovery_v1','rpc_list_open_tasks_v3') order by 1")
+        return {k: int(v) for k, v in (r.split('=') for r in rows.splitlines() if '=' in r)}
+    except Exception:                                         # noqa: BLE001
+        return {}
+
+
+def reader_calls():
+    """Calls of each reader so far, from the largest of the gateway and database counters (either may be unavailable)."""
+    gw, st = gateway_counts(), function_counts()
+    out = {}
+    for name in ('rpc_discovery_v1', 'rpc_list_open_tasks_v3'):
+        via_gateway = sum(v for k, v in gw.items() if k.startswith(name + ':'))
+        out[name] = max(via_gateway, st.get(name, 0))
     return out
 
 
@@ -486,6 +582,16 @@ def ensure_peek():
     return root
 
 
+def ensure_chips():
+    """The quick chips fold away once a full list is scrolled well past them and return at its top."""
+    for _ in range(14):
+        root, parent = dump()
+        if nodes(root, desc='Na daljinu'):
+            return root
+        scroll_list('up', 0.6)
+    raise RuntimeError('quick chips did not come back at the list top')
+
+
 # ------------------------------------------------------------------------------------------------ steps
 def press_entry_pill():
     """Open the login sheet with a real press on the visible part of "Prijavi se"."""
@@ -530,7 +636,9 @@ def s_login():
 
 
 def s_ordinary_route():
-    """The ordinary Zadaci tab must stay on the legacy reader: no rpc_discovery_v1 call may come from it."""
+    """proof APK: the ordinary Zadaci tab must stay on the legacy reader (no rpc_discovery_v1 call may come from it).
+    production APK: the same tab IS the P6 reader and must call it with no route parameter at all."""
+    before = reader_calls()
     m = mark()
     root, parent = dump()
     tabs = sorted(nodes(root, desc='Zadaci'), key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])
@@ -539,17 +647,30 @@ def s_ordinary_route():
     else:
         note('TAB_BAR_LABEL_NOT_FOUND', inventory=[i['desc'] or i['text'] for i in ui_inventory(root) if i['click']][:14])
         open_deep_link('uskociapp://zadaci')
+    if ROUTE == 'production':
+        wait_requests(lambda: reader_calls()['rpc_discovery_v1'] > before['rpc_discovery_v1'], 60, 'the P6 reader called by the ordinary Zadaci tab')
     poll(lambda r, p: count_nodes(r) or nodes(r, contains='Nema zadataka') or nodes(r, contains='nisu učitani'), 60, what='ordinary Zadaci screen')
     time.sleep(4)
     root = snapshot('P6_01b_ordinary_route')
-    calls = since(m)
-    check('ORDINARY_ROUTE_DOES_NOT_CALL_P6_READER', not calls, calls=[brief(c) for c in calls[:4]], legacyCount=count_value(root)[0])
+    after = reader_calls()
+    p6 = after['rpc_discovery_v1'] - before['rpc_discovery_v1']
+    legacy = after['rpc_list_open_tasks_v3'] - before['rpc_list_open_tasks_v3']
+    REPORT['routeMark'] = m
+    REPORT['routeReaderBefore'] = before
+    REPORT['ordinaryRoute'] = {'p6Calls': p6, 'legacyCalls': legacy, 'count': count_value(root)[0], 'gateway': gateway_counts()}
+    if ROUTE == 'proof':
+        check('ORDINARY_ROUTE_DOES_NOT_CALL_P6_READER', p6 == 0, p6Calls=p6, legacyCalls=legacy, count=count_value(root)[0])
+    else:
+        check('PRODUCTION_ROUTE_CALLS_P6_READER_WITHOUT_ANY_PARAMETER', p6 >= 1, p6Calls=p6, legacyCalls=legacy, count=count_value(root)[0])
 
 
 def s_route():
-    m = mark()
-    open_deep_link(LIST_URL)
-    wait_requests(lambda: since(m, 'PAGE'), 45, 'the P6 PAGE request from the proof route')
+    before = REPORT.get('routeReaderBefore') or reader_calls()
+    m = REPORT.get('routeMark', 0) if ROUTE == 'production' else mark()
+    if ROUTE == 'proof':
+        before = reader_calls()
+        open_deep_link(LIST_URL)
+    wait_requests(lambda: reader_calls()['rpc_discovery_v1'] > before['rpc_discovery_v1'], 45, 'the P6 reader called by the route')
     _, root, _p = poll(lambda r, p: count_value(r)[0] == TOTAL, 45, what=f'count {TOTAL} from the P6 reader')
     time.sleep(3)
     root = snapshot('P6_02_route_initial')
@@ -557,12 +678,14 @@ def s_route():
     calls = since(m)
     REPORT['initialCount'] = [value, label]
     REPORT['initialRequests'] = [brief(c) for c in calls[:8]]
-    check('P6_PAGE_CALLED_BY_PROOF_ROUTE', any(c.get('mode') == 'PAGE' and not c.get('after') for c in calls), calls=len(calls))
+    check('P6_READER_CALLED_BY_ROUTE', reader_calls()['rpc_discovery_v1'] > before['rpc_discovery_v1'], before=before, after=reader_calls())
+    check('P6_PAGE_BODY_CAPTURED', any(c.get('mode') == 'PAGE' and not c.get('after') for c in calls), captured=len(calls))
     check('COUNT_MATCHES_SERVER_TOTAL', value == TOTAL, ui=value, expected=TOTAL, spoken=label)
     without = FIXTURE.get('pageProbeCounts', {}).get('withoutPoint')
     if without is not None:
-        nums = [int(x) for x in re.findall(r'\d+', label)]
-        check('WITHOUT_POINT_COUNT_MATCHES_SERVER', without in nums[1:], ui=nums, expected=without)
+        nums = [int(x) for x in re.findall(r'(\d+)', label)]
+        # At ALL scope the server reports no point-free section, so the spoken count has no "bez tačke na mapi" part.
+        check('WITHOUT_POINT_COUNT_MATCHES_SERVER', (without in nums[1:]) if without else len(nums) == 1, ui=nums, expected=without)
     st = sheet_state(root)
     REPORT['initialSheet'] = st
     ms = markers(root)
@@ -570,6 +693,8 @@ def s_route():
     check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ms) or st['full'], markers=len(ms), sheet=st)
     if not st['full']:
         check('P6_MAP_READER_CALLED', any(c.get('mode') == 'MAP' for c in calls), modes=sorted({c.get('mode') for c in calls}))
+    check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Umanji mapu')) or bool(nodes(root, contains='Izvori mape')) or st['full'],
+          zoom=bool(nodes(root, desc='Umanji mapu')), credits=bool(nodes(root, contains='Izvori mape')))
 
 
 def s_open_full():
@@ -585,10 +710,13 @@ def s_open_full():
 def s_paging():
     ensure_full()
     m = mark()
-    seen, order, idle, dupes, swipes = set(), [], 0, [], 0
-    for swipes in range(1, 61):
+    calls_before = reader_calls()['rpc_discovery_v1']
+    seen, order, idle, dupes, swipes, indexes = set(), [], 0, [], 0, set()
+    for swipes in range(1, 131):
         root, _p = dump()
-        titles = [c['title'] for c in cards(root)]
+        cs = cards(root)
+        titles = [c['title'] for c in cs]
+        indexes.update(c['index'] for c in cs)
         if len(titles) != len(set(titles)):
             dupes.append(titles)
         fresh = [t for t in titles if t not in seen]
@@ -596,22 +724,25 @@ def s_paging():
             seen.add(t)
             order.append(t)
         idle = 0 if fresh else idle + 1
-        if len(seen) >= TOTAL or idle >= 5:
+        if TOTAL in indexes or idle >= 6:
             break
         if idle:
-            time.sleep(2.0)
-        scroll_list('down', 0.5)
+            time.sleep(2.0)                      # the next page may still be on its way
+        scroll_list('down', 0.45, ms=800)        # shorter than the viewport, slow enough that no card is flung past unseen
     reqs = since(m, 'PAGE')
     cursor = [r for r in reqs if r.get('after')]
     first_page = next((r for r in harvest() if r.get('mode') == 'PAGE'), None)
     limit = (first_page or {}).get('limit')
     pages = math.ceil(TOTAL / limit) if limit else None
     root, _p = dump()
-    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'limit': limit, 'cursorRequests': len(cursor),
-                        'requests': [brief(r) for r in reqs[:10]], 'order': order[:6] + ['…'] + order[-4:]}
-    check('PAGING_REACHED_EVERY_TASK', len(seen) == TOTAL, seen=len(seen), expected=TOTAL)
+    calls_after = reader_calls()['rpc_discovery_v1']
+    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
+                        'readerCalls': calls_after - calls_before, 'requests': [brief(r) for r in reqs[:10]], 'order': order[:6] + ['...'] + order[-4:]}
+    check('PAGING_REACHED_THE_LAST_TASK', TOTAL in indexes, maxIndex=max(indexes) if indexes else None, expected=TOTAL)
+    check('PAGING_SAW_ALMOST_EVERY_TASK', len(seen) >= TOTAL - 3, seen=len(seen), expected=TOTAL)
     check('NO_DUPLICATE_CARDS_IN_ANY_VIEW', not dupes, duplicates=dupes[:2])
-    check('NEXT_PAGE_REQUESTED_WITH_CURSOR', (pages is None or pages <= 1) or bool(cursor), pages=pages, cursorRequests=len(cursor))
+    check('PAGING_CALLED_THE_READER_AGAIN', calls_after - calls_before >= 1, calls=calls_after - calls_before)
+    check('NEXT_PAGE_REQUESTED_WITH_CURSOR', bool(cursor) if pages and pages > 1 else True, pages=pages, cursorRequests=len(cursor))
     if pages:
         check('NO_RUNAWAY_PAGE_REQUESTS', len(cursor) <= max(pages, 1) * 2, cursorRequests=len(cursor), pages=pages)
     check('COUNT_STABLE_AFTER_PAGING', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL)
@@ -631,7 +762,7 @@ def s_detail_and_back():
     _, root, _p = poll(lambda r, p: not count_nodes(r) and any(pick['title'] in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30, what='task detail')
     snapshot('P6_05_detail')
     check('DETAIL_SHOWS_TITLE', True, title=pick['title'])
-    back()
+    back_to_list()
     root = snapshot('P6_06_after_back')
     cs = cards(root)
     same = next((c for c in cs if c['title'] == pick['title']), None)
@@ -657,8 +788,7 @@ def s_repeat_cycles(n=10):
         pick = cs[min(1, len(cs) - 1)]
         tap_visible(pick['node'], parent)
         time.sleep(2.5)
-        back()
-        root, _p = dump()
+        root, _p = back_to_list()
         check(f'CYCLE_{i:02d}_LIST_RESTORED', any(c['title'] == pick['title'] for c in cards(root)) and sheet_state(root)['full'], title=pick['title'])
         if i in (1, n // 2, n):
             REPORT['mem'].append({'tag': f'cycle_{i}', 'kb': mem_kb(), 'pid': app_pid()})
@@ -687,6 +817,7 @@ def chip(root, label):
 
 def s_filters():
     ensure_peek()
+    ensure_chips()
     root, parent = dump()
     remote, onsite = chip(root, 'Na daljinu'), chip(root, 'Na licu mesta')
     if remote is None or onsite is None:
@@ -811,7 +942,7 @@ def s_map_cluster_and_task():
     tap_visible(nodes(root, prefix='Otvori zadatak: ')[0], parent)
     _, root, _p = poll(lambda r, p: not count_nodes(r) and any((title or '@@') in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30, what='task detail from Peek')
     snapshot('P6_16_detail_from_peek')
-    back()
+    back_to_list(need_cards=False, need_peek=True)
     root = snapshot('P6_17_after_back_peek')
     check('BACK_RESTORES_PEEK_SAME_TASK', peek_task_title(root) == title, wanted=title, got=peek_task_title(root))
     now = sorted(mk['bounds'] for mk in markers(root))
@@ -827,7 +958,7 @@ def s_map_cluster_and_task():
 def s_search_places():
     ensure_peek()
     root, parent = dump()
-    bar = nodes(root, desc='Pretraži zadatke')
+    bar = nodes(root, prefix='Pretraži zadatke')
     if not bar:
         raise RuntimeError('search bar not found')
     m = mark()
@@ -874,6 +1005,18 @@ def s_search_places():
         wait_count(TOTAL, 25)
 
 
+def capture_self_test():
+    """The fixture's own three PAGE probes (any / remote / onsite) ran after statement logging was switched on: they must be
+    readable back, otherwise every body-based check below is meaningless and the raw log shape is recorded instead."""
+    bodies = harvest()
+    wheres = sorted({(r.get('filter') or {}).get('where') for r in bodies if r.get('mode') == 'PAGE'} - {None})
+    ok = {'any', 'remote', 'onsite'} <= set(wheres)
+    REPORT['captureSelfTest'] = {'bodies': len(bodies), 'wheres': wheres, 'start': START_ISO}
+    if not ok:
+        REPORT['logSamples'] = log_samples()
+    check('STATEMENT_LOG_CAPTURES_REQUEST_BODIES', ok, bodies=len(bodies), wheres=wheres)
+
+
 def s_final():
     root, _p = dump()
     snapshot('P6_99_final')
@@ -886,11 +1029,19 @@ def s_final():
         modes[r.get('mode')] = modes.get(r.get('mode'), 0) + 1
     REPORT['requestModes'] = modes
     REPORT['requestLog'] = [brief(r) for r in reqs[:150]]
+    REPORT['readerCalls'] = reader_calls()
+    REPORT['gateway'] = gateway_counts()
+    if not reqs and 'logSamples' not in REPORT:
+        REPORT['logSamples'] = log_samples()
     check('SERVER_REQUEST_LOG_AVAILABLE', bool(reqs), total=len(reqs), modes=modes)
 
 
 def main():
-    note('START', mode=MODE, total=TOTAL, expected=EXPECTED)
+    note('START', mode=MODE, route=ROUTE, total=TOTAL, expected=EXPECTED)
+    try:
+        capture_self_test()
+    except Exception as exc:                       # noqa: BLE001
+        note('CAPTURE_SELF_TEST_ERROR', error=str(exc)[:200])
     for name, fn in (('login', s_login), ('ordinary_route', s_ordinary_route), ('route', s_route), ('open_full', s_open_full),
                      ('paging', s_paging), ('detail_back', s_detail_and_back), ('cycles', s_repeat_cycles),
                      ('filters', s_filters), ('map_place', s_map_place), ('map_cluster_task', s_map_cluster_and_task),
@@ -898,6 +1049,8 @@ def main():
         step(name, fn)
         if name == 'login' and not REPORT['steps'][-1]['ok']:
             break                                  # nothing else can run signed out
+        if name == 'login' or (name == 'ordinary_route' and ROUTE == 'proof'):
+            continue                               # the next step opens the list itself (a proof-route recovery would spoil the ordinary-route check)
         try:
             ensure_list()
         except Exception as exc:                   # noqa: BLE001

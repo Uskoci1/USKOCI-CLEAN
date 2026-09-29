@@ -62,6 +62,11 @@ jobs:
           drift="$(git diff --name-only "$apk_sha" HEAD -- src assets app.json app.config.js package.json package-lock.json babel.config.js metro.config.js index.js || true)"
           if [[ -n "$drift" ]]; then echo "Client source moved since the APK build ($apk_sha):"; echo "$drift"; echo "Rebuild the APK (touch p6_native_apk_build.txt) and record its run id."; exit 1; fi
           echo "P6N_APK_SOURCE=$apk_sha" >> "$GITHUB_ENV"
+          # An APK run recorded before flavours existed is a proof-flavour build.
+          flavor="proof"; [[ -f /tmp/p6-native-apk/flavor.txt ]] && flavor="$(tr -d '[:space:]' < /tmp/p6-native-apk/flavor.txt)"
+          recorded="$(tr -d '[:space:]' < supabase/proofs/discovery/p6_native_apk_flavor.txt)"
+          [[ "$flavor" == "$recorded" ]] || { echo "APK flavour ($flavor) differs from p6_native_apk_flavor.txt ($recorded): record the matching APK run"; exit 1; }
+          echo "P6N_ROUTE=$flavor" >> "$GITHUB_ENV"
           echo "PASS P6_NATIVE_APK_BOUND run=$P6N_APK_RUN source=$apk_sha no_client_source_drift"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -118,7 +123,16 @@ jobs:
           admin="postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres"
           psql "$admin" -X -qAt -c "alter system set track_functions='all'" || echo "track_functions unavailable (non-fatal)"
           psql "$admin" -X -qAt -c "alter system set log_statement='all'" -c "alter system set log_parameter_max_length=-1" -c "select pg_reload_conf()"
-          psql "$admin" -X -qAt -c "show log_statement"
+          psql "$admin" -X -qAt -c "show log_statement" -c "show log_destination" -c "show logging_collector" -c "show log_directory"
+          # Statement-log self-test: an extended-protocol statement with a bound parameter must appear in the container log
+          # (the journey driver reads the app's PostgREST calls back from exactly such lines).
+          psql "$DB_URL" -X -qAt <<'SQL' || echo "psql bind self-test statement unavailable (non-fatal)"
+          select $1::text \bind 'p6_logging_selftest' \g
+          SQL
+          sleep 2
+          db="$(docker ps --format '{{.Names}}' | grep '^supabase_db_' | head -1)"
+          echo "db container: ${db:-none}; gateway: $(docker ps --format '{{.Names}}' | grep -m1 kong || echo none)"
+          docker logs "$db" 2>&1 | grep -n -B1 -A1 "p6_logging_selftest" | cut -c1-300 | head -12 || echo "SELFTEST_NOT_IN_CONTAINER_LOG"
           expected='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
           if [[ "$RU5_DEVICE_ANON_KEY" != "$expected" ]]; then
             echo "The live stack anon key differs from the key compiled into the APK."
