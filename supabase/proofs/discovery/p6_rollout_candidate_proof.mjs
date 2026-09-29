@@ -73,7 +73,10 @@ rollback;`;
  const raw=mustSql(sql);
  const line=raw.split('\n').filter(x=>x.startsWith('{')).at(-1);
  assert(line,'P6_EXPECTED_HASH_OUTPUT');
- return JSON.parse(line);
+ const parsed=JSON.parse(line);
+ return Object.fromEntries(Object.entries(parsed).map(([key,value])=>[
+   key.startsWith('public.')?key:'public.'+key,value
+ ]));
 }
 function applyRollout(expectSuccess){
  const run=spawnSync('psql',[process.env.DB_URL,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',rollout],
