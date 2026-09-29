@@ -130,6 +130,7 @@ it('public PAGE is publishable before optional profile overlay finishes',async()
  profileGate.resolve(null);
  for(let n=0;n<20&&route.snapshot().overlay.loading;n++)await Promise.resolve();
  expect(route.snapshot().overlay.loading).toBe(false);
+ await Promise.resolve();
  expect(optionalChanged).toHaveBeenCalledTimes(1);
 });
 
