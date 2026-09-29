@@ -77,14 +77,14 @@ jobs:
           NODE
       - name: Generate Android native project
         run: npx expo prebuild --platform android --clean
-      - name: Tune Gradle for x86_64 proof candidate
+      - name: Tune Gradle for ARM64 physical proof candidate
         run: |
           node <<'NODE'
           const fs=require('fs'),p='android/gradle.properties';let text=fs.readFileSync(p,'utf8');
           const set=(k,v)=>{const r=new RegExp('^'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=.*$','m'),line=k+'='+v;
             text=r.test(text)?text.replace(r,line):text.trimEnd()+'\n'+line+'\n';};
           set('org.gradle.jvmargs','-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8');
-          set('reactNativeArchitectures','x86_64');fs.writeFileSync(p,text);
+          set('reactNativeArchitectures','arm64-v8a');fs.writeFileSync(p,text);
           NODE
       - name: Build proof APK
         working-directory: android
@@ -94,12 +94,22 @@ jobs:
       - name: Bind proof APK
         run: |
           set -euo pipefail
-          cp android/app/build/outputs/apk/release/app-release.apk /tmp/p6-round58/USKOCI-P6-PROOF.apk
-          sha256sum /tmp/p6-round58/USKOCI-P6-PROOF.apk > /tmp/p6-round58/USKOCI-P6-PROOF.apk.sha256
+          cp android/app/build/outputs/apk/release/app-release.apk /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk
+          sha256sum /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk > /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk.sha256
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort | tail -1)"
           test -n "$AAPT"
-          "$AAPT" dump badging /tmp/p6-round58/USKOCI-P6-PROOF.apk | head -1 | tee /tmp/p6-round58/badging.txt
+          "$AAPT" dump badging /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk | head -1 | tee /tmp/p6-round58/badging.txt
           grep -F "package: name='rs.uskoci.dev'" /tmp/p6-round58/badging.txt
+          unzip -l /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk | grep -F 'lib/arm64-v8a/' > /tmp/p6-round58/abi.txt
+          if unzip -l /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk | grep -q -E 'lib/(x86|x86_64|armeabi-v7a)/'; then
+            echo "Proof APK must be ARM64-only."
+            exit 1
+          fi
+      - name: Restore source tree after native package injection
+        run: |
+          set -euo pipefail
+          git restore --source="$GITHUB_SHA" -- app.json
+          git diff -- app.json --exit-code
       - name: Evidence and generated control
         run: |
           set -euo pipefail
@@ -125,9 +135,10 @@ jobs:
         with:
           name: p6-native-proof-${{ github.sha }}-${{ github.run_id }}
           path: |
-            /tmp/p6-round58/USKOCI-P6-PROOF.apk
-            /tmp/p6-round58/USKOCI-P6-PROOF.apk.sha256
+            /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk
+            /tmp/p6-round58/USKOCI-P6-PROOF-ARM64.apk.sha256
             /tmp/p6-round58/badging.txt
+            /tmp/p6-round58/abi.txt
             /tmp/p6-round58/focused.json
             /tmp/p6-round58/full.json
             /tmp/p6-round58/published-head.txt
