@@ -57,15 +57,15 @@ alter policy needs_public_discovery on public.needs
   );
 
 do $p6_visibility_post$
-declare b p6_visibility_before%rowtype; mismatch bigint; helper record; public_qual text;
+declare before_row p6_visibility_before%rowtype; mismatch bigint; helper record; public_qual text;
 begin
-  select * into strict b from p6_visibility_before;
-  if private.closure_source_digest_v5() is distinct from b.source_digest
-     or (select sha256 from private.closure_source_v5 where singleton) is distinct from b.certificate
-     or (select sha256 from private.closure_erasure_source_v5 where singleton) is distinct from b.erasure
-     or (select relacl::text from pg_class where oid='public.needs'::regclass) is distinct from b.needs_acl
+  select * into strict before_row from p6_visibility_before;
+  if private.closure_source_digest_v5() is distinct from before_row.source_digest
+     or (select sha256 from private.closure_source_v5 where singleton) is distinct from before_row.certificate
+     or (select sha256 from private.closure_erasure_source_v5 where singleton) is distinct from before_row.erasure
+     or (select relacl::text from pg_class where oid='public.needs'::regclass) is distinct from before_row.needs_acl
     then raise exception 'P6_VISIBILITY_AUTHORITY_MOVED'; end if;
-  if b.source_digest is distinct from b.certificate or b.source_digest is distinct from b.erasure
+  if before_row.source_digest is distinct from before_row.certificate or before_row.source_digest is distinct from before_row.erasure
     then raise exception 'P6_VISIBILITY_PREDECESSOR_NOT_CERTIFIED'; end if;
 
   select prosecdef,provolatile,proconfig,
@@ -83,13 +83,14 @@ begin
     select account_id from private.account_lineage_v5
     union select '00000000-0000-4000-8000-000000000001'::uuid
   ), pairs as (
-    select a.account_id a,b.account_id b from ids a cross join ids b
+    select left_ids.account_id as left_id,right_ids.account_id as right_id
+    from ids left_ids cross join ids right_ids
   )
   select count(*) into mismatch from pairs
-  where private.accounts_same_world(a,b) is distinct from (
-    (a=any(rls_private.p6_discovery_test_world_accounts()))
+  where private.accounts_same_world(left_id,right_id) is distinct from (
+    (left_id=any(rls_private.p6_discovery_test_world_accounts()))
     =
-    (b=any(rls_private.p6_discovery_test_world_accounts()))
+    (right_id=any(rls_private.p6_discovery_test_world_accounts()))
   );
   if mismatch<>0 then raise exception 'P6_VISIBILITY_SEMANTIC_MISMATCH:%',mismatch; end if;
 
