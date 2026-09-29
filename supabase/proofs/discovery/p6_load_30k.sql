@@ -147,27 +147,25 @@ begin
  insert into p6_load_cases(label,request) values('SCAN',null),('COVERAGE_SCAN',null);
 end $cases$;
 
-create function pg_temp.p6_load_refresh_anchors() returns void language plpgsql security invoker as $refresh$
-declare c record; answer jsonb; fresh_anchor jsonb; seed jsonb;
+create function pg_temp.p6_load_refresh_anchor(kind text) returns void language plpgsql security invoker as $refresh$
+declare req jsonb; answer jsonb; fresh_anchor jsonb; seed jsonb;
 begin
  if current_user<>'authenticated' or auth.uid() is distinct from current_setting('p6.load.reader')::uuid
     or not row_security_active('public.needs') or current_setting('row_security')<>'on'
   then raise exception 'P6_LOAD_AUTHORITY_REQUIRED'; end if;
- for c in select label,request from pg_temp.p6_load_cases
-   where request is not null and request->>'mode' in ('PAGE','MAP','PLACES')
- loop
-  if c.request->>'mode'='PLACES' then
-   seed:=jsonb_set(c.request,'{anchor}','null'::jsonb);
-   answer:=public.rpc_discovery_v1(seed);
-   fresh_anchor:=answer->'anchor';
-  else
-   fresh_anchor:=pg_temp.p6_load_page_anchor(c.request->'filter');
-  end if;
-  if jsonb_typeof(fresh_anchor)<>'object' then raise exception 'P6_LOAD_REFRESH_ANCHOR:%',c.label; end if;
-  update pg_temp.p6_load_cases set request=jsonb_set(c.request,'{anchor}',fresh_anchor) where label=c.label;
- end loop;
+ select request into strict req from pg_temp.p6_load_cases where label=kind;
+ if req is null or req->>'mode' not in ('PAGE','MAP','PLACES') then raise exception 'P6_LOAD_REFRESH_CASE:%',kind; end if;
+ if req->>'mode'='PLACES' then
+  seed:=jsonb_set(req,'{anchor}','null'::jsonb);
+  answer:=public.rpc_discovery_v1(seed);
+  fresh_anchor:=answer->'anchor';
+ else
+  fresh_anchor:=pg_temp.p6_load_page_anchor(req->'filter');
+ end if;
+ if jsonb_typeof(fresh_anchor)<>'object' then raise exception 'P6_LOAD_REFRESH_ANCHOR:%',kind; end if;
+ update pg_temp.p6_load_cases set request=jsonb_set(req,'{anchor}',fresh_anchor) where label=kind;
 end $refresh$;
-grant execute on function pg_temp.p6_load_refresh_anchors() to authenticated;
+grant execute on function pg_temp.p6_load_refresh_anchor(text) to authenticated;
 
 create function pg_temp.p6_load_once(kind text,batch integer,sequence integer) returns void language plpgsql security invoker as $run$
 declare req jsonb; expected_reply jsonb; answer jsonb; started timestamptz; elapsed numeric;
@@ -234,16 +232,40 @@ select format('select %L; select pg_temp.p6_load_once(%L,0,0);','P6_LOAD_CASE_ST
 \gexec
 -- A Discovery snapshot expires after 30 minutes. This benchmark intentionally lasts longer, so each
 -- 30-sample block starts from a fresh legitimate anchor rather than weakening expiry semantics.
-select pg_temp.p6_load_refresh_anchors();
-select format('select %L; select pg_temp.p6_load_once(%L,1,%s);','P6_LOAD_CASE_START block=1 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,1,%s);','P6_LOAD_CASE_START block=1 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,15) s
  order by s,case when (1+s)%2=0 then label end asc,case when (1+s)%2<>0 then label end desc
 \gexec
-select pg_temp.p6_load_refresh_anchors();
-select format('select %L; select pg_temp.p6_load_once(%L,2,%s);','P6_LOAD_CASE_START block=2 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,1,%s);','P6_LOAD_CASE_START block=1 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(16,30) s
+ order by s,case when (1+s)%2=0 then label end asc,case when (1+s)%2<>0 then label end desc
+\gexec
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,2,%s);','P6_LOAD_CASE_START block=2 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,15) s
  order by s,case when (2+s)%2=0 then label end asc,case when (2+s)%2<>0 then label end desc
 \gexec
-select pg_temp.p6_load_refresh_anchors();
-select format('select %L; select pg_temp.p6_load_once(%L,3,%s);','P6_LOAD_CASE_START block=3 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,2,%s);','P6_LOAD_CASE_START block=2 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(16,30) s
+ order by s,case when (2+s)%2=0 then label end asc,case when (2+s)%2<>0 then label end desc
+\gexec
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,3,%s);','P6_LOAD_CASE_START block=3 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,15) s
+ order by s,case when (3+s)%2=0 then label end asc,case when (3+s)%2<>0 then label end desc
+\gexec
+select format('select %L; select pg_temp.p6_load_refresh_anchor(%L);','P6_LOAD_ANCHOR_REFRESH case='||label,label)
+ from p6_load_cases where request is not null and request->>'mode' in ('PAGE','MAP','PLACES') order by label
+\gexec
+select format('select %L; select pg_temp.p6_load_once(%L,3,%s);','P6_LOAD_CASE_START block=3 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(16,30) s
  order by s,case when (3+s)%2=0 then label end asc,case when (3+s)%2<>0 then label end desc
 \gexec
 
