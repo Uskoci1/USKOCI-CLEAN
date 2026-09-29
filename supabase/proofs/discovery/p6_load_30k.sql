@@ -229,20 +229,21 @@ select 'P6_LOAD_ENV '||jsonb_build_object('postgres',current_setting('server_ver
  'dense',12000,'sparse',12000,'remote',3000,'pointFreeOnsite',3000,'selectedOneSlot',3000,'concurrency',1,'blocks',3,
  'warmupsPerCase',3,'samplesPerBlockCase',30,'network','SQL_only','rlsBypassed',false)::text;
 
-select format('select pg_temp.p6_load_once(%L,0,0);',label) from p6_load_cases cross join generate_series(1,3) w order by w,label
+select format('select %L; select pg_temp.p6_load_once(%L,0,0);','P6_LOAD_CASE_START warmup='||w||' case='||label,label)
+ from p6_load_cases cross join generate_series(1,3) w order by w,label
 \gexec
 -- A Discovery snapshot expires after 30 minutes. This benchmark intentionally lasts longer, so each
 -- 30-sample block starts from a fresh legitimate anchor rather than weakening expiry semantics.
 select pg_temp.p6_load_refresh_anchors();
-select format('select pg_temp.p6_load_once(%L,1,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_once(%L,1,%s);','P6_LOAD_CASE_START block=1 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
  order by s,case when (1+s)%2=0 then label end asc,case when (1+s)%2<>0 then label end desc
 \gexec
 select pg_temp.p6_load_refresh_anchors();
-select format('select pg_temp.p6_load_once(%L,2,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_once(%L,2,%s);','P6_LOAD_CASE_START block=2 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
  order by s,case when (2+s)%2=0 then label end asc,case when (2+s)%2<>0 then label end desc
 \gexec
 select pg_temp.p6_load_refresh_anchors();
-select format('select pg_temp.p6_load_once(%L,3,%s);',label,s) from p6_load_cases cross join generate_series(1,30) s
+select format('select %L; select pg_temp.p6_load_once(%L,3,%s);','P6_LOAD_CASE_START block=3 sample='||s||' case='||label,label,s) from p6_load_cases cross join generate_series(1,30) s
  order by s,case when (3+s)%2=0 then label end asc,case when (3+s)%2<>0 then label end desc
 \gexec
 
