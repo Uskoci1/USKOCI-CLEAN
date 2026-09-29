@@ -116,7 +116,8 @@ jobs:
       - name: Track function calls and bind the APK to this stack
         run: |
           set -euo pipefail
-          psql "$DB_URL" -X -qAt -v ON_ERROR_STOP=1 -c "alter system set track_functions='all'" -c "select pg_reload_conf()"
+          # The `postgres` role of the local stack cannot set track_functions; supabase_admin can (best effort, the driver also reads gateway logs).
+          psql "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres" -X -qAt -c "alter system set track_functions='all'" -c "select pg_reload_conf()" || echo "track_functions unavailable (non-fatal)"
           expected='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
           if [[ "$RU5_DEVICE_ANON_KEY" != "$expected" ]]; then
             echo "The live stack anon key differs from the key compiled into the APK."

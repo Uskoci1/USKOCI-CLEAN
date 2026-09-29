@@ -123,19 +123,36 @@ def scroll_list(direction='down', fraction=0.5):
         swipe(w // 2, top, w // 2, top + span)
 
 
+def _admin_psql(sql):
+    """The local stack's `postgres` role is not a superuser; supabase_admin is (same password on the disposable stack)."""
+    url = DB_URL.replace('//postgres:', '//supabase_admin:', 1)
+    r = subprocess.run(['psql', url, '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-c', sql], capture_output=True, text=True, timeout=30)
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip()[:200])
+    return r.stdout.strip()
+
+
 def rpc_calls():
-    """Number of rpc_discovery_v1 executions since the last reset (track_functions=all is enabled by the workflow)."""
+    """Executions of rpc_discovery_v1 seen so far: the larger of the gateway access-log count and the DB function statistics."""
+    seen = {'kong': 0, 'db': 0}
     try:
-        return int(psql("select coalesce(sum(calls),0)::bigint from pg_stat_user_functions where funcname='rpc_discovery_v1'") or 0)
-    except Exception:
-        return -1
+        names = subprocess.run(['docker', 'ps', '--format', '{{.Names}}'], capture_output=True, text=True, timeout=20).stdout.split()
+        for name in [n for n in names if 'kong' in n][:1]:
+            logs = subprocess.run(['docker', 'logs', name], capture_output=True, text=True, timeout=60)
+            seen['kong'] = (logs.stdout + logs.stderr).count('rpc_discovery_v1')
+    except Exception as exc:                                  # noqa: BLE001
+        seen['kongError'] = str(exc)[:120]
+    try:
+        seen['db'] = int(_admin_psql("select coalesce(sum(calls),0)::bigint from pg_stat_user_functions where funcname='rpc_discovery_v1'") or 0)
+    except Exception as exc:                                  # noqa: BLE001
+        seen['dbError'] = str(exc)[:120]
+    REPORT.setdefault('rpcSources', []).append(dict(seen, t=round(time.time(), 1)))
+    return max(seen['kong'], seen['db'])
 
 
 def reset_rpc_calls():
-    try:
-        psql("select pg_stat_reset_single_function_counters('public.rpc_discovery_v1(jsonb)'::regprocedure)")
-    except Exception as exc:                                  # noqa: BLE001
-        note('RPC_COUNTER_RESET_FAILED', error=str(exc)[:160])
+    """Counters cannot be reset without superuser everywhere; the journey works with deltas from this baseline."""
+    REPORT['rpcBaseline'] = rpc_calls()
 
 
 def mem_kb():
@@ -186,8 +203,6 @@ def s_login():
 
 
 def s_route():
-    reset_rpc_calls()
-    time.sleep(1.5)
     REPORT['rpcBefore'] = rpc_calls()
     open_deep_link('uskociapp://zadaci?p6Proof=1')
     wait_nodes(timeout=60, minimum=1, contains='zadatak')

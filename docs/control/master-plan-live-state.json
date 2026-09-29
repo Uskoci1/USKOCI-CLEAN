@@ -4,21 +4,54 @@
   },
   "p6": {
     "status": "OPEN",
-    "note": "30k SQL screening je ZELEN (Round67, run 36632921473, 67ffd458): PAGE/MAP/PLACES/EXACT p95 do 994 ms uz screening prag 1000 ms; to nije HTTP/native/concurrency dokaz. Preostalo: rollout paket sa visibility+places slojevima (frozen ce1dab6b… ih još ne sadrži), disposable PKG045b+P6 native prihvatanje (FULL→detail→Back, scroll/viewport/pin, memorija/ANR), PKG045b kompatibilnost, kontrolisan DEV rollout i cutover čitača. P6 RPC nije na DEV-u (ledger 210)."
+    "note": "30k SQL screening ZELEN (Round67, run 36632921473, 67ffd458); to nije HTTP/native/concurrency dokaz. Round68 (2026-09-30): deployable rollout v2 = frozen ce1dab6b… + visibility + PLACES sloj, sastavljen deterministički i dokazan na disposable PKG045b meti (run 36640264441, sha256 da01a4f1…): isti body/policy/helper kao proveren stack, sertifikat i Need ACL nepromenjeni, ponovna primena odbijena. x86_64 proof APK izgrađen (run 36638658459); nativni prolaz na disposable restricted serveru u toku. Preostalo: nativno prihvatanje FULL→detalj→Back + memorija/ANR, PKG045b zapis kompatibilnosti pa DEV primena (preflight + readback), primena rollout v2, cutover čitača, završni P6 receipt. P6 RPC još nije na DEV-u (ledger 210)."
   },
   "release": {
     "status": "NOT READY",
-    "legal": { "done": null, "total": 20 },
-    "store": { "done": null, "total": 28 },
+    "legal": {
+      "done": null,
+      "total": 20
+    },
+    "store": {
+      "done": null,
+      "total": 28
+    },
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "P6 native prihvatanje: disposable PKG045b + rollout + visibility + places + x86_64 proof APK na CI emulatoru (FULL → detail → Back, scroll/viewport/pin, memorija/ANR)",
-    "note": "Bez novih performance eksperimenata i bez širenja na P7. Live DEV upis samo uz paket-specifično vlasničko odobrenje."
+    "title": "P6 native prihvatanje na disposable restricted serveru (probe → full), pa PKG045b + rollout v2 na DEV uz preflight/readback, pa cutover čitača",
+    "note": "Bez novih performance eksperimenata i bez P7. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ipak ide sa svežim preflight-om i readback-om."
   },
   "evidence": [
-    { "id": "P6-30K-FINALCOST", "run": 36632921473, "sha": "67ffd458b7d312cdf9d4e9a53a5f1316cda2a75d", "result": "PASS (720 SQL-only samples, RLS on, one backend)" },
-    { "id": "P6-VISIBILITY-PROOF", "run": 36625252153, "sha": "b21fa6fbdfd45647dcaa8cd6b099ec946dadc8ef", "result": "PASS (source-only candidate a988f403…)" },
-    { "id": "P6-PLACES-PROOF", "run": 36632298830, "sha": "afe99cdbd94dde26a623727ce945a04131916a0b", "result": "PASS (source-only candidate 9297c4a1…)" }
+    {
+      "id": "P6-30K-FINALCOST",
+      "run": 36632921473,
+      "sha": "67ffd458b7d312cdf9d4e9a53a5f1316cda2a75d",
+      "result": "PASS (720 SQL-only samples, RLS on, one backend)"
+    },
+    {
+      "id": "P6-VISIBILITY-PROOF",
+      "run": 36625252153,
+      "sha": "b21fa6fbdfd45647dcaa8cd6b099ec946dadc8ef",
+      "result": "PASS (source-only candidate a988f403…)"
+    },
+    {
+      "id": "P6-PLACES-PROOF",
+      "run": 36632298830,
+      "sha": "afe99cdbd94dde26a623727ce945a04131916a0b",
+      "result": "PASS (source-only candidate 9297c4a1…)"
+    },
+    {
+      "id": "P6-ROLLOUT-V2-PROOF",
+      "run": 36640264441,
+      "sha": "09665f780e2bab1a4de5a685c5375d728a7824f7",
+      "result": "PASS (disposable PKG045b target; candidate da01a4f1…)"
+    },
+    {
+      "id": "P6-NATIVE-APK-X86_64",
+      "run": 36638658459,
+      "sha": "76f30d556f18cd562d0ee0920242f00d5553aeb8",
+      "result": "BUILT (rs.uskoci.dev, proof flag, endpoint 10.0.2.2:54321); not device acceptance"
+    }
   ]
 }
