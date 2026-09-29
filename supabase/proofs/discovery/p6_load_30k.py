@@ -75,8 +75,10 @@ def main()->int:
         if run.returncode:
             m=re.search(r'(?:ERROR|FATAL):\s+([0-9A-Z]{5}):',run.stderr)
             if m: report['sqlState']=m.group(1)
-            m=re.search(r'(P6_LOAD_[A-Z0-9_]+(?::[^\n]*)?)',run.stderr)
+            m=re.search(r'(P6_[A-Z0-9_]+(?::[^\n]*)?)',run.stderr)
             if m: report['diagnostic']=m.group(1)[:240]
+            detail=re.search(r'DETAIL:\s+([^\n]+)',run.stderr)
+            if detail: report['detail']=detail.group(1)[:240]
             raise ValueError('P6_LOAD_SQL_REFUSED')
         require('PASS P6_LOAD_30000_CORRECTNESS_AND_720_SAMPLES' in run.stdout.splitlines(),'P6_LOAD_PASS_MARKER')
 
