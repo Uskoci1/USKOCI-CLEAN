@@ -16,7 +16,7 @@ Round53 overlay application now admits a bounded metadata slice without rejectin
 
 ## Checks / exact source
 
-Tested commit af0d14bcfd65f0f6d01d595c45cc9a8fdfa0b9dc; Actions run 36521748674. TypeScript PASS. Focused search owner/coordinator/overlay/search-panel/bridge suites: 5 suites / 63 tests PASS. Existing P6 + Discovery regressions: 9 suites / 258 tests PASS. Full Jest: 356 suites / 7370 tests PASS.
+Tested commit 685810fc3dbb44d1ed8d71edf7f42e283de27bc9; Actions run 36552906782. TypeScript PASS. Focused search owner/coordinator/overlay/search-panel/bridge suites: 5 suites / 65 tests PASS. Existing P6 + Discovery regressions: 9 suites / 258 tests PASS. Full Jest: 357 suites / 7374 tests PASS.
 
 Focused checks prove exact server count can be 37 while one local row is loaded; stale preview never falls back to local count; locality failure leaves PAGE count usable; PLACES continuation keeps prefix/facetArea/cursor and deduplicates; remote sends one PAGE only; newer drafts fence older reads; viewport/sheet/offset create no transport calls; a search intent creates a new PAGE/MAP traversal; map-area changes retain the accepted anchor and passive viewport/offset; the bridge receives the coordinator search snapshot; optional metadata remains bounded after more than 100 PAGE rows.
 
