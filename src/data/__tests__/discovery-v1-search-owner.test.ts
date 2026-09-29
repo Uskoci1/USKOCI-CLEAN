@@ -12,7 +12,7 @@ const item=():any=>({id:ID,revision:1,sortAt:AT,publishedAt:AT,title:'Selidba',c
  priceMode:'OFFERS',requesterPriceRsd:null,priceBasis:null,requesterProfileId:PROFILE,responseDeadline:null,acceptsApplications:true,
  publicTopology:null,criticalConditions:null});
 const page=(listed=42):any=>({version:'DISCOVERY_V1',mode:'PAGE',asOf:AT,filterKey:A,anchor:anchor(),items:[item()],hasMore:true,
- nextCursor:{scopeKey:B,section:0,sortAt:AT,id:ID},counts:{kind:'exact_live',observedAt:AT,mapped:80,listed,inArea:30,withoutPoint:5,undated:7},
+ nextCursor:{scopeKey:B,section:0,sortAt:AT,id:ID},counts:{kind:'exact_live',observedAt:AT,mapped:80,listed,inArea:Math.min(30,listed),withoutPoint:Math.min(5,listed),undated:7},
  availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['MY_PRICE','OFFERS']}});
 const places=(rows=[{key:'novi sad, liman',text:'Novi Sad, Liman',count:9}],more=true):any=>({
  version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:A,anchor:anchor(),items:rows,hasMore:more,

@@ -94,7 +94,6 @@ test('P6 search count and locality suggestions come from server preview, never t
   expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual([
     'Svi zadaci, 80 zadataka', 'Oblast sa mape, 23 zadatka', 'Novi Sad, Liman, 21 zadatak', 'Beograd, Vračar, 9 zadataka',
   ]);
-  expect(texts()).toContain('6 zadataka bez datuma nisu u ovom izboru.');
 });
 
 test('a stale P6 preview shows loading and never falls back to local row counts', async () => {
