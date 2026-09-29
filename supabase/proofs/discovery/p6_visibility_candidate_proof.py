@@ -51,7 +51,7 @@ select pg_temp.p6_load_refresh_anchor('PLACES_SPARSE');
     tail=r"""
 select format('select pg_temp.p6_load_once(%L,0,0);',label)
 from p6_load_cases order by label
-\\gexec
+\gexec
 """+refresh+f"""
 select format(
  'select pg_temp.p6_load_once(%L,1,%s); select %L||elapsed_ms from pg_temp.p6_load_samples where block=1 and label=%L and sample=%s;',
@@ -59,8 +59,8 @@ select format(
 from p6_load_cases cross join generate_series(1,3) s
 where label in ({labels})
 order by s,label
-\\gexec
-\\echo 'PASS P6_VISIBILITY_30K_SHORT'
+\gexec
+\echo 'PASS P6_VISIBILITY_30K_SHORT'
 rollback;
 """
     return prefix+tail
@@ -110,6 +110,7 @@ def main()->int:
             if m:report['sqlState']=m.group(1)
             m=re.search(r'(P6_[A-Z0-9_]+(?::[^\n]*)?)',run.stderr)
             if m:report['diagnostic']=m.group(1)[:240]
+            report['loadStderrTail']=[line[:240] for line in run.stderr.splitlines()[-6:]]
             raise ValueError('P6_VISIBILITY_LOAD_REFUSED')
         require('PASS P6_VISIBILITY_30K_SHORT' in lines,'P6_VISIBILITY_PASS_MARKER')
         require(len(samples)==24,'P6_VISIBILITY_SAMPLE_COUNT')
