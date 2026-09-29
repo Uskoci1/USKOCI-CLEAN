@@ -47,11 +47,24 @@ begin
   ), place_qualified as materialized (
    select w.*,(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok
    from place_wanted w
-  ), facet_source as materialized (
-   select id,published_at,public.p6_discovery_area(approximate_area,approximate_city,false) as area_text
-   from place_qualified where time_ok and execution_location_mode is distinct from 'REMOTE'
+  ), facet_raw_counts as materialized (
+   select approximate_area,approximate_city,count(*)::bigint as raw_count
+   from place_qualified
+   where time_ok and execution_location_mode is distinct from 'REMOTE'
+   group by approximate_area,approximate_city
+  ), facet_raw_representatives as materialized (
+   select distinct on(approximate_area,approximate_city)
+    approximate_area,approximate_city,published_at,id
+   from place_qualified
+   where time_ok and execution_location_mode is distinct from 'REMOTE'
+   order by approximate_area,approximate_city,published_at desc,id desc
+  ), facet_raw as materialized (
+   select c.approximate_area,c.approximate_city,c.raw_count,r.published_at,r.id,
+    public.p6_discovery_area(c.approximate_area,c.approximate_city,false) as area_text
+   from facet_raw_counts c join facet_raw_representatives r using(approximate_area,approximate_city)
   ), facet_keys as materialized (
-   select public.p6_discovery_key(area_text) as key,area_text as text,id,published_at from facet_source
+   select public.p6_discovery_key(area_text) as key,area_text as text,raw_count,id,published_at
+   from facet_raw
   ), facet_members as materialized (
    select * from facet_keys
    where key not in ('na daljinu','lokacija nije navedena')
@@ -59,7 +72,7 @@ begin
   ), facet_representatives as materialized (
    select distinct on(key) key,text from facet_members order by key,published_at desc,id desc
   ), facet_counts as materialized (
-   select key,count(*) as count from facet_members group by key
+   select key,sum(raw_count)::bigint as count from facet_members group by key
   ), facets as materialized (
    select c.key,r.text,c.count from facet_counts c join facet_representatives r using(key)
   ), facet_page as materialized (

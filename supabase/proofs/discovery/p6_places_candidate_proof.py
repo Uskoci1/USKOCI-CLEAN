@@ -145,9 +145,10 @@ def main()->int:
         baseline=sorted(x['ms'] for x in samples if x['stage']=='baseline')
         optimized=sorted(x['ms'] for x in samples if x['stage']=='optimized')
         bmed=statistics.median(baseline);omed=statistics.median(optimized)
-        report.update(result='PASS',parityCases=8,baselineMedianMs=bmed,optimizedMedianMs=omed,
+        report.update(parityCases=8,baselineMedianMs=bmed,optimizedMedianMs=omed,
           speedup=round(bmed/omed,3),under1000Ms=omed<1000,sourceOnly=True)
         require(omed<1000,'P6_PLACES_STILL_OVER_1000MS')
+        report['result']='PASS'
     except subprocess.TimeoutExpired:
         report['failure']={'code':'P6_PLACES_HARNESS_TIMEOUT'}
     except Exception as e:
