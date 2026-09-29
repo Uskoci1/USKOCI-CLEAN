@@ -78,8 +78,10 @@ rollback;`;
 function applyRollout(expectSuccess){
  const run=spawnSync('psql',[process.env.DB_URL,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',rollout],
   {encoding:'utf8',timeout:180000,maxBuffer:20*1024*1024});
- if(expectSuccess) assert.equal(run.status,0,'P6_ROLLOUT_APPLY_LOCAL');
- else {
+ if(expectSuccess && run.status!==0){
+  const error=new Error('P6_ROLLOUT_APPLY_LOCAL'); error.stderr=run.stderr; throw error;
+ }
+ if(!expectSuccess){
   assert.notEqual(run.status,0,'P6_ROLLOUT_REPEAT_MUST_REFUSE');
   assert.match(run.stderr,/P6_ROLLOUT_ALREADY_INSTALLED/);
  }
@@ -155,6 +157,8 @@ try{
  if(typeof error.stderr==='string'){
   const state=error.stderr.match(/(?:ERROR|FATAL):\s+([0-9A-Z]{5}):/);
   if(state) report.failure.sqlState=state[1];
+  const diagnostic=error.stderr.match(/(P6_[A-Z0-9_]+(?::[^\n]*)?)/);
+  if(diagnostic) report.failure.diagnostic=diagnostic[1].slice(0,240);
  }
  process.exitCode=1;
 }finally{
