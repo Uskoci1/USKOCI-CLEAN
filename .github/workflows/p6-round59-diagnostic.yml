@@ -22,7 +22,8 @@ jobs:
       DO_NOT_TRACK: '1'
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
       PRE_V3_ARTIFACT_DIR: /tmp/p6-discovery-private
-      P6_PUBLIC_ARTIFACT_DIR: /tmp/p6-diag-evidence
+      P6_PUBLIC_ARTIFACT_DIR: /tmp/p6-discovery-evidence
+      P6_DIAG_PUBLIC_ARTIFACT_DIR: /tmp/p6-diag-evidence
       P6_HISTORICAL_PKG045_REPLAY: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -41,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$P6_PUBLIC_ARTIFACT_DIR" /tmp/p6-diag-private
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$P6_PUBLIC_ARTIFACT_DIR" "$P6_DIAG_PUBLIC_ARTIFACT_DIR" /tmp/p6-diag-private
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --quiet
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/dependencies.log" 2>&1
@@ -61,7 +62,7 @@ jobs:
             local label="$1" status=0
             shift
             "$@" > "$PRE_V3_ARTIFACT_DIR/$label.log" 2>&1 || status=$?
-            printf '%s exit=%s\n' "$label" "$status" | tee -a "$P6_PUBLIC_ARTIFACT_DIR/stages.txt"
+            printf '%s exit=%s\n' "$label" "$status" | tee -a "$P6_DIAG_PUBLIC_ARTIFACT_DIR/stages.txt"
             return "$status"
           }
           run_stage source147 python3 supabase/proofs/pkg023j/replay_source147.py
