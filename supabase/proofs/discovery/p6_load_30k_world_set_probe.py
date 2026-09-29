@@ -106,7 +106,7 @@ alter policy needs_public_discovery on public.needs
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('p6.load.reader'),true);
 """ + refresh() + sample_sql('world_set',2) + r"""
-\\echo 'PASS P6_30000_WORLD_SET_PROBE'
+\echo 'PASS P6_30000_WORLD_SET_PROBE'
 rollback;
 """
     return prefix+tail
