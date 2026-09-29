@@ -24,13 +24,16 @@ def diagnostic_sql()->str:
     require(source.count(marker)==1,'P6_DIAG_BASE_MARKER')
     prefix=source.split(marker,1)[0]
     require("set local statement_timeout='30s';" in prefix,'P6_DIAG_TIMEOUT_ANCHOR')
-    prefix=prefix.replace("set local statement_timeout='30s';","set local statement_timeout='12s';",1)
     tail=r"""
 select 'P6_DIAG_ENV '||jsonb_build_object(
  'postgres',current_setting('server_version'),'statementTimeout',current_setting('statement_timeout'),
  'syntheticNeeds',30000,'dense',12000,'sparse',12000,'remote',3000,'pointFreeOnsite',3000,
  'selectedOneSlot',3000,'concurrency',1,'warmupsPerCase',1,'samplesPerCase',3,
  'network','SQL_only','rlsBypassed',false)::text;
+
+-- Keep the original 30 s ceiling for fixture creation/analyze; only the individual
+-- diagnostic reads use the shorter fail-fast ceiling.
+set local statement_timeout='12s';
 
 select format('select %L; select pg_temp.p6_load_once(%L,0,0);',
  'P6_DIAG_WARMUP_START case='||label,label)
