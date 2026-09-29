@@ -67,16 +67,14 @@ set local p6_discovery.disposable='SOURCE_ONLY_ROLLBACK';
 ${readFileSync(base,'utf8')}
 ${readFileSync(v2,'utf8')}
 ${readFileSync(v3,'utf8')}
-select jsonb_object_agg(p.oid::regprocedure::text,md5(replace(p.prosrc,E'\\r\\n',E'\\n')) order by p.oid::regprocedure::text)
-from pg_proc p where p.oid in (${functions.map(x=>"to_regprocedure('"+x+"')").join(',')});
+select jsonb_object_agg(sig,md5(replace(p.prosrc,E'\\r\\n',E'\\n')) order by sig)
+from unnest(array[${functions.map(x=>"'"+x+"'").join(',')}]) sig
+join pg_proc p on p.oid=to_regprocedure(sig);
 rollback;`;
  const raw=mustSql(sql);
  const line=raw.split('\n').filter(x=>x.startsWith('{')).at(-1);
  assert(line,'P6_EXPECTED_HASH_OUTPUT');
- const parsed=JSON.parse(line);
- return Object.fromEntries(Object.entries(parsed).map(([key,value])=>[
-   key.startsWith('public.')?key:'public.'+key,value
- ]));
+ return JSON.parse(line);
 }
 function applyRollout(expectSuccess){
  const run=spawnSync('psql',[process.env.DB_URL,'-X','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',rollout],
@@ -131,12 +129,15 @@ try{
 
  stage='DEPLOYABLE_LOCAL_APPLY';
  applyRollout(true);
+ stage='POST_APPLY_READBACK';
  const post=catalog();
  assert.equal(post.rpcPresent,true);assert.equal(post.ready,true);
  assert.equal(post.cert,pre.cert);assert.equal(post.erasure,pre.erasure);assert.equal(post.digest,pre.digest);
  assert.equal(post.needsAcl,pre.needsAcl);assert.equal(post.authTableSelect,false);assert.equal(post.privateReadable,false);
+ stage='BODY_EQUIVALENCE';
  const actual=Object.fromEntries(Object.entries(post.functions).map(([key,value])=>[key,value.bodyMd5]));
  assert.deepEqual(actual,expected);
+ stage='FUNCTION_SECURITY';
  for(const [signature,value] of Object.entries(post.functions)){
   assert.equal(value.definer,false,signature);assert.deepEqual(value.settings,['search_path=pg_catalog'],signature);
   assert.equal(value.authenticated,true,signature);assert.equal(value.anon,false,signature);assert.equal(value.serviceRole,false,signature);
