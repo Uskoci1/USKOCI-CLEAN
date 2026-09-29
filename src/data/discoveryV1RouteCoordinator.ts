@@ -3,7 +3,7 @@ import { discoveryV1ViewPlan, type DiscoveryV1MapMarker } from './discoveryV1Mar
 import { createDiscoveryV1ScreenSession, type DiscoveryV1ScreenSnapshot } from './discoveryV1ScreenSession';
 import { createDiscoveryV1SearchOwner } from './discoveryV1SearchOwner';
 import type { DiscoveryV1OwnerTransport } from './discoveryV1Owner';
-import type { MarketplaceView, PublicBounds } from './marketplaceView';
+import { pointKey, type MarketplaceView, type PublicBounds } from './marketplaceView';
 
 export type DiscoveryV1SearchDraft = Pick<MarketplaceView,'query'|'place'|'area'|'pinPlace'|'when'|'dates'|'where'|'places'|'price'>;
 export type DiscoveryV1RouteSnapshot = {
@@ -32,7 +32,7 @@ export function discoveryV1RouteIntentKey(view:MarketplaceView):string{
  * Map-area, point and paging operations stay on the accepted anchor through DiscoveryV1ScreenSession.
  */
 export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTransport,overlayLoaders:DiscoveryV1OverlayLoaders,
-  isCurrent:()=>boolean=()=>true){
+  isCurrent:()=>boolean=()=>true,onOptionalState:()=>void=()=>{}){
   let active=true,generation=0,routeView:MarketplaceView|null=null,selectedMarkerKey:string|null=null,loadingMore=false;
   const screen=createDiscoveryV1ScreenSession(transport,()=>active&&isCurrent());
   const overlay=createDiscoveryV1OverlayOwner(overlayLoaders,()=>active&&isCurrent());
@@ -49,7 +49,25 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const refreshOverlay=async(g:number)=>{
     const rows=screen.snapshot().wireItems.slice(0,DISCOVERY_V1_OVERLAY_LIMIT);
     const result=await overlay.load(rows);
-    return current(g)&&result.kind==='applied';
+    const changed=current(g)&&result.kind==='applied';
+    if(changed)onOptionalState();
+    return changed;
+  };
+  const refreshOverlayInBackground=(g:number)=>{void refreshOverlay(g).catch(()=>{if(current(g))onOptionalState();});};
+  const savedMarker=()=>{
+    if(!routeView)return null;
+    const markers=screen.snapshot().mapMarkers;
+    if(routeView.selectedId)return markers.find(marker=>marker.kind==='TASK'&&marker.taskId===routeView!.selectedId)??null;
+    if(routeView.selectedPlace)return markers.find(marker=>marker.kind==='PLACE'&&pointKey(marker.point)===routeView!.selectedPlace)??null;
+    return null;
+  };
+  const restoreSelection=async(g:number)=>{
+    const marker=savedMarker();
+    if(!marker)return;
+    const result=await screen.selectMarker(marker);
+    if(!current(g)||result.kind==='stale')return;
+    if((result.kind==='TASK'||result.kind==='PLACE')&&result.applied)selectedMarkerKey=marker.key;
+    else if(routeView){routeView={...routeView,selectedId:null,selectedPlace:null};selectedMarkerKey=null;}
   };
 
   async function open(next:MarketplaceView,pageLimit=50){
@@ -58,8 +76,9 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     const result=await screen.open(routeView,pageLimit);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind!=='applied')return {kind:result.kind,snapshot:snapshot()};
-    await refreshOverlay(g);
+    await restoreSelection(g);
     if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
+    refreshOverlayInBackground(g);
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
@@ -77,7 +96,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       routeView={...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null};
-      selectedMarkerKey=null;await refreshOverlay(g);
+      selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -87,8 +106,8 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     const g=generation,result=await screen.showPoint(point);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      routeView={...routeView,pinPlace:point.lat.toFixed(2)+','+point.lng.toFixed(2),selectedId:null,selectedPlace:null};
-      selectedMarkerKey=null;await refreshOverlay(g);
+      routeView={...routeView,pinPlace:pointKey(point),selectedId:null,selectedPlace:null};
+      selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -99,7 +118,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       routeView={...routeView,area:null,pinPlace:null,selectedId:null,selectedPlace:null};
-      selectedMarkerKey=null;await refreshOverlay(g);
+      selectedMarkerKey=null;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -107,18 +126,29 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   async function selectMarker(marker:DiscoveryV1MapMarker){
     const g=generation,result=await screen.selectMarker(marker);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-    selectedMarkerKey=marker.kind==='CLUSTER'?null:marker.key;
+    if(marker.kind==='CLUSTER'){
+      if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
+      selectedMarkerKey=null;
+    }else if(result.applied&&routeView){
+      routeView=marker.kind==='TASK'
+        ? {...routeView,selectedId:marker.taskId,selectedPlace:null,sheet:'peek'}
+        : {...routeView,selectedId:null,selectedPlace:pointKey(marker.point),sheet:'peek'};
+      selectedMarkerKey=marker.key;
+    }else{
+      if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
+      selectedMarkerKey=null;
+    }
     return {...result,snapshot:snapshot()};
   }
 
-  const clearPeek=()=>{selectedMarkerKey=null;screen.clearPeek();};
+  const clearPeek=()=>{selectedMarkerKey=null;if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};screen.clearPeek();};
 
   async function nextPage(){
     const g=generation;loadingMore=true;
     try{
       const result=await screen.nextPage();
       if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-      if(result.kind==='applied')await refreshOverlay(g);
+      if(result.kind==='applied')refreshOverlayInBackground(g);
       return {kind:result.kind,snapshot:snapshot()};
     }finally{if(current(g))loadingMore=false;}
   }
@@ -140,5 +170,5 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     screen.retire();overlay.retire();search.retire();};
 
   return {open,updateView,settleMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
-    snapshot,retire};
+    snapshot,refreshOverlay:()=>refreshOverlay(generation),retire};
 }

@@ -12,6 +12,8 @@ import type { ExactPublicOpportunityRead } from '../../data/ports';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
+import { discoveryV1NativeProofAllowed } from '../../data/discoveryV1NativeProofGate';
+import { DiscoveryV1NativeProofRoute } from '../../ui/v2/discovery/DiscoveryV1NativeProofRoute';
 
 /**
  * Zadaci, the middle tab: open tasks with this account's relationship labeled (Početna | Zadaci |
@@ -21,7 +23,15 @@ import { DiscoveryPresentation, type DiscoveryTrace } from '../../ui/v2/Discover
  */
 export default function Zadaci() {
   const { user, accountRevision } = useSesija();
-  return <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
+  const proofParams = useLocalSearchParams<{ p6Proof?: string | string[]; publishedNeedId?: string | string[];
+    publishedRevision?: string | string[]; publishedHandoff?: string | string[] }>();
+  const proofParam = Array.isArray(proofParams.p6Proof) ? proofParams.p6Proof[0] : proofParams.p6Proof;
+  // Publication keeps its separately proved exact-public landing until P6 production cutover is admitted.
+  // A URL alone cannot open the proof reader: the compile-time proof flag + exact DEV package are both required.
+  const publicationRoute = !!(proofParams.publishedNeedId || proofParams.publishedRevision || proofParams.publishedHandoff);
+  return !publicationRoute && discoveryV1NativeProofAllowed(proofParam)
+    ? <DiscoveryV1NativeProofRoute key={`p6:${user?.id ?? ''}:${accountRevision}`} />
+    : <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
 function Discovery() {
   const params = useLocalSearchParams<{ discoveryTrace?: string; publishedNeedId?: string | string[];

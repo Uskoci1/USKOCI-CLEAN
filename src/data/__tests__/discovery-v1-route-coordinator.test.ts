@@ -25,6 +25,7 @@ const places=():any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:A,
 const exact=():any=>({version:'DISCOVERY_V1',mode:'EXACT_PUBLIC',asOf:AT,items:[item()],hasMore:false,nextCursor:null});
 const view=(patch:Partial<MarketplaceView>={}):MarketplaceView=>({...initialMarketplaceView(),mode:'map',
  viewport:{center:[20,45],zoom:10,bounds:[19,44,21,46]},...patch});
+const deferred=<T,>()=>{let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done});return{promise,resolve};};
 
 function harness(){
  const calls:DiscoveryV1OwnerRequest[]=[];
@@ -113,4 +114,43 @@ it('coordinator snapshot feeds the real presentation bridge including authoritat
  expect(model.p6Seam.search?.snapshot).toMatchObject({status:'ready',count:19,everywhere:12,inMapArea:7});
  expect(model.p6Seam.search?.onDraft).toBe(actions.onSearchDraft);
  expect(model.p6Seam.search?.onNextPlaces).toBe(actions.onNextSearchPlaces);
+});
+
+
+it('public PAGE is publishable before optional profile overlay finishes',async()=>{
+ const h=harness(),profileGate=deferred<null>(),optionalChanged=jest.fn();
+ const route=createDiscoveryV1RouteCoordinator(h.transport,{
+  relations:async ids=>taskRelationIndex([],ids),urgencies:async()=>new Map(),profile:()=>profileGate.promise,
+ },()=>true,optionalChanged);
+ const opened=await route.open(view());
+ expect(opened.kind).toBe('applied');
+ expect(route.snapshot().screen.items).toHaveLength(1);
+ expect(route.snapshot().overlay.loading).toBe(true);
+ expect(optionalChanged).not.toHaveBeenCalled();
+ profileGate.resolve(null);
+ for(let n=0;n<20&&route.snapshot().overlay.loading;n++)await Promise.resolve();
+ expect(route.snapshot().overlay.loading).toBe(false);
+ expect(optionalChanged).toHaveBeenCalledTimes(1);
+});
+
+it('TASK selection is persisted in route view and restored after coordinator remount',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({sheet:'full',listOffset:360}));
+ const marker=route.snapshot().screen.mapMarkers[0];
+ const selected=await route.selectMarker(marker);
+ expect(selected.kind).toBe('TASK');
+ expect(route.snapshot().view).toMatchObject({selectedId:ID,selectedPlace:null,sheet:'peek',listOffset:360});
+ expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ const saved=route.snapshot().view!;
+ route.retire();
+
+ const restored=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const result=await restored.open(saved);
+ expect(result.kind).toBe('applied');
+ expect(h.calls.at(-1)?.mode).toBe('EXACT_PUBLIC');
+ expect(restored.snapshot().selectedMarkerKey).toBe(marker.key);
+ expect(restored.snapshot().screen.peek).toMatchObject({kind:'TASK'});
+ expect(restored.snapshot().view).toMatchObject({selectedId:ID,sheet:'peek',listOffset:360});
+ restored.clearPeek();
+ expect(restored.snapshot().view).toMatchObject({selectedId:null,selectedPlace:null});
 });
