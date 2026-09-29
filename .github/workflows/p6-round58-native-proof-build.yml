@@ -53,7 +53,7 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit -p tsconfig.json
       - name: Focused P6 native gate and integration source
-        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/data/__tests__/discovery-v1-native-proof-gate.test.ts src/data/__tests__/discovery-v1-route-coordinator.test.ts src/data/__tests__/discovery-v1-presentation-bridge.test.ts src/data/__tests__/discovery-v1-screen-session.test.ts --json --outputFile=/tmp/p6-round58/focused.json
+        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/data/__tests__/discovery-v1-native-proof-gate.test.ts src/data/__tests__/discovery-v1-route-coordinator.test.ts src/data/__tests__/discovery-v1-presentation-bridge.test.ts src/data/__tests__/discovery-v1-screen-session.test.ts src/data/__tests__/profile-gallery.test.tsx --json --outputFile=/tmp/p6-round58/focused.json
       - name: Full regression
         run: npx jest -w 3 --testTimeout=30000 --json --outputFile=/tmp/p6-round58/full.json
       - name: Static fail-closed route admission
