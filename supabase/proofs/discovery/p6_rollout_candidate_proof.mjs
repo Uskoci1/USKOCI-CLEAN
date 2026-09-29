@@ -50,10 +50,12 @@ function catalog(){
   'privateReadable',exists(select 1 from unnest(array['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason']) c
     where has_column_privilege('authenticated','public.needs',c,'SELECT') or has_column_privilege('anon','public.needs',c,'SELECT')),
   'functions',(select coalesce(jsonb_object_agg(sig,jsonb_build_object(
-     'bodyMd5',md5(replace(p.prosrc,E'\\r\\n',E'\\n')),'definer',p.prosecdef,'volatility',p.provolatile,'settings',p.proconfig,
-     'authenticated',has_function_privilege('authenticated',sig,'EXECUTE'),
-     'anon',has_function_privilege('anon',sig,'EXECUTE'),
-     'serviceRole',has_function_privilege('service_role',sig,'EXECUTE')
+     'present',p.oid is not null,
+     'bodyMd5',case when p.oid is null then null else md5(replace(p.prosrc,E'\\r\\n',E'\\n')) end,
+     'definer',p.prosecdef,'volatility',p.provolatile,'settings',p.proconfig,
+     'authenticated',case when p.oid is null then false else has_function_privilege('authenticated',p.oid,'EXECUTE') end,
+     'anon',case when p.oid is null then false else has_function_privilege('anon',p.oid,'EXECUTE') end,
+     'serviceRole',case when p.oid is null then false else has_function_privilege('service_role',p.oid,'EXECUTE') end
    ) order by sig),'{}'::jsonb)
    from unnest(array[${fn}]) sig left join pg_proc p on p.oid=to_regprocedure(sig))
  )`);
