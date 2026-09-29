@@ -28,7 +28,7 @@ jobs:
       SUPABASE_TELEMETRY_DISABLED: '1'
       DO_NOT_TRACK: '1'
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-      PRE_V3_ARTIFACT_DIR: /tmp/p6-load-private
+      PRE_V3_ARTIFACT_DIR: /tmp/p6-discovery-private
       P6_PUBLIC_ARTIFACT_DIR: /tmp/p6-discovery-evidence
       P6_HISTORICAL_PKG045_REPLAY: '1'
     steps:
