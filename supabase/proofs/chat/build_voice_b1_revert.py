@@ -111,7 +111,7 @@ def build(digest):
     if not relations or any("'" in relation for relation in relations):
         raise SystemExit('unexpected retention catalog relations')
 
-    provenance = ('the pre-image is ' + str(PREIMAGE.relative_to(ROOT)) + ' (sha256 ' + hashlib.sha256(PREIMAGE.read_bytes()).hexdigest()
+    provenance = ('the pre-image is ' + PREIMAGE.relative_to(ROOT).as_posix() + ' (sha256 ' + hashlib.sha256(PREIMAGE.read_bytes()).hexdigest()
                   + '); the digest this file restores is ' + digest + '.')
     built = (template.replace('{{PROVENANCE}}', provenance)
              .replace('{{CERTIFIED_DIGEST}}', digest)
