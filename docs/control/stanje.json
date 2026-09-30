@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T23:25:44Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "9d2225da",
-  "head_poruka": "docs(voice): formal B1/B2-a checkpoint receipt (exact bytes, runs, DEV read-only evidence, order, rollback, limits) with its JSON companion; plan status, registry (chat row and voice block), LIVE plan state and evidence regenerated and checked (62 flows, CHECK OK); NOTHING applied to DEV, no Edge deployed",
+  "osvezeno": "2026-09-30T23:26:30Z",
+  "grana": "HEAD",
+  "head": "93b6e3ac",
+  "head_poruka": "docs(ex03): EX-03 Discovery polish formally CLOSED WITH LIMITS on the owner's order - all five targets met on the HONOR (halo 85/91 ms, card 71/78 ms, Back to restored 162/218 ms with zero PAGE/MAP reads 7 of 7, no frame over 700 ms, janky 4.84 percent, no ANR); limits EX03-L1..L6 named and carried (visible return in pixels with the technical pointer, camera on selection, janky share, place card, sample, card design untouched); registry rows B04/B05, LIVE plan and evidence regenerated and checked",
   "server": {
    "snimljeno": "2026-09-30T12:01:15Z",
    "migracije": 212,
@@ -7695,102 +7695,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36790757905,
-   "ime": "Control tracker refresh",
-   "sha": "9d2225da",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T23:22:37Z"
-  },
-  {
-   "id": 36789867392,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "5b70d237",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T23:12:36Z"
-  },
-  {
-   "id": 36789349043,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "57b3e7b9",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T23:06:47Z"
-  },
-  {
-   "id": 36788595185,
-   "ime": "Chat voice B1 DEV application file proof",
-   "sha": "49d5c0b7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T22:58:38Z"
-  },
-  {
-   "id": 36788437703,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "a905a78c",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T22:56:52Z"
-  },
-  {
-   "id": 36787712656,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "96f6920b",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-30T22:49:02Z"
-  },
-  {
-   "id": 36787652414,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "f0163f9d",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T22:48:22Z"
-  },
-  {
-   "id": 36786887149,
-   "ime": "Chat voice B1-c media Edge offline proof",
-   "sha": "7a795daf",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T22:40:11Z"
-  },
-  {
-   "id": 36786883950,
-   "ime": "Chat voice B1 disposable feature-chain proof",
-   "sha": "7a795daf",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T22:40:09Z"
-  },
-  {
-   "id": 36786821366,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "7a795daf",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T22:39:29Z"
-  },
-  {
-   "id": 36785614624,
-   "ime": "P7 signup confirmation recovery",
-   "sha": "132c1f6c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T22:26:50Z"
-  },
-  {
-   "id": 36785614498,
-   "ime": "Chat voice B1 DEV application file proof",
-   "sha": "132c1f6c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T22:26:50Z"
-  }
- ]
+ "ci": null
 }
