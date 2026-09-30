@@ -1024,9 +1024,11 @@ def verify_place_peek(root, parent, m):
           requests=[brief(r) for r in reqs[:6]])
     snapshot('P6_12_place_peek')
     m2 = mark()
+    point_list_expected = EXPECTED.get('pointList', dense_expected + 30)
     tap_visible(nodes(root, contains='Prikaži sve u listi')[0], parent)
-    _, root, parent = wait_count(dense_expected, 25)
-    check('POINT_MEMBERS_LIST_COUNT_MATCHES_SERVER', count_value(root)[0] == dense_expected, ui=count_value(root)[0], expected=dense_expected)
+    _, root, parent = wait_count(point_list_expected, 40)
+    check('POINT_MEMBERS_LIST_COUNT_MATCHES_SERVER', count_value(root)[0] == point_list_expected, ui=count_value(root)[0], expected=point_list_expected,
+          note="the point list: the point's tasks first, then every task without a public point")
     check('POINT_SCOPE_SENT_TO_SERVER', any(brief(r)['scope'] == 'POINT_LIST' for r in since(m2, 'PAGE')),
           requests=[brief(r) for r in since(m2)[:5]])
     snapshot('P6_13_point_members')
@@ -1168,6 +1170,15 @@ def s_search_places():
             break
     root = snapshot('P6_23_search_applied')
     check('SEARCH_PLACE_SHOWS_ITS_PILL_ON_THE_MAP', len(applied) >= 1, pills=len(applied), boxes=pill_boxes(applied))
+    if not applied:
+        # A diagnosis, not an excuse: is the marker only hidden behind the list? Lower the list to its top line and look again.
+        top = sheet_top(root)
+        REPORT['searchNoPill'] = {'sheetTop': top, 'state': sheet_state(root)}
+        if top:
+            swipe(540, top + 40, 540, 2050, 500)
+            time.sleep(4)
+            REPORT['searchNoPill']['pillsAfterLowering'] = len(pills())
+            snapshot('P6_24_search_sheet_lowered')
     clear = nodes(root, desc='Prikaži sve zadatke') or nodes(root, rid_='clear-where')
     if clear:
         tap_visible(clear[0], parent)

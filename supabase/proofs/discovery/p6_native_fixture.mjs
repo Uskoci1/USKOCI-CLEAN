@@ -103,8 +103,16 @@ const listedFor = async (patch) => {
   if (answer.error) throw new Error(`VIEWER_RPC_FAILED:${answer.error.message}`);
   return answer.data.counts.listed;
 };
-const expected = { any: total, remote: await listedFor({ where: 'remote' }), onsite: await listedFor({ where: 'onsite' }), dense: counts.DENSE };
+// The list of ONE public point: its tasks first, then every task without a public point (remote or without a point), exactly what the server answers for that scope.
+const pointListed = async () => {
+  const answer = await viewer.client.rpc('rpc_discovery_v1', { p_request: { mode: 'PAGE', filter: { text: '', price: 'all', where: 'any', places: 1,
+    when: 'any', dates: null, place: null }, anchor: null, scope: { kind: 'POINT_LIST', point: { lat: 45.25, lng: 19.83 } }, limit: 5, after: null } });
+  if (answer.error) throw new Error(`VIEWER_RPC_FAILED:${answer.error.message}`);
+  return answer.data.counts.listed;
+};
+const expected = { any: total, remote: await listedFor({ where: 'remote' }), onsite: await listedFor({ where: 'onsite' }), dense: counts.DENSE, pointList: await pointListed() };
 assert.equal(expected.remote, counts.REMOTE, 'server remote filter must equal the seeded remote tasks');
+assert.equal(expected.pointList, counts.DENSE + counts.REMOTE + counts.NOPOINT, 'the point list is the point plus every task without a public point');
 assert.ok(expected.onsite > 0 && expected.onsite < total, 'server onsite filter must be a proper subset');
 
 mkdirSync(env.P6N_ARTIFACT_DIR || 'artifacts/p6-native', { recursive: true });

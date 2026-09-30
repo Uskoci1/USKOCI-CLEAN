@@ -5,12 +5,12 @@ import type { DiscoveryTrace } from '../DiscoveryPresentation';
 /** The presentation's own trace points; anything else is dropped. */
 export const NATIVE_TRACE_EVENTS = new Set<Parameters<DiscoveryTrace>[0]>(['route-trace', 'route-focus', 'route-blur', 'route-open', 'route-view',
   'focus', 'blur', 'preopen', 'write-offset', 'seed', 'ready', 'geometry', 'index', 'content', 'layout',
-  'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'fold', 'drag', 'refresh', 'kick']);
-/** High-rate events: a few samples each, so that a swipe cannot use the allowance reserved for the sheet's own moves. */
+  'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'fold', 'drag', 'refresh', 'kick', 'stall', 'want', 'fit']);
+/** High-rate events: a few samples each (each name has its own, per visit), so that a swipe cannot use the allowance reserved for the sheet's own moves. */
 export const NATIVE_TRACE_SAMPLES = new Set<Parameters<DiscoveryTrace>[0]>(['scroll', 'scroll0', 'scroll-reject', 'restore-check', 'content', 'layout', 'geometry', 'route-view']);
 /** The allowance of ONE visit: every `route-focus` starts a visit, so that a return is diagnosed like the first visit (the first version spent it all on scrolling). */
 export const NATIVE_TRACE_LIMIT = 600;
-export const NATIVE_TRACE_SAMPLE_LIMIT = 40;
+export const NATIVE_TRACE_SAMPLE_LIMIT = 60;
 
 /**
  * Bounded native diagnosis of the Zadaci sheet and list for the exact DEV package only (the same events the legacy route traces behind
@@ -19,12 +19,12 @@ export const NATIVE_TRACE_SAMPLE_LIMIT = 40;
  */
 export function useDiscoveryNativeTrace(): DiscoveryTrace | undefined {
   const enabled = Constants.expoConfig?.android?.package === 'rs.uskoci.dev';
-  const count = useRef(0), samples = useRef(0);
+  const count = useRef(0), samples = useRef(new Map<string, number>());
   const trace = useCallback<DiscoveryTrace>((event, ...values) => {
-    if (event === 'route-focus') { count.current = 0; samples.current = 0; }
+    if (event === 'route-focus') { count.current = 0; samples.current.clear(); }
     if (count.current >= NATIVE_TRACE_LIMIT || !NATIVE_TRACE_EVENTS.has(event) || values.length > 20
       || values.some(value => typeof value !== 'boolean' && (typeof value !== 'number' || !Number.isFinite(value)))) return;
-    if (NATIVE_TRACE_SAMPLES.has(event)) { if (samples.current >= NATIVE_TRACE_SAMPLE_LIMIT) return; samples.current++; }
+    if (NATIVE_TRACE_SAMPLES.has(event)) { const used = samples.current.get(event) ?? 0; if (used >= NATIVE_TRACE_SAMPLE_LIMIT) return; samples.current.set(event, used + 1); }
     const safe = values.map(value => typeof value === 'boolean' ? value : Math.round(Math.max(-10_000_000, Math.min(10_000_000, value)) * 10) / 10);
     console.info(`[USKOCI_DISCOVERY_TRACE] ${JSON.stringify([++count.current, event, ...safe])}`);
   }, []);

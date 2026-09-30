@@ -80,7 +80,7 @@ jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
-import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, type DiscoveryV1PresentationSeam } from '../../ui/v2/DiscoveryPresentation';
+import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, RESTORE_STALL_MS, type DiscoveryV1PresentationSeam } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { ActionSheet } from '../../ui/system/ActionSheet';
@@ -129,9 +129,9 @@ function Screen() {
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
 }
 let tree: ReactTestRenderer;
-const scrollToOffset = jest.fn();
+const scrollToOffset = jest.fn(), scrollToEnd = jest.fn();
 // The list's ref is its native scroll view on a phone; here it is a stand-in that hears where the list is asked to scroll.
-const render = async () => act(async () => { tree = create(<Screen />, { createNodeMock: element => element.type === 'List' ? { scrollToOffset } : null }); });
+const render = async () => act(async () => { tree = create(<Screen />, { createNodeMock: element => element.type === 'List' ? { scrollToOffset, scrollToEnd } : null }); });
 const update = async () => act(async () => tree.update(<Screen />));
 const sampleUi = () => { for (const entry of mockReactions) { const next = entry.prepare(); entry.react(next, entry.previous); entry.previous = next; } };
 const deliverUi = async () => act(async () => { sampleUi(); while (mockRnDeliveries.length) mockRnDeliveries.shift()!(); });
@@ -199,7 +199,7 @@ beforeEach(() => {
   publicationFocus = undefined; publicationUnavailable = undefined; collectionStatus = undefined; p6Seam = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
-  for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset, userIntent]) fn.mockReset();
+  for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset, scrollToEnd, userIntent]) fn.mockReset();
   for (const fn of [mockDefaultScroll, mockDefaultBeginDrag, mockDefaultEndDrag, mockDefaultMomentumBegin, mockDefaultMomentumEnd]) fn.mockReset();
   (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
 });
@@ -546,7 +546,7 @@ test.each(['native probe', 'onChange'] as const)('confirming a requested peek th
   const committed = jest.fn();
   await act(async () => {
     tree = create(<React.Profiler id="discovery" onRender={committed}><Screen /></React.Profiler>,
-      { createNodeMock: element => element.type === 'List' ? { scrollToOffset } : null });
+      { createNodeMock: element => element.type === 'List' ? { scrollToOffset, scrollToEnd } : null });
   });
   await layOutBody(); await deliverUi(); await deliverUi();
   expect(listSheet().props.index).toBe(0); expect(snapshot.sheet).toBe('peek');
@@ -943,6 +943,66 @@ test('deep return keeps its saved offset while virtualized content grows past pr
     });
     expect(scrollToOffset).toHaveBeenCalledTimes(3);
     expect(snapshot.listOffset).toBe(8000);
+  } finally { jest.useRealTimers(); }
+});
+
+// Journey #6 (cycle 2): a restore that asks for an offset beyond what the list has rendered advances with every measured row. The saved end of a 100-row
+// list stopped 2000 px short and waited for ever. When nothing new is measured for RESTORE_STALL_MS the tail is asked for (scrollToEnd renders it), twice;
+// then the restore settles where the list is. The P6 screen only; taking hold of the list has always ended a restore.
+const stalls = () => nativeTrace.mock.calls.filter(call => call[0] === 'stall').map(call => call.slice(1));
+test('a P6 restore that stops short of the saved offset asks for the tail twice, then settles where the list is', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`stall${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    p6Seam = p6Seam_(); tracing = true;
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1800);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 1800, animated: false });
+    await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } }); });
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(scrollToEnd).toHaveBeenCalledWith({ animated: false });
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(2); expect(snapshot.listOffset).toBe(8000);
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS + OFFSET_SETTLE_MS); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(2);
+    expect(snapshot.listOffset).toBe(1800);
+    expect(stalls().map(call => call[0])).toEqual([1, 2, 3]);
+    await act(async () => { jest.advanceTimersByTime(60_000); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(2); expect(snapshot.listOffset).toBe(1800);
+  } finally { jest.useRealTimers(); }
+});
+test('growth of the list restarts the wait, dragging ends the restore, and the legacy reader never runs the watchdog', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`stall${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    p6Seam = p6Seam_();
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 1800);
+    await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } }); jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
+    await act(async () => list().props.onContentSizeChange(400, frame + 6000));
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 6000, animated: false });
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(1);
+    // A person who takes hold of the list has ended the restore: nothing more is asked of it.
+    await act(async () => { list().props.onScrollBeginDrag({ nativeEvent: {} }); jest.advanceTimersByTime(RESTORE_STALL_MS * 5); });
+    expect(scrollToEnd).toHaveBeenCalledTimes(1);
+    await act(async () => tree.unmount());
+    // The legacy reader waits as it always did.
+    scrollToOffset.mockClear(); scrollToEnd.mockClear();
+    p6Seam = undefined; initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    await render(); await layOutBody();
+    await readyList(frame + 1800);
+    await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } }); jest.advanceTimersByTime(RESTORE_STALL_MS * 10); });
+    expect(scrollToEnd).not.toHaveBeenCalled(); expect(snapshot.listOffset).toBe(8000);
   } finally { jest.useRealTimers(); }
 });
 

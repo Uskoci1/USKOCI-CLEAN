@@ -39,7 +39,7 @@ import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 /** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
 export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
   | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
-  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh' | 'kick',
+  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh' | 'kick' | 'stall' | 'want' | 'fit',
   ...values: (number | boolean)[]) => void;
 
 export type DiscoveryV1PresentationSeam = {
@@ -113,6 +113,9 @@ const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
 /** When the P6 sheet is nudged after it mounts (the last one is an even count, so it rests on its exact snap points), and by how much. */
 const SHEET_KICKS_MS = [400, 1_200, 2_600, 5_000, 8_000, 12_000] as const;
 const SHEET_KICK_PX = 0.01;
+/** A restore that has asked for more than the list has rendered is given this long to see it grow before it asks for the tail, and this many asks. */
+export const RESTORE_STALL_MS = 4_000;
+const RESTORE_STALL_RETRIES = 2;
 const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
@@ -413,9 +416,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const sheetIndex = sheet.index, sheetCommand = useRef(sheet);
   const setSheetIndex = useCallback((index: number) => {
     if (sheetCommand.current.index === index) return;
+    trace('want', index, sheetCommand.current.index);
     const next = { index, sequence: sheetCommand.current.sequence + 1, pending: true };
     sheetCommand.current = next; applySheet(next);
-  }, []);
+  }, [trace]);
   const appliedPublication = useRef<string | null>(null);
   useEffect(() => {
     const request = props.publicationFocus;
@@ -705,6 +709,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     change({ ...draft, selectedId: null, selectedPlace: null });
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
     const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
+    trace('fit', sheetIndex, bounds ? 1 : 0, sheetIndex === SNAP.peek ? peek : halfSheet);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? peek : halfSheet) + GAP });
   };
   const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
@@ -741,6 +746,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // sized on remount; EXTENDED then arrives without another bounded list onLayout.
   const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
   const restoreAck = useRef<number | null>(null);
+  // The last scroll position the native list reported (a pending restore ignores events that are not its target), for a restore that has to settle.
+  const observedY = useRef(0), stalls = useRef(0), stallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armStallRef = useRef<() => void>(() => {});
+  const clearStall = useCallback(() => { if (stallTimer.current) { clearTimeout(stallTimer.current); stallTimer.current = null; } }, []);
   const retainedRestoreOwner = useRef<number | null>(null);
   const restoreFrame = useRef(0);
   const restoreCommand = useRef(-1);
@@ -782,7 +791,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const at = latestView.current.listOffset ?? 0;
     trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolled, sheetIndex);
     offset.current = at; restore.current = at > 0 ? at : null;
-    restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false;
+    restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false; stalls.current = 0;
   }
   if (hasRows && !restoreHadRows.current) contentHeight.current = 0; // the loading/empty view's height is not row geometry
   restoreHadRows.current = hasRows;
@@ -825,8 +834,30 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     restoreCommand.current = sheetCommand.current.sequence;
     trace('request', at, target, contentHeight.current, listWindow);
     listRef.current.scrollToOffset({ offset: target, animated: false });
+    if (target < at && props.p6Seam) armStallRef.current();
   }, [currentSheet, currentList, hasRows, loading, error, listWindow, hasMeasuredEnd, writeOffset, trace, sheetIndex]);
   const retryRestore = useRef(tryRestore); retryRestore.current = tryRestore;
+  const armStall = useCallback(() => {
+    clearStall();
+    stallTimer.current = setTimeout(() => {
+      stallTimer.current = null;
+      if (!currentList() || restore.current === null || !listRef.current) return;
+      stalls.current += 1;
+      trace('stall', stalls.current, restore.current, restoreTarget.current ?? -1, contentHeight.current, observedY.current, extent.bottom ?? -1, extent.footer ?? -1);
+      if (stalls.current <= RESTORE_STALL_RETRIES) {
+        restoreAttempted.current = false;
+        listRef.current.scrollToEnd?.({ animated: false });
+        armStallRef.current();
+        return;
+      }
+      const reached = Math.round(observedY.current);
+      restore.current = null; restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false;
+      trace('ack', reached, reached, reached, false);
+      offset.current = reached; writeOffset();
+    }, RESTORE_STALL_MS);
+  }, [clearStall, currentList, extent, trace, writeOffset]);
+  armStallRef.current = armStall;
+  useEffect(() => clearStall, [coverageOwner, clearStall]);
   const receiveCellLayout = useCallback((index: number, bottom: number) => {
     if (!currentSheet() || currentExtent.current !== extent || index !== listed.length - 1) return;
     extent.bottom = bottom;
@@ -869,6 +900,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
+    observedY.current = y;
     if (y === 0) {
       const values = [currentSheet(), listReady.current, restore.current ?? -1, restoreTarget.current ?? -1,
         restoreAttempted.current, offset.current, scrolledRef.current, focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner];
@@ -930,7 +962,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const onContentSizeChange = (_width: number, height: number) => {
     trace('content', currentSheet(), height, contentHeight.current, listHeight.current, restore.current ?? -1);
     if (!currentList()) return;
-    if (contentHeight.current !== height) restoreAttempted.current = false;
+    if (contentHeight.current !== height) { restoreAttempted.current = false; stalls.current = 0; clearStall(); }
     contentHeight.current = height;
     tryRestore();
   };

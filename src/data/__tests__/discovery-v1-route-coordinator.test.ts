@@ -265,3 +265,58 @@ it('refreshMap before any view and after retire reads nothing',async()=>{
  await route.open(view());route.retire();
  expect((await route.refreshMap([19.7,45.2,20,45.4])).kind).toBe('noop');expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP']);
 });
+
+// Journey #6: after a place was applied the list was empty for ~2 s. A commit made in the middle of a read published the owner's emptied state, which the screen
+// reads as "nothing found" and answered by raising the list over the map. While a read replaces the picture, the last complete one stays.
+function gated(){
+ const h=harness(),gate:{page:ReturnType<typeof deferred<void>>|null,map:ReturnType<typeof deferred<void>>|null}={page:null,map:null};
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  h.calls.push(request);
+  if(request.mode==='MAP'){await gate.map?.promise;return map(request.bounds);}
+  if(request.mode==='PLACES')return places();
+  if(request.mode==='EXACT_PUBLIC')return exact();
+  await gate.page?.promise;
+  return page(request.limit===1?19:gate.page?7:12);
+ });
+ return {h,gate,transport};
+}
+it('a read that replaces the list keeps the last complete picture on the snapshot, with the new view, until the new one lands whole',async()=>{
+ const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());
+ const before=route.snapshot().screen;expect(before.items).toHaveLength(1);expect(before.mapMarkers).toHaveLength(1);expect(before.counts?.listed).toBe(12);
+ gate.page=deferred<void>();
+ const reading=route.updateView(view({query:'kombi'}));
+ await Promise.resolve();await Promise.resolve();
+ const during=route.snapshot();
+ expect(during.view).toMatchObject({query:'kombi'});
+ expect(during.screen.items).toHaveLength(1);expect(during.screen.mapMarkers).toHaveLength(1);expect(during.screen.counts?.listed).toBe(12);
+ gate.page.resolve();const result=await reading;expect(result.kind).toBe('applied');
+ const after=route.snapshot().screen;expect(after.counts?.listed).toBe(7);expect(after.items).toHaveLength(1);expect(after.mapMarkers).toHaveLength(1);
+});
+it('a quiet map refresh keeps the markers on the snapshot until the new ones land, and a failing read never leaves the old picture stuck',async()=>{
+ const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());
+ gate.map=deferred<void>();
+ const refreshing=route.refreshMap([19.5,44.5,20.5,45.5]);
+ await Promise.resolve();await Promise.resolve();
+ expect(route.snapshot().screen.mapMarkers).toHaveLength(1);
+ gate.map.resolve();await refreshing;
+ expect(route.snapshot().screen.mapMarkers).toHaveLength(1);
+ // A read that fails releases the hold: the snapshot is the live one again.
+ const failing=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{if(request.mode==='PAGE'&&request.limit!==1&&(request as any).filter?.text==='boom')throw new Error('DISCOVERY_V1_TRANSPORT_FAILED');return h.transport(request);});
+ const other=createDiscoveryV1RouteCoordinator(failing,h.overlay);
+ await other.open(view());
+ await expect(other.updateView(view({query:'boom'}))).rejects.toThrow('DISCOVERY_V1_TRANSPORT_FAILED');
+ expect(other.snapshot().screen.items).toHaveLength(0);
+});
+it('a read that drops the peek drops it at once, while a selection keeps the old peek until the new one lands',async()=>{
+ const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());
+ const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK'});
+ gate.page=deferred<void>();
+ const reading=route.showAll();
+ await Promise.resolve();await Promise.resolve();
+ expect(route.snapshot().screen.peek).toBeNull();expect(route.snapshot().screen.items).toHaveLength(1);
+ gate.page.resolve();await reading;
+});

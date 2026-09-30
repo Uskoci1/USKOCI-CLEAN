@@ -64,3 +64,14 @@ it('samples the persisted view, so that scrolling a long list cannot spend the a
   trace!('index', 0);
   expect(lines()).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT + 1);
 });
+
+it('gives every sampled event its own allowance in a visit, so scrolling cannot use up the restore evidence', async () => {
+  const { trace } = await mount();
+  for (let i = 0; i < NATIVE_TRACE_SAMPLE_LIMIT + 20; i++) trace!('scroll', i);
+  for (let i = 0; i < NATIVE_TRACE_SAMPLE_LIMIT + 20; i++) trace!('content', i);
+  trace!('stall', 1, 22917, 20855.8, 21451.8, 20855.6, -1, -1);
+  const all = lines();
+  expect(all.filter(line => line.includes('"scroll"'))).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT);
+  expect(all.filter(line => line.includes('"content"'))).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT);
+  expect(all.at(-1)).toContain('"stall",1,22917,20855.8,21451.8,20855.6,-1,-1');
+});

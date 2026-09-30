@@ -42,8 +42,17 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const search=createDiscoveryV1SearchOwner(transport,()=>active&&isCurrent());
 
   const current=(g?:number)=>active&&(g===undefined||g===generation)&&isCurrent();
+  // While a read replaces what the screen shows (a filter, a place, an area, a map refresh, a selection), the last COMPLETE picture stays in the snapshot and the new one
+  // lands whole. A commit another action or the overlay makes in the middle of a read would otherwise publish the owner's emptied state (no rows, no markers), which
+  // the screen reads as "nothing found" (found on the emulator: the list rose over the map right after a place was chosen).
+  let reading=0,held:DiscoveryV1ScreenSnapshot|null=null;
+  const whileReading=async<T,>(work:()=>Promise<T>,dropsPeek=false):Promise<T>=>{
+    if(reading++===0)held=dropsPeek?{...screen.snapshot(),peek:null}:screen.snapshot();
+    try{return await work();}
+    finally{if(--reading===0)held=null;}
+  };
   const screenSnapshot=():DiscoveryV1ScreenSnapshot=>{
-    const value=screen.snapshot();
+    const value=held??screen.snapshot();
     return routeView?{...value,view:cloneView(routeView)}:value;
   };
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
@@ -67,7 +76,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const restoreSelection=async(g:number)=>{
     const marker=savedMarker();
     if(!marker)return;
-    const result=await screen.selectMarker(marker);
+    const result=await whileReading(()=>screen.selectMarker(marker));
     if(!current(g)||result.kind==='stale')return;
     if((result.kind==='TASK'||result.kind==='PLACE')&&result.applied)selectedMarkerKey=marker.key;
     else if(routeView){routeView={...routeView,selectedId:null,selectedPlace:null};selectedMarkerKey=null;}
@@ -76,7 +85,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   async function open(next:MarketplaceView,pageLimit=50){
     if(!active)return {kind:'stale' as const,snapshot:snapshot()};
     const g=++generation;routeView={...cloneView(next),pages:1};selectedMarkerKey=null;loadingMore=false;
-    const result=await screen.open(routeView,pageLimit);
+    const result=await whileReading(()=>screen.open(routeView!,pageLimit),true);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind!=='applied')return {kind:result.kind,snapshot:snapshot()};
     await restoreSelection(g);
@@ -117,7 +126,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function settleMap(bounds:PublicBounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,result=await screen.settleMap(bounds);
+    const g=generation,result=await whileReading(()=>screen.settleMap(bounds),true);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       routeView={...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null,pages:1};
@@ -128,14 +137,14 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function refreshMap(bounds:PublicBounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,result=await screen.refreshMap(bounds);
+    const g=generation,result=await whileReading(()=>screen.refreshMap(bounds));
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function showPoint(point:{lat:number;lng:number}){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,result=await screen.showPoint(point);
+    const g=generation,result=await whileReading(()=>screen.showPoint(point),true);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       routeView={...routeView,pinPlace:pointKey(point),selectedId:null,selectedPlace:null,pages:1};
@@ -146,7 +155,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function showAll(){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,result=await screen.showAll();
+    const g=generation,result=await whileReading(()=>screen.showAll(),true);
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       routeView={...routeView,area:null,pinPlace:null,selectedId:null,selectedPlace:null,pages:1};
@@ -156,7 +165,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   }
 
   async function selectMarker(marker:DiscoveryV1MapMarker){
-    const g=generation,result=await screen.selectMarker(marker);
+    const g=generation,result=await whileReading(()=>screen.selectMarker(marker));
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='CLUSTER'){
       if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
@@ -203,7 +212,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return open({...routeView,...draft,selectedId:null,selectedPlace:null,listOffset:0});
   }
 
-  const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;
+  const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;held=null;
     screen.retire();overlay.retire();search.retire();};
 
   return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
