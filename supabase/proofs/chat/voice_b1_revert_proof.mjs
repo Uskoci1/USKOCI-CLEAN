@@ -104,42 +104,52 @@ await check('THE_APPLICATION_IS_APPLIED', async () => {
   report.digests.chainApplied = appliedState.live;
 });
 const applied = () => { assert.ok(afterApply); return afterApply; };
+// One refusal case: the applied state is tampered with (or voice data is planted), the revert must refuse with its own code and change nothing, and the repair must give the applied catalog back.
+// Every case is its own check and repairs in a finally block, so one broken case cannot hide or poison the next.
 async function refusedAndRestored(name, pattern, tamper, repair) {
-  const before = applied();
-  tamper();
-  const tampered = snapshot();
-  assert.throws(() => sql(chainRevert), pattern, 'EXPECTED_REFUSAL:' + name);
-  equalSnapshots(snapshot(), tampered, 'CATALOG_CHANGED_BY_REFUSAL:' + name);
-  repair();
-  equalSnapshots(snapshot(), before, 'REPAIR_DID_NOT_RESTORE:' + name);
-  report.refusals.push({ name, refused: true, completeCatalogUnchanged: true });
+  await check('THE_REVERT_REFUSES_' + name, async () => {
+    const before = applied();
+    tamper();
+    try {
+      const tampered = snapshot();
+      assert.throws(() => sql(chainRevert), pattern, 'EXPECTED_REFUSAL:' + name);
+      equalSnapshots(snapshot(), tampered, 'CATALOG_CHANGED_BY_REFUSAL:' + name);
+    } finally { repair(); }
+    equalSnapshots(snapshot(), before, 'REPAIR_DID_NOT_RESTORE:' + name);
+    report.refusals.push({ name, refused: true, completeCatalogUnchanged: true });
+  });
 }
-await check('THE_REVERT_REFUSES_EVERY_DRIFT_OF_THE_APPLIED_STATE_AND_EVERY_KIND_OF_VOICE_DATA', async () => {
-  const account = randomUUID();
-  await refusedAndRestored('VOICE_UPLOAD_ROW_PRESENT', /VOICE_B1_REVERT_VOICE_DATA_PRESENT/,
-    () => sql(`insert into private.agreement_voice_uploads_v1(account_id,agreement_id,agreement_version,client_request_id,state,cancelled_at) values (${q(account)},${q(randomUUID())},1,${q(randomUUID())},'CANCELLED',clock_timestamp())`),
-    () => sql('truncate private.agreement_voice_uploads_v1'));
-  const objectName = account + '/agreement-voice-v1/' + randomUUID() + '/' + 'a'.repeat(64) + '.m4a';
-  await refusedAndRestored('BUCKET_OBJECT_PRESENT', /VOICE_B1_REVERT_VOICE_DATA_PRESENT/,
-    () => sql(`insert into storage.objects(bucket_id,name,metadata) values ('agreement-voice',${q(objectName)},'{}'::jsonb)`),
-    () => sql(`select set_config('storage.allow_delete_query','true',false); delete from storage.objects where bucket_id='agreement-voice' and name=${q(objectName)}`));
-  // A space after the opening quote changes a body without changing anything else. The history readers are NOT on the digest roster, so they reach the body pins; a roster function
-  // breaks the certificate first, which is refused with its own code.
-  const spaced = text => { assert.ok(text.includes('AS $function$')); return text.replace('AS $function$', 'AS $function$ '); };
-  const readerV2 = sql("select pg_get_functiondef('public.rpc_read_agreement_messages_page_v2(uuid,uuid,integer,timestamptz,uuid)'::regprocedure)");
-  await refusedAndRestored('VOICE_FUNCTION_BODY_DRIFT', /VOICE_B1_REVERT_VOICE_FUNCTION_DRIFT/, () => sql(spaced(readerV2)), () => sql(readerV2));
-  const readerV1 = sql("select pg_get_functiondef('public.rpc_read_agreement_messages_page_v1(uuid,uuid,integer,timestamptz,uuid)'::regprocedure)");
-  await refusedAndRestored('APPLIED_BODY_DRIFT', /VOICE_B1_REVERT_APPLIED_BODY_DRIFT/, () => sql(spaced(readerV1)), () => sql(readerV1));
-  const blockers = sql("select pg_get_functiondef('private.closure_blockers_v5(uuid)'::regprocedure)");
-  await refusedAndRestored('ROSTER_BODY_DRIFT_BREAKS_THE_CERTIFICATE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/, () => sql(spaced(blockers)), () => sql(blockers));
-  await refusedAndRestored('CERTIFICATES_DISAGREE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/,
-    () => sql("update private.closure_erasure_source_v5 set sha256=repeat('0',64) where singleton"),
-    () => sql(`update private.closure_erasure_source_v5 set sha256=${q(appliedState.live)} where singleton`));
-  await refusedAndRestored('STRUCTURE_DRIFT', /VOICE_B1_REVERT_APPLIED_STRUCTURE_DRIFT/,
-    () => sql('drop policy agreement_voice_no_client_v1 on storage.objects'),
-    () => sql("create policy agreement_voice_no_client_v1 on storage.objects as restrictive for all to authenticated using(bucket_id <> 'agreement-voice') with check(bucket_id <> 'agreement-voice')"));
-  assert.equal(closureState().live, appliedState.live);
-});
+const account = randomUUID();
+await refusedAndRestored('VOICE_UPLOAD_ROW_PRESENT', /VOICE_B1_REVERT_VOICE_DATA_PRESENT/,
+  () => sql(`insert into private.agreement_voice_uploads_v1(account_id,agreement_id,agreement_version,client_request_id,state,cancelled_at) values (${q(account)},${q(randomUUID())},1,${q(randomUUID())},'CANCELLED',clock_timestamp())`),
+  () => sql('truncate private.agreement_voice_uploads_v1'));
+const objectName = account + '/agreement-voice-v1/' + randomUUID() + '/' + 'a'.repeat(64) + '.m4a';
+await refusedAndRestored('BUCKET_OBJECT_PRESENT', /VOICE_B1_REVERT_VOICE_DATA_PRESENT/,
+  () => sql(`insert into storage.objects(bucket_id,name,metadata) values ('agreement-voice',${q(objectName)},'{}'::jsonb)`),
+  () => {
+    // The voice storage guard (correctly) refuses to delete a voice object outside a closure; the proof removes its own planted object by dropping the guard for that one statement and recreating it from its exact definition.
+    const guard = sql("select pg_get_triggerdef(oid) from pg_trigger where tgrelid='storage.objects'::regclass and tgname='agreement_voice_storage_guard_v1'");
+    assert.match(guard, /^CREATE TRIGGER agreement_voice_storage_guard_v1 /);
+    sql(`drop trigger agreement_voice_storage_guard_v1 on storage.objects; select set_config('storage.allow_delete_query','true',false); delete from storage.objects where bucket_id='agreement-voice' and name=${q(objectName)};`);
+    sql(guard);
+  });
+// A space after the opening quote changes a body without changing anything else. The history readers are NOT on the digest roster, so they reach the body pins; a roster function
+// breaks the certificate first, which is refused with its own code.
+const spaced = text => { assert.ok(text.includes('AS $function$')); return text.replace('AS $function$', 'AS $function$ '); };
+const definitionOf = signature => sql(`select pg_get_functiondef('${signature}'::regprocedure)`);
+let readerV2, readerV1, blockers;
+await refusedAndRestored('VOICE_FUNCTION_BODY_DRIFT', /VOICE_B1_REVERT_VOICE_FUNCTION_DRIFT/,
+  () => { readerV2 = definitionOf('public.rpc_read_agreement_messages_page_v2(uuid,uuid,integer,timestamptz,uuid)'); sql(spaced(readerV2)); }, () => sql(readerV2));
+await refusedAndRestored('APPLIED_BODY_DRIFT', /VOICE_B1_REVERT_APPLIED_BODY_DRIFT/,
+  () => { readerV1 = definitionOf('public.rpc_read_agreement_messages_page_v1(uuid,uuid,integer,timestamptz,uuid)'); sql(spaced(readerV1)); }, () => sql(readerV1));
+await refusedAndRestored('ROSTER_BODY_DRIFT_BREAKS_THE_CERTIFICATE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/,
+  () => { blockers = definitionOf('private.closure_blockers_v5(uuid)'); sql(spaced(blockers)); }, () => sql(blockers));
+await refusedAndRestored('CERTIFICATES_DISAGREE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/,
+  () => sql("update private.closure_erasure_source_v5 set sha256=repeat('0',64) where singleton"),
+  () => sql(`update private.closure_erasure_source_v5 set sha256=${q(appliedState.live)} where singleton`));
+await refusedAndRestored('STRUCTURE_DRIFT', /VOICE_B1_REVERT_APPLIED_STRUCTURE_DRIFT/,
+  () => sql('drop policy agreement_voice_no_client_v1 on storage.objects'),
+  () => sql("create policy agreement_voice_no_client_v1 on storage.objects as restrictive for all to authenticated using(bucket_id <> 'agreement-voice') with check(bucket_id <> 'agreement-voice')"));
 await check('THE_REVERT_RESTORES_THE_COMPLETE_CATALOG_THE_CERTIFICATE_AND_THE_DIGEST_EXACTLY', async () => {
   assert.ok(baseline && afterApply);
   sql(chainRevert);
