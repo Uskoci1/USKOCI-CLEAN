@@ -6,7 +6,7 @@
 do $voice_b1_application$
 declare
   pin record; prior record; actual jsonb; before_surface jsonb; after_surface jsonb; expected_datasets jsonb; before_buckets jsonb; before_storage_policies jsonb;
-  old_source text; new_source text; definition text; source_row jsonb; erasure_row jsonb; affected integer; rewritten oid[]; fresh oid[];
+  old_source text; new_source text; definition text; source_row jsonb; erasure_row jsonb; affected integer; rewritten oid[]; fresh oid[]; diff_keys text;
   surface_query text := $surface_query$
     select jsonb_build_object(
       'relations',(select jsonb_agg(jsonb_build_array(c.oid,c.relname,c.relnamespace,c.relowner,c.relkind,c.relacl,

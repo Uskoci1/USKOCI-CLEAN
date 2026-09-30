@@ -6,7 +6,7 @@
 do $voice_b1_application$
 declare
   pin record; prior record; actual jsonb; before_surface jsonb; after_surface jsonb; expected_datasets jsonb; before_buckets jsonb; before_storage_policies jsonb;
-  old_source text; new_source text; definition text; source_row jsonb; erasure_row jsonb; affected integer; rewritten oid[]; fresh oid[];
+  old_source text; new_source text; definition text; source_row jsonb; erasure_row jsonb; affected integer; rewritten oid[]; fresh oid[]; diff_keys text;
   surface_query text := $surface_query$
     select jsonb_build_object(
       'relations',(select jsonb_agg(jsonb_build_array(c.oid,c.relname,c.relnamespace,c.relowner,c.relkind,c.relacl,
@@ -1041,7 +1041,15 @@ $voice_b1b_install$;
   end loop;
   -- Delta accounting 3/4: every table, column, constraint, trigger, policy, index and bucket is unchanged except the reviewed additions and the two replaced constraints.
   execute surface_query into after_surface;
-  if after_surface is distinct from before_surface then raise exception 'VOICE_B1_APPLICATION_UNRELATED_CATALOG_DELTA' using errcode='55000';end if;
+  if after_surface is distinct from before_surface then
+    -- Name what differs (the key, how many entries each way and one example of each), so a refused application explains itself.
+    select string_agg(k||': +'||(select count(*) from jsonb_array_elements(coalesce(after_surface->k,'[]'::jsonb)) e where not(coalesce(before_surface->k,'[]'::jsonb) @> jsonb_build_array(e)))::text
+      ||' -'||(select count(*) from jsonb_array_elements(coalesce(before_surface->k,'[]'::jsonb)) e where not(coalesce(after_surface->k,'[]'::jsonb) @> jsonb_build_array(e)))::text
+      ||' added '||coalesce((select left(e::text,240) from jsonb_array_elements(coalesce(after_surface->k,'[]'::jsonb)) e where not(coalesce(before_surface->k,'[]'::jsonb) @> jsonb_build_array(e)) limit 1),'-')
+      ||' removed '||coalesce((select left(e::text,240) from jsonb_array_elements(coalesce(before_surface->k,'[]'::jsonb)) e where not(coalesce(after_surface->k,'[]'::jsonb) @> jsonb_build_array(e)) limit 1),'-'),' | ')
+      into diff_keys from jsonb_object_keys(before_surface) k where before_surface->k is distinct from after_surface->k;
+    raise exception 'VOICE_B1_APPLICATION_UNRELATED_CATALOG_DELTA: %',diff_keys using errcode='55000';
+  end if;
   if (select jsonb_agg(to_jsonb(b) order by b.id) from storage.buckets b where b.id is distinct from 'agreement-voice') is distinct from before_buckets
      or not exists(select 1 from storage.buckets where id='agreement-voice' and not public and file_size_limit=4194304 and allowed_mime_types=array['audio/mp4'])
      or (select jsonb_agg(to_jsonb(p) order by policyname) from pg_policies p where schemaname='storage' and tablename='objects' and policyname is distinct from 'agreement_voice_no_client_v1')
