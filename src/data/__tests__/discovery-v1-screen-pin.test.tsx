@@ -99,6 +99,23 @@ test('a stale read gives the halo up, and the newest touch keeps it when an olde
   await act(async () => { tree.unmount(); });
 });
 
+test('touching the same bucket twice keeps its halo while the newer read runs, and only the newer read is timed', async () => {
+  const first = deferred<any>(), second = deferred<any>();
+  mockCoordinator.selectMarker = jest.fn().mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
+  const tree = await render();
+  await touch(marker('TASK', 'task:a'));
+  await touch(marker('TASK', 'task:a'));
+  await act(async () => { first.resolve({ kind: 'stale' }); await Promise.resolve(); });
+  await flush();
+  expect(halo()).toBe('task:a');                          // the older read's end does not blink the halo away
+  expect(traced()).toHaveLength(0);
+  await act(async () => { selectedKey = 'task:a'; second.resolve({ kind: 'TASK', applied: true, snapshot: {} }); await Promise.resolve(); });
+  await flush();
+  expect(halo()).toBe('task:a');
+  expect(traced()).toHaveLength(1);
+  await act(async () => { tree.unmount(); });
+});
+
 test('a store build traces nothing and still answers the touch', async () => {
   mockPackage = 'rs.uskoci';
   const read = deferred<any>();

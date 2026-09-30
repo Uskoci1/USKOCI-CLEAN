@@ -110,25 +110,27 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   // is the map layer's own filter (no geometry, no card); the read still owns the selection, so one that does not apply takes the halo away again, and the
   // newest touch keeps it when an older read finishes late. The DEV package traces the milliseconds to the halo and to the card data (P6-10).
   const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const tap = useRef<{ key: string; at: number; feedback: number | null } | null>(null);
+  const touches = useRef(0);
+  const tap = useRef<{ key: string; at: number; feedback: number | null; touch: number } | null>(null);
   useEffect(() => {
     const touch = tap.current;
     if (pendingKey !== null && touch && touch.key === pendingKey && touch.feedback === null) touch.feedback = Date.now() - touch.at;
   }, [pendingKey]);
   const selectMarker = useCallback((marker: DiscoveryV1MapMarker) => {
-    tap.current = { key: marker.key, at: Date.now(), feedback: null };
+    const touch = ++touches.current;
+    tap.current = { key: marker.key, at: Date.now(), feedback: null, touch };
     if (marker.kind !== 'CLUSTER') setPendingKey(marker.key);
     let applied = false;
     void execute(async () => {
       const result = await coordinator.selectMarker(marker);
       applied = (result.kind === 'TASK' || result.kind === 'PLACE') && result.applied;
     }).then(() => {
-      const touch = tap.current;
-      if (applied && touch && touch.key === marker.key) {
-        const content = Math.min(Date.now() - touch.at, 9999);
-        traceDiscoveryV1('pin', `${Math.min(touch.feedback ?? content, 9999)}/${content}`);
+      const latest = tap.current;
+      if (applied && latest && latest.touch === touch) {
+        const content = Math.min(Date.now() - latest.at, 9999);
+        traceDiscoveryV1('pin', `${Math.min(latest.feedback ?? content, 9999)}/${content}`);
       }
-      if (mounted.current) setPendingKey(current => current === marker.key ? null : current);
+      if (mounted.current && touches.current === touch) setPendingKey(null);
     });
   }, [coordinator, execute]);
   const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
