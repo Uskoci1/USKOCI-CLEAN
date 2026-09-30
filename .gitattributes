@@ -55,3 +55,5 @@ scripts/proofs/build-pkg045b-p0.mjs text eol=lf
 supabase/proofs/discovery/p6_discovery_prepare_p0.mjs text eol=lf
 supabase/candidates/pkg045b_revert_p0.sql text eol=lf
 supabase/proofs/discovery/pkg045b_revert_proof.mjs text eol=lf
+supabase/candidates/p6_discovery_rollout_v2_revert.sql text eol=lf
+supabase/proofs/discovery/p6_rollout_v2_revert_proof.mjs text eol=lf
