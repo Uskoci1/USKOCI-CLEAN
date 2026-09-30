@@ -38,6 +38,10 @@ ap.add_argument('--package', default=PACKAGE)
 ap.add_argument('--label', default=None, help='what this run is called in its report, e.g. "PHYSICAL HONOR / candidate 42371918"')
 ap.add_argument('--reader', choices=('p6', 'legacy'), default='p6', help='legacy: the build still reads Zadaci through the old readers (no P6 trace lines): P6-only checks are skipped, not failed')
 ap.add_argument('--restart', action='store_true', help='force-stop and relaunch the app (a cold start; the process dies, no data is cleared and the session stays)')
+ap.add_argument('--search', default=None, help='ASCII word to type into the search panel: the first place suggestion is chosen, applied and cleared again (a typed query: nothing is sent or written, but the remembered search view changes for a while and is restored)')
+ap.add_argument('--visible-return', type=int, default=0, help='N repeats of: open a task, press Back, and watch the SCREEN (a burst of screenshots, no UI tree) until the list is back: the time the person sees')
+ap.add_argument('--filters', action='store_true', help='toggle the quick filters "Na daljinu" and "Na licu mesta" and back (never "U blizini": it asks for the location permission)')
+ap.add_argument('--expect-apk-sha256', default=None, help='the SHA-256 of the APK that was installed: the run fails at once if the device reports another one')
 ap.add_argument('--route', default=None, help='open this deep link instead of the launcher activity (e.g. uskociapp://zadaci?p6Proof=1 on a proof build)')
 ap.add_argument('--expect-count', type=int, default=None)
 ap.add_argument('--baseline', default=None, help='JSON written by --write-baseline on the previous build (or a list of card labels): every task title must be listed again')
@@ -46,6 +50,7 @@ ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
 ap.add_argument('--only-pins', action='store_true', help='launch and run the pin timing step alone')
+ap.add_argument('--only-flows', action='store_true', help='launch, read the list, then run only the flows asked for (--filters, --search, --visible-return) and stop')
 ap.add_argument('--only-list', action='store_true', help='launch, read (and with --write-baseline record) the list, and stop')
 ap.add_argument('--smoke', action='store_true', help='only look at the app the way an older client uses it (Home, Zadaci, Moji zadaci with a task and back, Moje prijave, Dogovori) and report any error text')
 ARGS = ap.parse_args()
@@ -155,6 +160,8 @@ def count_shown(root):
         m = re.match(r'\s*(\d+)\s+zadat', a.get('text', '') or '')
         if m:
             return int(m.group(1))
+        if re.match(r'\s*Nema zadataka\s*$', a.get('text', '') or ''):
+            return 0                                             # the empty list's own line
     return None
 
 
@@ -244,7 +251,7 @@ def pins(root, step=3, cell=24, gap=2):
         row = y * w * 4
         for x in range(0, w, step):
             i = row + x * 4
-            if abs(px[i] - 7) <= 30 and abs(px[i + 1] - 110) <= 30 and abs(px[i + 2] - 78) <= 30:
+            if px[i + 1] - px[i] >= 40 and px[i + 1] - px[i + 2] >= 12 and px[i] <= 70 and 80 <= px[i + 1] <= 140:
                 cells[(x // cell, y // cell)] = cells.get((x // cell, y // cell), 0) + 1
     seen, found = set(), []
     for start in cells:
@@ -449,6 +456,15 @@ def time_pins():
         skip('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', 'legacy reader: the build has no P6 trace lines')
         return
     root = to_map(dump())
+    for _ in range(4):
+        if pins(root):
+            break
+        zoom_out = by_desc(root, exact='Umanji mapu')
+        if not zoom_out:
+            break
+        tap_node(zoom_out[0])                                      # the map's own button: the camera goes out until a bucket is in view
+        time.sleep(4)
+        root = dump()
     png('02_map')
     sheet = by_id(root, 'discovery-sheet-background')
     log('map state: sheet', bounds(sheet[0]['bounds']) if sheet else None, 'cards', len(cards(root)), 'list-count button', bool(by_id(root, 'list-count')))
@@ -626,6 +642,196 @@ def cycles():
         # Baseline (cold), the warmed-up level after five cycles, the peak and the level after ten idle seconds: growth is judged from the warmed-up level.
         check('NO_MEMORY_ACCUMULATION_OVER_THE_CYCLES', kb['final_after_idle'] <= warm * 1.15 + 10000, baseline_kb=kb.get('before'), warm_kb=warm,
               peak_kb=max(kb.values()), final_kb=kb['final_after_idle'])
+
+
+def frame_signature(px, w, h):
+    """A coarse luminance grid of the list area of a raw RGBA frame (about 1,300 samples): cheap enough to compare a few frames per second."""
+    sig = []
+    for y in range(int(h * 0.25), int(h * 0.85), 40):
+        row = y * w * 4
+        for x in range(20, w, 48):
+            i = row + x * 4
+            sig.append((px[i] * 3 + px[i + 1] * 6 + px[i + 2]) // 10)
+    return sig
+
+
+def sig_distance(a, b):
+    return sum(abs(p - q) for p, q in zip(a, b)) / max(1, len(a))
+
+
+def visible_return():
+    """Back -> the list is back on the SCREEN. The accessibility tree is not used while it is measured (its dump waits for the UI to settle and would delay the answer): after the Back a burst of
+    screenshots is compared with the picture of the same list before the task was opened; the answer is the first frame that matches it (and the next one still does), counted from just
+    before the key is injected on the same clock. A frame is taken about every 0.3 s, and the screenshot itself is a little behind the display, so the number is an upper bound with about that resolution."""
+    out = []
+    root = reset_view()
+    w, h, px = screen()
+    ref = frame_signature(px, w, h)
+    for i in range(1, ARGS.visible_return + 1):
+        cs = cards(root)
+        if not cs:
+            check(f'VISIBLE_RETURN_{i:02d}_HAS_CARDS', False)
+            break
+        pick = cs[1] if len(cs) > 1 and visible_fraction(root, cs[1]['b']) >= 0.5 else cs[0]
+        tap(*visible_tap_point(root, pick['b']))
+        detail, _ = poll(lambda r: not by_id(r, 'list-count-words') and not by_id(r, 'list-count') and any(pick['title'] in (a.get('content-desc', '') + a.get('text', '')) for a in attrs(r)), 20, 0.3)
+        if not detail:
+            out.append({'i': i, 'openedDetail': False})
+            reset_view()
+            continue
+        time.sleep(1.0)
+        w, h, px = screen()
+        away = sig_distance(frame_signature(px, w, h), ref)              # how far the detail screen is from the list
+        guard()
+        t0 = time.time()
+        adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+        frames = []
+        while time.time() - t0 < 6.0:
+            w, h, px = screen()
+            frames.append((round(time.time() - t0, 3), round(sig_distance(frame_signature(px, w, h), ref), 2)))
+        near = max(3.0, away * 0.2)
+        seen = next((t for k, (t, dist) in enumerate(frames[:-1]) if dist <= near and frames[k + 1][1] <= near), None)
+        out.append({'i': i, 'openedDetail': True, 'awayDistance': round(away, 2), 'visibleAfterS': seen, 'frames': len(frames), 'firstFramesS': [f[0] for f in frames[:3]]})
+        time.sleep(1.5)
+        root = dump()
+        if not cards(root):
+            root = reset_view()
+    REPORT['visibleReturn'] = out
+    seen = [o['visibleAfterS'] for o in out if o.get('visibleAfterS') is not None]
+    REPORT['visibleReturnSummary'] = {'n': len(seen), 'p50S': percentile(seen, .5), 'p95S': percentile(seen, .95), 'maxS': max(seen, default=None)}
+    check('VISIBLE_RETURN_MEASURED', len(seen) >= max(3, int(ARGS.visible_return * 0.8)), **REPORT['visibleReturnSummary'])
+
+
+def poll_or_now(pred, timeout=30, interval=0.4):
+    """Like poll(), but a timeout returns (None, the tree as it is now) so that the caller can look at the screen it is on."""
+    got, root = poll(pred, timeout, interval)
+    return (got, root) if got else (None, dump())
+
+
+def ime_visible():
+    return 'mInputShown=true' in adb('shell', 'dumpsys input_method | grep -m1 mInputShown', timeout=30)
+
+
+def hide_keyboard():
+    if ime_visible():
+        send_input('keyevent', 'KEYCODE_BACK')            # the first Back only closes the keyboard
+        time.sleep(1.0)
+
+
+def focused_edit(root):
+    return next((a for a in attrs(root) if a.get('class') == 'android.widget.EditText' and a.get('focused') == 'true'), None)
+
+
+def type_text(text):
+    """Letters and digits into the focused text field of the app under test (the guard has already checked who has the screen): nothing is typed unless a field of the app is focused."""
+    assert re.fullmatch(r'[A-Za-z0-9]+', text), 'ASCII letters and digits only (adb input text)'
+    root = dump()
+    if not focused_edit(root):
+        fields = [a for a in attrs(root) if a.get('class') == 'android.widget.EditText']
+        if not fields:
+            raise RuntimeError('no text field to type into')
+        tap_node(fields[0])
+        time.sleep(1.0)
+        if not focused_edit(dump()):
+            raise RuntimeError('the text field did not take focus')
+    send_input('text', text)
+
+
+def first_int(text):
+    m = re.search(r'\d+', text or '')
+    return int(m.group(0)) if m else None
+
+
+def search_flow():
+    """The search panel as a person uses it: open it, type one word, read the place suggestions and their counts, choose the first, apply it, and put the search back to what it was."""
+    word = ARGS.search
+    root = reset_view()
+    bar = by_desc(root, prefix='Pretraži zadatke')
+    if not bar:
+        check('SEARCH_BAR_FOUND', False)
+        return
+    before_label, before_count = bar[0].get('content-desc'), count_shown(root)
+    m = LOG.mark()
+    t0 = time.time()
+    tap_node(bar[0])
+    got, root = poll_or_now(lambda r: [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 20, 0.5)
+    check('SEARCH_PANEL_OPENS_WITH_A_TEXT_FIELD', bool(got), openedS=round(time.time() - t0, 2))
+    png('20_search_open')
+    REPORT['search'] = {'word': word, 'barBefore': before_label, 'countBefore': before_count}
+    if not got:
+        return
+    type_text(word)
+    time.sleep(4)
+    root = dump()
+    png('21_search_typed')
+    suggestions = [a for a in attrs(root) if a.get('clickable') == 'true' and 'zadat' in (a.get('content-desc') or '') and not (a.get('content-desc') or '').startswith(('Pretraži', 'Prikaži'))]
+    labels = [a.get('content-desc') for a in suggestions][:6]
+    labels.sort(key=lambda label: 0 if word.lower() in (label or '').lower() else 1)          # the place that carries the typed word first, the rest as they came
+    REPORT['search']['suggestions'] = labels
+    check('SEARCH_SUGGESTS_A_PLACE_WITH_A_COUNT', bool(suggestions), suggestions=labels)
+    applied = None
+    if suggestions:
+        hide_keyboard()
+        root = dump()
+        suggestions = [a for a in attrs(root) if a.get('clickable') == 'true' and (a.get('content-desc') or '') == labels[0]]
+        if suggestions:
+            tap_node(suggestions[0])
+            time.sleep(2)
+            root = dump()
+            png('22_search_place_chosen')
+            show = sorted([a for a in attrs(root) if a.get('clickable') == 'true' and ((a.get('content-desc') or a.get('text') or '').startswith('Prikaži'))], key=lambda a: bounds(a['bounds'])[1])
+            REPORT['search']['applyLabel'] = (show[0].get('content-desc') or show[0].get('text')) if show else None
+            if show:
+                t1 = time.time()
+                tap_node(show[0])
+                got, root = poll_or_now(lambda r: (by_id(r, 'list-count-words') or by_id(r, 'list-count')) and not [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 30, 0.5)
+                applied = count_shown(root) if got else None
+                REPORT['search']['appliedS'] = round(time.time() - t1, 2)
+                REPORT['search']['countApplied'] = applied
+                png('23_search_applied')
+                check('SEARCH_COUNT_MATCHES_THE_SUGGESTION', applied is not None and applied == first_int(re.sub(r'^[^,]*,\s*', '', labels[0]).split(',')[-1]), suggestion=labels[0], list=applied)
+    REPORT['search']['logLinesSince'] = LOG.since(m).count('USKOCI_P6_TRACE')
+    # put the search back: each removable condition of the list ("Ukloni uslov: ..."), the where-chip's own clear button, then the whole list
+    for _ in range(4):
+        removable = [a for a in attrs(dump()) if (a.get('content-desc') or '').startswith('Ukloni uslov') and a.get('clickable') == 'true']
+        if not removable:
+            break
+        tap_node(removable[0])
+        time.sleep(3)
+    if by_id(dump(), 'clear-where'):
+        tap_node(by_id(dump(), 'clear-where')[0])
+        time.sleep(3)
+    root = reset_view()
+    bar = by_desc(root, prefix='Pretraži zadatke')
+    after_label = bar[0].get('content-desc') if bar else None
+    REPORT['search']['barAfter'], REPORT['search']['countAfter'] = after_label, count_shown(root)
+    check('SEARCH_RESTORED_TO_THE_STATE_BEFORE', after_label == before_label and count_shown(root) == before_count, before=before_label, after=after_label, countBefore=before_count, countAfter=count_shown(root))
+
+
+def filters_flow():
+    """The quick filters that need no permission: remote work and on-site work, each toggled on and off again; the count shown and the time it took to change."""
+    root = reset_view()
+    base = count_shown(root)
+    out = {'countBefore': base, 'chips': {}}
+    REPORT['filters'] = out
+    for chip in ('Na daljinu', 'Na licu mesta'):
+        node = by_desc(root, exact=chip)
+        if not node:
+            out['chips'][chip] = {'found': False}
+            continue
+        t0 = time.time()
+        tap_node(node[0])
+        got, root = poll_or_now(lambda r: count_shown(r) is not None and count_shown(r) != base, 20, 0.4)
+        changed = round(time.time() - t0, 2) if got else None
+        counted = count_shown(root)
+        png('30_filter_' + ('remote' if 'daljinu' in chip else 'onsite'))
+        node = by_desc(root, exact=chip)
+        if node:
+            tap_node(node[0])                                       # the chip is a toggle: off again
+        time.sleep(3)
+        root = reset_view()
+        out['chips'][chip] = {'found': True, 'countOn': counted, 'changedAfterS': changed, 'countBackAfterOff': count_shown(root)}
+    check('FILTERS_TOGGLE_AND_RETURN_TO_THE_WHOLE_LIST', all(c.get('found') and c.get('countBackAfterOff') == base for c in out['chips'].values()), chips=out['chips'], base=base)
 
 
 def gfx_reset():
@@ -854,6 +1060,10 @@ def main():
             'app', app.get('versionName'), app.get('versionCode'), (app.get('apkSha256') or '')[:16])
         if not app.get('installed'):
             raise RuntimeError(f'{PACKAGE} is not installed on {DEV.serial}')
+        if ARGS.expect_apk_sha256:
+            check('INSTALLED_APK_IS_THE_BUILT_ARTIFACT', (app.get('apkSha256') or '') == ARGS.expect_apk_sha256.lower(), installed=app.get('apkSha256'), expected=ARGS.expect_apk_sha256.lower())
+            if not passed():
+                raise RuntimeError('the installed APK is not the one that was built')
         LOG = qa_device.LogStream(DEV, OUT / 'device-log-app.txt', uid=app.get('uid')).start()
         if ARGS.smoke:
             smoke()
@@ -868,6 +1078,17 @@ def main():
         if ARGS.only_list:
             REPORT['result'] = 'PASS' if passed() else 'FAIL'
             return
+        if ARGS.only_flows:
+            if ARGS.visible_return:
+                visible_return()
+            if ARGS.filters:
+                filters_flow()
+            if ARGS.search:
+                search_flow()
+            traced = LOG.since(0).count('USKOCI_P6_TRACE')
+            REPORT['readerObserved'], REPORT['p6TraceLines'] = ('P6' if traced else 'LEGACY'), traced
+            REPORT['result'] = 'PASS' if passed() else 'FAIL'
+            return
         with Recording('pins'):
             time_pins()
         gestures()
@@ -876,10 +1097,20 @@ def main():
             launch()
         read_list()
         scroll_feel()
+        if ARGS.visible_return:
+            visible_return()
+        if ARGS.filters:
+            filters_flow()
+        if ARGS.search:
+            search_flow()
         with Recording('cycles'):
             cycles()
         health()
         verdict()
+        traced = LOG.since(0).count('USKOCI_P6_TRACE')
+        REPORT['readerObserved'] = 'P6' if traced else 'LEGACY'
+        REPORT['p6TraceLines'] = traced
+        check('P6_READER_IS_RUNNING' if ARGS.reader == 'p6' else 'LEGACY_READER_IS_RUNNING', (traced > 0) == (ARGS.reader == 'p6'), p6TraceLines=traced)
         REPORT['result'] = 'PASS' if passed() else 'FAIL'
     except BaseException as exc:                                          # noqa: BLE001 - always leave a report behind
         REPORT['error'] = f'{type(exc).__name__}: {str(exc)[:400]}'
