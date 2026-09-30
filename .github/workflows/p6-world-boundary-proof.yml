@@ -6,13 +6,12 @@ name: P6 world boundary proof
 # lineage kind and published/unpublished tasks per owner are seeded, the deployed p6_discovery_rollout_v3.sql is applied locally, and every viewer (TEST, REAL,
 # REAL_USER, each owner) and anon reads through rpc_discovery_v1 PAGE/MAP/PLACES/EXACT_PUBLIC and the legacy reader rpc_list_open_tasks_v3. Timings never fail
 # the job; functional assertions do. No canonical DEV access, no native claim, no SLA.
+# NOT RUN AUTOMATICALLY (owner direction 2026-09-30: P6 closes on its existing evidence; extra proofs are not started for comfort). Prepared during the P6 closure as an
+# extra proof for the production-readiness stage (QA debt QAD-04 in docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md). To run it,
+# start this workflow by hand once the file is on the default branch, or restore the push trigger below for a run on the work branch:
+#   push: { branches: [work/uskoci-ui-unification-20260924], paths: ['supabase/proofs/discovery/p6_world_boundary_proof.mjs', '.github/workflows/p6-world-boundary-proof.yml'] }
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'supabase/proofs/discovery/p6_world_boundary_proof.mjs'
-      - '.github/workflows/p6-world-boundary-proof.yml'
-      - 'docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_72_P6_WORLD_BOUNDARY_PROOF.md'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
