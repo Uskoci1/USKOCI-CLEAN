@@ -4042,8 +4042,8 @@
       "id": "B19",
       "oblast": "Brzina",
       "nalaz_16_09": "Lista prilika se ne učitava po delovima",
-      "sada": "DELIMIČNO: P6 čitač je na DEV-u (ledger 212) i uključen u DEV APK; P6 zatvoren sa granicama L1–L10. Na telefonu (Round 74) povratak p95 822 ms i pin→kartica p95 1503 ms (uključuje tačno čitanje) nisu ispod cilja (polish EX-03); scale pri jit=off 1011/1032 ms (L4); lične liste bez straničenja (EX-04); DEV opterećen petljom B24 pa merenja na njemu iskrivljena.",
-      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md"
+      "sada": "DELIMIČNO: P6 čitač je na DEV-u (ledger 212) i uključen u DEV APK; P6 zatvoren sa granicama L1–L10. Na telefonu (Round 74) povratak p95 822 ms i pin→kartica p95 1503 ms (uključuje tačno čitanje) nisu ispod cilja (polish EX-03); scale pri jit=off 1011/1032 ms (L4); lične liste bez straničenja (EX-04); DEV opterećen petljom B24 pa merenja na njemu iskrivljena. EX-03 AFTER 30.09. na HONOR-u (mali uzorak, mirna baza): povratak Back→restored p50 462→162 ms bez ijednog PAGE/MAP zahteva (topli povratak, 4/4); podaci kartice 402→42 ms; frejmova preko 700 ms 11→0; halo 63→140 ms (cilj ≤100 ms promašen, izmena „halo prvi“ u kodu, nije merena); DEV petlja B24 ugašena 16:43Z pa su ova merenja čista.",
+      "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/EX03_DISCOVERY_POLISH_20260930.md"
     },
     {
       "id": "B20",
