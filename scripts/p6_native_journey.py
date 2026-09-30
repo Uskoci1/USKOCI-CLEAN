@@ -16,6 +16,7 @@ with the counts the server itself returns for the same filters (fixture.json `ex
 canonical DEV.
 """
 import ast
+import datetime
 import json
 import math
 import os
@@ -219,10 +220,10 @@ def swipe(x1, y1, x2, y2, ms=600):
     time.sleep(1.0)
 
 
-def scroll_list(direction='down', fraction=0.5, ms=600):
+def scroll_list(direction='down', fraction=0.5, ms=600, x_fraction=0.9):
     w, h = screen_size()
     span = int(h * fraction)
-    x = int(w * 0.9)              # away from the centred "Mapa" pill
+    x = int(w * x_fraction)       # away from the centred "Mapa" pill
     if direction == 'down':      # finger moves up: content moves up, later items appear
         start = int(h * 0.80)
         swipe(x, start, x, start - span, ms)
@@ -522,8 +523,8 @@ def _db_container():
                  if n.startswith('supabase_db_')), None)
 
 
-def _docker_logs(name, since=None):
-    cmd = ['docker', 'logs'] + (['--since', since] if since else []) + [name]
+def _docker_logs(name, since=None, timestamps=False):
+    cmd = ['docker', 'logs'] + (['--timestamps'] if timestamps else []) + (['--since', since] if since else []) + [name]
     return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='replace', timeout=120).stdout or ''
 
 
@@ -551,6 +552,8 @@ def _bodies_from(text):
 
 
 HARVEST_SECONDS = []
+_HARVEST = {'since': None, 'newest': None, 'lines': set(), 'bodies': []}
+_DOCKER_STAMP = re.compile(r'^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d+))?Z$')
 
 
 def harvest():
@@ -569,9 +572,32 @@ def _harvest_uncounted():
     name = _db_container()
     if not name:
         return []
-    bodies = _bodies_from(_docker_logs(name, START_ISO))
-    if bodies:
-        return bodies
+    # Incremental: only the lines since the previous read, so a read takes seconds on a runner whose statement log holds hundreds of thousands of lines (journey #9/#10: median 16 s,
+    # up to 75 s per full read). Body-bearing lines are kept once, in log order; a line stamped in the same second as the last one read is met again through the one second of overlap
+    # and recognised by its text.
+    since = _HARVEST['since'] or START_ISO
+    text = _docker_logs(name, since, timestamps=True)
+    newest = _HARVEST['newest']
+    for line in text.splitlines():
+        stamp = line.split(' ', 1)[0]
+        m = _DOCKER_STAMP.match(stamp)
+        if m:
+            key = (m.group(1), (m.group(2) or '').ljust(9, '0'))
+            if newest is None or key > newest:
+                newest = key
+        if 'parameters: $' not in line.lower() or line in _HARVEST['lines']:
+            continue
+        bodies = _bodies_from(line)
+        if bodies:
+            _HARVEST['lines'].add(line)
+            _HARVEST['bodies'].append(bodies[0])
+    if newest is not None:
+        _HARVEST['newest'] = newest
+        second = datetime.datetime.strptime(newest[0], '%Y-%m-%dT%H:%M:%S') - datetime.timedelta(seconds=1)
+        _HARVEST['since'] = second.strftime('%Y-%m-%dT%H:%M:%SZ')
+    if _HARVEST['bodies']:
+        return list(_HARVEST['bodies'])
+    # the container log holds no bodies (yet): a database that logs to files is read from its log directory
     r = subprocess.run(['docker', 'exec', name, 'sh', '-c', 'cat /var/log/postgresql/* 2>/dev/null | tail -n 200000'],
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='replace', timeout=120)
     return _bodies_from(r.stdout or '')
@@ -853,9 +879,18 @@ def s_paging():
     ensure_full()
     m = mark()
     calls_before = reader_calls()['rpc_discovery_v1']
-    seen, order, idle, dupes, swipes, indexes = set(), [], 0, [], 0, set()
+    seen, order, idle, dupes, swipes, indexes, strays = set(), [], 0, [], 0, set(), []
     for swipes in range(1, 131):
         root, _p = dump()
+        if not count_nodes(root) and not cards(root) and (nodes(root, contains='Mesto zadatka') or nodes(root, contains='Sastavi prijavu')):
+            # Journey #10: a slow swipe on the stalled CI emulator arrived as a press and opened the task under the finger; the loop then swiped on that detail for ten minutes.
+            # The list's top line stands in every list state and in no detail, so a task's own labels without it name the stray open: come back, go on, and report each one.
+            strays.append(swipes)
+            note('PAGING_STRAY_OPEN', swipe=swipes)
+            ensure_list()
+            time.sleep(3.0)                                     # the returned list restores its saved offset
+            root, _p = dump()
+            idle = 0
         cs = cards(root)
         titles = [c['title'] for c in cs]
         indexes.update(c['index'] for c in cs)
@@ -870,20 +905,22 @@ def s_paging():
             break
         if idle >= 6:
             # A next page that was asked for (a cursor request reached the server) but is not drawn yet is waited for: on the CI emulator
-            # the UI thread can stall for many seconds while Reanimated retries the views the list has just dropped.
-            if idle >= 40 or not any(r.get('after') for r in since(m, 'PAGE')):
+            # the UI thread can stall for many seconds while Reanimated retries the views the list has just dropped. One that has not been seen asked for
+            # yet is waited for too (the statement log is read by the driver, the request is made by the app: at the end of the list they meet within seconds of
+            # each other): the end of the list is believed only after 12 idle swipes (about a minute) without a cursor request.
+            asked = any(r.get('after') for r in since(m, 'PAGE'))
+            if idle >= 40 or (not asked and idle >= 12):
                 break
         if idle:
             time.sleep(2.0)                      # the next page may still be on its way
-        scroll_list('down', 0.45, ms=800)        # shorter than the viewport, slow enough that no card is flung past unseen
+        scroll_list('down', 0.45, ms=800, x_fraction=0.975)   # shorter than the viewport, slow enough that no card is flung past unseen; starts in the gutter right of the cards
     reqs = since(m, 'PAGE')
     cursor = [r for r in reqs if r.get('after')]
-    first_page = next((r for r in harvest() if r.get('mode') == 'PAGE'), None)
-    limit = (first_page or {}).get('limit')
+    limit = next((r.get('limit') for r in reqs if r.get('limit')), None)          # the app's own page size (the fixture's probes use another one)
     pages = math.ceil(TOTAL / limit) if limit else None
     root, _p = dump()
     calls_after = reader_calls()['rpc_discovery_v1']
-    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
+    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'strayOpens': strays, 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
                         'readerCalls': calls_after - calls_before, 'requests': [brief(r) for r in reqs[:10]], 'order': order[:6] + ['...'] + order[-4:]}
     check('PAGING_REACHED_THE_LAST_TASK', TOTAL in indexes, maxIndex=max(indexes) if indexes else None, expected=TOTAL)
     check('PAGING_SAW_ALMOST_EVERY_TASK', len(seen) >= TOTAL - 3, seen=len(seen), expected=TOTAL)
@@ -891,7 +928,8 @@ def s_paging():
     check('PAGING_CALLED_THE_READER_AGAIN', calls_after - calls_before >= 1, calls=calls_after - calls_before)
     check('NEXT_PAGE_REQUESTED_WITH_CURSOR', bool(cursor) if pages and pages > 1 else True, pages=pages, cursorRequests=len(cursor))
     if pages:
-        check('NO_RUNAWAY_PAGE_REQUESTS', len(cursor) <= max(pages, 1) * 2, cursorRequests=len(cursor), pages=pages)
+        check('NO_RUNAWAY_PAGE_REQUESTS', len(cursor) <= max(pages, 1) * 2 + len(strays), cursorRequests=len(cursor), pages=pages, strayOpens=len(strays))
+    check('LIST_OPENED_NO_TASK_BY_ITSELF_WHILE_PAGING', len(strays) <= 3, strayOpens=strays)
     check('COUNT_STABLE_AFTER_PAGING', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL)
     snapshot('P6_04_paged_to_end')
 
