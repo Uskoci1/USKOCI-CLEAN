@@ -1,0 +1,135 @@
+# USKOČI - Pravila zajednice i bezbednosti
+
+> **TEHNIČKI NACRT - nije pravni savet; čeka podatke operatera i pregled odgovornog lica**
+
+| | |
+|---|---|
+| Isporuka | LEG-05 (master plan 16.2: dozvoljeno ponašanje i sadržaj, prijava i blokiranje, zabranjene ili regulisane potrebe, granice verifikacije) |
+| Status | DRAFT-FROM-RC2 uz stvarnu politiku objave (`RS-MIN-001..016`); javni tekst ispod još nije za objavu |
+| Osnova | RC2 „Safety, Community i regulisane usluge” (18.08.2026) i owner-locked minimum politike objave za Srbiju (`docs/implementation/ru3/RS_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1.md`: „OWNER_LOCKED_MINIMUM / NOT_PRODUCTION_ACTIVATED”). RC2 interni statusi (ALLOW_WITH_WARNING, REQUIRE_VERIFICATION i sl.) zamenjeni su ishodima koje aplikacija zaista daje. |
+| Verzija / stupanje na snagu | `[[ODLUKA VLASNIKA: oznaka verzije i datum]]` |
+| Uklanja se pre objave | ova tabela, oznake `[[...]]` i „Prilog: sledljivost” |
+
+**Oznake:** `[[OPERATER: ...]]`, `[[ODLUKA VLASNIKA: ...]]`, `[[PROVERITI: ...]]` kao u LEG-02.
+
+Ova pravila su prateći dokument Uslova korišćenja (LEG-02, odeljci 8, 18, 25, 26). Registar pravnih dokumenata u aplikaciji trenutno poznaje samo Uslove i Politiku privatnosti (`private.legal_document_versions`: `TERMS`, `PRIVACY`); zato se ova pravila ili ugrađuju u Uslove, ili objavljuju kao poseban javni dokument na koji Uslovi upućuju `[[ODLUKA VLASNIKA: kako se objavljuju i prihvataju, LEG-13]]`.
+
+---
+
+## 1. Osnovno pravilo
+
+USKOČI nije oglasna tabla na kojoj je dozvoljeno sve što korisnik može da napiše. Provera pravila pri objavi je stvarna funkcija aplikacije. AI može da označi rizik, ali konačnu odluku o zabrani ili ručnom pregledu donose utvrđena pravila sa razlozima, a tamo gde je potrebno i čovek. AI oznaka nije automatska konačna sankcija.
+
+## 2. Šta zaista objavljujemo: samo zadatke koje neko želi da uradi neko drugi
+
+Javni oglasi na USKOČI-ju su isključivo **Zadaci**: stvari koje osoba želi da neko drugi uradi. Ne postoji javni oglas „nudim usluge”. Veštine, alat, vozila, iskustvo i dostupnost pripadaju radnom profilu, a ne javnoj objavi.
+
+Obično su dozvoljeni, uz redovnu proveru: sačekati majstora u stanu uz ovlašćen pristup; fotografisati stanje prostora koji korisnik ima pravo da fotografiše; sačekati u redu; doneti dozvoljen dokument ili paket; pomoći da se unese ormar; sklapanje nameštaja; pratnja odrasle osobe do lekara bez pružanja zdravstvene usluge; kupovina svakodnevnih namirnica; šetanje psa ili uobičajena briga o kućnom ljubimcu; društvo i pomoć odrasloj osobi koja nije profesionalna zdravstvena ili socijalna nega.
+
+## 3. Šta se dešava pri objavi
+
+Pre objave zadatak prolazi proveru pravila. Ishod je jedan od četiri:
+
+| Ishod | Šta znači |
+|---|---|
+| **Objava dozvoljena** | jasan, konkretan zahtev bez zabranjenog ili nerazrešenog rizičnog signala |
+| **Potrebno pojašnjenje ili ispravka** | zadatak može biti prihvatljiv, ali se javni tekst ili činjenice prvo moraju ispraviti ili dopuniti |
+| **Potreban pregled** | nerazrešen, visokorizičan ili regulisan slučaj; ne objavljuje se dok ne postoji pregledano pravilo |
+| **Nije moguće objaviti** | zadatak se ne može objaviti na USKOČI-ju |
+
+Samo ishod „objava dozvoljena” dovodi do objave. Oznaka **HITNO** nikada ne zaobilazi pravila. Ako je proveru nemoguće završiti (pravilo nedostaje, zastarelo je ili je u sukobu), ishod je „potreban pregled”, ne objava. Ishod možete osporiti kroz podršku (tema „Pregled odluke o objavi”).
+
+## 4. Šta se ne objavljuje
+
+Zadatak se ne može objaviti ako:
+
+1. je zapravo ponuda usluge ili samoreklama („Nudim krečenje”, „Radim selidbe”);
+2. je prodaja, izdavanje ili drugi oglas, a ne traženi zadatak;
+3. je neželjena poruka, promocija, preporuka uz proviziju ili nepovezano oglašavanje;
+4. sadrži ciljano vređanje, uznemiravanje, poniženje, govor mržnje ili diskriminatoran napad na drugo lice ili grupu;
+5. sadrži pretnju, zastrašivanje, nasilje ili zahtev da se neko povredi ili uplaši;
+6. traži krađu, prevaru, falsifikovanje, lažno predstavljanje, utaju poreza ili drugo izričito zaobilaženje zakona (uključujući „radnike na crno”);
+7. traži uhođenje, tajni nadzor, objavljivanje tuđih privatnih podataka ili prikupljanje tuđih naloga, lozinki ili privatnih podataka bez ovlašćenja;
+8. ima za cilj seksualnu eksploataciju, trgovinu ljudima, plaćene seksualne usluge ili sadrži seksualni sadržaj koji uključuje maloletnike;
+9. traži nabavku, prodaju ili prenos nezakonitih droga ili zaobilaženje kontrole opojnih sredstava, štetnu nabavku ili prenos oružja i municije, ili pirotehniku kao običan zadatak.
+
+Primeri: „Treba mi neko da ode kod njega i zaplaši ga” - nije moguće objaviti. „Treba mi 6 neprijavljenih radnika, na crno” - nije moguće objaviti.
+
+## 5. Šta se mora ispraviti pre objave
+
+- vulgarne reči u inače prihvatljivom zadatku (bez ciljanog vređanja): očistiti javni tekst;
+- javno objavljen telefon, email, tačna kućna adresa, QR kod, isprava ili drugi privatni podatak koji ne treba da bude javan: ukloniti iz javne izmene (privatni podaci se unose u polja za privatnu adresu i napomene za pristup);
+- zadatak koji nije dovoljno jasan ili mu fali bitna činjenica: dopuniti.
+
+Primeri: „Potrebno 6 ljudi za rad na gradilištu” - potrebno pojašnjenje šta tačno rade.
+
+## 6. Regulisane i visokorizične oblasti
+
+Za oblasti u kojima pravila Platforme nemaju posebno pregledan propis, zadatak dobija ishod „potreban pregled” i za sada se ne objavljuje. To se odnosi na jasno visokorizične ili regulisane kategorije, a Platforma ne tvrdi da je ovaj spisak potpun niti da svaka objavljena kategorija ispunjava sve zakonske uslove. Ne proverava se da li osoba koja se kasnije prijavi ima sve licence, poreski status, registraciju, osiguranje, dozvolu ili pravo na rad, osim ako USKOČI izričito proveri konkretnu činjenicu u posebnoj funkciji. `[[PROVERITI: tačna granica između „dozvoljeno” i „potreban pregled” za svaku oblast pre objave; pravila nisu pravno pregledana]]`
+
+Polazna razmatranja po oblastima (izvor RC2; primena zavisi od pregledanog pravila):
+
+- **Težak fizički rad i bezbednost:** za nošenje tereta, istovar, rad na visini, alat, električnu ili gasnu opasnost prikupljaju se činjenice (težina, broj ljudi, sprat i lift, oprema, alat, pristup, poznati rizik). Korisnik uvek može odbiti da započne ili nastavi rad koji je razumno nebezbedan ili materijalno različit od potvrđenog Dogovora.
+- **Elektrika, gas, građevina i stručni radovi:** „sklopite policu” nije isto što i stručan rad na električnoj ili gasnoj instalaciji; posebne licence, ovlašćenja i nadzor ostaju obavezni.
+- **Prevoz stvari i putnika:** pomoć pri selidbi ili nošenju može biti običan zadatak; profesionalni komercijalni prevoz tuđe robe i prevoz putnika za novac imaju poseban pravni režim i ne objavljuju se kao običan zadatak bez pravno potvrđenog modela.
+- **Zdravstvo:** pratnja do lekara i donošenje stvari nisu zdravstvena usluga. Injekcije, dijagnostika, terapija i profesionalna nega traže licencirani model ili se blokiraju. HITNO ne zamenjuje hitnu medicinsku službu.
+- **Privatno obezbeđenje:** „sačekajte dostavu u mojoj kući” nije nužno obezbeđenje; čuvanje objekta ili lica kao obezbeđenje ulazi u regulisanu oblast.
+- **Deca i ranjiva lica:** čuvanje deteta, profesionalna nega nemoćnog lica i drugi visokorizični zadaci traže poseban bezbednosni i pravni model; do tada se ne objavljuju.
+- **Životinje i lekovi:** šetanje, hranjenje i uobičajena briga mogu biti dozvoljeni; veterinarska dijagnostika, injekcije i lečenje traže licencu. Kupovina ili preuzimanje leka zavisi od režima izdavanja i ovlašćenja; Platforma ne podstiče zaobilaženje recepta ni neovlašćenu prodaju leka.
+- **Duvan, nikotin, pirotehnika, alkohol, otpad, poštanske usluge:** duvan, nikotin i pirotehnika se ne objavljuju; alkohol, opasan otpad, šut, baterije, ulje i hemikalije, azbest i sistematski poštanski ili kurirski prenos zahtevaju poseban model ili se ne objavljuju. Premeštanje stvari nije isto što i odbacivanje stvari. `[[PROVERITI: ova RC2 razmatranja još nisu pravila politike objave (izvor: RC2 sloj usklađivanja §6-8); uskladiti sa pregledanim pravilima]]`
+- **Pravo na rad stranaca i prekogranični zadaci:** nalog ne potvrđuje pravo na rad u državi izvršenja.
+- **Novac i ovlašćenja:** kupovina uz povraćaj novca, avans, podizanje gotovine, službena dokumenta i pravne radnje u tuđe ime zahtevaju dodatnu pažnju; Platforma ne drži novac za kupovinu.
+
+## 7. Diskriminacija
+
+Zabranjeni su zadaci i kriterijumi koji nezakonito diskriminišu po zaštićenom ličnom svojstvu. Legitiman bezbednosni ili licencni uslov nije diskriminacija samo zato što ograničava podobnost, ali mora imati stvaran pravni ili bezbednosni razlog. Preporuke ne koriste zaštićena svojstva za nelegitimno isključivanje.
+
+## 8. Ponašanje korisnika u komunikaciji
+
+Korisnici ne smeju: vređati ili pretiti; uznemiravati; slati neželjeni seksualni sadržaj; objavljivati tuđe privatne podatke; slati neželjene poruke; lažno ocenjivati ili pokušavati da manipulišu reputacijom; organizovati nezakonite aktivnosti van Platforme preko poruka.
+
+## 9. Prijava i blokiranje
+
+Svaki korisnik može:
+
+- **prijaviti** osobu ili sadržaj kroz aplikaciju: izborom kategorije (uznemiravanje, prevara, nebezbedan rad, diskriminacija, drugo), kratkim razlogom i opisom. Prijava je privatna: druga strana ne dobija tekst prijave, njen broj ni identitet podnosioca;
+- **blokirati** drugog korisnika; blokada može prekinuti običan kontakt tokom aktivnog Dogovora, uz očuvane bezbedne izlaze: prijava i podrška ostaju dostupne i kada običan razgovor više nije dozvoljen;
+- **prijaviti sadržaj ili recenziju** kroz podršku (tema „Prijava sadržaja ili recenzije”) i zatražiti pregled odluke.
+
+Prijava koja opisuje neposrednu opasnost dobija prioritet. Platforma nije služba hitne pomoći: u opasnosti pozovite nadležnu službu. `[[OPERATER: broj hitnih službi u državi izdanja; ko prima i obrađuje bezbednosne prijave i u kom roku; LEG-14]]`
+
+## 10. Kako sprovodimo pravila
+
+Hitna zaštita može biti trenutna kada postoji ozbiljan bezbednosni signal. Ostale mere su proporcionalne, imaju razlog i evidentiraju se. Mere mogu biti upozorenje, ograničenje funkcije, suspenzija ili deaktivacija (Uslovi, odeljak 26). Prijava sama po sebi nije dokaz krivice. Kada je mera značajna, korisnik dobija obaveštenje o razlogu, dejstvu i načinu pregleda ili žalbe (Reklamacije, podrška, žalbe). `[[PROVERITI: ozbiljne sankcije se ne uvode bez stvarnog drugog pregleda ili drugog kanala (RC2 Otkazivanje §12); proveriti stanje procesa]]`
+
+## 11. Ocene
+
+Ocena se daje samo za stvarno završen Dogovor. Plaćene, lažne, naručene ocene i osvetnički sadržaj nisu dozvoljeni; ocena ne sme sadržati pretnje, privatne podatke, govor mržnje ni neosnovanu optužbu za krivično delo. Platforma ne uklanja legitimnu negativnu ocenu samo zato što je negativna (Uslovi, odeljak 23).
+
+## 12. Šta pravila ne obećavaju
+
+Pravila ne garantuju da će svaka povreda biti otkrivena ni da je svaki korisnik pouzdan. Oznaka ili podatak koji je korisnik sam naveo (identitet, licenca, veština) nije garancija. Verifikacija identiteta nije isto što i stručna licenca, pravo na rad ili provera prošlosti. Zabrana je uvek konkretna i sa razlogom, ne generički otkaz odgovornosti.
+
+## 13. Kontakt
+
+Bezbednosne prijave: u aplikaciji i `[[OPERATER: email za bezbednost]]`. Prijava nezakonitog sadržaja, povrede autorskih prava ili privatnosti: `[[OPERATER: email ili obrazac, LEG-07]]`.
+
+---
+
+## Prilog: sledljivost (INTERNO - ukloniti pre objave)
+
+| Odeljak | Izvor |
+|---|---|
+| 1 | RC2 Safety §1 |
+| 2 | `RS_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1.md` („Product boundary”); RC2 Safety §3 |
+| 3 | `RS_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1.md` („Minimum outcomes”, RS-MIN-001, 015, 016); `PUBLICATION_ACTIVATION_READINESS.md`; `SupportPresentation.tsx:23` |
+| 4 | RS-MIN-002, 003, 004, 006, 007, 008, 009, 010, 011; primeri iz istog dokumenta |
+| 5 | RS-MIN-005, 012, 013 |
+| 6 | RS-MIN-014; RC2 Safety §4-13; RC2 sloj usklađivanja §6-8 (poštanske usluge, otpad, regulisana roba); `RS_PUBLICATION_POLICY...` („What this minimum policy intentionally does not decide yet”) |
+| 7 | RC2 Safety §14 |
+| 8 | RC2 Safety §19 |
+| 9 | `src/data/safetyClientService.ts:5`; `src/ui/safety/SafetyScreen.tsx:19`; `SUPPORT_CASE_CONTRACT_PROPOSAL.md` (odeljci 1-2, AF-D05); `SupportPresentation.tsx:24` |
+| 10 | RC2 Safety §21; RC2 Otkazivanje §12 |
+| 11 | RC2 Uslovi §23 |
+| 12 | RC2 Uslovi §5; Safety §1 |
+| 13 | RC2 Uslovi §1; Reklamacije §14; LEG-01 OP-13, OP-14 |
