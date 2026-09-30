@@ -460,8 +460,10 @@ def is_full(root):
 
 
 def peek_task_title(root):
+    """The Peek's open control is labelled "Otvori zadatak: <title>, <facts...>": the task's title is the part before the first comma."""
     for n in nodes(root, prefix='Otvori zadatak: '):
-        return (n.attrib.get('content-desc') or '')[len('Otvori zadatak: '):]
+        title = (n.attrib.get('content-desc') or '')[len('Otvori zadatak: '):].split(',')[0].strip()
+        return title or None
     return None
 
 
@@ -813,8 +815,13 @@ def s_paging():
             seen.add(t)
             order.append(t)
         idle = 0 if fresh else idle + 1
-        if TOTAL in indexes or idle >= 6:
+        if TOTAL in indexes:
             break
+        if idle >= 6:
+            # A next page that was asked for (a cursor request reached the server) but is not drawn yet is waited for: on the CI emulator
+            # the UI thread can stall for many seconds while Reanimated retries the views the list has just dropped.
+            if idle >= 40 or not any(r.get('after') for r in since(m, 'PAGE')):
+                break
         if idle:
             time.sleep(2.0)                      # the next page may still be on its way
         scroll_list('down', 0.45, ms=800)        # shorter than the viewport, slow enough that no card is flung past unseen
