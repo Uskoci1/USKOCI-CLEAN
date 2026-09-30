@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""P6 read-only check of an installed DEV build on the LOCAL Android emulator (host GPU), against the canonical DEV backend.
+"""P6 read-only check of an installed DEV build on a LOCAL Android device (the physical HONOR phone first, the AVD second), against the canonical DEV backend.
 
 It only looks and taps: open the Zadaci tab, read the list (count and card titles), time repeated touches on one map bucket from the app's own DEV trace
 (`[USKOCI_P6_TRACE] ["pin","<ms to halo>/<ms to card data>"]`), open a task and come back N times (return time and memory after each), and count what the device log
 says about ANR, crashes, slow frames and Reanimated's dead-tag retries. It never types, never sends, never changes an account and never uninstalls or clears data.
 Evidence goes to a directory of JSON and PNG files. The CI native journey (scripts/p6_native_journey.py) is the disposable-server counterpart.
 
-  python scripts/p6_dev_emulator_check.py --out DIR [--serial emulator-5554] [--expect-count 7] [--baseline titles.json] [--taps 30] [--cycles 20] [--video]
+The device is chosen explicitly (scripts/qa_device.py): --serial, QA_SERIAL / ANDROID_SERIAL, or --device physical|emulator|auto (auto = the one physical phone, else the one emulator).
+On a physical phone nothing is cleared or changed: the UI tree comes out over stdout (no file on the phone), the app's log is streamed to a local file (no `logcat -c` / `-G`, only the
+app's own uid is kept), the app process is restarted only with --restart (a force-stop: data and the signed-in session stay) and the input is taps, swipes and Back. Numbers from a phone
+and from an emulator are never mixed: report.json says which device produced them (label, kind, profile, the installed APK's version and SHA-256) and the frame statistics are per phase.
+
+  python scripts/p6_dev_emulator_check.py --out DIR [--serial S | --device physical] [--label TEXT] [--reader p6|legacy] [--restart] [--route URL]
+                                          [--expect-count 7] [--baseline titles.json] [--taps 30] [--cycles 20] [--video]
 """
 import argparse
 import json
@@ -19,11 +25,20 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qa_device                                                    # noqa: E402 - the shared device choice / profile / log helpers
+
 PACKAGE = 'rs.uskoci.dev'
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')          # task titles carry Serbian letters; a Windows console defaults to cp1252
 ap = argparse.ArgumentParser()
 ap.add_argument('--out', required=True)
-ap.add_argument('--serial', default='emulator-5554')
+ap.add_argument('--serial', default=None, help='adb serial of the device (QA_SERIAL / ANDROID_SERIAL also work); without it --device decides')
+ap.add_argument('--device', choices=('auto', 'physical', 'emulator'), default='auto', help='auto: the one physical phone, else the one emulator')
+ap.add_argument('--package', default=PACKAGE)
+ap.add_argument('--label', default=None, help='what this run is called in its report, e.g. "PHYSICAL HONOR / candidate 42371918"')
+ap.add_argument('--reader', choices=('p6', 'legacy'), default='p6', help='legacy: the build still reads Zadaci through the old readers (no P6 trace lines): P6-only checks are skipped, not failed')
+ap.add_argument('--restart', action='store_true', help='force-stop and relaunch the app (a cold start; the process dies, no data is cleared and the session stays)')
+ap.add_argument('--route', default=None, help='open this deep link instead of the launcher activity (e.g. uskociapp://zadaci?p6Proof=1 on a proof build)')
 ap.add_argument('--expect-count', type=int, default=None)
 ap.add_argument('--baseline', default=None, help='JSON written by --write-baseline on the previous build (or a list of card labels): every task title must be listed again')
 ap.add_argument('--write-baseline', default=None, help='write the count and every task title of the list (all of it, scrolled) to this JSON file')
@@ -36,11 +51,16 @@ ap.add_argument('--smoke', action='store_true', help='only look at the app the w
 ARGS = ap.parse_args()
 OUT = Path(ARGS.out)
 OUT.mkdir(parents=True, exist_ok=True)
-ADB = ['adb', '-s', ARGS.serial]
-REPORT = {'serial': ARGS.serial, 'package': PACKAGE, 'checks': [], 'result': 'FAIL'}
+PACKAGE = ARGS.package
+DEV = qa_device.Device(qa_device.pick(serial=ARGS.serial, prefer=ARGS.device))
+ADB = DEV.prefix
+W, H = DEV.screen_size() or (1080, 2424)                            # gestures are fractions of the real screen: the phone (1264 x 2728) and the AVD (1080 x 2424) differ
+REPORT = {'label': ARGS.label or f'{DEV.kind.upper()} {DEV.serial}', 'serial': DEV.serial, 'kind': DEV.kind, 'package': PACKAGE, 'reader': ARGS.reader, 'checks': [], 'result': 'FAIL'}
 ITEM = re.compile(r'^Otvori (?:priliku|Zadatak|zadatak)[: ]+(.*)$')
 PIN = re.compile(r'\[USKOCI_P6_TRACE\] \["pin","(\d+)/(\d+)"\]')
-LOG_PARTS = []          # the device log is cleared between steps; what each step saw is kept for the health counts
+LOG = None              # qa_device.LogStream: the app's log streamed to a local file for the whole run (nothing is cleared on the device); steps read it by byte offset
+PROFILE = {}            # qa_device.Device.profile(): which device and which build produced the numbers
+PHASE_GFX = {}          # frame statistics per phase (the counters are reset at the start of each phase)
 RESTORED = re.compile(r'^(\d\d-\d\d \d\d:\d\d:\d\d\.\d{3}).*\[USKOCI_P6_TRACE\] \["restored","\d+/\d+"\]', re.M)
 
 
@@ -52,15 +72,51 @@ def adb(*args, timeout=120):
     return subprocess.run(ADB + list(args), capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout).stdout
 
 
+class ForegroundLost(RuntimeError):
+    pass
+
+
+GUARDED = {'inputs': 0}
+
+
+def guard():
+    """No input is ever sent to a screen the app under test does not have: on a phone that is somebody's own, another app (or the launcher, or the lock screen) can come to the front
+    at any moment, and a blind tap, swipe or Back would then land in it. The run ends at once; nothing is captured of the foreign screen (only its package name is recorded)."""
+    front = DEV.foreground()
+    if not front or front[0] != PACKAGE:
+        REPORT['foregroundLost'] = {'front': front[0] if front else None, 'afterInputs': GUARDED['inputs'], 'at': time.strftime('%H:%M:%S')}
+        raise ForegroundLost(f'{front[0] if front else "no app"} has the screen, not {PACKAGE}: no further input is sent')
+    GUARDED['inputs'] += 1
+
+
+def send_input(*args):
+    guard()
+    return adb('shell', 'input', *args)
+
+
 def check(name, ok, **detail):
     REPORT['checks'].append({'name': name, 'ok': bool(ok), **detail})
     log('PASS' if ok else 'FAIL', name, json.dumps(detail, ensure_ascii=False)[:300])
 
 
+def skip(name, why):
+    """A check that does not apply to this build (e.g. a P6 trace on the legacy reader): recorded, never counted as a pass or a failure."""
+    REPORT['checks'].append({'name': name, 'ok': None, 'skipped': why})
+    log('SKIP', name, why)
+
+
+def passed():
+    return all(c['ok'] is not False for c in REPORT['checks'])
+
+
 def dump():
-    adb('shell', 'uiautomator', 'dump', '/sdcard/p6chk.xml')
-    xml = adb('exec-out', 'cat', '/sdcard/p6chk.xml')
-    return ET.fromstring(xml[xml.index('<hierarchy'):])
+    """The UI tree (it comes out over stdout: no file is written on the device); a dump that fails is tried again."""
+    for _ in range(4):
+        try:
+            return ET.fromstring(DEV.uia_dump())
+        except (ValueError, ET.ParseError):
+            time.sleep(0.8)
+    raise RuntimeError('uiautomator gave no UI tree four times in a row')
 
 
 def attrs(root):
@@ -103,7 +159,38 @@ def count_shown(root):
 
 
 def tap(x, y, hold_ms=120):
-    adb('shell', 'input', 'touchscreen', 'swipe', str(x), str(y), str(x), str(y), str(hold_ms))
+    send_input('touchscreen', 'swipe', str(x), str(y), str(x), str(y), str(hold_ms))
+
+
+def swipe(x1, y1, x2, y2, ms):
+    """A drag between two points given as fractions of the screen."""
+    send_input('touchscreen', 'swipe', str(int(W * x1)), str(int(H * y1)), str(int(W * x2)), str(int(H * y2)), str(ms))
+
+
+def visible_tap_point(root, b):
+    """A point on the card with bounds `b` that is really visible (inside the list sheet, above the tab bar) and not under another clickable control: the floating "Mapa" pill, for one, covers
+    the middle of the lowest card on the phone. The title area (upper left) is tried first. Falls back to the centre of the visible part."""
+    x1, y1, x2, y2 = b
+    sheet = by_id(root, 'discovery-sheet-background')
+    top = max(y1, (bounds(sheet[0]['bounds'])[1] + int(H * 0.17)) if sheet else y1)
+    bottom = min(y2, bounds(sheet[0]['bounds'])[3] if sheet else y2, int(H * 0.87)) - 12
+    if bottom - top < 30:
+        return (x1 + x2) // 2, (y1 + y2) // 2
+    others = [bounds(a['bounds']) for a in attrs(root) if a.get('clickable') == 'true' and bounds(a['bounds']) != tuple(b)
+              and not (bounds(a['bounds'])[0] <= x1 and bounds(a['bounds'])[1] <= y1 and bounds(a['bounds'])[2] >= x2 and bounds(a['bounds'])[3] >= y2)]
+    for fy in (0.12, 0.25, 0.5, 0.75):
+        for fx in (0.2, 0.5, 0.8):
+            x, y = x1 + int((x2 - x1) * fx), top + int((bottom - top) * fy)
+            if not any(o[0] <= x <= o[2] and o[1] <= y <= o[3] for o in others):
+                return x, y
+    return (x1 + x2) // 2, (top + bottom) // 2
+
+
+def visible_fraction(root, b):
+    sheet = by_id(root, 'discovery-sheet-background')
+    top = max(b[1], bounds(sheet[0]['bounds'])[1] if sheet else b[1])
+    bottom = min(b[3], bounds(sheet[0]['bounds'])[3] if sheet else b[3], int(H * 0.87))
+    return max(0, bottom - top) / max(1, b[3] - b[1])
 
 
 def tap_node(a):
@@ -112,7 +199,7 @@ def tap_node(a):
 
 
 def back():
-    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+    send_input('keyevent', 'KEYCODE_BACK')
 
 
 def poll(pred, timeout=30, interval=0.4):
@@ -208,15 +295,16 @@ def stamp(text):
 
 def timed_back():
     """Android Back, stamped with the device's own clock just before the key is injected (the same clock the device log uses)."""
+    guard()
     out = adb('shell', 'date "+%m-%d %H:%M:%S.%N"; input keyevent KEYCODE_BACK').strip().splitlines()
     return stamp(out[0][:18]) if out else None
 
 
-def restored_after(at, wait_s=15):
-    """Seconds from `at` to the P6 screen's own `restored` line (its reads are in and the screen was committed), None on the legacy build."""
+def restored_after(at, mark, wait_s=15):
+    """Seconds from `at` to the P6 screen's own `restored` line (its reads are in and the screen was committed), None on the legacy build. `mark` is the log offset taken before the Back."""
     end = time.time() + wait_s
     while at is not None and time.time() < end:
-        text = adb('logcat', '-d', '-v', 'threadtime', '-s', 'ReactNativeJS:I', timeout=120)
+        text = LOG.since(mark)
         later = [stamp(t) for t in RESTORED.findall(text) if stamp(t) >= at]
         if later:
             return round(min(later) - at, 3)
@@ -241,11 +329,19 @@ def close_peek():
 
 
 # ---------------------------------------------------------------------------------------------------------------- steps
-def launch():
-    adb('shell', 'am', 'force-stop', PACKAGE)
-    adb('logcat', '-c')
-    adb('shell', 'am', 'start', '-n', f'{PACKAGE}/.MainActivity')
+def launch(restart=False):
+    """Bring the app to the front. The process is restarted (a force-stop: nothing is cleared, the session stays) only when the caller asks for it AND the run was given --restart."""
+    if restart and ARGS.restart:
+        adb('shell', 'am', 'force-stop', PACKAGE)
+        time.sleep(1.0)
+    if ARGS.route:
+        adb('shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', "'" + ARGS.route + "'", PACKAGE)
+    else:
+        adb('shell', 'am', 'start', '-n', f'{PACKAGE}/.MainActivity')
     time.sleep(6)
+    front = DEV.foreground()
+    if not front or front[0] != PACKAGE:
+        raise ForegroundLost(f'{front[0] if front else "no app"} has the screen after the launch, not {PACKAGE} (a locked or dark screen?): no input is sent')
     end = time.time() + 90
     while time.time() < end:
         root = dump()
@@ -292,18 +388,18 @@ def collect_titles(root, max_swipes=14):
                 break
         else:
             idle = 0
-        adb('shell', 'input', 'touchscreen', 'swipe', '540', '1750', '540', '850', '450')
+        swipe(0.5, 0.722, 0.5, 0.351, 450)
         down += 1
         time.sleep(1.6)
         root = dump()
     for _ in range(down):                                          # back up only as far as it went down: a drag beyond the top would pull the sheet down and pan the map
-        adb('shell', 'input', 'touchscreen', 'swipe', '540', '850', '540', '1750', '450')
+        swipe(0.5, 0.351, 0.5, 0.722, 450)
         time.sleep(1.0)
     return sorted(labels.values()), ensure_full_list()
 
 
 def read_list():
-    root = ensure_full_list()
+    root = reset_view()                                             # the whole list: an area left on the map by an earlier visit would change what is counted
     for _ in range(8):
         if count_shown(root) is not None and cards(root):
             break
@@ -348,6 +444,10 @@ def to_map(root):
 
 
 def time_pins():
+    if ARGS.reader != 'p6':
+        skip('PIN_TIMING_MEASURED', 'legacy reader: the build has no P6 trace lines')
+        skip('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', 'legacy reader: the build has no P6 trace lines')
+        return
     root = to_map(dump())
     png('02_map')
     sheet = by_id(root, 'discovery-sheet-background')
@@ -378,7 +478,8 @@ def time_pins():
         return
     png('03_peek')
     close_peek()
-    adb('logcat', '-c')
+    m = LOG.mark()
+    gfx_reset()
     shown, moved = 0, []
     for i in range(ARGS.taps):
         tap(target['x'], target['y'], 140)
@@ -398,15 +499,15 @@ def time_pins():
             moved.append(max(abs(a - b) for a, b in zip(first[0], second[0])) if first and second else None)
         close_peek()
     time.sleep(2)
-    text = adb('logcat', '-d', '-v', 'threadtime', timeout=180)
-    LOG_PARTS.append(text)
+    text = LOG.since(m)
+    PHASE_GFX['pins'] = gfx_read('pins')
     pairs = [(int(a), int(b)) for a, b in PIN.findall(text)]
     fb, content = [a for a, _ in pairs], [b for _, b in pairs]
     summary = {'touches': ARGS.taps, 'peekShown': shown, 'traced': len(pairs),
                'firstFeedbackMs': {'p50': percentile(fb, .5), 'p95': percentile(fb, .95), 'max': max(fb, default=None)},
                'usableContentMs': {'p50': percentile(content, .5), 'p95': percentile(content, .95), 'max': max(content, default=None)},
                'peekMovedPxAfterAppearing': moved,
-               'conditions': f'{ARGS.serial} (host GPU emulator) against the canonical DEV backend; JS-side clock: touch handled -> halo committed -> card data committed'}
+               'conditions': f'{REPORT["label"]}: {DEV.kind} {PROFILE.get("model", "")} against the canonical DEV backend; JS-side clock: touch handled -> halo committed -> card data committed'}
     REPORT['pinTiming'] = summary
     check('PIN_TIMING_MEASURED', len(pairs) >= max(3, int(ARGS.taps * .9)), **summary)
     measured = [m for m in moved if m is not None]
@@ -436,21 +537,25 @@ def gestures():
     png('04_before_gestures')
     top, bottom = map_rows(root)
     y = (top + bottom) // 2
-    steps = [('PAN', lambda: adb('shell', 'input', 'touchscreen', 'swipe', '820', str(y), '300', str(y - 60), '700')),
+    steps = [('PAN', lambda: send_input('touchscreen', 'swipe', str(int(W * 0.76)), str(y), str(int(W * 0.28)), str(y - int(H * 0.025)), '700')),
              ('ZOOM_OUT', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Umanji mapu'))),
              ('ZOOM_IN', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Uvećaj mapu')))]
+    gfx_reset()
     for name, act in steps:
-        adb('logcat', '-c')
+        m = LOG.mark()
         act()
         time.sleep(6)
-        text = adb('logcat', '-d', '-v', 'threadtime', '-s', 'ReactNativeJS:I', timeout=120)
-        LOG_PARTS.append(text)
+        text = LOG.since(m)
         settled = SETTLED.findall(text)
         root = dump()
         png('05_after_' + name.lower())
-        check(f'{name}_SETTLES_TO_A_READ', bool(settled), settled=settled)
+        if ARGS.reader == 'p6':
+            check(f'{name}_SETTLES_TO_A_READ', bool(settled), settled=settled)
+        else:
+            skip(f'{name}_SETTLES_TO_A_READ', 'legacy reader: the build has no P6 trace lines')
         check(f'{name}_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR', bool(by_id(root, 'list-count') or by_id(root, 'list-count-words'))
               and not by_desc(root, contains='nisu dostupni') and not [a for a in attrs(root) if 'nisu dostupni' in (a.get('text') or '')])
+    PHASE_GFX['gestures'] = gfx_read('gestures')
     # The map's area is the person's own move and is remembered with the view: take it away, so the next phase starts from the whole list.
     clear = by_id(dump(), 'clear-where')
     if clear:
@@ -459,11 +564,12 @@ def gestures():
 
 
 def cycles():
-    root = dump()
+    root = reset_view()
     if not cards(root):
         root = dump()
     mem = [{'tag': 'before', 'kb': pss_kb(), 'pid': pid()}]
     returns, restored, ok_all = [], [], True
+    gfx_reset()
     for i in range(1, ARGS.cycles + 1):
         root = dump()
         cs = cards(root)
@@ -471,18 +577,38 @@ def cycles():
             check(f'CYCLE_{i:02d}_HAS_CARDS', False)
             ok_all = False
             break
-        pick = cs[min(1, len(cs) - 1)]
-        tap((pick['b'][0] + pick['b'][2]) // 2, (pick['b'][1] + pick['b'][3]) // 2)
+        pick = cs[1] if len(cs) > 1 and visible_fraction(root, cs[1]['b']) >= 0.5 else cs[0]      # the second card when at least half of it can be seen, else the first
+        target = visible_tap_point(root, pick['b'])
+        tap(*target)
         detail, _ = poll(lambda r: not by_id(r, 'list-count-words') and not by_id(r, 'list-count') and any(pick['title'] in (a.get('content-desc', '') + a.get('text', '')) for a in attrs(r)), 20, 0.3)
+        if not detail:
+            errors_now = error_text(dump())
+            if errors_now:                                         # the detail screen IS open and shows its own error state: record it, and Back leaves it
+                png(f'cycle_{i:02d}_detail_read_failed')
+                REPORT.setdefault('detailReadErrors', []).append({'cycle': i, 'title': pick['title'], 'texts': errors_now[:3], 'at': time.strftime('%H:%M:%S')})
+                check(f'CYCLE_{i:02d}_DETAIL_READ_FAILED', False, title=pick['title'], texts=errors_now[:3])
+                ok_all = False
+                back()
+                poll(lambda r: cards(r), 30, 0.5)
+                reset_view()
+                continue
+            # a Back now would leave the Zadaci screen: record the moment and put the list back instead
+            png(f'cycle_{i:02d}_detail_did_not_open')
+            check(f'CYCLE_{i:02d}_DETAIL_OPENED', False, title=pick['title'], tapped=list(target), card=list(pick['b']))
+            ok_all = False
+            reset_view()
+            continue
         time.sleep(0.8)
         started = time.time()
+        mark = LOG.mark()
         pressed = timed_back()
         got, root = poll(lambda r: any(c['title'] == pick['title'] for c in cards(r)), 30, 0.25)
         returns.append(round(time.time() - started, 2) if got else None)
-        restored.append(restored_after(pressed) if got else None)
+        restored.append(restored_after(pressed, mark) if got and ARGS.reader == 'p6' else None)
         ok_all = ok_all and bool(detail) and bool(got)
         if i in (1, 5, ARGS.cycles // 2, 15, ARGS.cycles):
             mem.append({'tag': f'cycle_{i}', 'kb': pss_kb(), 'pid': pid()})
+    PHASE_GFX['cycles'] = gfx_read('cycles')
     time.sleep(10)
     mem.append({'tag': 'final_after_idle', 'kb': pss_kb(), 'pid': pid()})
     done = [r for r in returns if r is not None]
@@ -502,25 +628,124 @@ def cycles():
               peak_kb=max(kb.values()), final_kb=kb['final_after_idle'])
 
 
+def gfx_reset():
+    """Zero the app's frame counters (a diagnostic counter of the system's frame statistics: nothing of the app or the device changes) so that the next read is ONE phase."""
+    adb('shell', 'dumpsys', 'gfxinfo', PACKAGE, 'reset')
+
+
+def gfx_read(name):
+    """The app's frame statistics since the last reset (frames, janky share, the frame-time percentiles and the system's own slow-frame counters), raw text kept in gfxinfo_<name>.txt."""
+    text = adb('shell', 'dumpsys', 'gfxinfo', PACKAGE, timeout=90)
+    (OUT / f'gfxinfo_{name}.txt').write_text(text, encoding='utf-8')
+
+    def num(pattern):
+        m = re.search(pattern, text)
+        return int(m.group(1)) if m else None
+    janky = re.search(r'Janky frames:\s+(\d+) \(([\d.]+)%\)', text)
+    return {'frames': num(r'Total frames rendered:\s+(\d+)'), 'janky': int(janky.group(1)) if janky else None, 'jankyPercent': float(janky.group(2)) if janky else None,
+            'p50ms': num(r'50th percentile:\s+(\d+)ms'), 'p90ms': num(r'90th percentile:\s+(\d+)ms'), 'p95ms': num(r'95th percentile:\s+(\d+)ms'), 'p99ms': num(r'99th percentile:\s+(\d+)ms'),
+            'missedVsync': num(r'Number Missed Vsync:\s+(\d+)'), 'highInputLatency': num(r'Number High input latency:\s+(\d+)'), 'slowUiThread': num(r'Number Slow UI thread:\s+(\d+)'),
+            'slowBitmapUploads': num(r'Number Slow bitmap uploads:\s+(\d+)'), 'slowIssueDraw': num(r'Number Slow issue draw commands:\s+(\d+)'),
+            'deadlineMissed': num(r'Number Frame deadline missed:\s+(\d+)')}
+
+
+def exit_info():
+    """The system's own record of how this app's processes ended since the run began (`dumpsys activity exit-info`): ANR and crash reasons are counted, the raw text is kept."""
+    raw = adb('shell', 'dumpsys', 'activity', 'exit-info', PACKAGE, timeout=90)
+    (OUT / 'exit-info.txt').write_text(raw, encoding='utf-8')
+    since = REPORT.get('startedDeviceTime') or ''
+    counts = {'anr': 0, 'crash': 0, 'other': 0, 'records': 0}
+    for block in re.split(r'\n\s*ApplicationExitInfo #\d+:', raw)[1:]:
+        at = re.search(r'timestamp=(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)', block)
+        if since and at and at.group(1) < since:
+            continue
+        counts['records'] += 1
+        reason = re.search(r'reason=\d+ \(([A-Z _]+)\)', block)
+        name = reason.group(1) if reason else ''
+        counts['anr' if name == 'ANR' else 'crash' if name.startswith('CRASH') else 'other'] += 1
+    return counts
+
+
+def reset_view():
+    """The whole list at full height: a map area chosen by a drag is view state and is taken away with the app's own button (`clear-where`), then the sheet is raised."""
+    if by_id(dump(), 'clear-where'):
+        tap_node(by_id(dump(), 'clear-where')[0])
+        time.sleep(4)
+    return ensure_full_list()
+
+
+def list_top_in_view(root):
+    words, sheet = by_id(root, 'list-count-words'), by_id(root, 'discovery-sheet-background')
+    return bool(words and sheet and bounds(words[0]['bounds'])[1] <= bounds(sheet[0]['bounds'])[1] + int(H * 0.06))
+
+
+def scroll_feel():
+    """How the list feels under the finger, in frames: fast flings down the full list, then controlled drags back up that stop as soon as the top is in view (a drag past the top
+    would pull the sheet down and the next drag would pan the MAP, changing the area filter), the frame statistics of exactly that phase, and the display's refresh rate while the
+    finger moves (a phone lowers it when idle). The screen is put back to the whole list afterwards."""
+    ensure_full_list()
+    gfx_reset()
+    rates = []
+    for i in range(3):
+        swipe(0.5, 0.80, 0.5, 0.30, 260)
+        if i == 0:
+            rates.append(qa_device.refresh_rate(adb('shell', 'dumpsys', 'display', timeout=90))[0])
+        time.sleep(1.4)
+    back_up = 0
+    for _ in range(6):
+        if list_top_in_view(dump()):
+            break
+        swipe(0.5, 0.35, 0.5, 0.60, 450)
+        back_up += 1
+        time.sleep(1.2)
+    time.sleep(1.5)
+    PHASE_GFX['scroll'] = gfx_read('scroll')
+    root = dump()
+    REPORT['scroll'] = {'flings': 3, 'dragsBackUp': back_up, 'refreshHzDuringInput': rates}
+    check('LIST_SURVIVES_FLINGS_WITH_ITS_TOP_LINE', bool(by_id(root, 'list-count') or by_id(root, 'list-count-words')) and not error_text(root), errors=error_text(root)[:3])
+    reset_view()
+
+
+def verdict():
+    """The runbook's initial engineering targets, RECORDED next to the measured values (never relaxed, and never a pass or fail of this script): touch feedback p95 <= 100 ms, loaded
+    pin -> card p95 <= 200 ms (excluding a separate network read), warm return p95 <= 350 ms. The card time measured here includes the exact read over the network: an upper bound."""
+    pin, cyc = REPORT.get('pinTiming'), REPORT.get('cycles')
+    out = {}
+    if pin and pin['firstFeedbackMs']['p95'] is not None:
+        out['feedbackP95Ms'] = {'target': 100, 'measured': pin['firstFeedbackMs']['p95'], 'met': pin['firstFeedbackMs']['p95'] <= 100}
+        out['pinToCardWithExactReadP95Ms'] = {'target': 200, 'measured': pin['usableContentMs']['p95'], 'met': pin['usableContentMs']['p95'] <= 200,
+                                              'note': 'includes the exact read over the network; the runbook target excludes a separate network read, so this is an upper bound'}
+    if cyc and cyc.get('restoredP95S') is not None:
+        out['warmReturnP95Ms'] = {'target': 350, 'measured': round(cyc['restoredP95S'] * 1000), 'met': cyc['restoredP95S'] * 1000 <= 350}
+    REPORT['runbookTargets'] = out
+    REPORT['runbookTargetsNote'] = (f"{REPORT['label']} ({DEV.kind}): the runbook states these targets for the agreed reference phone; an emulator's numbers never certify a phone, "
+                                    'and a phone number is only as good as the build that produced it (report.device.app)')
+
+
 def health():
-    text = '\n'.join(LOG_PARTS + [adb('logcat', '-d', '-v', 'threadtime', timeout=240)])
+    text = LOG.since(0)
+    system = '\n'.join(line for line in LOG.since(0, system=True).splitlines() if PACKAGE in line)      # ActivityManager / crash lines about THIS package only
+    exits = exit_info()
     davey = [int(m) for m in re.findall(r'Davey! duration=(\d+)ms', text)]
-    counts = {'anr': len(re.findall(r'ANR in ' + re.escape(PACKAGE), text)),
+    counts = {'anr': len(re.findall(r'ANR in ' + re.escape(PACKAGE), system)),
               'fatal': len(re.findall(r'FATAL EXCEPTION', text)),
-              'died': len(re.findall(r'Process ' + re.escape(PACKAGE) + ' \\(pid \\d+\\) has died', text)),
+              'died': len(re.findall(r'Process ' + re.escape(PACKAGE) + ' \\(pid \\d+\\) has died', system)),
+              'exitInfoAnr': exits['anr'], 'exitInfoCrash': exits['crash'],
               'daveyOver700ms': sum(1 for d in davey if d >= 700), 'daveyMaxMs': max(davey, default=0),
               'reanimatedDeadTagLines': len(re.findall(r'synchronouslyUpdateUIProps failed', text)),
               'p6ReadFailed': len(re.findall(r'\[USKOCI_P6_TRACE\] \["(?:read-failed|restore-failed)"', text)),
               'viewToBitmapErrors': len(re.findall(r'viewToBitmap', text))}
     REPORT['health'] = counts
-    check('NO_ANR_OR_CRASH', counts['anr'] == 0 and counts['fatal'] == 0 and counts['died'] == 0, **counts)
+    check('NO_ANR_OR_CRASH', counts['anr'] == 0 and counts['fatal'] == 0 and counts['died'] == 0 and counts['exitInfoAnr'] == 0 and counts['exitInfoCrash'] == 0, **counts)
     check('NO_P6_READ_FAILURE_IN_THE_LOG', counts['p6ReadFailed'] == 0, count=counts['p6ReadFailed'])
     (OUT / 'logcat-tail.txt').write_text('\n'.join(text.splitlines()[-4000:]), encoding='utf-8')
     (OUT / 'logcat-p6.txt').write_text('\n'.join(l for l in text.splitlines() if 'USKOCI_P6_TRACE' in l or 'USKOCI_DISCOVERY_TRACE' in l), encoding='utf-8')
-    gfx = adb('shell', 'dumpsys', 'gfxinfo', PACKAGE)
-    (OUT / 'gfxinfo.txt').write_text(gfx, encoding='utf-8')
-    m = re.search(r'Total frames rendered:\s+(\d+)', gfx), re.search(r'Janky frames:\s+(\d+) \(([\d.]+)%\)', gfx)
-    REPORT['gfx'] = {'frames': int(m[0].group(1)) if m[0] else None, 'janky': int(m[1].group(1)) if m[1] else None, 'jankyPercent': float(m[1].group(2)) if m[1] else None}
+    REPORT['gfxPhases'] = PHASE_GFX
+    frames = sum(p['frames'] or 0 for p in PHASE_GFX.values())
+    janky = sum(p['janky'] or 0 for p in PHASE_GFX.values())
+    REPORT['gfx'] = {'frames': frames, 'janky': janky, 'jankyPercent': round(100 * janky / frames, 1) if frames else None,
+                     'note': 'summed over the measured phases (the counters are reset at the start of each phase)'}
+    REPORT['exitInfo'] = exits
 
 
 class Recording:
@@ -530,7 +755,7 @@ class Recording:
 
     def __enter__(self):
         if ARGS.video:
-            self.proc = subprocess.Popen(ADB + ['shell', 'screenrecord', '--time-limit', '170', '--bit-rate', '3000000', '--size', '540x1212', f'/sdcard/p6chk_{self.name}.mp4'],
+            self.proc = subprocess.Popen(ADB + ['shell', 'screenrecord', '--time-limit', '170', '--bit-rate', '3000000', '--size', f'{W // 2}x{H // 2}', f'/sdcard/p6chk_{self.name}.mp4'],
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             time.sleep(1.5)
         return self
@@ -558,7 +783,7 @@ def error_text(root):
 
 def press_tab(name):
     for a in attrs(dump()):
-        if (a.get('content-desc') == name or a.get('text') == name) and a.get('clickable') == 'true' and bounds(a['bounds'])[1] > 2000:
+        if (a.get('content-desc') == name or a.get('text') == name) and a.get('clickable') == 'true' and bounds(a['bounds'])[1] > int(H * 0.82):
             tap_node(a)
             return True
     return False
@@ -571,7 +796,7 @@ def press_row(word):
         if word in label and a.get('clickable') == 'true':
             tap_node(a)
             return True
-    adb('shell', 'input', 'touchscreen', 'swipe', '540', '1700', '540', '900', '400')
+    swipe(0.5, 0.70, 0.5, 0.371, 400)
     time.sleep(1.2)
     for a in attrs(dump()):
         label = (a.get('content-desc') or '') + ' ' + (a.get('text') or '')
@@ -583,7 +808,7 @@ def press_row(word):
 
 def smoke():
     """An older client's reads (Home, the task list and detail, my applications, agreements) after a database change: nothing may show an error."""
-    launch()
+    launch(restart=True)
     time.sleep(4)
     steps = [('HOME', lambda: press_tab('Početna')), ('ZADACI_TAB', lambda: press_tab('Zadaci')), ('DOGOVORI_TAB', lambda: press_tab('Dogovori'))]
     for name, act in steps:
@@ -618,41 +843,58 @@ def smoke():
 
 
 def main():
+    global LOG, PROFILE
     try:
-        REPORT['device'] = {'sdk': adb('shell', 'getprop', 'ro.build.version.sdk').strip(), 'size': adb('shell', 'wm', 'size').strip(),
-                            'build': adb('shell', 'dumpsys', 'package', PACKAGE).split('versionName=')[1].split()[0] if 'versionName=' in adb('shell', 'dumpsys', 'package', PACKAGE) else '?'}
-        adb('logcat', '-G', '64M')            # the whole run stays in the device log (the default ring is 2 MiB)
+        PROFILE = DEV.profile(PACKAGE)
+        REPORT['device'] = PROFILE
+        REPORT['startedDeviceTime'] = DEV.now_iso()
+        REPORT['startedUtc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        app = PROFILE.get('app') or {}
+        log('device', DEV.serial, DEV.kind, PROFILE.get('manufacturer'), PROFILE.get('model'), 'android', PROFILE.get('android'), PROFILE.get('abi'), PROFILE.get('screenPx'),
+            'app', app.get('versionName'), app.get('versionCode'), (app.get('apkSha256') or '')[:16])
+        if not app.get('installed'):
+            raise RuntimeError(f'{PACKAGE} is not installed on {DEV.serial}')
+        LOG = qa_device.LogStream(DEV, OUT / 'device-log-app.txt', uid=app.get('uid')).start()
         if ARGS.smoke:
             smoke()
-            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            REPORT['result'] = 'PASS' if passed() else 'FAIL'
             return
-        launch()
+        launch(restart=True)
         if ARGS.only_pins:
             time_pins()
-            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            REPORT['result'] = 'PASS' if passed() else 'FAIL'
             return
-        root = read_list()
+        read_list()
         if ARGS.only_list:
-            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            REPORT['result'] = 'PASS' if passed() else 'FAIL'
             return
         with Recording('pins'):
             time_pins()
         gestures()
-        adb('shell', 'am', 'force-stop', PACKAGE)
-        launch()
+        if ARGS.restart:
+            adb('shell', 'am', 'force-stop', PACKAGE)
+            launch()
         read_list()
+        scroll_feel()
         with Recording('cycles'):
             cycles()
         health()
-        REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+        verdict()
+        REPORT['result'] = 'PASS' if passed() else 'FAIL'
     except BaseException as exc:                                          # noqa: BLE001 - always leave a report behind
         REPORT['error'] = f'{type(exc).__name__}: {str(exc)[:400]}'
         REPORT['result'] = 'FAIL'
         raise
     finally:
+        try:
+            REPORT['guardedInputs'] = GUARDED['inputs']
+            REPORT['deviceEnd'] = {'battery': DEV.battery(), 'thermal': DEV.thermal(), 'deviceTime': DEV.now_iso()}
+        except Exception:                                                 # noqa: BLE001 - a device that went away must not hide the report
+            pass
+        if LOG is not None:
+            LOG.stop()
         (OUT / 'report.json').write_text(json.dumps(REPORT, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         log('RESULT', REPORT['result'])
-
 
 if __name__ == '__main__':
     main()
