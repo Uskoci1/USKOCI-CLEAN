@@ -66,12 +66,30 @@ probe() {  # name, function
 
 probe "plain function (control)" b24_ok
 probe "non-retryable code P0001" b24_conflict_p0001
-probe "SQLSTATE 40001" b24_conflict_40001
+
+# The 40001 case is watched second by second: the first run of this proof showed the client getting no answer within 3 s, no top-level rollbacks after the first
+# one, and the PostgREST connection still "active" ten seconds later. What it is doing is the question: per second, the connection state and what it waits for,
+# top-level commits/rollbacks, how many times the function's error was logged by Postgres, and the CPU of both containers.
+errlines() { docker logs pg 2>&1 | grep -c 'B24_VERSION_CONFLICT' || true; }
+say ""
+say "### SQLSTATE 40001, watched (client times out after 3 s, then 15 more seconds are sampled)"
+e0=$(errlines); r0=$(rollbacks); c0=$(psql_pg -c "select xact_commit from pg_stat_database where datname='postgres'")
+curl -s -o /tmp/b24_body40001 -w 'client: %{http_code} after %{time_total}s\n' -m 3 -X POST http://127.0.0.1:3000/rpc/b24_conflict_40001 2>&1 | tee -a "$SUMMARY" || true
+for s in $(seq 1 15); do
+  act=$(psql_pg -c "select coalesce(state,'-')||' / '||coalesce(wait_event_type,'-')||':'||coalesce(wait_event,'-')||' / xact_age='||coalesce(round(extract(epoch from now()-xact_start)::numeric,1)::text,'-')||'s / query_age='||coalesce(round(extract(epoch from now()-query_start)::numeric,1)::text,'-')||'s' from pg_stat_activity where usename='authenticator' and query like 'WITH pgrst_source%' order by query_start desc limit 1")
+  r=$(rollbacks); c=$(psql_pg -c "select xact_commit from pg_stat_database where datname='postgres'"); e=$(errlines)
+  cpu=$(docker stats --no-stream --format '{{.Name}}={{.CPUPerc}}' pg rest 2>/dev/null | tr '\n' ' ')
+  say "t+${s}s: connection: ${act:-none} | commits +$((c - c0)) rollbacks +$((r - r0)) | function errors logged +$((e - e0)) | cpu ${cpu}"
+  sleep 1
+done
 
 say ""
 say "PostgREST connections at the end:"
 psql_pg -c "select pid, state, now()-backend_start as age, left(regexp_replace(query, '\s+', ' ', 'g'), 70) from pg_stat_activity where usename='authenticator'" | tee -a "$SUMMARY"
 say ""
 say "PostgREST log tail:"
-docker logs rest 2>&1 | tail -8 | cut -c1-200 | tee -a "$SUMMARY"
+docker logs rest 2>&1 | tail -12 | cut -c1-220 | tee -a "$SUMMARY"
+say ""
+say "Postgres log, last function errors:"
+docker logs pg 2>&1 | grep 'B24_VERSION_CONFLICT' | tail -3 | cut -c1-200 | tee -a "$SUMMARY"
 exit 0
