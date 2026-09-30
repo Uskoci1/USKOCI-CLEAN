@@ -4,7 +4,10 @@
 // three places through the disposable recertification file, proves later drift fails closed, and runs two full canonical closures through the ACTUAL closure worker
 // source against real Storage. Every check runs even after an earlier one failed, so one CI run reports every broken assertion.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
+import vm from 'node:vm';
+import ts from 'typescript';
+import * as voiceModule from '../../functions/_shared/voiceM4a.mjs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import * as rt from '../pre_v3/closure_runtime.mjs';
@@ -17,7 +20,8 @@ const harnessPath = 'supabase/proofs/chat/voice_b1b_closure_proof.mjs';
 const sources = [candidatePath, rebindPath, harnessPath, 'supabase/candidates/chat_voice_b1a_feature_chain.sql', 'supabase/proofs/chat/voice_m4a_fixture.mjs',
   'supabase/proofs/chat/private_invalidation_catalog_snapshot.mjs', 'supabase/proofs/pkg023/pkg023_surface.sql', 'supabase/proofs/pre_v3/closure_runtime.mjs',
   'supabase/proofs/pre_v3/history_snapshot.mjs', 'supabase/proofs/pre_v3/v5_closure_edge_runtime.mjs', 'supabase/functions/_shared/data-export.ts',
-  'supabase/functions/uskoci-account-closure-worker/closure.ts', 'supabase/functions/uskoci-account-closure-worker/index.ts', '.github/workflows/chat-voice-b1-proof.yml'];
+  'supabase/functions/uskoci-account-closure-worker/closure.ts', 'supabase/functions/uskoci-account-closure-worker/index.ts', '.github/workflows/chat-voice-b1-proof.yml',
+  'supabase/functions/uskoci-media/index.ts', 'supabase/functions/_shared/voiceM4a.mjs'];
 const report = rt.report('CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION');
 Object.assign(report, { providerCalls: 0, devAccess: false, devCertificateMoved: false, disposableCertificateMoved: false, certifiedErasureProven: false,
   storageCalls: 0, sourceArtifactHashes: {}, refusals: [], laterDriftChecks: [], closures: [] });
@@ -302,6 +306,100 @@ await check('THE_WORKER_DECODER_ADMITS_EXACTLY_THE_VOICE_OBJECT_SHAPE', async ()
     ['agreement-voice', `${account}/${id}.m4a`], ['other-bucket', good]]) {
     assert.throws(() => worker.decodeAction(action(bucket, objectPath), account, generation), /CLOSURE_RESPONSE_INVALID/, 'MUST_REFUSE:' + bucket + ':' + objectPath);
   }
+});
+
+// ----- the REAL Edge source (unmodified) against the real SQL service and real Storage; only Auth identity resolution is emulated (the local Auth issuer is http, the Edge demands https)
+const edgeOrigin = 'https://edge.local', localOrigin = new URL(env.RU5_DEVICE_SUPABASE_URL).origin;
+let edgeUser = null; const edgeCalls = [];
+const edgeFetch = async (url, init = {}) => {
+  const u = new URL(url); assert.equal(u.origin, edgeOrigin);
+  const entry = { path: u.pathname, method: init.method ?? 'GET' };
+  if (typeof init.body === 'string') { try { entry.op = JSON.parse(init.body).p_operation; } catch { /* a non-JSON body has no operation */ } }
+  edgeCalls.push(entry);
+  if (u.pathname === '/auth/v1/user') return new Response(JSON.stringify({ id: edgeUser }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  assert.ok((u.pathname.startsWith('/rest/v1/rpc/rpc_agreement_voice_') && u.pathname.endsWith('_service_v1')) || u.pathname.startsWith('/storage/v1/object/agreement-voice/'),
+    'EDGE_REQUEST_OUTSIDE_THE_VOICE_SURFACE:' + u.pathname);
+  if (u.pathname.startsWith('/storage/')) report.storageCalls++;
+  return fetch(localOrigin + u.pathname + u.search, init);
+};
+let edgeHandler;
+function loadEdge() {
+  const source = readFileSync('supabase/functions/uskoci-media/index.ts', 'utf8').replace("import.meta.resolve('npm:@imagemagick/magick-wasm@0.0.43/magick.wasm')", "'file:///not-used-by-voice'");
+  const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  const environment = { SUPABASE_URL: edgeOrigin, SUPABASE_ANON_KEY: env.RU5_DEVICE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.RU5_DEVICE_SERVICE_ROLE_KEY };
+  const photoStub = { configureImageLimits() {}, sanitizeImage() { throw new Error('THE_PHOTO_PATH_MUST_NOT_RUN_FOR_VOICE'); } };
+  new vm.Script(compiled).runInContext(vm.createContext({ exports: {}, require: name => {
+    if (name === 'npm:@imagemagick/magick-wasm@0.0.43') return { initializeImageMagick: async () => undefined };
+    if (name === '../_shared/voiceM4a.mjs') return voiceModule;
+    assert.equal(name, '../_shared/mediaImageSanitizer.mjs'); return photoStub; },
+  Request, Response, Headers, URL, TextEncoder, TextDecoder, Uint8Array, ArrayBuffer, DataView, AbortController, crypto: webcrypto, setTimeout, clearTimeout, fetch: edgeFetch, atob,
+  Deno: { env: { get: name => environment[name] }, readFile: async () => new Uint8Array(), serve: handler => { edgeHandler = handler; } } }));
+}
+await check('EDGE_VOICE_OPERATIONS_RUN_END_TO_END_AGAINST_REAL_SQL_AND_STORAGE', async () => {
+  loadEdge(); assert.equal(typeof edgeHandler, 'function');
+  const requester = await rt.actor('voice-b1b-edge-requester'), worker = await rt.actor('voice-b1b-edge-worker'), stranger = await rt.actor('voice-b1b-edge-stranger');
+  const item = await agreement(requester, worker);
+  const call = async (actor, op, { body, json, headers = {} } = {}) => {
+    edgeUser = actor.id;
+    const claims = { sub: actor.id, role: 'authenticated', session_id: await session(actor), iss: edgeOrigin + '/auth/v1', exp: Math.floor(Date.now() / 1000) + 3600 };
+    const token = ['SYNTHETIC_HEADER', Buffer.from(JSON.stringify(claims)).toString('base64url'), 'SYNTHETIC_SIGNATURE'].join('.');
+    return edgeHandler(new Request(edgeOrigin + '/functions/v1/uskoci-media', { method: 'POST', body: json ? JSON.stringify(json) : body,
+      headers: { Authorization: 'Bearer ' + token, 'x-media-operation': op, ...(json ? { 'Content-Type': 'application/json' } : {}), ...headers } }));
+  };
+  const upload = (actor, bytes, requestKey, { agreementId = item.id, version = 1, type = 'audio/mp4' } = {}) => call(actor, 'agreement-voice-upload',
+    { body: bytes, headers: { 'Content-Type': type, 'x-media-target': agreementId, 'x-media-request-id': requestKey, 'x-media-version': String(version) } });
+  const control = (actor, op, json) => call(actor, op, { json });
+  const uploadOps = () => edgeCalls.filter(entry => entry.path.endsWith('/rpc_agreement_voice_upload_service_v1')).map(entry => entry.op);
+  const storagePosts = () => edgeCalls.filter(entry => entry.path.startsWith('/storage/') && entry.method === 'POST').length;
+  const key = randomUUID();
+  edgeCalls.length = 0;
+  const first = await upload(requester, new Uint8Array(audio), key); assert.equal(first.status, 200);
+  const receipt = await first.json();
+  assert.deepEqual(Object.keys(receipt).sort(), ['accountId', 'agreementId', 'agreementVersion', 'assetId', 'attachedMessageId', 'authoritative', 'clientRequestId', 'state', 'voice']);
+  assert.equal(receipt.state, 'READY'); assert.equal(receipt.attachedMessageId, null); assert.equal(receipt.clientRequestId, key);
+  assert.deepEqual(receipt.voice, { assetId: receipt.assetId, durationMs: voiceModule.inspectVoiceM4a(new Uint8Array(audio)).durationMs, byteSize: audio.length, contentType: 'audio/mp4' });
+  assert.deepEqual(uploadOps(), ['CLAIM', 'STAGE', 'DISPATCH', 'SETTLE']); assert.equal(storagePosts(), 1);
+  assert.ok(!JSON.stringify(receipt).includes(audioSha) && !JSON.stringify(receipt).includes('agreement-voice-v1'), 'THE_RECEIPT_MUST_CARRY_NO_PATH_OR_HASH');
+  assert.deepEqual(rows(`select state,dispatch_state,dispatch_outcome,duration_ms,byte_size,validated_sha256 from private.agreement_voice_uploads_v1 where id=${q(receipt.assetId)}`),
+    [{ state: 'READY', dispatch_state: 'SETTLED', dispatch_outcome: 'STORED', duration_ms: receipt.voice.durationMs, byte_size: audio.length, validated_sha256: audioSha }]);
+  assert.equal(storageObjects(requester.id), 1);
+  // The same key again: the stored receipt, no second Storage write.
+  edgeCalls.length = 0; const replay = await upload(requester, new Uint8Array(audio), key); assert.equal(replay.status, 200); assert.deepEqual(await replay.json(), receipt);
+  assert.deepEqual(uploadOps(), ['CLAIM']); assert.equal(storagePosts(), 0);
+  // Read, list and the unattached upload.
+  const read = await control(requester, 'agreement-voice-upload-read', { agreementId: item.id, agreementVersion: 1, clientRequestId: key }); assert.equal(read.status, 200); assert.deepEqual(await read.json(), receipt);
+  const list = await control(requester, 'agreement-voice-upload-list', { agreementId: item.id }); assert.equal(list.status, 200);
+  assert.ok((await list.json()).uploads.some(entry => entry.assetId === receipt.assetId));
+  const absent = await control(requester, 'agreement-voice-upload-read', { agreementId: item.id, agreementVersion: 1, clientRequestId: randomUUID() });
+  assert.equal(absent.status, 200); assert.equal((await absent.json()).state, 'ABSENT');
+  // Send through the real SQL function, then play back through the Edge for exactly the right people.
+  const sent = await sendVoice(requester, receipt.assetId, item.id);
+  const play = async (actor, payload) => control(actor, 'agreement-voice-read', payload);
+  for (const listener of [worker, requester]) {
+    const audioResponse = await play(listener, { agreementId: item.id, assetId: receipt.assetId, messageId: sent.messageId });
+    assert.equal(audioResponse.status, 200); assert.equal(audioResponse.headers.get('content-type'), 'audio/mp4'); assert.equal(audioResponse.headers.get('cache-control'), 'no-store');
+    assert.equal(sha256(new Uint8Array(await audioResponse.arrayBuffer())), audioSha);
+  }
+  for (const [actor, payload] of [[stranger, { agreementId: item.id, assetId: receipt.assetId, messageId: sent.messageId }], [worker, { agreementId: item.id, assetId: receipt.assetId }],
+    [requester, { agreementId: item.id, assetId: receipt.assetId }], [worker, { agreementId: item.id, assetId: randomUUID(), messageId: sent.messageId }]]) {
+    const denied = await play(actor, payload); assert.equal(denied.status, 403); assert.deepEqual(await denied.json(), { code: 'MEDIA_NOT_FOUND' });
+  }
+  // An attached upload cannot be cancelled: the actual receipt says so. A fresh key cancels and stays cancelled without any Storage write.
+  const attached = await control(requester, 'agreement-voice-upload-cancel', { agreementId: item.id, agreementVersion: 1, clientRequestId: key });
+  assert.equal(attached.status, 200); const attachedReceipt = await attached.json(); assert.equal(attachedReceipt.state, 'READY'); assert.equal(attachedReceipt.attachedMessageId, sent.messageId);
+  const cancelKey = randomUUID(); const cancelled = await control(requester, 'agreement-voice-upload-cancel', { agreementId: item.id, agreementVersion: 1, clientRequestId: cancelKey });
+  assert.equal(cancelled.status, 200); assert.equal((await cancelled.json()).state, 'CANCELLED');
+  edgeCalls.length = 0; const after = await upload(requester, new Uint8Array(audio), cancelKey); assert.equal(after.status, 200); assert.equal((await after.json()).state, 'CANCELLED'); assert.equal(storagePosts(), 0);
+  // Refusals come from the real validator and the real SQL.
+  const corrupt = new Uint8Array(audio); corrupt[4] = 0x58; const corruptKey = randomUUID(); edgeCalls.length = 0;
+  const invalid = await upload(requester, corrupt, corruptKey); assert.equal(invalid.status, 400); assert.deepEqual(await invalid.json(), { code: 'MEDIA_FORMAT_UNSUPPORTED' });
+  assert.deepEqual(uploadOps(), ['CLAIM', 'FAIL']); assert.equal(storagePosts(), 0);
+  assert.equal(sql(`select state from private.agreement_voice_uploads_v1 where account_id=${q(requester.id)} and client_request_id=${q(corruptKey)}`), 'FAILED');
+  const wrongType = await upload(requester, new Uint8Array(audio), randomUUID(), { type: 'image/jpeg' }); assert.equal(wrongType.status, 400);
+  const foreignUpload = await upload(stranger, new Uint8Array(audio), randomUUID()); assert.equal(foreignUpload.status, 403); assert.deepEqual(await foreignUpload.json(), { code: 'MEDIA_NOT_FOUND' });
+  const stale = await upload(requester, new Uint8Array(audio), randomUUID(), { version: 2 }); assert.equal(stale.status, 409); assert.deepEqual(await stale.json(), { code: 'MEDIA_VERSION_CONFLICT' });
+  assert.equal(storageObjects(stranger.id), 0); assert.equal(storageObjects(requester.id), 1);
+  report.edgeEndToEnd = { operations: ['upload', 'replay', 'read', 'list', 'absent', 'send', 'playback', 'denied playback', 'cancel attached', 'cancel fresh', 'corrupt', 'wrong type', 'foreign', 'stale'], realSqlAndStorage: true, authIdentityEmulated: true };
 });
 
 // ----- two full canonical closures through the actual worker source against real Storage

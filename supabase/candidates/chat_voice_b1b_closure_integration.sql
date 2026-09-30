@@ -47,9 +47,10 @@ begin
     ('private.closure_source_digest_v5()', 'd67d37e2ebc5d9f85448693c0772f663', null),
     ('private.closure_erasure_program_digest_v5()', '3ec8d244730415d3a047312366672375', null)
   ) p(signature, body_md5, alternative_md5) loop
-    actual := (select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = to_regprocedure(pin.signature));
+    -- A missing function must never equal an absent alternative: NULL is not distinct from NULL.
+    actual := coalesce((select md5(replace(prosrc, E'\r\n', E'\n')) from pg_proc where oid = to_regprocedure(pin.signature)), 'MISSING');
     if actual is distinct from pin.body_md5 and actual is distinct from pin.alternative_md5 then
-      bad := array_append(bad, pin.signature || '=' || coalesce(actual, 'MISSING'));
+      bad := array_append(bad, pin.signature || '=' || actual);
     end if;
   end loop;
   if cardinality(bad) > 0 then

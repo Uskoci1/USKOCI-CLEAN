@@ -2,6 +2,7 @@
 // JPEG under an immutable server-generated path; upload never publishes a Task.
 import * as magick from 'npm:@imagemagick/magick-wasm@0.0.43';
 import { configureImageLimits, sanitizeImage } from '../_shared/mediaImageSanitizer.mjs';
+import { inspectVoiceM4a } from '../_shared/voiceM4a.mjs';
 declare const Deno:{env:{get(name:string):string|undefined};readFile(path:string|URL):Promise<Uint8Array>;serve(fn:(req:Request)=>Promise<Response>):void};
 type Row=Record<string,any>;
 const row=(v:unknown):Row|null=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
@@ -77,13 +78,36 @@ function photoTransfer(raw:unknown,accountId:string,agreementId:string,version:n
  else if(t.sha256!==null||t.byteSize!==null||t.dispatchState!=='NOT_DISPATCHED'||r.state==='READY'||r.state==='STAGED')throw new Error('INVALID_PHOTO_TRANSFER');
  if(r.state==='READY'&&(t.dispatchOutcome!=='STORED'||r.photo.byteSize!==t.byteSize))throw new Error('INVALID_PHOTO_TRANSFER');return t;
 }
+const VOICE_MAX=4194304;
+function voiceReceipt(raw:unknown,accountId:string,agreementId:string,version?:number,key?:string):Row{
+ const r=row(raw),p=row(r?.voice);if(!r||!exact(r,['accountId','agreementId','agreementVersion','clientRequestId','assetId','state','attachedMessageId','voice','authoritative'])
+ ||r.accountId!==accountId||r.agreementId!==agreementId||!Number.isSafeInteger(r.agreementVersion)||r.agreementVersion<1||r.agreementVersion>2147483647
+ ||(version!==undefined&&r.agreementVersion!==version)||!id(r.clientRequestId)||(key!==undefined&&r.clientRequestId!==key)||r.authoritative!==true
+ ||!['ABSENT','PROCESSING','STAGED','READY','FAILED','CANCELLED'].includes(r.state)
+ ||(r.state==='ABSENT'?r.assetId!==null:!id(r.assetId))||(r.attachedMessageId!==null&&(!id(r.attachedMessageId)||r.state!=='READY')))throw new Error('INVALID_VOICE_RECEIPT');
+ if(r.state==='READY'){
+  if(!p||!exact(p,['assetId','durationMs','byteSize','contentType'])||p.assetId!==r.assetId||p.contentType!=='audio/mp4'
+  ||!Number.isInteger(p.durationMs)||p.durationMs<300||p.durationMs>300000
+  ||!Number.isInteger(p.byteSize)||p.byteSize<1||p.byteSize>VOICE_MAX)throw new Error('INVALID_VOICE_RECEIPT');
+ }else if(r.voice!==null)throw new Error('INVALID_VOICE_RECEIPT');return r;
+}
+function voiceTransfer(raw:unknown,accountId:string,agreementId:string,version:number,key:string):Row{
+ const t=row(raw);if(!t)throw new Error('INVALID_VOICE_TRANSFER');const r=voiceReceipt(t.receipt,accountId,agreementId,version,key);
+ if(r.state==='ABSENT'){if(!exact(t,['receipt']))throw new Error('INVALID_VOICE_TRANSFER');return t;}
+ if(!exact(t,['receipt','attemptId','path','sha256','byteSize','durationMs','dispatchState','dispatchOutcome','acquired'])||!id(t.attemptId)||typeof t.acquired!=='boolean'
+ ||!['NOT_DISPATCHED','DISPATCHING','SETTLED'].includes(t.dispatchState)||(t.dispatchState==='SETTLED'?!['STORED','REJECTED'].includes(t.dispatchOutcome):t.dispatchOutcome!==null))throw new Error('INVALID_VOICE_TRANSFER');
+ if(t.path!==null){if(!hash(t.sha256)||t.path!==`${accountId}/agreement-voice-v1/${r.assetId}/${t.sha256}.m4a`||!Number.isInteger(t.byteSize)||t.byteSize<1||t.byteSize>VOICE_MAX
+  ||!Number.isInteger(t.durationMs)||t.durationMs<300||t.durationMs>300000)throw new Error('INVALID_VOICE_TRANSFER');}
+ else if(t.sha256!==null||t.byteSize!==null||t.durationMs!==null||t.dispatchState!=='NOT_DISPATCHED'||r.state==='READY'||r.state==='STAGED')throw new Error('INVALID_VOICE_TRANSFER');
+ if(r.state==='READY'&&(t.dispatchOutcome!=='STORED'||r.voice.byteSize!==t.byteSize||r.voice.durationMs!==t.durationMs))throw new Error('INVALID_VOICE_TRANSFER');return t;
+}
 export async function handleMedia(req:Request):Promise<Response>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
  if(req.method!=='POST')return json(405,{code:'METHOD_NOT_ALLOWED'});
  const authorization=req.headers.get('authorization')??'',base=Deno.env.get('SUPABASE_URL')??'',anon=Deno.env.get('SUPABASE_ANON_KEY')??'',service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'';
  if(!/^Bearer [^\s]+$/.test(authorization)||authorization.length>16384)return json(401,{code:'AUTH_REQUIRED'});
  let url:URL;try{url=new URL(base);if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!anon||!service)throw new Error();}catch{return json(503,{code:'MEDIA_UNAVAILABLE'});}
- const abort=new AbortController(),stop=()=>abort.abort(),timer=setTimeout(stop,25000);req.signal.addEventListener('abort',stop,{once:true});if(req.signal.aborted)stop();
+ const abort=new AbortController(),stop=()=>abort.abort();let timer=setTimeout(stop,25000);req.signal.addEventListener('abort',stop,{once:true});if(req.signal.aborted)stop();
  const fetchBound=(path:string,init:RequestInit)=>fetch(path,{...init,redirect:'error',signal:abort.signal});
  const userHeaders={apikey:anon,Authorization:authorization,'Content-Type':'application/json'};
  const serviceHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
@@ -96,6 +120,82 @@ export async function handleMedia(req:Request):Promise<Response>{
   const auth=await fetchBound(url.origin+'/auth/v1/user',{headers:userHeaders});if(!auth.ok)return json(401,{code:'AUTH_REQUIRED'});
   const user=row(parse(await bytes(auth,65536,abort.signal)));if(!id(user?.id))return json(401,{code:'AUTH_REQUIRED'});const aid=user.id;
   const op=req.headers.get('x-media-operation'),preview=(a:Row)=>({assetId:a.assetId,width:a.width,height:a.height,contentType:'image/jpeg'});
+  if(op?.startsWith('agreement-voice-')){
+   // Voice messages (B1-c). The original bytes ARE the stored bytes: one validated self-contained mono AAC-LC M4A, no transcoding, never a URL.
+   const sessionId=supportSession(authorization,aid,url.origin);
+   const voiceBytes=async(path:string,expected:string,size:number)=>{const r=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
+    if(!r.ok||r.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='audio/mp4')throw new Error('STORAGE_UNCONFIRMED');
+    const b=await bytes(r,VOICE_MAX,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
+   if(op==='agreement-voice-read'){
+    const i=row(parse(await bytes(req,2048,abort.signal)));if(!i||!id(i.agreementId)||!id(i.assetId)
+    ||!(exact(i,['agreementId','assetId'])||(exact(i,['agreementId','assetId','messageId'])&&id(i.messageId))))throw new Safe('MEDIA_INPUT_INVALID');
+    const args={p_account_id:aid,p_session_id:sessionId,p_agreement_id:i.agreementId,p_asset_id:i.assetId,p_message_id:i.messageId??null};
+    const authorize=async()=>{const r=row(await rpc('rpc_agreement_voice_read_service_v1',args)),parts=typeof r?.path==='string'?r.path.split('/'):[];
+     if(!r||!exact(r,['assetId','agreementId','messageId','bucket','path','sha256','contentType','byteSize','durationMs','authoritative'])||r.assetId!==i.assetId||r.agreementId!==i.agreementId
+     ||r.messageId!==(i.messageId??null)||r.bucket!=='agreement-voice'||r.authoritative!==true||r.contentType!=='audio/mp4'||!hash(r.sha256)||parts.length!==4||!id(parts[0])
+     ||r.path!==`${parts[0]}/agreement-voice-v1/${i.assetId}/${r.sha256}.m4a`||!Number.isInteger(r.byteSize)||r.byteSize<1||r.byteSize>VOICE_MAX
+     ||!Number.isInteger(r.durationMs)||r.durationMs<300||r.durationMs>300000)throw new Error('INVALID_VOICE_READ');return r;};
+    const r=await authorize(),b=await voiceBytes(r.path,r.sha256,r.byteSize);try{const after=await authorize();
+     if(after.path!==r.path||after.sha256!==r.sha256||after.byteSize!==r.byteSize||abort.signal.aborted)throw new Error('VOICE_AUTH_CHANGED');
+     return new Response(new Uint8Array(b),{headers:{...cors,'Content-Type':'audio/mp4','Content-Length':String(b.length)}});
+    }finally{b.fill(0);}
+   }
+   const upload=op==='agreement-voice-upload';let agreementId:string,version:number|undefined,key:string|undefined,input:Uint8Array|undefined;
+   if(upload){agreementId=req.headers.get('x-media-target')??'';key=req.headers.get('x-media-request-id')??'';const rawVersion=req.headers.get('x-media-version')??'';
+    if(!id(agreementId)||!id(key)||!/^[1-9][0-9]{0,9}$/.test(rawVersion)||Number(rawVersion)>2147483647)throw new Safe('MEDIA_INPUT_INVALID');version=Number(rawVersion);
+   }else{
+    const i=row(parse(await bytes(req,2048,abort.signal)));if(!i||!id(i.agreementId))throw new Safe('MEDIA_INPUT_INVALID');agreementId=i.agreementId;
+    if(op==='agreement-voice-upload-list'){if(!exact(i,['agreementId']))throw new Safe('MEDIA_INPUT_INVALID');}
+    else{if(!['agreement-voice-upload-read','agreement-voice-upload-cancel'].includes(op)||!exact(i,['agreementId','agreementVersion','clientRequestId'])||!id(i.clientRequestId)
+     ||!Number.isInteger(i.agreementVersion)||i.agreementVersion<1||i.agreementVersion>2147483647)throw new Safe('MEDIA_INPUT_INVALID');version=i.agreementVersion;key=i.clientRequestId;}
+   }
+   const rawCall=(operation:string,data:Row={})=>rpc('rpc_agreement_voice_upload_service_v1',{p_account_id:aid,p_session_id:sessionId,p_operation:operation,p_agreement_id:agreementId,p_version:version??null,p_key:key??null,p_input:data},65536);
+   if(op==='agreement-voice-upload-list'){
+    const list=row(await rawCall('LIST'));if(!list||!exact(list,['accountId','agreementId','uploads','authoritative'])||list.accountId!==aid||list.agreementId!==agreementId||list.authoritative!==true
+    ||!Array.isArray(list.uploads)||list.uploads.length>20)throw new Error('INVALID_VOICE_LIST');const keys=new Set<string>();for(const r of list.uploads){const p=voiceReceipt(r,aid,agreementId);
+     if(['ABSENT','FAILED','CANCELLED'].includes(p.state)||p.attachedMessageId!==null||keys.has(p.clientRequestId))throw new Error('INVALID_VOICE_LIST');keys.add(p.clientRequestId);}return json(200,list);
+   }
+   const call=async(operation:string,data:Row={})=>voiceTransfer(await rawCall(operation,data),aid,agreementId,version!,key!);
+   if(!upload){
+    let t=await call(op==='agreement-voice-upload-cancel'?'CANCEL':'READ');
+    // A restart need not retain the recording to settle an already-issued upload: positive readback may advance this same immutable dispatch only.
+    // Missing or unknown bytes stay unresolved; there is never a second POST.
+    if(op==='agreement-voice-upload-read'&&t.dispatchState==='DISPATCHING'&&['STAGED','CANCELLED'].includes(t.receipt.state)){
+     let stored:Uint8Array|undefined;try{stored=await voiceBytes(t.path,t.sha256,t.byteSize);}
+     catch{if(abort.signal.aborted)throw new Error('VOICE_RECOVERY_ABORTED');}
+     if(stored){stored.fill(0);t=await call('SETTLE',{sha256:t.sha256,outcome:'STORED'});}
+    }return json(200,t.receipt);
+   }
+   if(busy)throw new Safe('MEDIA_BUSY',429);busy=true;held=true;
+   // A recording takes longer to arrive than a photo: the body counts against this timer, so the voice upload gets its own bound.
+   clearTimeout(timer);timer=setTimeout(stop,60000);
+   const contentType=req.headers.get('content-type')?.split(';')[0].trim().toLowerCase();if(contentType!=='audio/mp4')throw new Safe('MEDIA_FORMAT_UNSUPPORTED');
+   try{
+    input=await bytes(req,VOICE_MAX,abort.signal);if(!input.length)throw new Safe('MEDIA_INPUT_INVALID');
+    const sha256=await digest(input);
+    let t=await call('CLAIM',{sha256,byteSize:input.length,contentType});
+    if(!t.acquired){
+     if(t.receipt.state==='STAGED'&&t.dispatchState==='DISPATCHING'){
+      const existing=await voiceBytes(t.path,t.sha256,t.byteSize);existing.fill(0);t=await call('SETTLE',{sha256:t.sha256,outcome:'STORED'});
+     }return json(200,t.receipt);
+    }
+    if(t.receipt.state!=='PROCESSING'||t.path!==null)throw new Error('INVALID_VOICE_CLAIM');
+    let info:{durationMs:number;byteSize:number};
+    try{info=inspectVoiceM4a(input);}catch(error){await call('FAIL');
+     throw new Safe(row(error)?.message==='VOICE_SIZE_INVALID'?'MEDIA_INPUT_INVALID':'MEDIA_FORMAT_UNSUPPORTED');}
+    if(info.byteSize!==input.length)throw new Error('INVALID_VOICE_INSPECTION');
+    t=await call('STAGE',{attemptId:t.attemptId,sha256,byteSize:input.length,durationMs:info.durationMs});
+    if(t.receipt.state==='CANCELLED')return json(200,t.receipt);
+    if(t.receipt.state!=='STAGED'||t.sha256!==sha256||t.byteSize!==input.length||t.durationMs!==info.durationMs)throw new Error('INVALID_VOICE_STAGE');
+    t=await call('DISPATCH');if(!t.acquired)return json(200,t.receipt);
+    if(t.receipt.state!=='STAGED'||t.dispatchState!=='DISPATCHING'||t.sha256!==sha256||t.byteSize!==input.length)throw new Error('INVALID_VOICE_DISPATCH');
+    const posted=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+t.path,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'audio/mp4','x-upsert':'false'},body:new Uint8Array(input)});
+    void posted.body?.cancel();
+    // 4xx is a definitive rejected write; a timeout or 5xx stays DISPATCHING so a later closure cannot mistake an unknown upstream write for quiescence.
+    if(!posted.ok&&posted.status!==409){if(posted.status>=400&&posted.status<500)await call('SETTLE',{sha256,outcome:'REJECTED'});throw new Error('VOICE_STORAGE_UNCONFIRMED');}
+    const stored=await voiceBytes(t.path,sha256,t.byteSize);stored.fill(0);t=await call('SETTLE',{sha256,outcome:'STORED'});return json(200,t.receipt);
+   }finally{input?.fill(0);}
+  }
   if(op?.startsWith('agreement-')){
    const sessionId=supportSession(authorization,aid,url.origin);
    if(op==='agreement-read'){
