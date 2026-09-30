@@ -11,6 +11,9 @@
       "credentialsSource": "remote",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_P6_DISCOVERY_READER": "1"
       }
     },
     "production": {
@@ -23,7 +26,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW",
+        "EXPO_PUBLIC_P6_DISCOVERY_READER": "1"
       }
     }
   }
