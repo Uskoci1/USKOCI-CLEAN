@@ -276,7 +276,8 @@ def back_to_list(need_cards=True, need_peek=False, timeout=90, wait_for=None):
             return False
         return wait_for(r) if wait_for else True
     poll(ready, timeout, what='Discovery list after Back')
-    REPORT.setdefault('returns', []).append({'blank': blank['seen'], 's': round(time.time() - started, 1)})
+    returns = REPORT.setdefault('returns', [])
+    returns.append({'i': len(returns) + 1, 'step': CURRENT_STEP['name'], 'blank': blank['seen'], 's': round(time.time() - started, 1)})
     time.sleep(2.5)
     return dump()
 
@@ -718,9 +719,64 @@ def since(m, mode=None):
 def brief(req):
     f = req.get('filter') or {}
     scope = req.get('scope')
+    after = req.get('after')
     return {'mode': req.get('mode'), 'scope': scope.get('kind') if isinstance(scope, dict) else scope,
-            'after': bool(req.get('after')), 'limit': req.get('limit'), 'where': f.get('where'), 'text': f.get('text'),
-            'place': f.get('place'), 'keys': sorted(req.keys())[:14]}
+            'after': bool(after), 'afterScope': str(after.get('scopeKey') or '')[:12] if isinstance(after, dict) else None,
+            'limit': req.get('limit'), 'where': f.get('where'), 'text': f.get('text'), 'place': f.get('place'), 'keys': sorted(req.keys())[:14]}
+
+
+def cursor_continuity(requests):
+    """The cursor (`after`) bodies of one paging run, as the app sent them: every one must carry the scopeKey of the first (the server refuses
+    a cursor of another scope, so a changed key would mean the list paged a scope it no longer showed) and be a whole cursor (section 0 or 1,
+    sortAt, id). Pure: a list of harvested PAGE requests in, a verdict with the bounded cursor sequence out."""
+    cursors = []
+    for r in requests:
+        a = r.get('after')
+        cursors.append({'scopeKey': a.get('scopeKey'), 'section': a.get('section'), 'sortAt': a.get('sortAt'), 'id': a.get('id')} if isinstance(a, dict)
+                       else {'scopeKey': None, 'raw': str(a)[:60]})
+    keys = [c.get('scopeKey') for c in cursors]
+    whole = all(c.get('section') in (0, 1) and bool(c.get('sortAt')) and bool(c.get('id')) for c in cursors)
+    ok = bool(cursors) and bool(keys[0]) and all(k == keys[0] for k in keys) and whole
+    return {'ok': ok, 'cursorRequests': len(cursors), 'scopeKeys': sorted({str(k) for k in keys}), 'wholeCursors': whole,
+            'cursors': [{'scopeKey': str(c.get('scopeKey') or '')[:12], 'section': c.get('section'), 'sortAt': c.get('sortAt'),
+                         'id': str(c.get('id') or '')[:8], **({'raw': c['raw']} if 'raw' in c else {})} for c in cursors[:10]]}
+
+
+def clock_resolution(token):
+    """'ns' | 'us' | 'ms' | 's' from one epoch stamp's magnitude; a fractional stamp is mksh's $EPOCHREALTIME (seconds.microseconds) -> 'us'."""
+    if not token:
+        return None
+    if '.' in token:
+        return 'us'
+    value = float(token)
+    return 'ns' if value >= 1e17 else 'us' if value >= 1e14 else 'ms' if value >= 1e11 else 's'
+
+
+def tap_gap_from_stamps(text):
+    """Three device-clock stamps (`T=<epoch>`) read in ONE shell command: before the first `input tap`, between the taps, after the second.
+    Each `input tap` is a Java process that injects its touch just before it exits, so the two touches were about `secondTapCommandMs` apart
+    (the estimate) and never more than `upperBoundMs` (the whole span). `measured` needs three stamps with sub-second resolution: a clock
+    that only counts seconds cannot state a gap of a few hundred milliseconds."""
+    tokens = re.findall(r'T=(\d+(?:\.\d+)?)', text or '')
+    if len(tokens) < 3:
+        return {'measured': False, 'stamps': len(tokens), 'raw': (text or '')[:120]}
+    resolution = clock_resolution(tokens[0])
+    scale = {'ns': 1e-6, 'us': 1e-3, 'ms': 1.0, 's': 1000.0}[resolution]
+    t0, t1, t2 = ((float(t) * 1000.0) if '.' in t else float(t) * scale for t in tokens[:3])
+    return {'measured': resolution != 's', 'resolution': resolution, 'stampsMs': [0.0, round(t1 - t0, 1), round(t2 - t0, 1)],
+            'firstTapCommandMs': round(t1 - t0, 1), 'secondTapCommandMs': round(t2 - t1, 1), 'estimatedTouchGapMs': round(t2 - t1, 1),
+            'upperBoundMs': round(t2 - t0, 1),
+            'note': 'each `input tap` injects its touch just before its process exits: the touches were about secondTapCommandMs apart, at most upperBoundMs'}
+
+
+def device_clock_command():
+    """The finest device clock for stamping the race taps, probed once: toybox `date +%s%N` (ns), mksh `$EPOCHREALTIME` (us), else `date +%s` (s)."""
+    for probe in ('date +%s%N', 'echo $EPOCHREALTIME'):
+        out = (adb('shell', f'echo T=$({probe})', check=False).stdout or '').strip()
+        m = re.search(r'T=(\d+(?:\.\d+)?)\s*$', out)
+        if m and clock_resolution(m.group(1)) != 's':
+            return probe
+    return 'date +%s'
 
 
 def wait_requests(fn, timeout=30, what='requests'):
@@ -750,9 +806,13 @@ def db_function_calls():
 
 
 # ------------------------------------------------------------------------------------------------ step machinery
+CURRENT_STEP = {'name': None}          # the step that is running, so shared helpers (a recorded return) can say where they happened
+
+
 def step(name, fn):
     started = time.time()
     checks_before = len(REPORT['checks'])
+    CURRENT_STEP['name'] = name
     try:
         fn()
         ok = all(c['ok'] for c in REPORT['checks'][checks_before:])
@@ -918,12 +978,22 @@ def s_route():
         check('WITHOUT_POINT_COUNT_MATCHES_SERVER', (without in nums[1:]) if without else len(nums) == 1, ui=nums, expected=without)
     st = sheet_state(root)
     REPORT['initialSheet'] = st
-    ps = pills(root) if not st['full'] else []
+    if st['full']:
+        # A sheet that opened at full height hides the map. The map is judged with the sheet at its top line, so it is lowered first (and
+        # recorded); "the sheet was full" is no longer an excuse for missing markers or a missing map.
+        ensure_peek()
+        time.sleep(3)
+        root = snapshot('P6_02b_route_lowered')
+        REPORT['sheetLoweredForMarkers'] = True
+    ps = pills(root)
     REPORT['initialPills'] = pill_boxes(ps)
-    check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ps) or st['full'], pills=len(ps), boxes=pill_boxes(ps), sheet=st)
-    if not st['full']:
-        check('P6_MAP_READER_CALLED', any(c.get('mode') == 'MAP' for c in calls), modes=sorted({c.get('mode') for c in calls}))
-    check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Umanji mapu')) or bool(nodes(root, contains='Izvori mape')) or st['full'],
+    check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ps), pills=len(ps), boxes=pill_boxes(ps), sheet=sheet_state(root), loweredFirst=st['full'])
+    try:
+        maps = wait_requests(lambda: [c for c in since(m) if c.get('mode') == 'MAP'], 30, 'a MAP read for the visible map')
+    except RuntimeError:
+        maps = []
+    check('P6_MAP_READER_CALLED', bool(maps), mapReads=len(maps), modes=sorted({str(c.get('mode')) for c in since(m)}))
+    check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Umanji mapu')) or bool(nodes(root, contains='Izvori mape')),
           zoom=bool(nodes(root, desc='Umanji mapu')), credits=bool(nodes(root, contains='Izvori mape')))
 
 
@@ -994,7 +1064,9 @@ def s_paging():
     REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'strayOpens': strays[:5], 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
                         'readerCalls': calls_after - calls_before, 'requests': [brief(r) for r in reqs[:10]], 'order': order[:6] + ['...'] + order[-4:]}
     check('PAGING_REACHED_THE_LAST_TASK', TOTAL in indexes, maxIndex=max(indexes) if indexes else None, expected=TOTAL)
-    check('PAGING_SAW_ALMOST_EVERY_TASK', len(seen) >= TOTAL - 3, seen=len(seen), expected=TOTAL)
+    # Every one of the TOTAL tasks must have been seen while paging; the ones that were not are named (formerly three could be missing).
+    missing = sorted(set(range(1, TOTAL + 1)) - indexes)
+    check('PAGING_SAW_EVERY_TASK', not missing, seen=len(seen), expected=TOTAL, missingCount=len(missing), missingIndexes=missing[:20])
     check('NO_DUPLICATE_CARDS_IN_ANY_VIEW', not dupes, duplicates=dupes[:2])
     check('PAGING_CALLED_THE_READER_AGAIN', calls_after - calls_before >= 1, calls=calls_after - calls_before)
     check('NEXT_PAGE_REQUESTED_WITH_CURSOR', bool(cursor) if pages and pages > 1 else True, pages=pages, cursorRequests=len(cursor))
@@ -1005,6 +1077,12 @@ def s_paging():
     # REPORT['paging']['strayOpens']) travel with the check so the failure explains itself.
     check('LIST_OPENED_NO_TASK_BY_ITSELF_WHILE_PAGING', not strays, strayOpens=len(strays),
           reproductions=[{k: v for k, v in s.items() if k != 'trace'} for s in strays[:3]])
+    if cursor:
+        # Cursor continuity: every cursor request of this paging run carries the scopeKey of the first (the harvested body is the exact JSON the
+        # app sent, so the cursor is inspected as sent) and is a whole cursor.
+        continuity = cursor_continuity(cursor)
+        REPORT['paging']['cursors'] = continuity['cursors']
+        check('PAGING_CURSORS_STAY_IN_ONE_SCOPE', continuity['ok'], **continuity)
     check('COUNT_STABLE_AFTER_PAGING', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL)
     snapshot('P6_04_paged_to_end')
 
@@ -1020,8 +1098,12 @@ def s_detail_and_back():
     REPORT['opened'] = {'title': pick['title'], 'y1': pick['bounds'][1]}
     tap_visible(pick['node'], parent)
     _, root, _p = poll(lambda r, p: not count_nodes(r) and any(pick['title'] in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30, what='task detail')
-    snapshot('P6_05_detail')
-    check('DETAIL_SHOWS_TITLE', True, title=pick['title'])
+    root = snapshot('P6_05_detail')
+    # The detail really shows the tapped task: its title among the screen's own labels on the settled dump, on a screen that IS a task detail
+    # (no list top line, no card, the detail's own labels) and not a title that merely survived on a card behind a vanished count line.
+    shown = [label_of(n) for n in root.iter() if n.attrib.get('package') == PACKAGE and pick['title'] in label_of(n)]
+    check('DETAIL_SHOWS_TITLE', bool(shown) and looks_like_task_detail(root), title=pick['title'], labels=shown[:4],
+          detailScreen=looks_like_task_detail(root), detailTitle=detail_title(root))
     back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
     _r, _c, held = settled_card(pick['title'])
     root = snapshot('P6_06_after_back')
@@ -1147,15 +1229,31 @@ def s_filters():
     # arrive in (the deterministic staleness injection is covered by the coordinator's own tests; this is the race probe).
     p1, p2 = center_of(chip(root, 'Na daljinu'), parent), center_of(chip(root, 'Na licu mesta'), parent)
     m2 = mark()
-    adb('shell', f'input tap {p1[0]} {p1[1]} ; input tap {p2[0]} {p2[1]}')
+    # Both taps in ONE adb shell command, with the device clock read before, between and after them, so the report states the real gap between
+    # the two touches (each `input tap` is a Java process that injects its touch just before it exits; sequential invocations are 0.3-1 s apart on
+    # the CI emulator, not milliseconds). Whether that made a race is judged from the numbers below, not assumed.
+    clock = device_clock_command()
+    stamp = f'echo T=$({clock})'
+    issued = adb('shell', f'{stamp}; input tap {p1[0]} {p1[1]}; {stamp}; input tap {p2[0]} {p2[1]}; {stamp}', check=False)
+    gap = tap_gap_from_stamps(issued.stdout or '')
+    gap['clock'] = clock
+    REPORT['raceTaps'] = gap
     time.sleep(1.0)
     _, root, parent = wait_count(exp_onsite, 30)
     time.sleep(3)
     root, parent = dump()
     reqs = since(m2, 'PAGE')
     wheres = [(r.get('filter') or {}).get('where') for r in reqs]
-    check('RACE_ENDS_ON_LAST_INTENT', count_value(root)[0] == exp_onsite, ui=count_value(root)[0], expected=exp_onsite, wheres=wheres)
-    check('RACE_LAST_REQUEST_IS_LAST_INTENT', bool(wheres) and wheres[-1] == 'onsite', wheres=wheres)
+    # What the two taps really were: the measured gap between the touches, whether both intents reached the server, and whether the second touch
+    # came sooner than the first filter's answer had taken a moment ago (then the first read was most likely still in flight: a real race). Recorded
+    # with the race checks; the gap measurement itself is required.
+    answer_ms = round((REPORT.get('filterRemoteAnswerS') or 0) * 1000)
+    gap.update({'bothIntentsReachedServer': {'remote', 'onsite'} <= set(wheres), 'firstFilterAnswerMs': answer_ms,
+                'secondTouchBeforeFirstAnswerLikely': bool(gap.get('measured')) and gap['estimatedTouchGapMs'] < answer_ms})
+    check('RACE_TAP_GAP_MEASURED', bool(gap.get('measured')), **{k: v for k, v in gap.items() if k != 'note'})
+    check('RACE_ENDS_ON_LAST_INTENT', count_value(root)[0] == exp_onsite, ui=count_value(root)[0], expected=exp_onsite, wheres=wheres,
+          touchGapMs=gap.get('estimatedTouchGapMs'), bothIntentsReachedServer=gap['bothIntentsReachedServer'])
+    check('RACE_LAST_REQUEST_IS_LAST_INTENT', bool(wheres) and wheres[-1] == 'onsite', wheres=wheres, touchGapMs=gap.get('estimatedTouchGapMs'))
     onsite_now, remote_now = chip(root, 'Na licu mesta'), chip(root, 'Na daljinu')
     check('RACE_SELECTED_CHIP_IS_LAST_INTENT', selected(onsite_now) and not selected(remote_now),
           onsite=selected(onsite_now), remote=selected(remote_now))
@@ -1577,10 +1675,13 @@ def s_final():
     if not reqs and 'logSamples' not in REPORT:
         REPORT['logSamples'] = log_samples()
     check('SERVER_REQUEST_LOG_AVAILABLE', bool(reqs), total=len(reqs), modes=modes)
-    # Every return to the list showed the sheet (a blank first look is recorded, not fatal: the sheet heals itself), and none took longer than this.
+    # Every return to the list showed the sheet within this time, and at most two of them were blank at first look (the sheet heals itself,
+    # which is why a blank first look is not fatal by itself; which returns were blank, and in which step, is recorded).
     returns = REPORT.get('returns', [])
-    check('EVERY_RETURN_SHOWED_THE_SHEET', bool(returns) and all(x['s'] <= 45 for x in returns), returns=len(returns),
-          blankAtFirstLook=sum(1 for x in returns if x['blank']), slowest=max((x['s'] for x in returns), default=None))
+    blank = [x['i'] for x in returns if x['blank']]
+    check('EVERY_RETURN_SHOWED_THE_SHEET', bool(returns) and all(x['s'] <= 45 for x in returns) and len(blank) <= 2, returns=len(returns),
+          blankAtFirstLook=len(blank), blankReturns=blank, blankSteps=sorted({str(x.get('step')) for x in returns if x['blank']}),
+          slowest=max((x['s'] for x in returns), default=None))
 
 
 def main():
