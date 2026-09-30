@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T19:55:05Z",
+  "osvezeno": "2026-09-30T20:10:36Z",
   "grana": "HEAD",
-  "head": "6a809779",
-  "head_poruka": "docs(b24): Part 1 applied to canonical DEV on the owner PRIMENI (migration 20260930194403, ledger 212 to 213): 54 functions / 89 sites raise PT409, closure digest unchanged; Part 2 (14 certified functions) waits for his explicit word",
+  "head": "5a627689",
+  "head_poruka": "docs(ex03): rows-stay-mounted change, CI result and the RNR-01 mechanism with the upstream check (4.7.0 has the same handling) in the round document and the registry",
   "server": {
    "snimljeno": "2026-09-30T12:01:15Z",
    "migracije": 212,
@@ -7349,7 +7349,7 @@
    "id": "B19",
    "oblast": "Brzina",
    "nalaz_16_09": "Lista prilika se ne učitava po delovima",
-   "sada": "DELIMIČNO: P6 čitač je na DEV-u (ledger 212) i uključen u DEV APK; P6 zatvoren sa granicama L1–L10. Na telefonu (Round 74) povratak p95 822 ms i pin→kartica p95 1503 ms (uključuje tačno čitanje) nisu ispod cilja (polish EX-03); scale pri jit=off 1011/1032 ms (L4); lične liste bez straničenja (EX-04); DEV opterećen petljom B24 pa merenja na njemu iskrivljena. EX-03 AFTER 30.09. na HONOR-u (mali uzorak, mirna baza): povratak Back→restored p50 462→162 ms bez ijednog PAGE/MAP zahteva (topli povratak, 4/4); podaci kartice 402→42 ms; frejmova preko 700 ms 11→0; halo 63→140 ms (cilj ≤100 ms promašen, izmena „halo prvi“ u kodu, nije merena); DEV petlja B24 ugašena 16:43Z pa su ova merenja čista.",
+   "sada": "DELIMIČNO: P6 čitač je na DEV-u (ledger 212) i uključen u DEV APK; P6 zatvoren sa granicama L1–L10. Na telefonu (Round 74) povratak p95 822 ms i pin→kartica p95 1503 ms (uključuje tačno čitanje) nisu ispod cilja (polish EX-03); scale pri jit=off 1011/1032 ms (L4); lične liste bez straničenja (EX-04); DEV opterećen petljom B24 pa merenja na njemu iskrivljena. EX-03 AFTER 30.09. na HONOR-u (mali uzorak, mirna baza): povratak Back→restored p50 462→162 ms bez ijednog PAGE/MAP zahteva (topli povratak, 4/4); podaci kartice 402→42 ms; frejmova preko 700 ms 11→0; halo 63→140 ms (cilj ≤100 ms promašen, izmena „halo prvi“ u kodu, nije merena); DEV petlja B24 ugašena 16:43Z pa su ova merenja čista. Izmena „redovi ostaju montirani pri otvaranju i zatvaranju kartice pina“ (e87ed466) je u kodu i CI zelena (run 36770243152: tipovi, 34 P6/Discovery paketa 686 testova, pun Jest 366/7542), nije merena na uređaju.",
    "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/EX03_DISCOVERY_POLISH_20260930.md"
   },
   {
@@ -7370,8 +7370,8 @@
    "id": "B22",
    "oblast": "Reanimated poplava (ANR / zastoji)",
    "nalaz_16_09": "Reanimated 4.5.1 ponavlja neuspele native izmene za poglede koji nisu montirani; počinje pri prijavi, pre P6 koda; CI emulator: 111 623 neuspele izmene, zastoji do 10,1 s i jedan ANR; telefon (stari čitač): 17 637 linija, najduži frejm 919 ms, bez ANR-a. Pri dugim listama na telefonu nepoznato.",
-   "sada": "OTVORENO — RNR-01: popravka traži odluku vlasnika o zavisnosti (zakrpa ili verzija) ili redizajn životnog veka animiranih pogleda; blokira izlazak, ne P6",
-   "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md"
+   "sada": "OTVORENO — RNR-01: mehanizam ustanovljen 30.09. analizom izvora Reanimated 4.5.1 (nije merenje na telefonu): NodesManager.performNonLayoutOperations primenjuje svaku zadržanu registraciju pri svakom draw-pass događaju; neuspela synchronouslyUpdateUIProps samo loguje upozorenje sa izuzetkom (dubok stack) i nikad ne uklanja mrtav unos; react-native-svg šalje događaj usred crtanja pa svaki SVG draw pokreće ceo prolaz. U aplikaciji su mrtvi unosi nastajali pri svakom dodiru pina: redovi liste su se ponovo kreirali jer je ključ ćelije pratio potpis rasporeda koji je sadržao karticu; izmena e87ed466 (redovi ostaju montirani, test prvo, CI run 36770243152 zelen) uklanja taj izvor u aplikaciji, NIJE još merena na uređaju (traži „sad“ prozor i novi ARM64 APK). Provera uzvodno 30.09.: najnovije izdanje je 4.7.0; NodesManager.kt i DrawPassDetector.kt su identični kao u 4.5.1, a NativeProxy i dalje hvata i loguje svaki neuspeo tag, pa sama promena verzije ne gasi poplavu (i izlazi iz Expo SDK 57 skupa). Ostaje vlasnikova odluka o zavisnosti: mala zakrpa (patch-package: logovati jednom, odbaciti neuspeli tag) ili ostaviti biblioteku i nastaviti uklanjati izvore mrtvih unosa u aplikaciji; blokira izlazak, ne P6",
+   "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/EX03_DISCOVERY_POLISH_20260930.md (odeljak EX-03d)"
   },
   {
    "id": "B23",
