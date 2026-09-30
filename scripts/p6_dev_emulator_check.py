@@ -31,6 +31,7 @@ ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
 ap.add_argument('--only-list', action='store_true', help='launch, read (and with --write-baseline record) the list, and stop')
+ap.add_argument('--smoke', action='store_true', help='only look at the app the way an older client uses it (Home, Zadaci, Moji zadaci with a task and back, Moje prijave, Dogovori) and report any error text')
 ARGS = ap.parse_args()
 OUT = Path(ARGS.out)
 OUT.mkdir(parents=True, exist_ok=True)
@@ -522,6 +523,79 @@ class Recording:
         return False
 
 
+ERROR_WORDS = ('nisu dostupni', 'nije dostupn', 'pokušaj ponovo', 'greška', 'nije uspelo', 'nešto nije u redu', 'došlo je do problema')
+
+
+def error_text(root):
+    found = []
+    for a in attrs(root):
+        for value in (a.get('text'), a.get('content-desc')):
+            if value and any(word in value.lower() for word in ERROR_WORDS):
+                found.append(value[:90])
+    return found
+
+
+def press_tab(name):
+    for a in attrs(dump()):
+        if (a.get('content-desc') == name or a.get('text') == name) and a.get('clickable') == 'true' and bounds(a['bounds'])[1] > 2000:
+            tap_node(a)
+            return True
+    return False
+
+
+def press_row(word):
+    root = dump()
+    for a in attrs(root):
+        label = (a.get('content-desc') or '') + ' ' + (a.get('text') or '')
+        if word in label and a.get('clickable') == 'true':
+            tap_node(a)
+            return True
+    adb('shell', 'input', 'touchscreen', 'swipe', '540', '1700', '540', '900', '400')
+    time.sleep(1.2)
+    for a in attrs(dump()):
+        label = (a.get('content-desc') or '') + ' ' + (a.get('text') or '')
+        if word in label and a.get('clickable') == 'true':
+            tap_node(a)
+            return True
+    return False
+
+
+def smoke():
+    """An older client's reads (Home, the task list and detail, my applications, agreements) after a database change: nothing may show an error."""
+    launch()
+    time.sleep(4)
+    steps = [('HOME', lambda: press_tab('Početna')), ('ZADACI_TAB', lambda: press_tab('Zadaci')), ('DOGOVORI_TAB', lambda: press_tab('Dogovori'))]
+    for name, act in steps:
+        ok = act()
+        time.sleep(7)
+        root = dump()
+        png('10_smoke_' + name.lower())
+        check(f'SMOKE_{name}_OPENS_WITHOUT_AN_ERROR', ok and not error_text(root), reached=ok, errors=error_text(root)[:3])
+    press_tab('Početna')
+    time.sleep(6)
+    for word, name in (('Moji zadaci', 'MOJI_ZADACI'), ('Moje prijave', 'MOJE_PRIJAVE')):
+        press_tab('Početna')
+        time.sleep(4)
+        ok = press_row(word)
+        time.sleep(7)
+        root = dump()
+        png('11_smoke_' + name.lower())
+        errors = error_text(root)
+        check(f'SMOKE_{name}_OPENS_WITHOUT_AN_ERROR', ok and not errors, reached=ok, errors=errors[:3])
+        if name == 'MOJI_ZADACI' and ok:
+            card = [a for a in attrs(root) if (a.get('content-desc') or '').startswith('Otvori') and a.get('clickable') == 'true']
+            if card:
+                tap_node(card[0])
+                time.sleep(7)
+                detail = dump()
+                png('12_smoke_task_detail')
+                check('SMOKE_TASK_DETAIL_OPENS_WITHOUT_AN_ERROR', not error_text(detail), errors=error_text(detail)[:3])
+                back()
+                time.sleep(3)
+        back()
+        time.sleep(3)
+
+
 def main():
     try:
         REPORT['device'] = {'sdk': adb('shell', 'getprop', 'ro.build.version.sdk').strip(), 'size': adb('shell', 'wm', 'size').strip(),
@@ -530,6 +604,10 @@ def main():
         launch()
         root = read_list()
         if ARGS.only_list:
+            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            return
+        if ARGS.smoke:
+            smoke()
             REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
             return
         with Recording('pins'):
