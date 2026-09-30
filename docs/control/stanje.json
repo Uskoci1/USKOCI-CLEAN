@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T21:43:39Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "986c3275",
-  "head_poruka": "feat(voice): B1-c media Edge operations (agreement-voice upload, read, cancel, list, playback; validated bytes stored as is, exact receipts, reauthorized playback) with offline tests and an end-to-end proof of the real Edge source against real SQL and Storage; B1-b: a missing function can never equal an absent alternative pin (found by the drift proof, 19 of 20 passed in run 36779662760)",
+  "osvezeno": "2026-09-30T21:45:26Z",
+  "grana": "HEAD",
+  "head": "cb586834",
+  "head_poruka": "feat(voice): client B2-a part 2 - the Edge client service with exact receipts (list, upload, read, cancel), the authenticated binary playback read, the voice upload journal (identities only, three at most) and the voice outbox hook; the logout purge forgets both upload journals; plan, registry and tracker record the B1-a/B1-b/B1-c proofs (nothing applied to DEV)",
   "server": {
    "snimljeno": "2026-09-30T12:01:15Z",
    "migracije": 212,
@@ -7677,102 +7677,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36780553995,
-   "ime": "Chat voice B1-c media Edge offline proof",
-   "sha": "986c3275",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T21:36:51Z"
-  },
-  {
-   "id": 36780553834,
-   "ime": "Chat voice B1 disposable feature-chain proof",
-   "sha": "986c3275",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T21:36:51Z"
-  },
-  {
-   "id": 36779662760,
-   "ime": "Chat voice B1 disposable feature-chain proof",
-   "sha": "e9f52c13",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T21:28:36Z"
-  },
-  {
-   "id": 36776300341,
-   "ime": "Chat voice B1 disposable feature-chain proof",
-   "sha": "82f85f31",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:58:12Z"
-  },
-  {
-   "id": 36775691812,
-   "ime": "Chat voice B1 disposable feature-chain proof",
-   "sha": "dce03865",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T20:52:47Z"
-  },
-  {
-   "id": 36774209561,
-   "ime": "Control tracker refresh",
-   "sha": "bbf02dd7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:39:57Z"
-  },
-  {
-   "id": 36773580718,
-   "ime": "Control tracker refresh",
-   "sha": "d34b04b6",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:34:29Z"
-  },
-  {
-   "id": 36773224711,
-   "ime": "Control tracker refresh",
-   "sha": "1680acb2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:31:26Z"
-  },
-  {
-   "id": 36771187165,
-   "ime": "Control tracker refresh",
-   "sha": "17ead2f0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:14:12Z"
-  },
-  {
-   "id": 36770735692,
-   "ime": "Control tracker refresh",
-   "sha": "5a627689",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:10:18Z"
-  },
-  {
-   "id": 36770245365,
-   "ime": "Build Android development APK",
-   "sha": "bb8d3a9b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:06:00Z"
-  },
-  {
-   "id": 36770243152,
-   "ime": "P6 client final check",
-   "sha": "bb8d3a9b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T20:05:59Z"
-  }
- ]
+ "ci": null
 }
