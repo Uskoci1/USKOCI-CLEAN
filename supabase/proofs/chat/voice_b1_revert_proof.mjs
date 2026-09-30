@@ -39,15 +39,18 @@ const storageSurface = () => rows(`select jsonb_build_object(
 const DEV_DIGEST = /DEV_DIGEST = '([0-9a-f]{64})'/.exec(readFileSync(builderPath, 'utf8'))[1];
 const python = (...args) => execFileSync('python3', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 /** Names the top-level parts of two complete snapshots that differ, so a failed equality says where. */
-function differences(left, right, ignore = []) {
+function differences(left, right, ignore = [], surfaceLine = () => true) {
   const out = [];
   for (const part of ['state', 'surface', 'history']) {
     if (part === 'state') { for (const key of new Set([...Object.keys(left.state), ...Object.keys(right.state)])) if (!ignore.includes('state.' + key) && JSON.stringify(left.state[key]) !== JSON.stringify(right.state[key])) out.push('state.' + key); }
+    else if (part === 'surface') { if (JSON.stringify(left.surface.filter(surfaceLine)) !== JSON.stringify(right.surface.filter(surfaceLine))) out.push('surface'); }
     else if (JSON.stringify(left[part]) !== JSON.stringify(right[part])) out.push(part);
   }
   return out;
 }
-const equalSnapshots = (left, right, label, ignore = []) => assert.deepEqual(differences(left, right, ignore), [], label);
+const equalSnapshots = (left, right, label, ignore = [], surfaceLine = () => true) => assert.deepEqual(differences(left, right, ignore, surfaceLine), [], label);
+// The readiness function embeds the certified digest, so its body md5 is the one surface line two applications may not share.
+const NOT_READINESS_LINE = line => !line.startsWith('function:private.retention_ai_source_ready(');
 // An object created a second time has a new oid, and the erasure program digest hashes type oids (a function over the voice table's row type carries the table's type oid in its arguments), so two
 // applications of the same file bind two different digests. Everything that embeds an oid or a digest may differ between them; everything else must be equal.
 const OID_KEYED = ['state.other_function_metadata', 'state.table_authority'];
@@ -179,7 +182,7 @@ await check('THE_APPLICATION_CAN_BE_APPLIED_AGAIN_AFTER_A_REVERT_AND_REACHES_THE
   await new Promise(resolve => setTimeout(resolve, 1500));
   const state = closureState();
   assert.equal(state.ready, true); assert.equal(state.live, state.certified); assert.equal(state.binding.sourceSha256, state.live); assert.notEqual(state.live, baselineState.live);
-  equalSnapshots(snapshot(), afterApply, 'RE_APPLIED_CATALOG_DIFFERS_FROM_THE_FIRST_APPLICATION', [...OID_KEYED, ...DIGEST_KEYED]);
+  equalSnapshots(snapshot(), afterApply, 'RE_APPLIED_CATALOG_DIFFERS_FROM_THE_FIRST_APPLICATION', [...OID_KEYED, ...DIGEST_KEYED], NOT_READINESS_LINE);
   report.digests.chainReapplied = state.live;
 });
 
