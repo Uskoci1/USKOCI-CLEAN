@@ -309,6 +309,80 @@ it('a quiet map refresh keeps the markers on the snapshot until the new ones lan
  await expect(other.updateView(view({query:'boom'}))).rejects.toThrow('DISCOVERY_V1_TRANSPORT_FAILED');
  expect(other.snapshot().screen.items).toHaveLength(0);
 });
+// Independent review, finding 3: the hold wrapped reads that only ADD to the picture too. A next page that landed during a map refresh or a selection stayed hidden behind the
+// old picture until that read ended (for ever, when it never ended).
+it('a map refresh or a selection in flight holds nothing back: a page another read lands meanwhile is shown at once',async()=>{
+ const paged=pagedHarness(4),gate={map:null as ReturnType<typeof deferred<void>>|null,exact:null as ReturnType<typeof deferred<void>>|null};
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='MAP'&&gate.map)await gate.map.promise;
+  if(request.mode==='EXACT_PUBLIC'&&gate.exact)await gate.exact.promise;
+  return paged.transport(request);
+ });
+ const route=createDiscoveryV1RouteCoordinator(transport,paged.overlay);
+ await route.open(view());expect(route.snapshot().screen.items).toHaveLength(1);
+ const marker=route.snapshot().screen.mapMarkers[0];
+ gate.map=deferred<void>();
+ const refreshing=route.refreshMap([19.5,44.5,20.5,45.5]);
+ await Promise.resolve();await Promise.resolve();
+ await route.nextPage();expect(route.snapshot().screen.items).toHaveLength(2);
+ gate.map.resolve();await refreshing;
+ gate.exact=deferred<void>();
+ const selecting=route.selectMarker(marker);
+ await Promise.resolve();await Promise.resolve();
+ await route.nextPage();expect(route.snapshot().screen.items).toHaveLength(3);
+ gate.exact.resolve();expect((await selecting).kind).toBe('TASK');
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK'});
+});
+// Independent review, finding 6: a scope change that began before a selection took the selection away when it landed, though the screen still showed its card.
+it('an older scope change that lands after a newer selection does not take that selection away',async()=>{
+ for(const change of ['settleMap','showPoint','showAll'] as const){
+  const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+  await route.open(view());
+  const marker=route.snapshot().screen.mapMarkers[0];
+  gate.page=deferred<void>();
+  const changing=change==='settleMap'?route.settleMap([19.5,44.5,20.5,45.5]):change==='showPoint'?route.showPoint({lat:45.25,lng:19.83}):route.showAll();
+  await Promise.resolve();await Promise.resolve();
+  expect(await route.selectMarker(marker)).toMatchObject({kind:'TASK',applied:true});
+  gate.page.resolve();expect((await changing).kind).toBe('applied');
+  expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+  expect(route.snapshot().view).toMatchObject({selectedId:ID,selectedPlace:null,sheet:'peek'});
+  expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK'});
+ }
+});
+it('a scope change with no newer selection still takes the selection with it',async()=>{
+ const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());await route.selectMarker(route.snapshot().screen.mapMarkers[0]);
+ expect(route.snapshot().view).toMatchObject({selectedId:ID});
+ gate.page=deferred<void>();
+ const changing=route.showAll();await Promise.resolve();await Promise.resolve();
+ gate.page.resolve();await changing;
+ expect(route.snapshot().selectedMarkerKey).toBeNull();expect(route.snapshot().view).toMatchObject({selectedId:null,selectedPlace:null});
+});
+// The same rule for the return: the selection the screen was left with is put back only if the person has chosen nothing since.
+it('a saved selection is not put back over a pin the person touched while the read was in flight',async()=>{
+ const ID2='33333333-3333-4333-8333-333333333333',gate={page:null as ReturnType<typeof deferred<void>>|null,exact:null as ReturnType<typeof deferred<void>>|null};
+ const two=(bounds:[number,number,number,number]):any=>({...map(bounds),counts:{kind:'exact_live',observedAt:AT,mapped:2,withoutPoint:0},
+  buckets:[{kind:'TASK',key:'task:'+ID,point:{lat:45.25,lng:19.83},taskId:ID},{kind:'TASK',key:'task:'+ID2,point:{lat:45.3,lng:19.9},taskId:ID2}]});
+ const h=harness(),transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='MAP')return two(request.bounds);
+  if(request.mode==='EXACT_PUBLIC'){if(request.needId===ID2)await gate.exact?.promise;return {...exact(),items:[{...item(),id:request.needId}]};}
+  await gate.page?.promise;return page(12);
+ });
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());
+ const [first,second]=route.snapshot().screen.mapMarkers;expect(second).toBeDefined();
+ await route.selectMarker(first);expect(route.snapshot().view).toMatchObject({selectedId:ID});
+ gate.page=deferred<void>();gate.exact=deferred<void>();
+ const reading=route.updateView({...route.snapshot().view!,query:'kombi'});
+ await Promise.resolve();await Promise.resolve();
+ const touching=route.selectMarker(second);
+ await Promise.resolve();await Promise.resolve();
+ gate.page.resolve();await reading;
+ gate.exact.resolve();
+ expect(await touching).toMatchObject({kind:'TASK',applied:true});
+ expect(route.snapshot().selectedMarkerKey).toBe(second.key);expect(route.snapshot().view).toMatchObject({selectedId:ID2});
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK'});
+});
 it('a read that drops the peek drops it at once, while a selection keeps the old peek until the new one lands',async()=>{
  const {h,gate,transport}=gated(),route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
  await route.open(view());

@@ -1475,6 +1475,47 @@ test('the nudge follows the stop the sheet rests at, and the rest of the screen 
     } finally { jest.useRealTimers(); }
   });
 });
+test('a hand on the list ends the nudging: no later nudge springs the sheet (and locks the list) under a scroll', async () => {
+  await asPlatform('android', async () => {
+    jest.useFakeTimers();
+    try {
+      rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+      initial = { ...initial, sheet: 'full', listOffset: 0 };
+      p6Seam = p6Seam_(); tracing = true;
+      await render(); await layOutBody();
+      const exact = [...listSheet().props.snapPoints] as number[];
+      await act(async () => { jest.advanceTimersByTime(1_200); });          // nudges 1 and 2 have run (the second leaves the sheet on its exact points)
+      expect(kicks()).toEqual([[1, 400], [2, 1_200]]);
+      await act(async () => { list().props.onScrollBeginDrag({ nativeEvent: {} }); });
+      await act(async () => { jest.advanceTimersByTime(60_000); });
+      expect(kicks()).toEqual([[1, 400], [2, 1_200]]);
+      expect(listSheet().props.snapPoints).toEqual(exact);
+    } finally { jest.useRealTimers(); }
+  });
+});
+
+// Independent review, finding 2: the restore watchdog ran while the list could not restore (the person lowered the sheet: the native list is locked), counted stalls, asked for the
+// tail into the locked list (which resets it to the top) and finally settled, so the restore was over without the list ever being there.
+test('a P6 restore does not count, scroll or settle while the list cannot restore; raising the sheet asks again', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`gate${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    p6Seam = p6Seam_(); tracing = true;
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 8000);
+    expect(scrollToOffset).toHaveBeenCalledTimes(1);
+    mockNativeSheetState.value = 1; await deliverUi();                       // OPENED: the sheet is not at its stop, the native list is locked
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS * 6); });
+    expect(stalls()).toEqual([]); expect(scrollToEnd).not.toHaveBeenCalled(); expect(scrollToOffset).toHaveBeenCalledTimes(1);
+    expect(acks()).toEqual([]);
+    mockNativeSheetState.value = 2; await deliverUi();                       // back at its stop: the restore was never over, so it asks again
+    expect(scrollToOffset.mock.calls.length).toBeGreaterThan(1);
+    expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+  } finally { jest.useRealTimers(); }
+});
+
 test('the legacy reader, another platform and a screen that is not in front never nudge the sheet', async () => {
   jest.useFakeTimers();
   try {

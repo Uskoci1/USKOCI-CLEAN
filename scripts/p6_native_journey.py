@@ -550,7 +550,18 @@ def _bodies_from(text):
     return out
 
 
+HARVEST_SECONDS = []
+
+
 def harvest():
+    started = time.time()
+    try:
+        return _harvest_uncounted()
+    finally:
+        HARVEST_SECONDS.append(round(time.time() - started, 1))
+
+
+def _harvest_uncounted():
     """Every rpc_discovery_v1 request (the parsed p_request body) the disposable database logged since the capture window opened.
 
     log_statement=all makes each bound PostgREST call appear in a `Parameters: $n = '...'` detail line. Only bodies with a P6
@@ -1350,11 +1361,16 @@ def map_reads():
     return [r for r in harvest() if r.get('mode') == 'MAP' and map_area_of(r)]
 
 
-def wait_new_map_area(seen, timeout=30):
-    """The MAP read a settled camera move asks for: the newest one once more than `seen` MAP reads exist."""
+def wait_new_map_area(seen, timeout=30, min_polls=4):
+    """The MAP read a settled camera move asks for: the newest one once more than `seen` MAP reads exist.
+
+    Every poll reads the whole statement log, which on the CI runner can take longer than the timeout (journey #9: one read took over 30 s, ended the wait before a second look,
+    and every later gesture check then compared with the read of the gesture before it), so a wait always looks `min_polls` times."""
     end = time.time() + timeout
-    while time.time() < end:
+    polls = 0
+    while polls < min_polls or time.time() < end:
         maps = map_reads()
+        polls += 1
         if len(maps) > seen:
             return map_area_of(maps[-1]), len(maps)
         time.sleep(1.5)
@@ -1417,6 +1433,8 @@ def s_final():
     REPORT['requestLog'] = [brief(r) for r in reqs[:150]]
     REPORT['readerCalls'] = reader_calls()
     REPORT['gateway'] = gateway_counts()
+    seconds = sorted(HARVEST_SECONDS)
+    REPORT['logReadSeconds'] = {'n': len(seconds), 'median': seconds[len(seconds) // 2] if seconds else None, 'max': seconds[-1] if seconds else None}
     if not reqs and 'logSamples' not in REPORT:
         REPORT['logSamples'] = log_samples()
     check('SERVER_REQUEST_LOG_AVAILABLE', bool(reqs), total=len(reqs), modes=modes)

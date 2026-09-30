@@ -587,6 +587,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // on every return, so its sheet is nudged by a hundredth of a pixel a few times after it mounts: Gorhom re-evaluates the position and Reanimated writes
   // the body's style again, this time to a view that is there. The other logic of this screen reads the unnudged snap points.
   const [kick, setKick] = useState(0);
+  // A hand on the list ends the nudging: a later nudge would move the sheet under the scroll (Gorhom locks the list while the sheet moves).
+  const interacted = useRef(false);
   const snapPoints = useMemo(() => {
     const collapsed = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
     const low = cardShown ? HIDDEN : collapsed;
@@ -668,7 +670,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const kickable = !!props.p6Seam && Platform.OS === 'android' && focused && bodyHeight > 0;
   useEffect(() => {
     if (!kickable) return;
-    const timers = SHEET_KICKS_MS.map((ms, at) => setTimeout(() => { trace('kick', at + 1, ms); setKick(at + 1); }, ms));
+    interacted.current = false;
+    const timers = SHEET_KICKS_MS.map((ms, at) => setTimeout(() => {
+      if (interacted.current) return;
+      trace('kick', at + 1, ms); setKick(at + 1);
+    }, ms));
     return () => { timers.forEach(clearTimeout); setKick(0); };
   }, [kickable, nativeMountKey, trace]);
   const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
@@ -847,6 +853,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     stallTimer.current = setTimeout(() => {
       stallTimer.current = null;
       if (!currentList() || restore.current === null || !listRef.current) return;
+      // A list that cannot restore (locked under a sheet that is not at its stop, or not settled there) was asked for nothing, so nothing has stalled. Counting it would end the
+      // restore, or ask the locked list for its tail (which resets it to the top), without the list ever having been where it was saved. Its next request arms this again.
+      if (!listReady.current || !listRestoreReady.current || nativeSettledIndex.current !== sheetCommand.current.index) return;
       const wanted = restore.current;
       const reachable = restoreTarget.current !== null && restoreTarget.current >= wanted;
       stalls.current += 1;
@@ -875,7 +884,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     trace('ready', ready, state, currentSheet(), restore.current ?? -1, offset.current, position.value,
       focused, coverageOwner.active, currentCoverageOwner.current === coverageOwner, listHeight.current, contentHeight.current, listWindow, settledIndex, observed, canRestore);
     if (!currentList() || command !== sheetCommand.current.sequence) return;
-    if (gestureStarted) userIntent?.();
+    if (gestureStarted) { interacted.current = true; userIntent?.(); }
     if (gestureStarted && sheetCommand.current.pending) {
       const next = { ...sheetCommand.current, sequence: command + 1, pending: false };
       sheetCommand.current = next; applySheet(next); // Retire queued observations of the interrupted request too.
@@ -1170,7 +1179,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
             const height = event.nativeEvent.layout.height;
             listHeight.current = height; tryRestore();
           }}
-          onScrollBeginDrag={() => { trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentList()) { userIntent?.(); restore.current = null; } }}
+          onScrollBeginDrag={() => { interacted.current = true; trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentList()) { userIntent?.(); restore.current = null; } }}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
           // The floating "Mapa" stands over the list's end at the full height; the end scrolls clear of it.
           contentContainerStyle={pillShown ? s.listUnderPill : s.list}

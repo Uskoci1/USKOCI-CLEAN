@@ -46,6 +46,21 @@ it('names the milliseconds a touch took to its halo and to its card data, on a b
     expect(info).toHaveBeenCalledTimes(240 + 400);
   });
 });
+// Independent review, finding 7: a long session of panning wrote one `settled` line per move and used up the lines that name why a read failed.
+it('the camera-move lines have a budget of their own, so a long session of panning never uses up the diagnosis lines', () => {
+  jest.isolateModules(() => {
+    const isolated = require('../discoveryV1Trace') as typeof import('../discoveryV1Trace');
+    info.mockClear();
+    for (let at = 0; at < 1000; at++) isolated.traceDiscoveryV1('settled', 'QUIET_MOVE');
+    const moves = info.mock.calls.length;
+    expect(moves).toBeGreaterThan(0); expect(moves).toBeLessThanOrEqual(400);
+    isolated.traceDiscoveryV1('read-failed', 'DISCOVERY_V1_READ_TIMEOUT');
+    isolated.traceDiscoveryV1('restore-failed', 'DISCOVERY_V1_READ_FAILED');
+    expect(info).toHaveBeenCalledTimes(moves + 2);
+    isolated.traceDiscoveryV1('pin', '1/2');
+    expect(info).toHaveBeenCalledTimes(moves + 3);
+  });
+});
 it('logs nothing in any other package', () => {
   for (const other of ['rs.uskoci', 'rs.uskoci.preview', 'com.example', undefined]) {
     mockPackage = other;
