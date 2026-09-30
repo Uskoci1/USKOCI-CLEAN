@@ -394,3 +394,83 @@ it('a read that drops the peek drops it at once, while a selection keeps the old
  expect(route.snapshot().screen.peek).toBeNull();expect(route.snapshot().screen.items).toHaveLength(1);
  gate.page.resolve();await reading;
 });
+
+// Independent client review, finding 1: the server's anchor lives 30 minutes (P6_ANCHOR_EXPIRED); a screen left open longer got the generic read failure on every later read.
+/**
+ * pagedHarness plus the server's expiry: after `expire()` a request that carries the old anchor is refused with the transport's stable code (and is recorded), and a PAGE request
+ * WITHOUT an anchor (a fresh open) is answered and starts a new anchor. `stubborn` never clears the expiry, to prove the renewal is one attempt and never a loop.
+ */
+function expiringPaged(pages:number,stubborn=false){
+ const h=pagedHarness(pages);let expired=false;
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  const anchored=(request as any).anchor!=null;
+  if(expired&&anchored){h.calls.push(request);throw new Error('DISCOVERY_V1_ANCHOR_EXPIRED');}
+  if(expired&&!stubborn&&request.mode==='PAGE'&&!anchored)expired=false;
+  return h.transport(request);
+ });
+ return {...h,transport,expire:()=>{expired=true;}};
+}
+const shape=(calls:any[])=>calls.filter(x=>x.mode==='PAGE').map(x=>[x.anchor?'anchor':'fresh',x.after?x.after.id:null]);
+
+it('an anchor that expired while the screen stayed open is renewed once at the depth already read, and the page that was asked for is delivered',async()=>{
+ const h=expiringPaged(6),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.restore(view({sheet:'full',listOffset:900,pages:3}));
+ expect(route.snapshot().screen.items).toHaveLength(3);
+ h.expire();const before=h.calls.length;
+ const result=await route.nextPage();
+ expect(result.kind).toBe('applied');
+ // the refused read (never retried with the old anchor), ONE fresh open, the depth read again on the new anchor, then the page that was asked for
+ expect(shape(h.calls.slice(before))).toEqual([['anchor',rowId(2)],['fresh',null],['anchor',rowId(0)],['anchor',rowId(1)],['anchor',rowId(2)]]);
+ expect(route.snapshot().screen.items.map(x=>x.id)).toEqual([0,1,2,3].map(rowId));
+ expect(route.snapshot().view).toMatchObject({pages:4,sheet:'full',listOffset:900});
+ expect(route.snapshot().loadingMore).toBe(false);
+});
+
+it('the renewal is one attempt: a server that keeps refusing surfaces its error and is not asked again in a loop',async()=>{
+ const h=expiringPaged(6,true),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view());h.expire();const before=h.calls.length;
+ await expect(route.nextPage()).rejects.toThrow('DISCOVERY_V1_ANCHOR_EXPIRED');
+ const later=shape(h.calls.slice(before));
+ expect(later.filter(x=>x[0]==='fresh')).toHaveLength(1);expect(later.length).toBeLessThanOrEqual(3);
+ expect(route.snapshot().loadingMore).toBe(false);
+});
+
+it('an error that is not an expired anchor is not renewed: it reaches the screen as before',async()=>{
+ const h=pagedHarness(6,1),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view());const before=h.calls.length;
+ await expect(route.nextPage()).rejects.toThrow('PAGE_FAILED');
+ expect(shape(h.calls.slice(before)).filter(x=>x[0]==='fresh')).toHaveLength(0);
+});
+
+it('a map settle after the anchor expired opens the area with a fresh anchor instead of failing, and keeps the view state',async()=>{
+ const h=expiringPaged(3),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({sheet:'full',listOffset:420}));h.expire();const before=h.calls.length;
+ const result=await route.settleMap([19.5,44.5,20.5,45.5]);
+ expect(result.kind).toBe('applied');
+ const fresh=(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor) as any[]);
+ expect(fresh).toHaveLength(1);expect(fresh[0].scope).toEqual({kind:'AREA',bounds:[19.5,44.5,20.5,45.5]});
+ expect(route.snapshot().view).toMatchObject({area:[19.5,44.5,20.5,45.5],pages:1,sheet:'full',listOffset:420});
+});
+
+it('showing everything or a place after the anchor expired opens that scope with a fresh anchor',async()=>{
+ const h=expiringPaged(3),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view());await route.settleMap([19.5,44.5,20.5,45.5]);
+ h.expire();let before=h.calls.length;
+ expect((await route.showAll()).kind).toBe('applied');
+ const all=(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor) as any[]);
+ expect(all).toHaveLength(1);expect(all[0].scope).toEqual({kind:'ALL'});expect(route.snapshot().view?.area).toBeNull();
+ h.expire();before=h.calls.length;
+ const point={lat:45.25,lng:19.83};
+ expect((await route.showPoint(point)).kind).toBe('applied');
+ const at=(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor) as any[]);
+ expect(at).toHaveLength(1);expect(at[0].scope.kind).toBe('POINT_LIST');expect(route.snapshot().view?.pinPlace).not.toBeNull();
+});
+
+it('a map refresh after the anchor expired renews the traversal instead of failing',async()=>{
+ const h=expiringPaged(3),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({sheet:'half',listOffset:200}));h.expire();const before=h.calls.length;
+ const result=await route.refreshMap([10,40,12,42]);
+ expect(result.kind).toBe('applied');
+ expect(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor)).toHaveLength(1);
+ expect(route.snapshot().screen.items).toHaveLength(1);expect(route.snapshot().view).toMatchObject({sheet:'half',listOffset:200});
+});

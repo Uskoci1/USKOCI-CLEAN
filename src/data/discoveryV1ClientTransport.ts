@@ -43,7 +43,12 @@ export function createDiscoveryV1SupabaseTransport(client: RpcClient = supabaseK
       clearTimeout(timer); signal.removeEventListener('abort', onAbort);
     }
     if (signal.aborted) throw new Error('DISCOVERY_V1_READ_ABORTED');
-    if (response.error) throw new Error(response.error.message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : 'DISCOVERY_V1_READ_FAILED');
+    // Only two server refusals are named: the session (AUTH_REQUIRED) and an anchor that lived out its 30 minutes (P6_ANCHOR_EXPIRED), which the route renews with one fresh open.
+    // Everything else, an invalid anchor included, stays the generic failure; no provider text is passed on.
+    if (response.error) {
+      const message = response.error.message;
+      throw new Error(message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : message === 'P6_ANCHOR_EXPIRED' ? 'DISCOVERY_V1_ANCHOR_EXPIRED' : 'DISCOVERY_V1_READ_FAILED');
+    }
     return response.data;
   };
 }

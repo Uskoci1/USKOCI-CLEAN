@@ -42,6 +42,9 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const search=createDiscoveryV1SearchOwner(transport,()=>active&&isCurrent());
 
   const current=(g?:number)=>active&&(g===undefined||g===generation)&&isCurrent();
+  // The server's anchor lives 30 minutes. A screen left open longer reads with an expired anchor: the transport names that refusal and the read is RENEWED by one fresh open of the
+  // same traversal (the old anchor is never retried). A second refusal, or any other error, reaches the screen exactly as before.
+  const anchorExpired=(error:unknown)=>error instanceof Error&&error.message==='DISCOVERY_V1_ANCHOR_EXPIRED';
   // While a read REPLACES what the screen shows (a filter, a place, an area, everything), the last COMPLETE picture stays in the snapshot and the new one lands whole.
   // A commit another action or the overlay makes in the middle of such a read would otherwise publish the owner's emptied state (no rows, no markers), which the screen
   // reads as "nothing found" (found on the emulator: the list rose over the map right after a place was chosen). All of them drop the peek at once. A read that only ADDS
@@ -135,7 +138,13 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function settleMap(bounds:PublicBounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,chosen=selections,result=await whileReplacing(()=>screen.settleMap(bounds));
+    const g=generation,chosen=selections;
+    let result;
+    try{result=await whileReplacing(()=>screen.settleMap(bounds));}
+    catch(error){
+      if(!anchorExpired(error)||!current(g)||!routeView)throw error;
+      return open({...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null});
+    }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       scoped(chosen,{area:[...bounds] as PublicBounds,pinPlace:null});refreshOverlayInBackground(g);
@@ -145,14 +154,26 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function refreshMap(bounds:PublicBounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,result=await screen.refreshMap(bounds);
+    const g=generation;
+    let result;
+    try{result=await screen.refreshMap(bounds);}
+    catch(error){
+      if(!anchorExpired(error)||!current(g)||!routeView)throw error;
+      return restore({...routeView});
+    }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function showPoint(point:{lat:number;lng:number}){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,chosen=selections,result=await whileReplacing(()=>screen.showPoint(point));
+    const g=generation,chosen=selections;
+    let result;
+    try{result=await whileReplacing(()=>screen.showPoint(point));}
+    catch(error){
+      if(!anchorExpired(error)||!current(g)||!routeView)throw error;
+      return open({...routeView,pinPlace:pointKey(point),selectedId:null,selectedPlace:null});
+    }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       scoped(chosen,{pinPlace:pointKey(point)});refreshOverlayInBackground(g);
@@ -162,7 +183,13 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function showAll(){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,chosen=selections,result=await whileReplacing(()=>screen.showAll());
+    const g=generation,chosen=selections;
+    let result;
+    try{result=await whileReplacing(()=>screen.showAll());}
+    catch(error){
+      if(!anchorExpired(error)||!current(g)||!routeView)throw error;
+      return open({...routeView,area:null,pinPlace:null,selectedId:null,selectedPlace:null});
+    }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
       scoped(chosen,{area:null,pinPlace:null});refreshOverlayInBackground(g);
@@ -194,9 +221,18 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const clearPeek=()=>{selections++;selectedMarkerKey=null;if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};screen.clearPeek();};
 
   async function nextPage(){
-    const g=generation;loadingMore=true;
+    let g=generation;loadingMore=true;
     try{
-      const result=await screen.nextPage();
+      let result;
+      try{result=await screen.nextPage();}
+      catch(error){
+        if(!anchorExpired(error)||!current(g)||!routeView)throw error;
+        // One renewal: the traversal is opened again on a fresh anchor at the depth already read (as a return to the screen does), then the page that was asked for is read.
+        const renewed=await restore({...routeView});
+        if(renewed.kind!=='applied')return {kind:renewed.kind,snapshot:snapshot()};
+        g=generation;loadingMore=true;
+        result=await screen.nextPage();
+      }
       if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
       if(result.kind==='applied'){
         if(routeView)routeView={...routeView,pages:(routeView.pages??1)+1};

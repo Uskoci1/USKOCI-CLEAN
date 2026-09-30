@@ -64,3 +64,11 @@ it('maps provider diagnostics to stable read codes',async()=>{
  await expect(transport(request,signal)).rejects.toThrow('AUTH_REQUIRED');
  expect(rpc).toHaveBeenCalledTimes(2);
 });
+
+// Independent client review, finding 1: the server's anchor expires after 30 minutes; the route can only renew it if the transport names it (and still nothing of the provider's text).
+it('names an expired anchor with its own stable code so the route can renew it',async()=>{
+ const rpc=jest.fn().mockResolvedValueOnce({data:null,error:{message:'P6_ANCHOR_EXPIRED'}}).mockResolvedValueOnce({data:null,error:{message:'P6_INVALID_ANCHOR'}});
+ const transport=createDiscoveryV1SupabaseTransport({rpc} as any),signal=new AbortController().signal;
+ await expect(transport(request,signal)).rejects.toThrow('DISCOVERY_V1_ANCHOR_EXPIRED');
+ await expect(transport(request,signal)).rejects.toThrow('DISCOVERY_V1_READ_FAILED');
+});
