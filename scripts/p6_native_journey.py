@@ -872,7 +872,8 @@ def s_repeat_cycles(n=10):
     reqs = since(m)
     REPORT['cycleRequests'] = len(reqs)
     calls_after = db_function_calls()
-    check('NO_RUNAWAY_READER_CALLS', len(reqs) <= n * 2, requests=len(reqs), cycles=n,
+    # A return rebuilds the screen: the first page, the map over the saved camera and every further page the list had read (two here).
+    check('NO_RUNAWAY_READER_CALLS', len(reqs) <= n * 5, requests=len(reqs), cycles=n,
           dbCallsDelta=(calls_after - calls_before) if calls_before >= 0 and calls_after >= 0 else None)
     pids = {x['pid'] for x in REPORT['mem'] if x['pid']}
     check('APP_PROCESS_SURVIVED_CYCLES', len(pids) == 1, pids=sorted(pids))
