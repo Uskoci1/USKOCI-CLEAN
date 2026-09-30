@@ -21,13 +21,13 @@ Levels are kept apart, never mixed: **SOURCE / CI / DEV APPLIED / APP WIRED / AP
 - **Final HEAD:** the commit tagged `p6-closed-20260930` on `work/uskoci-ui-unification-20260924` (this receipt is part of it; the CI check below ran on its parent, which differs by documents only). Client source = the natively proven source 650d340d **plus** three test-proven commits (overlay `ba3509eb`, pin `131a96a3`, anchor `21f82dc4`) — limit L3.
 - **DEV changes this day:** ledger 210 → 211 (PKG045b P0) → 212 (rollout v3). Nothing else on DEV (no Edge, no certificate move by the rollout, no data written by the checks).
 - **Native builds:** APK 36702278038 (x86_64, production reader flag, disposable endpoint, source 650d340d) for the CI journeys; APK 36705117786 (x86_64, canonical DEV endpoint, reader flag, source 42371918) for the local AVD; the installed phone build is ROUND58 (`176dddda`, SHA-256 `3e933f37…`), **not** the candidate. No ARM64 build of the candidate exists (the dispatch was refused by the auto-mode classifier, section 7).
-- **Final checks:** CI client final check (tsc + full Jest) on the final HEAD: `FINAL_CI` (filled in when the run ends). Local: 18 focused P6 suites / 186 tests, the presentation suite 158 / 158 (with a 40 s timeout; the default 5 s timeouts fail under this workstation's load, known caveat).
+- **Final checks:** CI client final check on `0b2d296e` (the closure commit before this receipt's CI note; documents differ only), run **36733187505: TypeScript PASS, focused P6/Discovery suites PASS, full regression 364 suites / 7,495 tests PASS**; `R20 Discovery retained-mount proof` (36733187590) PASS; `Control tracker refresh` (36733187768) PASS. Local: 18 focused P6 suites / 186 tests, the presentation suite 158 / 158 (with a 40 s timeout; the default 5 s timeouts fail under this workstation's load, known caveat).
 
 ## 3. Evidence by level
 | Level | State |
 | --- | --- |
 | SOURCE | final HEAD above |
-| CI | client final check PASS at 650d340d; final-source run `FINAL_CI`; server proofs and the two 30k confirmations as in section 1 |
+| CI | client final check PASS at 650d340d and again on the final source (run 36733187505, 364 suites / 7,495 tests); server proofs and the two 30k confirmations as in section 1 |
 | DEV APPLIED | PKG045b (211), rollout v3 (212), receipts committed |
 | APP WIRED | DEV build flag set by this commit; not yet built into an installed APK |
 | APK BUILT | x86_64 only (CI journeys, local AVD) |
