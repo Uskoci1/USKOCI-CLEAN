@@ -3,8 +3,8 @@
 -- Purpose: a proven way back if the restricted Need ACL ever has to be lifted (it is the only reversible half of the P6 rollout; the P6 functions
 -- themselves are additive and are removed by dropping them). Apply ONLY together with the decision to lift the restriction: older whole-row
 -- readers regain access and any reader that relies on the restriction (rpc_discovery_v1's visibility layer keeps working, it does not need it).
--- Optional pin: run `select set_config('pkg045.revert_expected_digest','<64 hex>',true);` first inside the same transaction to require that the
--- restored state reproduces exactly the certificate that was ready before PKG-045b.
+-- Optional pin: run `select set_config('pkg045.revert_expected_digest','<64 hex>',false);` first in the same session (the setting must outlive its own
+-- statement, so it is session-level, not transaction-local) to require that the restored state reproduces exactly the certificate that was ready before PKG-045b.
 begin;
 set local lock_timeout='5s';
 set local statement_timeout='20s';

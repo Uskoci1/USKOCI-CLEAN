@@ -78,12 +78,12 @@ try {
   assert.equal(restricted.digest, restricted.certificate); assert.equal(restricted.digest, restricted.erasure); assert.equal(restricted.digest, restricted.binding);
 
   stage = 'REVERT_WITH_WRONG_PIN_REFUSED';
-  const wrong = sql(`select set_config('pkg045.revert_expected_digest','${'0'.repeat(64)}',true);\n${readFileSync(revert, 'utf8')}`, true);
+  const wrong = sql(`select set_config('pkg045.revert_expected_digest','${'0'.repeat(64)}',false);\n${readFileSync(revert, 'utf8')}`, true);
   assert.equal(wrong.ok, false); assert.match(wrong.message, /PKG045B_REVERT_DIGEST_PIN_MISMATCH/);
   assert.deepEqual(snapshot(), restricted);
 
   stage = 'APPLY_REVERT';
-  sql(`select set_config('pkg045.revert_expected_digest','${before.digest}',true);\n${readFileSync(revert, 'utf8')}`);
+  sql(`select set_config('pkg045.revert_expected_digest','${before.digest}',false);\n${readFileSync(revert, 'utf8')}`);
   stage = 'REVERTED_SNAPSHOT'; const reverted = snapshot();
   assert.deepEqual(reverted, before, 'the reverted state must equal the state before PKG-045b, byte for byte');
 
