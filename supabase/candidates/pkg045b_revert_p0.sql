@@ -54,7 +54,7 @@ begin
    FROM marketplace_responses r
   WHERE ((r.id = marketplace_response_versions.response_id) AND ((r.worker_account_id = auth.uid()) OR ((r.status <> ''DRAFT''::text) AND (EXISTS ( SELECT 1
            FROM needs n
-          WHERE ((n.id = r.need_id) AND (n.requester_account_id = auth.uid())))))))))';
+          WHERE ((n.id = r.need_id) AND (n.requester_account_id = auth.uid()))))))))))';
   execute 'alter policy need_geography_owner_read on public.need_geography using ((EXISTS ( SELECT 1
    FROM needs n
   WHERE ((n.id = need_geography.need_id) AND (n.requester_account_id = auth.uid())))))';
