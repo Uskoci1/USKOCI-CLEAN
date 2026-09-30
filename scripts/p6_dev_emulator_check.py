@@ -1152,6 +1152,8 @@ def main():
                 adb('shell', 'am', 'force-stop', PACKAGE)
                 launch()
         read_list()
+        if ARGS.focused and ARGS.visible_return:
+            visible_return()                                           # EX-03: the return as the screen shows it (a screenshot burst, no UI dump), the pixel measure the JS clock is not
         if not ARGS.focused:
             scroll_feel()
             if ARGS.visible_return:
