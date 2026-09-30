@@ -363,8 +363,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const chosen = ordinaryList.find(item => item.id === listFocusId);
     return chosen ? [chosen, ...ordinaryList.filter(item => item.id !== listFocusId)] : ordinaryList;
   }, [ordinaryList, listFocusId]);
+  const p6WholeList = !!props.p6Seam && !area && !pinPlace;
   const sections = useMemo(() => {
     const result = new Map<number, ListSection>();
+    // The server orders a whole-list P6 page by time, so the three kinds interleave: a heading for every run of a kind would cut
+    // the list into one-card sections, and each card already names its own place ("Na daljinu", "Bez tačke"). Headings return where
+    // the server itself puts the mapped section first, that is, once an area or a place is chosen.
+    if (p6WholeList) return result;
     // Publication remains the first, highlighted row; its temporary promotion does not turn
     // following map tasks into remote work or create a duplicate remote section above it.
     let at = listFocusId && listed[0]?.id === listFocusId ? 1 : 0;
@@ -378,7 +383,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       at = end;
     }
     return result;
-  }, [listed, listFocusId, withoutPoint.length, pinPlace, area]);
+  }, [listed, listFocusId, withoutPoint.length, pinPlace, area, p6WholeList]);
   const sectionsSignature = JSON.stringify([...sections]);
   const mappedWithoutPin = useMemo(() => mapped.filter(item => !publicPoint(item)).length, [mapped]);
   const groups = useMemo(() => pinPlaces(mapped), [mapped]);

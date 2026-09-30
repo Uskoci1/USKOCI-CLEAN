@@ -52,7 +52,14 @@ const validLimit = (value: number, max: number, code: string) => {
 const cloneFilter = (filter: DiscoveryV1Filter): DiscoveryV1Filter => ({
   ...filter, dates: filter.dates ? { ...filter.dates } : null,
 });
-const cloneBounds = (bounds: DiscoveryV1Bounds): DiscoveryV1Bounds => [...bounds] as DiscoveryV1Bounds;
+/**
+ * Every bound that goes on the wire has six decimals (about 0.1 m). The database echoes a request's bounds back through double
+ * precision at 15 significant digits (`extra_float_digits` is 0), while a native map viewport carries 16-17: the raw numbers would
+ * never equal their own echo. Six decimals survive that trip exactly, so the request and its echo compare with `===`.
+ */
+const BOUNDS_SCALE = 1_000_000;
+const cloneBounds = (bounds: DiscoveryV1Bounds): DiscoveryV1Bounds =>
+  bounds.map(value => Math.round(value * BOUNDS_SCALE) / BOUNDS_SCALE + 0) as DiscoveryV1Bounds;
 const cloneScope = (scope: DiscoveryV1Scope): DiscoveryV1Scope => scope.kind === 'ALL' ? { kind: 'ALL' }
   : scope.kind === 'AREA' ? { kind: 'AREA', bounds: cloneBounds(scope.bounds) }
   : { kind: scope.kind, point: { ...scope.point } };
@@ -191,7 +198,7 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
       if (!tokenCurrent(token, mapSequence)) return stale();
       const decoded = decodeDiscoveryV1Map(raw);
       if (!sameAnchor(pageAnchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_MAP_ANCHOR_DRIFT');
-      if (!sameBounds(decoded.coverageBounds as DiscoveryV1Bounds, bounds)) throw new Error('DISCOVERY_V1_OWNER_MAP_COVERAGE_DRIFT');
+      if (!sameBounds(decoded.coverageBounds as DiscoveryV1Bounds, request.bounds)) throw new Error('DISCOVERY_V1_OWNER_MAP_COVERAGE_DRIFT');
       map = decoded;
       return applied(map);
     } finally {

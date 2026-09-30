@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { Info, Minus, Plus } from 'phosphor-react-native';
-import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, publicBounds, type MarketplaceItem, type PinPlace }
+import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, publicBounds, type MarketplaceItem, type PinPlace, type PublicBounds }
   from '../../data/marketplaceView';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { useMapStyle, type MapStyle } from '../location/mapStyle';
@@ -323,6 +323,17 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     intent.current = Date.now();
     camera.current?.zoomTo(next, { duration: reduced ? 0 : sys.motion.toggle });
   };
+  /**
+   * A P6 cluster opens the way a native one does: the camera goes into it, and the list and the map follow where it lands, because
+   * opening it is the person's own move. The tap itself reads nothing: the settled region does (`onArea`), over what is then visible.
+   */
+  const openServerCluster = (memberBounds: PublicBounds) => {
+    if (!frame || !camera.current) return;
+    initialFitPending.current = false; cancelArea();
+    intent.current = Date.now();
+    camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56),
+      duration: reduced ? 0 : sys.motion.camera });
+  };
   // Exactly one first fit after BOTH native frame and screen overlays are measured. It is not a live camera binding:
   // changing rows, sheet height, tools or font size later cannot take the map away from the person's chosen view.
   useEffect(() => {
@@ -481,7 +492,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       {serverMap ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey}
         nativeReady={status === 'ready' && nativeFrameReady} owns={owns} onSelect={marker => {
           if (!owns() || load.current !== 'ready') return;
-          pillTap.current = Date.now(); manualMapIntent(); latest.current.props.p6Server?.onSelect(marker);
+          pillTap.current = Date.now(); manualMapIntent();
+          if (marker.kind === 'CLUSTER') openServerCluster(marker.memberBounds);
+          latest.current.props.p6Server?.onSelect(marker);
         }} /> : null}
       {!serverMap ? pills.filter(place => place.key !== chosenKey).map(place => {
         const content = contentOf(place), urgent = urgentPlace(place);

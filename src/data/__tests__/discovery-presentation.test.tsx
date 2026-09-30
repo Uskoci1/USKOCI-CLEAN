@@ -80,7 +80,7 @@ jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
-import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS } from '../../ui/v2/DiscoveryPresentation';
+import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, type DiscoveryV1PresentationSeam } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { ActionSheet } from '../../ui/system/ActionSheet';
@@ -107,6 +107,7 @@ let tracing = false;
 let publicationFocus: { token: string; id: string; kind: 'map' | 'list' } | undefined;
 let publicationUnavailable: 'missing' | 'error' | undefined;
 let collectionStatus: 'loading' | 'error' | undefined;
+let p6Seam: DiscoveryV1PresentationSeam | undefined;
 const nativeTrace = jest.fn();
 const relationIndex = (own: string[], applied: string[] = [], covered = rows.map(item => item.id)) => taskRelationIndex([
   ...own.map(needId => ({ needId, relation: 'OWNER' })),
@@ -120,7 +121,7 @@ const userIntent = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
   return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
-    collectionStatus={collectionStatus}
+    collectionStatus={collectionStatus} p6Seam={p6Seam}
     publicationFocus={publicationFocus} publicationUnavailable={publicationUnavailable} onOpenPublishedTask={openPublished}
     trace={tracing ? nativeTrace : undefined}
     onUserIntent={userIntent}
@@ -195,7 +196,7 @@ beforeEach(() => {
   scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   initial = { ...initialMarketplaceView(), mode: 'map' }; loading = refreshing = error = mockReduced = relationsPending = relationsError = navigated = false; mockFocused = true; relations = undefined;
-  publicationFocus = undefined; publicationUnavailable = undefined; collectionStatus = undefined;
+  publicationFocus = undefined; publicationUnavailable = undefined; collectionStatus = undefined; p6Seam = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
   rows = [row('a'), row('bb'), row('ccc')];
   for (const fn of [open, refresh, newTask, profile, openPublished, scrollToOffset, userIntent]) fn.mockReset();
@@ -2165,4 +2166,27 @@ describe('U blizini: an explicit camera-only location capture', () => {
     const settled = { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9] };
     await act(async () => map().props.onViewport(settled)); expect(snapshot.viewport).toEqual(settled);
   });
+});
+
+// P6: the server orders a whole-list page by time, so the three kinds of task interleave. A heading for every run of a kind cut the list
+// into one-card sections (found on the emulator); the cards already name their own place. An area or a place brings the headings back,
+// because the server then puts the mapped section first.
+const p6Seam_ = (): DiscoveryV1PresentationSeam => ({
+  map: { markers: [], selectedKey: null, wholeBounds: [19, 44, 21, 46], onSelect: jest.fn() },
+  peek: null, counts: null, pageHasMore: false, onArea: jest.fn(), onClearPeek: jest.fn(), onShowPlace: jest.fn(), onShowAll: jest.fn(), onNextPage: jest.fn(),
+});
+const runHeadings = () => tree.root.findAll(node => ['section-map', 'section-remote', 'section-unlocated'].includes(node.props.testID));
+test('a whole-list P6 page keeps the server order without run headings, and an area brings them back', async () => {
+  rows = [row('m1', at(44.81, 20.41)), row('r1', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }), row('m2', at(44.82, 20.42)),
+    row('n1', { priblizno: null }), row('r2', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+  p6Seam = p6Seam_(); await render();
+  expect(cards()).toEqual(['m1', 'r1', 'm2', 'n1', 'r2']);
+  expect(runHeadings()).toHaveLength(0);
+  await act(async () => tree.unmount());
+  initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9] }; p6Seam = p6Seam_(); await render();
+  expect(runHeadings().length).toBeGreaterThan(0);
+  // The same page read by the legacy reader keeps its own headings.
+  await act(async () => tree.unmount());
+  initial = { ...initialMarketplaceView(), mode: 'map' }; p6Seam = undefined; await render();
+  expect(runHeadings().length).toBeGreaterThan(0);
 });

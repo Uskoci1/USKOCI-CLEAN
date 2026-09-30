@@ -55,6 +55,46 @@ it('latest map wins and an older map cannot overwrite it',async()=>{
  h.pending[1].resolve({bad:'old'});expect((await one).kind).toBe('stale');
  expect(owner.snapshot().map?.coverageBounds).toEqual([19.6,45,20.1,45.5]);
 });
+// The database echoes a request's bounds through double precision at 15 significant digits (extra_float_digits=0 on the hosted
+// and the disposable Postgres): `select jsonb_build_array('19.371235347487277'::numeric::double precision)` answers 19.3712353474873.
+// A native viewport carries 16-17 digits, so the raw numbers never equal their own echo; the owner sends six decimals instead.
+const postgresEcho=(bounds:number[])=>bounds.map(value=>Number(value.toPrecision(15)));
+const nativeViewport:[number,number,number,number]=[19.371235347487277,45.05134028015267,21.899999999999999,45.796000000000006];
+it('sends a native viewport at six decimals so the database echo compares equal',async()=>{
+ expect(postgresEcho(nativeViewport)).not.toEqual(nativeViewport);
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
+ const first=owner.firstPage();h.pending[0].resolve(page());await first;
+ const mapping=owner.loadMap(nativeViewport);const sent=(h.pending[1].request as any).bounds;
+ expect(sent).toEqual([19.371235,45.05134,21.9,45.796]);
+ h.pending[1].resolve(map(postgresEcho(sent)));
+ expect((await mapping).kind).toBe('applied');expect(owner.snapshot().map?.coverageBounds).toEqual(sent);
+});
+it('still refuses an echo that is a different area than the one sent',async()=>{
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
+ const first=owner.firstPage();h.pending[0].resolve(page());await first;
+ const mapping=owner.loadMap(nativeViewport),refusal=expect(mapping).rejects.toThrow('DISCOVERY_V1_OWNER_MAP_COVERAGE_DRIFT');
+ h.pending[1].resolve(map(postgresEcho([19.371236,45.05134,21.9,45.796])));await refusal;
+ expect(owner.snapshot().map).toBeNull();
+});
+it('puts the same six decimals on an area page scope and on a place facet area',async()=>{
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);
+ owner.begin(filter(),{kind:'AREA',bounds:nativeViewport});
+ const first=owner.firstPage();expect((h.pending[0].request as any).scope).toEqual({kind:'AREA',bounds:[19.371235,45.05134,21.9,45.796]});
+ h.pending[0].resolve(page());await first;
+ const suggestions=owner.firstPlaces('nov',nativeViewport,3);
+ expect((h.pending[1].request as any).facetArea).toEqual([19.371235,45.05134,21.9,45.796]);
+ h.pending[1].resolve(places());await suggestions;
+ const more=owner.nextPlaces();expect((h.pending[2].request as any).facetArea).toEqual([19.371235,45.05134,21.9,45.796]);
+ h.pending[2].resolve(places('Novi Sad, Detelinara','novi sad, detelinara',A,false));await more;
+});
+it('never sends a negative zero and keeps bounds that already have few decimals unchanged',async()=>{
+ const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
+ const first=owner.firstPage();h.pending[0].resolve(page());await first;
+ const mapping=owner.loadMap([-0.0000004,44.7,-180,90]);
+ expect(Object.is((h.pending[1].request as any).bounds[0],-0)).toBe(false);
+ expect((h.pending[1].request as any).bounds).toEqual([0,44.7,-180,90]);
+ h.pending[1].resolve(map([0,44.7,-180,90]));await mapping;
+});
 it('scope change retires an in-flight continuation but keeps the browsing anchor',async()=>{
  const h=harness(),owner=createDiscoveryV1Owner(h.transport);owner.begin(filter());
  const first=owner.firstPage();h.pending[0].resolve(page());await first;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { Izvor } from '../../../data/ports';
 import { createDiscoveryV1SupabaseTransport } from '../../../data/discoveryV1ClientTransport';
+import { discoveryV1ErrorCode, traceDiscoveryV1 } from '../../../data/discoveryV1Trace';
 import { createDiscoveryV1ExistingOverlayLoaders, discoveryV1OverlayRelation } from '../../../data/discoveryV1OverlayOwner';
 import { createDiscoveryV1RouteCoordinator, type DiscoveryV1RouteSnapshot } from '../../../data/discoveryV1RouteCoordinator';
 import type { DiscoveryV1MapMarker } from '../../../data/discoveryV1MarketplaceAdapter';
@@ -58,10 +59,12 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const execute = useCallback(async (action: () => Promise<unknown>, busy = false) => {
     if (busy && mounted.current) { setLoading(true); setError(false); }
     try {
-      await action();
+      const result = await action();
+      // A read that failed keeps the error state until a later read APPLIES: a passive or superseded action proves nothing.
+      if (mounted.current && currentRef.current() && (result as { kind?: string } | undefined)?.kind === 'applied') setError(false);
       commit();
-    } catch {
-      if (mounted.current && currentRef.current()) setError(true);
+    } catch (failure) {
+      if (mounted.current && currentRef.current()) { traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true); }
     } finally {
       if (busy && mounted.current) setLoading(false);
     }
@@ -72,9 +75,12 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     setLoading(true); setError(false);
     void coordinator.restore(initialViewRef.current).then(() => {
       if (!mounted.current || !currentRef.current()) return;
+      const read = coordinator.snapshot().screen;
+      traceDiscoveryV1('restored', `${Math.min(read.items.length, 9999)}/${Math.min(read.mapMarkers.length, 9999)}`);
       commit(); setLoading(false);
-    }, () => {
+    }, failure => {
       if (!mounted.current || !currentRef.current()) return;
+      traceDiscoveryV1('restore-failed', discoveryV1ErrorCode(failure));
       setError(true); setLoading(false);
     });
     return () => {
@@ -89,11 +95,9 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     const view = coordinator.snapshot().view;
     if (view) void execute(() => coordinator.open(view), true);
   }, [coordinator, execute]);
+  // A cluster is navigation only: the map's camera goes into it and the settled region reads the list and the map (`onArea`).
   const selectMarker = useCallback((marker: DiscoveryV1MapMarker) => {
-    void execute(async () => {
-      const result = await coordinator.selectMarker(marker);
-      if (result.kind === 'CLUSTER') await coordinator.settleMap(result.bounds);
-    });
+    void execute(async () => { await coordinator.selectMarker(marker); });
   }, [coordinator, execute]);
   const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
   const onShowPlace = useCallback(() => {

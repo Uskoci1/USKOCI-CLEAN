@@ -5,6 +5,8 @@ import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn(), mockQuery = jest.fn();
 const mockAnnotationRefresh = jest.fn();
+let mockPackage: string | undefined = 'com.example';
+jest.mock('expo-constants', () => ({ __esModule: true, default: { get expoConfig() { return { android: { package: mockPackage } }; } } }));
 jest.mock('@maplibre/maplibre-react-native', () => {
   const React = require('react');
   const host = (name: string, handle: () => object) => React.forwardRef(({ children, ...props }: any, ref: any) => {
@@ -67,7 +69,7 @@ const measureFrame = async (height = 790) => act(async () => tree.root.find(node
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style);
 beforeEach(() => {
   jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {});
-  rows = base(); selectedId = null; selectedPlace = null; extra = {}; mockFocused = true; mockReduced = false;
+  rows = base(); selectedId = null; selectedPlace = null; extra = {}; mockFocused = true; mockReduced = false; mockPackage = 'com.example';
   mockRendered = ['money', 'offer', 'stack-1', 'stack-2', 'urgent', 'noprice', 'money'].map(feature); mockLeaves = [];
   mockQuery.mockReset().mockImplementation(async () => mockRendered);
   mockAnnotationRefresh.mockReset();
@@ -639,4 +641,61 @@ test('a tap on the empty map closes the card; the tap that chose a pill does not
   await act(async () => { jest.advanceTimersByTime(500); });
   await act(async () => native().props.onPress({ nativeEvent: {} }));
   expect(clear).toHaveBeenCalledTimes(1);
+});
+
+// P6: the server's buckets own the map. A cluster opens the way a native one does (the camera goes into it, and the list and the map follow
+// where it lands); a task or a place pill moves no camera, because the MAP read it came from must keep covering what is on screen.
+test("a P6 cluster fits the camera to its members as the person's own move; a task pill moves nothing", async () => {
+  const onSelect = jest.fn();
+  const markers = [
+    { kind: 'CLUSTER', key: 'cluster:1', point: { lat: 44.8, lng: 20.45 }, taskCount: 5, distinctPointCount: 3, memberBounds: [20.4, 44.78, 20.5, 44.85] },
+    { kind: 'TASK', key: 'task:1', point: { lat: 44.9, lng: 20.6 }, taskId: '00000000-0000-4000-8000-000000000001', taskCount: 1 },
+    { kind: 'PLACE', key: 'place:44.7:20.3', point: { lat: 44.7, lng: 20.3 }, taskCount: 30 },
+  ];
+  extra = { p6Server: { markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect }, toolsBottom: 60, fitBottom: 300 };
+  await render(); await measureFrame(800); await ready();
+  expect(annotations().map(node => node.props.id)).toEqual(['p6:cluster:1', 'p6:task:1', 'p6:place:44.7:20.3']);
+  mockFit.mockClear(); mockEase.mockClear(); mockJump.mockClear();
+  await act(async () => annotations()[0].props.onPress());
+  expect(mockFit).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
+  expect(onSelect).toHaveBeenCalledWith(markers[0]);
+  // The camera lands: opening the cluster was the person's move, so the area follows where it settled.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.815], zoom: 12, bounds: [20.38, 44.7, 20.52, 44.9], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.9]);
+  // A task or a place moves no camera and asks for no area.
+  mockFit.mockClear(); search.mockClear();
+  await act(async () => annotations()[1].props.onPress());
+  await act(async () => annotations()[2].props.onPress());
+  expect(mockFit).not.toHaveBeenCalled(); expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+  expect(onSelect.mock.calls.map(call => call[0].kind)).toEqual(['CLUSTER', 'TASK', 'PLACE']);
+  await act(async () => { jest.advanceTimersByTime(2_000); }); expect(search).not.toHaveBeenCalled();
+});
+
+test('a P6 cluster under Reduce Motion fits at once, and one pressed before the map is ready does nothing', async () => {
+  const onSelect = jest.fn();
+  const cluster = { kind: 'CLUSTER', key: 'cluster:1', point: { lat: 44.8, lng: 20.45 }, taskCount: 5, distinctPointCount: 3, memberBounds: [20.4, 44.78, 20.5, 44.85] };
+  extra = { p6Server: { markers: [cluster], selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect }, toolsBottom: 60, fitBottom: 300 };
+  mockReduced = true;
+  await render(); await measureFrame(800);
+  await act(async () => annotations()[0].props.onPress());
+  expect(mockFit).not.toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], expect.anything()); expect(onSelect).not.toHaveBeenCalled();
+  await ready(); mockFit.mockClear();
+  await act(async () => annotations()[0].props.onPress());
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: 0 });
+});
+
+test('the DEV trace says how many server pills the map holds and when it could first draw them', async () => {
+  mockPackage = 'rs.uskoci.dev';
+  const info = jest.spyOn(console, 'info').mockImplementation(() => {});
+  const markers = [
+    { kind: 'TASK', key: 'task:1', point: { lat: 44.9, lng: 20.6 }, taskId: '00000000-0000-4000-8000-000000000001', taskCount: 1 },
+    { kind: 'PLACE', key: 'place:44.7:20.3', point: { lat: 44.7, lng: 20.3 }, taskCount: 30 },
+  ];
+  extra = { p6Server: { markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onDidFinishRenderingFrameFully());
+  const lines = info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
+  expect(lines).toEqual(['[USKOCI_P6_TRACE] ["markers","2/0"]', '[USKOCI_P6_TRACE] ["markers","2/1"]']);
 });
