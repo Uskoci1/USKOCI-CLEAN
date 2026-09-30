@@ -74,7 +74,7 @@ What this shows, and what it does not:
 - **The ~1.1 s frame per pin is gone** (no frame over 700 ms in this run, 11 before, same tooling). Why is not proved; the likely reason is that before, the card's first render coincided with the exact read's own commit, which no longer redraws anything (the known card object is kept). Two frames of about 500 ms remain, both in display-list recording on the UI thread; what they draw is not attributed yet.
 - Limits: four to five samples, one pin, a process about a minute old both times, the JS clock is not pixels, no place card measured (no place on the DEV fixture), janky share 4.9 % is under the 5 % target but higher than before on far fewer frames.
 
-## EX-03d — halo first, profile reuse, list rows stay mounted (source; NOT measured on the phone yet)
+## EX-03d — halo first, profile reuse, list rows stay mounted (source, then measured: see the AFTER section below)
 
 What changed after the AFTER run (commits ffb6b697, e18aef01, e87ed466):
 - **Halo first.** The halo of a touched pin commits alone in the touch turn (`setPendingKey`); the card the session already knows follows one frame later, and only if that touch is still the current one. The trace reads the peek with `peekNow()` instead of building a whole snapshot (three per touch before).
@@ -87,4 +87,31 @@ Checks on the pushed source bb8d3a9b (client final check run 36770243152): TypeS
 - Reanimated 4.5.1 `NodesManager.performNonLayoutOperations` applies every retained registry entry at each draw-pass event. A failed `synchronouslyUpdateUIProps` (the view is gone) only logs a warning with the exception (a deep stack) and never removes the dead entry, so the dead entries are applied again at every pass. react-native-svg dispatches its client-rect event inside draw, so every SVG draw (the brand pin and the fact icons are SVG) starts a whole pass.
 - Dead entries appear when animated views are unmounted while their registration stays. In this screen that happened at every pin tap through the row re-creation above. Removing the re-creation removes that source inside the app; the library behaviour and the dead entries of other screens stay until the owner decides about the dependency.
 - **Upstream check (2026-09-30):** the newest release is 4.7.0 (nightly 4.8.0). Its `NodesManager.kt` and `DrawPassDetector.kt` are byte-identical to 4.5.1, and `NativeProxy.synchronouslyUpdateUIProps` still catches and logs each failed tag (only the RN-version gate was removed). A version bump alone would therefore not stop the flood; it would also leave the Expo SDK 57 tested set. The owner's options stay: a small `patch-package` patch (log once, drop the failed tag) or leave the library and keep removing dead-entry sources in the app.
-- **To measure on the HONOR** (needs his "sad" window and the new ARM64 APK): dead-entry log lines per pin tap (Reanimated `synchronouslyUpdateUIProps failed`), frames over 700 ms, halo and card times, warm return, with `scripts/p6_dev_emulator_check.py --device physical --reader p6 --focused --quiet-pins --visible-return 3`.
+- **Measured on the HONOR the same evening** (the owner window "SAD", APK 11574c02, run 36770245365): dead-entry lines 37,135 to 5,956 to 2,811 over three comparable focused runs, no frame over 700 ms, no pin frame over 500 ms; see the AFTER section below.
+
+## AFTER on the HONOR — EX-03d (2026-09-30 22:25 local, the owner window "SAD") — MEASURED
+
+Setup: APK SHA256 `11574c02f46b4e4002c73d0feddc27557a286efbdb60bbc77afe69c1b9f39edd` (run 36770245365, source bb8d3a9b), `adb install -r` over the installed build (session kept, installed hash equals the built artifact), `scripts/p6_dev_emulator_check.py --device physical --reader p6 --focused --restart --quiet-pins --visible-return 3 --taps 10 --cycles 7`, quiet DEV database. B24 Part 2 was applied to DEV at 20:25:51Z, during the 4 s install and before any measured phase. Evidence: `ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/` (serial and install token withheld). RESULT PASS, no failed check.
+
+| Measure (HONOR) | BEFORE EX-03 | EX-03a+c | EX-03d |
+| --- | --- | --- | --- |
+| Halo (first feedback), JS clock p50/p95 | 63 / 75 ms | 140 / 156 ms | **85 / 91 ms** (target ≤ 100: met) |
+| Card data, JS clock p50/p95 | 402 / 683 ms | 42 / 56 ms | **71 / 78 ms** (target ≤ 200: met) |
+| Back to restored, JS clock p50/p95 | 462 / 582 ms | 162 / 166 ms | **162 / 218 ms** (target ≤ 350: met; 6 of 7 returns matched) |
+| PAGE/MAP requests on a warm return | one set per return | none, 4/4 | none, 7/7 |
+| Frames over 700 ms (Davey) | 11 (max 1,171 ms) | 0 | **0** |
+| Pin frames over 500 ms | about 1.1 s per pin | 2 (517, 501 ms) | **none** |
+| 99th percentile frame time, pin phase | 1,100 ms | 450 ms | **24 ms** |
+| Janky share, pins / cycles | 2.82 % / 3.8 % | 4.88 % / 4.9 % | 4.84 % / 4.24 % (under 5 %) |
+| Reanimated failed-update lines (whole run) | 37,135 | 5,956 | **2,811** |
+| Same, per frame of the run | about 12.4 | about 5.1 | **about 1.2** |
+| ANR / crash / process death | 0 | 0 | 0 |
+| Memory (PSS) over 7 returns | | | 574 MB before, 509 MB after idle: flat |
+
+What this shows, and what it does not:
+- **Halo first works.** The first visible reaction is back under the 100 ms target (85 / 91 ms) and the card follows one frame later (71 / 78 ms), so both targets are met in the JS clock. The price of the separate frame is about 20 ms on the card compared with the first AFTER run, which committed both at once.
+- **Rows staying mounted removed the pin stalls.** No pin frame over 500 ms, and the 99th percentile of pin-phase frames fell from 1,100 ms to 24 ms. The Reanimated failed-update lines fell about ten times per frame against the start of the day. They are not gone: what remains comes from other screens and from sign-in, not from the pin path.
+- **Warm return:** 162 / 218 ms on the JS clock with no server read, seven of seven. **The visible return is slower than that number:** by the pixel measure (three returns, a burst of screenshots about 0.9 s apart) the list is not yet on screen at the first frame (0.89 to 1.09 s) and is at the second (1.72, 1.75, 2.03 s), so the person sees it between about 1.0 and 2.0 s after Back. The JS clock does not include the native remount of the map, the sheet and the list, which happens because the route unmounts its screen when it loses focus. There is no pixel BEFORE, so no improvement is claimed in pixels.
+- **Janky share stays just under 5 %** (4.84 % in the pin phase) with mostly 16 to 24 ms frames; it is not better than BEFORE in percent even though the long frames are gone.
+- Limits: one phone, one signed-in account, one quiet database, ten touches and seven returns, the JS clock is not pixels, the burst cadence makes the visible-return figure an upper bound with a granularity of about 0.9 s, no place card was measured (no place on the DEV fixture), no two-device, background, or long-session evidence.
+- **What is left of EX-03:** the visible return (keep the native Discovery views mounted across blur, or make their remount cheaper; measure it by pixels before and after), the camera on a pin (UI/UX, not started), and the janky share near 5 %.
