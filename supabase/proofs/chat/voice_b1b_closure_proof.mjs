@@ -15,6 +15,9 @@ import { invalidationCatalogSnapshot } from './private_invalidation_catalog_snap
 import { m4aFixture } from './voice_m4a_fixture.mjs';
 const { assert, sql, rows, q, randomUUID, ok, denied, env, service } = rt;
 const candidatePath = 'supabase/candidates/chat_voice_b1b_closure_integration.sql';
+const applicationPath = 'supabase/candidates/chat_voice_b1_dev_application.sql';
+// VOICE_PROOF_MODE=dev-form applies the ONE-statement DEV application file instead of the two fragments plus the disposable recertification file.
+const devForm = process.env.VOICE_PROOF_MODE === 'dev-form';
 const rebindPath = 'supabase/proofs/chat/voice_b1b_recertification_proof.sql';
 const harnessPath = 'supabase/proofs/chat/voice_b1b_closure_proof.mjs';
 const sources = [candidatePath, rebindPath, harnessPath, 'supabase/candidates/chat_voice_b1a_feature_chain.sql', 'supabase/proofs/chat/voice_m4a_fixture.mjs',
@@ -22,7 +25,8 @@ const sources = [candidatePath, rebindPath, harnessPath, 'supabase/candidates/ch
   'supabase/proofs/pre_v3/history_snapshot.mjs', 'supabase/proofs/pre_v3/v5_closure_edge_runtime.mjs', 'supabase/functions/_shared/data-export.ts',
   'supabase/functions/uskoci-account-closure-worker/closure.ts', 'supabase/functions/uskoci-account-closure-worker/index.ts', '.github/workflows/chat-voice-b1-proof.yml',
   'supabase/functions/uskoci-media/index.ts', 'supabase/functions/_shared/voiceM4a.mjs'];
-const report = rt.report('CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION');
+if (devForm) sources.push(applicationPath, 'supabase/proofs/chat/build_voice_b1_dev_application.py', 'supabase/proofs/chat/voice_b1_dev_application.head.sql', 'supabase/proofs/chat/voice_b1_dev_application.tail.sql');
+const report = rt.report(devForm ? 'CHAT_VOICE_B1_DEV_APPLICATION' : 'CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION');
 Object.assign(report, { providerCalls: 0, devAccess: false, devCertificateMoved: false, disposableCertificateMoved: false, certifiedErasureProven: false,
   storageCalls: 0, sourceArtifactHashes: {}, refusals: [], laterDriftChecks: [], closures: [] });
 const failures = [];
@@ -98,6 +102,54 @@ async function agreement(requester, worker) {
 // ----- the before state: B1-a is applied (by the B1-a proof), the B1-b candidate is not
 let baseline, expectedFinal, B1A_PRESENT = false;
 const legacyBlockerAccount = rows(`select distinct split_part(name,'/',1) account from storage.objects where bucket_id='agreement-voice' limit 1`)[0]?.account ?? null;
+if (devForm) {
+  // The DEV application file (ONE atomic DO statement, exact DEV pins, the two proved fragments embedded, the re-bind computed inside) applied to a chain that has the DEV closure surface.
+  const application = readFileSync(applicationPath, 'utf8');
+  await check('PREDECESSOR_IS_THE_CERTIFIED_DEV_STATE_WITHOUT_ANY_VOICE_OBJECT', async () => {
+    assert.equal(sql("select (to_regclass('private.agreement_voice_uploads_v1') is null and to_regprocedure('private.agreement_voice_surface_v1()') is null and not exists(select 1 from storage.buckets where id='agreement-voice'))::text"), 'true');
+    assert.equal(sql("select (to_regclass('public.agreement_invalidations_v1') is not null)::text"), 'true');
+    const state = closureState(); assert.equal(state.ready, true); assert.ok(state.binding); assert.equal(state.live, state.certified);
+    baseline = snapshot(); expectedFinal = baseline; report.catalogBeforeSha256 = hashJson(baseline);
+  });
+  await check('PREDECESSOR_DRIFT_REFUSES_THE_WHOLE_APPLICATION_AND_LEAVES_THE_CATALOG_UNCHANGED', async () => {
+    assert.ok(baseline);
+    const refuse = (name, text, pattern) => {
+      assert.throws(() => sql(text), pattern, 'EXPECTED_REFUSAL:' + name);
+      assert.equal(hashJson(snapshot()), hashJson(baseline), 'CATALOG_CHANGED_BY_REFUSAL:' + name);
+      report.refusals.push({ name, refused: true, completeCatalogUnchanged: true });
+    };
+    const wrapped = (statement, text = application) => 'begin;\n' + statement + '\n' + text + '\ncommit;';
+    refuse('BODY_PIN', application.replace('c6d687219096c03371560cabb961cb0e', '0'.repeat(32)), /VOICE_B1_APPLICATION_BODY_DRIFT/);
+    refuse('METADATA_PIN', application.replace('30967acfddf4a189e7d97f1230ce286b', '0'.repeat(32)), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
+    refuse('METADATA_TAMPER', wrapped('alter function private.closure_account_restricted(uuid) cost 4321;'), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
+    refuse('READINESS_METADATA_CHANGED', wrapped('alter function private.retention_ai_source_ready() cost 4321;'), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
+    refuse('CERTIFICATES_DISAGREE', wrapped("update private.closure_erasure_source_v5 set sha256=repeat('0',64) where singleton;"), /VOICE_B1_APPLICATION_CLOSURE_PREDECESSOR_NOT_READY/);
+    refuse('UNREVIEWED_TABLE', wrapped('create table private.voice_b1_unreviewed_source(id integer);'), /VOICE_B1_APPLICATION_CLOSURE_PREDECESSOR_NOT_READY/);
+    refuse('PREDECESSOR_BODY_TAMPER', wrapped("create or replace function private.closure_account_key(a uuid) returns bigint language sql immutable strict set search_path = pg_catalog as $f$ select hashtextextended('uskoci:closure:' || a::text, 9);$f$;"), /VOICE_B1_APPLICATION_(BODY|METADATA)_DRIFT|does not exist|cannot change/);
+  });
+  await check('APPLICATION_APPLIES_ONCE_BINDS_THE_CERTIFICATE_AND_REFUSES_A_SECOND_APPLICATION', async () => {
+    assert.ok(baseline);
+    sql(application);
+    assert.throws(() => sql(application), /VOICE_B1_APPLICATION_ALREADY_PRESENT/);
+    await pause(1500);
+    const state = closureState();
+    assert.equal(state.ready, true); assert.notEqual(state.live, baseline.state.digest); assert.equal(state.live, state.certified); assert.equal(state.binding.sourceSha256, state.live);
+    const after = snapshot();
+    assert.equal(after.state.ready, true); assert.deepEqual(after.history, baseline.history);
+    assert.deepEqual(after.state.source, { ...baseline.state.source, sha256: after.state.digest }); assert.deepEqual(after.state.erasure, { ...baseline.state.erasure, sha256: after.state.digest });
+    assert.equal(after.state.readiness_definition, baseline.state.readiness_definition.replace(baseline.state.source.sha256, after.state.digest));
+    expectedFinal = after; report.disposableCertificateMoved = true; report.catalogInstalledSha256 = hashJson(after); report.catalogRecertifiedSha256 = hashJson(after);
+    report.recertification = { sourceBefore: baseline.state.source.sha256, sourceAfter: after.state.digest, placesChanged: 3, ready: true, bindingMatches: true };
+    // Captured for the post-state pins of the application file: the stored body (LF-normalised) of every rewritten function.
+    const rewritten = ['private.closure_redaction_relations_v5()', 'private.closure_redaction_scope_v5(text)', 'private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)', 'private.closure_blockers_v5(uuid)',
+      'public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)', 'private.support_reference_v5(uuid,jsonb)', 'private.data_export_snapshot(uuid,uuid,jsonb,timestamptz)',
+      'private.data_export_dataset_catalog()', 'private.data_export_policy_binding()', 'private.closure_source_digest_v5()', 'private.closure_erasure_program_digest_v5()',
+      'public.rpc_read_agreement_messages_page_v1(uuid,uuid,integer,timestamptz,uuid)', 'public.rpc_read_agreement_message_window_v1(uuid,uuid,uuid,integer,integer)'];
+    report.rewrittenBodyMd5 = Object.fromEntries(rewritten.map(signature => [signature, sql(`select md5(replace(prosrc,chr(13)||chr(10),chr(10))) from pg_proc where oid=to_regprocedure(${q(signature)})`)]));
+    console.log('REWRITTEN_BODY_MD5 ' + JSON.stringify(report.rewrittenBodyMd5));
+  });
+}
+if (!devForm) {
 await check('PREDECESSOR_IS_B1A_UNCERTIFIED_WITH_THE_B3C_CERTIFICATE', async () => {
   B1A_PRESENT = sql("select (to_regclass('private.agreement_voice_uploads_v1') is not null and to_regprocedure('public.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid)') is not null)::text") === 'true';
   assert.equal(B1A_PRESENT, true);
@@ -142,6 +194,7 @@ await check('INSTALL_LEAVES_THE_CERTIFICATE_UNCERTIFIED_AND_ONLY_THE_REVIEWED_AU
   assert.notEqual(baseline.state.digest, baseline.state.source.sha256);
 });
 
+}
 // ----- fixtures that need the installed candidate: one untouched Agreement for the export and support proofs
 let untouched;
 await check('FIXTURE_UNTOUCHED_AGREEMENT_WITH_TEXT_AND_VOICE_FROM_BOTH_SIDES', async () => {
@@ -208,6 +261,7 @@ await check('SUPPORT_REFERENCE_OF_A_VOICE_MESSAGE_IS_A_FIXED_LABEL_WITH_NO_AUDIO
   assert.ok(text.content.body.startsWith('B1b requester text ')); assert.equal(text.content.mine, true);
 });
 
+if (!devForm) {
 // ----- the disposable three-place recertification
 const psql = (input, values = {}) => {
   const params = { voice_b1b_local_target_attested: 'true', voice_b1b_expected_old: baseline.state.source.sha256, voice_b1b_expected_new: baseline.state.digest,
@@ -260,6 +314,7 @@ await check('ONLY_THREE_CERTIFICATE_BINDINGS_CHANGE_AND_READINESS_BECOMES_TRUE',
   report.recertification = { sourceBefore: before.source.sha256, sourceAfter: after.digest, placesChanged: 3, ready: true, bindingMatches: true };
 });
 await check('SECOND_RECERTIFICATION_IS_REFUSED_WITHOUT_CATALOG_CHANGE', async () => { refuses('ALREADY_RECERTIFIED', {}); });
+}
 await check('LATER_DRIFT_OF_THE_VOICE_SURFACE_ROSTER_OR_SCHEMA_FAILS_CLOSED', async () => {
   const drifts = [
     ['UNREVIEWED_TABLE', 'create table private.voice_b1b_later_source(id integer)'],
@@ -513,6 +568,6 @@ await check('FINAL_CERTIFIED_CATALOG_AND_MIGRATION_HISTORY_ARE_UNCHANGED_SINCE_T
 });
 
 report.failures = failures; report.result = failures.length ? 'FAIL' : 'PASS';
-writeFileSync(rt.out + '/chat-voice-b1b-report.json', JSON.stringify(report, null, 2) + '\n');
-console.log(report.result + ' CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION (' + report.checks.length + ' passed, ' + failures.length + ' failed)');
+writeFileSync(rt.out + (devForm ? '/chat-voice-b1-dev-report.json' : '/chat-voice-b1b-report.json'), JSON.stringify(report, null, 2) + '\n');
+console.log(report.result + (devForm ? ' CHAT_VOICE_B1_DEV_APPLICATION (' : ' CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION (') + report.checks.length + ' passed, ' + failures.length + ' failed)');
 if (failures.length) { for (const f of failures) console.error(' - ' + f.name + ': ' + f.message); process.exitCode = 1; }
