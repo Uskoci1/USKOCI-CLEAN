@@ -1002,6 +1002,26 @@ $voice_b1b_install$;
       raise exception 'VOICE_B1_APPLICATION_UNRELATED_FUNCTION_DELTA: %',prior.signature using errcode='55000';
     end if;
   end loop;
+  -- The rewritten bodies, exactly: the md5 (LF-normalised) each body must have after this change. They come from the disposable proof on the DEV-equivalent chain (14 of 14 predecessor bodies equal the DEV receipt),
+  -- so on DEV, whose predecessor bodies are pinned above, the exact-once replacements can only produce these bytes.
+  for pin in select * from (values
+    ('private.closure_redaction_relations_v5()','e3ce45840fe907be2baf5d8ad051c74f'),
+    ('private.closure_redaction_scope_v5(text)','0cf65a6947305b6c31e6138549016363'),
+    ('private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)','b1f6aa501bfbee2bfaa6ee60a22f19ef'),
+    ('private.closure_blockers_v5(uuid)','cd0c2921bfd52ba2e96769b2a409b9db'),
+    ('public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)','3fc04b344892a252956219ce85f4de34'),
+    ('private.support_reference_v5(uuid,jsonb)','94ad410f355654cffccd9de1084571bb'),
+    ('private.data_export_snapshot(uuid,uuid,jsonb,timestamptz)','b198bff51d2d67a6095ddcd00b7ba2e1'),
+    ('private.data_export_dataset_catalog()','7fc01c563915f0a168b9eb82d962bd06'),
+    ('private.data_export_policy_binding()','dd63c427109ffff1c940c335b34e0ad6'),
+    ('private.closure_source_digest_v5()','9fb4a72f3feef8e4557a96f4c9d7224e'),
+    ('private.closure_erasure_program_digest_v5()','229887adb43d52990dc4254176222696'),
+    ('public.rpc_read_agreement_messages_page_v1(uuid,uuid,integer,timestamptz,uuid)','7e69fba7d5fdeeb57245ecbf69e7a822'),
+    ('public.rpc_read_agreement_message_window_v1(uuid,uuid,uuid,integer,integer)','706735a0fcac16e6a98b4063beea057f')
+  ) p(signature,body_md5) loop
+    if (select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=to_regprocedure(pin.signature)) is distinct from pin.body_md5 then
+      raise exception 'VOICE_B1_APPLICATION_REWRITTEN_BODY_DELTA: %',pin.signature using errcode='55000';end if;
+  end loop;
   -- Delta accounting 2/4: exactly the reviewed new functions exist, each with its exact body, language, volatility, security, result and ACL.
   select coalesce(array_agg(p.oid order by p.oid),'{}'::oid[]) into fresh from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in('public','private','rls_private') and not exists(select 1 from voice_b1_application_functions old where old.oid=p.oid);

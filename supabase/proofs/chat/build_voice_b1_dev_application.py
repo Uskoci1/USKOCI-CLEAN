@@ -13,6 +13,8 @@ B = ROOT / 'supabase/candidates/chat_voice_b1b_closure_integration.sql'
 HEAD = ROOT / 'supabase/proofs/chat/voice_b1_dev_application.head.sql'
 TAIL = ROOT / 'supabase/proofs/chat/voice_b1_dev_application.tail.sql'
 OUT = ROOT / 'supabase/candidates/chat_voice_b1_dev_application.sql'
+PREFLIGHT_TEMPLATE = ROOT / 'supabase/proofs/chat/voice_b1_dev_preflight.template.sql'
+PREFLIGHT_OUT = ROOT / 'supabase/proofs/chat/voice_b1_dev_preflight.readonly.sql'
 CRLF = chr(13) + chr(10)
 LF = chr(10)
 
@@ -42,16 +44,42 @@ def build():
             + '  execute $voice_b1b_install$' + LF + fragment(read(B), 'B1-b') + '$voice_b1b_install$;' + LF + tail)
 
 
+def pin_table(head, column, expected_rows):
+    """The exact rows of one predecessor pin table of the head, so the read-only preflight compares the SAME pins the application does."""
+    start_marker = '  for pin in select * from (values' + LF
+    end_marker = '  ) p(signature,' + column + ') loop' + LF
+    if head.count(end_marker) != 1:
+        raise SystemExit('head: expected exactly one pin table ending with ' + column)
+    end = head.index(end_marker)
+    start = head.rindex(start_marker, 0, end) + len(start_marker)
+    table = head[start:end].rstrip(LF)
+    rows = [line for line in table.split(LF) if line.startswith("    ('")]
+    if len(rows) != expected_rows:
+        raise SystemExit('head: the ' + column + ' table has ' + str(len(rows)) + ' rows, expected ' + str(expected_rows))
+    return table
+
+
+def build_preflight():
+    head, template = read(HEAD), read(PREFLIGHT_TEMPLATE)
+    built = (template.replace('{{METADATA_PINS}}', pin_table(head, 'metadata_md5', 25))
+             .replace('{{BODY_PINS}}', pin_table(head, 'body_md5', 26)))
+    if '{{' in built:
+        raise SystemExit('the preflight template has an unreplaced placeholder')
+    return built
+
+
 def main():
-    built = build()
+    outputs = [(OUT, build(), 'DEV application candidate'), (PREFLIGHT_OUT, build_preflight(), 'read-only DEV preflight')]
     if '--check' in sys.argv:
-        current = read(OUT) if OUT.exists() else ''
-        if current != built:
-            raise SystemExit('the committed DEV application candidate differs from the generated one')
-        print('OK: ' + str(OUT.relative_to(ROOT)) + ' equals the generated candidate (' + str(len(built)) + ' chars)')
+        for path, built, label in outputs:
+            current = read(path) if path.exists() else ''
+            if current != built:
+                raise SystemExit('the committed ' + label + ' differs from the generated one')
+            print('OK: ' + str(path.relative_to(ROOT)) + ' equals the generated ' + label + ' (' + str(len(built)) + ' chars)')
         return
-    OUT.write_bytes(built.encode('utf-8'))
-    print('written ' + str(OUT.relative_to(ROOT)) + ' (' + str(len(built)) + ' chars)')
+    for path, built, label in outputs:
+        path.write_bytes(built.encode('utf-8'))
+        print('written ' + str(path.relative_to(ROOT)) + ' (' + str(len(built)) + ' chars)')
 
 
 if __name__ == '__main__':

@@ -121,6 +121,8 @@ if (devForm) {
     const wrapped = (statement, text = application) => 'begin;\n' + statement + '\n' + text + '\ncommit;';
     refuse('BODY_PIN', application.replace('c6d687219096c03371560cabb961cb0e', '0'.repeat(32)), /VOICE_B1_APPLICATION_BODY_DRIFT/);
     refuse('METADATA_PIN', application.replace('30967acfddf4a189e7d97f1230ce286b', '0'.repeat(32)), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
+    // The whole application runs and is then refused by the post-state pin of one rewritten body: a replacement that produced any other bytes can never commit.
+    refuse('POST_STATE_PIN', application.replace('e3ce45840fe907be2baf5d8ad051c74f', '0'.repeat(32)), /VOICE_B1_APPLICATION_REWRITTEN_BODY_DELTA/);
     refuse('METADATA_TAMPER', wrapped('alter function private.closure_account_restricted(uuid) cost 4321;'), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
     refuse('READINESS_METADATA_CHANGED', wrapped('alter function private.retention_ai_source_ready() cost 4321;'), /VOICE_B1_APPLICATION_METADATA_DRIFT/);
     refuse('CERTIFICATES_DISAGREE', wrapped("update private.closure_erasure_source_v5 set sha256=repeat('0',64) where singleton;"), /VOICE_B1_APPLICATION_CLOSURE_PREDECESSOR_NOT_READY/);

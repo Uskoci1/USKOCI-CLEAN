@@ -10,6 +10,9 @@ on:
       - 'supabase/candidates/chat_voice_b1_dev_application.sql'
       - 'supabase/proofs/chat/voice_b1_dev_application.head.sql'
       - 'supabase/proofs/chat/voice_b1_dev_application.tail.sql'
+      - 'supabase/proofs/chat/voice_b1_dev_preflight.template.sql'
+      - 'supabase/proofs/chat/voice_b1_dev_preflight.readonly.sql'
+      - 'supabase/proofs/chat/voice_b1_preimage_capture.readonly.sql'
       - 'supabase/proofs/chat/build_voice_b1_dev_application.py'
   workflow_dispatch:
 permissions:
@@ -125,6 +128,27 @@ jobs:
           printf '26-b24-fidelity exit=%s\n' "$fidelity_exit" | tee -a "$VOICE_ARTIFACT_DIR/stages.txt"
           test "$b24_exit" -eq 0
           exit "$fidelity_exit"
+      - name: Read-only DEV preflight on the chain, and the pre-image capture for the revert package
+        run: |
+          set -euo pipefail
+          umask 077
+          psql "$DB_URL" -X -A -t -q -v ON_ERROR_STOP=1 -f supabase/proofs/chat/voice_b1_dev_preflight.readonly.sql > "$VOICE_ARTIFACT_DIR/voice-b1-preflight.json"
+          psql "$DB_URL" -X -A -t -q -v ON_ERROR_STOP=1 -f supabase/proofs/chat/voice_b1_preimage_capture.readonly.sql > "$VOICE_ARTIFACT_DIR/voice-b1-preimage.json"
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          try {
+            const flight=JSON.parse(readFileSync(process.env.VOICE_ARTIFACT_DIR+'/voice-b1-preflight.json','utf8'));
+            assert.deepEqual(flight.problems,[]); assert.equal(flight.metadataPinsChecked,25); assert.equal(flight.bodyPinsChecked,26);
+            assert.equal(flight.ready,true); assert.equal(flight.erasureBindingMatches,true); assert.equal(flight.closureExecutionsExecuting,0);
+            assert.equal(flight.certifiedSource,flight.liveDigest);
+            const pre=JSON.parse(readFileSync(process.env.VOICE_ARTIFACT_DIR+'/voice-b1-preimage.json','utf8'));
+            assert.equal(pre.functions.length,14); assert.ok(pre.functions.every(item=>/^[a-f0-9]{32}$/.test(item.bodyMd5)&&item.definition.startsWith('CREATE OR REPLACE FUNCTION ')));
+            assert.ok(pre.constraints.agreement_messages_body_photo_check.startsWith('CHECK')&&pre.constraints.closure_action_shape146.startsWith('CHECK'));
+            assert.ok(Array.isArray(pre.mediaObjectsRelations)); assert.equal(pre.certifiedDigest,flight.liveDigest);
+            console.log('PASS CHAT_VOICE_B1_PREFLIGHT_AND_PREIMAGE');
+          } catch (error) { console.error('FAIL CHAT_VOICE_B1_PREFLIGHT_AND_PREIMAGE'); process.exit(1); }
+          NODE
       - name: Apply the ONE-statement DEV application file and prove it (export, support, blockers, real Edge, two full closures)
         if: ${{ !cancelled() }}
         run: |
@@ -151,7 +175,7 @@ jobs:
             for (const key of ['liveAccess','providerCalled','deviceProven','devAccess','devCertificateMoved']) assert.equal(report[key],false);
             assert.equal(report.providerCalls,0); assert.ok(report.storageCalls>10); assert.deepEqual(report.failures,[]);
             assert.equal(report.checks.length,17); assert.ok(report.checks.every(check=>check.result==='PASS')); assert.equal(report.edgeEndToEnd.realSqlAndStorage,true);
-            assert.equal(report.refusals.length,7); assert.ok(report.refusals.every(item=>item.refused&&item.completeCatalogUnchanged));
+            assert.equal(report.refusals.length,8); assert.ok(report.refusals.every(item=>item.refused&&item.completeCatalogUnchanged));
             assert.equal(report.laterDriftChecks.length,9); assert.ok(report.laterDriftChecks.every(item=>item.readinessFalse&&item.bindingNull&&item.rollbackUnchanged));
             assert.equal(report.recertification.placesChanged,3); assert.equal(report.recertification.ready,true);
             assert.equal(Object.keys(report.rewrittenBodyMd5).length,13); assert.ok(Object.values(report.rewrittenBodyMd5).every(value=>/^[a-f0-9]{32}$/.test(value)));
@@ -188,6 +212,8 @@ jobs:
             /tmp/chat-voice-dev-artifacts/source-manifest-sha256.txt
             /tmp/chat-voice-dev-artifacts/stages.txt
             /tmp/chat-voice-dev-artifacts/chat-voice-b24-fidelity.json
+            /tmp/chat-voice-dev-artifacts/voice-b1-preflight.json
+            /tmp/chat-voice-dev-artifacts/voice-b1-preimage.json
             /tmp/chat-voice-dev-artifacts/chat-voice-b1-dev-report.json
           if-no-files-found: error
           retention-days: 30
