@@ -94,6 +94,7 @@ def stand_in_sql(rows):
             out.append(f"grant execute on function {r['fn']}(boolean) to service_role;")
         if r['sites'] % 2 == 1:
             out.append(f"comment on function {r['fn']}(boolean) is 'b24 stand-in {r['fn']}';")
+    out.append("create function public.b24_ok() returns text language sql as $o$ select 'ok'::text $o$; grant execute on function public.b24_ok() to anon, authenticated, service_role;")
     certified = [r['fn'] for r in rows if r['part'] == 2]
     arr = ', '.join(f"'{fn}(boolean)'" for fn in sorted(certified))
     out.append(f"""create table private.closure_source_v5(singleton boolean primary key default true check (singleton), sha256 text not null);
@@ -128,6 +129,17 @@ def call(fn, timeout=3.0, role='authenticated'):
         return {'status': e.code, 'body': e.read().decode()[:300], 'ms': round((time.time() - t0) * 1000)}
     except Exception as e:                                          # noqa: BLE001 - a timeout is the measurement
         return {'status': None, 'error': type(e).__name__, 'ms': round((time.time() - t0) * 1000)}
+
+
+def ping():
+    req = urllib.request.Request(f'http://127.0.0.1:{PORT}/rpc/b24_ok', data=b'{}', method='POST', headers={'Authorization': 'Bearer ' + jwt(), 'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:                                               # noqa: BLE001
+        return None
 
 
 def busy(fn):
@@ -189,8 +201,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
             '-e', 'PGRST_DB_SCHEMAS=public', '-e', 'PGRST_DB_ANON_ROLE=anon', '-e', f'PGRST_JWT_SECRET={SECRET}', f'postgrest/postgrest:{REST_TAG}'])
         ready = False
         for _ in range(60):
-            r = call('rpc_apply_profile_avatar', timeout=2.0)
-            if r.get('status') is not None and r['status'] != 503:
+            if ping() == 200:
                 ready = True
                 break
             time.sleep(1)
