@@ -132,9 +132,14 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
+  /** The screen has left and may come back: a preview belongs to one visit of the search panel, so what it read and what it is reading are dropped (the owner stays usable). */
+  const suspend=()=>{if(!active)return;generation++;controller?.abort();placesController?.abort();controller=placesController=null;
+    placesBase=null;placesAnchor=null;placesCursor=null;readyAt=0;state={active:true,generation,key:null,status:'idle',count:null,undated:null,
+      availability:null,places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
+
   const retire=()=>{if(!active)return;active=false;generation++;controller?.abort();placesController?.abort();controller=placesController=null;
     placesBase=null;placesAnchor=null;placesCursor=null;state={active:false,generation,key:null,status:'idle',count:null,undated:null,
       availability:null,places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
 
-  return {preview,nextPlaces,snapshot,retire};
+  return {preview,nextPlaces,snapshot,suspend,retire};
 }

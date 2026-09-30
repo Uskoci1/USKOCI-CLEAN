@@ -474,3 +474,78 @@ it('a map refresh after the anchor expired renews the traversal instead of faili
  expect(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor)).toHaveLength(1);
  expect(route.snapshot().screen.items).toHaveLength(1);expect(route.snapshot().view).toMatchObject({sheet:'half',listOffset:200});
 });
+
+// EX-03 warm return (owner approval 2026-09-30): the screen that drives a coordinator may leave and come back. detach() fences everything in flight for good and keeps what the
+// screen showed; attach() hands the coordinator to the next screen; warm() says whether that picture can be shown again without any read.
+const binding=()=>({isCurrent:jest.fn(()=>true),onOptionalState:jest.fn()});
+
+it('EX-03: a coordinator detached after a complete read keeps its picture and is warm for the same intent only',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const opened=view({sheet:'half',listOffset:80});await route.open(opened);
+ const rows=route.snapshot().screen.items.map(x=>x.id),markers=route.snapshot().screen.mapMarkers.map(x=>x.key);
+ expect(route.warm(opened)).toBe(false);                                        // still driven by a screen
+ expect(route.detach()).toBe(true);
+ expect(route.snapshot().screen.items.map(x=>x.id)).toEqual(rows);expect(route.snapshot().screen.mapMarkers.map(x=>x.key)).toEqual(markers);
+ expect(route.warm({...opened,sheet:'full',listOffset:900,viewport:{center:[20.4,45.1],zoom:12,bounds:[19.5,44.5,20.5,45.5]}})).toBe(true);   // sheet, offset, camera are not intent
+ expect(route.warm(view({query:'kombi'}))).toBe(false);                          // a search intent is
+ expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP']);                          // none of this read anything
+});
+
+it('EX-03: nothing is warm that has no complete picture, is retired, or is detached twice',async()=>{
+ const h=harness(),opened=view();
+ const never=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);expect(never.detach()).toBe(false);expect(never.warm(opened)).toBe(false);
+ const route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await route.open(opened);
+ expect(route.detach()).toBe(true);expect(route.detach()).toBe(false);expect(route.warm(opened)).toBe(true);
+ route.retire();expect(route.warm(opened)).toBe(false);expect(route.attach(binding())).toBe(false);
+});
+
+it('EX-03: a read that REPLACES the picture when the screen leaves makes the coordinator unfit to keep',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await route.open(view());
+ const gate=deferred<any>();h.transport.mockImplementationOnce(async()=>gate.promise);   // the next PAGE read waits
+ const replacing=route.updateView(view({query:'kombi'}));
+ expect(route.detach()).toBe(false);expect(route.warm(view({query:'kombi'}))).toBe(false);
+ gate.resolve(page());expect((await replacing).kind).toBe('stale');
+});
+
+it('EX-03: a first read that failed leaves nothing worth keeping',async()=>{
+ const h=harness();h.transport.mockImplementationOnce(async()=>{throw new Error('DISCOVERY_V1_TRANSPORT_FAILED');});
+ const route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await expect(route.open(view())).rejects.toThrow();
+ expect(route.detach()).toBe(false);
+});
+
+it('EX-03: a read in flight at detach never lands, not even after the coordinator is attached again',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await route.open(view());
+ const gate=deferred<any>();h.transport.mockImplementationOnce(async()=>gate.promise);
+ const reading=route.refreshMap([19.6,44.6,20.4,45.4]);                           // adds to the picture, so it does not make it unfit
+ expect(route.detach()).toBe(true);expect(route.attach(binding())).toBe(true);
+ gate.resolve({...map([19.6,44.6,20.4,45.4]),buckets:[]});                       // would empty the markers if it landed
+ expect((await reading).kind).toBe('stale');expect(route.snapshot().screen.mapMarkers).toHaveLength(1);
+});
+
+it('EX-03: the selection, its card and the view the screen left with are there when it comes back',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await route.open(view({sheet:'peek'}));
+ const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ await route.updateView({...route.snapshot().view!,sheet:'full',listOffset:333});
+ expect(route.detach()).toBe(true);expect(route.attach(binding())).toBe(true);
+ const back=route.snapshot();
+ expect(back.selectedMarkerKey).toBe(marker.key);expect(back.screen.peek).toMatchObject({kind:'TASK'});
+ expect(back.view).toMatchObject({selectedId:ID,sheet:'full',listOffset:333});
+ expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP','EXACT_PUBLIC']);            // the return read nothing
+});
+
+it('EX-03: attach rebinds both callbacks, a detached coordinator is never current, and a search preview does not outlive the visit',async()=>{
+ const h=harness(),first=binding(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay,first.isCurrent,first.onOptionalState);
+ await route.open(view());
+ await route.previewSearch({query:'nov',place:null,area:null,pinPlace:null,when:'any',dates:null,where:'any',places:1,price:'all'},[19,44,21,46],5);
+ expect(route.snapshot().search.status).toBe('ready');
+ expect(route.detach()).toBe(true);
+ expect(route.snapshot().search).toMatchObject({status:'idle',key:null,count:null});
+ const relationCalls=h.relations.mock.calls.length,firstCalls=first.isCurrent.mock.calls.length;
+ expect(await route.refreshOverlay()).toBe(false);                                   // detached: nothing is asked and nothing is published
+ expect(h.relations.mock.calls.length).toBe(relationCalls);
+ const next=binding();expect(route.attach(next)).toBe(true);
+ next.onOptionalState.mockClear();
+ expect(await route.refreshOverlay()).toBe(true);
+ expect(next.isCurrent).toHaveBeenCalled();expect(next.onOptionalState).toHaveBeenCalledTimes(1);
+ expect(first.isCurrent.mock.calls.length).toBe(firstCalls);                          // the screen that left is not asked any more
+});

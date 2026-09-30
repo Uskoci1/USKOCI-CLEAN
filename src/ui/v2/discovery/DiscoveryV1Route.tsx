@@ -1,8 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useDiscoveryWorkArea } from '../../../hooks/useDiscoveryWorkArea';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../../data/marketplaceView';
+import type { DiscoveryV1RouteCoordinator } from '../../../data/discoveryV1RouteCoordinator';
+import { createDiscoveryV1WarmReturn, type DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
 import type { TaskRelation } from '../../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
@@ -22,6 +24,10 @@ export function DiscoveryV1Route() {
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
   const trace = useDiscoveryNativeTrace();
   const traceRef = useRef(trace); traceRef.current = trace;
+  // EX-03 (owner approval 2026-09-30): what this route keeps of a screen that left, for the next screen of the same account (see discoveryV1WarmReturn). It goes with the route.
+  const warmReturn = useRef<DiscoveryV1WarmReturn<DiscoveryV1RouteCoordinator> | null>(null);
+  if (!warmReturn.current) warmReturn.current = createDiscoveryV1WarmReturn<DiscoveryV1RouteCoordinator>();
+  useEffect(() => { const kept = warmReturn.current!; kept.reopen(); return () => kept.dispose(); }, []);
   const persistView = useCallback((next: MarketplaceView) => {
     traceRef.current?.('route-view', next.listOffset ?? 0, next.sheet === 'full' ? 2 : next.sheet === 'half' ? 1 : next.sheet === 'peek' ? 0 : -1);
     setView(next);
@@ -86,7 +92,7 @@ export function DiscoveryV1Route() {
   return <DiscoveryV1Screen key={`${user.id}:${accountRevision}`}
     source={source} scopeKey={`${user.id}:${accountRevision}`} initialView={view}
     initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
-    isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace}
+    isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace} warmReturn={warmReturn.current!}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
     onNew={() => navigate(() => router.navigate('/nova'))} />;

@@ -176,3 +176,31 @@ it('newer chosen place fences older POINT_MEMBERS response even when abort is ig
  expect(h.pending[1].signal.aborted).toBe(true);h.pending[2].resolve(page([ID2],A,false));await fresh;
  h.pending[1].resolve({bad:'old'});expect((await old).kind).toBe('stale');expect(owner.snapshot().members?.items.map(x=>x.id)).toEqual([ID2]);
 });
+
+// EX-03 warm return: a suspended owner (its screen left and may come back) keeps what it holds, and no read that began before can land - even if the owner is driven again and the
+// transport ignores abort.
+it('suspend keeps the anchor, the page and the map, aborts what is in flight and lets no older read land', async () => {
+  const h = harness(), owner = createDiscoveryV1Owner(h.transport);
+  owner.begin(filter());
+  const first = owner.firstPage(); h.pending[0].resolve(page([ID1], A, true)); await first;
+  const mapped = owner.loadMap([19.7, 45.1, 20, 45.4]); h.pending[1].resolve(map()); await mapped;
+  const more = owner.nextPage();
+  const exactRead = owner.readExact(ID1);
+  const movedMap = owner.loadMap([19.6, 45, 20.1, 45.5]);
+  owner.suspend();
+  expect(h.pending.slice(2).every(call => call.signal.aborted)).toBe(true);
+  h.pending[2].resolve(page([ID2], A, false)); h.pending[3].resolve(exact(ID2)); h.pending[4].resolve(map([19.6, 45, 20.1, 45.5]));
+  expect((await more).kind).toBe('stale'); expect((await exactRead).kind).toBe('stale'); expect((await movedMap).kind).toBe('stale');
+  const held = owner.snapshot();
+  expect(held.active).toBe(true);
+  expect(held.page?.items.map(x => x.id)).toEqual([ID1]);
+  expect(held.map?.coverageBounds).toEqual([19.7, 45.1, 20, 45.4]);
+  expect(held.exact).toBeNull();
+  // Driven again, it continues on the same anchor from where it was.
+  const again = owner.nextPage();
+  expect((h.pending[5].request as any).anchor).toEqual(anchor());
+  h.pending[5].resolve(page([ID1, ID2], A, false)); expect((await again).kind).toBe('applied');
+  expect(owner.snapshot().page?.items.map(x => x.id)).toEqual([ID1, ID2]);
+  owner.retire(); owner.suspend();                                        // a retired owner stays retired
+  expect(owner.snapshot().active).toBe(false);
+});

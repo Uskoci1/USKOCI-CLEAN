@@ -14,11 +14,12 @@ export function discoveryV1ErrorCode(error: unknown): string {
   return CODE.test(message) ? message : 'UNCODED';
 }
 
-export type DiscoveryV1TraceEvent = 'restored' | 'restore-failed' | 'read-failed' | 'markers' | 'settled' | 'pin';
+export type DiscoveryV1TraceEvent = 'restored' | 'restore-failed' | 'read-failed' | 'markers' | 'settled' | 'pin' | 'warm';
 
 /**
  * Bounded diagnosis of why the P6 screen ends in its error state, for the DEV package only: a fixed event name and one fixed error code
- * or two counts (`settled`: how a settled camera move was classified; `pin`: milliseconds to the touched bucket's halo and to its card data). No task, person,
+ * or two counts (`settled`: how a settled camera move was classified; `pin`: milliseconds to the touched bucket's halo and to its card data; `warm`: a return that showed the kept
+ * picture, its age in seconds and its rows). No task, person,
  * request, bounds or free text, and at most MAX_LINES lines per app run (and OWN_BUDGET lines of each of the short `pin` and `settled` lines).
  */
 export function traceDiscoveryV1(event: DiscoveryV1TraceEvent, detail: string | null = null) {

@@ -10,6 +10,7 @@ import type { MarketplaceItem, MarketplaceView, PublicBounds } from '../../../da
 import type { WorkAreaCamera } from '../../../data/discoveryWorkArea';
 import type { TaskRelation } from '../../../data/taskRelation';
 import { DiscoveryV1PresentationBridge } from '../../../data/discoveryV1PresentationBridge';
+import type { DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
 import type { SearchDraft } from './DiscoverySearchPanel';
 import { StateView } from '../../system/StateView';
 import type { DiscoveryTrace } from '../DiscoveryPresentation';
@@ -29,6 +30,8 @@ export type DiscoveryV1ScreenProps = {
   onNew: () => void;
   onNotifications: () => void;
   trace?: DiscoveryTrace;
+  /** What the route keeps of a screen that left (EX-03 warm return). Without it the screen retires its coordinator on the way out, as before. */
+  warmReturn?: DiscoveryV1WarmReturn<Coordinator>;
 };
 
 const SEARCH_SETTLE_MS = 250;
@@ -38,14 +41,24 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const currentRef = useRef(props.isCurrent); currentRef.current = props.isCurrent;
   const persistRef = useRef(props.onPersistView); persistRef.current = props.onPersistView;
   const optionalCommitRef = useRef<() => void>(() => {});
-  const coordinator = useMemo<Coordinator>(() => createDiscoveryV1RouteCoordinator(
+  // EX-03 (owner approval 2026-09-30): the coordinator the route kept from the last visit, if it is still warm for this account and this view, is shown again without a read. It is picked
+  // once, in the first render (a pure read); the effect below takes it over.
+  const kept = useRef<{ coordinator: Coordinator; ageMs: number; source: DiscoveryV1ScreenProps['source'] } | null | undefined>(undefined);
+  if (kept.current === undefined) {
+    const offered = props.warmReturn?.candidate(props.scopeKey, props.source, props.initialView) ?? null;
+    kept.current = offered && { ...offered, source: props.source };
+  }
+  const [replaced, setReplaced] = useState(false);
+  const coordinator = useMemo<Coordinator>(() => (!replaced && kept.current && kept.current.source === props.source ? kept.current.coordinator : null) ?? createDiscoveryV1RouteCoordinator(
     createDiscoveryV1SupabaseTransport(),
     createDiscoveryV1ExistingOverlayLoaders(props.source),
     () => currentRef.current(),
     () => optionalCommitRef.current(),
-  ), [props.source]);
-  const [state, setState] = useState<DiscoveryV1RouteSnapshot | null>(null);
-  const [loading, setLoading] = useState(true), [error, setError] = useState(false);
+  ), [props.source, replaced]);
+  const warmStart = !replaced && !!kept.current && coordinator === kept.current.coordinator;
+  const [state, setState] = useState<DiscoveryV1RouteSnapshot | null>(() => warmStart ? coordinator.snapshot() : null);
+  const [loading, setLoading] = useState(!warmStart), [error, setError] = useState(false);
+  const errorRef = useRef(false); errorRef.current = error;
   const mounted = useRef(true), searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null), searchGeneration = useRef(0);
 
   const commit = useCallback(() => {
@@ -72,21 +85,39 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
 
   useEffect(() => {
     mounted.current = true;
-    setLoading(true); setError(false);
-    void coordinator.restore(initialViewRef.current).then(() => {
-      if (!mounted.current || !currentRef.current()) return;
-      const read = coordinator.snapshot().screen;
-      traceDiscoveryV1('restored', `${Math.min(read.items.length, 9999)}/${Math.min(read.mapMarkers.length, 9999)}`);
-      commit(); setLoading(false);
-    }, failure => {
-      if (!mounted.current || !currentRef.current()) return;
-      traceDiscoveryV1('restore-failed', discoveryV1ErrorCode(failure));
-      setError(true); setLoading(false);
-    });
+    let parkable = true;
+    if (warmStart) {
+      if (coordinator.attach({ isCurrent: () => currentRef.current(), onOptionalState: () => optionalCommitRef.current() })) {
+        // The kept picture is already on screen (first render). Nothing is read: attaching asks the optional overlay again in the background.
+        props.warmReturn?.claim(coordinator);
+        const read = coordinator.snapshot().screen, rows = Math.min(read.items.length, 9999);
+        traceDiscoveryV1('restored', `${rows}/${Math.min(read.mapMarkers.length, 9999)}`);
+        traceDiscoveryV1('warm', `${Math.min(Math.round((kept.current?.ageMs ?? 0) / 1000), 9999)}/${rows}`);
+        commit();
+      } else {
+        // Retired in the meantime: a fresh coordinator of our own reads this visit like a first one.
+        parkable = false; kept.current = null; setState(null); setReplaced(true);
+      }
+    } else {
+      props.warmReturn?.discard(coordinator);
+      setLoading(true); setError(false);
+      void coordinator.restore(initialViewRef.current).then(() => {
+        if (!mounted.current || !currentRef.current()) return;
+        const read = coordinator.snapshot().screen;
+        traceDiscoveryV1('restored', `${Math.min(read.items.length, 9999)}/${Math.min(read.mapMarkers.length, 9999)}`);
+        commit(); setLoading(false);
+      }, failure => {
+        if (!mounted.current || !currentRef.current()) return;
+        traceDiscoveryV1('restore-failed', discoveryV1ErrorCode(failure));
+        setError(true); setLoading(false);
+      });
+    }
     return () => {
       mounted.current = false;
       if (searchTimer.current) clearTimeout(searchTimer.current);
-      coordinator.retire();
+      // The route may keep the coordinator for the next screen (a screen that leaves in its error state is not worth keeping).
+      if (parkable && props.warmReturn && !errorRef.current) props.warmReturn.park(props.scopeKey, props.source, coordinator);
+      else coordinator.retire();
     };
   }, [coordinator, commit]);
 

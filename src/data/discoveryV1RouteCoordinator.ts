@@ -36,12 +36,15 @@ export function discoveryV1RouteIntentKey(view:MarketplaceView):string{
  */
 export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTransport,overlayLoaders:DiscoveryV1OverlayLoaders,
   isCurrent:()=>boolean=()=>true,onOptionalState:()=>void=()=>{}){
-  let active=true,generation=0,routeView:MarketplaceView|null=null,selectedMarkerKey:string|null=null,loadingMore=false;
-  const screen=createDiscoveryV1ScreenSession(transport,()=>active&&isCurrent());
-  const overlay=createDiscoveryV1OverlayOwner(overlayLoaders,()=>active&&isCurrent());
-  const search=createDiscoveryV1SearchOwner(transport,()=>active&&isCurrent());
+  let active=true,attached=true,generation=0,routeView:MarketplaceView|null=null,selectedMarkerKey:string|null=null,loadingMore=false,restoring=0;
+  // EX-03: who drives this coordinator right now. A screen that leaves detaches it (the route may keep it for a short while, see DiscoveryV1WarmReturn); the next screen attaches its own callbacks.
+  let binding={isCurrent,onOptionalState};
+  const driven=()=>active&&attached&&binding.isCurrent();
+  const screen=createDiscoveryV1ScreenSession(transport,driven);
+  const overlay=createDiscoveryV1OverlayOwner(overlayLoaders,driven);
+  const search=createDiscoveryV1SearchOwner(transport,driven);
 
-  const current=(g?:number)=>active&&(g===undefined||g===generation)&&isCurrent();
+  const current=(g?:number)=>driven()&&(g===undefined||g===generation);
   // The server's anchor lives 30 minutes. A screen left open longer reads with an expired anchor: the transport names that refusal and the read is RENEWED by one fresh open of the
   // same traversal (the old anchor is never retried). A second refusal, or any other error, reaches the screen exactly as before.
   const anchorExpired=(error:unknown)=>error instanceof Error&&error.message==='DISCOVERY_V1_ANCHOR_EXPIRED';
@@ -71,13 +74,14 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     overlay:overlay.snapshot(),search:search.snapshot(),selectedMarkerKey,loadingMore});
 
   const refreshOverlay=async(g:number)=>{
+    if(!driven())return false;
     const rows=screen.snapshot().wireItems.slice(0,DISCOVERY_V1_OVERLAY_LIMIT);
     const result=await overlay.load(rows);
     const changed=current(g)&&result.kind==='applied';
-    if(changed)onOptionalState();
+    if(changed)binding.onOptionalState();
     return changed;
   };
-  const refreshOverlayInBackground=(g:number)=>{void refreshOverlay(g).catch(()=>{if(current(g))onOptionalState();});};
+  const refreshOverlayInBackground=(g:number)=>{void refreshOverlay(g).catch(()=>{if(current(g))binding.onOptionalState();});};
   const savedMarker=()=>{
     if(!routeView)return null;
     const markers=screen.snapshot().mapMarkers;
@@ -112,19 +116,23 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
    * rows instead of clamping it to the end of page one. Extra pages are best effort: a failed or exhausted one keeps what is read.
    */
   async function restore(next:MarketplaceView,pageLimit=50){
-    const wanted=Math.min(DISCOVERY_V1_RESTORE_PAGES,Math.max(1,Math.trunc(next.pages??1)||1));
-    const first=await open(next,pageLimit);
-    if(first.kind!=='applied'||wanted<2)return first;
-    const g=generation;
-    for(let read=1;read<wanted&&screen.snapshot().pageHasMore;read++){
-      let step;
-      try{step=await screen.nextPage();}catch{break;}
-      if(!current(g)||step.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-      if(step.kind!=='applied'||!routeView)break;
-      routeView={...routeView,pages:read+1};
-    }
-    refreshOverlayInBackground(g);
-    return {kind:'applied' as const,snapshot:snapshot()};
+    // A traversal that is still being restored (the extra pages) is not a picture worth keeping: `detach`/`warm` say no until it is whole.
+    restoring++;
+    try{
+      const wanted=Math.min(DISCOVERY_V1_RESTORE_PAGES,Math.max(1,Math.trunc(next.pages??1)||1));
+      const first=await open(next,pageLimit);
+      if(first.kind!=='applied'||wanted<2)return first;
+      const g=generation;
+      for(let read=1;read<wanted&&screen.snapshot().pageHasMore;read++){
+        let step;
+        try{step=await screen.nextPage();}catch{break;}
+        if(!current(g)||step.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
+        if(step.kind!=='applied'||!routeView)break;
+        routeView={...routeView,pages:read+1};
+      }
+      refreshOverlayInBackground(g);
+      return {kind:'applied' as const,snapshot:snapshot()};
+    }finally{restoring--;}
   }
 
   async function updateView(next:MarketplaceView){
@@ -255,9 +263,34 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return open({...routeView,...draft,selectedId:null,selectedPlace:null,listOffset:0});
   }
 
+  // EX-03 (owner approval 2026-09-30): the screen that drives this coordinator may leave and come back within a short while. What it showed is worth keeping only if it is WHOLE: nothing is
+  // replacing it (a filter, a place, an area, a refresh), the traversal is not being restored, and a first page was read.
+  const whole=()=>reading===0&&restoring===0&&!!routeView&&screen.snapshot().counts!==null;
+  /**
+   * The screen is leaving but may return (DiscoveryV1WarmReturn). Everything in flight is fenced for good, even if the coordinator is driven again (the owners abort their requests and their
+   * sequences move on); what the screen showed stays. Returns whether that picture is whole and worth keeping: false, and the caller retires the coordinator instead.
+   */
+  const detach=():boolean=>{
+    if(!active||!attached)return false;
+    const keep=whole();
+    attached=false;generation++;loadingMore=false;
+    screen.suspend();overlay.suspend();search.suspend();
+    return keep;
+  };
+  /** The next screen takes the coordinator over with its own callbacks. The public picture is shown as it is; the optional overlay (relations, urgency, profiles) is asked again in the background. */
+  const attach=(next:{isCurrent:()=>boolean;onOptionalState:()=>void}):boolean=>{
+    if(!active)return false;
+    binding=next;attached=true;refreshOverlayInBackground(generation);
+    return true;
+  };
+  /** A detached coordinator whose picture can be shown again without a read: whole, and of the same search intent as the view the next screen would open (sheet, offset, camera and selection are not intent). */
+  const warm=(next:MarketplaceView):boolean=>active&&!attached&&whole()&&discoveryV1RouteIntentKey(next)===discoveryV1RouteIntentKey(routeView!);
+
   const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;held=null;
     screen.retire();overlay.retire();search.retire();};
 
   return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
-    snapshot,refreshOverlay:()=>refreshOverlay(generation),retire};
+    snapshot,refreshOverlay:()=>refreshOverlay(generation),attach,detach,warm,retire};
 }
+
+export type DiscoveryV1RouteCoordinator=ReturnType<typeof createDiscoveryV1RouteCoordinator>;

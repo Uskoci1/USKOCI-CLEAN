@@ -212,3 +212,13 @@ it('EX-03: a newer touch fences the known card of an older one, and a late answe
  x.pending[2].resolve(exact());expect((await older).kind).toBe('stale');
  expect(s.snapshot().peek).toBeNull();
 });
+it('EX-03 warm return: a selection read in flight when the screen leaves never lands, and the card that was showing stays', async () => {
+ const {x,s}=await openLoaded();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ const card=s.snapshot().peek;expect(card).not.toBeNull();
+ s.suspend();
+ x.pending[2].resolve({...exact(),items:[{...item(),revision:9,title:'Kasni odgovor'}]});
+ expect(await selected).toEqual({kind:'stale'});
+ expect(s.snapshot().peek).toBe(card);
+ expect(s.snapshot().items).toHaveLength(1);
+});

@@ -104,3 +104,23 @@ it('a preview read a while ago is read again, and a failed one is asked again at
  const retry=owner.preview(v,null,3);expect(h.pending).toHaveLength(6);
  h.pending[4].resolve(page(5));h.pending[5].resolve(places());expect((await retry).kind).toBe('applied');now.mockRestore();
 });
+
+// EX-03 warm return: a preview belongs to one visit of the search panel. A suspended owner drops what it read and what it was reading, and stays usable; the same draft asked again reads.
+it('suspend drops the preview and the one in flight, and the owner reads again afterwards', async () => {
+  const h = harness(), owner = createDiscoveryV1SearchOwner(h.transport), v = view({ query: 'nov' });
+  const first = owner.preview(v, null, 3);
+  h.pending[0].resolve(page(42)); h.pending[1].resolve(places()); await first;
+  expect(owner.snapshot()).toMatchObject({ status: 'ready', count: 42 });
+  const inFlight = owner.preview(view({ query: 'novo' }), null, 3);
+  owner.suspend();
+  expect(h.pending[2].signal.aborted).toBe(true); expect(h.pending[3].signal.aborted).toBe(true);
+  h.pending[2].resolve(page(6)); h.pending[3].resolve(places());
+  expect((await inFlight).kind).toBe('stale');
+  expect(owner.snapshot()).toMatchObject({ active: true, status: 'idle', key: null, count: null, places: [] });
+  const again = owner.preview(v, null, 3);                                // the same draft as the ready one: read, not answered from the old preview
+  expect(h.pending).toHaveLength(6);
+  h.pending[4].resolve(page(42)); h.pending[5].resolve(places());
+  expect((await again).kind).toBe('applied');
+  owner.retire(); owner.suspend();
+  expect(owner.snapshot().active).toBe(false);
+});

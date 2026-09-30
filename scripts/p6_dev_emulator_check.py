@@ -68,6 +68,8 @@ LOG = None              # qa_device.LogStream: the app's log streamed to a local
 PROFILE = {}            # qa_device.Device.profile(): which device and which build produced the numbers
 PHASE_GFX = {}          # frame statistics per phase (the counters are reset at the start of each phase)
 RESTORED = re.compile(r'^(\d\d-\d\d \d\d:\d\d:\d\d\.\d{3}).*\[USKOCI_P6_TRACE\] \["restored","\d+/\d+"\]', re.M)
+# EX-03 (warm return): the trace line of a return that showed the kept picture instead of reading PAGE and MAP again (age in seconds / rows). A build without it never logs it.
+WARM = re.compile(r'\[USKOCI_P6_TRACE\] \["warm","(\d+)/(\d+)"\]')
 
 
 def log(*parts):
@@ -587,6 +589,7 @@ def cycles():
     mem = [{'tag': 'before', 'kb': pss_kb(), 'pid': pid()}]
     returns, restored, ok_all = [], [], True
     gfx_reset()
+    cycles_mark = LOG.mark()
     for i in range(1, ARGS.cycles + 1):
         root = dump()
         cs = cards(root)
@@ -633,6 +636,7 @@ def cycles():
     REPORT['cycles'] = {'n': ARGS.cycles, 'returnsS': returns, 'restoredAfterBackS': restored, 'mem': mem,
                         'returnP50S': percentile(done, .5), 'returnP95S': percentile(done, .95), 'returnMaxS': max(done, default=None),
                         'restoredP50S': percentile(js, .5), 'restoredP95S': percentile(js, .95), 'restoredMaxS': max(js, default=None),
+                        'warmReturns': len(WARM.findall(LOG.since(cycles_mark))),
                         'note': 'returnsS: Back -> cards seen by a UI dump (includes the dump itself); restoredAfterBackS: Back -> the screen\'s own restored trace line (device clock)'}
     check('EVERY_CYCLE_OPENED_AND_RETURNED', ok_all and len(done) == ARGS.cycles, returns=len(done))
     pids = {m['pid'] for m in mem if m['pid']}

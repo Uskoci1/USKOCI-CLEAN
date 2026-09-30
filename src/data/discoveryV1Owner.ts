@@ -357,6 +357,15 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
     }
   }
 
+  /**
+   * The screen that drives this owner has left and may come back (the route keeps it for a short while): every read in flight is aborted and can never land, even if the owner
+   * is driven again; what is held (the anchor, the page, the map, the selection reads) stays exactly as it was.
+   */
+  const suspend = () => {
+    if (!active) return;
+    abortAll(); pageSequence++; mapSequence++; placesSequence++; membersSequence++; exactSequence++;
+  };
+
   const retire = () => {
     if (!active) return;
     active = false; epoch++; pageSequence++; mapSequence++; placesSequence++; membersSequence++; exactSequence++;
@@ -364,5 +373,5 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
     pageAnchor = null; placesBase = null; membersBase = null;
   };
 
-  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, firstMembers, nextMembers, clearSelectionReads, readExact, retire, snapshot };
+  return { begin, setScope, firstPage, nextPage, loadMap, firstPlaces, nextPlaces, firstMembers, nextMembers, clearSelectionReads, readExact, suspend, retire, snapshot };
 }

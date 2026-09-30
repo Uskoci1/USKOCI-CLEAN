@@ -218,3 +218,27 @@ it('the presentation bridge model keeps labels and names during a reload with it
  expect(model.items[0]).toMatchObject({narucilacIme:'Ana',narucilacOcena:'4,8'});
  gate.resolve(answers([ID1],{[ID1]:'OWNER'}));expect((await reload).kind).toBe('applied');
 });
+
+// EX-03 warm return: a suspended overlay owner keeps what the last settled load knew, its load in flight can never land, and it is usable again afterwards.
+it('suspend keeps what the last load knew, aborts the load in flight and lets it never land', async () => {
+  const relations = jest.fn(async (ids: readonly string[]) => taskRelationIndex([], ids));
+  const slow = deferred<any>();
+  let calls = 0;
+  const loaders: DiscoveryV1OverlayLoaders = { relations: ids => ++calls === 1 ? relations(ids) : slow.promise, profile: async () => profile(), urgencies: async () => new Map() };
+  const owner = createDiscoveryV1OverlayOwner(loaders);
+  await owner.load([item(ID1)]);
+  const known = owner.snapshot();
+  expect(known.profiles.size).toBe(1);
+  const late = owner.load([item(ID1)]);
+  expect(owner.snapshot().loading).toBe(true);
+  owner.suspend();
+  expect(owner.snapshot().loading).toBe(false);
+  expect(owner.snapshot().profiles.size).toBe(1);                        // what was known stays
+  slow.resolve(taskRelationIndex([], [ID1]));
+  expect((await late).kind).toBe('stale');
+  expect(owner.snapshot().active).toBe(true);
+  expect(owner.snapshot().sliceKey).toBe(known.sliceKey);
+  expect((await owner.load([item(ID1)])).kind).toBe('applied');          // and it can load again
+  owner.retire(); owner.suspend();
+  expect(owner.snapshot().active).toBe(false);
+});

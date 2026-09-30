@@ -157,10 +157,17 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
     return { kind: 'applied', snapshot: snapshot() };
   }
 
+  /** The screen has left and may come back: a load in flight is aborted and can never land; what the last settled load knew stays until the next one replaces it. */
+  const suspend = () => {
+    if (!active) return;
+    generation++; controller?.abort(); controller = null;
+    if (state.loading) state = { ...state, loading: false };
+  };
+
   const retire = () => {
     if (!active) return;
     active = false; generation++; controller?.abort(); controller = null;
     state = empty();
   };
-  return { load, snapshot, retire };
+  return { load, snapshot, suspend, retire };
 }

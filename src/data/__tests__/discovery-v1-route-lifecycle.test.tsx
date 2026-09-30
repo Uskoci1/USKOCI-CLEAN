@@ -38,6 +38,7 @@ jest.mock('../needUrgencyClientService', () => ({ readNeedUrgencies: jest.fn(asy
 jest.mock('../discoveryV1PresentationBridge', () => ({ DiscoveryV1PresentationBridge: 'Bridge' }));
 
 import { DiscoveryV1Route } from '../../ui/v2/discovery/DiscoveryV1Route';
+import { DISCOVERY_V1_WARM_RETURN_MS } from '../discoveryV1WarmReturn';
 
 const rowId = (n: number) => `00000000-0000-4000-8000-${String(n + 1).padStart(12, '0')}`;
 const anchor = () => ({ version: 'DISCOVERY_V1', filterKey: A, timeAt: AT, publishedThrough: AT, expiresAt: EX });
@@ -92,7 +93,26 @@ beforeEach(() => {
   mockFocused = true; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear();
   info = jest.spyOn(console, 'info').mockImplementation(() => {});
 });
-afterEach(async () => { if (tree) await act(async () => tree!.unmount()); tree = undefined; info.mockRestore(); });
+afterEach(async () => { if (tree) await act(async () => tree!.unmount()); tree = undefined; info.mockRestore(); clock?.mockRestore(); clock = undefined; });
+let clock: jest.SpyInstance | undefined;
+/** The warm window has passed: the picture the route kept is no longer offered, so the next return reads like a first visit. */
+const pastWarmWindow = () => {
+  const real = Date.now.bind(Date);
+  clock = jest.spyOn(Date, 'now').mockImplementation(() => real() + DISCOVERY_V1_WARM_RETURN_MS + 1000);
+};
+/** Another screen comes in front (the route retires its screen), something happens while it is away, and the person comes back. */
+const leaveAndReturn = async (whileAway?: () => Promise<void> | void) => {
+  mockFocused = false;
+  await act(async () => { tree!.update(<DiscoveryV1Route />); });
+  await flush();
+  expect(tree!.root.findAllByType('Bridge' as unknown as React.ElementType)).toHaveLength(0);
+  await whileAway?.();
+  await flush();
+  mockTransportCalls.length = 0;
+  mockFocused = true;
+  await act(async () => { tree!.update(<DiscoveryV1Route />); });
+  await flush();
+};
 
 test('the database echo of native viewport bounds is a different double, so the fake server proves the trap', () => {
   expect(databaseEcho(NATIVE_BOUNDS)).not.toEqual(NATIVE_BOUNDS);
@@ -124,8 +144,9 @@ test('a return from another screen rebuilds the same list, restores its read dep
   await flush();
   expect(tree!.root.findAllByType('Bridge' as unknown as React.ElementType)).toHaveLength(0);
 
-  // ... and on the way back it is rebuilt from the saved view, the map read over the camera's own bounds.
+  // ... and on the way back, after the warm window, it is rebuilt from the saved view, the map read over the camera's own bounds.
   mockTransportCalls.length = 0;
+  pastWarmWindow();
   mockFocused = true;
   await act(async () => { tree!.update(<DiscoveryV1Route />); });
   await flush();
@@ -210,6 +231,7 @@ test('a return that cannot read the map still ends in the honest error state wit
   await act(async () => { tree!.update(<DiscoveryV1Route />); });
   await flush();
   mockTransport = async request => { if (request.mode === 'MAP') throw new Error('DISCOVERY_V1_READ_FAILED'); return server(request); };
+  pastWarmWindow();
   mockFocused = true;
   await act(async () => { tree!.update(<DiscoveryV1Route />); });
   await flush();
@@ -307,4 +329,88 @@ test('a change of view is handed back at once, so the next change is built on it
   expect(errorState()).toHaveLength(0);
   expect(mockTransportCalls.filter(request => request.mode === 'PAGE').map(request => (request as any).filter.place)).toEqual(['Liman, Novi Sad']);
   expect(bridge().props.snapshot.view).toMatchObject({ place: 'Liman, Novi Sad', sheet: 'peek' });
+});
+
+// EX-03 warm return (owner approval 2026-09-30): a return inside the warm window shows the picture the screen left, at once, and reads neither the list nor the map again.
+test('EX-03: a quick return shows the same picture at once and reads neither the list nor the map again', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  await act(async () => { bridge().props.actions.onNextPage(); });
+  await flush();
+  const settled = { center: [20.6, 45.3], zoom: 8, bounds: NATIVE_BOUNDS };
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, viewport: settled, sheet: 'full', listOffset: 4200 }); });
+  await flush();
+  const relationReads = mockSource.odnosiPremaZadacima.mock.calls.length;
+  info.mockClear();
+
+  await leaveAndReturn();
+  expect(errorState()).toHaveLength(0);
+  expect(bridge().props.snapshot.items).toHaveLength(100);
+  expect(bridge().props.snapshot.view).toMatchObject({ pages: 2, sheet: 'full', listOffset: 4200, viewport: settled });
+  expect(bridge().props.snapshot.mapMarkers).toHaveLength(1);
+  expect(bridge().props.loading).toBe(false);
+  expect(modes()).toEqual([]);                                            // no PAGE, no MAP
+  expect(mockSource.odnosiPremaZadacima.mock.calls.length).toBe(relationReads + 1);   // the account relations are asked again, in the background
+  expect(traced()).toEqual(['[USKOCI_P6_TRACE] ["restored","100/1"]', expect.stringMatching(/^\[USKOCI_P6_TRACE\] \["warm","\d{1,3}\/100"\]$/)]);
+});
+
+test('EX-03: the pin selected when the screen left is still selected, with its card, and nothing is read for it on the way back', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  const marker = bridge().props.snapshot.mapMarkers[0];
+  await act(async () => { bridge().props.actions.onSelectMarker(marker); });
+  await flush();
+  expect(bridge().props.snapshot.peek).toMatchObject({ kind: 'TASK' });
+
+  await leaveAndReturn();
+  expect(bridge().props.snapshot.peek).toMatchObject({ kind: 'TASK', item: { id: rowId(0) } });
+  expect(bridge().props.selectedMarkerKey).toBe(marker.key);
+  expect(bridge().props.snapshot.view).toMatchObject({ selectedId: rowId(0), sheet: 'peek' });
+  expect(modes()).toEqual([]);
+});
+
+test('EX-03: a read that is replacing the list when the screen leaves is not kept, the return reads like a first visit and shows no error', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  let release!: () => void;
+  const held = new Promise<void>(done => { release = done; });
+  const original = mockTransport;
+  mockTransport = async request => { if (request.mode === 'PAGE') await held; return original(request); };
+  await act(async () => { bridge().props.onRefresh(); });                // pull to refresh: a read that replaces the list and waits
+  await flush();
+
+  await leaveAndReturn(() => { mockTransport = original; release(); });
+  expect(errorState()).toHaveLength(0);
+  expect(bridge().props.snapshot.items).toHaveLength(50);
+  expect(modes()).toEqual(['PAGE', 'MAP', 'MAP']);                        // a first visit again
+});
+
+test('EX-03: a screen that left in its error state is not kept', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  const original = mockTransport;
+  mockTransport = async () => { throw new Error('DISCOVERY_V1_READ_FAILED'); };
+  await act(async () => { bridge().props.actions.onNextPage(); });
+  await flush();
+  expect(bridge().props.error).toBe(true);
+
+  await leaveAndReturn(() => { mockTransport = original; });
+  expect(errorState()).toHaveLength(0);
+  expect(bridge().props.error).toBe(false);
+  expect(modes()).toEqual(['PAGE', 'MAP', 'MAP']);
+});
+
+test('EX-03: what the route kept goes with the route', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  mockFocused = false;
+  await act(async () => { tree!.update(<DiscoveryV1Route />); });
+  await flush();
+  await act(async () => tree!.unmount());                                 // sign-out or an account change: the whole route goes
+  tree = undefined;
+  mockTransportCalls.length = 0;
+  mockFocused = true;
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  expect(modes()).toEqual(['PAGE', 'MAP', 'MAP']);                        // a new route reads its own first visit
 });
