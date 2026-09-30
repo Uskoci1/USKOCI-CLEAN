@@ -31,6 +31,10 @@ env:
   # inlines undefined and the signed APK ships an app in which password recovery can
   # never work. The exact value is asserted below against the artifact, not assumed.
   EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
+  # P6 (2026-09-30): the Zadaci route reads through the P6 server reader (rpc_discovery_v1) and needs the P6 rollout on the target backend. The
+  # canonical DEV project carries it; a build for a backend without it must leave this out (or set it to '0'). It is a compile-time switch:
+  # recompiling without it is the kill switch.
+  EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
   CI: '1'
   NODE_ENV: production
 
