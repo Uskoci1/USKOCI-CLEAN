@@ -160,12 +160,25 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const selection=++selectionSequence;owner.clearSelectionReads();
     if(marker.kind==='CLUSTER'){peek=null;return {kind:'CLUSTER',bounds:[...marker.memberBounds] as PublicBounds};}
     if(marker.kind==='TASK'){
-      const result=await owner.readExact(marker.taskId);
+      // EX-03: PAGE and EXACT_PUBLIC return the same public item, so a row the list already holds IS the card's data. It is exposed at once (this runs before the first await,
+      // so the caller can publish it in the same turn as the touch) and the exact read, which still goes out, only confirms or refreshes it: the card is replaced only when the
+      // answer differs, a failed read keeps the known card, an answer without the task takes it away. A task that is not loaded waits for the exact read as before, and the card
+      // that was showing stays until the new one lands.
+      const loaded=owner.snapshot().page?.items.find(row=>row.id===marker.taskId)??null;
+      if(loaded) peek={kind:'TASK',item:discoveryV1Opportunities([loaded])[0]};
+      let result;
+      try{result=await owner.readExact(marker.taskId);}
+      catch(error){
+        if(selection!==selectionSequence||!isCurrent()) return {kind:'stale'};
+        if(loaded) return {kind:'TASK',applied:true};
+        throw error;
+      }
       if(selection!==selectionSequence||!isCurrent()||result.kind==='stale') return {kind:'stale'};
-      if(result.kind!=='applied'){peek=null;return {kind:'TASK',applied:false};}
+      if(result.kind!=='applied'){if(!loaded)peek=null;return {kind:'TASK',applied:!!loaded};}
       const item=result.value.items[0];
-      peek=item?{kind:'TASK',item:discoveryV1Opportunities([item])[0]}:null;
-      return {kind:'TASK',applied:!!item};
+      if(!item){peek=null;return {kind:'TASK',applied:false};}
+      if(!loaded||JSON.stringify(item)!==JSON.stringify(loaded)) peek={kind:'TASK',item:discoveryV1Opportunities([item])[0]};
+      return {kind:'TASK',applied:true};
     }
     const result=await owner.firstMembers(marker.point,50);
     if(selection!==selectionSequence||!isCurrent()||result.kind==='stale') return {kind:'stale'};

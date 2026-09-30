@@ -111,23 +111,30 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   // newest touch keeps it when an older read finishes late. The DEV package traces the milliseconds to the halo and to the card data (P6-10).
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const touches = useRef(0);
-  const tap = useRef<{ key: string; at: number; feedback: number | null; touch: number } | null>(null);
+  const tap = useRef<{ key: string; at: number; feedback: number | null; touch: number; cardAt: number | null } | null>(null);
   useEffect(() => {
     const touch = tap.current;
     if (pendingKey !== null && touch && touch.key === pendingKey && touch.feedback === null) touch.feedback = Date.now() - touch.at;
   }, [pendingKey]);
   const selectMarker = useCallback((marker: DiscoveryV1MapMarker) => {
     const touch = ++touches.current;
-    tap.current = { key: marker.key, at: Date.now(), feedback: null, touch };
+    const record = { key: marker.key, at: Date.now(), feedback: null as number | null, touch, cardAt: null as number | null };
+    tap.current = record;
     if (marker.kind !== 'CLUSTER') setPendingKey(marker.key);
     let applied = false;
+    // EX-03: a task the list already holds sets its card in this very call (before the exact read's first await), so the card is published in the same turn as the touch
+    // instead of when the read lands; the read goes on and only confirms or refreshes it. A new card object in the snapshot is the sign that one was set.
+    const shown = coordinator.snapshot().screen.peek;
+    const reading = coordinator.selectMarker(marker);
+    const now = coordinator.snapshot().screen.peek;
+    if (marker.kind !== 'CLUSTER' && now && now !== shown) { record.cardAt = Date.now(); commit(); }
     void execute(async () => {
-      const result = await coordinator.selectMarker(marker);
+      const result = await reading;
       applied = (result.kind === 'TASK' || result.kind === 'PLACE') && result.applied;
     }).then(() => {
       const latest = tap.current;
       if (applied && latest && latest.touch === touch) {
-        const content = Math.min(Date.now() - latest.at, 9999);
+        const content = Math.min((latest.cardAt ?? Date.now()) - latest.at, 9999);
         traceDiscoveryV1('pin', `${Math.min(latest.feedback ?? content, 9999)}/${content}`);
       }
       if (mounted.current && touches.current === touch) setPendingKey(null);

@@ -50,9 +50,10 @@ it('new filter session fences an old page that resolves later',async()=>{
  x.pending[1].resolve(page([ID2]));await wait(x,2);x.pending[2].resolve(map());await newer;
  x.pending[0].resolve({bad:'old'});expect((await old).kind).toBe('stale');expect(s.snapshot().items[0].id).toBe(ID2);
 });
-it('TASK map marker resolves exact public data before exposing peek',async()=>{
- const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
+it('a TASK map marker whose row is NOT loaded resolves exact public data before exposing peek',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page([ID2]));await wait(x,1);x.pending[1].resolve(map());await opening;
  const marker=s.snapshot().mapMarkers[0],selected=s.selectMarker(marker);expect(x.pending[2].request).toEqual({mode:'EXACT_PUBLIC',needId:ID1});
+ expect(s.snapshot().peek).toBeNull();
  x.pending[2].resolve(exact());expect((await selected)).toEqual({kind:'TASK',applied:true});expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
 });
 it('PLACE map marker uses separate POINT_MEMBERS and never replaces main list',async()=>{
@@ -161,4 +162,53 @@ it('a newer own settle fences an older refresh, and a refresh before any view is
  x.pending[reads].resolve(page([ID2]));x.pending[reads+1].resolve(map([19.5,44.5,20.5,45.5]));await settled;
  x.pending[reads-1].resolve({bad:'old'});expect((await old).kind).toBe('stale');
  expect(s.snapshot().view?.area).toEqual([19.5,44.5,20.5,45.5]);expect(s.snapshot().items[0].id).toBe(ID2);
+});
+
+// EX-03 (owner approval 2026-09-30): pin -> the existing card reacts at once from Discovery data the client already holds. PAGE and EXACT_PUBLIC return the same public item,
+// so a row the list already holds IS the card's data; the exact read still goes out and only confirms or refreshes it.
+const openLoaded=async(ids=[ID1])=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page(ids));await wait(x,1);x.pending[1].resolve(map());await opening;
+ return {x,s};
+};
+it('EX-03: a TASK marker whose row is already loaded shows its card before any answer, and the exact read still goes out',async()=>{
+ const {x,s}=await openLoaded();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:1}});          // no answer yet
+ expect(x.pending[2].request).toEqual({mode:'EXACT_PUBLIC',needId:ID1});
+ x.pending[2].resolve(exact());expect(await selected).toEqual({kind:'TASK',applied:true});
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+});
+it('EX-03: an exact answer with the same item leaves the known card untouched; a newer revision replaces it',async()=>{
+ const {x,s}=await openLoaded();
+ const first=s.selectMarker(s.snapshot().mapMarkers[0]);const known=s.snapshot().peek;
+ x.pending[2].resolve(exact());await first;
+ expect(s.snapshot().peek).toBe(known);                                                      // the very same card object: nothing to redraw
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[3].resolve({...exact(),items:[{...item(),revision:2,title:'Promenjen naslov'}]});await again;
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:2}});
+ expect((s.snapshot().peek as any).item.naslov).toBe('Promenjen naslov');
+});
+it('EX-03: a failed exact read keeps the known card and does not fail the selection; without a known row it still fails as before',async()=>{
+ const {x,s}=await openLoaded();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[2].resolve({bad:'shape'});                                                        // the decoder refuses it: a failed read
+ expect(await selected).toEqual({kind:'TASK',applied:true});
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+ const y=await openLoaded([ID2]);
+ const unknown=y.s.selectMarker(y.s.snapshot().mapMarkers[0]);
+ y.x.pending[2].resolve({bad:'shape'});await expect(unknown).rejects.toThrow();
+ expect(y.s.snapshot().peek).toBeNull();
+});
+it('EX-03: an exact answer that no longer has the task takes its known card away',async()=>{
+ const {x,s}=await openLoaded();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);expect(s.snapshot().peek).not.toBeNull();
+ x.pending[2].resolve({...exact(),items:[]});
+ expect(await selected).toEqual({kind:'TASK',applied:false});expect(s.snapshot().peek).toBeNull();
+});
+it('EX-03: a newer touch fences the known card of an older one, and a late answer of the older one changes nothing',async()=>{
+ const {x,s}=await openLoaded([ID1,ID2]);
+ const older=s.selectMarker(s.snapshot().mapMarkers[0]);
+ s.clearPeek();expect(s.snapshot().peek).toBeNull();
+ x.pending[2].resolve(exact());expect((await older).kind).toBe('stale');
+ expect(s.snapshot().peek).toBeNull();
 });

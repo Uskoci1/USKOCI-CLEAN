@@ -128,3 +128,37 @@ test('a store build traces nothing and still answers the touch', async () => {
   expect(traced()).toHaveLength(0);
   await act(async () => { tree.unmount(); });
 });
+
+test('EX-03: a card the session already knows is published in the same turn as the touch, before the exact read answers', async () => {
+  const read = deferred<any>();
+  let peek: any;
+  mockCoordinator.snapshot = () => ({ screen: { active: true, view: { id: 'view' }, items: [], mapMarkers: [], peek }, view: { id: 'view' }, overlay: null, search: null, selectedMarkerKey: selectedKey, loadingMore: false });
+  mockCoordinator.selectMarker = jest.fn(() => { peek = { kind: 'TASK', item: { id: '11111111-1111-4111-8111-111111111111' } }; return read.promise; });   // a loaded row: the card is set at once
+  const tree = await render();
+  expect(mockBridge.props.snapshot.peek).toBeUndefined();
+  await touch(marker('TASK', 'task:a'));
+  expect(mockBridge.props.snapshot.peek).toBe(peek);                      // the screen already holds the card; the read has not answered
+  expect(halo()).toBe('task:a');
+  expect(traced()).toHaveLength(0);
+  await act(async () => { selectedKey = 'task:a'; read.resolve({ kind: 'TASK', applied: true, snapshot: {} }); await Promise.resolve(); });
+  await flush();
+  const lines = traced();
+  expect(lines).toHaveLength(1);                                          // traced once, when the read confirmed it, with the time the CARD was published
+  expect(lines[0]).toMatch(/^\[USKOCI_P6_TRACE\] \["pin","\d{1,4}\/\d{1,4}"\]$/);
+  await act(async () => { tree.unmount(); });
+});
+
+test('EX-03: a task that is not loaded leaves the card that is showing until the read answers', async () => {
+  const read = deferred<any>();
+  const shown = { kind: 'TASK', item: { id: '22222222-2222-4222-8222-222222222222' } };
+  mockCoordinator.snapshot = () => ({ screen: { active: true, view: { id: 'view' }, items: [], mapMarkers: [], peek: shown }, view: { id: 'view' }, overlay: null, search: null, selectedMarkerKey: selectedKey, loadingMore: false });
+  mockCoordinator.selectMarker = jest.fn(() => read.promise);            // nothing known: the session sets no new card
+  const tree = await render();
+  await touch(marker('TASK', 'task:a'));
+  expect(mockBridge.props.snapshot.peek).toBe(shown);                     // unchanged: no early publication of anything
+  expect(traced()).toHaveLength(0);
+  await act(async () => { read.resolve({ kind: 'TASK', applied: true, snapshot: {} }); await Promise.resolve(); });
+  await flush();
+  expect(traced()).toHaveLength(1);
+  await act(async () => { tree.unmount(); });
+});
