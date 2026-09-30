@@ -62,4 +62,16 @@ columns are readable by neither, the five dependent policies name `is_my_task(n.
 The live smoke of the legacy build on the local emulator was NOT run afterwards (the session's permission classifier denied the script): the static evidence
 above (both older builds and the Edge function read only allowlisted columns) stands in for it and is labelled as such.
 
-(Journey evidence, the P6 rollout application receipt, cutover and the closing statement are added below as each gate is proven.)
+### P6 rollout v3 applied on canonical DEV (2026-09-30 11:06:18Z, ledger 211 → 212)
+Proof run 36705406044 (disposable target with the DEV lineage shape): v2 refuses with `P6_VISIBILITY_SEMANTIC_MISMATCH:16`, v3 applies with exact body/policy/helper
+equivalence, the helper equals the classifier and follows a changed classifier, certificate and Need ACL are unchanged, a second application is refused and an exact
+revert round trip holds. Applied through `apply_migration` as `dev_alpha_p6_discovery_rollout_v3`, behind an integrity guard that hashed the candidate span of the submitted
+text and would have refused any deviation; the stored row's candidate span has sha256 `5ae13b21…e80e` = the candidate byte for byte. Readback equals the proof's expectation
+for every object: seven SECURITY INVOKER functions with the recorded body md5s, authenticated-only EXECUTE, the helper (definition md5 `4ee16169…2ad8`, its set of five
+accounts equal to the classifier's TEST accounts), the two rewritten policies, six `needs` policies, certificate `86ba3751…` unchanged, Need ACL unchanged. `get_advisors`
+(security): the same five lints as before, none naming a P6 object. Read-only functional check (one rolled-back transaction, `authenticated` role, OWNER_PERSONAL as subject):
+PAGE 8 items / 4 pins, MAP 1 cluster of 8 (4 without a point), PLACES 3 facets (4+2+2), EXACT_PUBLIC 1 item — the recorded DEV baseline (8 published, 4 with a point).
+Receipt: `supabase/operations/dev-alpha/ledger/20260930_p6_rollout_v3_application.receipt.json`. No build with the reader compiled in is installed yet (the DEV emulator APK
+with `EXPO_PUBLIC_P6_DISCOVERY_READER=1` is the next step); builds without the flag keep using the legacy readers, which this package does not touch.
+
+(Journey evidence, the cutover and the closing statement are added below as each gate is proven.)

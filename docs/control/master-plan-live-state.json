@@ -4,7 +4,7 @@
   },
   "p6": {
     "status": "OPEN",
-    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili ~19 stvarnih nalaza (tabela u ROUND_70). Journey #9 (APK 21dc70c6): 12/12 koraka, 20/20 povrataka sa vraćenom listom bez praznog panela, memorija 470→568 MB, bez pada i ANR-a; pale samo 3 provere pokreta mape zbog greške test-vozača (jedno čitanje loga duže od čekanja; aplikacija je za sva 3 pokreta čitala i listu i mapu), popravljeno. Nezavisni pregled restore/coordinator koda: 6 stvarnih nalaza popravljeno, svaki sa reproduktorom koji pada pre popravke (nadzornik povratka, rok čitanja 15 s, zadržana slika, najnoviji izbor, trag, kontrola kolona koja sada parsira upite; stara je propuštala 7 oblika). CI client final check (tsc + ceo Jest) PASS na 650d340d; APK 36702278038 izgrađen; pun journey #10 u toku (36704063863). DEV: PKG045b P0 PRIMENJEN 2026-09-30 10:28:45Z (ledger 211, tačan tekst, readback, receipt). Smoke starog klijenta na emulatoru NIJE pokrenut (auto-mode dozvole su odbile skriptu); zamena je statički dokaz (telefon preview35 i emulatorski build čitaju samo dozvoljene kolone). Rollout v2 na DEV ODBIJEN atomski, ništa primenjeno (P6_VISIBILITY_SEMANTIC_MISMATCH:16): vlasnikovi nalozi su u TEST svetu (PKG-029e), a helper je imao fiksnu listu. Rollout v3 (TEST skup izveden iz klasifikatora) + disposable dokaz sa DEV oblikom naloga u CI (36705406044) u toku. P6 RPC još nije na DEV-u (ledger 211)."
+    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili ~19 stvarnih nalaza (tabela u ROUND_70). Journey #9 (APK 21dc70c6): 12/12 koraka, 20/20 povrataka sa vraćenom listom bez praznog panela, memorija 470→568 MB, bez pada i ANR-a; pale samo 3 provere pokreta mape zbog greške test-vozača (jedno čitanje loga duže od čekanja; aplikacija je za sva 3 pokreta čitala i listu i mapu), popravljeno. Nezavisni pregled restore/coordinator koda: 6 stvarnih nalaza popravljeno, svaki sa reproduktorom koji pada pre popravke (nadzornik povratka, rok čitanja 15 s, zadržana slika, najnoviji izbor, trag, kontrola kolona koja sada parsira upite; stara je propuštala 7 oblika). CI client final check (tsc + ceo Jest) PASS na 650d340d; APK 36702278038 izgrađen; pun journey #10 u toku (36704063863). DEV: PKG045b P0 PRIMENJEN 2026-09-30 10:28:45Z (ledger 211, tačan tekst, readback, receipt). Smoke starog klijenta na emulatoru NIJE pokrenut (auto-mode dozvole su odbile skriptu); zamena je statički dokaz (telefon preview35 i emulatorski build čitaju samo dozvoljene kolone). Rollout v2 na DEV ODBIJEN atomski, ništa primenjeno (P6_VISIBILITY_SEMANTIC_MISMATCH:16): vlasnikovi nalozi su u TEST svetu (PKG-029e), a helper je imao fiksnu listu. Rollout v3 (TEST skup izveden iz klasifikatora): disposable dokaz sa DEV oblikom naloga u CI PASS (36705406044: v2 odbija, v3 primenjuje, tačan revert) i PRIMENJEN NA DEV 2026-09-30 11:06:18Z (ledger 212, tekst kandidata tačan bajt po bajt, readback jednak očekivanju dokaza za svih 7 funkcija/pomoćnu funkciju/2 politike, sertifikat i ACL nepromenjeni, advisors isti kao pre, čitač na pravim DEV podacima: 8 zadataka/4 pina kao osnovna provera). Preostalo: cutover build sa uključenim čitačem na emulatoru protiv DEV-a (čeka dozvolu za lokalni emulator), rezultat journey #10, završni receipt."
   },
   "release": {
     "status": "NOT READY",
@@ -19,7 +19,7 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Dokaz rollout v3 → primena v3 na DEV (integrity guard + readback + receipt) → cutover čitača i provera protiv DEV-a → rezultat journey #10 → P6 ZAVRŠEN, pa nastavak po planu",
+    "title": "Rezultat journey #10 → cutover čitača i provera protiv DEV-a (build 36705117786; lokalni emulator čeka dozvolu) → završni receipt → P6 ZAVRŠEN, pa nastavak po planu",
     "note": "Bez novih performance eksperimenata i bez P7 dok je P6 otvoren. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ide sa svežim preflight-om i readback-om. Vlasnik je 2026-09-30 poručio da se uzde otpuste: posle P6 ZAVRŠEN ne stajem nego nastavljam redom po planu (uvezivanje, dizajn, poliranje, priprema objave) uz izveštaj po paketu, osim ako kaže „stani”; njegovo ostaje: pravi novac i cene, plaćeni ključevi i nalozi, pravni tekstovi i podaci firme, brisanje podataka na produkciji, sama objava u prodavnice. Emulator smoke/lokalna provera protiv DEV-a čeka njegovu dozvolu (odbijeno od auto-mode klasifikatora)."
   },
   "evidence": [
@@ -141,13 +141,19 @@
       "id": "P6-ROLLOUT-V3-PROOF",
       "run": 36705406044,
       "sha": "97ed4e3a",
-      "result": "u toku (disposable, DEV oblik lineage: v2 odbija, v3 primenjuje, tačan revert)"
+      "result": "PASS (disposable, DEV oblik lineage: v2 odbija sa :16, v3 primenjuje, helper prati klasifikator, tačan revert)"
     },
     {
       "id": "P6-DEV-EMULATOR-APK-2",
       "run": 36705117786,
       "sha": "42371918 (tmp/cutover-apk3 = 0698fdac + reader flag)",
       "result": "u toku (izvor sa popravkama pregleda)"
+    },
+    {
+      "id": "P6-ROLLOUT-V3-DEV-APPLIED",
+      "run": null,
+      "sha": "20260930110618",
+      "result": "DEV APPLIED: dev_alpha_p6_discovery_rollout_v3, ledger 211→212, kandidat sha256 5ae13b21… bajt po bajt; receipt supabase/operations/dev-alpha/ledger/20260930_p6_rollout_v3_application.receipt.json"
     }
   ]
 }
