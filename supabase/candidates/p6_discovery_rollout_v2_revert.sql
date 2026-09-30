@@ -17,11 +17,12 @@ begin
     or (select erasure from p6_revert_before) is distinct from (select digest from p6_revert_before)
     or (select ready from p6_revert_before) is distinct from true then raise exception 'P6_REVERT_CERTIFICATE_NOT_READY'; end if;
   if exists(select 1 from private.closure_executions_v5 where state='EXECUTING') then raise exception 'P6_REVERT_CLOSURE_IN_FLIGHT'; end if;
-  -- The two policies must be in the form this rollout wrote; anything else is drift that a revert must not overwrite blindly.
+  -- The two policies must be in the form this rollout wrote (the public-discovery predicate reads the world-set helper; the closed-account
+  -- predicate is wrapped as an InitPlan sub-select); anything else is drift that a revert must not overwrite blindly.
   if position('p6_discovery_test_world_accounts' in coalesce((select pg_get_expr(polqual,polrelid) from pg_policy
        where polrelid='public.needs'::regclass and polname='needs_public_discovery'),''))=0
-    or position('p6_discovery_test_world_accounts' in coalesce((select pg_get_expr(polqual,polrelid) from pg_policy
-       where polrelid='public.needs'::regclass and polname='v5_closed_account_visibility'),''))=0
+    or position('SELECT' in upper(coalesce((select pg_get_expr(polqual,polrelid) from pg_policy
+       where polrelid='public.needs'::regclass and polname='v5_closed_account_visibility'),'')))=0
     then raise exception 'P6_REVERT_POLICY_NOT_APPLIED'; end if;
 end;
 $pre$;
