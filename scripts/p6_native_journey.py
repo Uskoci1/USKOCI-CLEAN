@@ -268,6 +268,24 @@ def back_to_list(need_cards=True, need_peek=False, timeout=90, wait_for=None):
     return dump()
 
 
+def settled_card(title, timeout=60):
+    """A returned list is judged once it has stopped moving: a restore of a deep offset lands in steps on the CI emulator (the native content lags React Native's
+    layout), so the card is judged where it holds still for three looks in a row (about 4 s apart in all), else where it was last seen."""
+    end, last, holds, seen, root = time.time() + timeout, None, 0, None, None
+    while time.time() < end:
+        root, _parent = dump()
+        card = next((c for c in cards(root) if c['title'] == title), None)
+        y = card['bounds'][1] if card else None
+        holds = holds + 1 if (y is not None and last is not None and abs(y - last) <= 4) else 0
+        if card is not None:
+            seen = card
+        last = y
+        if holds >= 2:
+            return root, card, True
+        time.sleep(1.5)
+    return root, seen, False
+
+
 def mem_kb():
     out = adb('shell', 'dumpsys', 'meminfo', PACKAGE, check=False).stdout
     m = re.search(r'TOTAL PSS:\s+(\d+)', out) or re.search(r'^\s*TOTAL\s+(\d+)', out, re.M)
@@ -440,6 +458,14 @@ def count_nodes(root):
 
 
 def count_value(root):
+    """The number the list's top line SHOWS: its visible text ("60 zadataka"). The node's content-desc is the spoken sentence, which under a map area or on one
+    point starts with a part of it ("30 zadataka na ovom mestu · 30 zadataka bez tačke na mapi"), so it is only the fallback."""
+    for n in count_nodes(root):
+        for child in n.iter():
+            t = child.attrib.get('text', '')
+            m = re.match(r'\s*(\d+)\s+zadat', t)
+            if m:
+                return int(m.group(1)), t
     for n in count_nodes(root):
         label = n.attrib.get('content-desc') or n.attrib.get('text') or ''
         m = re.match(r'\s*(\d+)', label)
@@ -871,21 +897,23 @@ def s_detail_and_back():
     snapshot('P6_05_detail')
     check('DETAIL_SHOWS_TITLE', True, title=pick['title'])
     back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
+    _r, _c, held = settled_card(pick['title'])
     root = snapshot('P6_06_after_back')
     cs = cards(root)
     same = next((c for c in cs if c['title'] == pick['title']), None)
-    check('BACK_RESTORES_SAME_TASK_VISIBLE', same is not None, wanted=pick['title'], visible=[c['title'] for c in cs[:6]])
+    check('BACK_RESTORES_SAME_TASK_VISIBLE', same is not None, wanted=pick['title'], visible=[c['title'] for c in cs[:6]], settled=held)
     if same is not None:
         drift = abs(same['bounds'][1] - REPORT['opened']['y1'])
-        check('BACK_RESTORES_SCROLL_POSITION', drift <= 60, before_y=REPORT['opened']['y1'], after_y=same['bounds'][1], drift=drift)
+        check('BACK_RESTORES_SCROLL_POSITION', drift <= 60, before_y=REPORT['opened']['y1'], after_y=same['bounds'][1], drift=drift, settled=held)
     check('BACK_KEEPS_FULL_LIST', is_full(root), sheet=sheet_state(root), top=sheet_top(root))
     check('BACK_KEEPS_EXACT_COUNT', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
     REPORT['backRequests'] = [brief(r) for r in since(m)[:6]]
 
 
-def s_repeat_cycles(n=10):
+def s_repeat_cycles(n=20):
     ensure_full()
     REPORT['mem'] = [{'tag': 'before_cycles', 'kb': mem_kb(), 'pid': app_pid()}]
+    REPORT['cycleTimings'] = []
     m = mark()
     calls_before = db_function_calls()
     for i in range(1, n + 1):
@@ -894,17 +922,43 @@ def s_repeat_cycles(n=10):
         if not cs:
             raise RuntimeError('list empty before cycle')
         pick = cs[min(1, len(cs) - 1)]
+        tapped = time.time()
         tap_visible(pick['node'], parent)
-        time.sleep(2.5)
-        # The list is judged once the opened card is back: the CI emulator draws a rebuilt 100-row list seconds late, and a return that never gets
-        # there fails the wait itself (90 s), with the blank sheet recorded.
-        root, _p = back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
-        again = next((c for c in cards(root) if c['title'] == pick['title']), None)
+        # Tap -> the task's own screen (its title with no list count line), seen through a dump every half second or so.
+        try:
+            poll(lambda r, p: not count_nodes(r) and any(pick['title'] in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE),
+                 45, interval=0.5, what='task detail')
+            to_detail = round(time.time() - tapped, 1)
+        except RuntimeError:
+            to_detail = None
+        time.sleep(1.0)
+        # The list is judged once the opened card is back and holds still: the CI emulator draws a rebuilt 100-row list seconds late; a return whose card
+        # never comes back is a failed cycle with what the list did show, not the end of the run.
+        back_started = time.time()
+        try:
+            root, _p = back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
+        except RuntimeError as exc:
+            root, _p = dump()
+            REPORT['cycleTimings'].append({'cycle': i, 'tapToDetailS': to_detail, 'backToListS': None})
+            check(f'CYCLE_{i:02d}_LIST_RESTORED', False, title=pick['title'], error=str(exc)[:140], visible=[c['title'] for c in cards(root)[:4]],
+                  sheet=sheet_state(root))
+            continue
+        back_to_list_s = round(time.time() - back_started, 1)
+        _r, again, held = settled_card(pick['title'])
+        root, _p = dump()
+        REPORT['cycleTimings'].append({'cycle': i, 'tapToDetailS': to_detail, 'backToListS': back_to_list_s})
         drift = abs(again['bounds'][1] - pick['bounds'][1]) if again else None
-        check(f'CYCLE_{i:02d}_LIST_RESTORED', again is not None and is_full(root), title=pick['title'], drift=drift)
-        if i in (1, n // 2, n):
+        check(f'CYCLE_{i:02d}_LIST_RESTORED', again is not None and is_full(root), title=pick['title'], drift=drift, settled=held)
+        if i in (1, 5, n // 2, 15, n):
             REPORT['mem'].append({'tag': f'cycle_{i}', 'kb': mem_kb(), 'pid': app_pid()})
     snapshot('P6_07_after_cycles')
+    times = REPORT['cycleTimings']
+    got = sorted(t['tapToDetailS'] for t in times if t['tapToDetailS'] is not None)
+    back = sorted(t['backToListS'] for t in times if t['backToListS'] is not None)
+    REPORT['cycleTimingSummary'] = {'tapToDetailS': {'n': len(got), 'median': got[len(got) // 2] if got else None, 'max': got[-1] if got else None},
+                                    'backToListS': {'n': len(back), 'median': back[len(back) // 2] if back else None, 'max': back[-1] if back else None},
+                                    'note': 'CI emulator (software rendering, ~10x slower than a phone): a bound on hangs, not a phone measurement'}
+    check('TAP_AND_BACK_TIMES_MEASURED_AND_BOUNDED', len(got) == n and len(back) == n and got[-1] < 30 and back[-1] < 60, **REPORT['cycleTimingSummary'])
     reqs = since(m)
     REPORT['cycleRequests'] = len(reqs)
     calls_after = db_function_calls()

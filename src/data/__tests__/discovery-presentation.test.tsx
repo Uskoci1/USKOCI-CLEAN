@@ -947,10 +947,11 @@ test('deep return keeps its saved offset while virtualized content grows past pr
 });
 
 // Journey #6 (cycle 2): a restore that asks for an offset beyond what the list has rendered advances with every measured row. The saved end of a 100-row
-// list stopped 2000 px short and waited for ever. When nothing new is measured for RESTORE_STALL_MS the tail is asked for (scrollToEnd renders it), twice;
-// then the restore settles where the list is. The P6 screen only; taking hold of the list has always ended a restore.
+// list stopped 2000 px short and waited for ever. When nothing new is measured for RESTORE_STALL_MS the same request is made again, then the tail is asked for
+// (scrollToEnd renders it); then the restore settles where the list is. The P6 screen only; taking hold of the list has always ended a restore.
+// The order: the same request again (the native list can lag behind React Native's layout), then the tail, then settle.
 const stalls = () => nativeTrace.mock.calls.filter(call => call[0] === 'stall').map(call => call.slice(1));
-test('a P6 restore that stops short of the saved offset asks for the tail twice, then settles where the list is', async () => {
+test('a P6 restore that stops short of the saved offset asks again, then for the tail, then settles where the list is', async () => {
   jest.useFakeTimers();
   try {
     rows = Array.from({ length: 80 }, (_, i) => row(`stall${i}`));
@@ -962,18 +963,21 @@ test('a P6 restore that stops short of the saved offset asks for the tail twice,
     expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 1800, animated: false });
     await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 1800 } } }); });
     await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
-    expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(scrollToOffset).toHaveBeenCalledTimes(1); expect(scrollToEnd).not.toHaveBeenCalled();
     await act(async () => { jest.advanceTimersByTime(1); });
-    expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(scrollToEnd).toHaveBeenCalledWith({ animated: false });
-    expect(snapshot.listOffset).toBe(8000);
+    // First the same request again ...
+    expect(scrollToOffset).toHaveBeenCalledTimes(2); expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 1800, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled(); expect(snapshot.listOffset).toBe(8000);
+    // ... then the tail ...
     await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS); });
-    expect(scrollToEnd).toHaveBeenCalledTimes(2); expect(snapshot.listOffset).toBe(8000);
+    expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(scrollToEnd).toHaveBeenCalledWith({ animated: false }); expect(snapshot.listOffset).toBe(8000);
+    // ... and then it settles where the list is.
     await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS + OFFSET_SETTLE_MS); });
-    expect(scrollToEnd).toHaveBeenCalledTimes(2);
+    expect(scrollToEnd).toHaveBeenCalledTimes(1);
     expect(snapshot.listOffset).toBe(1800);
     expect(stalls().map(call => call[0])).toEqual([1, 2, 3]);
     await act(async () => { jest.advanceTimersByTime(60_000); });
-    expect(scrollToEnd).toHaveBeenCalledTimes(2); expect(snapshot.listOffset).toBe(1800);
+    expect(scrollToOffset).toHaveBeenCalledTimes(2); expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(snapshot.listOffset).toBe(1800);
   } finally { jest.useRealTimers(); }
 });
 test('growth of the list restarts the wait, dragging ends the restore, and the legacy reader never runs the watchdog', async () => {
@@ -989,12 +993,14 @@ test('growth of the list restarts the wait, dragging ends the restore, and the l
     await act(async () => list().props.onContentSizeChange(400, frame + 6000));
     expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 6000, animated: false });
     await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
-    expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(scrollToEnd).not.toHaveBeenCalled(); expect(scrollToOffset).toHaveBeenCalledTimes(2);
     await act(async () => { jest.advanceTimersByTime(1); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(3); expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS); });
     expect(scrollToEnd).toHaveBeenCalledTimes(1);
     // A person who takes hold of the list has ended the restore: nothing more is asked of it.
     await act(async () => { list().props.onScrollBeginDrag({ nativeEvent: {} }); jest.advanceTimersByTime(RESTORE_STALL_MS * 5); });
-    expect(scrollToEnd).toHaveBeenCalledTimes(1);
+    expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(scrollToOffset).toHaveBeenCalledTimes(3);
     await act(async () => tree.unmount());
     // The legacy reader waits as it always did.
     scrollToOffset.mockClear(); scrollToEnd.mockClear();

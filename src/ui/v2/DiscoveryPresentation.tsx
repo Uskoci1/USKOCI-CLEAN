@@ -113,7 +113,11 @@ const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
 /** When the P6 sheet is nudged after it mounts (the last one is an even count, so it rests on its exact snap points), and by how much. */
 const SHEET_KICKS_MS = [400, 1_200, 2_600, 5_000, 8_000, 12_000] as const;
 const SHEET_KICK_PX = 0.01;
-/** A restore that has asked for more than the list has rendered is given this long to see it grow before it asks for the tail, and this many asks. */
+/**
+ * A restore that has asked for more than the list has rendered is given this long to see it grow. Then, in this order: the same request again (React Native's layout can be
+ * ahead of the native content, and a scroll past the native end lands there without any later event), the tail (`scrollToEnd` renders the rows the estimate stops short
+ * of), and finally it settles where the list is.
+ */
 export const RESTORE_STALL_MS = 4_000;
 const RESTORE_STALL_RETRIES = 2;
 const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
@@ -846,7 +850,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       trace('stall', stalls.current, restore.current, restoreTarget.current ?? -1, contentHeight.current, observedY.current, extent.bottom ?? -1, extent.footer ?? -1);
       if (stalls.current <= RESTORE_STALL_RETRIES) {
         restoreAttempted.current = false;
-        listRef.current.scrollToEnd?.({ animated: false });
+        if (stalls.current === 1) retryRestore.current(); else listRef.current.scrollToEnd?.({ animated: false });
         armStallRef.current();
         return;
       }
