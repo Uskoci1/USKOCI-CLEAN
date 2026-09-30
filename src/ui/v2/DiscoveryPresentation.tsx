@@ -438,6 +438,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
   const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
   const started = useRef(!!view.sheet);
+  // A rebuilt screen (the P6 route drops it on blur) starts at the detent it was left at. Above the peek that detent is mounted where it
+  // is, never animated in from below: the animated first mount of such a detent left the native sheet at Gorhom's hidden mount props
+  // (a dimmed, empty screen with only the "Mapa" pill, found on the emulator after a return). Retained returns already mount this way.
+  const restoredAbovePeek = useRef(!!view.sheet && (INDEX[view.sheet] as number) !== SNAP.peek);
   useEffect(() => {
     if (!started.current) return;
     const name = SNAP_NAME[sheetIndex];
@@ -1084,7 +1088,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
-        animateOnMount={nativeMountKey === 1}
+        animateOnMount={nativeMountKey === 1 && !restoredAbovePeek.current}
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}

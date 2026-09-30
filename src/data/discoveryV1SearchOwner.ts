@@ -37,11 +37,14 @@ export function discoveryV1SearchPreviewKey(view:MarketplaceView,mapArea:PublicB
   return JSON.stringify([plan.filter,plan.pageScope,mapArea?publicBounds(mapArea):null]);
 }
 
+/** How long a read preview answers the same draft again. */
+export const SEARCH_PREVIEW_FRESH_MS=20_000;
+
 export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport,isCurrent:()=>boolean=()=>true){
   let active=true,generation=0,controller:AbortController|null=null,placesController:AbortController|null=null;
   let state:DiscoveryV1SearchSnapshot={active:true,generation:0,key:null,status:'idle',count:null,undated:null,availability:null,
     places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};
-  let placesBase:PlacesBase|null=null,placesAnchor:any=null,placesCursor:any=null;
+  let placesBase:PlacesBase|null=null,placesAnchor:any=null,placesCursor:any=null,readyAt=0;
 
   const snapshot=():DiscoveryV1SearchSnapshot=>({...state,places:state.places.map(row=>({...row}))});
   const current=(g:number)=>active&&generation===g&&isCurrent();
@@ -56,8 +59,13 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     if(!Number.isSafeInteger(limit)||limit<1||limit>30) throw new Error('DISCOVERY_V1_SEARCH_PLACE_LIMIT');
     const view=cloneView(next),area=mapArea?publicBounds(mapArea):null;
     if(mapArea&&!area) throw new Error('DISCOVERY_V1_SEARCH_MAP_AREA');
+    const askedKey=discoveryV1SearchPreviewKey(view,area);
+    // The same draft asked again while it is being read, or within a short while of being read, is answered by what is there. A failed
+    // preview is asked again, and a changed draft always reads.
+    if(state.key===askedKey&&(state.status==='loading'||(state.status==='ready'&&Date.now()-readyAt<SEARCH_PREVIEW_FRESH_MS)))
+      return {kind:'noop' as const,snapshot:snapshot()};
     controller?.abort();placesController?.abort();
-    const own=new AbortController();controller=own;placesController=null;const g=++generation,key=discoveryV1SearchPreviewKey(view,area);
+    const own=new AbortController();controller=own;placesController=null;const g=++generation,key=askedKey;
     placesBase=null;placesAnchor=null;placesCursor=null;
     state={active:true,generation:g,key,status:'loading',count:null,undated:null,availability:null,places:[],placeHasMore:false,
       placePaging:false,everywhere:null,inMapArea:null,facetError:false};
@@ -97,6 +105,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
 
     state={active:true,generation:g,key,status:'ready',count:page.counts.listed,undated:page.counts.undated,
       availability:page.availability,places,placeHasMore,placePaging:false,everywhere,inMapArea,facetError};
+    readyAt=Date.now();
     if(controller===own)controller=null;own.abort();
     return {kind:'applied' as const,snapshot:snapshot()};
   }

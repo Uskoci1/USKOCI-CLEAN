@@ -64,12 +64,16 @@ function server(request: DiscoveryV1OwnerRequest): unknown {
   }
   if (request.mode === 'PAGE') {
     const start = request.after ? Number((request.after as any).id.slice(-12)) : 0;
-    const rows = Array.from({ length: 50 }, (_, i) => item(start + i));
-    const more = start + 50 < 100;
+    const size = Math.min(50, request.limit), rows = Array.from({ length: size }, (_, i) => item(start + i));
+    const more = start + size < 100;
     return { version: 'DISCOVERY_V1', mode: 'PAGE', asOf: AT, filterKey: A, anchor: anchor(), items: rows, hasMore: more,
-      nextCursor: more ? { scopeKey: B, section: 0, sortAt: AT, id: rowId(start + 49) } : null,
+      nextCursor: more ? { scopeKey: B, section: 0, sortAt: AT, id: rowId(start + size - 1) } : null,
       counts: { kind: 'exact_live', observedAt: AT, mapped: 100, listed: 100, inArea: 100, withoutPoint: 0, undated: 0 },
       availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['OFFERS'] } };
+  }
+  if (request.mode === 'PLACES') {
+    return { version: 'DISCOVERY_V1', mode: 'PLACES', asOf: AT, filterKey: A, anchor: anchor(), items: [{ key: 'novi sad, liman', text: 'Novi Sad, Liman', count: 30 }],
+      hasMore: false, nextCursor: null, counts: { kind: 'exact_live', observedAt: AT, everywhere: 100, inArea: null } };
   }
   if (request.mode === 'EXACT_PUBLIC') {
     return { version: 'DISCOVERY_V1', mode: 'EXACT_PUBLIC', asOf: AT, items: [item(Number(request.needId.slice(-12)) - 1)], hasMore: false, nextCursor: null };
@@ -264,4 +268,23 @@ test('a settled region that is not the person\'s own reads the map alone and kee
   await act(async () => { bridge().props.actions.onViewportSettled(NATIVE_BOUNDS); });
   await flush();
   expect(mockTransportCalls).toHaveLength(0);
+});
+
+test('a search draft asked again for the same words reads once, and its previews never clear a list error', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  const draft = { query: 'Liman', place: null, area: null, pinPlace: null, when: 'any', dates: null, where: 'any', places: 1, price: 'all' };
+  mockTransportCalls.length = 0;
+  jest.useFakeTimers();
+  try {
+    for (let again = 0; again < 4; again++) {
+      await act(async () => { bridge().props.actions.onSearchDraft(draft, [...NATIVE_BOUNDS]); });
+      await act(async () => { jest.advanceTimersByTime(400); });
+    }
+  } finally { jest.useRealTimers(); }
+  await flush();
+  // One PAGE count and one PLACES facet read, however often the panel asked.
+  expect(modes().sort()).toEqual(['PAGE', 'PLACES']);
+  expect(bridge().props.search.status).toBe('ready');
+  expect(bridge().props.error).toBe(false);
 });

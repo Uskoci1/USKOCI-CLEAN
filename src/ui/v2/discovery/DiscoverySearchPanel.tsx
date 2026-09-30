@@ -244,7 +244,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   // infer absence from a bounded page; a selected old value also remains removable.
   const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any'
     || (p6Search ? !serverCurrent || p6Search.snapshot.availability?.hasKnownWorkMode !== false : saysWorkMode(items));
-  useEffect(() => { p6Search?.onDraft(draft, mapArea); }, [p6Search?.onDraft, draft, mapArea]);
+  // The route hands a fresh clone of its view with every snapshot, so `mapArea` is a new array each time: keyed by identity this effect asked for
+  // a preview after every preview (a request loop while the panel was open). It follows the area's value.
+  const mapAreaKey = mapArea ? mapArea.join(',') : '';
+  useEffect(() => { p6Search?.onDraft(draft, mapArea); }, [p6Search?.onDraft, draft, mapAreaKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Own measurements by disclosure/layout generation, without retiring them for count or text rerenders.
   const layoutOwner = useMemo(() => ({}), [activeStep, datesOpen, workModes, width, large]);
   const currentLayoutOwner = useRef(layoutOwner); currentLayoutOwner.current = layoutOwner;

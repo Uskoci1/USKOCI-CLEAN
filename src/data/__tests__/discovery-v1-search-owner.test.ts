@@ -1,4 +1,4 @@
-import { createDiscoveryV1SearchOwner, discoveryV1SearchPreviewKey } from '../discoveryV1SearchOwner';
+import { createDiscoveryV1SearchOwner, discoveryV1SearchPreviewKey, SEARCH_PREVIEW_FRESH_MS } from '../discoveryV1SearchOwner';
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
 
@@ -75,4 +75,32 @@ it('retire makes late responses stale and clears search truth',async()=>{
  const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),read=owner.preview(view(),null,10);
  owner.retire();h.pending[0].resolve(page());h.pending[1].resolve(places());
  expect((await read).kind).toBe('stale');expect(owner.snapshot()).toMatchObject({active:false,status:'idle',count:null,key:null});
+});
+
+// A preview asked again for the same draft must not read again: the panel used to ask after every preview it received, a request loop.
+it('the same draft asked again while it is being read, or just read, reads nothing; a changed draft or a failed read does',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v=view({query:'nov'}),area:[number,number,number,number]=[19,44,21,46];
+ const first=owner.preview(v,area,3);expect(h.pending).toHaveLength(2);
+ // Asked again while loading (with an equal but distinct array): nothing new is sent and nothing is aborted.
+ const again=await owner.preview(v,[...area],3);expect(again.kind).toBe('noop');expect(h.pending).toHaveLength(2);
+ expect(h.pending[0].signal.aborted).toBe(false);
+ h.pending[0].resolve(page(42));h.pending[1].resolve(places());await first;
+ // Just read: answered by what is there.
+ expect((await owner.preview(v,[...area],3)).kind).toBe('noop');expect(h.pending).toHaveLength(2);
+ expect(owner.snapshot()).toMatchObject({status:'ready',count:42});
+ // A changed draft always reads.
+ const other=owner.preview(view({query:'novi'}),area,3);expect(h.pending).toHaveLength(4);
+ h.pending[2].resolve(page(9));h.pending[3].resolve(places());await other;expect(owner.snapshot().count).toBe(9);
+});
+it('a preview read a while ago is read again, and a failed one is asked again at once',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v=view({query:'nov'}),now=jest.spyOn(Date,'now');
+ now.mockReturnValue(1_000_000);
+ const first=owner.preview(v,null,3);h.pending[0].resolve(page(5));h.pending[1].resolve(places());await first;
+ now.mockReturnValue(1_000_000+SEARCH_PREVIEW_FRESH_MS-1);expect((await owner.preview(v,null,3)).kind).toBe('noop');expect(h.pending).toHaveLength(2);
+ now.mockReturnValue(1_000_000+SEARCH_PREVIEW_FRESH_MS+1);
+ const stale=owner.preview(v,null,3);expect(h.pending).toHaveLength(4);
+ const failure=expect(stale).rejects.toBeDefined();h.pending[2].resolve({bad:'page'});h.pending[3].resolve(places());await failure;
+ expect(owner.snapshot().status).toBe('error');
+ const retry=owner.preview(v,null,3);expect(h.pending).toHaveLength(6);
+ h.pending[4].resolve(page(5));h.pending[5].resolve(places());expect((await retry).kind).toBe('applied');now.mockRestore();
 });

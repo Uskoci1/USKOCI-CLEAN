@@ -116,10 +116,10 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       if (generation !== searchGeneration.current || !mounted.current || !currentRef.current()) return;
-      void execute(() => coordinator.previewSearch(draft, mapArea));
+      void execute(async () => { await coordinator.previewSearch(draft, mapArea); });
     }, SEARCH_SETTLE_MS);
   }, [coordinator, execute]);
-  const onNextSearchPlaces = useCallback(() => { void execute(() => coordinator.nextSearchPlaces()); }, [coordinator, execute]);
+  const onNextSearchPlaces = useCallback(() => { void execute(async () => { await coordinator.nextSearchPlaces(); }); }, [coordinator, execute]);
 
   if (!state?.screen.active || !state.screen.view) {
     return <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>

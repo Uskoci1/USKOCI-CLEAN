@@ -673,15 +673,17 @@ test("a P6 cluster fits the camera to its members as the person's own move; a ta
   await act(async () => { jest.advanceTimersByTime(2_000); }); expect(search).not.toHaveBeenCalled();
 });
 
-test('a P6 cluster under Reduce Motion fits at once, and one pressed before the map is ready does nothing', async () => {
+test('no P6 pill exists before the native map is ready, and a cluster under Reduce Motion then fits at once', async () => {
   const onSelect = jest.fn();
   const cluster = { kind: 'CLUSTER', key: 'cluster:1', point: { lat: 44.8, lng: 20.45 }, taskCount: 5, distinctPointCount: 3, memberBounds: [20.4, 44.78, 20.5, 44.85] };
   extra = { p6Server: { markers: [cluster], selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect }, toolsBottom: 60, fitBottom: 300 };
   mockReduced = true;
   await render(); await measureFrame(800);
-  await act(async () => annotations()[0].props.onPress());
-  expect(mockFit).not.toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], expect.anything()); expect(onSelect).not.toHaveBeenCalled();
+  // Annotations mounted while the native map is still initialising are queued and lose their layout when it adopts them (no pill is ever
+  // drawn), so the layer is not mounted at all until the map says it is ready.
+  expect(annotations()).toHaveLength(0);
   await ready(); mockFit.mockClear();
+  expect(annotations()).toHaveLength(1);
   await act(async () => annotations()[0].props.onPress());
   expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: 0 });
 });
@@ -734,4 +736,18 @@ test('a P6 map restored with its saved viewport reports the region it settles in
   await render(); await measureFrame(800); await ready();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, userInteraction: false } }));
   expect(onViewportSettled).not.toHaveBeenCalled();
+});
+
+test('the server pills leave with a map that stops being ready and come back with the next one', async () => {
+  const markers = [{ kind: 'TASK', key: 'task:1', point: { lat: 44.9, lng: 20.6 }, taskId: '00000000-0000-4000-8000-000000000001', taskCount: 1 }];
+  extra = { p6Server: { markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await render(); await measureFrame(800);
+  expect(annotations()).toHaveLength(0);
+  await ready();
+  expect(annotations().map(node => node.props.id)).toEqual(['p6:task:1']);
+  // A new set of buckets (another read) replaces the pills on a map that stays ready; none is queued.
+  extra = { p6Server: { markers: [{ ...markers[0], key: 'task:2', taskId: '00000000-0000-4000-8000-000000000002' }], selectedKey: null,
+    wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await update();
+  expect(annotations().map(node => node.props.id)).toEqual(['p6:task:2']);
 });

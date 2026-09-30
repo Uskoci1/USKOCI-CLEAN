@@ -563,3 +563,17 @@ test.each([[320, 1], [320, 2], [412, 1.3], [412, 2]])(
     expect(lastDraft().query).toBe('Vračar'); expect(close).toHaveBeenCalledTimes(1);
   },
 );
+
+test('P6 draft preview follows the map area by value: an equal clone asks for nothing, another area asks once', async () => {
+  mapArea = [19, 44, 21, 46];
+  const seam = p6Seam(p6Snapshot());p6Search = seam;
+  await render();
+  expect(seam.onDraft).toHaveBeenCalledTimes(1);
+  // The route hands the panel a fresh clone of its view with every snapshot; the same area in another array is not a new question.
+  for (let again = 0; again < 3; again++) { mapArea = [...mapArea!] as PublicBounds; await act(async () => tree.update(panelOf())); }
+  expect(seam.onDraft).toHaveBeenCalledTimes(1);
+  mapArea = [19.5, 44.5, 20.5, 45.5];
+  await act(async () => tree.update(panelOf()));
+  expect(seam.onDraft).toHaveBeenCalledTimes(2);
+  expect(seam.onDraft).toHaveBeenLastCalledWith(expect.anything(), [19.5, 44.5, 20.5, 45.5]);
+});

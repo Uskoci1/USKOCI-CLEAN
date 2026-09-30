@@ -1293,6 +1293,19 @@ test('a ready map mounts at its actual peek detent and animates the first native
   expect(countLine().props.accessibilityLabel).toBe('6 zadataka');
 });
 
+// The P6 route drops its screen on blur and rebuilds it from the remembered view. A detent above the peek is mounted where it was left, never
+// animated in from below: that first animated mount left the native sheet at Gorhom's hidden mount props (a dimmed, empty screen and only the
+// "Mapa" pill, found on the emulator after a return from a task). A remembered peek and a first visit animate in as before.
+test.each([
+  ['full', 2, false], ['half', 1, false], ['peek', 0, true],
+] as const)('a screen rebuilt at the remembered %s detent mounts the native sheet at index %i with animateOnMount %s', async (sheet, index, animate) => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+  initial = { ...initial, sheet, listOffset: 0 };
+  await render();
+  expect(listSheet().props).toMatchObject({ index, animateOnMount: animate });
+  expect(snapshot.sheet).toBe(sheet);
+});
+
 test('while reading, the sheet is half open over breathing placeholders; the start is chosen once the read lands', async () => {
   loading = true; rows = []; await render();
   expect(listSheet().props.index).toBe(1); expect(texts()).toContain('Učitavamo zadatke…');
