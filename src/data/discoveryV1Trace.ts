@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 /** The exact DEV package of the disposable-stack proof builds and the DEV checkpoints. A store build never logs. */
 const TRACE_PACKAGE = 'rs.uskoci.dev';
 const CODE = /^[A-Z][A-Z0-9_]{5,80}$/;
-const MAX_LINES = 60;
+const MAX_LINES = 240;
 /** The pin timings are one short line per touch and have a budget of their own, so that the diagnosis lines above cannot use it up. */
 const MAX_PIN_LINES = 400;
 let lines = 0, pinLines = 0;
