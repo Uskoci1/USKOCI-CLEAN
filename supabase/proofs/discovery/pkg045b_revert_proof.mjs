@@ -76,6 +76,8 @@ try {
   assert.equal(restricted.ready, true); assert.equal(restricted.authenticatedWholeTable, false); assert.equal(restricted.anonWholeTable, false);
   assert.notEqual(restricted.digest, before.digest); assert.notEqual(restricted.attacl, ''); assert.notDeepEqual(restricted.policies, before.policies);
   assert.equal(restricted.digest, restricted.certificate); assert.equal(restricted.digest, restricted.erasure); assert.equal(restricted.digest, restricted.binding);
+  // What PKG-045b writes, as md5 of pg_get_expr(qual)|pg_get_expr(with_check): the revert pins these so it only ever overwrites that exact text.
+  report.restricted = { relacl: restricted.relacl, attacl: restricted.attacl, policies: restricted.policies };
 
   stage = 'REVERT_WITH_WRONG_PIN_REFUSED';
   const wrong = sql(`select set_config('pkg045.revert_expected_digest','${'0'.repeat(64)}',false);\n${readFileSync(revert, 'utf8')}`, true);
