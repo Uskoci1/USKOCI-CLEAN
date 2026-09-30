@@ -500,6 +500,7 @@ def time_pins():
     m = LOG.mark()
     gfx_reset()
     shown, moved = 0, []
+    slow_frames, seen_vsyncs = [], set()
     for i in range(ARGS.taps):
         tap(target['x'], target['y'], 140)
         root, _ = None, None
@@ -508,6 +509,9 @@ def time_pins():
             close_peek()
             continue
         shown += 1
+        time.sleep(1.6)                                                # EX-03: the card's first frame (about 1.1 s in the quiet-database BEFORE run) is over; what it was made of is in the frame ring
+        for frame in framestats_slow(seen_vsyncs):
+            slow_frames.append({'tap': i + 1, **frame})
         if i < 3:
             time.sleep(1.0)                                            # the card slides in first: it is judged once it has come to rest
             settled = dump()
@@ -525,7 +529,7 @@ def time_pins():
     summary = {'touches': ARGS.taps, 'peekShown': shown, 'traced': len(pairs),
                'firstFeedbackMs': {'p50': percentile(fb, .5), 'p95': percentile(fb, .95), 'max': max(fb, default=None)},
                'usableContentMs': {'p50': percentile(content, .5), 'p95': percentile(content, .95), 'max': max(content, default=None)},
-               'peekMovedPxAfterAppearing': moved,
+               'peekMovedPxAfterAppearing': moved, 'slowFramesOver500ms': slow_frames,
                'conditions': f'{REPORT["label"]}: {DEV.kind} {PROFILE.get("model", "")} against the canonical DEV backend; JS-side clock: touch handled -> halo committed -> card data committed'}
     REPORT['pinTiming'] = summary
     check('PIN_TIMING_MEASURED', len(pairs) >= max(3, int(ARGS.taps * .9)), **summary)
@@ -858,6 +862,39 @@ def gfx_read(name):
             'missedVsync': num(r'Number Missed Vsync:\s+(\d+)'), 'highInputLatency': num(r'Number High input latency:\s+(\d+)'), 'slowUiThread': num(r'Number Slow UI thread:\s+(\d+)'),
             'slowBitmapUploads': num(r'Number Slow bitmap uploads:\s+(\d+)'), 'slowIssueDraw': num(r'Number Slow issue draw commands:\s+(\d+)'),
             'deadlineMissed': num(r'Number Frame deadline missed:\s+(\d+)')}
+
+
+def framestats_slow(seen, min_ms=500):
+    """EX-03: the slow frames in the app's frame ring (`dumpsys gfxinfo <pkg> framestats`, the last ~120 frames), each with its time split over the pipeline phases in ms: what waited before
+    the frame started, input and animation callbacks (where React Native mounts native views), measure/layout, display-list recording, sync (bitmap uploads), the render thread's draw and
+    the swap. `seen` holds the IntendedVsync values already taken, so a frame that is still in the ring at the next read is not counted twice."""
+    text = adb('shell', 'dumpsys', 'gfxinfo', PACKAGE, 'framestats', timeout=90)
+    lines = text.splitlines()
+    if '---PROFILEDATA---' not in lines:
+        return []
+    start = lines.index('---PROFILEDATA---')
+    header = lines[start + 1].rstrip(',').split(',')
+    col = {name: i for i, name in enumerate(header)}
+    need = ('IntendedVsync', 'Vsync', 'HandleInputStart', 'AnimationStart', 'PerformTraversalsStart', 'DrawStart', 'SyncQueued', 'SyncStart', 'IssueDrawCommandsStart', 'SwapBuffers', 'FrameCompleted')
+    if any(n not in col for n in need):
+        return []
+    out = []
+    for raw in lines[start + 2:]:
+        if raw.startswith('---PROFILEDATA---'):
+            break
+        parts = raw.rstrip(',').split(',')
+        if len(parts) < len(header) or not parts[col['IntendedVsync']].lstrip('-').isdigit():
+            continue
+        v = {n: int(parts[col[n]]) for n in need}
+        total = (v['FrameCompleted'] - v['IntendedVsync']) / 1e6
+        if total < min_ms or v['IntendedVsync'] in seen:
+            continue
+        seen.add(v['IntendedVsync'])
+        ms = lambda a, b: round((v[b] - v[a]) / 1e6)
+        out.append({'totalMs': round(total), 'waitedBeforeStartMs': ms('IntendedVsync', 'Vsync'), 'inputMs': ms('HandleInputStart', 'AnimationStart'), 'animationMs': ms('AnimationStart', 'PerformTraversalsStart'),
+                    'layoutMs': ms('PerformTraversalsStart', 'DrawStart'), 'recordMs': ms('DrawStart', 'SyncQueued'), 'syncMs': ms('SyncStart', 'IssueDrawCommandsStart'),
+                    'renderMs': ms('IssueDrawCommandsStart', 'SwapBuffers'), 'swapMs': ms('SwapBuffers', 'FrameCompleted')})
+    return out
 
 
 def exit_info():
