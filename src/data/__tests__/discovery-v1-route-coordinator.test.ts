@@ -549,3 +549,20 @@ it('EX-03: attach rebinds both callbacks, a detached coordinator is never curren
  expect(next.isCurrent).toHaveBeenCalled();expect(next.onOptionalState).toHaveBeenCalledTimes(1);
  expect(first.isCurrent.mock.calls.length).toBe(firstCalls);                          // the screen that left is not asked any more
 });
+
+it('EX-03: attaching a kept coordinator asks the relations again and the profiles only when they are unknown', async () => {
+ const h = harness(), profileReads: string[] = [];
+ const loaders = { ...h.overlay, profile: jest.fn(async (id: string) => { profileReads.push(id); return {profilId: id, uloga: 'narucilac', ime: 'Ana', avatarPutanja: null, grad: 'Novi Sad', naslov: null, biografija: null,
+  poverenje: {ocenaProsek: 4.8, brojRecenzija: 12, zavrseniBroj: 4, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false}} as any; }) };
+ const route = createDiscoveryV1RouteCoordinator(h.transport, loaders);
+ await route.open(view());
+ for (let n = 0; n < 30 && profileReads.length < 1; n++) await Promise.resolve();
+ await route.refreshOverlay();
+ const profilesBefore = profileReads.length, relationsBefore = h.relations.mock.calls.length;
+ expect(profilesBefore).toBeGreaterThan(0);
+ expect(route.detach()).toBe(true);
+ expect(route.attach(binding())).toBe(true);
+ for (let n = 0; n < 40; n++) await Promise.resolve();
+ expect(h.relations.mock.calls.length).toBe(relationsBefore + 1);       // the account's relations are asked again
+ expect(profileReads.length).toBe(profilesBefore);                      // the known profile is not
+});

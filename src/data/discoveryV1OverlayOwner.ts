@@ -95,7 +95,8 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
     missingProfiles: new Set(state.missingProfiles), errors: { ...state.errors } });
   const current = (g: number) => active && generation === g && isCurrent();
 
-  async function load(items: readonly DiscoveryV1Item[]): Promise<DiscoveryV1OverlayLoadResult> {
+  /** `reuseProfiles`: the profiles this owner already holds are not read again (a screen that comes back within minutes); the account's relations and urgencies always are. */
+  async function load(items: readonly DiscoveryV1Item[], options: { reuseProfiles?: boolean } = {}): Promise<DiscoveryV1OverlayLoadResult> {
     if (!active) return { kind: 'stale' };
     const sliceKey = discoveryV1OverlaySliceKey(items), admitted=new Map(items.map(item=>[item.id,overlayFingerprint(item)] as const));
     const { needIds, profileIds } = discoveryV1EnrichmentTargets(items, DISCOVERY_V1_OVERLAY_LIMIT);
@@ -120,6 +121,7 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
     const worker = async () => {
       while (!own.signal.aborted && profileCursor < profileIds.length) {
         const id = profileIds[profileCursor++];
+        if (options.reuseProfiles && kept.profiles.has(id)) continue;
         try {
           const value = await loaders.profile(id, own.signal);
           if (own.signal.aborted) return;

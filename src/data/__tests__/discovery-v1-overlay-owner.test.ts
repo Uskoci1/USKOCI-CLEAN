@@ -242,3 +242,23 @@ it('suspend keeps what the last load knew, aborts the load in flight and lets it
   owner.retire(); owner.suspend();
   expect(owner.snapshot().active).toBe(false);
 });
+
+// EX-03 warm return: a screen that comes back within minutes asks the account's relations and urgencies again, but not the profiles it already knows (a name and a rating change slowly;
+// a first visit, a refresh and every ordinary load still read them all).
+it('reuseProfiles asks only for the profiles the owner does not know yet, and the known ones stay', async () => {
+  const OTHER = '44444444-4444-4444-8444-444444444444', ID3 = '55555555-5555-4555-8555-555555555555';
+  const profileReads: string[] = [], relationReads: string[][] = [];
+  const loaders: DiscoveryV1OverlayLoaders = { relations: async ids => { relationReads.push([...ids]); return taskRelationIndex([], ids); },
+    profile: async id => { profileReads.push(id); return profile(id); }, urgencies: async () => new Map() };
+  const owner = createDiscoveryV1OverlayOwner(loaders);
+  await owner.load([item(ID1)]);
+  expect(profileReads).toEqual([PROFILE]);
+  await owner.load([item(ID1), item(ID3, { requesterProfileId: OTHER })], { reuseProfiles: true });
+  expect(profileReads).toEqual([PROFILE, OTHER]);                         // the requester already known is not read again, the new one is
+  expect(relationReads).toHaveLength(2);                                  // the account's own relations are asked every time
+  const known = owner.snapshot();
+  expect(known.profiles.size).toBe(2);
+  expect(known.missingProfiles.size).toBe(0);
+  await owner.load([item(ID1)]);                                          // an ordinary load reads every profile again
+  expect(profileReads).toEqual([PROFILE, OTHER, PROFILE]);
+});

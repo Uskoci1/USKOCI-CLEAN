@@ -1,3 +1,5 @@
 run 4
 
 EX-03 client check 2026-09-30: warm return (6f6cf333) + card from known rows (94792c79); types + discovery suites + full Jest.
+
+EX-03 client check 2026-09-30 (2): halo-first, cheap peek look, place card from known rows, profile reuse on a warm attach; types + discovery suites + full Jest.

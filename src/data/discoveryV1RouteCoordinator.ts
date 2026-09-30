@@ -73,15 +73,15 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
     overlay:overlay.snapshot(),search:search.snapshot(),selectedMarkerKey,loadingMore});
 
-  const refreshOverlay=async(g:number)=>{
+  const refreshOverlay=async(g:number,options:{reuseProfiles?:boolean}={})=>{
     if(!driven())return false;
     const rows=screen.snapshot().wireItems.slice(0,DISCOVERY_V1_OVERLAY_LIMIT);
-    const result=await overlay.load(rows);
+    const result=await overlay.load(rows,options);
     const changed=current(g)&&result.kind==='applied';
     if(changed)binding.onOptionalState();
     return changed;
   };
-  const refreshOverlayInBackground=(g:number)=>{void refreshOverlay(g).catch(()=>{if(current(g))binding.onOptionalState();});};
+  const refreshOverlayInBackground=(g:number,options:{reuseProfiles?:boolean}={})=>{void refreshOverlay(g,options).catch(()=>{if(current(g))binding.onOptionalState();});};
   const savedMarker=()=>{
     if(!routeView)return null;
     const markers=screen.snapshot().mapMarkers;
@@ -280,7 +280,8 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   /** The next screen takes the coordinator over with its own callbacks. The public picture is shown as it is; the optional overlay (relations, urgency, profiles) is asked again in the background. */
   const attach=(next:{isCurrent:()=>boolean;onOptionalState:()=>void}):boolean=>{
     if(!active)return false;
-    binding=next;attached=true;refreshOverlayInBackground(generation);
+    // The profiles it already holds are kept (the warm window is minutes): what is asked again is the account's own relations and urgencies, and the profiles it does not know.
+    binding=next;attached=true;refreshOverlayInBackground(generation,{reuseProfiles:true});
     return true;
   };
   /** A detached coordinator whose picture can be shown again without a read: whole, and of the same search intent as the view the next screen would open (sheet, offset, camera and selection are not intent). */
