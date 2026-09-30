@@ -29,6 +29,7 @@ fails on the previous source where the logic is testable in Jest.
 | 16 | (review, finding 7) A long session of panning could use up the trace lines that name why a read failed | `settled` lines shared one budget of 240 with the diagnosis lines | `settled` has a budget of its own, like `pin` |
 | 17 | (review, finding 5) The needs column contract missed seven query shapes | It was three regular expressions; a variable or empty `select`, a wildcard after a write, a nested embed, a double hint, a foreign-key embed and an unchained `.from('needs')` all passed (checked: the old scan found nothing on all seven) | It parses the source like PostgREST parses a request (chains, aliases, casts, hints, nested embeds); a shape it cannot read is a failure; fixture tests hold the seven shapes |
 | 18 | (journey #9, 3 gesture checks) `PAN_READS_THE_MAP_FOR_THE_NEW_AREA` and the two zoom checks failed | Driver only: one read of the whole statement log took longer than the 30 s wait, ended it before a second look, and every later check then compared with the read of the gesture before. The app read both the list and the map for each gesture (six requests, PAGE AREA + MAP each) | A wait always looks several times and every log read is timed (`logReadSeconds` in the report). Everything else in journey #9 passed: 12 of 12 steps, 20 of 20 returns restored, no blank sheet, memory 470 → 568 MB, no ANR or crash |
+| 20 | (journey #10, 88 of 91 checks) `PAGING_REACHED_THE_LAST_TASK` (maxIndex 50 of 100), `PAGING_SAW_ALMOST_EVERY_TASK` (50 of 100) and `COUNT_STABLE_AFTER_PAGING` (count `null`) failed, all in the paging step | Driver only, no product defect. Host log and the app's own trace, aligned to the second: the next page arrived about 4 s after the list reached the end of the first 50 rows (content 11,950 → 13,695 px at 10:53:37) and, in the same second, the driver started a slow swipe at the end of the loaded page; on the stalled CI emulator the finger's moves reach the app after the release, the row's Pressable never sees the touch leave it and reads a press: `preopen` for P6N 051, the first row of that page, at 10:53:44. The loop then swiped on that task's detail for ten minutes (35 list swipes + 40 idle ones = 75, its idle cap), the step's closing screenshot is that detail, hence the null count. After the Back the app restored all 100 rows (`restored 100/8`). Separately, every read of the whole statement log took a median 16 s (max 75 s, 76 reads) | Paging swipes start in the gutter right of the cards; a step that finds a task's detail (no count line, no card, the detail's own labels) comes back with Back, goes on, reports every such open and fails only above three; the statement log is read incrementally (`docker logs --timestamps --since`, body lines kept once); a next page not yet seen asked for is waited for (12 idle swipes); the runaway-request bound uses the app's own page size (50; the fixture's probe uses 5). Journey #11 runs the corrected driver on the same APK |
 | 19 | (DEV apply, 2026-09-30) The composed rollout v2 was REFUSED by canonical DEV, atomically | Its own visibility truth table reported `P6_VISIBILITY_SEMANTIC_MISMATCH:16`: the layer's helper listed three lineages, but the DEV classifier also puts `OWNER_PERSONAL` and `OWNER_BUSINESS` in the TEST world (PKG-029e). A fixed list would also drift silently the day PKG-029e is taken back | Rollout v3 derives the TEST-world set from the classifier (`private.account_visibility_world(account)='TEST'`), one uncorrelated InitPlan per statement over the tiny lineage table. The disposable proof reproduces the DEV lineage shape, shows v2 refusing on it with the same diagnostic and v3 applying with exact body/policy/helper equivalence |
 
 Driver-only corrections found by the same runs: the Peek's accessible label is a whole sentence (the title is its first part); a next page that
@@ -42,6 +43,11 @@ On the CI emulator, Reanimated logs `synchronouslyUpdateUIProps failed ... Unabl
 2–4 s after every screen mount (and list growth), with a full stack trace each, which stalls the emulator's UI thread (`Davey!` up to 8.4 s). The
 same flood is present in all journey runs, including those before any P6 map change, and is upstream (Reanimated retries updates for views Fabric has
 not mounted yet). The driver waits for it; no dependency or Reanimated setting was changed (the rejected global Reanimated flag stays rejected).
+It predates P6 and is not caused by the reader: `ROUND_32_ANR_DIAGNOSIS.md` (2026-09-28, the LEGACY Discovery reader, candidate 2b2cf4d7 on the emulator) measured 839
+synchronous-update warnings over 19 dead tags in a 5 s window, 771 skipped frames and an Android ANR (an input waited 5,002 ms), and traced the mechanism in the installed
+Reanimated 4.5.1 source: `NodesManager` applies every retained animated-registry entry on each draw pass and a failed native update is logged but not removed. On the local
+host-GPU emulator the same P6 build shows 16,534 such lines and 25 frames over 700 ms (max 3.35 s) in a 20-cycle session, no ANR. A repair (a dependency patch or the lifetimes of the
+screen's animated views) is a separate package and needs the owner's approval for any dependency change; it is listed as an explicit limit of the P6 acceptance, not as closed.
 
 ## PKG045b client compatibility record (2026-09-30)
 The restriction removes table-wide SELECT on `public.needs` for `anon`/`authenticated` and keeps a 38-column allowlist; three columns become private:
@@ -74,4 +80,32 @@ PAGE 8 items / 4 pins, MAP 1 cluster of 8 (4 without a point), PLACES 3 facets (
 Receipt: `supabase/operations/dev-alpha/ledger/20260930_p6_rollout_v3_application.receipt.json`. No build with the reader compiled in is installed yet (the DEV emulator APK
 with `EXPO_PUBLIC_P6_DISCOVERY_READER=1` is the next step); builds without the flag keep using the legacy readers, which this package does not touch.
 
-(Journey evidence, the cutover and the closing statement are added below as each gate is proven.)
+## Local emulator against canonical DEV (2026-09-30, read-only, owner-allowed)
+The owner allowed a local emulator check against DEV ("Da, pokreni proveru na emulatoru"). Conditions, stated because they decide what the numbers mean: `emulator-5554`
+(AVD `USKOCI_V5_TEST`, Android 16 / SDK 36, 1080 × 2424, host-GPU emulator on a Windows workstation), DEV APK `USKOCI-DEV.apk` from run 36705117786 (SHA256 `f16ef07920f4…a748`, 72,986,077 bytes, installed with `adb install -r` at 11:12Z; source `42371918` = the journey APK's source
+`650d340d` + the production reader flag; `git diff` of `src assets app.json package.json package-lock.json` between the journey APK's source, that source and today's HEAD is empty),
+canonical DEV backend (ledger 212), an existing signed-in owner account, nothing typed into any form, nothing sent or written (`scripts/p6_dev_emulator_check.py`: uiautomator + adb).
+Two runs (`p6dev_final2` 13:21–13:30 and `p6dev_pins2` 13:36–13:42 local time; raw output stays local, the numbers are here):
+
+| Check | Result |
+| --- | --- |
+| List top line vs the server's own count | 8 = 8, both runs (8 published tasks, 4 with a map point) |
+| Pan, zoom out, zoom in | each settled to a read (`OWN_MOVE`) and kept the top line with no error (3 of 3) |
+| 20 open-detail / Back cycles | 20 of 20 returned; one app process throughout |
+| Back → the screen's own `restored` trace line | p50 0.745 s, p95 1.054 s, max 1.201 s (n = 20) |
+| Memory (PSS) | 320 MB before, 384 MB at cycle 5, peak 453 MB, 426 MB after idle: a plateau, no monotonic growth |
+| Health from the log | ANR 0, fatal 0, process deaths 0, `p6ReadFailed` 0, `viewToBitmap` 0; frames over 700 ms 25 (max 3,351 ms); Reanimated dead-tag lines 16,534 (see the noise section); gfxinfo 5,704 frames, 31.6 % janky |
+| 30 touches on task pins | Peek shown 30 of 30, traced 30 of 30; first feedback p50 229 ms, p95 296 ms, max 303 ms (JS clock: touch handled → halo committed); usable card data p50 692 ms, p95 1,040 ms, max 1,238 ms (includes the exact read over the internet to DEV) |
+
+Three checks of those runs failed and all three are the script's own judgment, not the app: the list check compared the number of distinct card LABELS with the count (two tasks share the
+title "Hitno prenošenje troseda": 6 labels for 8 tasks), the map check looked for a bucket before the map had settled, and the Peek-movement check measured the first Peek mid-animation (250 px; the other
+29 moved 0 px). All three are fixed in the committed script; it was NOT re-run afterwards because the emulator's signed-in session was lost (a test import of the journey driver ran its start and cleared the app data; nothing on
+DEV or on the phone was touched). So the honest state is: the app-side numbers above stand, the script's final form is unproven, and "no double geometric jump of the Peek" was observed but not re-judged.
+
+**Against the runbook's initial engineering targets** (feedback p95 ≤ 100 ms, loaded pin → card p95 ≤ 200 ms excluding a separate network read, warm return p95 ≤ 350 ms, < 5 % slow frames, no multi-second freeze), which are stated for the
+reference phone: NOT met on this emulator (296 ms, 1,040 ms, 1,054 ms, 31.6 %, one 3.35 s frame). Emulator timings do not certify phone timing, and the owner's rule is the emulator, never the phone, so the phone
+budgets remain unmeasured. They show where the time goes: the halo waits for a full React render of the presentation (state local to the map layer would remove that), the card waits for the exact read (a known summary
+plus a skeleton, as chapter 6.5 proposes, would remove that from the perceived path), and the warm return rebuilds the route from its saved view and reads up to eight pages. P6-10's "smallest necessary change" (the immediate halo, finding 12)
+is done; the remainder is chapter 8.2 of the plan and is recorded as a proposed adjustment and follow-up, not as a relaxed target.
+
+(Journey #11, the cutover and the closing statement are added below as each gate is proven.)
