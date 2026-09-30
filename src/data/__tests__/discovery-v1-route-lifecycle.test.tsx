@@ -288,3 +288,23 @@ test('a search draft asked again for the same words reads once, and its previews
   expect(bridge().props.search.status).toBe('ready');
   expect(bridge().props.error).toBe(false);
 });
+
+test('a change of view is handed back at once, so the next change is built on it and a chosen place is not read away', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  const start = bridge().props.snapshot.view;
+  let release!: () => void;
+  const gate = new Promise<void>(done => { release = done; });
+  mockTransport = async request => { await gate; return server(request); };
+  mockTransportCalls.length = 0;
+  await act(async () => { bridge().props.onView({ ...start, place: 'Liman, Novi Sad' }); });
+  // No read has landed, yet the presentation is already handed the view it asked for.
+  expect(bridge().props.snapshot.view.place).toBe('Liman, Novi Sad');
+  // Its next change, built on the view it was handed (the sheet settles), keeps the place.
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, sheet: 'peek' }); });
+  release();
+  await flush();
+  expect(errorState()).toHaveLength(0);
+  expect(mockTransportCalls.filter(request => request.mode === 'PAGE').map(request => (request as any).filter.place)).toEqual(['Liman, Novi Sad']);
+  expect(bridge().props.snapshot.view).toMatchObject({ place: 'Liman, Novi Sad', sheet: 'peek' });
+});

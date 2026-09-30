@@ -90,7 +90,17 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     };
   }, [coordinator, commit]);
 
-  const handleView = useCallback((view: MarketplaceView) => { void execute(() => coordinator.updateView(view)); }, [coordinator, execute]);
+  // The view the person has just asked for, until the read for it lands. The presentation builds its next change on the view it was last
+  // handed, and the committed view is one read behind: the search panel applied a place, the sheet then settled, and that change (built on the
+  // old view) read the place away again (found on the emulator: the place was read and, next, read away). The asked view is handed back at once.
+  const askedView = useRef<MarketplaceView | null>(null);
+  const [, showAsked] = useState(0);
+  const handleView = useCallback((view: MarketplaceView) => {
+    askedView.current = view; showAsked(count => count + 1);
+    void execute(() => coordinator.updateView(view)).finally(() => {
+      if (askedView.current === view) { askedView.current = null; if (mounted.current) showAsked(count => count + 1); }
+    });
+  }, [coordinator, execute]);
   const handleRefresh = useCallback(() => {
     const view = coordinator.snapshot().view;
     if (view) void execute(() => coordinator.open(view), true);
@@ -129,7 +139,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     </View>;
   }
 
-  return <DiscoveryV1PresentationBridge snapshot={state.screen} overlay={state.overlay} search={state.search}
+  return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={state.selectedMarkerKey} loadingMore={state.loadingMore}
     actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
     loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
