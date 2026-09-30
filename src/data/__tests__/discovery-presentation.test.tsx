@@ -1293,17 +1293,17 @@ test('a ready map mounts at its actual peek detent and animates the first native
   expect(countLine().props.accessibilityLabel).toBe('6 zadataka');
 });
 
-// The P6 route drops its screen on blur and rebuilds it from the remembered view. A detent above the peek is mounted where it was left, never
-// animated in from below: that first animated mount left the native sheet at Gorhom's hidden mount props (a dimmed, empty screen and only the
-// "Mapa" pill, found on the emulator after a return from a task). A remembered peek and a first visit animate in as before.
+// Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not finished, and never re-runs: a request for
+// another detent is then lost (React says FULL, the native sheet stays put; a dimmed empty screen with only the "Mapa" pill, found on the emulator).
+// The P6 screen is rebuilt on every return, so it never depends on that animation, whichever detent it starts at. The legacy first draw keeps it.
 test.each([
-  ['full', 2, false], ['half', 1, false], ['peek', 0, true],
-] as const)('a screen rebuilt at the remembered %s detent mounts the native sheet at index %i with animateOnMount %s', async (sheet, index, animate) => {
+  ['remembered full', 'full', 2], ['remembered half', 'half', 1], ['remembered peek', 'peek', 0], ['first', undefined, 0],
+] as const)('a P6 screen started at the %s detent mounts the native sheet there without animating in', async (_label, sheet, index) => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
-  initial = { ...initial, sheet, listOffset: 0 };
+  initial = { ...initial, ...(sheet ? { sheet } : {}), listOffset: 0 };
+  p6Seam = p6Seam_();
   await render();
-  expect(listSheet().props).toMatchObject({ index, animateOnMount: animate });
-  expect(snapshot.sheet).toBe(sheet);
+  expect(listSheet().props).toMatchObject({ index, animateOnMount: false });
 });
 
 test('while reading, the sheet is half open over breathing placeholders; the start is chosen once the read lands', async () => {

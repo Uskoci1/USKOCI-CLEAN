@@ -8,6 +8,7 @@ import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
 import { StateView } from '../../system/StateView';
 import { DiscoveryV1Screen } from './DiscoveryV1Screen';
+import { useDiscoveryNativeTrace } from './discoveryNativeTrace';
 
 /**
  * The P6 server-read Zadaci route: the real presentation components over the P6 coordinator. Which reader a build mounts is decided
@@ -19,6 +20,12 @@ export function DiscoveryV1Route() {
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
+  const trace = useDiscoveryNativeTrace();
+  const traceRef = useRef(trace); traceRef.current = trace;
+  const persistView = useCallback((next: MarketplaceView) => {
+    traceRef.current?.('route-view', next.listOffset ?? 0, next.sheet === 'full' ? 2 : next.sheet === 'half' ? 1 : next.sheet === 'peek' ? 0 : -1);
+    setView(next);
+  }, []);
 
   useFocusEffect(useCallback(() => {
     let owner: object | null = null;
@@ -27,12 +34,14 @@ export function DiscoveryV1Route() {
       owner = {};
       focus.current = owner;
       navigating.current = false;
+      traceRef.current?.('route-focus');
       setScope(owner);
     };
     const leave = () => {
       if (!owner) return;
       if (focus.current === owner) focus.current = null;
       owner = null;
+      traceRef.current?.('route-blur');
       setScope(null);
     };
     if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive') enter();
@@ -77,7 +86,7 @@ export function DiscoveryV1Route() {
   return <DiscoveryV1Screen key={`${user.id}:${accountRevision}`}
     source={source} scopeKey={`${user.id}:${accountRevision}`} initialView={view}
     initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
-    isCurrent={current} onPersistView={setView} onOpen={open}
+    isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
     onNew={() => navigate(() => router.navigate('/nova'))} />;

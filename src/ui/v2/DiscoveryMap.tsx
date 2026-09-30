@@ -497,12 +497,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         <Layer id="need-pin-marks" type="symbol" filter={['!', ['has', 'point_count']]}
           layout={{ 'icon-image': 'uskoci-task', 'icon-size': 30 / 640, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
       </GeoJSONSource> : null}
-      {/* Annotations mounted while the native map is still initialising are queued, and when the map adopts them their child view is
-          re-parented into the offscreen container, which lays it out at 0x0: every later snapshot then fails with "viewToBitmap must not be
-          null" and no pill is ever drawn (found on the emulator, 3765 failed refreshes in one run). Pills that come after the map is ready
-          are attached where they are laid out, exactly as the price pills of the legacy path always were. */}
-      {serverMap && status === 'ready' ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey}
-        nativeReady={status === 'ready' && nativeFrameReady} owns={owns} onSelect={marker => {
+      {/* The server buckets are native layers, not view annotations: a bitmap of a React view needs its child laid out inside MapLibre's
+          offscreen container, and none was ever drawn on the emulator (queued annotations lost their size, later ones snapshot blank). */}
+      {serverMap ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey}
+        onSelect={marker => {
           if (!owns() || load.current !== 'ready') return;
           pillTap.current = Date.now(); manualMapIntent();
           if (marker.kind === 'CLUSTER') openServerCluster(marker.memberBounds);

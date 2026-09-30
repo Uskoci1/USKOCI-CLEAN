@@ -1,0 +1,48 @@
+import React from 'react';
+import { act, create } from 'react-test-renderer';
+import type { DiscoveryTrace } from '../../ui/v2/DiscoveryPresentation';
+
+let mockPackage: string | undefined = 'rs.uskoci.dev';
+jest.mock('expo-constants', () => ({ __esModule: true, default: { get expoConfig() { return { android: { package: mockPackage } }; } } }));
+
+import { NATIVE_TRACE_LIMIT, NATIVE_TRACE_SAMPLE_LIMIT, useDiscoveryNativeTrace } from '../../ui/v2/discovery/discoveryNativeTrace';
+
+let info: jest.SpyInstance;
+beforeEach(() => { info = jest.spyOn(console, 'info').mockImplementation(() => {}); mockPackage = 'rs.uskoci.dev'; });
+afterEach(() => info.mockRestore());
+
+async function mount() {
+  const box: { trace: DiscoveryTrace | undefined } = { trace: undefined };
+  function Probe() { box.trace = useDiscoveryNativeTrace(); return null; }
+  await act(async () => { create(<Probe />); });
+  return box;
+}
+const lines = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_DISCOVERY_TRACE]'));
+
+it('exists only in the exact DEV package', async () => {
+  for (const other of ['rs.uskoci', 'rs.uskoci.preview', 'com.example', undefined]) {
+    mockPackage = other;
+    expect((await mount()).trace).toBeUndefined();
+  }
+  mockPackage = 'rs.uskoci.dev';
+  expect(typeof (await mount()).trace).toBe('function');
+});
+
+it('logs a numbered fixed line with finite numbers only and drops anything else', async () => {
+  const { trace } = await mount();
+  trace!('index', 0, 2, true);
+  trace!('geometry', 12.345, -20_000_000, 20_000_000);
+  trace!('index', Number.NaN);
+  trace!('index', Infinity);
+  trace!('nothing-like-it' as never, 1);
+  trace!('index', ...Array.from({ length: 21 }, () => 1));
+  expect(lines()).toEqual(['[USKOCI_DISCOVERY_TRACE] [1,"index",0,2,true]', '[USKOCI_DISCOVERY_TRACE] [2,"geometry",12.3,-10000000,10000000]']);
+});
+
+it('is bounded: samples per high-rate event, and a total limit', async () => {
+  const { trace } = await mount();
+  for (let i = 0; i < NATIVE_TRACE_SAMPLE_LIMIT + 30; i++) trace!('scroll', i);
+  expect(lines()).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT);
+  for (let i = 0; i < NATIVE_TRACE_LIMIT + 50; i++) trace!('index', i);
+  expect(lines()).toHaveLength(NATIVE_TRACE_LIMIT);
+});

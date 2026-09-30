@@ -438,10 +438,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
   const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
   const started = useRef(!!view.sheet);
-  // A rebuilt screen (the P6 route drops it on blur) starts at the detent it was left at. Above the peek that detent is mounted where it
-  // is, never animated in from below: the animated first mount of such a detent left the native sheet at Gorhom's hidden mount props
-  // (a dimmed, empty screen with only the "Mapa" pill, found on the emulator after a return). Retained returns already mount this way.
-  const restoredAbovePeek = useRef(!!view.sheet && (INDEX[view.sheet] as number) !== SNAP.peek);
   useEffect(() => {
     if (!started.current) return;
     const name = SNAP_NAME[sheetIndex];
@@ -1088,7 +1084,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
-        animateOnMount={nativeMountKey === 1 && !restoredAbovePeek.current}
+        // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
+        // sets `didAnimateOnMount`), and nothing re-runs it: a later request for another detent is lost, React says FULL and the native sheet stays
+        // where it is (a dimmed empty screen with only the "Mapa" pill; found on the emulator, on the first open of the list and after a return).
+        // The P6 screen is rebuilt on every return and started while the map is still initialising, so it never depends on that animation.
+        animateOnMount={nativeMountKey === 1 && !props.p6Seam}
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
