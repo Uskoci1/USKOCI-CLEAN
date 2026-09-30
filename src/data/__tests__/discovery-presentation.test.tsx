@@ -2463,3 +2463,29 @@ test('the legacy pin selection at the half detent still lowers the sheet the sam
   await act(async () => map().props.onSelect('bb'));
   expect(listSheet().props.index).toBe(0); expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
 });
+
+// EX-03 (mount behaviour, owner approval 2026-09-30): the list sinks behind a pin's card and comes back, and its rows are the same native views all along. Measured on the HONOR before
+// this: every card open and close re-created every row (the cell key followed a layout signature that held the card), a burst of native views and Reanimated tags that died at once,
+// repeated through every draw of the card's icons (a frame of 500 ms in display-list recording, 1.1 s before the card data moved into the touch's own turn).
+test('EX-03: a pin card opening and closing leaves every row of the list mounted', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOutBody();
+  // The test renderer's `.instance` is the node mock (null here); the identity of a mounted host view is its fiber's stateNode, new for every view that is mounted again.
+  const rowViews = () => listSheet().findAll(node => String(node.type) === 'Press' && /^Otvori (?:priliku|Zadatak) /.test(node.props.accessibilityLabel ?? ''))
+    .map(node => (node as unknown as { _fiber: { stateNode: object } })._fiber.stateNode);
+  // Compared as booleans on purpose: a failed toBe on two host instances makes Jest print their whole object graphs, which runs the worker out of memory.
+  const sameViews = (now: object[], then: object[]) => now.map((view, at) => view === then[at]);
+  const allSame = [true, true, true, true, true, true];
+  const before = rowViews();
+  expect(before).toHaveLength(6);
+  expect(before.every(Boolean)).toBe(true);
+  await act(async () => map().props.onSelect('t1'));
+  expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);                   // the list sank behind the card ...
+  const open = rowViews();
+  expect(open).toHaveLength(6);
+  expect(sameViews(open, before)).toEqual(allSame);                       // ... and no row was re-created
+  await tap('Zatvori pregled zadatka');
+  expect(listSheet().props.snapPoints[0]).toBeGreaterThan(HIDDEN);        // the top line is back ...
+  const closed = rowViews();
+  expect(closed).toHaveLength(6);
+  expect(sameViews(closed, before)).toEqual(allSame);                     // ... on the very same rows
+});

@@ -600,13 +600,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [kick, setKick] = useState(0);
   // A hand on the list ends the nudging: a later nudge would move the sheet under the scroll (Gorhom locks the list while the sheet moves).
   const interacted = useRef(false);
+  // The list's top line as it stands with no card over it. With a card it steps out of sight (HIDDEN) and only that one line changes.
+  const collapsedSnap = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
   const snapPoints = useMemo(() => {
-    const collapsed = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
-    const low = cardShown ? HIDDEN : collapsed;
+    const low = cardShown ? HIDDEN : collapsedSnap;
     if (!bodyHeight) return [low, '50%', '88%'];
     const full = availableSheet;
-    return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
-  }, [bodyHeight, availableSheet, mapClearSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
+    return [low, Math.min(full - 1, Math.max(collapsedSnap + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
+  }, [bodyHeight, availableSheet, mapClearSheet, collapsedSnap, cardShown]);
   const sheetSnapPoints = useMemo(() => kick % 2 === 1
     ? snapPoints.map((value, at) => at === sheetIndex && typeof value === 'number' ? value - SHEET_KICK_PX : value) : snapPoints, [snapPoints, kick, sheetIndex]);
   // Empty results use the same full-height recovery surface, with a secondary map return.
@@ -637,10 +638,19 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // row layout facts and viewport geometry are unchanged. That keeps RN's measured-cell cache for deep returns.
   // Interrupted springs, scope changes, changed rows or changed layout still remount fail-closed.
   const rowMountSignature = useMemo(() => JSON.stringify(listed.map(item => [item, relation(item)])), [listed, relation]);
+  const snapSignature = (points: ReadonlyArray<number | string>) => points.map(value => typeof value === 'number' ? Math.round(value * 10) / 10 : value);
   const layoutMountSignature = [
     windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, cardShown,
     undated, sectionsSignature,
-    ...snapPoints.map(value => typeof value === 'number' ? Math.round(value * 10) / 10 : value),
+    ...snapSignature(snapPoints),
+  ].join(':');
+  // EX-03: what keys the native rows (through the measurement owner below) is the geometry that sizes and places them. Whether a pin's card has sunk the list's top line is not part of it:
+  // the rows keep their size and place, and the viewport is the full stop. Keyed by the signature above, every card that opened or closed re-created every row, a burst of native views
+  // and Reanimated tags that died at once (measured on the HONOR). The signature above still guards a native sheet that comes back after a departure.
+  const rowGeometrySignature = [
+    windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight,
+    undated, sectionsSignature,
+    ...snapSignature([collapsedSnap, ...snapPoints.slice(1)]),
   ].join(':');
   const sheetMount = useRef({
     key: 1, focused, scopeKey: props.scopeKey, rows: rowMountSignature, layout: layoutMountSignature, reusable: true,
@@ -780,7 +790,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // prove that an offset is unreachable: only the actual final cell and footer can.
   const extentSequence = useRef(0);
   const extent = useMemo(() => ({ sequence: ++extentSequence.current, bottom: null as number | null, footer: undated ? null as number | null : 0 }),
-    [rowMountSignature, nativeMountKey, layoutMountSignature, undated]);
+    [rowMountSignature, nativeMountKey, rowGeometrySignature, undated]);
   const currentExtent = useRef(extent);
   if (currentExtent.current !== extent) {
     // Keep this mount's last native content height as a provisional bound: unchanged dimensions produce no
