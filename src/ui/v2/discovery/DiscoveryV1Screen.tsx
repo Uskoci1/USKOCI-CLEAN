@@ -106,8 +106,30 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     if (view) void execute(() => coordinator.open(view), true);
   }, [coordinator, execute]);
   // A cluster is navigation only: the map's camera goes into it and the settled region reads the list and the map (`onArea`).
+  // A touch on a task or a place answers at once: the bucket's halo shows while the exact read is on its way and the card follows when that lands. The halo
+  // is the map layer's own filter (no geometry, no card); the read still owns the selection, so one that does not apply takes the halo away again, and the
+  // newest touch keeps it when an older read finishes late. The DEV package traces the milliseconds to the halo and to the card data (P6-10).
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const tap = useRef<{ key: string; at: number; feedback: number | null } | null>(null);
+  useEffect(() => {
+    const touch = tap.current;
+    if (pendingKey !== null && touch && touch.key === pendingKey && touch.feedback === null) touch.feedback = Date.now() - touch.at;
+  }, [pendingKey]);
   const selectMarker = useCallback((marker: DiscoveryV1MapMarker) => {
-    void execute(async () => { await coordinator.selectMarker(marker); });
+    tap.current = { key: marker.key, at: Date.now(), feedback: null };
+    if (marker.kind !== 'CLUSTER') setPendingKey(marker.key);
+    let applied = false;
+    void execute(async () => {
+      const result = await coordinator.selectMarker(marker);
+      applied = (result.kind === 'TASK' || result.kind === 'PLACE') && result.applied;
+    }).then(() => {
+      const touch = tap.current;
+      if (applied && touch && touch.key === marker.key) {
+        const content = Math.min(Date.now() - touch.at, 9999);
+        traceDiscoveryV1('pin', `${Math.min(touch.feedback ?? content, 9999)}/${content}`);
+      }
+      if (mounted.current) setPendingKey(current => current === marker.key ? null : current);
+    });
   }, [coordinator, execute]);
   const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
   // The markers follow a camera move that is not the person's own; the list and the peek are not touched, and a read that proves nothing about
@@ -140,7 +162,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   }
 
   return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
-    selectedMarkerKey={state.selectedMarkerKey} loadingMore={state.loadingMore}
+    selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
     actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
     loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}

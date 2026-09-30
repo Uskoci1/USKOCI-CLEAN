@@ -27,6 +27,25 @@ it('names how a settled camera move was classified', () => {
   traceDiscoveryV1('settled', 'QUIET_MOVE');
   expect(info.mock.calls).toEqual([['[USKOCI_P6_TRACE] ["settled","OWN_CLUSTER"]'], ['[USKOCI_P6_TRACE] ["settled","QUIET_MOVE"]']]);
 });
+it('names the milliseconds a touch took to its halo and to its card data, on a budget of its own', () => {
+  traceDiscoveryV1('pin', '18/243');
+  traceDiscoveryV1('pin', '5/9999');
+  traceDiscoveryV1('pin', '18/10000');
+  traceDiscoveryV1('pin', 'a free text');
+  expect(info.mock.calls).toEqual([['[USKOCI_P6_TRACE] ["pin","18/243"]'], ['[USKOCI_P6_TRACE] ["pin","5/9999"]']]);
+  jest.isolateModules(() => {
+    const isolated = require('../discoveryV1Trace') as typeof import('../discoveryV1Trace');
+    info.mockClear();
+    for (let at = 0; at < 100; at++) isolated.traceDiscoveryV1('restored', '1/1');
+    expect(info).toHaveBeenCalledTimes(60);
+    isolated.traceDiscoveryV1('pin', '1/2');
+    expect(info).toHaveBeenCalledTimes(61);
+    for (let at = 0; at < 500; at++) isolated.traceDiscoveryV1('pin', '1/2');
+    expect(info).toHaveBeenCalledTimes(60 + 400);
+    isolated.traceDiscoveryV1('restored', '1/1');
+    expect(info).toHaveBeenCalledTimes(60 + 400);
+  });
+});
 it('logs nothing in any other package', () => {
   for (const other of ['rs.uskoci', 'rs.uskoci.preview', 'com.example', undefined]) {
     mockPackage = other;
