@@ -78,13 +78,16 @@ await check('PRE_IMAGE_IS_THE_STATE_THE_APPLICATION_STARTS_FROM_AND_THE_DEV_FILE
   // The DEV file carries DEV's digest; the chain variant differs from it in that one literal only.
   revertText = readFileSync(revertPath, 'utf8');
   const tmp = env.PRE_V3_ARTIFACT_DIR + '/chat_voice_b1_revert.chain.sql';
-  python(builderPath, '--check');
   python(builderPath, '--digest', baselineState.live, '--out', tmp);
   chainRevert = readFileSync(tmp, 'utf8');
   assert.ok(revertText.split(DEV_DIGEST).length - 1 >= 3, 'the DEV file carries the DEV digest');
   assert.equal(revertText.replaceAll(DEV_DIGEST, baselineState.live), chainRevert);
   assert.ok(!chainRevert.includes(DEV_DIGEST));
   report.digests.chainBefore = baselineState.live; report.digests.devBefore = DEV_DIGEST;
+});
+await check('THE_COMMITTED_REVERT_FILE_IS_EXACTLY_THE_GENERATED_FILE', async () => {
+  const result = execFileSync('python3', [builderPath, '--check'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  assert.match(result, /^OK: /);
 });
 await check('THE_REVERT_IS_REFUSED_WHILE_NOTHING_IS_APPLIED_AND_CHANGES_NOTHING', async () => {
   baseline = snapshot(); baselineStorage = storageSurface(); assert.ok(chainRevert);
@@ -95,6 +98,7 @@ await check('THE_REVERT_IS_REFUSED_WHILE_NOTHING_IS_APPLIED_AND_CHANGES_NOTHING'
 await check('THE_APPLICATION_IS_APPLIED', async () => {
   assert.ok(baseline);
   sql(application);
+  await new Promise(resolve => setTimeout(resolve, 1500));
   appliedState = closureState(); afterApply = snapshot();
   assert.equal(appliedState.ready, true); assert.notEqual(appliedState.live, baselineState.live); assert.equal(appliedState.live, appliedState.certified);
   report.digests.chainApplied = appliedState.live;

@@ -141,7 +141,11 @@ def main():
     if arguments.check:
         current = read(OUT) if OUT.exists() else ''
         if current != built:
-            raise SystemExit('the committed revert candidate differs from the generated one')
+            offset = next((i for i, (a, b) in enumerate(zip(built, current)) if a != b), min(len(built), len(current)))
+            raise SystemExit('the committed revert candidate differs from the generated one: generated ' + str(len(built)) + ' chars sha256 '
+                             + hashlib.sha256(built.encode('utf-8')).hexdigest() + ', committed ' + str(len(current)) + ' chars sha256 '
+                             + hashlib.sha256(current.encode('utf-8')).hexdigest() + '; first difference at ' + str(offset) + ': generated '
+                             + repr(built[max(0, offset - 60):offset + 100]) + ' committed ' + repr(current[max(0, offset - 60):offset + 100]))
         print('OK: ' + str(OUT.relative_to(ROOT)) + ' equals the generated revert candidate (' + str(len(built)) + ' chars)')
         return
     target = pathlib.Path(arguments.out) if arguments.out else OUT
