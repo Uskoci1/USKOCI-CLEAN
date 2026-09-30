@@ -14,6 +14,7 @@ on:
       - 'supabase/proofs/discovery/p6_native_fixture.mjs'
       - 'supabase/proofs/discovery/p6_native_apk_run.txt'
       - 'supabase/proofs/discovery/p6_native_journey_mode.txt'
+      - 'supabase/proofs/discovery/p6_native_journey_steps.txt'
 permissions:
   contents: read
   actions: read
@@ -48,8 +49,12 @@ jobs:
           mode="$(tr -d '[:space:]' < supabase/proofs/discovery/p6_native_journey_mode.txt)"
           [[ "$apk_run" =~ ^[0-9]+$ ]] || { echo "p6_native_apk_run.txt must hold a run id"; exit 1; }
           [[ "$mode" =~ ^(probe|full)$ ]] || { echo "p6_native_journey_mode.txt must be probe or full"; exit 1; }
+          # Optional focused run: step names (login always). Empty = the whole journey, the only acceptance run.
+          steps="$(tr '\r\n,' '   ' < supabase/proofs/discovery/p6_native_journey_steps.txt 2>/dev/null | tr -s ' ' | sed 's/^ //; s/ $//' || true)"
+          [[ -z "$steps" || "$steps" =~ ^[a-z_]+( [a-z_]+)*$ ]] || { echo "p6_native_journey_steps.txt must hold step names"; exit 1; }
           echo "P6N_APK_RUN=$apk_run" >> "$GITHUB_ENV"
           echo "P6N_JOURNEY=$mode" >> "$GITHUB_ENV"
+          echo "P6N_STEPS=$steps" >> "$GITHUB_ENV"
       - name: Download and verify the proof APK
         run: |
           set -euo pipefail
@@ -181,7 +186,7 @@ jobs:
           print('annotation bitmap exceptions:', bitmap)
           if r.get('mode') == 'full':
               assert r.get('result') == 'PASS' and not bad and not bad_steps and not fatal and bitmap == 0, 'P6 native journey not accepted'
-              print('PASS P6_NATIVE_JOURNEY_ACCEPTED')
+              print('PASS P6_NATIVE_JOURNEY_FOCUSED_ONLY steps=' + ','.join(r['focused']) if r.get('focused') else 'PASS P6_NATIVE_JOURNEY_ACCEPTED')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

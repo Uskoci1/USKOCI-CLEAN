@@ -32,6 +32,8 @@ PACKAGE = 'rs.uskoci.dev'
 MAIN_ACTIVITY = f'{PACKAGE}/.MainActivity'
 MODE = os.environ.get('P6N_JOURNEY', 'probe')
 assert MODE in ('probe', 'full')
+# A focused run: only the named steps (login always). Empty = the whole journey, which is the only acceptance run.
+FOCUS = [s for s in os.environ.get('P6N_STEPS', '').replace(',', ' ').split() if s]
 DB_URL = os.environ['RU5_DEVICE_DB_URL']
 if urlparse(DB_URL).hostname not in ('localhost', '127.0.0.1'):
     raise RuntimeError('P6 native journey requires the disposable local database')
@@ -1050,6 +1052,85 @@ def close_card():
     time.sleep(2)
 
 
+PIN_TRACE = re.compile(r'\[USKOCI_P6_TRACE\] \["pin","(\d+)/(\d+)"\]')
+
+
+def pin_trace_since(size):
+    """The `pin` timings the app traced (DEV package) after the device log had `size` bytes: [(ms to the halo, ms to the card data), ...]."""
+    try:
+        with open(ARTIFACT_DIR / 'logcat.txt', 'rb') as fh:
+            fh.seek(size)
+            text = fh.read().decode('utf-8', 'replace')
+    except OSError:
+        return []
+    return [(int(a), int(b)) for a, b in PIN_TRACE.findall(text)]
+
+
+def percentile(values, q):
+    ordered = sorted(values)
+    return ordered[max(0, math.ceil(q * len(ordered)) - 1)] if ordered else None
+
+
+def close_card_if_open():
+    """Closes the Peek when there is one (never sends Back: with no card that would leave the screen)."""
+    root, parent = dump()
+    close = nodes(root, desc='Zatvori pregled zadatka') or nodes(root, prefix='Zatvori pregled')
+    if not close:
+        return False
+    tap_visible(close[0], parent)
+    time.sleep(1.5)
+    return True
+
+
+def time_pin_taps(p, n=30):
+    """P6-10: tap -> first feedback -> usable content, n repetitions on one task bucket. The app traces (DEV package) the milliseconds from the touch to the bucket's halo and to
+    the card's data; the Peek is closed and the same bucket touched again. For the first three the Peek's geometry is compared before and after it has stood for a moment (a second
+    jump would show as a moved card). CI emulator conditions are declared with the numbers: software rendering, about ten times slower than a phone."""
+    log = ARTIFACT_DIR / 'logcat.txt'
+    size = log.stat().st_size if log.exists() else 0
+    close_card_if_open()
+    shown, jumps, redetected = 0, [], 0
+    for i in range(n):
+        tap_pill(p)
+        try:
+            _v, root, _parent = poll(lambda r, q: peek_task_title(r), 30, interval=0.4, what='the Peek after a repeated pin touch')
+        except RuntimeError:
+            close_card_if_open()
+            # The camera may have moved with an earlier touch: find the bucket again, nearest to where it was.
+            again, _pp = dump()
+            found = pills(again)
+            if found:
+                p = min(found, key=lambda q: (q['x'] - p['x']) ** 2 + (q['y'] - p['y']) ** 2)
+                redetected += 1
+            continue
+        shown += 1
+        if i < 3:
+            first = [parse_bounds(x.attrib.get('bounds')) for x in nodes(root, prefix='Otvori zadatak: ')][:1]
+            time.sleep(1.5)
+            later, _pp = dump()
+            second = [parse_bounds(x.attrib.get('bounds')) for x in nodes(later, prefix='Otvori zadatak: ')][:1]
+            jumps.append(max(abs(a - b) for a, b in zip(first[0], second[0])) if first and second else None)
+        close_card_if_open()
+    time.sleep(3)
+    timings = pin_trace_since(size)
+    feedback, content = [a for a, _b in timings], [b for _a, b in timings]
+    summary = {'touches': n, 'peekShown': shown, 'traced': len(timings), 'bucketFoundAgain': redetected,
+               'firstFeedbackMs': {'p50': percentile(feedback, 0.5), 'p95': percentile(feedback, 0.95), 'max': max(feedback, default=None)},
+               'usableContentMs': {'p50': percentile(content, 0.5), 'p95': percentile(content, 0.95), 'max': max(content, default=None)},
+               'peekMovedPxAfterAppearing': jumps,
+               'conditions': 'CI x86_64 emulator, software rendering (about 10x slower than a phone), disposable local server; JS-side clock: touch handled -> halo committed -> card data committed'}
+    REPORT['pinTiming'] = summary
+    check('PIN_TIMING_MEASURED', len(timings) >= max(3, int(n * 0.9)) and shown >= max(3, int(n * 0.9)), **summary)
+    # Hang detectors for the CI emulator, not the phone budgets of the plan (those are read on the local emulator against DEV).
+    check('PIN_FIRST_FEEDBACK_BOUNDED', bool(feedback) and percentile(feedback, 0.95) <= 3000, p95=percentile(feedback, 0.95), max=max(feedback, default=None))
+    check('PIN_USABLE_CONTENT_BOUNDED', bool(content) and percentile(content, 0.95) <= 8000, p95=percentile(content, 0.95), max=max(content, default=None))
+    measured = [j for j in jumps if j is not None]
+    check('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', len(measured) >= 2 and max(measured) <= 4, movedPx=jumps)
+    # The flow that follows expects the Peek open, as it was before the timing.
+    tap_pill(p)
+    poll(lambda r, q: peek_task_title(r), 30, interval=0.5, what='the Peek re-opened after the timing')
+
+
 def verify_task_peek(root, parent, title, m):
     reqs = since(m)
     check('TASK_MARKER_OPENS_PEEK', bool(title) and any(r.get('mode') == 'EXACT_PUBLIC' for r in reqs), title=title,
@@ -1136,6 +1217,13 @@ def s_map_pins():
         if kind == 'TASK' and not seen['TASK']:
             seen['TASK'] = True
             verify_task_peek(root, parent, title, m)
+            try:
+                time_pin_taps(p, 30)
+            except RuntimeError as exc:                    # a failed timing is a failed check; the flow that follows still gets its Peek back
+                check('PIN_TIMING_STEP_COMPLETED', False, error=str(exc)[:160])
+                close_card_if_open()
+                tap_pill(p)
+                poll(lambda r, q: peek_task_title(r), 30, interval=0.5, what='the Peek after a failed timing')
         elif kind == 'PLACE' and not seen['PLACE']:
             seen['PLACE'] = True
             verify_place_peek(root, parent, m)
@@ -1251,6 +1339,70 @@ def capture_self_test():
     check('STATEMENT_LOG_CAPTURES_REQUEST_BODIES', ok, bodies=len(bodies), wheres=wheres)
 
 
+def map_area_of(req):
+    """The map area a request asked for: MAP's bounds, or the bounds of an AREA-scoped PAGE."""
+    scope = req.get('scope')
+    found = req.get('bounds') if req.get('mode') == 'MAP' else (scope.get('bounds') if isinstance(scope, dict) and scope.get('kind') == 'AREA' else None)
+    return found if isinstance(found, list) and len(found) == 4 else None
+
+
+def map_reads():
+    return [r for r in harvest() if r.get('mode') == 'MAP' and map_area_of(r)]
+
+
+def wait_new_map_area(seen, timeout=30):
+    """The MAP read a settled camera move asks for: the newest one once more than `seen` MAP reads exist."""
+    end = time.time() + timeout
+    while time.time() < end:
+        maps = map_reads()
+        if len(maps) > seen:
+            return map_area_of(maps[-1]), len(maps)
+        time.sleep(1.5)
+    return None, seen
+
+
+def area_width(area):
+    return abs(area[2] - area[0]) if area else None
+
+
+def s_map_gestures():
+    """P6-11: a real pan and the zoom buttons on the map (a pinch cannot be sent through adb). Each settled move reads the MAP for the new area, the person's own move also reads
+    the list for it, and the screen keeps its top line and shows no error."""
+    root = ensure_peek()
+    snapshot('P6_30_before_gestures')
+    w, _h = screen_size()
+    top, bottom = map_band(root)
+    y = (top + bottom) // 2
+    seen = len(map_reads())
+    maps = map_reads()
+    base = map_area_of(maps[-1]) if maps else None
+    m = mark()
+    swipe(int(w * 0.78), y, int(w * 0.28), y - 60, 700)
+    panned, seen = wait_new_map_area(seen)
+    reads = since(m)
+    snapshot('P6_31_after_pan')
+    check('PAN_READS_THE_MAP_FOR_THE_NEW_AREA', panned is not None and panned != base, before=base, after=panned)
+    check('PAN_READS_THE_LIST_FOR_THE_AREA', any(r.get('mode') == 'PAGE' and brief(r)['scope'] == 'AREA' for r in reads), requests=[brief(r) for r in reads[:6]])
+    root, _p = dump()
+    check('PAN_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR', bool(count_nodes(root)) and not nodes(root, contains='nisu dostupni'), sheet=sheet_state(root))
+    previous = panned
+    for label, wanted in (('Umanji mapu', 'wider'), ('Uvećaj mapu', 'narrower')):
+        root, parent = dump()
+        button = nodes(root, desc=label)
+        if not button:
+            raise RuntimeError(f'zoom control "{label}" not found')
+        tap_visible(button[0], parent)
+        after, seen = wait_new_map_area(seen)
+        snapshot('P6_32_' + ('zoom_out' if wanted == 'wider' else 'zoom_in'))
+        ratio = (area_width(after) / area_width(previous)) if after and previous and area_width(previous) else None
+        check('ZOOM_' + ('OUT_WIDENS' if wanted == 'wider' else 'IN_NARROWS') + '_THE_MAP_READ',
+              ratio is not None and (ratio > 1.4 if wanted == 'wider' else ratio < 0.75), before=previous, after=after, widthRatio=ratio)
+        previous = after or previous
+        root, _p = dump()
+        check('ZOOM_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR_' + wanted.upper(), bool(count_nodes(root)) and not nodes(root, contains='nisu dostupni'),
+              sheet=sheet_state(root))
+
+
 def s_final():
     root, _p = dump()
     snapshot('P6_99_final')
@@ -1280,10 +1432,14 @@ def main():
         capture_self_test()
     except Exception as exc:                       # noqa: BLE001
         note('CAPTURE_SELF_TEST_ERROR', error=str(exc)[:200])
+    if FOCUS:
+        REPORT['focused'] = FOCUS
     for name, fn in (('login', s_login), ('ordinary_route', s_ordinary_route), ('route', s_route), ('open_full', s_open_full),
                      ('paging', s_paging), ('detail_back', s_detail_and_back), ('cycles', s_repeat_cycles),
                      ('filters', s_filters), ('map_pins', s_map_pins),
-                     ('search_places', s_search_places), ('final', s_final)):
+                     ('search_places', s_search_places), ('map_gestures', s_map_gestures), ('final', s_final)):
+        if FOCUS and name != 'login' and name not in FOCUS:
+            continue
         step(name, fn)
         if name == 'login' and not REPORT['steps'][-1]['ok']:
             break                                  # nothing else can run signed out
