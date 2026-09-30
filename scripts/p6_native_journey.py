@@ -78,6 +78,11 @@ LIST_URL = 'uskociapp://zadaci?p6Proof=1' if ROUTE == 'proof' else 'uskociapp://
 # After the twenty open/Back cycles the app stands untouched for this long before the last memory sample: a transient peak (a rebuilt
 # list not yet collected) is released by then, a leak is not. The runbook asks for warm baseline, peak and the level after idle.
 IDLE_AFTER_CYCLES_S = 20
+# Paging swipes start in the gutter right of the cards, as a fraction of the screen width. The card's press area with its hit slop ends
+# near x = 1049 px on the 1080 px CI screen: 0.975 * 1080 = 1053 px left only ~4 px, so a slow swipe whose first move reached the app late
+# (journey #10) began ON the card and was read as a press. 0.985 * 1080 = 1063.8 px leaves ~15 px of gutter and is still 16 px inside the
+# screen edge (the emulator runs 3-button navigation: no edge gesture zone takes the touch).
+PAGING_SWIPE_X = 0.985
 
 
 def note(kind, **fields):
@@ -224,15 +229,17 @@ def swipe(x1, y1, x2, y2, ms=600):
 
 
 def scroll_list(direction='down', fraction=0.5, ms=600, x_fraction=0.9):
+    """One list swipe; returns (x, y_start, y_end) so a step can record exactly where a swipe began (a stray open's reproduction record)."""
     w, h = screen_size()
     span = int(h * fraction)
     x = int(w * x_fraction)       # away from the centred "Mapa" pill
     if direction == 'down':      # finger moves up: content moves up, later items appear
         start = int(h * 0.80)
         swipe(x, start, x, start - span, ms)
-    else:
-        start = int(h * 0.30)
-        swipe(x, start, x, start + span, ms)
+        return x, start, start - span
+    start = int(h * 0.30)
+    swipe(x, start, x, start + span, ms)
+    return x, start, start + span
 
 
 def open_deep_link(url):
@@ -407,6 +414,27 @@ def cards(root):
         out.append({'title': m.group(1), 'index': int(m.group(2)), 'kind': m.group(3),
                     'bounds': parse_bounds(n.attrib.get('bounds')), 'node': n})
     return sorted(out, key=lambda c: c['bounds'][1])
+
+
+# A task's own screen shows these (the viewer's "Sastavi prijavu" action, the location/time facts, the description heading); no list state does.
+DETAIL_MARKERS = ('Sastavi prijavu', 'Mesto zadatka', 'O zadatku', 'Lokacija:', 'Termin:')
+TITLE_TEXT = re.compile(r'^P6N \d{3} (?:DENSE|SPARSE|REMOTE|NOPOINT)$')
+
+
+def looks_like_task_detail(root):
+    """A task detail and nothing of the list: no list top line (it stands in every list state and in no detail), no card, and one of the
+    detail's own labels. Used to recognise a stray open while paging and to know a tapped card really opened its task."""
+    if count_nodes(root) or cards(root):
+        return False
+    return any(nodes(root, contains=marker) for marker in DETAIL_MARKERS)
+
+
+def detail_title(root):
+    """The task title a detail shows as its own text node (the fixture's `P6N nnn KIND`), else None."""
+    for n in root.iter():
+        if n.attrib.get('package') == PACKAGE and TITLE_TEXT.match((n.attrib.get('text') or '').strip()):
+            return n.attrib.get('text').strip()
+    return None
 
 
 # ------------------------------------------------------------------------------------------------ map markers (visual)
@@ -914,16 +942,23 @@ def s_paging():
     m = mark()
     calls_before = reader_calls()['rpc_discovery_v1']
     seen, order, idle, dupes, swipes, indexes, strays = set(), [], 0, [], 0, set(), []
+    last_swipe, titles_before = None, []
     for swipes in range(1, 131):
         root, _p = dump()
-        if not count_nodes(root) and not cards(root) and (nodes(root, contains='Mesto zadatka') or nodes(root, contains='Sastavi prijavu')):
-            # Journey #10: a slow swipe on the stalled CI emulator arrived as a press and opened the task under the finger; the loop then swiped on that detail for ten minutes.
-            # The list's top line stands in every list state and in no detail, so a task's own labels without it name the stray open: come back, go on, and report each one.
-            strays.append(swipes)
-            note('PAGING_STRAY_OPEN', swipe=swipes)
+        if looks_like_task_detail(root):
+            # Journey #10: a slow swipe on the stalled CI emulator arrived as a press and opened the task under the finger; the loop then swiped on that detail for ten
+            # minutes. The list's top line stands in every list state and in no detail, so a task's own labels without it name the stray open. A list that opens a task by
+            # itself may be a product defect, so every such open is red (see the check below) with a bounded reproduction record: the swipe's index and start point, the
+            # titles on screen before it, the detail it opened, the titles after the return, and the app's last 40 trace lines. The run comes back with Back and goes on,
+            # so it still yields the paging evidence.
+            record = {'swipe': swipes, 'swipeStart': list(last_swipe[:2]) if last_swipe else None, 'swipeEnd': [last_swipe[0], last_swipe[2]] if last_swipe else None,
+                      'titlesBefore': titles_before[:12], 'detailTitle': detail_title(root), 'trace': app_trace_tail(40)}
+            note('PAGING_STRAY_OPEN', swipe=swipes, detail=record['detailTitle'], swipeStart=record['swipeStart'])
             ensure_list()
             time.sleep(3.0)                                     # the returned list restores its saved offset
             root, _p = dump()
+            record['titlesAfter'] = [c['title'] for c in cards(root)][:12]
+            strays.append(record)
             idle = 0
         cs = cards(root)
         titles = [c['title'] for c in cs]
@@ -947,14 +982,16 @@ def s_paging():
                 break
         if idle:
             time.sleep(2.0)                      # the next page may still be on its way
-        scroll_list('down', 0.45, ms=800, x_fraction=0.975)   # shorter than the viewport, slow enough that no card is flung past unseen; starts in the gutter right of the cards
+        titles_before = titles
+        # Shorter than the viewport, slow enough that no card is flung past unseen; starts in the gutter right of the cards (PAGING_SWIPE_X).
+        last_swipe = scroll_list('down', 0.45, ms=800, x_fraction=PAGING_SWIPE_X)
     reqs = since(m, 'PAGE')
     cursor = [r for r in reqs if r.get('after')]
     limit = next((r.get('limit') for r in reqs if r.get('limit')), None)          # the app's own page size (the fixture's probes use another one)
     pages = math.ceil(TOTAL / limit) if limit else None
     root, _p = dump()
     calls_after = reader_calls()['rpc_discovery_v1']
-    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'strayOpens': strays, 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
+    REPORT['paging'] = {'seen': len(seen), 'swipes': swipes, 'strayOpens': strays[:5], 'limit': limit, 'cursorRequests': len(cursor), 'maxIndex': max(indexes) if indexes else None,
                         'readerCalls': calls_after - calls_before, 'requests': [brief(r) for r in reqs[:10]], 'order': order[:6] + ['...'] + order[-4:]}
     check('PAGING_REACHED_THE_LAST_TASK', TOTAL in indexes, maxIndex=max(indexes) if indexes else None, expected=TOTAL)
     check('PAGING_SAW_ALMOST_EVERY_TASK', len(seen) >= TOTAL - 3, seen=len(seen), expected=TOTAL)
@@ -962,8 +999,12 @@ def s_paging():
     check('PAGING_CALLED_THE_READER_AGAIN', calls_after - calls_before >= 1, calls=calls_after - calls_before)
     check('NEXT_PAGE_REQUESTED_WITH_CURSOR', bool(cursor) if pages and pages > 1 else True, pages=pages, cursorRequests=len(cursor))
     if pages:
-        check('NO_RUNAWAY_PAGE_REQUESTS', len(cursor) <= max(pages, 1) * 2 + len(strays), cursorRequests=len(cursor), pages=pages, strayOpens=len(strays))
-    check('LIST_OPENED_NO_TASK_BY_ITSELF_WHILE_PAGING', len(strays) <= 3, strayOpens=strays)
+        # Not widened by stray opens: a return re-reads the pages the list held, which the app's own page size already bounds.
+        check('NO_RUNAWAY_PAGE_REQUESTS', len(cursor) <= max(pages, 1) * 2, cursorRequests=len(cursor), pages=pages, strayOpens=len(strays))
+    # Zero tolerance: the first task the list opens by itself is red. The bounded reproduction records (without the trace, which stays in
+    # REPORT['paging']['strayOpens']) travel with the check so the failure explains itself.
+    check('LIST_OPENED_NO_TASK_BY_ITSELF_WHILE_PAGING', not strays, strayOpens=len(strays),
+          reproductions=[{k: v for k, v in s.items() if k != 'trace'} for s in strays[:3]])
     check('COUNT_STABLE_AFTER_PAGING', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL)
     snapshot('P6_04_paged_to_end')
 
