@@ -525,6 +525,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     change(shared.ids.length > 1 ? { selectedId: null, selectedPlace: key } : { selectedId: shared.ids[0], selectedPlace: null });
     setSheetIndex(SNAP.peek);
   };
+  // P6: a touch on a server task or place is the same choice as a legacy pin, so the list sinks to its top line the same way (the coordinator
+  // remembers `sheet: 'peek'` for it; a card over a half-height sheet and a return to another sheet were found by the independent review).
+  // A cluster is navigation only: the map's camera goes into it and the sheet stays where it is.
+  const selectServerMarker: DiscoveryV1ServerMapSeam['onSelect'] = marker => {
+    const seam = props.p6Seam;
+    if (!seam) return;
+    if (marker.kind === 'CLUSTER') { seam.map.onSelect(marker); return; }
+    userIntent?.(); retireCameraIntent();
+    seam.map.onSelect(marker);
+    setSheetIndex(SNAP.peek);
+  };
   const clearSelection = () => {
     if (props.p6Seam) { retireCameraIntent(); props.p6Seam.onClearPeek(); return; }
     if (latestView.current.selectedId || latestView.current.selectedPlace) {
@@ -1123,7 +1134,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
         {mapShown ? <DiscoveryMap items={mapped} selectedId={props.p6Seam ? null : chosen?.id ?? null}
           selectedPlace={props.p6Seam ? null : placeTasks.length > 1 ? place!.key : null}
-          p6Server={props.p6Seam ? { ...props.p6Seam.map, onClear: props.p6Seam.onClearPeek } : undefined}
+          p6Server={props.p6Seam ? { ...props.p6Seam.map, onSelect: selectServerMarker, onClear: props.p6Seam.onClearPeek } : undefined}
           relations={relations}
           onUserIntent={userIntent}
           publicationCameraToken={cameraRequestToken && props.publicationFocus?.id === chosen?.id ? cameraRequestToken : null}

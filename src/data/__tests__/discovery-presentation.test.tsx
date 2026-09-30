@@ -4,6 +4,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex, type TaskRelationIndex } from '../taskRelation';
+import type { DiscoveryV1MapMarker } from '../discoveryV1MarketplaceAdapter';
 let mockReduced = false, mockFocused = true;
 const mockNativeSheetState = { value: 0 };
 const mockNativeIndex = { value: -1 }, mockNativePosition = { value: 0 };
@@ -2425,4 +2426,40 @@ test('a whole-list P6 page keeps the server order without run headings, and an a
   await act(async () => tree.unmount());
   initial = { ...initialMarketplaceView(), mode: 'map' }; p6Seam = undefined; await render();
   expect(runHeadings().length).toBeGreaterThan(0);
+});
+
+// Independent review (P6 client finding): a P6 pin tap never lowered the list sheet, while the coordinator wrote `sheet: 'peek'` into the view it
+// persists, so a touch at the half detent showed the card over the half-height sheet and a return restored a different sheet. The presentation now
+// lowers the sheet to its top line as the legacy pin selection does, for a task and for a place; a cluster is navigation only and leaves it alone.
+const serverTask: DiscoveryV1MapMarker = { kind: 'TASK', key: 'task:t1', point: { lat: 44.72, lng: 20.4 }, taskId: 't1', taskCount: 1 };
+const serverPlace: DiscoveryV1MapMarker = { kind: 'PLACE', key: 'place:44.74:20.4', point: { lat: 44.74, lng: 20.4 }, taskCount: 2 };
+const serverCluster: DiscoveryV1MapMarker = { kind: 'CLUSTER', key: 'cluster:1', point: { lat: 44.8, lng: 20.4 }, taskCount: 5, distinctPointCount: 3,
+  memberBounds: [20.3, 44.7, 20.5, 44.9] };
+const p6Rows = () => Array.from({ length: 4 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+test.each([['task', serverTask], ['place', serverPlace]] as const)(
+  'a P6 %s marker chosen at the half detent lowers the list sheet to its top line, as a legacy pin does, and reaches the seam', async (_kind, marker) => {
+  rows = p6Rows(); initial = { ...initial, sheet: 'half' }; p6Seam = p6Seam_();
+  await render(); await layOutBody();
+  expect(listSheet().props.index).toBe(1);
+  userIntent.mockClear();
+  await act(async () => map().props.p6Server.onSelect(marker));
+  expect(listSheet().props.index).toBe(0);
+  expect(p6Seam!.map.onSelect).toHaveBeenCalledTimes(1); expect(p6Seam!.map.onSelect).toHaveBeenCalledWith(marker);
+  expect(userIntent).toHaveBeenCalled();
+  // The seam's own map fields and the clear action pass through unchanged.
+  expect(map().props.p6Server).toMatchObject({ selectedKey: null, wholeBounds: [19, 44, 21, 46], onClear: p6Seam!.onClearPeek });
+});
+test('a P6 cluster tap is navigation only: it reaches the seam and leaves the sheet where it is', async () => {
+  rows = p6Rows(); initial = { ...initial, sheet: 'half' }; p6Seam = p6Seam_();
+  await render(); await layOutBody();
+  await act(async () => map().props.p6Server.onSelect(serverCluster));
+  expect(listSheet().props.index).toBe(1);
+  expect(p6Seam!.map.onSelect).toHaveBeenCalledTimes(1); expect(p6Seam!.map.onSelect).toHaveBeenCalledWith(serverCluster);
+});
+test('the legacy pin selection at the half detent still lowers the sheet the same way', async () => {
+  initial = { ...initial, sheet: 'half' };
+  await render(); await layOutBody();
+  expect(listSheet().props.index).toBe(1); expect(map().props.p6Server).toBeUndefined();
+  await act(async () => map().props.onSelect('bb'));
+  expect(listSheet().props.index).toBe(0); expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
 });
