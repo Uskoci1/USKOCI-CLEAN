@@ -180,10 +180,23 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       if(!loaded||JSON.stringify(item)!==JSON.stringify(loaded)) peek={kind:'TASK',item:discoveryV1Opportunities([item])[0]};
       return {kind:'TASK',applied:true};
     }
-    const result=await owner.firstMembers(marker.point,50);
+    // EX-03 (PLACE): the same idea for a point several tasks share. When every task of the place is already in the loaded list (the bucket's count equals the rows the list holds at that
+    // point, so the set cannot be larger) the card is exposed at once; the members read, which still goes out and feeds the place's own paging, only confirms or refreshes it. A place
+    // that is not fully loaded waits for that read as before.
+    const key=pointKey(marker.point),rows=owner.snapshot().page?.items??[];
+    const here=key?rows.filter(row=>row.pin&&pointKey(row.pin)===key):[];
+    const known=here.length>0&&here.length===marker.taskCount?here:null;
+    if(known) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(known)};
+    let result;
+    try{result=await owner.firstMembers(marker.point,50);}
+    catch(error){
+      if(selection!==selectionSequence||!isCurrent()) return {kind:'stale'};
+      if(known) return {kind:'PLACE',applied:true};
+      throw error;
+    }
     if(selection!==selectionSequence||!isCurrent()||result.kind==='stale') return {kind:'stale'};
-    if(result.kind!=='applied'){peek=null;return {kind:'PLACE',applied:false};}
-    peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(result.value.items)};
+    if(result.kind!=='applied'){if(!known)peek=null;return {kind:'PLACE',applied:!!known};}
+    if(!known||JSON.stringify(result.value.items)!==JSON.stringify(known)) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(result.value.items)};
     return {kind:'PLACE',applied:true};
   }
 

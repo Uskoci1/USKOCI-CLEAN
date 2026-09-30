@@ -222,3 +222,53 @@ it('EX-03 warm return: a selection read in flight when the screen leaves never l
  expect(s.snapshot().peek).toBe(card);
  expect(s.snapshot().items).toHaveLength(1);
 });
+
+// EX-03 (PLACE): the same idea for a point several tasks share. When every task of the place is already in the loaded list (the bucket's count equals the rows the list holds at that
+// point) the card is exposed at once; the members read still goes out and only confirms or refreshes it. A place that is not fully loaded waits for the read, as before.
+const placeBucket=(count:number)=>({kind:'PLACE',key:'place:45.25:19.83',point:{lat:45.25,lng:19.83},taskCount:count});
+const openPlace=async(ids=[ID1,ID2],count=2)=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());
+ x.pending[0].resolve(page(ids));await wait(x,1);x.pending[1].resolve({...map(),buckets:[placeBucket(count)]});await opening;
+ return {x,s};
+};
+it('EX-03: a PLACE marker whose every task is already loaded shows its card before any answer; the members read still goes out and only confirms',async()=>{
+ const {x,s}=await openPlace();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',items:[{id:ID1},{id:ID2}]});                   // no answer yet
+ expect(x.pending[2].request).toMatchObject({mode:'PAGE',scope:{kind:'POINT_MEMBERS'}});
+ const known=s.snapshot().peek;
+ x.pending[2].resolve(page([ID1,ID2]));expect(await selected).toEqual({kind:'PLACE',applied:true});
+ expect(s.snapshot().peek).toBe(known);                                                                // the same card object: nothing to redraw
+});
+it('EX-03: a PLACE that is not fully loaded waits for the members read as before',async()=>{
+ const {x,s}=await openPlace([ID1,ID2],3);
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ expect(s.snapshot().peek).toBeNull();
+ const three=page([ID1,ID2,'55555555-5555-4555-8555-555555555555']);x.pending[2].resolve({...three,counts:{...three.counts,mapped:3,listed:3,inArea:3}});expect(await selected).toEqual({kind:'PLACE',applied:true});
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE'});expect((s.snapshot().peek as any).items).toHaveLength(3);
+});
+it('EX-03: a members answer that differs replaces the known place card, and one with no tasks empties it',async()=>{
+ const {x,s}=await openPlace();
+ const first=s.selectMarker(s.snapshot().mapMarkers[0]);const known=s.snapshot().peek;
+ x.pending[2].resolve(page([ID2]));await first;
+ expect(s.snapshot().peek).not.toBe(known);expect((s.snapshot().peek as any).items.map((row:any)=>row.id)).toEqual([ID2]);
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[3].resolve(page([]));await again;
+ expect((s.snapshot().peek as any).items).toEqual([]);
+});
+it('EX-03: a failed members read keeps the known place card, and without a known card it still fails as before',async()=>{
+ const {x,s}=await openPlace();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[2].resolve({bad:'shape'});expect(await selected).toEqual({kind:'PLACE',applied:true});
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',items:[{id:ID1},{id:ID2}]});
+ const y=await openPlace([ID1,ID2],3);
+ const unknown=y.s.selectMarker(y.s.snapshot().mapMarkers[0]);
+ y.x.pending[2].resolve({bad:'shape'});await expect(unknown).rejects.toThrow();
+ expect(y.s.snapshot().peek).toBeNull();
+});
+it('EX-03: a newer touch fences the known place card of an older one, and its late answer changes nothing',async()=>{
+ const {x,s}=await openPlace();
+ const older=s.selectMarker(s.snapshot().mapMarkers[0]);
+ s.clearPeek();expect(s.snapshot().peek).toBeNull();
+ x.pending[2].resolve(page([ID1,ID2]));expect((await older).kind).toBe('stale');
+ expect(s.snapshot().peek).toBeNull();
+});
