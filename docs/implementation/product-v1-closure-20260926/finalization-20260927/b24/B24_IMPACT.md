@@ -47,7 +47,7 @@ The change in each function: the code of those raises becomes **`PT409`** (Postg
 1. Preflight (read-only): 54 of 54 bodies equal to the pinned pre-image, ledger 212, digest 86ba3751 ready, 68 functions with 40001 / 0 with PT409. Done.
 2. Client build first: NOT followed, the owner approved the server step before a new build; the installed APKs show a generic text for two flows until rebuilt (not a regression, those conflicts never answered before).
 3. Part 1 through the connector with the integrity guard (stored text byte-exact, candidate span sha256 equals the pin), readback of 54 bodies/ACLs, digest in all three places unchanged, same five advisor lints, receipt. Done.
-4. Part 2 after its own "primeni deo 2": NOT done (readiness plus one real closure check on a test account stay in that step).
+4. Part 2 after its own "primeni deo 2": NOT done (readiness plus one real closure check on a test account stay in that step). Read-only preflight for it, 2026-09-30 about 20:15Z: the 14 targets exist once and equal the pinned pre-image (drift 0), no account closure exists at all (0 executing of 0), digest 86ba3751 equal in the three places and ready true. The guarded text (marker = the first line of the candidate, 13,110 chars, sha256 2287177a...1821) is prepared locally and was NOT sent.
 5. Afterwards: update the 14 proofs, regenerate `pkg023c`, watch DEV for conflicts answering as HTTP 409. Open.
 
 ## The original plan (kept as written before the apply)
