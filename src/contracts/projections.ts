@@ -474,6 +474,8 @@ export type PorukaProjekcija = {
   id: string;
   /** Authorized immutable metadata, independently bound to this canonical row. */
   fotografije?: readonly { assetId: string; width: number; height: number; byteSize: number; contentType: 'image/jpeg' }[];
+  /** A voice message: authorized metadata only (never a path or URL); the bytes come through the authenticated playback read. Empty body, no photos. */
+  glas?: Readonly<{ assetId: string; trajanjeMs: number; velicina: number }>;
   /** Exact version persisted with this message; never the current Agreement version. */
   dogovorVerzija?: number;
   clientMessageId?: string | null;

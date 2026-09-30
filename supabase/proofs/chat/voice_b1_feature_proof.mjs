@@ -142,7 +142,9 @@ await check('CLAIM_VALIDATES_AND_IS_IDEMPOTENT', async () => {
   assert.equal(a.receipt.voice, null); assert.equal(a.path, null);
   const b = await svc(requester, 'CLAIM', key, claimInput()); assert.equal(b.acquired, false); assert.equal(b.receipt.assetId, a.receipt.assetId);
   await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'CLAIM', key, claimInput(otherSha, otherAudio.length))), 'MEDIA_COMMAND_CONFLICT');
-  await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'CLAIM', key, claimInput(), 2)), 'MEDIA_COMMAND_CONFLICT');
+  // A stale version is refused by the Agreement context first; the stored-command check catches a same-key call that names another version without writing.
+  await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'CLAIM', key, claimInput(), 2)), 'MEDIA_VERSION_CONFLICT');
+  await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'READ', key, {}, 2)), 'MEDIA_COMMAND_CONFLICT');
   for (const bad of [claimInput(audioSha, audio.length, 'audio/mpeg'), claimInput(audioSha, 4194305), claimInput('x'.repeat(64)), { ...claimInput(), extra: 1 }, {}])
     await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'CLAIM', randomUUID(), bad)), 'MEDIA_INPUT_INVALID');
   await denied(service.rpc('rpc_agreement_voice_upload_service_v1', await svcArgs(requester, 'CLAIM', randomUUID(), claimInput(), 9)), 'MEDIA_VERSION_CONFLICT');
@@ -222,8 +224,8 @@ await check('DATABASE_GUARDS_FREEZE_MESSAGE_ASSET_AND_OBJECT', async () => {
   assert.throws(() => sql(`delete from private.agreement_voice_uploads_v1 where id=${q(assetId)}`), /MEDIA_ASSET_IMMUTABLE/);
   assert.throws(() => sql(`update private.agreement_voice_uploads_v1 set state='FAILED' where id=${q(assetId)}`), /MEDIA_ASSET_IMMUTABLE/);
   assert.throws(() => sql(`update private.agreement_voice_uploads_v1 set storage_path=storage_path||'x' where id=${q(assetId)}`), /MEDIA_ASSET_IMMUTABLE|violates check constraint/);
-  assert.throws(() => sql(`delete from storage.objects where bucket_id='agreement-voice' and name=${q(first.path)}`), /MEDIA_ASSET_IMMUTABLE|permission denied/);
-  assert.throws(() => sql(`update storage.objects set name=name||'x' where bucket_id='agreement-voice' and name=${q(first.path)}`), /MEDIA_ASSET_IMMUTABLE|permission denied/);
+  assert.throws(() => sql(`delete from storage.objects where bucket_id='agreement-voice' and name=${q(first.path)}`), /MEDIA_ASSET_IMMUTABLE|permission denied|Direct deletion from storage tables is not allowed/);
+  assert.throws(() => sql(`update storage.objects set name=name||'x' where bucket_id='agreement-voice' and name=${q(first.path)}`), /MEDIA_ASSET_IMMUTABLE|permission denied|not allowed/);
   assert.equal(sql(`select count(*) from storage.objects where bucket_id='agreement-voice' and name=${q(first.path)}`), '1');
   // The kind-exclusive check: a voice row never has a body or photos; a text row never lacks both.
   assert.throws(() => sql(`insert into public.agreement_messages(agreement_id,agreement_version,sender_account_id,client_message_id,body,voice_asset_id)

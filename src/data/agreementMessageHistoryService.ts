@@ -5,10 +5,11 @@ import { decodeAgreementPhotoMessage } from './agreementPhotoClientService';
 import type { Ishod } from './ports';
 import { failure, readOwnedResult, record, sameId, timestamp, uuid as receiptUuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
+import { voiceMessagesBuilt } from './voiceMessagesGate';
 
 /** Keep the server timestamp verbatim: Date/ISO round trips discard microseconds. */
 export type AgreementMessageCursor = Readonly<{ createdAt: string; messageId: string }>;
-export type AgreementHistoryMessage = PorukaProjekcija & Readonly<{ createdAt: string; kind: 'TEXT' | 'PHOTO' }>;
+export type AgreementHistoryMessage = PorukaProjekcija & Readonly<{ createdAt: string; kind: 'TEXT' | 'PHOTO' | 'VOICE' }>;
 type HistoryEnvelope = Readonly<{ accountId: string; agreementId: string; messages: readonly AgreementHistoryMessage[];
   asOf: string; authoritative: true }>;
 export type AgreementMessageHistoryPage = HistoryEnvelope & Readonly<{ olderCursor: AgreementMessageCursor | null }>;
@@ -16,8 +17,9 @@ export type AgreementMessageWindow = HistoryEnvelope & Readonly<{ targetMessageI
   beforeCursor: AgreementMessageCursor | null; afterCursor: AgreementMessageCursor | null }>;
 export type AgreementDisplayedMessagesReceipt = Readonly<{ accountId: string; agreementId: string;
   displayedMessageIds: readonly string[]; markedEventCount: number; authoritative: true }>;
-export type AgreementHistoryPageOptions = Readonly<{ limit?: number; before?: AgreementMessageCursor | null; signal?: AbortSignal }>;
-export type AgreementMessageWindowOptions = Readonly<{ beforeCount?: number; afterCount?: number; signal?: AbortSignal }>;
+/** `voice` selects the V2 contract (kind VOICE and a voice object); without it the decoders are the V1 ones, byte for byte. */
+export type AgreementHistoryPageOptions = Readonly<{ limit?: number; before?: AgreementMessageCursor | null; signal?: AbortSignal; voice?: boolean }>;
+export type AgreementMessageWindowOptions = Readonly<{ beforeCount?: number; afterCount?: number; signal?: AbortSignal; voice?: boolean }>;
 
 const exact = (value: Record<string, unknown>, keys: readonly string[]) =>
   Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -69,13 +71,24 @@ function validBody(value: unknown): value is string {
   for (const point of value) { const code = point.codePointAt(0)!; if (code >= 0xd800 && code <= 0xdfff) return false; }
   return true;
 }
-function message(raw: unknown, accountId: string): AgreementHistoryMessage | null {
+const MESSAGE_KEYS = ['messageId', 'agreementVersion', 'senderAccountId', 'clientMessageId', 'body', 'createdAt', 'kind', 'mine', 'photos'] as const;
+/** The voice metadata of a V2 row: exactly these four keys, bounded, audio/mp4 only. Never a path, URL or hash. */
+function voiceMetadata(raw: unknown): { assetId: string; trajanjeMs: number; velicina: number } | null {
   const value = record(raw);
-  if (!value || !exact(value, ['messageId', 'agreementVersion', 'senderAccountId', 'clientMessageId', 'body', 'createdAt', 'kind', 'mine', 'photos'])
+  if (!value || !exact(value, ['assetId', 'durationMs', 'byteSize', 'contentType']) || !uuid(value.assetId) || !bounded(value.durationMs, 300, 300_000)
+    || !bounded(value.byteSize, 1, 4_194_304) || value.contentType !== 'audio/mp4') return null;
+  return { assetId: value.assetId, trajanjeMs: value.durationMs, velicina: value.byteSize };
+}
+function message(raw: unknown, accountId: string, voiceContract = false): AgreementHistoryMessage | null {
+  const value = record(raw);
+  if (!value || !exact(value, voiceContract ? [...MESSAGE_KEYS, 'voice'] : MESSAGE_KEYS)
     || !uuid(value.messageId) || !uuid(value.senderAccountId) || !instant(value.createdAt) || !validBody(value.body)
-    || (value.kind !== 'TEXT' && value.kind !== 'PHOTO') || value.mine !== sameId(value.senderAccountId, accountId)
-    || !Array.isArray(value.photos) || value.photos.length > 6 || value.photos.some(item => !uuid(record(item)?.assetId))
-    || (value.kind === 'TEXT' ? value.photos.length !== 0 || !value.body.trim() : value.photos.length === 0)) return null;
+    || (value.kind !== 'TEXT' && value.kind !== 'PHOTO' && !(voiceContract && value.kind === 'VOICE')) || value.mine !== sameId(value.senderAccountId, accountId)
+    || !Array.isArray(value.photos) || value.photos.length > 6 || value.photos.some(item => !uuid(record(item)?.assetId))) return null;
+  // A voice row is voice-only: empty body, no photos, a voice object. TEXT and PHOTO rows never carry one. The V1 contract has no voice key at all.
+  const glas = voiceContract && value.kind === 'VOICE' ? voiceMetadata(value.voice) : null;
+  if (voiceContract && (value.kind === 'VOICE' ? !glas || value.body !== '' || value.photos.length !== 0 : value.voice !== null)) return null;
+  if (value.kind === 'TEXT' ? value.photos.length !== 0 || !value.body.trim() : value.kind === 'PHOTO' && value.photos.length === 0) return null;
   // Reuse the existing strict metadata/link decoder; never admit paths, URLs or unknown media kinds.
   const photo = decodeAgreementPhotoMessage({ messageId: value.messageId, agreementVersion: value.agreementVersion,
     clientMessageId: value.clientMessageId, body: value.body, photos: value.photos,
@@ -84,12 +97,12 @@ function message(raw: unknown, accountId: string): AgreementHistoryMessage | nul
   return { id: photo.messageId, dogovorVerzija: photo.agreementVersion, clientMessageId: photo.clientMessageId,
     posiljalacAccountId: value.senderAccountId, posiljalacIme: value.mine ? 'Ja' : 'Sagovornik', moja: value.mine === true,
     telo: photo.body, vremeTekst: vreme(value.createdAt as string, { danas: true }), procitano: null,
-    fotografije: photo.photos, createdAt: value.createdAt as string, kind: value.kind };
+    fotografije: photo.photos, ...(glas ? { glas } : {}), createdAt: value.createdAt as string, kind: value.kind };
 }
-function envelope(value: Record<string, unknown>, accountId: string, agreementId: string, maximum: number): HistoryEnvelope | null {
+function envelope(value: Record<string, unknown>, accountId: string, agreementId: string, maximum: number, voiceContract = false): HistoryEnvelope | null {
   if (!uuid(accountId) || !uuid(agreementId) || !sameId(value.accountId, accountId) || !sameId(value.agreementId, agreementId)
     || value.authoritative !== true || !instant(value.asOf) || !Array.isArray(value.messages) || value.messages.length > maximum) return null;
-  const messages = value.messages.map(row => message(row, accountId));
+  const messages = value.messages.map(row => message(row, accountId, voiceContract));
   if (messages.some(row => !row) || new Set(messages.map(row => row!.id.toLowerCase())).size !== messages.length) return null;
   const decoded = messages as AgreementHistoryMessage[];
   if (decoded.some((row, index) => index > 0 && compareAgreementMessageCursors(messageCursor(decoded[index - 1]), messageCursor(row)) >= 0)) return null;
@@ -99,8 +112,8 @@ export function decodeAgreementMessageHistoryPage(raw: unknown, accountId: strin
   options: AgreementHistoryPageOptions = {}): AgreementMessageHistoryPage | null {
   const value = record(raw), limit = options.limit === undefined ? 50 : options.limit, before = options.before == null ? null : cursor(options.before);
   if (!value || !exact(value, ['schema', 'accountId', 'agreementId', 'messages', 'olderCursor', 'asOf', 'authoritative'])
-    || value.schema !== 'AGREEMENT_MESSAGES_PAGE_V1' || !bounded(limit, 1, 50) || (options.before != null && !before)) return null;
-  const page = envelope(value, accountId, agreementId, limit);
+    || value.schema !== (options.voice ? 'AGREEMENT_MESSAGES_PAGE_V2' : 'AGREEMENT_MESSAGES_PAGE_V1') || !bounded(limit, 1, 50) || (options.before != null && !before)) return null;
+  const page = envelope(value, accountId, agreementId, limit, options.voice === true);
   if (!page || (before && page.messages.some(row => compareAgreementMessageCursors(messageCursor(row), before) >= 0))) return null;
   const olderCursor = boundary(value.olderCursor, page.messages[0]);
   if (olderCursor === false || (olderCursor && page.messages.length !== limit)) return null;
@@ -110,9 +123,9 @@ export function decodeAgreementMessageWindow(raw: unknown, accountId: string, ag
   options: AgreementMessageWindowOptions = {}): AgreementMessageWindow | null {
   const value = record(raw), beforeCount = options.beforeCount === undefined ? 24 : options.beforeCount, afterCount = options.afterCount === undefined ? 25 : options.afterCount;
   if (!value || !exact(value, ['schema', 'accountId', 'agreementId', 'targetMessageId', 'messages', 'beforeCursor', 'afterCursor', 'asOf', 'authoritative'])
-    || value.schema !== 'AGREEMENT_MESSAGE_WINDOW_V1' || !uuid(targetMessageId) || !sameId(value.targetMessageId, targetMessageId)
+    || value.schema !== (options.voice ? 'AGREEMENT_MESSAGE_WINDOW_V2' : 'AGREEMENT_MESSAGE_WINDOW_V1') || !uuid(targetMessageId) || !sameId(value.targetMessageId, targetMessageId)
     || !bounded(beforeCount, 0, 49) || !bounded(afterCount, 0, 49) || beforeCount + afterCount > 49) return null;
-  const page = envelope(value, accountId, agreementId, beforeCount + afterCount + 1);
+  const page = envelope(value, accountId, agreementId, beforeCount + afterCount + 1, options.voice === true);
   if (!page) return null;
   const target = page.messages.findIndex(row => sameId(row.id, targetMessageId)), after = page.messages.length - target - 1;
   if (target < 0 || target > beforeCount || after > afterCount) return null;
@@ -140,7 +153,9 @@ function owner(scope?: ReceiptAccount): ReceiptAccount | null {
   return account && uuid(account.accountId) && bounded(account.accountRevision, 0, Number.MAX_SAFE_INTEGER) ? { ...account } : null;
 }
 type Rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => PromiseLike<unknown>;
-export function createAgreementMessageHistoryService(rpc: Rpc) {
+/** `voice` picks the V2 readers; by default the build flag decides (off everywhere the backend does not carry the voice package). */
+export function createAgreementMessageHistoryService(rpc: Rpc, config: Readonly<{ voice?: boolean }> = {}) {
+  const voice = config.voice ?? voiceMessagesBuilt();
   async function request<T>(name: string, args: Record<string, unknown>, account: ReceiptAccount, decode: (raw: unknown) => T | null,
     signal?: AbortSignal, write = false): Promise<Ishod<T>> {
     if (signal?.aborted) return cancelled();
@@ -153,8 +168,8 @@ export function createAgreementMessageHistoryService(rpc: Rpc) {
       const account = owner(scope), limit = options.limit === undefined ? 50 : options.limit, before = options.before == null ? null : cursor(options.before), signal = options.signal;
       if (!account) return Promise.resolve(failure('AUTH_REQUIRED', errors.AUTH_REQUIRED));
       if (!uuid(agreementId) || !bounded(limit, 1, 50) || (options.before != null && !before)) return Promise.resolve(invalidInput());
-      const captured = { limit, before };
-      return request('rpc_read_agreement_messages_page_v1', { p_expected_user_id: account.accountId, p_agreement_id: agreementId,
+      const captured = { limit, before, voice };
+      return request(voice ? 'rpc_read_agreement_messages_page_v2' : 'rpc_read_agreement_messages_page_v1', { p_expected_user_id: account.accountId, p_agreement_id: agreementId,
         p_limit: limit, p_before_created_at: before?.createdAt ?? null, p_before_id: before?.messageId ?? null }, account,
       raw => decodeAgreementMessageHistoryPage(raw, account.accountId, agreementId, captured), signal);
     },
@@ -164,8 +179,8 @@ export function createAgreementMessageHistoryService(rpc: Rpc) {
       if (!account) return Promise.resolve(failure('AUTH_REQUIRED', errors.AUTH_REQUIRED));
       if (!uuid(agreementId) || !uuid(targetMessageId) || !bounded(beforeCount, 0, 49) || !bounded(afterCount, 0, 49) || beforeCount + afterCount > 49)
         return Promise.resolve(invalidInput());
-      const captured = { beforeCount, afterCount };
-      return request('rpc_read_agreement_message_window_v1', { p_expected_user_id: account.accountId, p_agreement_id: agreementId,
+      const captured = { beforeCount, afterCount, voice };
+      return request(voice ? 'rpc_read_agreement_message_window_v2' : 'rpc_read_agreement_message_window_v1', { p_expected_user_id: account.accountId, p_agreement_id: agreementId,
         p_target_message_id: targetMessageId, p_before_count: beforeCount, p_after_count: afterCount }, account,
       raw => decodeAgreementMessageWindow(raw, account.accountId, agreementId, targetMessageId, captured), signal);
     },
