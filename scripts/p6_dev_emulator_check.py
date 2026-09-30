@@ -601,13 +601,13 @@ def main():
         REPORT['device'] = {'sdk': adb('shell', 'getprop', 'ro.build.version.sdk').strip(), 'size': adb('shell', 'wm', 'size').strip(),
                             'build': adb('shell', 'dumpsys', 'package', PACKAGE).split('versionName=')[1].split()[0] if 'versionName=' in adb('shell', 'dumpsys', 'package', PACKAGE) else '?'}
         adb('logcat', '-G', '64M')            # the whole run stays in the device log (the default ring is 2 MiB)
+        if ARGS.smoke:
+            smoke()
+            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            return
         launch()
         root = read_list()
         if ARGS.only_list:
-            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
-            return
-        if ARGS.smoke:
-            smoke()
             REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
             return
         with Recording('pins'):
