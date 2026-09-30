@@ -21,6 +21,7 @@ import { useUrgencyClock } from './NeedUrgencyBadge';
 import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 import { DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
+import { traceDiscoveryV1 } from '../../data/discoveryV1Trace';
 
 type Owner = { key: string; active: boolean; epoch: number };
 type LoadTraceEvent = 'map-mounted' | 'deadline' | 'native-error' | 'map-loaded' | 'frame-fully' | 'retired';
@@ -39,6 +40,15 @@ export const AREA_SETTLE_MS = 450;
  * still the person's intent, and counts as theirs when it settles within this long.
  */
 const INTENT_MS = 1_500;
+/**
+ * A P6 cluster the person opened asked the camera for its members. A slow device reports the settle of that move seconds after the tap,
+ * so the settle is taken as the person's own by what it shows (the members' bounds), for this long, not only by the clock above.
+ */
+const CLUSTER_OPEN_MS = 10_000;
+const showsBounds = (view: PublicBounds, wanted: PublicBounds) => {
+  const slackX = (view[2] - view[0]) * 0.01, slackY = (view[3] - view[1]) * 0.01;
+  return view[0] <= wanted[0] + slackX && view[1] <= wanted[1] + slackY && view[2] >= wanted[2] - slackX && view[3] >= wanted[3] - slackY;
+};
 /** A pill's own press may also reach the map as a tap on empty ground; within this long it is not one. */
 const PILL_TAP_MS = 400;
 const ZOOM_CAPSULE = { width: 44, height: 88 } as const;
@@ -126,6 +136,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const cancelArea = () => { if (areaTimer.current) { clearTimeout(areaTimer.current); areaTimer.current = null; } };
   /** When the person last asked the camera to move by a tap (a zoom button, a cluster); 0 when nothing is asked. */
   const intent = useRef(0);
+  /** The members' bounds a tapped P6 cluster asked the camera to show, and when (see CLUSTER_OPEN_MS). */
+  const openedCluster = useRef<{ bounds: PublicBounds; at: number } | null>(null);
   const pendingFocus = useRef<{ key: string; dataKey: string; center: [number, number]; publicationToken?: string } | null>(null);
   const retirePublicationFocus = () => {
     if (!owns()) return;
@@ -274,7 +286,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       const target = selectedPlace?.point ?? point;
       if (key && target && owns()) {
         initialFitPending.current = false;
-        cancelArea(); intent.current = 0;
+        cancelArea(); intent.current = 0; openedCluster.current = null;
         pendingFocus.current = { key, dataKey, center: [target.lng, target.lat], ...(publicationToken ? { publicationToken } : {}) };
       }
     }
@@ -290,7 +302,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     }
     if (status !== 'ready' || !frame || props.cameraLayoutReady === false || !camera.current) return;
     pendingFocus.current = null;
-    cancelArea(); intent.current = 0;
+    cancelArea(); intent.current = 0; openedCluster.current = null;
     const zoom = Math.min(18, Math.max(12, settledZoom.current ?? 12, zoomTarget.current ?? 0));
     const dispatched = moveCamera({ center: request.center, zoom,
       padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.focusBottom ?? 0) }, sys.motion.camera);
@@ -333,6 +345,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!frame || !camera.current) return;
     initialFitPending.current = false; cancelArea();
     intent.current = Date.now();
+    openedCluster.current = { bounds: memberBounds, at: Date.now() };
     camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56),
       duration: reduced ? 0 : sys.motion.camera });
   };
@@ -347,7 +360,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const bounds = serverMap ? serverMap.wholeBounds : publicInitialBounds(props.items);
     initialFitPending.current = false;
     if (!bounds) return;
-    cancelArea(); intent.current = 0;
+    cancelArea(); intent.current = 0; openedCluster.current = null;
     if (serverMap) skipSettledRefresh.current = true;
     camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
   }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key, serverMap?.wholeBounds]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -363,7 +376,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const bounds = publicBounds(request.bounds);
     workAreaMayApply.current = false;
     if (bounds && bounds[0] <= bounds[2]) {
-      cancelArea(); intent.current = 0;
+      cancelArea(); intent.current = 0; openedCluster.current = null;
       try {
         camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
         initialFitPending.current = false;
@@ -378,7 +391,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (status !== 'ready' || !request || fitted.current === request.key || !owns() || !frame || props.cameraLayoutReady === false) return;
     initialFitPending.current = false; retirePublicationFocus();
     fitted.current = request.key;
-    intent.current = 0;
+    intent.current = 0; openedCluster.current = null;
     camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom),
       duration: reduced ? 0 : sys.motion.camera });
     props.onFitted?.(request.key);
@@ -391,7 +404,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (target.center.length !== 2 || !target.center.every(Number.isFinite) || Math.abs(target.center[0]) > 180 || Math.abs(target.center[1]) > 90) return;
     initialFitPending.current = false; retirePublicationFocus();
     centeredNearby.current = target.key;
-    cancelArea(); intent.current = 0;
+    cancelArea(); intent.current = 0; openedCluster.current = null;
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
     props.onNearbyConsumed?.(target.key);
   }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -448,7 +461,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         manualMapIntent(); if (serverMap) latest.current.props.p6Server?.onClear?.(); else latest.current.props.onClear?.();
       } }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
-      onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; manualMapIntent(); cancelArea(); } }}
+      onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; openedCluster.current = null; manualMapIntent(); cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. On a
       // phone that left both zoom buttons dead, with no reason beside them, on every fresh open of
@@ -462,8 +475,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           latest.current.props.onViewport(value);
           // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a zoom
           // button or a cluster they tapped. The camera's own moves (the first fit, a chosen pin, a chosen place) never.
-          const own = event.nativeEvent?.userInteraction === true || (intent.current > 0 && Date.now() - intent.current <= INTENT_MS);
+          const opened = openedCluster.current;
+          const showsOpened = !!opened && Date.now() - opened.at <= CLUSTER_OPEN_MS && showsBounds(value.bounds, opened.bounds);
+          const own = event.nativeEvent?.userInteraction === true || (intent.current > 0 && Date.now() - intent.current <= INTENT_MS) || showsOpened;
           intent.current = 0;
+          if (showsOpened || (opened && Date.now() - opened.at > CLUSTER_OPEN_MS)) openedCluster.current = null;
+          if (serverMap) traceDiscoveryV1('settled', showsOpened ? 'OWN_CLUSTER' : own ? 'OWN_MOVE' : 'QUIET_MOVE');
           if (own) {
             cancelArea();
             const bounds = value.bounds;

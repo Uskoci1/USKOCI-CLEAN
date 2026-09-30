@@ -692,6 +692,72 @@ test("a P6 cluster fits the camera to its members as the person's own move; a ta
   await act(async () => { jest.advanceTimersByTime(2_000); }); expect(search).not.toHaveBeenCalled();
 });
 
+// A slow device reports the settle of the camera's flight seconds after the tap (found on the CI emulator: the list did not follow the opened
+// cluster). What the settle shows decides, for CLUSTER_OPEN_MS, not only the clock of the intent.
+const membersBounds = [20.4, 44.78, 20.5, 44.85];
+const clusterMap = () => {
+  const onSelect = jest.fn(), onViewportSettled = jest.fn();
+  extra = { p6Server: { markers: layerMarkers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect, onViewportSettled }, toolsBottom: 60, fitBottom: 300 };
+  return { onViewportSettled };
+};
+const settleAt = (bounds: number[]) => native().props.onRegionDidChange({ nativeEvent: { center: [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2], zoom: 12, bounds, userInteraction: false } });
+test("a P6 cluster's settle reported seconds late is still the person's own move: the list follows where it landed", async () => {
+  const { onViewportSettled } = clusterMap();
+  await render(); await measureFrame(800); await ready();
+  await act(async () => settleAt([20.1, 44.5, 20.8, 45.1]));                // the first fit's settle: the read already covers it
+  await act(async () => press('cluster:1'));
+  await act(async () => { jest.advanceTimersByTime(4_000); });
+  await act(async () => settleAt([20.38, 44.7, 20.52, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.9]);
+  expect(onViewportSettled).not.toHaveBeenCalled();
+  // The open is used once: the next settle of the camera's own is not the person's.
+  await act(async () => settleAt([20.3, 44.6, 20.6, 44.95]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenCalledTimes(1); expect(onViewportSettled).toHaveBeenCalledTimes(1);
+});
+test("a late settle that does not show the cluster's members, or comes after the open expired, only refreshes the markers", async () => {
+  const { onViewportSettled } = clusterMap();
+  await render(); await measureFrame(800); await ready();
+  await act(async () => settleAt([20.1, 44.5, 20.8, 45.1]));                // the first fit's settle: the read already covers it
+  await act(async () => press('cluster:1'));
+  await act(async () => { jest.advanceTimersByTime(4_000); });
+  await act(async () => settleAt([20.0, 44.0, 20.2, 44.2]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled(); expect(onViewportSettled).toHaveBeenCalledWith([20.0, 44.0, 20.2, 44.2]);
+  // Opened again, but the flight is reported only after the allowance: it is not taken as the person's.
+  onViewportSettled.mockClear();
+  await act(async () => press('cluster:1'));
+  await act(async () => { jest.advanceTimersByTime(11_000); });
+  await act(async () => settleAt([20.38, 44.7, 20.52, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled(); expect(onViewportSettled).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.9]);
+  // The person taking hold of the map retires the open: a later settle of the camera's own is not theirs either.
+  await act(async () => press('cluster:1'));
+  await act(async () => native().props.onRegionWillChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: membersBounds, userInteraction: true } }));
+  onViewportSettled.mockClear();
+  await act(async () => { jest.advanceTimersByTime(4_000); });
+  await act(async () => settleAt([20.38, 44.7, 20.52, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).not.toHaveBeenCalled(); expect(onViewportSettled).toHaveBeenCalledTimes(1);
+});
+
+test('the DEV trace names how a P6 settle was classified: the late cluster flight, the person, and the camera alone', async () => {
+  mockPackage = 'rs.uskoci.dev';
+  const info = jest.spyOn(console, 'info').mockImplementation(() => {});
+  clusterMap();
+  await render(); await measureFrame(800); await ready();
+  await act(async () => settleAt([20.1, 44.5, 20.8, 45.1]));
+  await act(async () => press('cluster:1'));
+  await act(async () => { jest.advanceTimersByTime(4_000); });
+  await act(async () => settleAt([20.38, 44.7, 20.52, 44.9]));
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true } }));
+  await act(async () => settleAt([20.28, 44.68, 20.32, 44.72]));
+  const lines = info.mock.calls.map(call => String(call[0])).filter(line => line.includes('"settled"'));
+  expect(lines).toEqual(['[USKOCI_P6_TRACE] ["settled","QUIET_MOVE"]', '[USKOCI_P6_TRACE] ["settled","OWN_CLUSTER"]',
+    '[USKOCI_P6_TRACE] ["settled","OWN_MOVE"]', '[USKOCI_P6_TRACE] ["settled","QUIET_MOVE"]']);
+});
+
 test('a P6 cluster under Reduce Motion fits at once, and a press before the map is ready selects nothing', async () => {
   const onSelect = jest.fn();
   extra = { p6Server: { markers: layerMarkers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect }, toolsBottom: 60, fitBottom: 300 };

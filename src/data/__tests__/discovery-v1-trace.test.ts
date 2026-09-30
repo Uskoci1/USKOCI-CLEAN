@@ -22,6 +22,11 @@ it('logs one fixed line in the DEV package', () => {
     ['[USKOCI_P6_TRACE] ["restored","100/7"]'],
   ]);
 });
+it('names how a settled camera move was classified', () => {
+  traceDiscoveryV1('settled', 'OWN_CLUSTER');
+  traceDiscoveryV1('settled', 'QUIET_MOVE');
+  expect(info.mock.calls).toEqual([['[USKOCI_P6_TRACE] ["settled","OWN_CLUSTER"]'], ['[USKOCI_P6_TRACE] ["settled","QUIET_MOVE"]']]);
+});
 it('logs nothing in any other package', () => {
   for (const other of ['rs.uskoci', 'rs.uskoci.preview', 'com.example', undefined]) {
     mockPackage = other;
