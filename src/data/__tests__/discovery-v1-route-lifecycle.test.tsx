@@ -241,3 +241,27 @@ test('a cluster tap reads nothing itself, a task reads its exact row, a place re
   expect(bridge().props.snapshot.peek).toMatchObject({ kind: 'PLACE' });
   expect(bridge().props.selectedMarkerKey).toBe(place.key);
 });
+
+test('a settled region that is not the person\'s own reads the map alone and keeps the list, the peek and the error state as they are', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); });
+  await flush();
+  const task = { kind: 'TASK', key: 'task:' + rowId(0), point: { lat: 45.25, lng: 19.83 }, taskId: rowId(0) };
+  await act(async () => { bridge().props.actions.onSelectMarker(task); });
+  await flush();
+  const listBefore = bridge().props.snapshot.items, peekBefore = bridge().props.snapshot.peek;
+  mockTransportCalls.length = 0;
+  await act(async () => { bridge().props.actions.onViewportSettled(NATIVE_BOUNDS); });
+  await flush();
+  expect(modes()).toEqual(['MAP']);
+  expect((mockTransportCalls[0] as any).bounds).toEqual(CANONICAL_BOUNDS);
+  expect(bridge().props.snapshot.items).toEqual(listBefore);
+  expect(bridge().props.snapshot.peek).toEqual(peekBefore);
+  expect(bridge().props.selectedMarkerKey).toBe(task.key);
+  expect(bridge().props.snapshot.view.area).toBeNull();
+  expect(bridge().props.error).toBe(false);
+  // The same region again is where the map already is.
+  mockTransportCalls.length = 0;
+  await act(async () => { bridge().props.actions.onViewportSettled(NATIVE_BOUNDS); });
+  await flush();
+  expect(mockTransportCalls).toHaveLength(0);
+});

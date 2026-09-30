@@ -141,6 +141,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   };
   const settledZoom = useRef(props.viewport?.zoom ?? null), zoomTarget = useRef<number | null>(null);
   const fitted = useRef<number | null>(null), centeredNearby = useRef<number | null>(null);
+  /** The first fit is over the very bounds the server buckets were read for, so the settle that follows it needs no second read. */
+  const skipSettledRefresh = useRef(false);
   /** When a pill was last pressed, so that the same touch is not also taken as a tap on the empty map. */
   const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
@@ -346,6 +348,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     initialFitPending.current = false;
     if (!bounds) return;
     cancelArea(); intent.current = 0;
+    if (serverMap) skipSettledRefresh.current = true;
     camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
   }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key, serverMap?.wholeBounds]); // eslint-disable-line react-hooks/exhaustive-deps
   // The route owns this optional first-camera lifetime; fields and public GeoJSON never change.
@@ -468,6 +471,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
               areaTimer.current = null;
               if (mounted.current && props.owns() && load.current === 'ready') latest.current.props.onArea(bounds);
             }, AREA_SETTLE_MS);
+          } else if (serverMap) {
+            // A camera move that is not the person's own (a fit, a chosen place, Nearby, a saved work area, a restored view): the list
+            // stays, but the server buckets must cover what is now on screen.
+            if (skipSettledRefresh.current) skipSettledRefresh.current = false;
+            else latest.current.props.p6Server?.onViewportSettled?.(value.bounds);
           }
         }
         void readVisiblePins(); }}>

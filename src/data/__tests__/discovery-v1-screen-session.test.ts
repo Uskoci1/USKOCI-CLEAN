@@ -125,3 +125,40 @@ it('a newer open fences the seed answer that resolves late',async()=>{
  x.pending[2].resolve(page([ID2]));await wait(x,3);x.pending[3].resolve({...map([-180,-90,180,90]),wholeBounds:null,buckets:[]});
  expect((await newer).kind).toBe('applied');expect(s.snapshot().items[0].id).toBe(ID2);
 });
+
+// A camera move that is not the person's own (a fit to a chosen place, Nearby, a saved work area) leaves the buckets of the region it left:
+// only the MAP is read again, over what is on screen now. The list, its scope, the peek and the selection do not move.
+it('refreshMap reads only the MAP over the new region and leaves the list, the peek and the view alone',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(exact());await picked;
+ const before=s.snapshot(),reads=x.pending.length;
+ const refreshing=s.refreshMap([19.7123456789,44.51234567891,20.2999999999,45.4123456789]);
+ expect(x.pending).toHaveLength(reads+1);
+ expect(x.pending[reads].request).toEqual(expect.objectContaining({mode:'MAP',anchor:anchor(),bounds:[19.712346,44.512346,20.3,45.412346]}));
+ x.pending[reads].resolve(map([19.712346,44.512346,20.3,45.412346]));
+ const result=await refreshing;expect(result.kind).toBe('applied');
+ const after=s.snapshot();
+ expect(after.mapMarkers).toHaveLength(3);expect(after.items).toEqual(before.items);expect(after.view).toEqual(before.view);
+ expect(after.peek).toEqual(before.peek);expect(after.pageHasMore).toBe(before.pageHasMore);
+ expect(after.view?.area).toBeNull();
+});
+it('refreshMap does not read again for a region that is where the map was last read',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
+ const reads=x.pending.length;
+ expect((await s.refreshMap([19.00001,44.00001,21.00002,46.00001])).kind).toBe('noop');
+ expect((await s.refreshMap([19,44,21,46])).kind).toBe('noop');
+ expect(x.pending).toHaveLength(reads);
+ // A region that is clearly another place is read.
+ const refreshing=s.refreshMap([19.7,45.2,20,45.4]);expect(x.pending).toHaveLength(reads+1);
+ x.pending[reads].resolve(map([19.7,45.2,20,45.4]));expect((await refreshing).kind).toBe('applied');
+});
+it('a newer own settle fences an older refresh, and a refresh before any view is a noop',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport);
+ expect((await s.refreshMap([19,44,21,46])).kind).toBe('noop');expect(x.pending).toHaveLength(0);
+ const opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map());await opening;
+ const old=s.refreshMap([19.6,44.6,19.9,44.9]),reads=x.pending.length;
+ const settled=s.settleMap([19.5,44.5,20.5,45.5]);expect(x.pending[reads-1].signal.aborted).toBe(true);
+ x.pending[reads].resolve(page([ID2]));x.pending[reads+1].resolve(map([19.5,44.5,20.5,45.5]));await settled;
+ x.pending[reads-1].resolve({bad:'old'});expect((await old).kind).toBe('stale');
+ expect(s.snapshot().view?.area).toEqual([19.5,44.5,20.5,45.5]);expect(s.snapshot().items[0].id).toBe(ID2);
+});

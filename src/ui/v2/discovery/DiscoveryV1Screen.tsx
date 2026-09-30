@@ -100,6 +100,9 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     void execute(async () => { await coordinator.selectMarker(marker); });
   }, [coordinator, execute]);
   const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
+  // The markers follow a camera move that is not the person's own; the list and the peek are not touched, and a read that proves nothing about
+  // the list never clears its error.
+  const onViewportSettled = useCallback((bounds: PublicBounds) => { void execute(async () => { await coordinator.refreshMap(bounds); }); }, [coordinator, execute]);
   const onShowPlace = useCallback(() => {
     const peek = coordinator.snapshot().screen.peek;
     if (peek?.kind === 'PLACE') void execute(() => coordinator.showPoint(peek.point));
@@ -128,7 +131,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
 
   return <DiscoveryV1PresentationBridge snapshot={state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={state.selectedMarkerKey} loadingMore={state.loadingMore}
-    actions={{ onSelectMarker: selectMarker, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
+    actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
     loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
     trace={props.trace} onView={handleView} onRefresh={handleRefresh}

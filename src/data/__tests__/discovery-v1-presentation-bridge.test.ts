@@ -58,3 +58,11 @@ it('refuses an inactive screen snapshot instead of showing stale account data',(
  const stale={...screen(),active:false,view:null};
  expect(()=>discoveryV1PresentationBridgeModel(stale,overlay(),null,false,actions)).toThrow('DISCOVERY_V1_PRESENTATION_INACTIVE');
 });
+
+it('carries the viewport-settled action to the map seam only when the screen supplies it',()=>{
+ const onViewportSettled=jest.fn();
+ const without=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,actions);
+ expect(without.p6Seam.map).not.toHaveProperty('onViewportSettled');
+ const withIt=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,{...actions,onViewportSettled});
+ expect(withIt.p6Seam.map.onViewportSettled).toBe(onViewportSettled);
+});

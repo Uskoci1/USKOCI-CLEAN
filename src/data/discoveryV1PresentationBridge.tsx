@@ -8,6 +8,8 @@ import type { DiscoveryV1SearchSnapshot } from './discoveryV1SearchOwner';
 
 export type DiscoveryV1PresentationActions = {
   onSelectMarker: (marker: DiscoveryV1MapMarker) => void;
+  /** A camera move that is not the person's own settled here: the markers are read again over that region (the list is not). */
+  onViewportSettled?: (bounds: PublicBounds) => void;
   onArea: (bounds: PublicBounds) => void;
   onClearPeek: () => void;
   onShowPlace: () => void;
@@ -44,7 +46,7 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
     view: snapshot.view,
     p6Seam: {
       map: { markers: snapshot.mapMarkers, selectedKey: selectedMarkerKey, wholeBounds: snapshot.mapWholeBounds,
-        onSelect: actions.onSelectMarker },
+        onSelect: actions.onSelectMarker, ...(actions.onViewportSettled ? { onViewportSettled: actions.onViewportSettled } : {}) },
       peek,
       counts: snapshot.counts,
       ...(search && actions.onSearchDraft && actions.onNextSearchPlaces ? { search: {

@@ -126,6 +126,13 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return {kind:result.kind,snapshot:snapshot()};
   }
 
+  async function refreshMap(bounds:PublicBounds){
+    if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
+    const g=generation,result=await screen.refreshMap(bounds);
+    if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
+    return {kind:result.kind,snapshot:snapshot()};
+  }
+
   async function showPoint(point:{lat:number;lng:number}){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
     const g=generation,result=await screen.showPoint(point);
@@ -199,6 +206,6 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;
     screen.retire();overlay.retire();search.retire();};
 
-  return {open,restore,updateView,settleMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
+  return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
     snapshot,refreshOverlay:()=>refreshOverlay(generation),retire};
 }

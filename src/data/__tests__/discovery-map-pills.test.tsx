@@ -699,3 +699,39 @@ test('the DEV trace says how many server pills the map holds and when it could f
   const lines = info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
   expect(lines).toEqual(['[USKOCI_P6_TRACE] ["markers","2/0"]', '[USKOCI_P6_TRACE] ["markers","2/1"]']);
 });
+
+// P6: a camera move that is not the person's own leaves the buckets of the region it left, so the settled region is reported (the list is not
+// asked to follow); the person's own move still asks for the area, and the first fit, made over the very bounds that were read, asks for nothing.
+const p6Markers = [{ kind: 'TASK', key: 'task:1', point: { lat: 44.9, lng: 20.6 }, taskId: '00000000-0000-4000-8000-000000000001', taskCount: 1 }];
+test('a P6 settle that is not the person\'s own reports its region for the markers, and never asks for an area', async () => {
+  const onSelect = jest.fn(), onViewportSettled = jest.fn();
+  extra = { p6Server: { markers: p6Markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect, onViewportSettled }, toolsBottom: 60, fitBottom: 300 };
+  await render(); await measureFrame(800); await ready();
+  // The first fit and the settle it causes: the read already covers it.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 9, bounds: [20.1, 44.5, 20.8, 45.1], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(onViewportSettled).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled(); expect(setViewport).toHaveBeenCalledTimes(1);
+  // A later move that is not the person's own (a fit to a chosen place): the buckets must cover what is now on screen.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.3, 44.7], zoom: 13, bounds: [20.28, 44.68, 20.32, 44.72], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(onViewportSettled).toHaveBeenCalledTimes(1); expect(onViewportSettled).toHaveBeenCalledWith([20.28, 44.68, 20.32, 44.72]);
+  expect(search).not.toHaveBeenCalled();
+  // The person's own move asks for the area and not for the quiet read.
+  onViewportSettled.mockClear();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenCalledWith([20.3, 44.7, 20.5, 44.9]); expect(onViewportSettled).not.toHaveBeenCalled();
+});
+
+test('a P6 map restored with its saved viewport reports the region it settles into, and the legacy map never does', async () => {
+  const onViewportSettled = jest.fn(), saved = { center: [20.45, 44.8], zoom: 10, bounds: [20.2, 44.6, 20.7, 45] };
+  extra = { viewport: saved, p6Server: { markers: p6Markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn(), onViewportSettled } };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, userInteraction: false } }));
+  expect(onViewportSettled).toHaveBeenCalledWith([20.2, 44.6, 20.7, 45]);
+  await act(async () => tree.unmount());
+  onViewportSettled.mockClear(); extra = { viewport: saved };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, userInteraction: false } }));
+  expect(onViewportSettled).not.toHaveBeenCalled();
+});

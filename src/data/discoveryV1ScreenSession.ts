@@ -1,6 +1,6 @@
 import type { MarketplaceView, PublicBounds } from './marketplaceView';
 import { pointKey, publicBounds } from './marketplaceView';
-import { createDiscoveryV1Owner, type DiscoveryV1OwnerTransport, type DiscoveryV1Point } from './discoveryV1Owner';
+import { createDiscoveryV1Owner, wireBounds, type DiscoveryV1OwnerTransport, type DiscoveryV1Point } from './discoveryV1Owner';
 import { discoveryV1MapMarkers, discoveryV1Opportunities, discoveryV1PlaceSuggestions, discoveryV1ViewPlan,
   type DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import type { PrilikaProjekcija } from '../contracts/projections';
@@ -36,6 +36,16 @@ export type DiscoveryV1SelectionResult =
   | { kind: 'TASK' | 'PLACE'; applied: boolean }
   | { kind: 'CLUSTER'; bounds: PublicBounds }
   | { kind: 'stale' };
+
+/**
+ * A settled region this close to what the map was last read over (a fraction of its larger span) needs no new read: the camera came back
+ * to where the read already is, as on a return to the screen, and the buckets on it are the ones the person would see.
+ */
+export const DISCOVERY_V1_MAP_REFRESH_TOLERANCE = 0.02;
+function nearBounds(a: readonly number[], b: readonly number[]) {
+  const span = Math.max(a[2] - a[0], a[3] - a[1], b[2] - b[0], b[3] - b[1], 1e-6), tolerance = span * DISCOVERY_V1_MAP_REFRESH_TOLERANCE;
+  return a.every((value, index) => Math.abs(value - b[index]) <= tolerance);
+}
 
 /**
  * The first MAP request of a view with no viewport or area covers the whole world. It exists only to learn the server's
@@ -115,6 +125,19 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
+  /**
+   * A camera move that is not the person's own (a fit to a chosen place, Nearby, a saved work area) leaves the buckets of the region it left.
+   * Only the MAP is read again, over the region now on screen: the list, its scope, the peek and the selection stay exactly as they are.
+   */
+  async function refreshMap(nextBounds:PublicBounds){
+    if(!view) return {kind:'noop' as const,snapshot:snapshot()};
+    const wire=wireBounds(bounds(nextBounds));
+    const covered=owner.snapshot().map?.coverageBounds;
+    if(covered&&nearBounds(covered,wire)) return {kind:'noop' as const,snapshot:snapshot()};
+    const result=await owner.loadMap(wire);
+    return {kind:result.kind,snapshot:snapshot()};
+  }
+
   async function showPoint(point:DiscoveryV1Point){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
     const key=pointKey(point);
@@ -161,5 +184,5 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   const clearPeek=()=>{selectionSequence++;peek=null;owner.clearSelectionReads();};
   const retire=()=>{selectionSequence++;peek=null;view=null;owner.retire();};
 
-  return {open,settleMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,retire,snapshot};
+  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,retire,snapshot};
 }

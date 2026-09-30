@@ -10,6 +10,8 @@ export type DiscoveryV1ServerMapSeam = {
   selectedKey: string | null;
   wholeBounds: PublicBounds | null;
   onSelect: (marker: DiscoveryV1MapMarker) => void;
+  /** The camera settled after a move that is not the person's own; the markers should cover this region. */
+  onViewportSettled?: (bounds: PublicBounds) => void;
   onClear?: () => void;
 };
 export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId: string | null; viewport: PublicViewport | null;

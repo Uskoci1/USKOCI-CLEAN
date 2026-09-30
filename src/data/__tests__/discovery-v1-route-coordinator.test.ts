@@ -242,3 +242,26 @@ it('a first visit with no camera reads PAGE, seeds MAP over the world and then r
  expect((h.calls[1] as any).bounds).toEqual([-180,-90,180,90]);expect((h.calls[2] as any).bounds).toEqual([19,44,21,46]);
  expect(route.snapshot().screen.mapMarkers).toHaveLength(1);expect(route.snapshot().screen.mapWholeBounds).toEqual([19,44,21,46]);
 });
+
+it('refreshMap reads only the MAP over the region now on screen and keeps the route view, the list and the peek',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({sheet:'full',listOffset:420}));
+ await route.selectMarker(route.snapshot().screen.mapMarkers[0]);
+ const before=route.snapshot(),calls=h.calls.length;
+ const result=await route.refreshMap([19.7,45.2,20,45.4]);
+ expect(result.kind).toBe('applied');expect(h.calls.slice(calls).map(x=>x.mode)).toEqual(['MAP']);
+ expect((h.calls[calls] as any).bounds).toEqual([19.7,45.2,20,45.4]);
+ const after=route.snapshot();
+ expect(after.view).toEqual(before.view);expect(after.screen.items).toEqual(before.screen.items);
+ expect(after.screen.peek).toEqual(before.screen.peek);expect(after.selectedMarkerKey).toBe(before.selectedMarkerKey);
+ expect(after.generation).toBe(before.generation);
+ // Where the map was already read, nothing is read again.
+ const again=await route.refreshMap([19.7,45.2,20,45.4]);expect(again.kind).toBe('noop');expect(h.calls).toHaveLength(calls+1);
+});
+
+it('refreshMap before any view and after retire reads nothing',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ expect((await route.refreshMap([19,44,21,46])).kind).toBe('noop');
+ await route.open(view());route.retire();
+ expect((await route.refreshMap([19.7,45.2,20,45.4])).kind).toBe('noop');expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP']);
+});

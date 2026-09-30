@@ -58,8 +58,9 @@ const cloneFilter = (filter: DiscoveryV1Filter): DiscoveryV1Filter => ({
  * never equal their own echo. Six decimals survive that trip exactly, so the request and its echo compare with `===`.
  */
 const BOUNDS_SCALE = 1_000_000;
-const cloneBounds = (bounds: DiscoveryV1Bounds): DiscoveryV1Bounds =>
+export const wireBounds = (bounds: DiscoveryV1Bounds): DiscoveryV1Bounds =>
   bounds.map(value => Math.round(value * BOUNDS_SCALE) / BOUNDS_SCALE + 0) as DiscoveryV1Bounds;
+const cloneBounds = wireBounds;
 const cloneScope = (scope: DiscoveryV1Scope): DiscoveryV1Scope => scope.kind === 'ALL' ? { kind: 'ALL' }
   : scope.kind === 'AREA' ? { kind: 'AREA', bounds: cloneBounds(scope.bounds) }
   : { kind: scope.kind, point: { ...scope.point } };
