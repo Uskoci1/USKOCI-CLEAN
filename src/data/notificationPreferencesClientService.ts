@@ -57,7 +57,8 @@ export function createNotificationPreferencesService(rpc: Rpc): NotificationPref
     if (!object(result)) return fail('INVALID_RESPONSE');
     if (result.error) {
       const code = object(result.error) ? result.error.code : null;
-      if (code === '40001') return fail('CONFLICT');
+      // B24: PT409 is the deliberate conflict since the server stopped raising 40001 (PostgREST 14 retries it without end); the old code stays accepted.
+      if (code === '40001' || code === 'PT409') return fail('CONFLICT');
       if (code === '28000' || code === '42501') return fail('AUTH_CONTEXT_CHANGED');
       if (code === '22023') return fail('INVALID_SETTINGS');
       return fail('UNAVAILABLE');

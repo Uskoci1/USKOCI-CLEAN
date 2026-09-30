@@ -55,7 +55,8 @@ export function createAgreementMessageService(rpc: Rpc): AgreementMessagePort {
       if (response.error) {
         const error = object(response.error) ? response.error : {};
         if (error.code === '28000') return fail('AUTH_CONTEXT_CHANGED');
-        if (error.code === '40001') return fail('CONFLICT');
+        // B24: a conflict the function raises on purpose is PT409 (HTTP 409) since the server stopped using 40001, which PostgREST 14 retries without end; the old code stays accepted.
+        if (error.code === '40001' || error.code === 'PT409') return fail('CONFLICT');
         if (error.code === '42501' || error.code === 'P0002') return fail('NOT_AVAILABLE');
         if (error.message === 'CHAT_NOT_AVAILABLE') return fail('READ_ONLY');
         if (error.code === '22001' || error.code === '22023' || error.message === 'MESSAGE_REQUIRED') return fail('INVALID_MESSAGE');

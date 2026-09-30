@@ -80,9 +80,9 @@ describe('notification preferences owner/CAS transport', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it.each(['40001', '28000', '22023'])('surfaces server conflict/owner/validation errors without an automatic new write: %s', async code => {
+  it.each(['40001', 'PT409', '28000', '22023'])('surfaces server conflict/owner/validation errors without an automatic new write: %s', async code => {
     const rpc = jest.fn().mockResolvedValue({ data: null, error: { code, message: 'internal detail must not reach UI' } });
-    const expected = { '40001': 'CONFLICT', '28000': 'AUTH_CONTEXT_CHANGED', '22023': 'INVALID_SETTINGS' }[code];
+    const expected = { '40001': 'CONFLICT', PT409: 'CONFLICT', '28000': 'AUTH_CONTEXT_CHANGED', '22023': 'INVALID_SETTINGS' }[code];
     await expect(createNotificationPreferencesService(rpc).save(A, 'REQUESTER', defaults(), 0))
       .rejects.toMatchObject({ code: expected, message: expected });
     expect(rpc).toHaveBeenCalledTimes(1);

@@ -59,7 +59,7 @@ it('snapshots caller fields synchronously before awaiting a shared client', asyn
 });
 
 it.each([
-  [{code:'28000'},'AUTH_CONTEXT_CHANGED'], [{code:'40001'},'CONFLICT'],
+  [{code:'28000'},'AUTH_CONTEXT_CHANGED'], [{code:'40001'},'CONFLICT'], [{code:'PT409',message:'MESSAGE_COMMAND_CONFLICT'},'CONFLICT'],
   [{code:'42501'},'NOT_AVAILABLE'], [{code:'P0002'},'NOT_AVAILABLE'],
   [{code:'P0001',message:'CHAT_NOT_AVAILABLE'},'READ_ONLY'],
   [{code:'P0001',message:'MESSAGE_REQUIRED'},'INVALID_MESSAGE'],
