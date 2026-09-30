@@ -142,12 +142,23 @@ def ping():
         return None
 
 
-def busy(fn):
-    return int(q(f"select count(*) from pg_stat_activity where usename='authenticator' and state in ('active','idle in transaction','idle in transaction (aborted)') and query like '%{fn}%'") or 0)
+def activity(window=2.0, step=0.1):
+    """What the database does for PostgREST's pooled connections over a short window: how many samples found one of them running (not idle, the LISTEN connection excluded)
+    and how many transactions committed meanwhile. A request that is finished leaves both near zero; an endless retry leaves both high (the first proof run saw about 6 commits a second)."""
+    c0 = int(q("select xact_commit from pg_stat_database where datname = 'postgres'"))
+    samples = 0
+    t_end = time.time() + window
+    n = 0
+    while time.time() < t_end:
+        n += 1
+        samples += int(q("select count(*) from pg_stat_activity where usename = 'authenticator' and state <> 'idle' and query not like 'LISTEN%'") or 0) > 0
+        time.sleep(step)
+    c1 = int(q("select xact_commit from pg_stat_database where datname = 'postgres'"))
+    return {'samplesBusy': samples, 'samples': n, 'commits': c1 - c0}
 
 
-def stop_runaway(fn):
-    return q(f"select coalesce(sum((pg_terminate_backend(pid))::int),0) from pg_stat_activity where usename='authenticator' and query like '%{fn}%' and pid <> pg_backend_pid()")
+def stop_runaway(_fn=None):
+    return q("select coalesce(sum((pg_terminate_backend(pid))::int), 0) from pg_stat_activity where usename = 'authenticator' and query not like 'LISTEN%' and pid <> pg_backend_pid()")
 
 
 def snapshot():
@@ -209,17 +220,16 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         check('POSTGREST_READY', ready, version=next((l for l in rest_log.splitlines() if 'Starting PostgREST' in l), '')[-60:])
         if not ready:
             raise RuntimeError('PostgREST did not become ready')
-        stop_runaway('rpc_apply_profile_avatar')
+        stop_runaway()
 
         # 1. BEFORE: the defect, one function outside the certified set and one inside it
         before = {}
         for fn in ('rpc_apply_profile_avatar', 'rpc_send_agreement_photo_message_v5'):
             r = call(fn, timeout=3.0)
-            time.sleep(2)
-            n = busy(fn)
-            before[fn] = {'answer': r, 'busyAfterTheClientLeft': n}
-            check(f'BEFORE_{fn}_NEVER_ANSWERS_AND_KEEPS_RUNNING', r.get('status') is None and n >= 1, **before[fn])
-            stop_runaway(fn)
+            act = activity()
+            before[fn] = {'answer': r, 'activityAfterTheClientLeft': act}
+            check(f'BEFORE_{fn}_NEVER_ANSWERS_AND_KEEPS_RUNNING', r.get('status') is None and (act['samplesBusy'] >= 3 or act['commits'] >= 5), **before[fn])
+            stop_runaway()
             time.sleep(1)
 
         # 2. part 1
@@ -236,8 +246,8 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         check('PART1_REFUSES_TO_RUN_TWICE', ok and 'B24_ALREADY_APPLIED' in (p.stderr + p.stdout), err=(p.stderr or '')[-160:])
         r = call('rpc_apply_profile_avatar', timeout=3.0)
         check('AFTER_PART1_CONFLICT_ANSWERS_409_AT_ONCE', r.get('status') == 409 and 'MEDIA_VERSION_CONFLICT' in r.get('body', '') and '"PT409"' in r.get('body', '') and r['ms'] < 1500, **r)
-        time.sleep(2)
-        check('AFTER_PART1_NOTHING_STAYS_BUSY', busy('rpc_apply_profile_avatar') == 0)
+        act = activity()
+        check('AFTER_PART1_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0 and act['commits'] <= 2, **act)
 
         # 3. part 2
         ok, p = run_candidate('b24_nonretried_conflicts_part2_certified.sql')
@@ -251,8 +261,8 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         check('PART2_REFUSES_TO_RUN_TWICE', ok and 'B24P2_ALREADY_APPLIED' in (p.stderr + p.stdout), err=(p.stderr or '')[-160:])
         r = call('rpc_send_agreement_photo_message_v5', timeout=3.0)
         check('AFTER_PART2_CERTIFIED_CONFLICT_ANSWERS_409_AT_ONCE', r.get('status') == 409 and 'MEDIA_COMMAND_CONFLICT' in r.get('body', '') and r['ms'] < 1500, **r)
-        time.sleep(2)
-        check('AFTER_PART2_NOTHING_STAYS_BUSY', busy('rpc_send_agreement_photo_message_v5') == 0)
+        act = activity()
+        check('AFTER_PART2_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0 and act['commits'] <= 2, **act)
         # every spelling of the raise went through PostgREST identically: the message is the same and the status is 409 for one function of each spelling
         spellings = {}
         for fn in ('rpc_activate_urgent', 'rpc_accept_ai_task_review', 'rpc_save_worker_capacity', 'rpc_save_worker_availability'):
