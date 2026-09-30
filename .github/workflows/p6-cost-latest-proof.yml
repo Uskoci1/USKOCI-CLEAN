@@ -1,16 +1,6 @@
 name: P6 lazy locality paired proof
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - '.github/workflows/p6-cost-latest-proof.yml'
-      - 'supabase/candidates/p6_discovery_cost_v3.sql'
-      - 'supabase/proofs/discovery/p6_cost_latest.py'
-      - 'supabase/proofs/discovery/p6_cost_text_parity.sql'
-      - 'supabase/proofs/discovery/p6_cost_explicit_ranges.sql'
-      - 'supabase/proofs/discovery/p6_cost_function_profile.sql'
-      - 'supabase/proofs/discovery/p6_http_latest.mjs'
-      - 'scripts/proofs/p6-cost-latest-record.cjs'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -130,7 +120,7 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round48/
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round48/
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record P6 lazy locality cost and normalized dependency proof'
       - name: Publish only on unchanged canonical HEAD

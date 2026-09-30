@@ -4,7 +4,7 @@ const read=p=>fs.readFileSync(p,'utf8'),write=(p,s)=>fs.writeFileSync(p,s),git=(
 const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927';
 const report=dir+'/ROUND_52_P6_QUARANTINED_SCREEN.md',receipt=dir+'/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json';
 function verify(){
- const allowed=new Set([report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of git('ls-files','--others','--exclude-standard').split('\n').filter(Boolean))assert(allowed.has(p),'Unexpected untracked: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'Production route/port reader must remain off');
@@ -31,6 +31,5 @@ function record(){
   row.sledece='P6 only: bounded overlay owner + unreachable server-backed presentation seam; keep route switch off pending rollout/performance/native gates.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND52 (2026-09-28): quarantined P6 screen session + exact rpc_discovery_v1 transport at '+source+', run'+run+'. PAGE/MAP/filter scope, TASK exact, PLACE POINT_MEMBERS, CLUSTER geometry and independent PLACES paging are one fenced state model. TypeScript/focused/existing/full Jest PASS. Transport is NOT referenced by routes/Izvor/ports; no server apply/native claim. P6 OPEN; owner stop condition unchanged. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

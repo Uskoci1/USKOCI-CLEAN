@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_44_P6_FOUR_MODE_SQL.md',receipt=dir+'/ROUND_44_P6_FOUR_MODE_CHECKS.json';
 const generated=['supabase/candidates/p6_discovery_all.sql','supabase/proofs/discovery/p6_discovery_all_proof.sql','supabase/proofs/discovery/p6_discovery_all_run.mjs'];
 function verify(){
- const allowed=new Set([...generated,'scripts/proofs/p6-four-mode-builder.py','scripts/proofs/p6-four-mode-record.cjs','supabase/proofs/discovery/p6_discovery_spatial_cases.sql','.github/workflows/p6-four-mode-proof.yml',report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([...generated,'scripts/proofs/p6-four-mode-builder.py','scripts/proofs/p6-four-mode-record.cjs','supabase/proofs/discovery/p6_discovery_spatial_cases.sql','.github/workflows/p6-four-mode-proof.yml',report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside package: '+p);
  for(const p of git('ls-files','--others','--exclude-standard').split('\n').filter(Boolean))assert(allowed.has(p),'Unexpected untracked file: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'Production P6 wiring remains forbidden');
@@ -61,6 +61,5 @@ Next: complete real Auth/PostgREST and current-predecessor compatibility, intern
   row.sledece='Real Auth/PostgREST/current-predecessor compatibility and internal query-cost proof; then paging owner/map/facet adapters and native large-data acceptance. Keep production reader unchanged until gates close.';
  }
  write('docs/control/redovi.json',JSON.stringify(tracker,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND44 (2026-09-28): four-mode P6 standalone candidate on ${data.sourceSha}, run${run}, 11 disposable SQL groups PASS. Read ${report}. Historical PKG045b predecessor only; no actual Auth/PostgREST/current DEV apply/query cost/native proof, no production wiring. PAGE/EXACT historical proof retained; MAP 0/1/100/1000/3000 and PLACES complete count/text/key paging added. P6 remains OPEN.\n\n`+read('AGENTS.md'));
 }
 if(process.argv[2]==='verify')verify();else if(process.argv[2]==='record')record();else throw Error('Expected verify/record');

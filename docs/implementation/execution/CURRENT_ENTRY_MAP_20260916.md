@@ -28,6 +28,7 @@ listed at the end (`scripts/ci/pkg012-source-authority.test.cjs`).
 | `HANDOFF.md`, `docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md`, `CURRENT_IMPLEMENTATION_STATUS.md`, `IMPLEMENTATION_CONTINUITY.md`, `NEXT_AI_HANDOFF_20260911_0504.md` | "CURRENT SAFE HANDOFF 2026-09-11": owner stop of 2026-09-11, superseded by the V5 resume and AF-D26. |
 | `docs/implementation/v5-ai-first/EXECUTION.md` | Opens with the 2026-09-13 "FINAL STOP CHECKPOINT" and "EMERGENCY CHECKPOINT"; the package state now lives in the reconciliation and the Ledger. Its AF decision references stay valid through `OWNER_PRIVATE_TEST_DECISIONS_20260913.md`. |
 | `docs/authority/history/AGENTS_PRE_HANDOFF_20260911.md` | Pre-handoff AGENTS, already marked historical. |
+| `docs/authority/history/AGENTS_PRE_SLIM_20260930.md` | Byte-exact dated log of the root AGENTS.md (2026-09-11 to 2026-09-30), archived when the root became a rulebook; history, not the reading order. |
 | `docs/implementation/evidence/**` | Exact-run evidence; preserved byte for byte, never edited. |
 
 ## Package state, one sentence

@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_48_P6_LAZY_LOCALITY.md',receipt=dir+'/ROUND_48_P6_COST_CHECKS.json';
 const files=['p6-paired-samples.json','p6-optimized-plans.json','p6-needs-column-detail.json','p6-normalized-catalog.json','p6-http-latest-receipt.json','p6-function-profile.json'];
 function verify(){
- const allowed=new Set([report,receipt,...files.map(x=>dir+'/round48/'+x),'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,...files.map(x=>dir+'/round48/'+x),'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 wiring forbidden');
 }
@@ -74,6 +74,5 @@ Existing B04/B05 rows and generated control outputs are updated through node scr
   row.sledece='Optimized HTTP now PASS; remaining distribution/capacity/performance and native/client adapters; retain045b compatible-device gate and production wiring quarantine.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND48 (2026-09-28): P6 cost_v3 lazy locality at ${d.sourceSha}, run${run};13 SQL groups, explicit date/text parity and240 paired samples PASS. SQL1000ms ${d.screeningBudgetPass?'PASS':'FAIL'}; normalized scoped dependency comparison ${matched?'MATCH':'DIFF'}. Read ${report}. Not applied/wired/native/release; optimized local HTTP11 groups also PASS; scale/native/045b device rollout remain.\n\n`+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

@@ -1,14 +1,5 @@
 name: P5 owned client package
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - '.github/workflows/p5-client-package.yml'
-      - 'scripts/proofs/p5-client-package.cjs'
-      - 'src/data/discoveryWorkArea.ts'
-      - 'src/hooks/useDiscoveryWorkArea.ts'
-      - 'src/data/__tests__/discovery-work-area.test.ts'
-      - 'src/data/__tests__/discovery-work-area-hook.test.tsx'
   workflow_dispatch:
 permissions:
   contents: read
@@ -91,7 +82,7 @@ jobs:
           node scripts/control/osvezi.mjs > outputs/p5/control.log 2>&1
           node scripts/proofs/p5-client-package.cjs verify
           git diff --check
-          git add -- AGENTS.md docs/implementation/product-v1-closure-20260926/PLAN.md \
+          git add -- docs/implementation/product-v1-closure-20260926/PLAN.md \
             docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md \
             docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_CLIENT_CHECKS.json \
             docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md

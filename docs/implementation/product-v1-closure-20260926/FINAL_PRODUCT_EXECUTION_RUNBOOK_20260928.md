@@ -10,7 +10,7 @@ Version 1 • 2026-09-28 • Requested by the owner for continuation in another 
 
 Read in this order:
 
-1. [AGENTS.md](../../../AGENTS.md), newest dated entries first; retain applicable stable restrictions below them.
+1. [AGENTS.md](../../../AGENTS.md): the binding rulebook (rules, and conditional rules with their end events); since 2026-09-30 it carries no dated log, that is archived in `docs/authority/history/AGENTS_PRE_SLIM_20260930.md`.
 2. [Current priority plan](PLAN.md) and this entire runbook.
 3. [Branch and first-entry audit](finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md).
 4. [Applied packages and outstanding conditions](finalization-20260927/APPLICATION_APPROVALS_20260927.md).

@@ -62,7 +62,7 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_FAIL_36491107610.json docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_FAIL_36491390975.json
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_FAIL_36491107610.json docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_FAIL_36491390975.json
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record bounded P6 overlays and server map seam'
       - name: Fast-forward only on unchanged canonical source

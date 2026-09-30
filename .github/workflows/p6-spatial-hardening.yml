@@ -1,8 +1,6 @@
 name: P6 spatial guard regression package
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths: ['.github/workflows/p6-spatial-hardening.yml', 'scripts/proofs/p6-spatial-hardening.cjs']
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -66,7 +64,7 @@ jobs:
           node scripts/control/osvezi.mjs > outputs/p6-spatial/control.log 2>&1
           node scripts/proofs/p6-spatial-hardening.cjs verify
           git diff --check
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_CHECKS.json
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_CHECKS.json
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record P6 spatial guard proof and remaining server gate'
       - name: Fast-forward only on unchanged canonical predecessor

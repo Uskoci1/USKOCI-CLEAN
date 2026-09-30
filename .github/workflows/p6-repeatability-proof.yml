@@ -1,12 +1,6 @@
 name: P6 repeatability and authorized scan controls
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - '.github/workflows/p6-repeatability-proof.yml'
-      - 'supabase/proofs/discovery/p6_repeatability.py'
-      - 'supabase/proofs/discovery/p6_repeatability.sql'
-      - 'supabase/proofs/discovery/test_p6_repeatability.py'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -122,7 +116,7 @@ jobs:
           git diff --check
           python3 -B - <<'PY'
           import os, subprocess
-          allowed={'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html'}
+          allowed={'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html'}
           prefix='docs/implementation/product-v1-closure-20260926/finalization-20260927/'
           allowed|={prefix+'ROUND_49_P6_REPEATABILITY.md',prefix+'ROUND_49_P6_CHECKS.json',prefix+'round49/p6-repeat-samples.json'}
           changed=subprocess.check_output(['git','diff','--name-only',os.environ['GITHUB_SHA']],text=True).splitlines()
@@ -133,7 +127,7 @@ jobs:
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round49/
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round49/
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record repeated P6 cost and owner stop condition'
       - name: Fast-forward only on unchanged canonical HEAD

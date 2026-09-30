@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_47_P6_COST_OPTIMIZATION.md',receipt=dir+'/ROUND_47_P6_COST_COMPARE.json';
 const extra=['p6-paired-samples.json','p6-optimized-plans.json','p6-needs-column-detail.json'];
 function verify(){
- const allowed=new Set([report,receipt,...extra.map(x=>dir+'/round47/'+x),'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,...extra.map(x=>dir+'/round47/'+x),'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 production wiring forbidden');
 }
@@ -63,6 +63,5 @@ Existing B04/B05 control rows are reconciled and node scripts/control/osvezi.mjs
   row.sledece='Review Round47 column difference; real HTTP refresh for cost_v2; further distributions/capacity cost and paging/map/facet adapters before native/rollout. Keep P6 wiring off.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND47 (2026-09-28): guarded P6 cost_v2 delta at ${d.sourceSha}, run${run};13 SQL groups and240 paired samples PASS, full normalized payload parity. SQL1000ms screening ${d.screeningBudgetPass?'PASS':'FAIL'}, collection improvement ${d.improvementProven?'PROVEN':'NOT_PROVEN'}. Read ${report}. No DEV/provider/native/production wiring. Optimized HTTP refresh and PKG045b compatible-device gate remain.\n\n`+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

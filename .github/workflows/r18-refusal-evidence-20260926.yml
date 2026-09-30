@@ -1,8 +1,5 @@
 name: Record R18 refusal evidence once
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths: ['.github/workflows/r18-refusal-evidence-20260926.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -103,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
-          git add -- AGENTS.md docs/control/redovi.json docs/control/stanje.json \
+          git add -- docs/control/redovi.json docs/control/stanje.json \
             docs/implementation/design-system/r19-task-agreement-20260925/NEXT.md \
             docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md \
             docs/implementation/release-hardening-20260926/E01_E02_CHECKS.json \
@@ -112,7 +109,7 @@ jobs:
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { execFileSync } from 'node:child_process';
-          const allowed = new Set(['AGENTS.md', 'docs/control/redovi.json', 'docs/control/stanje.json',
+          const allowed = new Set(['docs/control/redovi.json', 'docs/control/stanje.json',
             'docs/implementation/design-system/r19-task-agreement-20260925/NEXT.md',
             'docs/implementation/release-hardening-20260926/E01_E02_RECOVERY.md',
             'docs/implementation/release-hardening-20260926/E01_E02_CHECKS.json',

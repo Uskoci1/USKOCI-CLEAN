@@ -6,7 +6,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE.md',receipt=dir+'/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE_CHECKS.json';
 
 function verify(){
- const allowed=new Set([report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])
   assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'Production P6 wiring still forbidden');
@@ -48,6 +48,5 @@ function record(){
   row.sledece='P6 only: wider large/distribution/capacity/load proof on frozen rollout bytes; guarded native route candidate; satisfy compatible-device PKG045b gate before any live apply.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND56 (2026-09-29): frozen deployable P6 server candidate at '+source+', run'+run+', candidate SHA256 '+d.candidateSha256+'. Exact seven function bodies match proved base+cost_v2+cost_v3; local real Auth/PostgREST/current-decoder 11 groups PASS; certificate and Need ACL unchanged; repeat apply refuses. Fresh canonical DEV remains ledger210, P6 absent, PKG045b absent/broad Need grants, so live rollout is deliberately inadmissible. No DEV/native/production wiring. P6 OPEN; owner stop condition binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

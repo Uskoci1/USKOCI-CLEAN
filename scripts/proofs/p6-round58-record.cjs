@@ -6,7 +6,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md',receipt=dir+'/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD_CHECKS.json';
 
 function verify(){
- const allowed=new Set([report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  const standard=read('src/data/discoveryV1NativeProofGate.ts');
  assert(standard.includes("routeParam === P6_DISCOVERY_PROOF_PARAM && buildFlag === '1' && androidPackage === 'rs.uskoci.dev'"));
@@ -40,6 +40,5 @@ function record(){
   row.sledece='P6 only: execute guarded P6 route against admissible PKG045b+P6 server target, then exact Android FULL/back/scroll/viewport/pin and memory/ANR acceptance; keep ordinary build fail-closed.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND58 (2026-09-29): guarded native P6 proof build at '+source+', run'+run+', APK SHA256 '+facts.apkSha256+'. Exact DEV package + compile flag + route param all required; ordinary/publication routes stay fail-closed legacy. TypeScript/focused/full Jest PASS and APK build PASS, but no device execution/server apply/production cutover. P6 OPEN; owner stop condition binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

@@ -1,8 +1,6 @@
 name: P6 current dependency and measured SQL cost
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths: ['.github/workflows/p6-current-cost-proof.yml', 'supabase/proofs/discovery/p6_current_cost.py', 'supabase/proofs/discovery/p6_cost_probe.sql', 'supabase/proofs/discovery/p6_cost_parse.py', 'supabase/proofs/discovery/test_p6_cost_parse.py', 'supabase/proofs/discovery/p6_dependency_snapshot.sql', 'supabase/proofs/discovery/p6_live_dependency_observation.json', 'scripts/proofs/p6-cost-record.cjs']
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -138,7 +136,7 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round46/
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json docs/implementation/product-v1-closure-20260926/finalization-20260927/round46/
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record measured P6 SQL cost and live column rollout boundary'
       - name: Fast-forward only on unchanged canonical HEAD

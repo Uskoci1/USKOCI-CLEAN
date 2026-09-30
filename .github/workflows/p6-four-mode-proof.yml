@@ -1,8 +1,6 @@
 name: P6 four-mode disposable SQL package
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths: ['.github/workflows/p6-four-mode-proof.yml', 'scripts/proofs/p6-four-mode-builder.py', 'scripts/proofs/p6-four-mode-record.cjs', 'supabase/proofs/discovery/p6_discovery_spatial_cases.sql']
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -141,7 +139,7 @@ jobs:
           node scripts/control/osvezi.mjs > "$PRE_V3_ARTIFACT_DIR/control.log" 2>&1
           node scripts/proofs/p6-four-mode-record.cjs verify
           git diff --check
-          git add AGENTS.md docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json
+          git add docs/control/redovi.json docs/control/stanje.json docs/control/FINALIZATION_MATRIX.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json
           git add -f docs/control/out/tabla.html
           git commit -m 'docs(control): record four-mode P6 SQL proof without live or scale acceptance'
       - name: Publish only on the unchanged canonical branch

@@ -4,7 +4,7 @@ const read=p=>fs.readFileSync(p,'utf8'),write=(p,s)=>fs.writeFileSync(p,s),git=(
 const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927';
 const report=dir+'/ROUND_57_P6_30000_LOAD.md',receipt=dir+'/ROUND_57_P6_30000_LOAD_CHECKS.json';
 function verify(){
- const allowed=new Set([report,receipt,dir+'/round57/p6-load-30k-samples.json','AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,dir+'/round57/p6-load-30k-samples.json','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'Production reader still quarantined');
 }
@@ -39,6 +39,5 @@ function record(){
   row.sledece=d.performanceScreeningPass?'P6 only: guarded production route/native candidate, compatible-device PKG045b gate, live apply then FULL/memory/ANR acceptance.':'P6 only: diagnose/repair 30k SQL blocker using retained controls; rerun exact 30k proof before rollout/native closure.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND57 (2026-09-29): P6 30k mixed distribution/capacity proof at '+source+', run'+run+';720 authenticated RLS-active SQL samples. Performance screen '+d.performanceScreeningPass+', same-run stability '+d.sameRunnerStabilityPass+'. No DEV/native/production switch. P6 OPEN; owner stop condition binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

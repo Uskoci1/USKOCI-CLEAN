@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md',receipt=dir+'/ROUND_46_P6_COST_CHECKS.json';
 const extra=['p6-cost-samples.json','p6-internal-plans.json','p6-pre-column-catalog.json','p6-post-column-catalog.json'];
 function verify(){
- const allowed=new Set([report,receipt,...extra.map(x=>dir+'/round46/'+x),'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,...extra.map(x=>dir+'/round46/'+x),'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 production wiring forbidden');
 }
@@ -67,6 +67,5 @@ Next: resolve any dependency differences and diagnosed query hot spots in a sepa
   r.sledece='Inspect Round46 dependency deltas/internal plans; fix measured P6 cost without changing authority; retain PKG045b device-rollout gate and keep production wiring off.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND46 (2026-09-28): measured P6 SQL cost/source${d.sourceSha}, run${run};120 samples,11 SQL groups,3 internal ANALYZE BUFFERS plans. SQL1000ms screening ${d.screeningBudgetPass?'PASS':'FAIL'}; scoped current read-dependency comparison ${d.dependencyComparison.matches?'MATCH':'DIFF'}. Live DEV210 has NOT applied045b; existing conditional compatible-device gate remains. Read ${report}. No DEV/provider/native/wiring/release claim.\n\n`+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

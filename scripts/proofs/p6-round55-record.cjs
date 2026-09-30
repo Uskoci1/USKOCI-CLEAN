@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md',receipt=dir+'/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json';
 
 function verify(){
- const allowed=new Set([report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])
   assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'Production RPC remains quarantined');
@@ -44,6 +44,5 @@ function record(){
   row.sledece='P6 only: freeze deployable combined server candidate and current preconditions/performance proof without apply; prepare guarded production route switch and exact native/FULL-return/memory acceptance.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND55 (2026-09-29): P6 authoritative search/facet preview + unreachable route coordinator at '+source+', run'+run+'. Search count/facets never derive from bounded PAGE; draft/place paging fenced; viewport/sheet/listOffset do not reopen server traversal; search/map scope do. Bounded overlays now tolerate longer accumulated PAGE without enriching unadmitted rows. TypeScript/focused/existing/full Jest PASS. No src/app route switch, DEV apply or native claim. P6 OPEN; owner stop condition binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

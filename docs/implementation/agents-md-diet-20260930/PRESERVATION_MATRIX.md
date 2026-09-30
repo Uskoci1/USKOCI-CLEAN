@@ -189,3 +189,33 @@ Source: `AGENTS.md` at `934057d5` (sha256 `a29c91b2…`, 159 blocks; block numbe
 | Owner-quoted Serbian words preserved verbatim | "velika dugmad ostaju, ovo su samo usmerenja" (R061); "ovaj sistem ikona … kroz ceo app … izgled kartice isti" and "nije ove boje … loš fazon" (block 96 heading, kept in CLASSIFICATION.md; the resulting rule R072 is in §3.6.4); "Da" (R091); "po vremenu u Srbiji" (R111); "stalno / ponekad / retko", "Dogovoreno!", "Tražiš pomoć / Uskačeš, Posao je gotov, Mogu odmah" (R073, R091, R097); "primeni" (R020); "odobravam sve"/"dozvoljavam sve"/"kreni"/"odobram sve to" are STATE (approval records of applied packages, archived) |
 
 Note on one sentence deliberately **not** promoted to a rule: "Serbian Latin script" is a rule of the local agent memory (`uskoci-design-session-rules`), not of AGENTS.md; it is therefore not in the proposal (nothing is invented). The language rules that ARE in AGENTS.md (R073, R111, R116) are all carried in §3.6.8.
+
+## Addendum at apply time (2026-09-30)
+
+Between the analysis pin `934057d5` and the applied file exactly one block was added at the top of `AGENTS.md` (call it block 0, "P6 CLOSED WITH LIMITS"; `git diff 934057d5 HEAD -- AGENTS.md` shows it as the only change). The archive therefore has a different identity from the one in `ARCHIVE_PLAN.md`: 130,364 bytes, SHA-256 `e6ce5d3ea83211c7f0e8259eb139c6a1bff171dedaae8a3872886d3a9f50082d`, git blob `1f0557fd917abde0c823ebb97ff3cf103029dc55`. Destinations that changed in `AGENTS.md` (the slim file, 30,679 bytes) compared with `AGENTS.proposed.md` as first written:
+
+| Rows | Was | Now |
+|---|---|---|
+| R001 (1a), R067 (95) | §3.2.1 emulator quote | §3.2.1 carries the STANDING QA DIRECTION (HONOR primary); both emulator-only sentences are named there as superseded by it |
+| R002, R003, R008 (1b, 1c, 11) | §4.1 verbatim | SUPERSEDED by block 0 (P6 closed with limits) and by the order of work: §4.1, §4.2 |
+| R004 (1d) | §4.1 | §4.1 (kept verbatim) |
+| R007 (1f) | §4.1 | §4.1 ("No new audit, no new prototype" kept until the owner lifts it; "no P7" lapsed with the closure) |
+| R011, R012 (20) | §4.2 | §4.5 |
+| R100 (119) | §4.3 | §3.1.4 (the approval stays a rule, "do not ask for it again"; the hold ended: PKG-045b is applied) |
+| R115 (140) | §4.4 | §4.6 |
+
+Block 0, sentence by sentence:
+
+| Sentence of block 0 | Class | Destination |
+|---|---|---|
+| P6 is closed on its existing evidence; the QA robot is a separate package and NOT a condition for P6 | RULE | §4.1 |
+| levels kept apart (SOURCE/CI/DEV APPLIED/APP WIRED/APK BUILT/EMULATOR PROVEN/PHYSICAL DEVICE/iOS/RELEASE), every failure classified as product or QA, limits L1-L10, QAD-01..05 | RULE | §4.1 (and the receipt it points to) |
+| Reader cutover DONE for DEV builds; kill switch = remove the line and rebuild; `eas.json` unchanged | RULE + STATE | §4.1 |
+| This SUPERSEDES the P6-OPEN / "stop for the owner after P6 ZAVRŠEN" paragraphs | RULE | §4.1 |
+| Next, in the owner's order: stable checkpoint, safe C0, Discovery polish, other V1 flows, UI/UX, release preparation; do not open new P6 rounds for extra comfort | RULE | §4.2, §4.1 |
+| STANDING QA DIRECTION (HONOR primary, AVD secondary, adb serial, FAST/FOCUSED first, FULL only for big checkpoints, two devices later, never clear data/session or sign out without his OK, `adb install -r` only, destructive actions need prior OK, QA never blocks product progress) | RULE | §3.2.1 |
+| SUBAGENT MODELS: parent's model; Fable 5.1 only after the owner says yes | RULE | §3.1.9 |
+| Round 74 facts, FINDING B24 mechanism, the DEV session that was ended, tag and APK hashes | STATE | archive + `ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md` + registry |
+| a write to a shared resource needs his word (B24 paragraph) | RULE | §3.1.8 (with the owner's later wording) |
+
+Rules the owner gave on 2026-09-30 after the pin and never written in the old file, carried as new rules: §3.1.8 (ask before state-changing DEV/PROD actions, read-only needs no approval), §3.2.1 (the "sad" window), §4.3 (EX-03 scope, TaskCard/Peek visual design not touched), §4.4 (B24 candidates, DEV only with "primeni"), and the conditional `expo-audio` approval in §3.1.5 (its source is `VOICE_AUDIO_STACK_DECISION_20260930.md`).

@@ -35,6 +35,7 @@ docs/authority/history/** -text whitespace=cr-at-eol
 # Keep authored handoff hashes stable across Windows and other checkouts.
 .gitattributes text eol=lf
 AGENTS.md text eol=lf
+docs/authority/history/AGENTS_PRE_SLIM_20260930.md text eol=lf
 HANDOFF.md text eol=lf
 docs/authority/AUTHORITY_INDEX.md text eol=lf
 docs/authority/AUTHORITY_MANIFEST.json text eol=lf

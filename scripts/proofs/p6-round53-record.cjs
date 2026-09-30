@@ -5,7 +5,7 @@ const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927
 const report=dir+'/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md',receipt=dir+'/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json',failReceipt=dir+'/ROUND_53_FAIL_36491107610.json',failReceipt2=dir+'/ROUND_53_FAIL_36491390975.json';
 
 function verify(){
- const allowed=new Set([report,receipt,failReceipt,failReceipt2,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,failReceipt,failReceipt2,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 production reader still quarantined');
  for(const p of ['src/app','src/ui/v2/DiscoveryMap.tsx','src/ui/v2/DiscoveryPresentation.tsx'])assert.equal(cp.spawnSync('grep',['-R','-n','-F','DiscoveryV1ServerMarkerLayer',p]).status,1,'Server marker seam must remain unreachable');
@@ -40,7 +40,6 @@ function record(){
   row.sledece='P6 only: integrate quarantined session+overlays with actual DiscoveryPresentation/map seam without route switch; then performance/load, rollout, FULL-return and native/memory/ANR acceptance.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND53 (2026-09-28): bounded P6 optional overlay owner + unreachable server MAP marker seam at '+source+', run'+run+'. Overlay <=100, profile concurrency4, MAP buckets<=256; late slice/account/focus responses fenced; optional failures cannot remove PAGE membership or invent relation/trust. TypeScript/focused/existing/full Jest PASS. Not imported by production DiscoveryMap/Presentation/routes; no server apply/native claim. P6 OPEN; owner stop condition unchanged. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 
 if(process.argv[2]==='record')record();

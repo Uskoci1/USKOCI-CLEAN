@@ -4,7 +4,7 @@ const read=p=>fs.readFileSync(p,'utf8'),write=(p,s)=>fs.writeFileSync(p,s),git=(
 const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927';
 const report=dir+'/ROUND_50_P6_CLIENT_OWNER.md',receipt=dir+'/ROUND_50_P6_CLIENT_OWNER_CHECKS.json';
 function verify(){
- const allowed=new Set([report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean)) assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of git('ls-files','--others','--exclude-standard').split('\n').filter(Boolean)) assert(allowed.has(p),'Unexpected untracked file: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts']) assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 production wiring still forbidden');
@@ -35,6 +35,5 @@ function record(){
   row.sledece='P6 only: integrate PAGE/MAP/PLACES owner with real map/list/filter state while production switch remains off; then rollout/performance/native/FULL-return acceptance. STOP only after full P6.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND50 (2026-09-28): P6 paging-owner/stale-response fencing core at '+source+', run'+run+'. Strict owner generations prevent older PAGE/MAP/PLACES/EXACT responses publishing after newer intent/scope/account/focus; duplicate cursor requests coalesce. TypeScript/focused/contracts/full Jest PASS. No production rpc_discovery_v1 wiring, server apply or native claim. P6 remains OPEN and owner stop condition remains binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');

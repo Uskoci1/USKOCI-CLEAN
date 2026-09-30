@@ -240,8 +240,6 @@ Method references: PostgreSQL17 row security and EXPLAIN documentation (https://
         f['status'] = 'P6 REPEATED COST EVIDENCE / PRODUCTION INTEGRATION+ROLLOUT+NATIVE OPEN / STOP ONLY AFTER FULL P6'
         row['sledece'] = 'Follow existing P6 priority: diagnose authorized-scan vs projection cost, wider distributions/capacity/load, paging/fences/adapters, authorized rollout and native acceptance; STOP at complete P6 for owner.'
     tracker_path.write_text(json.dumps(tracker,ensure_ascii=False,indent=2)+'\n')
-    agents = Path('AGENTS.md')
-    agents.write_text(f'OWNER P6 STOP CONDITION + ROUND49 (2026-09-28): continue P6 only; do not advance to another large phase. Declare P6 ZAVRŠEN only after all applicable performance, four-mode, paging/fencing, production reader/map/list/FULL-return, rollout and exact native/memory/ANR gates close; then STOP for owner instruction. Current P6 OPEN. Read {report}; source {sha}, run{run_id},720 repeated SQL measurements; no live apply/provider/native/production wiring.\n\n'+agents.read_text())
 
 
 if __name__ == '__main__':

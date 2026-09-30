@@ -246,3 +246,11 @@ Sentence-level counts (every RULE/CONDITIONAL sentence mapped) are in `PRESERVAT
 3. **119 PKG-045b hold.** Memory records PKG045b (P0 form) applied to DEV on 2026-09-30 (ledger 211) with a receipt; AGENTS.md still says ON HOLD. The proposal keeps the conditional with its end event and instructs to check `docs/control/redovi.json` and the ledger receipt.
 4. **117 Edge deployment route.** "that is the owner's byte-exact CLI route" describes one change; the general rule (owner CLI is the byte-exact route; connector deploys must be read back) lives in memory `uskoci-edge-deploy-via-connector-caveat`, not in AGENTS.md. Only the readback verification (E5) is carried as a rule; the CLI-route sentence is archived.
 5. **62 notification architecture facts** (service-role-only `rpc_begin_push_send`, no raw title/body/payload to Edge). These are implemented invariants recorded in `NOTIFICATION_A1_RUNTIME_EVIDENCE.md`/`NOTIFICATION_MATRIX.md`; classified STATE with a pointer (#63 keeps the matrix pointer).
+
+## 5. Ambiguities settled at apply time (2026-09-30, conservative reading, reported to the owner)
+
+1. **1c / 11 end-state ("STOP for the owner after P6 ZAVRŠEN").** Superseded by the P6 closure with limits (owner instruction of 2026-09-30) and by "do the rest on your own; stop the owner only for real owner decisions". `AGENTS.md` §4.1 and §4.2 say so.
+2. **1f "No new audit, no new prototype".** Kept as a conditional rule until the owner lifts it; "no P7" lapsed with the closure.
+3. **119 PKG-045b hold.** PKG-045b is applied on canonical DEV (ledger receipts, registry); the approval stays a rule ("do not ask for it again", §3.1.4), the hold ended.
+4. **117 Edge deployment route.** Carried as a rule in §3.2.6 (the owner's CLI deploy is the byte-exact route; a connector deploy must be read back and byte-compared).
+5. **62 notification architecture facts.** Remain STATE with their pointer (`NOTIFICATION_A1_RUNTIME_EVIDENCE.md`, `NOTIFICATION_MATRIX.md`).

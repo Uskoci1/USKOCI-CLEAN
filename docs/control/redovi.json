@@ -3952,7 +3952,7 @@
       "oblast": "AI verzija",
       "nalaz_16_09": "Na serveru stara verzija AI funkcije",
       "sada": "ZATVORENO: intake v50 bajt-proveren (PKG-044)",
-      "dokaz": "AGENTS.md PKG-044"
+      "dokaz": "docs/authority/history/AGENTS_PRE_SLIM_20260930.md (PKG-044 paragraph); docs/implementation/v5-ai-first/pkg044/PKG044_CONTEXTUAL_INTAKE_QUESTIONS.md"
     },
     {
       "id": "B07",

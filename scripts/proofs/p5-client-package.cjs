@@ -204,13 +204,12 @@ function record(){
   row.sledece='Objedinjeni native checkpoint prema '+reportPath+'; zatim preostali P5 AI/matching i P6. Provider/server promene ostaju zasebno odobrene.';
  }
  write('docs/control/redovi.json',JSON.stringify(data,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND39 (2026-09-28): tested source ${source}; run${run}; TypeScript and focused/full Jest PASS, counts/hashes in ${checksPath}. Saved work area is an optional initial camera only; explicit/remembered views win. Worker AI review is above composer; frozen review has its own coarse map. No TaskCard/Peek/server/provider/dependency/certificate/payment change. Native/AI/matching/P6/voice acceptance OPEN. Read ${reportPath}; same62-row control updated/generated, hosted publication pending.\n\n`+read('AGENTS.md'));
  const plan='docs/implementation/product-v1-closure-20260926/PLAN.md';
  replace(plan,'## Start here: current evidence and boundaries',`Latest P5 client checkpoint: [Round39](finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md), tested source \`${source}\`. Older runtime/installation references below are dated baselines, not this package's device acceptance.\n\n## Start here: current evidence and boundaries`);
  console.log(JSON.stringify(receipt));
 }
 function verifyPaths(){
- const allowed=new Set([...code,...tests,...additions,reportPath,checksPath,'AGENTS.md','docs/implementation/product-v1-closure-20260926/PLAN.md',
+ const allowed=new Set([...code,...tests,...additions,reportPath,checksPath,'docs/implementation/product-v1-closure-20260926/PLAN.md',
  'docs/control/redovi.json','docs/control/stanje.json','docs/control/out/tabla.html','docs/control/FINALIZATION_MATRIX.md',
  'scripts/proofs/p5-client-package.cjs','.github/workflows/p5-client-package.yml']);
  for(const p of git('diff','--name-only',BASE).split('\n').filter(Boolean))if(!allowed.has(p))throw Error('Outside package: '+p);

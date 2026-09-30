@@ -115,10 +115,9 @@ Existing B04/B05 rows are reconciled; node scripts/control/osvezi.mjs must run b
   if(id==='B04')f.ux='Round33 preserves logical FULL, offset, viewport and selection across a fresh native mount. Round39 adds optional saved work-area initial camera; explicit user intent/publication/remembered viewport wins. These are source/CI facts, not current native acceptance. Personal locality and GPS remain separate.';
  }
  write('docs/control/redovi.json',JSON.stringify(data,null,2)+'\n');
- write('AGENTS.md',`FINALIZATION ROUND43 (2026-09-28): P6 spatial cursor/count hardening at ${tested}, run${run}. 8 RED-before; TypeScript/focused/full Jest PASS. Read ${report} and exact counts/hashes in ${receipt}. Quarantined client only; no server/provider/native/release claim. Full four-mode P6 server candidate/proof remains engineering work. Existing 62-row control generated; hosted publication not established.\n\n`+read('AGENTS.md'));
 }
 function verify(){
- const allowed=new Set([source,test,report,receipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html','scripts/proofs/p6-spatial-hardening.cjs','.github/workflows/p6-spatial-hardening.yml']);
+ const allowed=new Set([source,test,report,receipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html','scripts/proofs/p6-spatial-hardening.cjs','.github/workflows/p6-spatial-hardening.yml']);
  git('merge-base','--is-ancestor',BASE,'HEAD');for(const p of git('diff','--name-only',BASE).split('\n').filter(Boolean))assert(allowed.has(p),'Outside package: '+p);
  for(const p of git('ls-files','--others','--exclude-standard').split('\n').filter(Boolean))assert(allowed.has(p)||p.startsWith('outputs/p6-spatial/'),'Unexpected: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts']){const result=cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p],{encoding:'utf8'});assert.equal(result.status,1,'P6 production wiring forbidden');}

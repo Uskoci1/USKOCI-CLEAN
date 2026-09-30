@@ -74,7 +74,7 @@ function main() {
   const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
   assert.equal(git('rev-parse', 'HEAD'), process.env.GITHUB_SHA);
   const changed = git('diff', '--name-only', SOURCE, 'HEAD').split('\n').filter(Boolean);
-  const allowed = p => p.startsWith('docs/') || p === 'AGENTS.md' || p === 'scripts/control/record-r18-refusal-20260926.mjs'
+  const allowed = p => p.startsWith('docs/') || p === 'scripts/control/record-r18-refusal-20260926.mjs'
     || p === 'scripts/control/record-r18-refusal-20260926.test.mjs' || p === '.github/workflows/r18-refusal-evidence-20260926.yml';
   assert.ok(changed.every(allowed), 'Unverified runtime or build source changed since proof');
   assert.ok(!existsSync(CHECKS), 'One-shot evidence already exists');
@@ -99,12 +99,6 @@ function main() {
   assert.ok(start >= 0 && end > start, 'NEXT section changed; reconcile manually');
   next = next.slice(0, start) + `1. **Feedback truth: R18-E01/E02 — client CI pass, device pending.** Source ${SOURCE} passes types, ${evidence.focused.passedTests} focused tests and ${evidence.full.passedTests} full-suite tests. The conclusive refusal now settles both route and editor flags and keeps its authored outcome visible. Message-only failures and reused keys retain uncertainty. Read \`${REPORT}\` and \`${CHECKS}\`. Do not rebuild this fix; next prove the exact APK/profile-return flow and separately test storage-clear failure/retained reset races. No DEV/Edge change or real push was made.\n\n` + next.slice(end);
   writeFileSync(nextPath, next);
-  const agentsPath = 'AGENTS.md';
-  let agents = readFileSync(agentsPath, 'utf8');
-  const heading = '# USKOČI — repository entry map\n\n';
-  assert.ok(agents.startsWith(heading));
-  agents = heading + `R18 REFUSAL RECOVERY CLIENT CI PASS (2026-09-26): tested source ${SOURCE}; read\n\`${REPORT}\` and E01_E02_CHECKS.json. The route no longer overrides a proven refusal with its stale pending flag; authored outcome copy is visible. Types, ${evidence.focused.passedTests} focused and ${evidence.full.passedTests} full Jest tests pass. Historical SQL proof remains 147 migrations, not live202 parity. Device/APK acceptance stays pending. No DEV/Edge/provider/push changes.\n\n` + agents.slice(heading.length);
-  writeFileSync(agentsPath, agents);
   console.log(JSON.stringify({ source: SOURCE, focused: evidence.focused, full: evidence.full, trackerRow: 'B09', deviceAccepted: false }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();

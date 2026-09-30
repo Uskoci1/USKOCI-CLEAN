@@ -317,9 +317,6 @@ function recordEvidence(dir) {
   let next = read(nextPath);
   next = replaceOnce(next, 'No DEV/Edge change or real push was made.\n', 'No DEV/Edge change or real push was made.\n\n   Storage follow-up: the exact journal/reset race is now covered by failing-before/passing-after tests. Read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and `STORAGE_INTEGRITY_CHECKS.json`. Reset awaits confirmed removal, preserves scope and pending identity on errors, and the journal rejects changed payload under the same key. Exact APK/profile-return acceptance remains pending; do not reimplement this tested client fix.\n');
   writeFileSync(nextPath, next);
-  let agents = read('AGENTS.md');
-  agents = replaceOnce(agents, '# USKOČI — repository entry map\n', '# USKOČI — repository entry map\n\nR18 STORAGE INTEGRITY CLIENT CI PASS (2026-09-26): read `docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md` and matching CHECKS. Reset now awaits durable retirement; double/late callbacks cannot release or erase another intent; same-key changed payload is rejected. Failing-before/passing-after tests and full Jest are recorded. Device/APK remains pending. No DEV/Edge/provider/push change; fresh DEV read was tool-blocked.\n');
-  writeFileSync('AGENTS.md', agents);
   writeFileSync(dir + '/summary.json', JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify({ status: evidence.status, focused: evidence.focused, full: evidence.full, testedTree }));
 }

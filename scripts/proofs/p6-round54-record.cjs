@@ -4,7 +4,7 @@ const read=p=>fs.readFileSync(p,'utf8'),write=(p,s)=>fs.writeFileSync(p,s),git=(
 const dir='docs/implementation/product-v1-closure-20260926/finalization-20260927';
 const report=dir+'/ROUND_54_P6_PRESENTATION_SEAM.md',receipt=dir+'/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json',failReceipt=dir+'/ROUND_54_FAIL_36492982087.json';
 function verify(){
- const allowed=new Set([report,receipt,failReceipt,'AGENTS.md','docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
+ const allowed=new Set([report,receipt,failReceipt,'docs/control/redovi.json','docs/control/stanje.json','docs/control/FINALIZATION_MATRIX.md','docs/control/out/tabla.html']);
  for(const p of git('diff','--name-only',process.env.GITHUB_SHA).split('\n').filter(Boolean))assert(allowed.has(p),'Outside evidence package: '+p);
  for(const p of ['src/app','src/data/supabaseIzvor.ts','src/data/ports.ts'])
   assert.equal(cp.spawnSync('grep',['-R','-n','-F','rpc_discovery_v1',p]).status,1,'P6 production reader still quarantined');
@@ -43,6 +43,5 @@ function record(){
   row.sledece='P6 only: authoritative server search/facets and quarantined route coordinator next; production reader switch remains off until rollout/performance/native/FULL-return gates close.';
  }
  write('docs/control/redovi.json',JSON.stringify(t,null,2)+'\n');
- write('AGENTS.md','FINALIZATION ROUND54 (2026-09-28): optional P6 path now reaches the real DiscoveryPresentation/DiscoveryMap through an unreachable bridge at '+source+', run'+run+'. Server MAP bypasses legacy client clustering; exact PAGE counts, bounded next-page and session TASK/PLACE Peek have real component seams. TypeScript/focused/existing/full Jest PASS. App routes still do not import bridge or rpc_discovery_v1; no DEV/native claim. P6 OPEN; owner stop condition binding. Read '+report+'.\n\n'+read('AGENTS.md'));
 }
 if(process.argv[2]==='record')record();else if(process.argv[2]==='verify')verify();else throw Error('Expected record/verify');
